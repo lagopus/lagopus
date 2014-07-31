@@ -1,0 +1,31 @@
+TOPDIR		= @TOPDIR@
+MKRULESDIR	= @MKRULESDIR@
+
+TARGETS =	trace.out
+SRCS = 		trace.c
+
+LIBS = \
+    $(DEP_LAGOPUS_AGENT_LIB)	\
+    $(DEP_LAGOPUS_DATAPLANE_LIB) \
+    $(DEP_LAGOPUS_UTIL_LIB) 	\
+    $(DEP_LAGOPUS_CONFIG_LIB)
+
+DEP_LIBS += $(LIBS)
+CPPFLAGS += -I../
+
+RTE_SDK     = @RTE_SDK@
+RTE_TARGET  = @RTE_TARGET@
+RTE_LIBS    = @RTE_LIBS@
+
+CHECK_LDFLAGS     += $(RTE_LIBS) $(LDFLAGS)
+
+include $(MKRULESDIR)/vars.mk
+include $(MKRULESDIR)/rules.mk
+
+all:: $(TARGETS)
+
+trace.out: trace.lo $(DEP_LIBS)
+	$(LTCLEAN) $@
+	$(LTLINK_CC) -o $@ $^ $(DEP_LIBS) $(CHECK_LDFLAGS)
+
+include .depend

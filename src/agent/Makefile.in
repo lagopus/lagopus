@@ -1,0 +1,58 @@
+TOPDIR		= @TOPDIR@
+MKRULESDIR	= @MKRULESDIR@
+
+TARGET_LIB		= $(LAGOPUS_AGENT_LIB)
+INSTALL_LIB_TARGETS	= $(TARGET_LIB)
+INSTALL_LIB_DIR		= $(DEST_LIBDIR)
+
+SRCS =	agent.c channel.c openflow13packet.c ofp_dp_apis.c \
+	ofp_handler.c ofp_bridge.c ofp_features_handler.c  ofp_header_handler.c \
+	ofp_hello_handler.c ofp_switch_config_handler.c ofp_match.c \
+	ofp_instruction.c ofp_action.c ofp_flow_mod_handler.c ofp_packet_out_handler.c \
+	ofp_error_handler.c ofp_echo_handler.c ofp_meter_mod_handler.c ofp_band.c \
+	ofp_tlv.c ofp_element.c channel_mgr.c ofp_bucket.c ofp_group_mod_handler.c \
+	ofp_port_mod_handler.c ofp_set_async_handler.c ofp_queue_config_handler.c \
+	ofp_role.c ofp_get_async_handler.c ofp_packet_in_handler.c ofp_table_mod_handler.c \
+	ofp_role_request_handler.c ofp_multipart_handler.c ofp_desc_handler.c \
+	ofp_flow_removed_handler.c ofp_barrier_handler.c ofp_flow_handler.c \
+	ofp_port_status_handler.c ofp_queue_handler.c ofp_bucket_counter.c \
+	ofp_group_handler.c ofp_table_handler.c ofp_aggregate_handler.c \
+	ofp_port_desc_handler.c ofp_port_handler.c ofp_group_desc_handler.c \
+	ofp_meter_features_handler.c ofp_group_features_handler.c \
+	ofp_experimenter_handler.c ofp_meter_config_handler.c ofp_band_stats.c \
+	ofp_meter_handler.c ofp_experimenter_mp_handler.c ofp_table_features_handler.c \
+	ofp_padding.c agent_config.c ofp_oxm.c \
+	checkcert.c ofp_bridgeq_mgr.c ofp_pdump.c ofp_meter.c
+
+GENERATE_OUTPUT_FILE	= openflow13packet
+SRCS_GENERATE = $(GENERATE_OUTPUT_FILE).h
+
+CPPFLAGS	+= -I$(BUILD_CONFIGDIR)
+
+TARGETS			= $(TARGET_LIB)
+
+DIRS	=	test check
+
+include $(MKRULESDIR)/vars.mk
+include $(MKRULESDIR)/rules.mk
+include .depend
+
+ifdef HAVE_UNITY
+CPPFLAGS	+= -D__UNIT_TESTING__
+endif
+
+$(SRCS):	generate
+
+generate::	$(SRCS_GENERATE)
+
+$(SRCS_GENERATE): generator
+	./generator $(BUILD_INCDIR)/openflow13.h $(GENERATE_OUTPUT_FILE)
+
+generator: generator_parser.o generator_lex.o generator.o
+	$(LINK_CC) $(CFLAGS) generator_parser.o generator_lex.o generator.o -o generator
+
+clean::
+	$(RM) generator_parser.c generator_parser.h generator_lex.c
+	$(RM) generator_parser.o generator_lex.o
+	$(RM) generator
+	$(RM) $(GENERATE_OUTPUT_FILE).c $(GENERATE_OUTPUT_FILE).h

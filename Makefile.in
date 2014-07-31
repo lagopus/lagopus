@@ -1,0 +1,28 @@
+TOPDIR		= @TOPDIR@
+MKRULESDIR	= @MKRULESDIR@
+
+include $(MKRULESDIR)/vars.mk
+
+DIRS	=	tools \
+		src/lib \
+		src/include \
+		src/agent \
+		src/dataplane \
+		src/config \
+		src/config/cli/libedit \
+		src/config/cli \
+		src/cmds \
+		debian
+
+include $(MKRULESDIR)/rules.mk
+
+clean::
+	$(RM) -r autom4te.cache config.log
+	find . -type f \( \
+		-name '*~' -o \
+		-name '*.core' -o \
+		-name 'vgcore.*' \
+	\) -exec rm -f {} \;
+
+distclean::	clean
+	$(RM) config.* mk/vars.mk mk/doxygen.conf ./libtool

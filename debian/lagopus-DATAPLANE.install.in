@@ -1,0 +1,5 @@
+DATAPLANE/usr/sbin/*                  usr/sbin/
+DATAPLANE/usr/lib/*                   usr/lib/
+DATAPLANE/etc/lagopus/*               etc/lagopus/
+DATAPLANE/usr/include/*               usr/include/
+DATAPLANE/usr/share/doc/lagopus/*     usr/share/doc/@PKG_NAME@-DATAPLANE/

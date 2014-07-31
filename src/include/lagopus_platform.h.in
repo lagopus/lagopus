@@ -1,0 +1,38 @@
+/*
+ * Copyright 2014 Nippon Telegraph and Telephone Corporation.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+
+#ifndef __LAGOPUS_PLATFORM_H__
+#define __LAGOPUS_PLATFORM_H__
+
+#define @OSDEF@
+#define @CPUDEF@
+
+#ifdef WORDS_BIGENDIAN
+#define LAGOPUS_BIG_ENDIAN
+#else
+#define LAGOPUS_LITTLE_ENDIAN
+#endif /* WORDS_BIGENDIAN */
+
+#if SIZEOF_LONG_INT == 8
+#define LAGOPUS_ARCH_64_BITS
+#elif SIZEOF_LONG_INT == 4
+#define LAGOPUS_ARCH_32_BITS
+#else
+#error Sorry we can not live like this.
+#endif /* SIZEOF_LONG_INT == 8 || SIZEOF_LONG_INT == 4 */
+
+#endif /* ! __LAGOPUS_PLATFORM_H__ */

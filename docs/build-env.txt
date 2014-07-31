@@ -1,0 +1,109 @@
+The Lagopus Building Environment 101
+
+
+1. Introduction
+
+  As you saw, the lagopus building environment is based on the
+autoconf, not the automake. In this document I describe how to
+modify/improve the environment suitable for your own purpose.
+
+
+2. The Architecture Overview
+
+  Not a big deal, The configure.ac is for:
+
+a) Generating feature test macros in C include files under the
+   'src/include' directory.
+
+b) Generating an essential include file for the gmake;
+   'mk/vars.mk'. This file contains site/host specific configurations.
+
+  Many typical automake-based building environments are like;
+Generating each and every Makefile from Makefile.in which contains
+whole the @something@ variables and need to edit whole Makefile.ins if
+the build parameters are needed to be modified. The other hand, the
+lagopus building environment provides two include files for gmake, in
+which contain whole @something@ variables and the build target
+templates, in order to ease the editing of each Makefile.in and
+changing various build parameters at once. And actually, the each
+Makefile.in exists only for substitution of the top directory that
+contains the 'mk' directory.
+
+  Please just check each Makefile.in, 'mk/vars.mk' and
+'mk/rules.mk'. You will find how to modify and customize it.
+
+
+3. Customization 101
+
+
+3.1. Adding New Targets And Rules
+
+  Edit the 'mk/rules.mk'. That's it. Note that the environment also
+uses the libtool so you may need to use the libtool wrappers like
+$(LTLINK) and ${LTCOMPILE) something for the new targets/rules.
+
+
+3.2. Adding C Include Headers With Feature Check Macro
+
+a) Make sure you have the 'nkf' command installed. We still need this
+   at this moment sorry.
+
+b) Add the C include headers with the C preprocessor directive at the
+   tail of the 'src/include/lagopus_includes.h' WITHOUT ANY
+   '#ifdef's. Just put like '#include <sys/something.h>'. Simple
+   enough isn't it?
+
+c) Run the 'mk/updateheaderconfig' at the top directory.
+
+d) Add the output of the command into the 'configure.ac' if it doesn't
+   contain those.
+
+
+3.2. Adding New Feature Check Macro
+
+a) Add any AC_* m4 macros provided by the autoconf into the
+   configure.ac, in which the true result emits the feature check
+   macro with AC_DEFINE() and the macro name must start with 'HAVE_'.
+
+b) Run the 'mk/updateheaderconfig' at the top directory.
+
+
+3.3. Changing The Build Parameters After Running The Configure
+
+  You can override any build parameters by providing an include file for the
+gmake.
+
+a) Prepare a file that contains the parameters you want to
+   override/add/modify like CC, OS_CPPFLAGS, etc. that mainly
+   defined/declared in the 'mk/vars.mk'.
+
+b) If you want to specify the timing of the modification, you can
+   check the value of the __SITECONF__ make macro. If the value is
+   '.pre.' the 'mk/vars.mk' is including the prepared file BEFORE the
+   definition/declaration of (almost all the) variables. If the value
+   is '.post.' the 'mk/vars.mk' is including the prepared file AFTER
+   the all variables are defined/declared.
+
+c) Set SITECONF_MK environmental variable to point the prepared file
+   in full path.
+
+d) Just run the gmake.
+
+ex) Use clang as CC
+
+  Make a file named './a.mk' that contains:
+----------------------------------------------------------------------
+CC	=	clang
+----------------------------------------------------------------------
+
+  Then issue:
+
+$ SITECONF_MK=`pwd`/a.mk make
+
+
+4. Conclusion
+
+  That's all for now.
+
+  Again, you can find more if you check each Makefile.in, 'mk/vars.mk'
+and 'mk/rules.mk'.

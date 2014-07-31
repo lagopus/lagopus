@@ -1,0 +1,22 @@
+TOPDIR		= @TOPDIR@
+MKRULESDIR	= @MKRULESDIR@
+
+TARGET_LIB		= $(LAGOPUS_UTIL_LIB)
+INSTALL_LIB_TARGETS	= $(TARGET_LIB)
+INSTALL_LIB_DIR		= $(DEST_LIBDIR)
+
+SRCS =	error.c logger.c hashmap.c chrono.c lock.c thread.c event.c \
+	timeutil.c strutils.c cbuffer.c ptree.c pbuf.c qmuxer.c qpoll.c \
+	heapcheck.c vector.c signal.c session.c session_tcp.c session_tls.c \
+	addrunion.c pipeline_stage.c gstate.c module.c runnable.c
+
+LDFLAGS	+=	@GMP_LIBS@ @SSL_LIBS@
+
+TARGETS			= $(TARGET_LIB)
+
+DIRS	=	check test
+
+include $(MKRULESDIR)/vars.mk
+include $(MKRULESDIR)/rules.mk
+include .depend
+

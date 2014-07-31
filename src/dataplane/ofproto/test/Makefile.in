@@ -1,0 +1,60 @@
+TOPDIR		= @TOPDIR@
+MKRULESDIR	= @MKRULESDIR@
+
+TESTS = match_test match_basic_test match_eth_test match_ipv4_test	\
+	match_ipv4_arp_test match_ipv6_test match_ipv6_nd_test		\
+	match_mpls_test match_pbb_test match_vlan_test push_pop_test	\
+	set_field_test set_field_basic_test set_field_eth_test		\
+	set_field_ipv4_test set_field_ipv4_arp_test			\
+	set_field_ipv6_test set_field_ipv6_nd_test			\
+	set_field_mpls_test set_field_pbb_test set_field_vlan_test	\
+	ttl_test classify_test datapath_test pcap_test			\
+	flowinfo_basic_test flowinfo_vlan_test flowinfo_eth_test	\
+	flowinfo_ipv4_test flowinfo_ipv6_test				\
+	flowinfo_mpls_unicast_test flowinfo_mpls_multicast_test		\
+	flowinfo_ipv4_tcp_test flowinfo_ipv4_udp_test			\
+	flowinfo_ipv4_sctp_test flowinfo_ipv4_icmp_test			\
+	flowinfo_ipv6_tcp_test flowinfo_ipv6_udp_test			\
+	flowinfo_ipv6_sctp_test flowinfo_ipv6_icmpv6_test		\
+	flowinfo_pbb_test flowinfo_ipv4_arp_test			\
+	flowinfo_ipv6_nd_ns_test flowinfo_ipv6_nd_na_test		\
+	cityhash_test
+
+SRCS = match_test.c match_basic_test.c match_eth_test.c			\
+	match_ipv4_test.c match_ipv4_arp_test.c match_ipv6_test.c	\
+	match_ipv6_nd_test.c match_mpls_test.c match_pbb_test.c		\
+	match_vlan_test.c push_pop_test.c set_field_test.c		\
+	set_field_basic_test.c set_field_eth_test.c			\
+	set_field_ipv4_test.c set_field_ipv4_arp_test.c			\
+	set_field_ipv6_test.c set_field_ipv6_nd_test.c			\
+	set_field_mpls_test.c set_field_pbb_test.c			\
+	set_field_vlan_test.c ttl_test.c classify_test.c		\
+	datapath_test.c pcap_test.c flowinfo_basic_test.c		\
+	flowinfo_vlan_test.c flowinfo_eth_test.c flowinfo_ipv4_test.c	\
+	flowinfo_ipv6_test.c flowinfo_mpls_unicast_test.c		\
+	flowinfo_mpls_multicast_test.c flowinfo_ipv4_tcp_test.c		\
+	flowinfo_ipv4_udp_test.c flowinfo_ipv4_sctp_test.c		\
+	flowinfo_ipv4_icmp_test.c flowinfo_ipv6_tcp_test.c		\
+	flowinfo_ipv6_udp_test.c flowinfo_ipv6_sctp_test.c		\
+	flowinfo_ipv6_icmpv6_test.c flowinfo_pbb_test.c			\
+	flowinfo_ipv4_arp_test.c flowinfo_ipv6_nd_ns_test.c		\
+	flowinfo_ipv6_nd_na_test.c cityhash_test.c
+
+OFPROTODIR=$(BUILD_DATAPLANEDIR)/ofproto
+# so far, hardcoded.
+DPDIR=$(BUILD_DATAPLANEDIR)/sock
+
+CPPFLAGS += -I$(DPDIR) -I$(OFPROTODIR) -I$(BUILD_DATAPLANETESTLIBDIR)
+
+TEST_DEPS	= \
+	$(DEP_LAGOPUS_DATAPLANE_LIB) \
+	$(DEP_LAGOPUS_AGENT_LIB) \
+	$(DEP_LAGOPUS_UTIL_LIB) \
+	$(DEP_LAGOPUS_CONFIG_LIB) \
+	$(DEP_LAGOPUS_DATAPLANE_TEST_LIB)
+
+DIRS	=	lib
+
+include $(MKRULESDIR)/vars.mk
+include $(MKRULESDIR)/rules.mk
+include .depend

@@ -1,0 +1,9 @@
+TOPDIR		= @TOPDIR@
+MKRULESDIR	= @MKRULESDIR@
+
+include $(MKRULESDIR)/vars.mk
+include $(MKRULESDIR)/rules.mk
+
+distclean::
+	$(RM) rules control control.in copyright \
+          lagopus-DATAPLANE.postrm lagopus-DATAPLANE.install

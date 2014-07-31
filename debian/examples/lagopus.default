@@ -1,0 +1,12 @@
+# Defaults for lagopus initscript
+# Move initscript files.
+#  e.g.)
+#   % mv lagopus.init.d /etc/init.d/lagopus
+#   % mv lagopus.default /etc/default/lagopus
+
+#
+# This is a POSIX shell fragment
+#
+
+# Additional options that are passed to the Daemon.
+DAEMON_OPTS=""

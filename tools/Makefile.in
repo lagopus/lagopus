@@ -1,0 +1,7 @@
+TOPDIR		= @TOPDIR@
+MKRULESDIR	= @MKRULESDIR@
+
+DIRS	=	@UNITY_SRC_DIR@
+
+include $(MKRULESDIR)/vars.mk
+include $(MKRULESDIR)/rules.mk

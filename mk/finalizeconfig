@@ -1,0 +1,40 @@
+#!/bin/sh
+
+if test $# -lt 1; then
+    exit 1
+fi
+
+conf=./src/include/lagopus_platform.h
+if test ! -r ${conf}; then
+    exit 1
+fi
+
+scr=/tmp/.edscr.$$
+rm -f ${scr}
+> ${scr}
+
+echo '$' >> ${scr}
+echo '-' >> ${scr}
+echo 'i' >> ${scr}
+
+for i in $*; do
+    case ${i} in
+	-D*)
+	    def=`echo ${i} | sed 's:^-D::'`
+	    echo "#ifndef ${def}" >> ${scr}
+	    echo "#define ${def}" >> ${scr}
+	    echo "#endif /* ! ${def} */" >> ${scr};;
+    esac
+done
+
+echo '.' >> ${scr}
+echo 'w' >> ${scr}
+echo 'q' >> ${scr}
+
+ed ${conf} < ${scr} > /dev/null 2>&1
+st=$?
+
+rm -f ${scr}
+
+exit ${st}
+

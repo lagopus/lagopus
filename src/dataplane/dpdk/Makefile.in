@@ -1,0 +1,45 @@
+TOPDIR		= @TOPDIR@
+MKRULESDIR	= @MKRULESDIR@
+
+RTE_SDK		= @RTE_SDK@
+RTE_TARGET	= @RTE_TARGET@
+RTE_LIBS	= @RTE_LIBS@
+
+TARGET_EXE = ofswitch
+
+STANDALONE=yes
+OFPROTODIR=$(PWD)/../ofproto
+include $(OFPROTODIR)/Makefile.inc
+
+SRCS = dpdk.c meter.c $(OFPROTOSRCS)
+
+TARGETS = $(TARGET_EXE)
+
+include $(MKRULESDIR)/vars.mk
+include $(MKRULESDIR)/rules.mk
+include .depend
+
+$(OFPROTOSRCS): %.c: $(OFPROTODIR)/%.c
+	ln -s $< $@
+
+clean::
+	$(RM) -f $(OFPROTOSRCS)
+
+GPROFFLAGS = -pg
+#OPENMPFLAGS= -fopenmp
+
+CPPFLAGS += -g
+CPPFLAGS += $(GPROFFLAGS)
+CPPFLAGS += $(OPENMPFLAGS)
+CPPFLAGS += -I$(BUILD_SRCDIR)/agent
+#CPPFLAGS += -std=gnu99
+#CPPFLAGS += -fopenmp
+CPPFLAGS += -I$(PWD) -I$(OFPROTODIR) -I$(RTE_SDK)/$(RTE_TARGET)/include
+
+DEP_LIBS	+= $(DEP_LAGOPUS_AGENT_LIB)
+DEP_LIBS	+= $(DEP_LAGOPUS_CONFIG_LIB)
+DEP_LIBS	+= $(DEP_LAGOPUS_UTIL_LIB)
+
+LDFLAGS += $(RTE_LIBS)
+
+#DIRS	=	check

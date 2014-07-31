@@ -1,0 +1,25 @@
+TOPDIR		= @TOPDIR@
+MKRULESDIR	= @MKRULESDIR@
+
+TARGET_LIB		= $(LAGOPUS_CONFIG_LIB)
+INSTALL_LIB_TARGETS	= $(TARGET_LIB)
+INSTALL_LIB_DIR		= $(DEST_LIBDIR)
+
+INSTALL_CONFIG_TARGETS  = operational.xml configuration.xml
+INSTALL_CONFIG_DIR      = $(DEST_CONFDIR)
+
+INSTALL_EXAMPLE_TARGETS = $(TOPDIR)/samples/lagopus.conf
+INSTALL_EXAMPLE_DIR     = $(DEST_EXAMPLEDIR)
+
+SRCS =	confsys.c cserver.c cclient.c cxml.c cnode.c clex.c cparse.c \
+	validate.c show.c config_parser.c config_lex.c clink.c chgroup.c
+
+LDFLAGS	+=	@EXPAT_LIBS@
+
+TARGETS			= $(TARGET_LIB)
+
+#DIRS	=	check
+
+include $(MKRULESDIR)/vars.mk
+include $(MKRULESDIR)/rules.mk
+include .depend

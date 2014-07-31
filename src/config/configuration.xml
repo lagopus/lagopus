@@ -1,0 +1,348 @@
+<cnode:schema>
+  <!-- Exec -->
+  <cnode name="exit"
+	 help="Exit from this configuration level"/>
+  <cnode name="show"
+	 help="Show the configuration (default values may be suppressed)"/>
+  <cnode name="save"
+	 help="Save the configuration"/>
+  <cnode name="stop-process"
+	 help="Stop lagopus process"/>
+
+  <!-- Configuration -->
+  <cnode name="set"
+	 help="Set value of a parameter or create a new element">
+
+    <!-- TLS -->
+    <!-- NOTE: TLS configuration should be done before 'OpenFlow Controllers',
+               becase values may be used when TLS session created. -->
+    <cnode name="tls">
+      <cnode name="certificate-store" help="specify a directory containing certificate files" value="yes">
+        <cnode name="WORD"/>
+      </cnode>
+      <cnode name="certificate-file" help="specify a certification file of a client" value="yes">
+        <cnode name="WORD"/>
+      </cnode>
+      <cnode name="private-key" help="specify a private key of a client" value="yes">
+        <cnode name="WORD"/>
+      </cnode>
+      <cnode name="trust-point-conf" help="specify a configuration file for the trust point" value="yes">
+        <cnode name="WORD"/>
+      </cnode>
+    </cnode>
+
+    <!-- snmp module -->
+    <cnode name="snmp">
+      <cnode name="master-agentx-socket" help="The agentx master agent address that lagpus will connect to. Available value is same as agentXSocket in snmpd.conf. see snmpd.conf(5)" value="yes">
+	<cnode name="WORD"></cnode>
+      </cnode>
+      <cnode name="ping-interval-second" help="The interval to check a connection to agentx master." value="yes">
+	<cnode name="1-255"></cnode>
+      </cnode>
+    </cnode>
+
+    <!-- Interface -->
+    <cnode name="interface"
+	   multi="true"
+	   priority="50"
+	   help="Interface configuration">
+      <!-- Ethernet Interface -->
+      <cnode name="ethernet" multi="yes">
+	<cnode name="WORD" leaf="yes">
+	  <cnode name="shutdown">
+	  </cnode>
+	</cnode>
+      </cnode>
+      <!-- GRE Interface -->
+      <cnode name="gre" multi="yes">
+	<cnode name="WORD" leaf="yes">
+	  <cnode name="shutdown">
+	  </cnode>
+	  <cnode name="source" value="yes">
+	    <cnode name="A.B.C.D">
+	    </cnode>
+	  </cnode>
+	  <cnode name="destination" value="yes">
+	    <cnode name="A.B.C.D">
+	    </cnode>
+	  </cnode>
+	</cnode>
+      </cnode>
+      <!-- VXLAN Interface -->
+      <cnode name="vxlan" multi="yes">
+	<cnode name="WORD" leaf="yes">
+	  <cnode name="shutdown">
+	  </cnode>
+	  <cnode name="source" value="yes">
+	    <cnode name="A.B.C.D">
+	    </cnode>
+	  </cnode>
+	  <cnode name="destination" value="yes">
+	    <cnode name="A.B.C.D">
+	    </cnode>
+	  </cnode>
+	  <cnode name="vni" value="yes">
+	    <cnode name="0-16777215">
+	    </cnode>
+	  </cnode>
+	  <cnode name="src-port" value="yes">
+	    <cnode name="0-65535">
+	    </cnode>
+	  </cnode>
+	  <cnode name="dst-port" value="yes">
+	    <cnode name="0-65535">
+	    </cnode>
+	  </cnode>
+	  <cnode name="mcat-group" value="yes">
+	    <cnode name="A.B.C.D">
+	    </cnode>
+	  </cnode>
+	</cnode>
+      </cnode>
+      <!-- NVGRE Interface -->
+      <cnode name="nvgre" multi="yes">
+	<cnode name="WORD" leaf="yes">
+	  <cnode name="shutdown">
+	  </cnode>
+	  <cnode name="source" value="yes">
+	    <cnode name="A.B.C.D">
+	    </cnode>
+	  </cnode>
+	  <cnode name="destination" value="yes">
+	    <cnode name="A.B.C.D">
+	    </cnode>
+	  </cnode>
+	  <cnode name="tni" value="yes">
+	    <cnode name="0-16777215">
+	    </cnode>
+	  </cnode>
+	  <cnode name="mcat-group" value="yes">
+	    <cnode name="A.B.C.D">
+	    </cnode>
+	  </cnode>
+	</cnode>
+      </cnode>
+    </cnode>
+
+    <!-- Bridge domains -->
+    <cnode name="bridge-domains"
+	   multi="true"
+	   help="Bridge domains">
+      <!-- OpenFlow Logical Switch  -->
+      <cnode name="WORD"
+	     help="Bridge name"
+	     leaf="yes">
+
+	<!-- DPID -->
+	<cnode name="dpid"
+	       help="DPID"
+	       value="yes">
+	  <cnode name="WORD"
+                 help="Datapath ID, such as 0.00:00:00:00:00:01">
+	  </cnode>
+	</cnode>
+
+	<!-- OpenFlow port -->
+	<cnode name="port" multi="yes">
+	  <cnode name="WORD" leaf="yes" help="Interface name eth0, eth1">
+	    <cnode name="port-no">
+	      <cnode name="1-65535">
+	      </cnode>
+	    </cnode>
+	    <!-- Ethernet OAM -->
+	    <cnode name="eoam-mes">
+	      <cndoe name="me">
+		<!-- ME id -->
+		<cnode name="-1-65535" leaf="yes">
+		  <!-- MEG level -->
+		  <cnode name="meg-level">
+		    <cnode name="0-7">
+		    </cnode>
+		  </cnode>
+		  <!-- MEG ID -->
+		  <cnode name="meg-id">
+		    <cnode name="WORD">
+		    </cnode>
+		  </cnode>
+		  <!-- CCM enable -->
+		  <cnode name="ccm-enable">
+		  </cnode>
+		  <!-- CCM transmit rage -->
+		  <cndoe name="ccm-transmit-rate">
+		    <cnode name="1-7">
+		    </cnode>
+		  </cndoe>
+		  <!-- Destination mac address -->
+		  <cnode name="dest-mac-address" multi="yes">
+		    <cnode name="XX:XX:XX:XX:XX:XX">
+		    </cnode>
+		  </cnode>
+		  <!-- peer-mep-ids -->
+		  <cnode name="peer-mep-ids" multi="yes">
+		    <cnode name="-1-8192">
+		    </cnode>
+		  </cnode>
+		</cnode>
+	      </cndoe>
+	    </cnode>
+	  </cnode>
+	</cnode>
+
+	<!-- lost-connection-behavior -->
+	<cnode name="fail-secure-mode"
+	       help="Set faile mode to secure-mode (default is standalone mode)">
+	</cnode>
+
+	<!-- Capabilities -->
+	<cnode name="max-buffered-packets" value="yes"
+	       help="The maximum number of packets for packet-in.">
+	  <cnode name="1-65535">
+	  </cnode>
+	</cnode>
+	<cnode name="max-tables" value="yes">
+	  <cnode name="1-255"
+		 default="255">
+	  </cnode>
+	</cnode>
+	<cnode name="max-ports" value="yes">
+	  <cnode name="1-255"
+		 default="255">
+	  </cnode>
+
+	</cnode>
+	<cnode name="flow-statistics" value="yes">
+	  <cnode name="false">
+	  </cnode>
+	</cnode>
+	<cnode name="table-statistics" value="yes">
+	  <cnode name="false">
+	  </cnode>
+	</cnode>
+	<cndoe name="port-statistics" value="yes">
+	  <cnode name="false">
+	  </cnode>
+	</cndoe>
+	<cnode name="group-statistics" value="yes">
+	  <cnode name="false">
+	  </cnode>
+	</cnode>
+	<cnode name="queue-statistics" value="yes">
+	  <cnode name="false">
+	  </cnode>
+	</cnode>
+	<cnode name="reassemble-ip-fragments" value="yes">
+	  <cnode name="true">
+	  </cnode>
+	</cnode>
+	<cnode name="block-looping-ports" value="yes">
+	  <cnode name="true">
+	  </cnode>
+	</cnode>
+
+
+	<!-- OpenFlow Controllers -->
+	<cnode name="controller"
+	       help="OpenFlow controller"
+	       multi="true">
+	  <cnode name="A.B.C.D"
+		 help="Controller address"
+		 leaf="yes">
+	    <cnode name="protocols" value="yes">
+	      <cnode name="tls"/>
+	      </cnode>
+	    <cnode name="port" value="yes">
+	      <cnode name="INTEGER" range="1-65535"
+		     default="6633"/>
+	    </cnode>
+	    <cnode name="local-address" value="yes">
+	      <cnode name="A.B.C.D"/>
+	    </cnode>
+	    <cnode name="local-port" value="yes">
+	      <cnode name="1-65535"/>
+	    </cnode>
+	  </cnode>
+	  <cnode name="X:X::X:X"
+		 help="Controller address"
+		 leaf="yes">
+	    <cnode name="protocols" value="yes">
+	      <cnode name="tls"/>
+	      </cnode>
+	    <cnode name="port" value="yes">
+	      <cnode name="1-65535"/>
+	    </cnode>
+	    <cnode name="local-address" value="yes">
+	      <cnode name="X:X::X:X"/>
+	    </cnode>
+	    <cnode name="local-port" value="yes">
+	      <cnode name="1-65535"/>
+	    </cnode>
+	  </cnode>
+	</cnode>
+      </cnode>
+    </cnode>
+
+    <!-- Protocols -->
+    <cnode name="protocols">
+      <cnode name="openflow">
+	<cnode name="traceoptions">
+	  <cnode name="file" value="yes">
+	    <cnode name="WORD">
+	    </cnode>
+	  </cnode>
+	  <cnode name="flag" value="yes">
+	    <cnode name="packet" value="yes" leaf="yes">
+	    </cnode>
+	    <cnode name="hello" value="yes" leaf="yes">
+	    </cnode>
+	    <cnode name="error" value="yes" leaf="yes">
+	    </cnode>
+	    <cnode name="echo" value="yes" leaf="yes">
+	    </cnode>
+	    <cnode name="experimenter" value="yes" leaf="yes">
+	    </cnode>
+	    <cnode name="features" value="yes" leaf="yes">
+	    </cnode>
+	    <cnode name="config" value="yes" leaf="yes">
+	    </cnode>
+	    <cnode name="packet-in" value="yes" leaf="yes">
+	    </cnode>
+	    <cnode name="flow-removed" value="yes" leaf="yes">
+	    </cnode>
+	    <cnode name="port-status" value="yes" leaf="yes">
+	    </cnode>
+	    <cnode name="packet-out" value="yes" leaf="yes">
+	    </cnode>
+	    <cnode name="flow-mod" value="yes" leaf="yes">
+	    </cnode>
+	    <cnode name="group-mod" value="yes" leaf="yes">
+	    </cnode>
+	    <cnode name="port-mod" value="yes" leaf="yes">
+	    </cnode>
+	    <cnode name="table-mod" value="yes" leaf="yes">
+	    </cnode>
+	    <cnode name="multipart" value="yes" leaf="yes">
+	    </cnode>
+	    <cnode name="barrier" value="yes" leaf="yes">
+	    </cnode>
+	    <cnode name="queue" value="yes" leaf="yes">
+	    </cnode>
+	    <cnode name="role" value="yes" leaf="yes">
+	    </cnode>
+	    <cnode name="async" value="yes" leaf="yes">
+	    </cnode>
+	    <cnode name="meter-mod" value="yes" leaf="yes">
+	    </cnode>
+	  </cnode>
+	</cnode>
+      </cnode>
+    </cnode>
+
+    <!-- System -->
+    <cnode name="system">
+      <cnode name="syslog">
+      </cnode>
+    </cnode>
+
+  </cnode>
+
+</cnode:schema>

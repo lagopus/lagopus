@@ -1,0 +1,130 @@
+#!/bin/sh
+
+if test ! -r ./configure.ac; then
+    exit 1
+fi
+
+in=./src/include/lagopus_includes.h
+tmpl=./src/include/lagopus_config.h.in
+
+if test $# -ne 0; then
+
+cat << EOF
+
+#
+# How to update ${in} and 
+# ${tmpl}
+#
+
+1. Edit ${in}. Just add "#include <some/header.h>"
+2. Then just run ${0}.
+3. Add output of the command into ./configure.ac
+
+EOF
+exit 0
+
+fi
+
+defsOut=./.defsOut.$$
+> ${defsOut}.tmp
+l=`nkf -Lu ${in} | egrep '^[\t ]*#include' | sed 's:^[\t ]*#include[\t ]*::' | sed 's:["<>]::g' | grep -v 'lagopus_config.h'`
+
+for i in ${l}; do
+    def=HAVE_`echo ${i} | tr '[a-z]' '[A-Z]' | sed -e 's:[/\.]:_:g'`
+    echo "AC_CHECK_HEADER(${i}, [AC_DEFINE($def)])"
+    echo ${def} >> ${defsOut}.tmp
+done
+sort ${defsOut}.tmp > ${defsOut}
+rm -f ${defsOut}.tmp
+
+
+#
+# generate ./src/include/lagopus_includes.h
+
+if test -f ${in}.bak; then
+    chmod 666 ${in}.bak
+    rm -f ${in}.bak
+fi
+mv ${in} ${in}.bak
+out=${in}.pre
+
+rm -f ${out}
+sig=__`basename ${in} | tr '[a-z]' '[A-Z]' | sed -e 's:[/\.]:_:g'`__
+
+echo "#ifndef ${sig}" >> ${out}
+echo "#define ${sig}" >> ${out}
+echo >> ${out}
+
+echo '#include "lagopus_config.h"' >> ${out}
+echo >> ${out}
+
+for i in ${l}; do
+    def=HAVE_`echo ${i} | tr '[a-z]' '[A-Z]' | sed -e 's:[/\.]:_:g'`
+    echo "#ifdef ${def}" >> ${out}
+    echo "#include <${i}>" >> ${out}
+    echo "#endif /* ${def} */" >> ${out}
+    echo >> ${out}
+done
+
+echo >> ${out}
+
+echo "#endif /* ! ${sig} */" >> ${out}
+cat ${out} | nkf -Lw > ${in}
+chmod 444 ${in}
+rm -f ${out}
+
+
+#
+# generate ./src/include/lagopus_config.h.in
+
+if test -f ${tmpl}.bak; then
+    chmod 666 ${tmpl}.bak
+    rm -f ${tmpl}.bak
+fi
+mv ${tmpl} ${tmpl}.bak
+out=${tmpl}.pre
+
+rm -f ${out}
+sig=__`basename ${tmpl} | sed 's:\.in$::' | tr '[a-z]' '[A-Z]' | sed -e 's:[/\.]:_:g'`__
+
+echo "#ifndef ${sig}" >> ${out}
+echo "#define ${sig}" >> ${out}
+echo >> ${out}
+
+for i in ${l}; do
+    def=HAVE_`echo ${i} | tr '[a-z]' '[A-Z]' | sed -e 's:[/\.]:_:g'`
+    echo "#undef ${def}" >> ${out}
+done
+
+
+# check other defines in ./configure.ac
+
+confDefsOut=./.confDefsOut.$$
+> ${confDefsOut}
+grep AC_DEFINE ./configure.ac | awk -F'(' '{ print $NF }' | \
+    sed 's:).*$::' | sort > ${confDefsOut}
+adds=`diff ${defsOut} ${confDefsOut} | grep '^>' | \
+    sed 's:^>[ ]*::'`
+rm -f ${defsOut} ${confDefsOut}
+
+echo >> ${out}
+for i in ${adds}; do
+    echo "#undef ${i}" >> ${out}
+done
+
+undefs="WORDS_BIGENDIAN SIZEOF_SHORT_INT SIZEOF_INT SIZEOF_LONG_INT SIZEOF_LONG_LONG SIZEOF_INT64_T SIZEOF_SIZE_T SIZEOF_VOID_P SIZEOF_PTHREAD_T"
+echo >> ${out}
+for i in ${undefs}; do
+    echo "#undef ${i}" >> ${out}
+done
+echo >> ${out}
+
+echo '#include "lagopus_platform.h"' >> ${out}
+
+echo >> ${out}
+echo "#endif /* ! ${sig} */" >> ${out}
+cat ${out} | nkf -Lu > ${tmpl}
+chmod 444 ${tmpl}
+rm -f ${out}
+
+exit 0

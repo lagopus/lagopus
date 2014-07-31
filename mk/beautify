@@ -1,0 +1,26 @@
+#!/bin/sh
+
+# Consider to use -p ?
+#	It makes (char *)&((*aptr)->a) to (char *) & ((*aptr)->a), though.
+
+beautify() {
+    astyle \
+	--mode=c \
+	--style=java \
+	-xC78 -s2 -m0 \
+	-L -S -H \
+	-xL -w -j \
+	-o -O \
+	-k3 \
+	-z2 \
+	${1+"$@"}
+    for i in ${1+"$@"}; do
+	rm -f "${i}".orig
+    done
+}
+
+
+beautify ${1+"$@"}
+exit 0
+
+

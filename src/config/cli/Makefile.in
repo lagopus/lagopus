@@ -1,0 +1,20 @@
+TOPDIR		= @TOPDIR@
+MKRULESDIR	= @MKRULESDIR@
+
+TARGET_EXE	= lagosh
+INSTALL_SBIN_EXE_TARGETS	= $(TARGET_EXE)
+INSTALL_SBIN_EXE_DIR		= $(DEST_SBIN_EXEDIR)
+
+TARGETS		= $(TARGET_EXE)
+
+SRCS 		= lagosh.c shell.c readline.c process.c signals.c command.c
+
+CPPFLAGS	+= -I$(BUILD_SRCDIR)/config
+
+DEP_LIBS	+= $(DEP_LAGOPUS_EDIT_LIB)
+DEP_LIBS	+= $(DEP_LAGOPUS_UTIL_LIB)
+DEP_LIBS	+= $(DEP_LAGOPUS_CONFIG_LIB)
+
+include $(MKRULESDIR)/vars.mk
+include $(MKRULESDIR)/rules.mk
+include .depend

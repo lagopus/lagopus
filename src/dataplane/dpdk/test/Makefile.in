@@ -1,0 +1,21 @@
+TOPDIR		= @TOPDIR@
+MKRULESDIR	= @MKRULESDIR@
+
+TESTS = 
+SRCS = 
+
+OFPROTODIR=$(PWD)/../../ofproto
+
+CPPFLAGS += -I$(PWD)/.. -I$(OFPROTODIR)
+
+TEST_DEPS	= \
+	$(DEP_LAGOPUS_DATAPLANE_LIB) \
+	$(DEP_LAGOPUS_AGENT_LIB) \
+	$(DEP_LAGOPUS_UTIL_LIB) \
+	$(DEP_LAGOPUS_CONFIG_LIB) \
+	$(DEP_LAGOPUS_UTIL_LIB)
+
+
+include $(MKRULESDIR)/vars.mk
+include $(MKRULESDIR)/rules.mk
+include .depend

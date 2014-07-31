@@ -1,0 +1,13 @@
+TOPDIR		= @TOPDIR@
+MKRULESDIR	= @MKRULESDIR@
+
+include $(MKRULESDIR)/vars.mk
+
+INSTALL_HEADER_DIR	= $(DEST_HDRDIR_TOP)
+
+INSTALL_HEADER_TARGETS	= lagopus_config.h lagopus_platform.h
+
+include $(MKRULESDIR)/rules.mk
+
+distclean::
+	$(RM) lagopus_config.h lagopus_platform.h *.new *.bak

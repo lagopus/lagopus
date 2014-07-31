@@ -1,0 +1,17 @@
+diff --git a/lib/librte_eal/linuxapp/kni/ethtool/igb/kcompat.h b/lib/librte_eal/linuxapp/kni/ethtool/igb/kcompat.h
+index 521a35d..36ba287 100644
+--- a/lib/librte_eal/linuxapp/kni/ethtool/igb/kcompat.h
++++ b/lib/librte_eal/linuxapp/kni/ethtool/igb/kcompat.h
+@@ -3850,10 +3850,11 @@ static inline struct sk_buff *__kc__vlan_hwaccel_put_tag(struct sk_buff *skb,
+ #ifdef NETIF_F_RXHASH
+ #define PKT_HASH_TYPE_L3 0
+ static inline void
+-skb_set_hash(struct sk_buff *skb, __u32 hash, __always_unused int type)
++__kc_skb_set_hash(struct sk_buff *skb, __u32 hash, __always_unused int type)
+ {
+ 	skb->rxhash = hash;
+ }
++#define skb_set_hash(skb, hash, type) __kc_skb_set_hash(skb, hash, type)
+ #endif /* NETIF_F_RXHASH */
+ #endif /* < RHEL7 */
+ #endif /* < 3.14.0 */

@@ -1,0 +1,75 @@
+#!/usr/bin/make -f
+# -*- makefile -*-
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+
+MKRULESDIR = @MKRULESDIR@
+RTE_SDK_DIR = @RTE_SDK@
+PKG_VERSION = @PKG_VERSION@
+
+DATAPLANES = raw-socket
+ifneq ($(RTE_SDK_DIR),)
+DATAPLANES += dpdk
+endif
+
+TAR_FILE = ../lagopus_$(PKG_VERSION).orig.tar.gz
+BUILD_DIR = debian/build-tree
+INSTALL_DIR_RELATIVE = install-tree
+INSTALL_DIR = debian/$(INSTALL_DIR_RELATIVE)
+SYSCONFDIR = /etc
+SED_SUFFIXES = dirs install prerm postrm examples
+
+override_dh_auto_clean:
+	rm -rf $(BUILD_DIR)
+	rm -rf $(INSTALL_DIR)
+
+build-%:
+	dh_auto_build -D "$(BUILD_DIR)/$*"
+	dh_auto_install -D "$(BUILD_DIR)/$*" --destdir="$(INSTALL_DIR)/$*"
+
+%:
+	dh $@ --with autotools-dev
+
+configure-%:
+	mkdir -p $(BUILD_DIR)
+	mkdir -p $(INSTALL_DIR)
+	mkdir -p "$(BUILD_DIR)/$*"
+	tar xvzf $(TAR_FILE) -C $(BUILD_DIR)/$*
+	if [ $* = dpdk ] ; then \
+		dh_auto_configure -D "$(BUILD_DIR)/$*" -- \
+		  	--enable-snmp --sysconfdir=$(SYSCONFDIR) \
+			--with-dpdk-dir=$(RTE_SDK_DIR); \
+	else \
+		dh_auto_configure -D "$(BUILD_DIR)/$*" -- \
+		  	--enable-snmp --sysconfdir=$(SYSCONFDIR); \
+	fi
+
+override_dh_auto_configure:
+	$(MAKE) -f debian/rules $(patsubst %, configure-%, $(DATAPLANES))
+
+override_dh_install-arch:
+	cd debian && for dataplane in $(DATAPLANES); do \
+		for suffix in $(SED_SUFFIXES); do \
+			sed "s/DATAPLANE/$${dataplane}/g" < \
+			lagopus-DATAPLANE.$${suffix} > \
+			lagopus-$${dataplane}.$${suffix}; \
+		done; \
+	done
+	$(MAKE) -f debian/rules $(patsubst %, build-%, $(DATAPLANES))
+	mkdir debian/tmp
+	cd debian && \
+	for dataplane in $(DATAPLANES); do \
+		mv $(INSTALL_DIR_RELATIVE)/$${dataplane} tmp/$${dataplane}; \
+	done
+	dh_install -a --list-missing
+
+# disable make check
+override_dh_auto_test:
+
+override_dh_install-indep:
+	dh_install -i --list-missing
+
+override_dh_auto_build override_dh_auto_install:
+
+.PHONY: build-% configure-%

@@ -1,0 +1,192 @@
+TARGET_ARCH	= @TARGET_ARCH@
+
+SHELL		= @SHELL@
+VPATH		= @srcdir@
+srcdir		= @srcdir@
+TOPDIR		= @TOPDIR@
+top_builddir	?= $(TOPDIR)
+MKRULESDIR	= @MKRULESDIR@
+
+PREFIX		= @prefix@
+prefix		= @prefix@
+SYSCONFDIR	= @sysconfdir@
+sysconfdir	= @sysconfdir@
+
+ifneq ($(DESTDIR),)
+prefix		= $(DESTDIR)/$(PREFIX)
+sysconfdir	= $(DESTDIR)/$(SYSCONFDIR)
+endif
+
+DEST_EXEDIR	= $(prefix)/bin
+DEST_SBIN_EXEDIR	= $(prefix)/sbin
+DEST_LIBDIR	= $(prefix)/lib
+DEST_HDRDIR_TOP	= $(prefix)/include
+DEST_CONFDIR	= $(sysconfdir)/lagopus
+CONFDIR	= $(SYSCONFDIR)/lagopus
+DEST_DOCDIR	= $(prefix)/share/doc/lagopus
+DEST_EXAMPLEDIR	= $(prefix)/share/doc/lagopus/examples
+
+LIBTOOL_DEPS	= @LIBTOOL_DEPS@
+
+MAKE		= LC_ALL=C @MAKE@
+LN_S		= @LN_S@
+READLINK		= @READLINK@
+BASENAME		= @BASENAME@
+RM		= @RM@
+MKDIR		= @MKDIR@
+LIBTOOL		= LC_ALL=C @LIBTOOL@ --quiet
+
+CC		= @CC@
+CXX		= @CXX@
+LINK_CC		= $(CC)
+LINK_CXX	= $(CXX)
+YACC		= @YACC@
+LEX		= @LEX@
+AWK		= @AWK@
+
+RTE_SDK         = @RTE_SDK@
+RTE_TARGET      = @RTE_TARGET@
+
+INSTALL		= @INSTALL@
+INSTALL_DATA	= @INSTALL_DATA@
+INSTALL_SCRIPT	= @INSTALL_SCRIPT@
+INSTALL_PROGRAM	= @INSTALL_PROGRAM@
+
+
+BUILD_SRCDIR	= $(TOPDIR)/src
+BUILD_INCDIR	= $(BUILD_SRCDIR)/include
+BUILD_LIBDIR	= $(BUILD_SRCDIR)/lib
+BUILD_AGENTDIR	= $(BUILD_SRCDIR)/agent
+BUILD_DATAPLANEDIR = $(BUILD_SRCDIR)/dataplane
+BUILD_DATAPLANETESTLIBDIR = $(BUILD_SRCDIR)/dataplane/ofproto/test/lib
+BUILD_CONFIGDIR	= $(BUILD_SRCDIR)/config
+BUILD_EDITDIR	= $(BUILD_SRCDIR)/config/cli/libedit
+
+SITECONF_MK	?=	$(shell ls $(MKRULESDIR)/siteconf.mk 2>/dev/null)
+ifdef SITECONF_MK
+__SITECONF__=.pre.
+include $(SITECONF_MK)
+endif
+
+LAGOPUS_UTIL_LIB		= liblagopus_util.la
+DEP_LAGOPUS_UTIL_LIB	= $(BUILD_LIBDIR)/$(LAGOPUS_UTIL_LIB)
+
+LAGOPUS_AGENT_LIB		= liblagopus_agent.la
+DEP_LAGOPUS_AGENT_LIB	= $(BUILD_AGENTDIR)/$(LAGOPUS_AGENT_LIB)
+
+LAGOPUS_DATAPLANE_LIB		= liblagopus_dataplane.la
+DEP_LAGOPUS_DATAPLANE_LIB	= $(BUILD_DATAPLANEDIR)/$(LAGOPUS_DATAPLANE_LIB)
+
+LAGOPUS_DATAPLANE_TEST_LIB	= liblagopus_dataplane_test.la
+DEP_LAGOPUS_DATAPLANE_TEST_LIB	= $(BUILD_DATAPLANETESTLIBDIR)/$(LAGOPUS_DATAPLANE_TEST_LIB)
+
+LAGOPUS_CONFIG_LIB		= liblagopus_config.la
+DEP_LAGOPUS_CONFIG_LIB	= $(BUILD_CONFIGDIR)/$(LAGOPUS_CONFIG_LIB)
+
+LAGOPUS_EDIT_LIB		= liblagopus_edit.la
+DEP_LAGOPUS_EDIT_LIB	= $(BUILD_EDITDIR)/$(LAGOPUS_EDIT_LIB)
+
+CPPFLAGS	+= @OS_CPPFLAGS@ @FLOWCACHE_FLAGS@ \
+	-I$(BUILD_INCDIR) -DCONFDIR='"$(CONFDIR)"'
+ifneq ($(RTE_SDK),)
+# so far, hardcoded to use dpdk version.
+CPPFLAGS += -DHAVE_DPDK -I$(RTE_SDK)/$(RTE_TARGET)/include
+endif
+
+WARN_BASE_CFLAGS	+= -W -Wall -Wextra -std=gnu99 \
+	-Wshadow \
+	-Wcast-align \
+	-Wwrite-strings \
+	-Wconversion \
+	-Waddress \
+	-Wmissing-format-attribute \
+	-Wno-long-long \
+	-Wno-variadic-macros
+#	-Wlogical-op
+
+WARN_CFLAGS	+= $(WARN_BASE_CFLAGS) \
+	-Wstrict-prototypes \
+	-Wold-style-definition \
+	-Wmissing-declarations \
+	-Wmissing-prototypes \
+	-Wnested-externs \
+	-Wdeclaration-after-statement
+
+WARN_CXXFLAGS	+= $(WARN_BASE_CFLAGS) \
+	-Wnon-virtual-dtor \
+	-Wstrict-null-sentinel \
+	-Woverloaded-virtual
+
+DEBUG_CFLAGS	?= -g3 -fno-omit-frame-pointer
+DEBUG_CXXFLAGS	?= -g3 -fno-omit-frame-pointer
+
+OPT_CFLAGS	?= -O0 
+OPT_CXXFLAGS	?= -O0
+
+CODEGEN_CFLAGS		+= -fkeep-inline-functions
+CODEGEN_CXXFLAGS	+= -fkeep-inline-functions
+
+CODEGEN_CFLAGS		+= -msse4.2
+CODEGEN_CXXFLAGS	+= -msse4.2
+
+COMMON_CFLAGS	= $(WARN_CFLAGS) $(DEBUG_CFLAGS) $(OPT_CFLAGS) \
+	$(CODEGEN_CFLAGS) $(LOCAL_CFLAGS)
+
+COMMON_CXXFLAGS	= -std=gnu++98 $(WARN_CXXFLAGS) $(DEBUG_CXXFLAGS) \
+	$(OPT_CXXFLAGS) $(CODEGEN_CXXFLAGS) $(LOCAL_CXXFLAGS)
+
+CFLAGS		+= @OS_CFLAGS@ @CFLAGS@ $(COMMON_CFLAGS)
+CXXFLAGS	+= @OS_CFLAGS@ @CXXFLAGS@ $(COMMON_CXXFLAGS)
+
+LDFLAGS		+= @OS_LDFLAGS@ @OS_LIBS@ @LDFLAGS@
+
+OBJS		?= $(SRCS:.c=.lo)
+
+ifdef TARGET_LIB
+SHLIB_VERSION	?= 0:0:0
+LTLINK_VERSION	= -version-info $(SHLIB_VERSION)
+endif
+LTLINK_RPATH	= -rpath $(DEST_LIBDIR)
+
+STATICBUILD	=	@STATICBUILD@
+ifndef STATICBUILD
+LT_SHARED	=	-shared
+endif
+
+LTCOMPILE_CC	= $(LIBTOOL) --mode=compile --tag=CC $(CC) $(CFLAGS) \
+	$(CPPFLAGS) $(LT_SHARED)
+LTCOMPILE_CXX	= $(LIBTOOL) --mode=compile --tag=CXX $(CXX) $(CXXFLAGS) \
+	$(CPPFLAGS) $(LT_SHARED)
+LTLIB_CC	= $(LIBTOOL) --mode=link --tag=CC \
+	$(LINK_CC) $(CFLAGS) $(LTLINK_RPATH) $(LTLINK_VERSION) $(LT_SHARED)
+LTLIB_CXX	= $(LIBTOOL) --mode=link --tag=CXX \
+	$(LINK_CXX) $(CXXFLAGS) $(LTLINK_RPATH) $(LTLINK_VERSION) $(LT_SHARED)
+LTLINK_CC	= $(LIBTOOL) --mode=link --tag=CC \
+	$(LINK_CC) $(CFLAGS) $(LTLINK_RPATH) $(LT_SHARED)
+LTLINK_CXX	= $(LIBTOOL) --mode=link --tag=CXX \
+	$(LINK_CXX) $(CXXFLAGS) $(LTLINK_RPATH) $(LT_SHARED)
+LTINSTALL_EXE	= $(LIBTOOL) --mode=install $(INSTALL_PROGRAM)
+LTINSTALL_LIB	= $(LIBTOOL) --mode=install $(INSTALL_DATA)
+LTINSTALL_HEADER= $(LIBTOOL) --mode=install $(INSTALL_DATA)
+LTCLEAN		= $(LIBTOOL) --mode=clean $(RM)
+
+HAVE_RUBY		= @HAVE_RUBY@
+RUBY			= ruby
+
+HAVE_UNITY		= @HAVE_UNITY@
+TEST_RESULT_DIR		= $(TOPDIR)/test_result_dir
+UNITY_DIR		= $(TOPDIR)/tools/unity
+BUILDUNITY_DIR		= $(UNITY_DIR)/src
+UNITY_CPPFLAGS		= -I$(BUILDUNITY_DIR)
+UNITY_GEN_RUNNER	= $(UNITY_DIR)/auto/generate_test_runner.rb
+UNITY_SUMMARY		= $(UNITY_DIR)/auto/unity_test_summary.rb
+UNITY_REPORT		= $(UNITY_DIR)/auto/colour_reporter
+UNITY_LIB		= libunity.la
+DEP_UNITY_LIB		= $(BUILDUNITY_DIR)/$(UNITY_LIB)
+
+HAVE_GCOVR		= @HAVE_GCOVR@
+
+ifdef SITECONF_MK
+__SITECONF__=.post.
+include $(SITECONF_MK)
+endif

@@ -1,0 +1,97 @@
+<cnode:schema>
+  <!-- Mode: Operational -->
+  <cnode name="configure"
+	 help="Manipulate software configuration information"/>
+  <cnode name="help" help="Provide help information"/>
+  <cnode name="history" help="Show command history"/>
+
+  <cnode name="exit" help="Exit the management session"/>
+  <cnode name="quit" help="Exit the management session"/>
+
+  <cnode name="ssh" help="Open a secure shell to another host"/>
+  <cnode name="start" help="Start command">
+    <cnode name="shell" help="Command line shell"/>
+  </cnode>
+
+  <!-- Utility commands -->
+  <cnode name="ping" help="Ping a remote target">
+    <cnode name="WORD" help="Host name"/>
+    <cnode name="A.B.C.D" help="IPv4 address"/>
+    <cnode name="X:X::X:X" help="IPv6 address"/>
+  </cnode>
+
+  <cnode name="telnet" help="Telnet to another host">
+    <cnode name="WORD" help="Host name"/>
+    <cnode name="A.B.C.D" help="IPv4 address"/>
+    <cnode name="X:X::X:X" help="IPv6 address"/>
+  </cnode>
+
+  <cnode name="traceroute" help="Trace the route to a remote host">
+    <cnode name="WORD" help="Host name"/>
+    <cnode name="A.B.C.D" help="IPv4 address"/>
+    <cnode name="X:X::X:X" help="IPv6 address"/>
+  </cnode>
+
+  <!-- Show commands -->
+  <cnode name="show" help="Show information about the system" exec="true">
+
+    <!-- Interface -->
+    <cnode name="interface"
+	   help="Show interface information">
+      <cnode name="WORD" help="Interface name"/>
+    </cnode>
+
+    <!-- Controller -->
+    <cnode name="controller"
+	   help="Show controller information">
+      <cnode name="A.B.C.D" help="Controller IP address"/>
+      <cnode name="X:X::X:X" help="Controller IPv6 address"/>
+    </cnode>
+
+    <!-- Schema Path -->
+    <cnode name = "schema-path"
+	   help="Show schema paths"/>
+    
+
+    <!-- IP Routing -->
+    <cnode name="ip" help="IP">
+      <cnode name="route" help="Routing information"/>
+    </cnode>
+
+    <cnode name="ipv6" help="IPv6">
+      <cnode name="route" help="Routing information"/>
+    </cnode>
+    <cnode name="version" help="Show version"/>
+
+    <!-- Flow -->
+    <cnode name="bridge-domains"
+	   leaf="yes"
+	   help="Display bridge domain information">
+      <cnode name="WORD"
+	     help="Bridge name">
+      </cnode>
+    </cnode>
+
+    <cnode name="flow"
+	   help="Display flow information">
+    </cnode>
+
+    <cnode name="flowcache"
+	   help="Display flow cache information">
+    </cnode>
+
+    <cnode name="table"
+	   help="Display table information">
+    </cnode>
+
+    <!-- snmp module -->
+    <cnode name="snmp" help="SNMP information">
+      <cnode name="master-agentx-socket" help="Agentx master agent socket"></cnode>
+      <cnode name="ping-interval-second" help="Interval to send ping to master"></cnode>
+    </cnode>
+  </cnode>
+
+  <!-- OF-Config -->
+  <cnode name="capable-switch" hidden="yes">
+  </cnode>
+</cnode:schema>

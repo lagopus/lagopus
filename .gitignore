@@ -1,0 +1,103 @@
+# Object files
+*.o
+
+# Libraries
+*.lib
+*.lo
+*.a
+*.la
+.libs/
+
+# Shared objects (inc. Windows DLLs)
+*.dll
+*.so
+*.so.*
+*.dylib
+
+# Executables
+*.exe
+*.out
+*.app
+
+# autotools related files
+conftools/
+Makefile
+!/src/dpdk/Makefile
+./config.h
+config.h.in
+config.log
+config.status
+autom4te.cache/
+stamp-h*
+libtool
+debian/control
+debian/control.in
+debian/rules
+debian/copyright
+debian/lagopus-DATAPLANE.postrm
+debian/lagopus-DATAPLANE.install
+mk/doxygen.conf
+
+# dependencies and 
+.depend
+*~
+
+# Generated file.
+src/agent/generator
+src/agent/generator_parser.h
+src/agent/openflow13packet.c
+src/agent/openflow13packet.h
+src/cmds/lagopus
+src/config/config_parser.h
+src/include/lagopus_config.h
+src/include/lagopus_platform.h
+src/lib/check/check[0-9]
+src/lib/check/check1-a
+mk/vars.mk
+
+# External tools
+# Unity
+tools/unity/.gitignore
+tools/unity/Gemfile
+tools/unity/auto/
+tools/unity/docs/
+tools/unity/examples/
+tools/unity/extras/
+tools/unity/makefile
+tools/unity/rakefile.rb
+tools/unity/rakefile_helper.rb
+tools/unity/release/
+tools/unity/src/unity.c
+tools/unity/src/unity.h
+tools/unity/src/unity_internals.h
+tools/unity/targets/
+tools/unity/test/
+test_result_dir
+
+# ryu
+*.pyc
+
+# lagosh generated files.
+src/config/cli/lagosh
+src/config/cli/libedit/common.h
+src/config/cli/libedit/emacs.h
+src/config/cli/libedit/fcns.c
+src/config/cli/libedit/fcns.h
+src/config/cli/libedit/help.c
+src/config/cli/libedit/help.h
+src/config/cli/libedit/vi.h
+
+# Coverage
+*.gcno
+*.gcda
+*.gcov
+gcov.mk
+
+# Profiling
+gmon.out
+callgrind.*
+
+# Unity tests.
+*_test_runner.c
+*.testresult
+*_test

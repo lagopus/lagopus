@@ -1,0 +1,17 @@
+TOPDIR		= @TOPDIR@
+MKRULESDIR	= @MKRULESDIR@
+
+TESTS = hash_test thread_test bbq_test bbq_thread_test bbq_thread_2_test \
+	bbq_perf_test session_test int_validator_test pbuf_test gstate_test \
+	pipeline_stage_test pipeline_stage2_test
+
+SRCS = hash_test.c thread_test.c bbq_test.c bbq_thread_test.c \
+	bbq_thread_2_test.c bbq_perf_test.c session_test.c \
+	int_validator_test.c pbuf_test.c gstate_test.c \
+	pipeline_stage_test.c pipeline_stage2_test.c
+
+TEST_DEPS = $(DEP_LAGOPUS_UTIL_LIB)
+
+include $(MKRULESDIR)/vars.mk
+include $(MKRULESDIR)/rules.mk
+include .depend

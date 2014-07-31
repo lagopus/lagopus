@@ -1,0 +1,6 @@
+# RTE_SDK and RTE_TARGET setting.
+#
+# $ source exports
+#
+export RTE_SDK=${HOME}/DPDK
+export RTE_TARGET=i686-default-linuxapp-gcc

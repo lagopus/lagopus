@@ -1,0 +1,22 @@
+TOPDIR		= @TOPDIR@
+MKRULESDIR	= @MKRULESDIR@
+
+TESTS = bridge_test flowdb_test flowdb_dpmgr_controller_test		\
+	flowdb_dpmgr_port_test flowdb_table_features_test meter_test	\
+	port_test group_test
+SRCS = bridge_test.c flowdb_test.c flowdb_dpmgr_controller_test.c	\
+	flowdb_dpmgr_port_test.c flowdb_table_features_test.c		\
+	meter_test.c port_test.c group_test.c
+
+CPPFLAGS += -I$(PWD)/.. -I$(BUILD_AGENTDIR) -I$(BUILD_DATAPLANETESTLIBDIR)
+
+TEST_DEPS	= \
+	$(DEP_LAGOPUS_DATAPLANE_LIB) \
+	$(DEP_LAGOPUS_AGENT_LIB) \
+	$(DEP_LAGOPUS_UTIL_LIB) \
+	$(DEP_LAGOPUS_CONFIG_LIB) \
+	$(DEP_LAGOPUS_DATAPLANE_TEST_LIB)
+
+include $(MKRULESDIR)/vars.mk
+include $(MKRULESDIR)/rules.mk
+include .depend

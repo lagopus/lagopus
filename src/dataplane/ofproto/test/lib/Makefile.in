@@ -1,0 +1,15 @@
+TOPDIR		= @TOPDIR@
+MKRULESDIR	= @MKRULESDIR@
+
+TARGET_LIB	= $(LAGOPUS_DATAPLANE_TEST_LIB)
+# Not to be installed; for the unittest only.
+
+SRCS = datapath_test_match.c datapath_test_misc.c
+
+CPPFLAGS +=	-I../../../ofproto
+
+TARGETS		= $(TARGET_LIB)
+
+include $(MKRULESDIR)/vars.mk
+include $(MKRULESDIR)/rules.mk
+include .depend

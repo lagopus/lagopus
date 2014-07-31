@@ -1,0 +1,27 @@
+TOPDIR		= @TOPDIR@
+MKRULESDIR	= @MKRULESDIR@
+
+SRCS	= unity.c
+TARGET_LIB = libunity.la
+
+DOBUILD	?=	$(shell ls $(SRCS) 2>/dev/null)
+
+ifdef DOBUILD
+
+all:: $(TARGET_LIB)
+
+include $(MKRULESDIR)/vars.mk
+include $(MKRULESDIR)/rules.mk
+
+clean::
+	$(LTCLEAN) -f $(TARGET_LIB) $(OBJS)
+	$(LTCLEAN) -rf .libs
+
+else
+
+all::
+	@true
+
+endif
+
+

@@ -1,0 +1,19 @@
+#!/bin/sh
+
+if test ! -r ./configure.ac; then
+    exit 1
+fi
+
+for i in `find . -type f -name 'Makefile.in'`; do
+    z=`egrep '^[\t ]*include[\t ]*\.depend' ${i} 2>/dev/null`
+    if test -z "${z}"; then
+	continue
+    fi
+    d=`echo ${i} | sed 's:Makefile.in:\.depend:'`
+    echo -n "Creating empty ${d} ... "
+    rm -f ${d}
+    > ${d}
+    echo "Done."
+done
+
+exit 0

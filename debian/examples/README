@@ -1,0 +1,8 @@
+This directory contains example scripts.
+
+- For init.d files:
+  - init.d.ex
+    e.g.) % sudo mv lagopus.init.d /etc/init.d/lagopus
+
+  - lagopus.default.ex
+    e.g.) % sudo mv lagopus.default /etc/default/lagopus
