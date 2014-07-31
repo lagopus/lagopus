@@ -20,12 +20,6 @@ Get Intel DPDK 1.6.0 and extract Intel DPDK zip file
 	$ wget https://downloads.sourceforge.net/project/lagopus/Intel-DPDK/DPDK-1.6.0-18.zip
 	$ unzip DPDK-1.6.0-18.zip
 
-Or
-
-	$ git clone git://dpdk.org/dpdk
-	$ cd dpdk
-	$ git checkout origin/intel
-
 Compile
 
 	$ export RTE_SDK=<Absolute Path of Intel DPDK>
@@ -45,7 +39,7 @@ Compile vswitch
 
 In configure phase, you must speicify Intel DPDK option with abosolute path in which you installed
 
-	$ cd vswitch
+	$ cd lagopus
 	$ ./configure --with-dpdk-dir=${RTE_SDK}
 	$ make
 
