@@ -379,7 +379,11 @@ port_stats(struct port *port) {
   } res;
   struct nlmsghdr *nlh;
   struct rtattr *rta;
+#ifdef IFLA_STATS64
   struct rtnl_link_stats64 *link_stats;
+#else
+  struct rtnl_link_stats *link_stats;
+#endif /* IFLA_STATS64 */
   struct timespec ts;
   struct port_stats *stats;
   int fd, len, rta_len;
@@ -443,7 +447,11 @@ port_stats(struct port *port) {
                rta = RTA_NEXT(rta, rta_len)) {
 
             switch (rta->rta_type) {
+#ifdef IFLA_STATS64
               case IFLA_STATS64:
+#else
+	      case IFLA_STATS:
+#endif /* IFLA_STATS64 */
                 link_stats = RTA_DATA(rta);
                 goto found;
             }
