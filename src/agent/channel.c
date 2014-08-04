@@ -160,6 +160,7 @@ struct channel_list {
 static void channel_event_nolock(struct channel *channel,
                                  enum channel_event cevent);
 static void channel_read(struct event *event);
+static void channel_write_nolock(struct channel *channel);
 static void channel_write(struct event *event);
 static bool channel_packet_ready(struct pbuf *pbuf, struct ofp_header *sneak);
 static void channel_event(struct channel *channel, enum channel_event cevent);
@@ -362,24 +363,14 @@ channel_packet_ready(struct pbuf *pbuf, struct ofp_header *sneak) {
   return true;
 }
 
-
-/* Socket write function. */
 static void
-channel_write(struct event *event) {
-  struct channel *channel;
+channel_write_nolock(struct channel *channel) {
   ssize_t nbytes;
-
-  /* Get channel. */
-  channel = event_get_arg(event);
-
-  channel_lock(channel);
-  /* Clear event pointer. */
-  channel->write_ev = NULL;
 
   /* Connect status. */
   if (channel->status == Connect || channel->status == Disable) {
     channel_connect_check(channel);
-    goto done;
+    return;
   }
 
   /* Write packet to the socket. */
@@ -389,26 +380,39 @@ channel_write(struct event *event) {
   if (nbytes < 0) {
     /* EAGAIN is not an error.  Simply ignore it. */
     if (errno == EAGAIN) {
-      goto done;
+      return;
     }
     lagopus_msg_warning("FAILED : channel_write TCP_Connection_Failed\n");
     channel_event_nolock(channel, TCP_Connection_Failed);
-    goto done;
+    return;
   }
 
   /* Write socket is closed. */
   if (nbytes == 0) {
     lagopus_msg_info("channel_write TCP_Connection_Closed\n");
     channel_event_nolock(channel, TCP_Connection_Closed);
-    goto done;
+    return;
   }
 
   /* If there is packet to be written, turn of write. */
   if (pbuf_list_first(channel->out) != NULL) {
     channel_write_on(channel);
   }
+}
 
-done:
+/* Socket write function. */
+static void
+channel_write(struct event *event)
+{
+  struct channel *channel;
+
+  /* Get channel. */
+  channel = event_get_arg(event);
+
+  channel_lock(channel);
+  /* Clear event pointer. */
+  channel->write_ev = NULL;
+  channel_write_nolock(channel);
   channel_unlock(channel);
   return;
 }
@@ -424,7 +428,8 @@ channel_send_packet_nolock(struct channel *channel, struct pbuf *pbuf) {
 void
 channel_send_packet(struct channel *channel, struct pbuf *pbuf) {
   channel_lock(channel);
-  channel_send_packet_nolock(channel, pbuf);
+  pbuf_list_add(channel->out, pbuf);
+  channel_write_nolock(channel);
   channel_unlock(channel);
 }
 
