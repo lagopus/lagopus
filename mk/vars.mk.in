@@ -90,7 +90,7 @@ CPPFLAGS	+= @OS_CPPFLAGS@ @FLOWCACHE_FLAGS@ \
 	-I$(BUILD_INCDIR) -DCONFDIR='"$(CONFDIR)"'
 ifneq ($(RTE_SDK),)
 # so far, hardcoded to use dpdk version.
-CPPFLAGS += -DHAVE_DPDK -I$(RTE_SDK)/$(RTE_TARGET)/include
+CPPFLAGS += -DHAVE_DPDK -I$(RTE_SDK)/$(RTE_TARGET)/include -msse4.2
 endif
 
 WARN_BASE_CFLAGS	+= -W -Wall -Wextra -std=gnu99 \
@@ -125,9 +125,6 @@ OPT_CXXFLAGS	?= -O0
 
 CODEGEN_CFLAGS		+= -fkeep-inline-functions
 CODEGEN_CXXFLAGS	+= -fkeep-inline-functions
-
-CODEGEN_CFLAGS		+= -msse4.2
-CODEGEN_CXXFLAGS	+= -msse4.2
 
 COMMON_CFLAGS	= $(WARN_CFLAGS) $(DEBUG_CFLAGS) $(OPT_CFLAGS) \
 	$(CODEGEN_CFLAGS) $(LOCAL_CFLAGS)
