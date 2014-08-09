@@ -253,7 +253,10 @@ cserver_load_lagopus_conf(struct cserver *cserver)
   if (! yyin) {
     yyin = fopen(CONFSYS_CONFIG_FILE, "r");
     if (! yyin) {
-      return LAGOPUS_RESULT_NOT_FOUND;
+      yyin = fopen(CONFSYS_CONFIG_DEFAULT_FILE, "r");      
+      if (! yyin) {
+	return LAGOPUS_RESULT_NOT_FOUND;
+      }
     }
   }
 
