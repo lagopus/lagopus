@@ -246,9 +246,6 @@ datapath_initialize(int argc,
   }
   *thdptr = &datapath_thread;
   lagopus_meter_init();
-  lagopus_register_port_hook = lagopus_configure_physical_port;
-  lagopus_change_port_hook = lagopus_change_physical_port;
-  lagopus_unregister_port_hook = lagopus_unconfigure_physical_port;
   lagopus_register_action_hook = lagopus_set_action_function;
   lagopus_register_instruction_hook = lagopus_set_instruction_function;
   flowinfo_init();
