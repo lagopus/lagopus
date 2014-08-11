@@ -1183,6 +1183,10 @@ lagopus_configure_physical_port(struct port *port) {
   struct rte_eth_dev_info devinfo;
 
   /* DPDK engine */
+  if (app_get_nic_rx_queues_per_port(port->ifindex) == 0) {
+    /* Do not configured by DPDK, nothing to do. */
+    return LAGOPUS_RESULT_OK;
+  }
   lagopus_port_mask |= (unsigned long)(1 << port->ifindex);
   port->stats = port_stats;
   rte_eth_macaddr_get((uint8_t)port->ifindex,
@@ -1199,7 +1203,7 @@ lagopus_configure_physical_port(struct port *port) {
   }
   rte_eth_dev_start((uint8_t)port->ifindex);
 
-  return 0;
+  return LAGOPUS_RESULT_OK;
 }
 
 lagopus_result_t
