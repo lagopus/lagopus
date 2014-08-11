@@ -320,6 +320,8 @@ test_execute_instruction_METER(void) {
   struct lagopus_packet pkt;
   struct ofp_instruction_meter *ofp_insn;
   struct dpmgr *my_dpmgr;
+  struct bridge *bridge;
+  struct port *port;
   struct port nport;
   OS_MBUF *m;
 
@@ -330,9 +332,16 @@ test_execute_instruction_METER(void) {
   nport.ofp_port.port_no = 1;
   nport.ifindex = 0;
   dpmgr_port_add(my_dpmgr, &nport);
+  port = port_lookup(my_dpmgr->ports, 0);
+  TEST_ASSERT_NOT_NULL(port);
+  port->ofp_port.hw_addr[0] = 0xff;
   nport.ofp_port.port_no = 2;
   nport.ifindex = 1;
   dpmgr_port_add(my_dpmgr, &nport);
+  dpmgr_port_add(my_dpmgr, &nport);
+  port = port_lookup(my_dpmgr->ports, 1);
+  TEST_ASSERT_NOT_NULL(port);
+  port->ofp_port.hw_addr[0] = 0xff;
   dpmgr_bridge_port_add(my_dpmgr, "br0", 0, 1);
   dpmgr_bridge_port_add(my_dpmgr, "br0", 1, 2);
 
@@ -354,7 +363,10 @@ test_execute_instruction_METER(void) {
   memset(insns, 0, sizeof(insns));
   insns[INSTRUCTION_INDEX_METER] = insn;
 
-  pkt.in_port = ifindex2port(my_dpmgr->ports, 0);
+  bridge = dpmgr_bridge_lookup(my_dpmgr, "br0");
+  TEST_ASSERT_NOT_NULL(bridge);
+  pkt.in_port = port_lookup(bridge->ports, 1);
+  TEST_ASSERT_NOT_NULL(pkt.in_port);
   lagopus_packet_init(&pkt, m);
   execute_instruction(&pkt, insns);
   TEST_ASSERT_EQUAL_MESSAGE(m->refcnt, 1,
@@ -365,6 +377,8 @@ void
 test_action_OUTPUT(void) {
   struct action_list action_list;
   struct dpmgr *my_dpmgr;
+  struct bridge *bridge;
+  struct port *port;
   struct action *action;
   struct ofp_action_output *action_set;
   struct port nport;
@@ -378,9 +392,15 @@ test_action_OUTPUT(void) {
   nport.ofp_port.port_no = 1;
   nport.ifindex = 0;
   dpmgr_port_add(my_dpmgr, &nport);
+  port = port_lookup(my_dpmgr->ports, 0);
+  TEST_ASSERT_NOT_NULL(port);
+  port->ofp_port.hw_addr[0] = 0xff;
   nport.ofp_port.port_no = 2;
   nport.ifindex = 1;
   dpmgr_port_add(my_dpmgr, &nport);
+  port = port_lookup(my_dpmgr->ports, 1);
+  TEST_ASSERT_NOT_NULL(port);
+  port->ofp_port.hw_addr[0] = 0xff;
   dpmgr_bridge_port_add(my_dpmgr, "br0", 0, 1);
   dpmgr_bridge_port_add(my_dpmgr, "br0", 1, 2);
 
@@ -398,7 +418,10 @@ test_action_OUTPUT(void) {
   m->data = &m->dat[128];
   m->refcnt = 1;
 
-  pkt.in_port = ifindex2port(my_dpmgr->ports, 0);
+  bridge = dpmgr_bridge_lookup(my_dpmgr, "br0");
+  TEST_ASSERT_NOT_NULL(bridge);
+  pkt.in_port = port_lookup(bridge->ports, 1);
+  TEST_ASSERT_NOT_NULL(pkt.in_port);
   lagopus_packet_init(&pkt, m);
   action_set->port = 1;
   execute_action(&pkt, &action_list);
@@ -447,6 +470,7 @@ test_lagopus_match_and_action(void) {
   dpmgr_bridge_port_add(my_dpmgr, "br0", 0, 1);
   dpmgr_bridge_port_add(my_dpmgr, "br0", 1, 2);
   bridge = dpmgr_bridge_lookup(my_dpmgr, "br0");
+  TEST_ASSERT_NOT_NULL(bridge);
   flowdb_switch_mode_set(bridge->flowdb, SWITCH_MODE_OPENFLOW);
   table = table_get(bridge->flowdb, 0);
   table->userdata = new_flowinfo_eth_type();
@@ -463,7 +487,8 @@ test_lagopus_match_and_action(void) {
   m->data = &m->dat[128];
   m->refcnt = 2;
 
-  pkt.in_port = ifindex2port(my_dpmgr->ports, 0);
+  pkt.in_port = port_lookup(bridge->ports, 1);
+  TEST_ASSERT_NOT_NULL(pkt.in_port);
   lagopus_packet_init(&pkt, m);
   pkt.table_id = 0;
   lagopus_match_and_action(&pkt);

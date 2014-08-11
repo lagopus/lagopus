@@ -40,6 +40,8 @@ void
 test_set_field_IN_PORT(void) {
   struct action_list action_list;
   struct dpmgr *my_dpmgr;
+  struct bridge *bridge;
+  struct port *port;
   struct action *action;
   struct ofp_action_set_field *action_set;
   struct port nport;
@@ -53,9 +55,15 @@ test_set_field_IN_PORT(void) {
   nport.ofp_port.port_no = 1;
   nport.ifindex = 0;
   dpmgr_port_add(my_dpmgr, &nport);
+  port = port_lookup(my_dpmgr->ports, 0);
+  TEST_ASSERT_NOT_NULL(port);
+  port->ofp_port.hw_addr[0] = 0xff;
   nport.ofp_port.port_no = 2;
   nport.ifindex = 1;
   dpmgr_port_add(my_dpmgr, &nport);
+  port = port_lookup(my_dpmgr->ports, 1);
+  TEST_ASSERT_NOT_NULL(port);
+  port->ofp_port.hw_addr[0] = 0xff;
   dpmgr_bridge_port_add(my_dpmgr, "br0", 0, 1);
   dpmgr_bridge_port_add(my_dpmgr, "br0", 1, 2);
 
@@ -71,7 +79,10 @@ test_set_field_IN_PORT(void) {
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
 
-  pkt.in_port = ifindex2port(my_dpmgr->ports, 0);
+  bridge = dpmgr_bridge_lookup(my_dpmgr, "br0");
+  TEST_ASSERT_NOT_NULL(bridge);
+  pkt.in_port = port_lookup(bridge->ports, 1);
+  TEST_ASSERT_NOT_NULL(pkt.in_port);
   lagopus_packet_init(&pkt, m);
   set_match(action_set->field, 4, OFPXMT_OFB_IN_PORT << 1,
             0x00, 0x00, 0x00, 0x02);
