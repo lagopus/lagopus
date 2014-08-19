@@ -151,7 +151,7 @@
 	    </cnode>
 	    <!-- Ethernet OAM -->
 	    <cnode name="eoam-mes">
-	      <cndoe name="me">
+	      <cnode name="me">
 		<!-- ME id -->
 		<cnode name="-1-65535" leaf="yes">
 		  <!-- MEG level -->
@@ -168,10 +168,10 @@
 		  <cnode name="ccm-enable">
 		  </cnode>
 		  <!-- CCM transmit rage -->
-		  <cndoe name="ccm-transmit-rate">
+		  <cnode name="ccm-transmit-rate">
 		    <cnode name="1-7">
 		    </cnode>
-		  </cndoe>
+		  </cnode>
 		  <!-- Destination mac address -->
 		  <cnode name="dest-mac-address" multi="yes">
 		    <cnode name="XX:XX:XX:XX:XX:XX">
@@ -183,7 +183,7 @@
 		    </cnode>
 		  </cnode>
 		</cnode>
-	      </cndoe>
+	      </cnode>
 	    </cnode>
 	  </cnode>
 	</cnode>
@@ -218,10 +218,10 @@
 	  <cnode name="false">
 	  </cnode>
 	</cnode>
-	<cndoe name="port-statistics" value="yes">
+	<cnode name="port-statistics" value="yes">
 	  <cnode name="false">
 	  </cnode>
-	</cndoe>
+	</cnode>
 	<cnode name="group-statistics" value="yes">
 	  <cnode name="false">
 	  </cnode>
