@@ -1,7 +1,7 @@
 Quick Start
 ==========================
 
-Softwarwe Installation
+Software Installation
 --------------------------
 
 ### Intel DPDK install
@@ -82,7 +82,7 @@ You can setup hugepage with two ways:
 
 1. Manual confguration (Hugepage size: 2MB)
 
-		$ sudo echo 256 > /sys/devices/system/node/node0/hugepages/hugepages-2048kB/nr_hugepages
+		$ sudo sh -c "echo 256 >  /sys/devices/system/node/node0/hugepages/hugepages-2048kB/nr_hugepages"
 		$ sudo mkdir -p /mnt/huge
 		$ sudo mount -t hugetlbfs nodev /mnt/huge
 
@@ -101,7 +101,7 @@ Check PCI ID to enable DPDK on 2nd, 3rd, and 4th NIC.
 
 If NIC used for management (ex: ssh) was selected, you will lose connection.
 
-	$ sudo $(RTE_SDK}/tools./pci_unbind.py --status
+	$ sudo ${RTE_SDK}/tools/pci_unbind.py --status
 
 	Network devices using IGB_UIO driver
 	====================================
