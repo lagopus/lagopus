@@ -1093,6 +1093,7 @@ confsys_schema_load(const char *filename);
  * Default is /usr/local/etc/lagopus.
  *
  * @param[in]	cserver
+ * @param[in]   conffile	Config file path.  NULL means use default.
  *
  * @retval LAGOPUS_RESULT_OK	Succeeded.
  * @retval LAGOPUS_RESULT_NOT_FOUND	Fialed, lagopus.conf file not found.
@@ -1101,7 +1102,7 @@ confsys_schema_load(const char *filename);
  *
  */
 int
-cserver_load_lagopus_conf(struct cserver *cserver);
+cserver_load_lagopus_conf(struct cserver *cserver, const char *conffile);
 
 /**
  * Parse lagopus.conf again and invoke callback functions in the
@@ -1109,6 +1110,7 @@ cserver_load_lagopus_conf(struct cserver *cserver);
  * Default is /usr/local/etc/lagopus.
  *
  * @param[in]	cserver
+ * @param[in]   conffile	Config file path.  NULL means use default.
  *
  * @retval LAGOPUS_RESULT_OK	Succeeded.
  * @retval LAGOPUS_RESULT_NOT_FOUND	Fialed, lagopus.conf file not found.
@@ -1117,7 +1119,7 @@ cserver_load_lagopus_conf(struct cserver *cserver);
  *
  */
 int
-cserver_propagate_lagopus_conf(struct cserver *cserver);
+cserver_propagate_lagopus_conf(struct cserver *cserver, const char *conffile);
 
 /**
  * Config APIs.
@@ -1138,10 +1140,10 @@ void
 config_install_callback(void);
 
 lagopus_result_t
-config_load_lagopus_conf(void);
+config_load_lagopus_conf(const char *);
 
 int
-config_propagate_lagopus_conf(void);
+config_propagate_lagopus_conf(const char *);
 
 struct cserver *
 cserver_get(void);

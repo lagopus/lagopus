@@ -245,15 +245,21 @@ config_set_all(struct cserver *cserver)
 
 /* Load lagopus.conf file. */
 int
-cserver_load_lagopus_conf(struct cserver *cserver)
-{
+cserver_load_lagopus_conf(struct cserver *cserver, const char *conffile) {
   int ret;
 
-  yyin = fopen(CONFSYS_CONFIG_FILENAME, "r");
-  if (! yyin) {
-    yyin = fopen(CONFSYS_CONFIG_FILE, "r");
-    if (! yyin) {
+  if (conffile != NULL) {
+    yyin = fopen(conffile, "r");
+    if (yyin == NULL) {
       return LAGOPUS_RESULT_NOT_FOUND;
+    }
+  } else {
+    yyin = fopen(CONFSYS_CONFIG_FILENAME, "r");
+    if (! yyin) {
+      yyin = fopen(CONFSYS_CONFIG_FILE, "r");
+      if (! yyin) {
+        return LAGOPUS_RESULT_NOT_FOUND;
+      }
     }
   }
 
@@ -278,9 +284,9 @@ cserver_load_lagopus_conf(struct cserver *cserver)
 
 /* Propagate lagopus.conf. */
 int
-cserver_propagate_lagopus_conf(struct cserver *cserver)
+cserver_propagate_lagopus_conf(struct cserver *cserver, const char *conffile)
 {
   cnode_child_free(cserver->config);
   cserver->config = cnode_alloc();
-  return cserver_load_lagopus_conf(cserver);
+  return cserver_load_lagopus_conf(cserver, conffile);
 }

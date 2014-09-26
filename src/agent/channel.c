@@ -364,7 +364,8 @@ channel_packet_ready(struct pbuf *pbuf, struct ofp_header *sneak) {
 }
 
 static void
-channel_write_nolock(struct channel *channel) {
+channel_write_nolock(struct channel *channel)
+{
   ssize_t nbytes;
 
   /* Connect status. */
