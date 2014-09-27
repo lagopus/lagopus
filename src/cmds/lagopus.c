@@ -16,12 +16,13 @@
 
 
 #include "lagopus_apis.h"
+#include "lagopus_version.h"
 
 #include "agent.h"
 #include "confsys.h"
 
 
-
+
 
 
 #define ONE_SEC		1000LL * 1000LL * 1000LL
@@ -30,13 +31,13 @@
 #define DEFAULT_PIDFILE_DIR	"/var/run/"
 
 
-
+
 
 
 static lagopus_chrono_t s_to = 1000LL * 1000LL * 1000LL * 5;
 
 
-
+
 
 
 static inline pid_t
@@ -101,7 +102,7 @@ s_daemonize(int exclude_fd) {
 }
 
 
-
+
 
 
 static volatile bool s_got_term_sig = false;
@@ -158,7 +159,7 @@ s_hup_handler(int sig) {
 }
 
 
-
+
 
 
 static const char *s_progname;
@@ -196,6 +197,7 @@ usage(FILE *fd, int exit_status) {
     lagopus_module_usage_all(fd);
   }
   exit(exit_status);
+  /* NOTREACHED */
 }
 
 
@@ -223,9 +225,14 @@ parse_args(int argc, const char *const argv[]) {
         break;
       }
       case 'v': {
-        fprintf(stdout, "version 0.1\n");
+        fprintf(stdout, "%s version %d.%d.%d%s\n",
+                LAGOPUS_PRODUCT_NAME,
+                LAGOPUS_VERSION_MAJOR,
+                LAGOPUS_VERSION_MINOR,
+                LAGOPUS_VERSION_PATCH,
+                LAGOPUS_VERSION_RELEASE);
         exit(0);
-        break;
+        /* NOTREACHED */
       }
       case 'l': {
         s_logfile = optarg;
@@ -372,7 +379,7 @@ s_do_main(int argc, const char *const argv[], int ipcfd) {
 }
 
 
-
+
 
 
 int

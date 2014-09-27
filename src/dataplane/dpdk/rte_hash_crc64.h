@@ -62,7 +62,7 @@ static inline uint64_t
 lagopus_hash_crc64(const void *data, uint32_t data_len, uint32_t init_val) {
   uint32_t cksum;
   unsigned i;
-  uint32_t temp = 0, temp2 = 0, hash2 = 0;
+  uint32_t temp = 0, hash2 = 0;
   const uint32_t *p32 = (const uint32_t *)data + (data_len / 4);
 
   cksum = (data_len << 19) | (data_len >> 13);

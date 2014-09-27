@@ -215,13 +215,6 @@ struct lagopus_port_statistics {
 } __rte_cache_aligned;
 struct lagopus_port_statistics port_statistics[RTE_MAX_ETHPORTS];
 
-/* A tsc-based timer responsible for triggering statistics printout */
-#ifdef STANDALONE
-#define TIMER_MILLISECOND 2000000ULL /* around 1ms at 2 Ghz */
-static uint64_t timer_period = 10 * TIMER_MILLISECOND *
-                               1000; /* default period is 10 seconds */
-#endif
-
 static int kni_change_mtu(uint8_t port_id, unsigned new_mtu);
 static int kni_config_network_interface(uint8_t port_id, uint8_t if_up);
 
@@ -253,7 +246,7 @@ app_lcore_io_rx_buffer_to_send (
 
   if (unlikely(ret < bsz)) {
     uint32_t k;
-    for (k = ret; k < bsz; k ++) {
+    for (k = (uint32_t)ret; k < bsz; k++) {
       struct rte_mbuf *m = lp->rx.mbuf_out[worker].array[k];
       rte_pktmbuf_free(m);
     }
@@ -262,10 +255,8 @@ app_lcore_io_rx_buffer_to_send (
   lp->rx.mbuf_out[worker].n_mbufs = 0;
 
 #if APP_STATS
-  lp->rx.rings_iters[worker] ++;
-  if (likely(ret == 0)) {
-    lp->rx.rings_count[worker] ++;
-  }
+  lp->rx.rings_iters[worker] += bsz;
+  lp->rx.rings_count[worker] += ret;
   if (unlikely(lp->rx.rings_iters[worker] == APP_STATS)) {
     unsigned lcore = rte_lcore_id();
 
@@ -360,9 +351,9 @@ app_lcore_io_rx(
       switch (fifoness) {
         case FIFONESS_FLOW:
           worker_0 = rte_hash_crc(rte_pktmbuf_mtod(mbuf_0_0, void *),
-                                  sizeof(ETHER_HDR), port) % n_workers;
+                                  sizeof(ETHER_HDR) + 2, port) % n_workers;
           worker_1 = rte_hash_crc(rte_pktmbuf_mtod(mbuf_0_1, void *),
-                                  sizeof(ETHER_HDR), port) % n_workers;
+                                  sizeof(ETHER_HDR) + 2, port) % n_workers;
           break;
         case FIFONESS_PORT:
           worker_0 = worker_1 = port % n_workers;
@@ -394,7 +385,7 @@ app_lcore_io_rx(
       switch (fifoness) {
         case FIFONESS_FLOW:
           worker = rte_hash_crc(rte_pktmbuf_mtod(mbuf, void *),
-                                sizeof(ETHER_HDR), port) % n_workers;
+                                sizeof(ETHER_HDR) + 2, port) % n_workers;
           break;
         case FIFONESS_PORT:
           worker = port % n_workers;
@@ -418,7 +409,7 @@ app_lcore_io_rx_flush(struct app_lcore_params_io *lp, uint32_t n_workers) {
   uint32_t worker;
 
   for (worker = 0; worker < n_workers; worker ++) {
-    int ret, n_mbufs;
+    uint32_t ret, n_mbufs;
 
     n_mbufs = lp->rx.mbuf_out[worker].n_mbufs;
     if (likely((lp->rx.mbuf_out_flush[worker] == 0) ||
@@ -738,7 +729,7 @@ app_init_mbuf_pools(void) {
     }
 
     rte_snprintf(name, sizeof(name), "mbuf_pool_%u", socket);
-    printf("Creating the mbuf pool for socket %u ...\n", socket);
+    lagopus_msg_debug("Creating the mbuf pool for socket %u ...\n", socket);
     app.pools[socket] = rte_mempool_create(
                           name,
                           APP_DEFAULT_MEMPOOL_BUFFERS,
@@ -783,20 +774,23 @@ app_init_rings_rx(void) {
 
     for (lcore_worker = 0; lcore_worker < APP_MAX_LCORES; lcore_worker ++) {
       char name[32];
-      struct app_lcore_params_worker *lp_worker =
-            &app.lcore_params[lcore_worker].worker;
+      struct app_lcore_params_worker *lp_worker;
       struct rte_ring *ring = NULL;
 
+      lp_worker = &app.lcore_params[lcore_worker].worker;
       if (app.lcore_params[lcore_worker].type != e_APP_LCORE_WORKER &&
           app.lcore_params[lcore_worker].type != e_APP_LCORE_IO_WORKER) {
         continue;
       }
 
-      printf("Creating ring to connect I/O lcore %u (socket %u) with worker lcore %u ...\n",
-             lcore,
-             socket_io,
-             lcore_worker);
-      rte_snprintf(name, sizeof(name), "app_ring_rx_s%u_io%u_w%u",
+      lagopus_msg_debug(
+          "Creating ring to connect I/O "
+          "lcore %u (socket %u) with worker lcore %u ...\n",
+          lcore,
+          socket_io,
+          lcore_worker);
+      rte_snprintf(name, sizeof(name),
+                   "app_ring_rx_s%u_io%u_w%u",
                    socket_io,
                    lcore,
                    lcore_worker);
@@ -806,7 +800,8 @@ app_init_rings_rx(void) {
                (int)socket_io,
                RING_F_SP_ENQ | RING_F_SC_DEQ);
       if (ring == NULL) {
-        rte_panic("Cannot create ring to connect I/O core %u with worker core %u\n",
+        rte_panic("Cannot create ring to connect I/O "
+                  "core %u with worker core %u\n",
                   lcore,
                   lcore_worker);
       }
@@ -834,8 +829,9 @@ app_init_rings_rx(void) {
   }
 
   for (lcore = 0; lcore < APP_MAX_LCORES; lcore ++) {
-    struct app_lcore_params_worker *lp_worker = &app.lcore_params[lcore].worker;
+    struct app_lcore_params_worker *lp_worker;
 
+    lp_worker = &app.lcore_params[lcore].worker;
     if (app.lcore_params[lcore].type != e_APP_LCORE_WORKER &&
         app.lcore_params[lcore].type != e_APP_LCORE_IO_WORKER) {
       continue;
@@ -879,17 +875,25 @@ app_init_rings_tx(void) {
       lp_io = &app.lcore_params[lcore_io].io;
       socket_io = rte_lcore_to_socket_id(lcore_io);
 
-      printf("Creating ring to connect worker lcore %u with TX port %u (through I/O lcore %u) (socket %u) ...\n",
-             lcore, port, (unsigned)lcore_io, (unsigned)socket_io);
-      rte_snprintf(name, sizeof(name), "app_ring_tx_s%u_w%u_p%u", socket_io, lcore,
-                   port);
+      lagopus_msg_debug("Creating ring to connect "
+                        "worker lcore %u with "
+                        "TX port %u (through I/O lcore %u)"
+                        " (socket %u) ...\n",
+                        lcore,
+                        port,
+                        (unsigned)lcore_io,
+                        (unsigned)socket_io);
+      rte_snprintf(name, sizeof(name),
+                   "app_ring_tx_s%u_w%u_p%u",
+                   socket_io, lcore, port);
       ring = rte_ring_create(
                name,
                app.ring_tx_size,
                (int)socket_io,
                RING_F_SP_ENQ | RING_F_SC_DEQ);
       if (ring == NULL) {
-        rte_panic("Cannot create ring to connect worker core %u with TX port %u\n",
+        rte_panic("Cannot create ring to connect"
+                  " worker core %u with TX port %u\n",
                   lcore,
                   port);
       }
@@ -1183,7 +1187,7 @@ lagopus_configure_physical_port(struct port *port) {
   struct rte_eth_dev_info devinfo;
 
   /* DPDK engine */
-  if (app_get_nic_rx_queues_per_port(port->ifindex) == 0) {
+  if (app_get_nic_rx_queues_per_port((uint8_t)port->ifindex) == 0) {
     /* Do not configured by DPDK, nothing to do. */
     return LAGOPUS_RESULT_OK;
   }

@@ -48,6 +48,14 @@
 #include "packet.h"
 #include "csum.h"
 #include "pcap.h"
+#include "City.h"
+#include "murmurhash3.h"
+
+#ifdef HAVE_DPDK
+#include "rte_hash_crc.h"
+#include "dpdk/rte_hash_crc64.h"
+#include "dpdk/dpdk.h"
+#endif /* HAVE_DPDK */
 
 #if 1
 #define STATIC
@@ -58,14 +66,14 @@
 #define OFPIEH_AFTER_AH (OFPIEH_ESP|OFPIEH_DEST|OFPIEH_UNREP)
 #define OFPIEH_AFTER_ESP (OFPIEH_DEST||OFPIEH_UNREP)
 
-#define GET_OXM_FIELD(ofpat) \
+#define GET_OXM_FIELD(ofpat)						\
   ((((const struct ofp_action_set_field *)(ofpat))->field[2] >> 1) & 0x7f)
 
-#define NEED_COPY_ETH_ADDR(flags)                     \
-  ((flags & (SET_FIELD_ETH_DST|SET_FIELD_ETH_SRC)) != \
+#define NEED_COPY_ETH_ADDR(flags)			\
+  ((flags & (SET_FIELD_ETH_DST|SET_FIELD_ETH_SRC)) !=	\
    (SET_FIELD_ETH_DST|SET_FIELD_ETH_SRC))
 
-#define PUT_TIMEOUT 100LL * 1000LL * 1000LL
+#define PUT_TIMEOUT 1LL * 1000LL
 #define FIELD(n) ((n) << 1)
 
 /**
@@ -149,12 +157,176 @@ lagopus_get_switch_config(struct bridge *bridge,
   return LAGOPUS_RESULT_OK;
 }
 
-static void
-classify_packet_ipv6(struct lagopus_packet *pkt, ssize_t pktlen) {
-  IPV6_HDR *ipv6_hdr;
-  unsigned char *next_hdr;
-  uint8_t *proto;
+#ifdef HAVE_DPDK
+static uint64_t
+calc_murmur_hash(const char *buf, size_t len, uint64_t seed) {
+  union {
+    uint64_t hash64;
+    struct {
+      uint32_t hash32_h;
+      uint32_t hash32_l;
+    };
+  } val;
+  MurmurHash3_x86_32(buf, (int)len, (uint32_t)seed, &val.hash32_h);
+  val.hash32_l = rte_hash_crc(buf, (uint32_t)len, (uint32_t)seed);
+  return val.hash64;
+}
 
+static inline uint64_t
+calc_hash(const uint8_t *buf, size_t len, uint64_t seed) {
+  static uint64_t (*hash_func)(const char *buf, size_t len, uint64_t seed)
+    = NULL;
+
+  if (hash_func == NULL) {
+    switch (app.hashtype) {
+    case HASH_TYPE_CITY64:
+      hash_func = CityHash64WithSeed;
+      break;
+
+    case HASH_TYPE_MURMUR3:
+      hash_func = calc_murmur_hash;
+      break;
+
+    case HASH_TYPE_INTEL64:
+    default:
+      hash_func = lagopus_hash_crc64;
+      break;
+    }
+  }
+  return hash_func((const char *)buf, len, seed);
+}
+#else
+#define calc_hash CityHash64WithSeed
+#endif /* HAVE_DPDK */
+
+static inline uint64_t
+calc_l4_hash(const struct lagopus_packet *pkt, uint64_t hash64) {
+  switch (*pkt->proto) {
+  case IPPROTO_ICMP:
+    hash64 = calc_hash(pkt->l4_hdr,
+		       sizeof(uint8_t) * 2,
+		       hash64);
+    break;
+  case IPPROTO_TCP:
+  case IPPROTO_UDP:
+  case IPPROTO_SCTP:
+    hash64 = calc_hash(pkt->l4_hdr,
+		       sizeof(uint16_t) * 2,
+		       hash64);
+    break;
+  case IPPROTO_ICMPV6:
+    hash64 = calc_hash(pkt->l4_hdr,
+		       sizeof(uint8_t) * 2,
+		       hash64);
+    if (pkt->nd_sll != NULL) {
+      hash64 = calc_hash(&pkt->nd_sll[2], ETHER_ADDR_LEN, hash64);
+    } else if (pkt->nd_tll != NULL) {
+      hash64 = calc_hash(&pkt->nd_tll[2], ETHER_ADDR_LEN, hash64);
+    }
+    break;
+  default:
+    break;
+  }
+  return hash64;
+}
+
+static inline uint64_t
+calc_ipv4_hash(const struct lagopus_packet *pkt, uint64_t hash64) {
+  struct ip *ipv4_hdr = pkt->ipv4;
+
+  hash64 = calc_hash(&ipv4_hdr->ip_tos,
+                     sizeof(ipv4_hdr->ip_tos),
+                     hash64);
+  hash64 = calc_hash((const uint8_t *)&ipv4_hdr->ip_src,
+                     sizeof(ipv4_hdr->ip_src) << 1,
+                     hash64);
+  hash64 = calc_hash(&ipv4_hdr->ip_p,
+                     sizeof(ipv4_hdr->ip_p),
+                     hash64);
+  return hash64;
+}
+
+static inline uint64_t
+calc_ipv6_hash(const struct lagopus_packet *pkt, uint64_t hash64) {
+  hash64 = calc_hash((const uint8_t *)pkt->ipv6,
+                     4,
+                     hash64);
+  hash64 = calc_hash(pkt->proto,
+                     1,
+                     hash64);
+  hash64 = calc_hash((const uint8_t *)&pkt->ipv6->ip6_src,
+                     sizeof(struct in6_addr) << 1,
+                     hash64);
+  return hash64;
+}
+
+static inline uint64_t
+calc_arp_hash(const struct lagopus_packet *pkt, uint64_t hash64) {
+  return calc_hash(pkt->arp->arp_sha,
+                   ETHER_ADDR_LEN * 2 + 4 + 4,
+                   hash64);
+}
+
+static inline uint64_t
+calc_l2_hash(const struct lagopus_packet *pkt, uint64_t seed) {
+  return calc_hash(pkt->l2_hdr, (size_t)(pkt->l3_hdr - pkt->l2_hdr), seed);
+}
+
+static inline void
+classify_packet_l4(struct lagopus_packet *pkt) {
+  if (*pkt->proto == IPPROTO_ICMPV6) {
+    /* pointer is shared with nd_ns */
+    pkt->nd_sll = NULL;
+    pkt->nd_tll = NULL;
+
+    if (pkt->icmp6->icmp6_type == 135) {          /* NDP NS */
+      uint8_t *nd_ptr, *end_ptr;
+
+      end_ptr = ((uint8_t *)pkt->nd_ns) + IPV6_PLEN(pkt->ipv6);
+      nd_ptr = (uint8_t *)&pkt->nd_ns[1];
+      while (nd_ptr < end_ptr && nd_ptr[1] != 0) {
+        if (nd_ptr[0] == 1) {
+          pkt->nd_sll = nd_ptr;
+          break;
+        }
+        nd_ptr += nd_ptr[1] << 3;
+      }
+    } else if (pkt->icmp6->icmp6_type == 136) {   /* NDP NA */
+      uint8_t *nd_ptr, *end_ptr;
+
+      end_ptr = ((uint8_t *)pkt->nd_ns) + IPV6_PLEN(pkt->ipv6);
+      nd_ptr = (uint8_t *)&pkt->nd_ns[1];
+      while (nd_ptr < end_ptr && nd_ptr[1] != 0) {
+        if (nd_ptr[0] == 2) {
+          pkt->nd_tll = nd_ptr;
+          break;
+        }
+        nd_ptr += nd_ptr[1] << 3;
+      }
+    }
+  }
+}
+
+static inline void
+classify_packet_ipv4(struct lagopus_packet *pkt) {
+  IPV4_HDR *ipv4_hdr;
+
+  /* scan packet */
+  DP_PRINT("IPv4 packet\n");
+  ipv4_hdr = pkt->ipv4;
+  pkt->proto = &IPV4_PROTO(ipv4_hdr);
+  pkt->l4_hdr_l = pkt->l3_hdr_l + IPV4_HLEN(ipv4_hdr);
+}
+
+static void
+classify_packet_ipv6(struct lagopus_packet *pkt) {
+  IPV6_HDR *ipv6_hdr;
+  ssize_t pktlen;
+  uint8_t *proto;
+  uint8_t *next_hdr;
+
+  /* scan packet */
+  DP_PRINT("IPv6 packet\n");
   ipv6_hdr = pkt->ipv6;
   /*
    * finding protocol, parse IPv6 extension header.
@@ -169,248 +341,122 @@ classify_packet_ipv6(struct lagopus_packet *pkt, ssize_t pktlen) {
    */
   proto = &IPV6_PROTO(ipv6_hdr);
   next_hdr = pkt->l3_hdr + sizeof(IPV6_HDR);
+  pktlen = OS_M_PKTLEN(pkt->mbuf) - (uint32_t)(pkt->l3_hdr - pkt->l2_hdr);
   for (;;) {
     if (pktlen <= 2) {
       /* valid protocol is not found */
       break;
     }
     switch (*proto) {
-      case IPPROTO_HOPOPTS:
-        if (pkt->oob_data.ipv6_exthdr != 0) {
-          pkt->oob_data.ipv6_exthdr |= OFPIEH_UNSEQ;
-        }
-        if ((pkt->oob_data.ipv6_exthdr & OFPIEH_HOP) != 0) {
-          pkt->oob_data.ipv6_exthdr |= OFPIEH_UNREP;
-        }
-        pkt->oob_data.ipv6_exthdr |= OFPIEH_HOP;
-        proto = next_hdr;
-        pktlen -= (1 + next_hdr[1]) << 3;
-        next_hdr += (1 + next_hdr[1]) << 3;
-        break;
-
-      case IPPROTO_ROUTING:
-        if ((pkt->oob_data.ipv6_exthdr &
-             (OFPIEH_HOP|OFPIEH_DEST|OFPIEH_UNREP)) != 0) {
-          pkt->oob_data.ipv6_exthdr |= OFPIEH_UNSEQ;
-        }
-        if ((pkt->oob_data.ipv6_exthdr & OFPIEH_ROUTER) != 0) {
-          pkt->oob_data.ipv6_exthdr |= OFPIEH_UNREP;
-        }
-        pkt->oob_data.ipv6_exthdr |= OFPIEH_ROUTER;
-        proto = next_hdr;
-        pktlen -= (1 + next_hdr[1]) << 3;
-        next_hdr += (1 + next_hdr[1]) << 3;
-        break;
-
-      case IPPROTO_FRAGMENT:
-        if ((pkt->oob_data.ipv6_exthdr &
-             (OFPIEH_HOP|OFPIEH_DEST|OFPIEH_ROUTER|OFPIEH_UNREP)) != 0) {
-          pkt->oob_data.ipv6_exthdr |= OFPIEH_UNSEQ;
-        }
-        if ((pkt->oob_data.ipv6_exthdr & OFPIEH_FRAG) != 0) {
-          pkt->oob_data.ipv6_exthdr |= OFPIEH_UNREP;
-        }
-        pkt->oob_data.ipv6_exthdr |= OFPIEH_FRAG;
-        proto = next_hdr;
-        pktlen -= 8;
-        next_hdr += 8;
-        break;
-
-      case IPPROTO_AH:
-        if ((pkt->oob_data.ipv6_exthdr & OFPIEH_AFTER_AH) != 0) {
-          pkt->oob_data.ipv6_exthdr |= OFPIEH_UNSEQ;
-        }
-        if ((pkt->oob_data.ipv6_exthdr & OFPIEH_AUTH) != 0) {
-          pkt->oob_data.ipv6_exthdr |= OFPIEH_UNREP;
-        }
-        pkt->oob_data.ipv6_exthdr |= OFPIEH_AUTH;
-        proto = next_hdr;
-        pktlen -= (2 + next_hdr[1]) << 2;
-        next_hdr += (2 + next_hdr[1]) << 2;
-        break;
-
-      case IPPROTO_ESP:
-        if ((pkt->oob_data.ipv6_exthdr & OFPIEH_AFTER_ESP) != 0) {
-          pkt->oob_data.ipv6_exthdr |= OFPIEH_UNSEQ;
-        }
-        if ((pkt->oob_data.ipv6_exthdr & OFPIEH_ESP) != 0) {
-          pkt->oob_data.ipv6_exthdr |= OFPIEH_UNREP;
-        }
-        pkt->oob_data.ipv6_exthdr |= OFPIEH_ESP;
-        proto = next_hdr;
-        pktlen -= (1 + next_hdr[1]) << 3;
-        next_hdr += (1 + next_hdr[1]) << 3;
-        break;
-
-      case IPPROTO_DSTOPTS:
-        /* first destination and final desitination */
-        if ((pkt->oob_data.ipv6_exthdr & OFPIEH_DEST) != 0) {
-          pkt->oob_data.ipv6_exthdr |= OFPIEH_UNREP;
-        }
-        pkt->oob_data.ipv6_exthdr |= OFPIEH_DEST;
-        proto = next_hdr;
-        pktlen -= (1 + next_hdr[1]) << 3;
-        next_hdr += (1 + next_hdr[1]) << 3;
-        break;
-
-      case IPPROTO_NONE:
-        /* exit loop */
-        if ((pkt->oob_data.ipv6_exthdr & OFPIEH_NONEXT) != 0) {
-          pkt->oob_data.ipv6_exthdr |= OFPIEH_UNREP;
-        }
-        pkt->oob_data.ipv6_exthdr |= OFPIEH_NONEXT;
-        proto = next_hdr;
-        pktlen += 2;
-        next_hdr += 2;
-        goto next;
-
-      default:
-        /* exit loop */
-        goto next;
-    }
-  }
-next:
-  pkt->proto = proto;
-  switch (*proto) {
-    case IPPROTO_ICMP:
-      if ((pktlen -= 2) < 0) {
-        return;
+    case IPPROTO_HOPOPTS:
+      if (pkt->oob_data.ipv6_exthdr != 0) {
+	pkt->oob_data.ipv6_exthdr |= OFPIEH_UNSEQ;
       }
-      pkt->icmp = (struct icmp *)next_hdr;
+      if ((pkt->oob_data.ipv6_exthdr & OFPIEH_HOP) != 0) {
+	pkt->oob_data.ipv6_exthdr |= OFPIEH_UNREP;
+      }
+      pkt->oob_data.ipv6_exthdr |= OFPIEH_HOP;
+      proto = next_hdr;
+      pktlen -= (1 + next_hdr[1]) << 3;
+      next_hdr += (1 + next_hdr[1]) << 3;
       break;
 
-    case IPPROTO_TCP:
-      if ((pktlen -= 4) < 0) {
-        return;
+    case IPPROTO_ROUTING:
+      if ((pkt->oob_data.ipv6_exthdr &
+	   (OFPIEH_HOP|OFPIEH_DEST|OFPIEH_UNREP)) != 0) {
+	pkt->oob_data.ipv6_exthdr |= OFPIEH_UNSEQ;
       }
-      pkt->tcp = (TCP_HDR *)next_hdr;
+      if ((pkt->oob_data.ipv6_exthdr & OFPIEH_ROUTER) != 0) {
+	pkt->oob_data.ipv6_exthdr |= OFPIEH_UNREP;
+      }
+      pkt->oob_data.ipv6_exthdr |= OFPIEH_ROUTER;
+      proto = next_hdr;
+      pktlen -= (1 + next_hdr[1]) << 3;
+      next_hdr += (1 + next_hdr[1]) << 3;
       break;
 
-    case IPPROTO_UDP:
-      if ((pktlen -= 4) < 0) {
-        return;
+    case IPPROTO_FRAGMENT:
+      if ((pkt->oob_data.ipv6_exthdr &
+	   (OFPIEH_HOP|OFPIEH_DEST|OFPIEH_ROUTER|OFPIEH_UNREP)) != 0) {
+	pkt->oob_data.ipv6_exthdr |= OFPIEH_UNSEQ;
       }
-      pkt->udp = (UDP_HDR *)next_hdr;
+      if ((pkt->oob_data.ipv6_exthdr & OFPIEH_FRAG) != 0) {
+	pkt->oob_data.ipv6_exthdr |= OFPIEH_UNREP;
+      }
+      pkt->oob_data.ipv6_exthdr |= OFPIEH_FRAG;
+      proto = next_hdr;
+      pktlen -= 8;
+      next_hdr += 8;
       break;
 
-    case IPPROTO_SCTP:
-      if ((pktlen -= 4) < 0) {
-        return;
+    case IPPROTO_AH:
+      if ((pkt->oob_data.ipv6_exthdr & OFPIEH_AFTER_AH) != 0) {
+	pkt->oob_data.ipv6_exthdr |= OFPIEH_UNSEQ;
       }
-      pkt->sctp = (SCTP_HDR *)next_hdr;
+      if ((pkt->oob_data.ipv6_exthdr & OFPIEH_AUTH) != 0) {
+	pkt->oob_data.ipv6_exthdr |= OFPIEH_UNREP;
+      }
+      pkt->oob_data.ipv6_exthdr |= OFPIEH_AUTH;
+      proto = next_hdr;
+      pktlen -= (2 + next_hdr[1]) << 2;
+      next_hdr += (2 + next_hdr[1]) << 2;
       break;
 
-    case IPPROTO_ICMPV6:
-      if ((pktlen -= 2) < 0) {
-        return;
+    case IPPROTO_ESP:
+      if ((pkt->oob_data.ipv6_exthdr & OFPIEH_AFTER_ESP) != 0) {
+	pkt->oob_data.ipv6_exthdr |= OFPIEH_UNSEQ;
       }
-      pkt->icmp6 = (struct icmp6_hdr *)next_hdr;
-      /* pointer is shared with nd_ns */
-      if (pkt->icmp6->icmp6_type == 135) {          /* NDP NS */
-        uint8_t *nd_ptr, *end_ptr;
-
-        end_ptr = ((uint8_t *)pkt->nd_ns) + IPV6_PLEN(pkt->ipv6);
-        nd_ptr = (uint8_t *)&pkt->nd_ns[1];
-        while (nd_ptr < end_ptr && nd_ptr[1] != 0) {
-          if (nd_ptr[0] == 1) {
-            pkt->nd_sll = nd_ptr;
-            break;
-          }
-          nd_ptr += nd_ptr[1] << 3;
-        }
-      } else if (pkt->icmp6->icmp6_type == 136) {   /* NDP NA */
-        uint8_t *nd_ptr, *end_ptr;
-
-        end_ptr = ((uint8_t *)pkt->nd_ns) + IPV6_PLEN(pkt->ipv6);
-        nd_ptr = (uint8_t *)&pkt->nd_ns[1];
-        while (nd_ptr < end_ptr && nd_ptr[1] != 0) {
-          if (nd_ptr[0] == 2) {
-            pkt->nd_tll = nd_ptr;
-            break;
-          }
-          nd_ptr += nd_ptr[1] << 3;
-        }
+      if ((pkt->oob_data.ipv6_exthdr & OFPIEH_ESP) != 0) {
+	pkt->oob_data.ipv6_exthdr |= OFPIEH_UNREP;
       }
+      pkt->oob_data.ipv6_exthdr |= OFPIEH_ESP;
+      proto = next_hdr;
+      pktlen -= (1 + next_hdr[1]) << 3;
+      next_hdr += (1 + next_hdr[1]) << 3;
       break;
+
+    case IPPROTO_DSTOPTS:
+      /* first destination and final desitination */
+      if ((pkt->oob_data.ipv6_exthdr & OFPIEH_DEST) != 0) {
+	pkt->oob_data.ipv6_exthdr |= OFPIEH_UNREP;
+      }
+      pkt->oob_data.ipv6_exthdr |= OFPIEH_DEST;
+      proto = next_hdr;
+      pktlen -= (1 + next_hdr[1]) << 3;
+      next_hdr += (1 + next_hdr[1]) << 3;
+      break;
+
+    case IPPROTO_NONE:
+      /* exit loop */
+      if ((pkt->oob_data.ipv6_exthdr & OFPIEH_NONEXT) != 0) {
+	pkt->oob_data.ipv6_exthdr |= OFPIEH_UNREP;
+      }
+      pkt->oob_data.ipv6_exthdr |= OFPIEH_NONEXT;
+      proto = next_hdr;
+      pktlen -= 2;
+      next_hdr += 2;
+      goto next;
 
     default:
-      break;
+      /* exit loop */
+      goto next;
+    }
   }
+ next:
+  pkt->proto = proto;
+  pkt->l4_hdr = next_hdr;
   pkt->oob_data.ipv6_exthdr = htons(pkt->oob_data.ipv6_exthdr);
 }
 
-static inline void
-classify_packet_l3(struct lagopus_packet *pkt,
-                   ssize_t pktlen,
-                   uint16_t ether_type) {
-  IPV4_HDR *ipv4_hdr;
-
-  /* scan packet */
-  switch (ether_type) {
-    case ETHERTYPE_IP:
-      DP_PRINT("IPv4 packet\n");
-      if (pktlen < (ssize_t)sizeof(*ipv4_hdr)) {
-        return;
-      }
-      ipv4_hdr = pkt->ipv4;
-      pkt->proto = &IPV4_PROTO(ipv4_hdr);
-      if ((pktlen -= IPV4_HLEN(ipv4_hdr)) < 0) {
-        return;
-      }
-      pkt->l4_hdr_l = pkt->l3_hdr_l + IPV4_HLEN(ipv4_hdr);
-      switch (*pkt->proto) {
-        case IPPROTO_ICMP:
-          if ((pktlen -= 2) < 0) {
-            return;
-          }
-          break;
-        case IPPROTO_TCP:
-          if ((pktlen -= 4) < 0) {
-            return;
-          }
-          break;
-        case IPPROTO_UDP:
-          if ((pktlen -= 4) < 0) {
-            return;
-          }
-          break;
-        case IPPROTO_SCTP:
-          if ((pktlen -= 4) < 0) {
-            return;
-          }
-          break;
-        default:
-          break;
-      }
-      break;
-    case ETHERTYPE_ARP:
-      DP_PRINT("ARP packet\n");
-      if ((pktlen -= (ssize_t)sizeof(*pkt->arp)) < 0) {
-        return;
-      }
-      break;
-    case ETHERTYPE_IPV6:
-      DP_PRINT("IPv6 packet\n");
-      if ((pktlen -= (ssize_t)sizeof(IPV6_HDR)) < 0) {
-        return;
-      }
-      classify_packet_ipv6(pkt, pktlen);
-      break;
-    default:
-      DP_PRINT("other packet\n");
-      break;
-  }
-}
-
 /**
- * packet classification.
+ * packet classification for L2.
  *
  * @param[in]   pkt     packet structure with data.
  *
  * analyze packet data, and set up internal metadata of the packet.
  */
-STATIC void
-classify_packet(struct lagopus_packet *pkt) {
+static inline void
+classify_packet_l2(struct lagopus_packet *pkt) {
   uint16_t ether_type;
   ssize_t pktlen;
   OS_MBUF *m;
@@ -426,64 +472,42 @@ classify_packet(struct lagopus_packet *pkt) {
   m = pkt->mbuf;
   pktlen = (ssize_t)OS_M_PKTLEN(m);
 
-  if ((pktlen -= (ssize_t)sizeof(ETHER_HDR)) < 0) {
-    return;
-  }
   pkt->eth = OS_MTOD(m, ETHER_HDR *);
   ether_type = OS_NTOHS(ETHER_TYPE(pkt->eth));
 
   pkt->l3_hdr = pkt->base[ETH_BASE] + sizeof(ETHER_HDR);
   switch (ether_type) {
-#ifdef PBB_IS_VLAN
-    case ETHERTYPE_PBB:
-      DP_PRINT("PBB packet\n");
-      if ((pktlen -= (ssize_t)sizeof(struct pbb_hdr)) < 0) {
-        return;
-      }
-      pkt->pbb = (struct pbb_hdr *)pkt->l3_hdr_l;
-      /* get ether type after pbb. */
-      ether_type = OS_NTOHS(pkt->pbb->c_ethtype);
-      /* adjust l3 header */
-      pkt->l3_hdr += sizeof(struct pbb_hdr *);
-      break;
-#endif /* PBB_IS_VLAN */
-    case ETHERTYPE_VLAN:
-    case 0x88a8: /* double tagging */
-      /* check length */
-      if ((pktlen -= (ssize_t)sizeof(VLAN_HDR)) < 0) {
-        return;
-      }
-      pkt->vlan = (VLAN_HDR *)pkt->l3_hdr_w;
-      pkt->oob_data.vlan_tci = VLAN_TCI(pkt->vlan) | htons(OFPVID_PRESENT);
-      /* get ether type after vlan tag. */
-      ether_type = OS_NTOHS(VLAN_ETH(pkt->vlan));
-      /* adjust l3 header */
-      pkt->l3_hdr += sizeof(VLAN_HDR);
-      break;
+  case ETHERTYPE_PBB:
+    DP_PRINT("PBB packet\n");
+    pkt->pbb = (struct pbb_hdr *)pkt->l3_hdr_l;
+    ether_type = OS_NTOHS(pkt->pbb->c_ethtype);
+    pkt->l3_hdr += sizeof(struct pbb_hdr *);
+    break;
 
-    default:
-      break;
+  case ETHERTYPE_VLAN:
+  case 0x88a8: /* double tagging */
+    pkt->vlan = (VLAN_HDR *)pkt->l3_hdr_w;
+    pkt->oob_data.vlan_tci = VLAN_TCI(pkt->vlan) | htons(OFPVID_PRESENT);
+    ether_type = OS_NTOHS(VLAN_ETH(pkt->vlan));
+    pkt->l3_hdr += sizeof(VLAN_HDR);
+    break;
+
+  default:
+    break;
   }
-  /* strip innner vlan header */
+  /* strip innner vlan/pbb header */
   while (ether_type == ETHERTYPE_VLAN ||
-#ifdef PBB_IS_VLAN
          ether_type == ETHERTYPE_PBB ||
-#endif /* PBB_IS_VLAN */
          ether_type == 0x88a8) {
     if (ether_type == ETHERTYPE_PBB) {
-#ifdef PBB_IS_VLAN
       struct pbb_hdr *pbb;
 
-      if ((pktlen -= (ssize_t)sizeof(struct pbb_hdr)) < 0) {
-        return;
-      }
       pbb = (struct pbb_hdr *)pkt->l3_hdr_l;
       ether_type = OS_NTOHS(pbb->c_ethtype);
       if (pkt->pbb == NULL) {
         pkt->pbb = pbb;
       }
       pkt->l3_hdr += sizeof(struct pbb_hdr);
-#endif /* PBB_IS_VLAN */
     } else {
       if ((pktlen -= (ssize_t)sizeof(VLAN_HDR)) < 0) {
         return;
@@ -496,47 +520,54 @@ classify_packet(struct lagopus_packet *pkt) {
       pkt->l3_hdr += sizeof(VLAN_HDR);
     }
   }
+
   pkt->ether_type = ether_type;
 
   switch (ether_type) {
-    case ETHERTYPE_MPLS:
-      DP_PRINT("MPLS packet\n");
-      if ((pktlen -= (ssize_t)sizeof(struct mpls_hdr)) < 0) {
-        return;
-      }
-      pkt->mpls = (struct mpls_hdr *)pkt->l3_hdr_l;
-      pkt->l3_hdr +=  sizeof(struct mpls_hdr);
-      if (pkt->l3_hdr[0] >= 0x45 && pkt->l3_hdr[0] <= 0x4f) {
-        classify_packet_l3(pkt, pktlen, ETHERTYPE_IP);
-      } else if ((pkt->l3_hdr[0] & 0xf0) == 0x60) {
-        classify_packet_l3(pkt, pktlen, ETHERTYPE_IPV6);
-      }
-      break;
-    case ETHERTYPE_MPLS_MCAST:
-      DP_PRINT("MPLS(mcast) packet\n");
-      if ((pktlen -= (ssize_t)sizeof(struct mpls_hdr)) < 0) {
-        return;
-      }
-      pkt->mpls = (struct mpls_hdr *)pkt->l3_hdr_l;
-      pkt->l3_hdr +=  sizeof(struct mpls_hdr);
-      if (pkt->l3_hdr[0] >= 0x45 && pkt->l3_hdr[0] <= 0x4f) {
-        classify_packet_l3(pkt, pktlen, ETHERTYPE_IP);
-      } else if ((pkt->l3_hdr[0] & 0xf0) == 0x60) {
-        classify_packet_l3(pkt, pktlen, ETHERTYPE_IPV6);
-      }
-      break;
+  case ETHERTYPE_MPLS:
+  case ETHERTYPE_MPLS_MCAST:
+    DP_PRINT("MPLS packet\n");
+    if ((pktlen -= (ssize_t)sizeof(struct mpls_hdr)) < 0) {
+      return;
+    }
+    pkt->mpls = (struct mpls_hdr *)pkt->l3_hdr_l;
+    pkt->l3_hdr +=  sizeof(struct mpls_hdr);
+    if (pkt->l3_hdr[0] >= 0x45 && pkt->l3_hdr[0] <= 0x4f) {
+      pkt->ether_type = ETHERTYPE_IP;
+    } else if ((pkt->l3_hdr[0] & 0xf0) == 0x60) {
+      pkt->ether_type = ETHERTYPE_IPV6;
+    }
+    break;
 
-    case ETHERTYPE_PBB:
-      DP_PRINT("PBB packet\n");
-      if ((pktlen -= (ssize_t)sizeof(struct pbb_hdr)) < 0) {
-        return;
-      }
-      pkt->pbb = (struct pbb_hdr *)pkt->l3_hdr_l;
-      break;
+  case ETHERTYPE_PBB:
+    DP_PRINT("PBB packet\n");
+    if ((pktlen -= (ssize_t)sizeof(struct pbb_hdr)) < 0) {
+      return;
+    }
+    pkt->pbb = (struct pbb_hdr *)pkt->l3_hdr_l;
+    pkt->l3_hdr += sizeof(struct pbb_hdr);
+    pkt->ether_type = OS_NTOHS(pkt->pbb->c_ethtype);
+    break;
 
-    default:
-      classify_packet_l3(pkt, pktlen, ether_type);
-      break;
+  default:
+    break;
+  }
+}
+
+static inline void
+re_classify_packet(struct lagopus_packet *pkt) {
+  classify_packet_l2(pkt);
+  switch (pkt->ether_type) {
+  case ETHERTYPE_IP:
+    classify_packet_ipv4(pkt);
+    classify_packet_l4(pkt);
+    break;
+  case ETHERTYPE_IPV6:
+    classify_packet_ipv6(pkt);
+    classify_packet_l4(pkt);
+    break;
+  default:
+    break;
   }
 }
 
@@ -550,6 +581,7 @@ lagopus_packet_init(struct lagopus_packet *pkt, void *m) {
   pkt->oob_data.metadata = 0;
   pkt->oob_data.tunnel_id = 0;
 
+  pkt->flags = 0;
   pkt->nmatched = 0;
   for (i = 0; i < LAGOPUS_ACTION_SET_ORDER_MAX; i++) {
     TAILQ_INIT(&pkt->actions[i]);
@@ -558,6 +590,37 @@ lagopus_packet_init(struct lagopus_packet *pkt, void *m) {
   pkt->mbuf = (OS_MBUF *)m;
   /* pre match */
   classify_packet(pkt);
+}
+
+STATIC void
+classify_packet(struct lagopus_packet *pkt) {
+  uint64_t hash64;
+
+  classify_packet_l2(pkt);
+  hash64 = calc_l2_hash(pkt, pkt->in_port->ifindex);
+
+  switch (pkt->ether_type) {
+  case ETHERTYPE_IP:
+    classify_packet_ipv4(pkt);
+    hash64 = calc_ipv4_hash(pkt, hash64);
+    hash64 = calc_l4_hash(pkt, hash64);
+    break;
+
+  case ETHERTYPE_IPV6:
+    classify_packet_ipv6(pkt);
+    classify_packet_l4(pkt);
+    hash64 = calc_ipv6_hash(pkt, hash64);
+    hash64 = calc_l4_hash(pkt, hash64);
+    break;
+
+  case ETHERTYPE_ARP:
+    hash64 = calc_arp_hash(pkt, hash64);
+    break;
+
+  default:
+    break;
+  }
+  pkt->hash64 = hash64;
 }
 
 /*
@@ -615,311 +678,311 @@ execute_action_set_field(struct lagopus_packet *pkt,
   oxm_value = &oxm[4];
 
   switch (oxm_field) {
-    case OFPXMT_OFB_IN_PORT:
-      OS_MEMCPY(&val32, oxm_value, sizeof(uint32_t));
-      DP_PRINT("set_field in_port: %d\n", OS_NTOHL(val32));
-      if (pkt->in_port != NULL && pkt->in_port->bridge != NULL) {
-        struct vector *v;
+  case OFPXMT_OFB_IN_PORT:
+    OS_MEMCPY(&val32, oxm_value, sizeof(uint32_t));
+    DP_PRINT("set_field in_port: %d\n", OS_NTOHL(val32));
+    if (pkt->in_port != NULL && pkt->in_port->bridge != NULL) {
+      struct vector *v;
 
-        v = pkt->in_port->bridge->ports;
-        pkt->in_port = port_lookup(v, OS_NTOHL(val32));
-        pkt->oob_data.in_port = val32;
-      }
-      break;
+      v = pkt->in_port->bridge->ports;
+      pkt->in_port = port_lookup(v, OS_NTOHL(val32));
+      pkt->oob_data.in_port = val32;
+    }
+    break;
 
 #if 0 /* cannot modify, the data is not in packet */
-    case OFPXMT_OFB_IN_PHY_PORT:
-      break;
+  case OFPXMT_OFB_IN_PHY_PORT:
+    break;
 #endif
 
-    case OFPXMT_OFB_METADATA:
-      DP_PRINT("set_field metadata: 0x%016" PRIx64 "\n",
-               OS_NTOHLL(*((uint64_t *)oxm_value)));
-      OS_MEMCPY(&pkt->oob_data.metadata, oxm_value, sizeof(uint64_t));
-      break;
+  case OFPXMT_OFB_METADATA:
+    DP_PRINT("set_field metadata: 0x%016" PRIx64 "\n",
+	     OS_NTOHLL(*((uint64_t *)oxm_value)));
+    OS_MEMCPY(&pkt->oob_data.metadata, oxm_value, sizeof(uint64_t));
+    break;
 
-    case OFPXMT_OFB_ETH_DST:
-      DP_PRINT("set_field eth_dst: %02x:%02x:%02x:%02x:%02x:%02x\n",
-               oxm_value[0], oxm_value[1], oxm_value[2],
-               oxm_value[3], oxm_value[4], oxm_value[5]);
-      OS_MEMCPY(ETHER_DST(pkt->eth), oxm_value, ETHER_ADDR_LEN);
-      break;
+  case OFPXMT_OFB_ETH_DST:
+    DP_PRINT("set_field eth_dst: %02x:%02x:%02x:%02x:%02x:%02x\n",
+	     oxm_value[0], oxm_value[1], oxm_value[2],
+	     oxm_value[3], oxm_value[4], oxm_value[5]);
+    OS_MEMCPY(ETHER_DST(pkt->eth), oxm_value, ETHER_ADDR_LEN);
+    break;
 
-    case OFPXMT_OFB_ETH_SRC:
-      DP_PRINT("set_field eth_src: %02x:%02x:%02x:%02x:%02x:%02x\n",
-               oxm_value[0], oxm_value[1], oxm_value[2],
-               oxm_value[3], oxm_value[4], oxm_value[5]);
-      OS_MEMCPY(ETHER_SRC(pkt->eth), oxm_value, ETHER_ADDR_LEN);
-      break;
+  case OFPXMT_OFB_ETH_SRC:
+    DP_PRINT("set_field eth_src: %02x:%02x:%02x:%02x:%02x:%02x\n",
+	     oxm_value[0], oxm_value[1], oxm_value[2],
+	     oxm_value[3], oxm_value[4], oxm_value[5]);
+    OS_MEMCPY(ETHER_SRC(pkt->eth), oxm_value, ETHER_ADDR_LEN);
+    break;
 
-    case OFPXMT_OFB_ETH_TYPE:
+  case OFPXMT_OFB_ETH_TYPE:
+    OS_MEMCPY(&val16, oxm_value, sizeof(uint16_t));
+    DP_PRINT("set_field eth_type: 0x%04x\n", OS_NTOHS(val16));
+    if (pkt->vlan != NULL) {
+      VLAN_ETH(pkt->vlan) = val16;
+    } else {
+      ETHER_TYPE(pkt->eth) = val16;
+    }
+    /* re-classify packet if needed. */
+    re_classify_packet(pkt);
+    break;
+
+  case OFPXMT_OFB_VLAN_VID:
+    /* 16bits:VLAN TCI --> |3bits:PCP|1bit:CFI|12bits:VID| */
+    DP_PRINT("set_field vlan_vid: %d\n", oxm_value[0] << 8 | oxm_value[1]);
+    if (pkt->vlan != NULL) {
       OS_MEMCPY(&val16, oxm_value, sizeof(uint16_t));
-      DP_PRINT("set_field eth_type: 0x%04x\n", OS_NTOHS(val16));
-      if (pkt->vlan != NULL) {
-        VLAN_ETH(pkt->vlan) = val16;
-      } else {
-        ETHER_TYPE(pkt->eth) = val16;
-      }
-      /* re-classify packet if needed. */
-      classify_packet(pkt);
-      break;
+      VLAN_TCI(pkt->vlan) &= OS_HTONS(0xf000);
+      VLAN_TCI(pkt->vlan) |= val16 & OS_HTONS(0x0fff);
+      pkt->oob_data.vlan_tci = VLAN_TCI(pkt->vlan);
+    }
+    break;
 
-    case OFPXMT_OFB_VLAN_VID:
-      /* 16bits:VLAN TCI --> |3bits:PCP|1bit:CFI|12bits:VID| */
-      DP_PRINT("set_field vlan_vid: %d\n", oxm_value[0] << 8 | oxm_value[1]);
-      if (pkt->vlan != NULL) {
-        OS_MEMCPY(&val16, oxm_value, sizeof(uint16_t));
-        VLAN_TCI(pkt->vlan) &= OS_HTONS(0xf000);
-        VLAN_TCI(pkt->vlan) |= val16 & OS_HTONS(0x0fff);
-        pkt->oob_data.vlan_tci = VLAN_TCI(pkt->vlan);
-      }
-      break;
+  case OFPXMT_OFB_VLAN_PCP:
+    /* 16bits:VLAN TCI --> |3bits:PCP|1bit:CFI|12bits:VID| */
+    DP_PRINT("set_field vlan_pcp: %d\n", *oxm_value);
+    if (pkt->vlan != NULL) {
+      VLAN_TCI(pkt->vlan) &= OS_HTONS(0x01fff);
+      VLAN_TCI(pkt->vlan) |= OS_HTONS((uint16_t)(*oxm_value << 13));
+      pkt->oob_data.vlan_tci = VLAN_TCI(pkt->vlan);
+    }
+    break;
 
-    case OFPXMT_OFB_VLAN_PCP:
-      /* 16bits:VLAN TCI --> |3bits:PCP|1bit:CFI|12bits:VID| */
-      DP_PRINT("set_field vlan_pcp: %d\n", *oxm_value);
-      if (pkt->vlan != NULL) {
-        VLAN_TCI(pkt->vlan) &= OS_HTONS(0x01fff);
-        VLAN_TCI(pkt->vlan) |= OS_HTONS((uint16_t)(*oxm_value << 13));
-        pkt->oob_data.vlan_tci = VLAN_TCI(pkt->vlan);
-      }
-      break;
+  case OFPXMT_OFB_IP_DSCP:
+    DP_PRINT("set_field ip_dscp: 0x%x\n", *oxm_value);
+    if (pkt->ether_type == ETHERTYPE_IP) {
+      /* IPv4, 6bit of ToS field */
+      IPV4_TOS(pkt->ipv4) &= 0x03;
+      IPV4_TOS(pkt->ipv4) |= (uint8_t)((*oxm_value) << 2);
+      lagopus_update_iphdr_checksum(pkt);
+    } else if (pkt->ether_type == ETHERTYPE_IPV6) {
+      /* IPv6, 6bit of Traffic Class field */
+      IPV6_VTCF(pkt->ipv6) &= OS_HTONL(0xf03fffffU);
+      IPV6_VTCF(pkt->ipv6) |= OS_HTONL((uint32_t)(*oxm_value << 22));
+    }
+    break;
 
-    case OFPXMT_OFB_IP_DSCP:
-      DP_PRINT("set_field ip_dscp: 0x%x\n", *oxm_value);
-      if (pkt->ether_type == ETHERTYPE_IP) {
-        /* IPv4, 6bit of ToS field */
-        IPV4_TOS(pkt->ipv4) &= 0x03;
-        IPV4_TOS(pkt->ipv4) |= (uint8_t)((*oxm_value) << 2);
-        lagopus_update_iphdr_checksum(pkt);
-      } else if (pkt->ether_type == ETHERTYPE_IPV6) {
-        /* IPv6, 6bit of Traffic Class field */
-        IPV6_VTCF(pkt->ipv6) &= OS_HTONL(0xf03fffffU);
-        IPV6_VTCF(pkt->ipv6) |= OS_HTONL((uint32_t)(*oxm_value << 22));
-      }
-      break;
+  case OFPXMT_OFB_IP_ECN:
+    DP_PRINT("set_field ip_ecn: %d\n", *oxm_value);
+    if (pkt->ether_type == ETHERTYPE_IP) {
+      /* IPv4, lower 2bit2 of ToS field */
+      IPV4_TOS(pkt->ipv4) &= 0xfc;
+      IPV4_TOS(pkt->ipv4) |= *oxm_value;
+      lagopus_update_iphdr_checksum(pkt);
+    } else if (pkt->ether_type == ETHERTYPE_IPV6) {
+      /* IPv6, 2bit of Traffic Class field */
+      IPV6_VTCF(pkt->ipv6) &= OS_HTONL(0xffcfffffU);
+      IPV6_VTCF(pkt->ipv6) |= OS_HTONL((uint32_t)(*oxm_value << 20));
+    }
+    break;
 
-    case OFPXMT_OFB_IP_ECN:
-      DP_PRINT("set_field ip_ecn: %d\n", *oxm_value);
-      if (pkt->ether_type == ETHERTYPE_IP) {
-        /* IPv4, lower 2bit2 of ToS field */
-        IPV4_TOS(pkt->ipv4) &= 0xfc;
-        IPV4_TOS(pkt->ipv4) |= *oxm_value;
-        lagopus_update_iphdr_checksum(pkt);
-      } else if (pkt->ether_type == ETHERTYPE_IPV6) {
-        /* IPv6, 2bit of Traffic Class field */
-        IPV6_VTCF(pkt->ipv6) &= OS_HTONL(0xffcfffffU);
-        IPV6_VTCF(pkt->ipv6) |= OS_HTONL((uint32_t)(*oxm_value << 20));
-      }
-      break;
+  case OFPXMT_OFB_IP_PROTO:
+    DP_PRINT("set_field ip_proto: %d\n", *oxm_value);
+    *pkt->proto = *oxm_value;
+    if (pkt->ether_type == ETHERTYPE_IP) {
+      lagopus_update_iphdr_checksum(pkt);
+    }
+    /* re-classify packet if needed. */
+    re_classify_packet(pkt);
+    break;
 
-    case OFPXMT_OFB_IP_PROTO:
-      DP_PRINT("set_field ip_proto: %d\n", *oxm_value);
-      *pkt->proto = *oxm_value;
-      if (pkt->ether_type == ETHERTYPE_IP) {
-        lagopus_update_iphdr_checksum(pkt);
-      }
-      /* re-classify packet if needed. */
-      classify_packet(pkt);
-      break;
+  case OFPXMT_OFB_IPV4_SRC:
+    DP_PRINT("set_field ipv4_src: %d.%d.%d.%d\n",
+	     oxm_value[0], oxm_value[1], oxm_value[2], oxm_value[3]);
+    OS_MEMCPY(&val32, oxm_value, sizeof(uint32_t));
+    IPV4_SRC(pkt->ipv4) = val32;
+    lagopus_update_ipv4_checksum(pkt);
+    break;
 
-    case OFPXMT_OFB_IPV4_SRC:
-      DP_PRINT("set_field ipv4_src: %d.%d.%d.%d\n",
-               oxm_value[0], oxm_value[1], oxm_value[2], oxm_value[3]);
-      OS_MEMCPY(&val32, oxm_value, sizeof(uint32_t));
-      IPV4_SRC(pkt->ipv4) = val32;
-      lagopus_update_ipv4_checksum(pkt);
-      break;
+  case OFPXMT_OFB_IPV4_DST:
+    DP_PRINT("set_field ipv4_src: %d.%d.%d.%d\n",
+	     oxm_value[0], oxm_value[1], oxm_value[2], oxm_value[3]);
+    OS_MEMCPY(&val32, oxm_value, sizeof(uint32_t));
+    IPV4_DST(pkt->ipv4) = val32;
+    lagopus_update_ipv4_checksum(pkt);
+    break;
 
-    case OFPXMT_OFB_IPV4_DST:
-      DP_PRINT("set_field ipv4_src: %d.%d.%d.%d\n",
-               oxm_value[0], oxm_value[1], oxm_value[2], oxm_value[3]);
-      OS_MEMCPY(&val32, oxm_value, sizeof(uint32_t));
-      IPV4_DST(pkt->ipv4) = val32;
-      lagopus_update_ipv4_checksum(pkt);
-      break;
+  case OFPXMT_OFB_TCP_SRC:
+    OS_MEMCPY(&val16, oxm_value, sizeof(uint16_t));
+    DP_PRINT("set_field tcp_src: %d\n", OS_HTONS(val16));
+    TCP_SPORT(pkt->tcp) = val16;
+    lagopus_update_tcp_checksum(pkt);
+    break;
 
-    case OFPXMT_OFB_TCP_SRC:
-      OS_MEMCPY(&val16, oxm_value, sizeof(uint16_t));
-      DP_PRINT("set_field tcp_src: %d\n", OS_HTONS(val16));
-      TCP_SPORT(pkt->tcp) = val16;
-      lagopus_update_tcp_checksum(pkt);
-      break;
+  case OFPXMT_OFB_TCP_DST:
+    OS_MEMCPY(&val16, oxm_value, sizeof(uint16_t));
+    DP_PRINT("set_field tcp_dst: %d\n", OS_HTONS(val16));
+    TCP_DPORT(pkt->tcp) = val16;
+    lagopus_update_tcp_checksum(pkt);
+    break;
 
-    case OFPXMT_OFB_TCP_DST:
-      OS_MEMCPY(&val16, oxm_value, sizeof(uint16_t));
-      DP_PRINT("set_field tcp_dst: %d\n", OS_HTONS(val16));
-      TCP_DPORT(pkt->tcp) = val16;
-      lagopus_update_tcp_checksum(pkt);
-      break;
+  case OFPXMT_OFB_UDP_SRC:
+    OS_MEMCPY(&val16, oxm_value, sizeof(uint16_t));
+    DP_PRINT("set_field udp_src: %d\n", OS_HTONS(val16));
+    UDP_SPORT(pkt->udp) = val16;
+    lagopus_update_udp_checksum(pkt);
+    break;
 
-    case OFPXMT_OFB_UDP_SRC:
-      OS_MEMCPY(&val16, oxm_value, sizeof(uint16_t));
-      DP_PRINT("set_field udp_src: %d\n", OS_HTONS(val16));
-      UDP_SPORT(pkt->udp) = val16;
-      lagopus_update_udp_checksum(pkt);
-      break;
+  case OFPXMT_OFB_UDP_DST:
+    OS_MEMCPY(&val16, oxm_value, sizeof(uint16_t));
+    DP_PRINT("set_field udp_dst: %d\n", OS_HTONS(val16));
+    UDP_DPORT(pkt->udp) = val16;
+    lagopus_update_udp_checksum(pkt);
+    break;
 
-    case OFPXMT_OFB_UDP_DST:
-      OS_MEMCPY(&val16, oxm_value, sizeof(uint16_t));
-      DP_PRINT("set_field udp_dst: %d\n", OS_HTONS(val16));
-      UDP_DPORT(pkt->udp) = val16;
-      lagopus_update_udp_checksum(pkt);
-      break;
+  case OFPXMT_OFB_SCTP_SRC:
+    OS_MEMCPY(&val16, oxm_value, sizeof(uint16_t));
+    DP_PRINT("set_field sctp_src: %d\n", OS_HTONS(val16));
+    SCTP_SPORT(pkt->sctp) = val16;
+    lagopus_update_sctp_checksum(pkt);
+    break;
 
-    case OFPXMT_OFB_SCTP_SRC:
-      OS_MEMCPY(&val16, oxm_value, sizeof(uint16_t));
-      DP_PRINT("set_field sctp_src: %d\n", OS_HTONS(val16));
-      SCTP_SPORT(pkt->sctp) = val16;
-      lagopus_update_sctp_checksum(pkt);
-      break;
+  case OFPXMT_OFB_SCTP_DST:
+    OS_MEMCPY(&val16, oxm_value, sizeof(uint16_t));
+    DP_PRINT("set_field sctp_dst: %d\n", OS_HTONS(val16));
+    SCTP_DPORT(pkt->sctp) = val16;
+    lagopus_update_sctp_checksum(pkt);
+    break;
 
-    case OFPXMT_OFB_SCTP_DST:
-      OS_MEMCPY(&val16, oxm_value, sizeof(uint16_t));
-      DP_PRINT("set_field sctp_dst: %d\n", OS_HTONS(val16));
-      SCTP_DPORT(pkt->sctp) = val16;
-      lagopus_update_sctp_checksum(pkt);
-      break;
+  case OFPXMT_OFB_ICMPV4_TYPE:
+    DP_PRINT("set_field icmpv4_type: %d\n", *oxm_value);
+    pkt->icmp->icmp_type = *oxm_value;
+    lagopus_update_icmp_checksum(pkt);
+    break;
 
-    case OFPXMT_OFB_ICMPV4_TYPE:
-      DP_PRINT("set_field icmpv4_type: %d\n", *oxm_value);
-      pkt->icmp->icmp_type = *oxm_value;
-      lagopus_update_icmp_checksum(pkt);
-      break;
+  case OFPXMT_OFB_ICMPV4_CODE:
+    DP_PRINT("set_field icmpv4_code: %d\n", *oxm_value);
+    pkt->icmp->icmp_code = *oxm_value;
+    lagopus_update_icmp_checksum(pkt);
+    break;
 
-    case OFPXMT_OFB_ICMPV4_CODE:
-      DP_PRINT("set_field icmpv4_code: %d\n", *oxm_value);
-      pkt->icmp->icmp_code = *oxm_value;
-      lagopus_update_icmp_checksum(pkt);
-      break;
+  case OFPXMT_OFB_ARP_OP:
+    OS_MEMCPY(&pkt->arp->arp_op, oxm_value, sizeof(pkt->arp->arp_op));
+    DP_PRINT("set_field arp_op: %d\n", OS_NTOHS(pkt->arp->arp_op));
+    break;
 
-    case OFPXMT_OFB_ARP_OP:
-      OS_MEMCPY(&pkt->arp->arp_op, oxm_value, sizeof(pkt->arp->arp_op));
-      DP_PRINT("set_field arp_op: %d\n", OS_NTOHS(pkt->arp->arp_op));
-      break;
+  case OFPXMT_OFB_ARP_SPA:
+    DP_PRINT("set_field arp_spa: %d.%d.%d.%d\n",
+	     oxm_value[0], oxm_value[1], oxm_value[2], oxm_value[3]);
+    OS_MEMCPY(pkt->arp->arp_spa, oxm_value, 4);
+    break;
 
-    case OFPXMT_OFB_ARP_SPA:
-      DP_PRINT("set_field arp_spa: %d.%d.%d.%d\n",
-               oxm_value[0], oxm_value[1], oxm_value[2], oxm_value[3]);
-      OS_MEMCPY(pkt->arp->arp_spa, oxm_value, 4);
-      break;
+  case OFPXMT_OFB_ARP_TPA:
+    DP_PRINT("set_field arp_tpa: %d.%d.%d.%d\n",
+	     oxm_value[0], oxm_value[1], oxm_value[2], oxm_value[3]);
+    OS_MEMCPY(pkt->arp->arp_tpa, oxm_value, 4);
+    break;
 
-    case OFPXMT_OFB_ARP_TPA:
-      DP_PRINT("set_field arp_tpa: %d.%d.%d.%d\n",
-               oxm_value[0], oxm_value[1], oxm_value[2], oxm_value[3]);
-      OS_MEMCPY(pkt->arp->arp_tpa, oxm_value, 4);
-      break;
+  case OFPXMT_OFB_ARP_SHA:
+    DP_PRINT("set_field arp_sha: %02x:%02x:%02x:%02x:%02x:%02x\n",
+	     oxm_value[0], oxm_value[1], oxm_value[2],
+	     oxm_value[3], oxm_value[4], oxm_value[5]);
+    OS_MEMCPY(pkt->arp->arp_sha, oxm_value, 6);
+    break;
 
-    case OFPXMT_OFB_ARP_SHA:
-      DP_PRINT("set_field arp_sha: %02x:%02x:%02x:%02x:%02x:%02x\n",
-               oxm_value[0], oxm_value[1], oxm_value[2],
-               oxm_value[3], oxm_value[4], oxm_value[5]);
-      OS_MEMCPY(pkt->arp->arp_sha, oxm_value, 6);
-      break;
+  case OFPXMT_OFB_ARP_THA:
+    DP_PRINT("set_field arp_tha: %02x:%02x:%02x:%02x:%02x:%02x\n",
+	     oxm_value[0], oxm_value[1], oxm_value[2],
+	     oxm_value[3], oxm_value[4], oxm_value[5]);
+    OS_MEMCPY(pkt->arp->arp_tha, oxm_value, 6);
+    break;
 
-    case OFPXMT_OFB_ARP_THA:
-      DP_PRINT("set_field arp_tha: %02x:%02x:%02x:%02x:%02x:%02x\n",
-               oxm_value[0], oxm_value[1], oxm_value[2],
-               oxm_value[3], oxm_value[4], oxm_value[5]);
-      OS_MEMCPY(pkt->arp->arp_tha, oxm_value, 6);
-      break;
+  case OFPXMT_OFB_IPV6_SRC:
+    DP_PRINT("set_field ipv6_src:");
+    DP_PRINT_HEXDUMP(oxm_value, 16);
+    DP_PRINT("\n");
+    OS_MEMCPY(IPV6_SRC(pkt->ipv6), oxm_value, 16);
+    lagopus_update_ipv6_checksum(pkt);
+    break;
 
-    case OFPXMT_OFB_IPV6_SRC:
-      DP_PRINT("set_field ipv6_src:");
-      DP_PRINT_HEXDUMP(oxm_value, 16);
-      DP_PRINT("\n");
-      OS_MEMCPY(IPV6_SRC(pkt->ipv6), oxm_value, 16);
-      lagopus_update_ipv6_checksum(pkt);
-      break;
+  case OFPXMT_OFB_IPV6_DST:
+    DP_PRINT("set_field ipv6_dst:");
+    DP_PRINT_HEXDUMP(oxm_value, 16);
+    DP_PRINT("\n");
+    OS_MEMCPY(IPV6_DST(pkt->ipv6), oxm_value, 16);
+    lagopus_update_ipv6_checksum(pkt);
+    break;
 
-    case OFPXMT_OFB_IPV6_DST:
-      DP_PRINT("set_field ipv6_dst:");
-      DP_PRINT_HEXDUMP(oxm_value, 16);
-      DP_PRINT("\n");
-      OS_MEMCPY(IPV6_DST(pkt->ipv6), oxm_value, 16);
-      lagopus_update_ipv6_checksum(pkt);
-      break;
+  case OFPXMT_OFB_IPV6_FLABEL:
+    OS_MEMCPY(&val32, oxm_value, sizeof(uint32_t));
+    DP_PRINT("set_field ipv6_flabel: 0x%08x\n", OS_NTOHL(val32));
+    IPV6_VTCF(pkt->ipv6) &= OS_HTONL(~0x000fffffU);
+    IPV6_VTCF(pkt->ipv6) |= val32;
+    break;
 
-    case OFPXMT_OFB_IPV6_FLABEL:
-      OS_MEMCPY(&val32, oxm_value, sizeof(uint32_t));
-      DP_PRINT("set_field ipv6_flabel: 0x%08x\n", OS_NTOHL(val32));
-      IPV6_VTCF(pkt->ipv6) &= OS_HTONL(~0x000fffffU);
-      IPV6_VTCF(pkt->ipv6) |= val32;
-      break;
+  case OFPXMT_OFB_ICMPV6_TYPE:
+    DP_PRINT("set_field icmpv6_type: %d\n", *oxm_value);
+    pkt->icmp6->icmp6_type = *oxm_value;
+    lagopus_update_icmpv6_checksum(pkt);
+    break;
 
-    case OFPXMT_OFB_ICMPV6_TYPE:
-      DP_PRINT("set_field icmpv6_type: %d\n", *oxm_value);
-      pkt->icmp6->icmp6_type = *oxm_value;
-      lagopus_update_icmpv6_checksum(pkt);
-      break;
+  case OFPXMT_OFB_ICMPV6_CODE:
+    DP_PRINT("set_field icmpv6_code: %d\n", *oxm_value);
+    pkt->icmp6->icmp6_code = *oxm_value;
+    lagopus_update_icmpv6_checksum(pkt);
+    break;
 
-    case OFPXMT_OFB_ICMPV6_CODE:
-      DP_PRINT("set_field icmpv6_code: %d\n", *oxm_value);
-      pkt->icmp6->icmp6_code = *oxm_value;
-      lagopus_update_icmpv6_checksum(pkt);
-      break;
+  case OFPXMT_OFB_IPV6_ND_TARGET:
+    DP_PRINT("set_field ipv6_nd_target:");
+    DP_PRINT_HEXDUMP(oxm_value, 16);
+    DP_PRINT("\n");
+    OS_MEMCPY(&pkt->nd_ns->nd_ns_target, oxm_value, 16);
+    lagopus_update_icmpv6_checksum(pkt);
+    break;
 
-    case OFPXMT_OFB_IPV6_ND_TARGET:
-      DP_PRINT("set_field ipv6_nd_target:");
-      DP_PRINT_HEXDUMP(oxm_value, 16);
-      DP_PRINT("\n");
-      OS_MEMCPY(&pkt->nd_ns->nd_ns_target, oxm_value, 16);
-      lagopus_update_icmpv6_checksum(pkt);
-      break;
+  case OFPXMT_OFB_IPV6_ND_SLL:
+    DP_PRINT("set_field ipv6_nd_sll: %02x:%02x:%02x:%02x:%02x:%02x\n",
+	     oxm_value[0], oxm_value[1], oxm_value[2],
+	     oxm_value[3], oxm_value[4], oxm_value[5]);
+    OS_MEMCPY(&pkt->nd_sll[2], oxm_value, ETHER_ADDR_LEN);
+    lagopus_update_icmpv6_checksum(pkt);
+    break;
 
-    case OFPXMT_OFB_IPV6_ND_SLL:
-      DP_PRINT("set_field ipv6_nd_sll: %02x:%02x:%02x:%02x:%02x:%02x\n",
-               oxm_value[0], oxm_value[1], oxm_value[2],
-               oxm_value[3], oxm_value[4], oxm_value[5]);
-      OS_MEMCPY(&pkt->nd_sll[2], oxm_value, ETHER_ADDR_LEN);
-      lagopus_update_icmpv6_checksum(pkt);
-      break;
+  case OFPXMT_OFB_IPV6_ND_TLL:
+    DP_PRINT("set_field ipv6_nd_dll: %02x:%02x:%02x:%02x:%02x:%02x\n",
+	     oxm_value[0], oxm_value[1], oxm_value[2],
+	     oxm_value[3], oxm_value[4], oxm_value[5]);
+    OS_MEMCPY(&pkt->nd_tll[2], oxm_value, ETHER_ADDR_LEN);
+    lagopus_update_icmpv6_checksum(pkt);
+    break;
 
-    case OFPXMT_OFB_IPV6_ND_TLL:
-      DP_PRINT("set_field ipv6_nd_dll: %02x:%02x:%02x:%02x:%02x:%02x\n",
-               oxm_value[0], oxm_value[1], oxm_value[2],
-               oxm_value[3], oxm_value[4], oxm_value[5]);
-      OS_MEMCPY(&pkt->nd_tll[2], oxm_value, ETHER_ADDR_LEN);
-      lagopus_update_icmpv6_checksum(pkt);
-      break;
+  case OFPXMT_OFB_MPLS_LABEL:
+    /* 20bit */
+    OS_MEMCPY(&val32, oxm_value, sizeof(uint32_t));
+    DP_PRINT("set_field mpls_label: %d\n", OS_NTOHL(val32));
+    SET_MPLS_LBL(pkt->mpls->mpls_lse, val32);
+    break;
 
-    case OFPXMT_OFB_MPLS_LABEL:
-      /* 20bit */
-      OS_MEMCPY(&val32, oxm_value, sizeof(uint32_t));
-      DP_PRINT("set_field mpls_label: %d\n", OS_NTOHL(val32));
-      SET_MPLS_LBL(pkt->mpls->mpls_lse, val32);
-      break;
+  case OFPXMT_OFB_MPLS_TC:
+    /* 3bit */
+    DP_PRINT("set_field mpls_tc: %d\n", *oxm_value);
+    SET_MPLS_EXP(pkt->mpls->mpls_lse, *oxm_value);
+    break;
 
-    case OFPXMT_OFB_MPLS_TC:
-      /* 3bit */
-      DP_PRINT("set_field mpls_tc: %d\n", *oxm_value);
-      SET_MPLS_EXP(pkt->mpls->mpls_lse, *oxm_value);
-      break;
+  case OFPXMT_OFB_MPLS_BOS:
+    DP_PRINT("set_field mpls_bos: %d\n", *oxm_value);
+    SET_MPLS_BOS(pkt->mpls->mpls_lse, *oxm_value);
+    break;
 
-    case OFPXMT_OFB_MPLS_BOS:
-      DP_PRINT("set_field mpls_bos: %d\n", *oxm_value);
-      SET_MPLS_BOS(pkt->mpls->mpls_lse, *oxm_value);
-      break;
+  case OFPXMT_OFB_PBB_ISID:
+    DP_PRINT("set_field pbb_isid: %d\n",
+	     oxm_value[0] << 16 | oxm_value[1] << 8 | oxm_value[0]);
+    OS_MEMCPY(pkt->pbb->i_sid, oxm_value, 3);
+    break;
 
-    case OFPXMT_OFB_PBB_ISID:
-      DP_PRINT("set_field pbb_isid: %d\n",
-               oxm_value[0] << 16 | oxm_value[1] << 8 | oxm_value[0]);
-      OS_MEMCPY(pkt->pbb->i_sid, oxm_value, 3);
-      break;
-
-    case OFPXMT_OFB_TUNNEL_ID:
-      /* network byte order */
-      OS_MEMCPY(&pkt->oob_data.tunnel_id, oxm_value, sizeof(uint64_t));
-      break;
+  case OFPXMT_OFB_TUNNEL_ID:
+    /* network byte order */
+    OS_MEMCPY(&pkt->oob_data.tunnel_id, oxm_value, sizeof(uint64_t));
+    break;
 
 #if 0
-    case OFPXMT_OFB_IPV6_EXTHDR:
-      /* cannot modify pseudo header flags */
-      break;
+  case OFPXMT_OFB_IPV6_EXTHDR:
+    /* cannot modify pseudo header flags */
+    break;
 #endif
 
-    default:
-      break;
+  default:
+    break;
   }
   return 0;
 }
@@ -1024,6 +1087,43 @@ execute_action_set(struct lagopus_packet *pkt, struct action_list *actions) {
   return rv;
 }
 
+struct bucket *
+group_select_bucket(struct lagopus_packet *pkt, struct bucket_list *list) {
+  struct bucket *bucket;
+  uint64_t sel, weight, total_weight;
+
+  total_weight = 0;
+  TAILQ_FOREACH(bucket, list, entry) {
+    total_weight += bucket->ofp.weight;
+  }
+  if (total_weight == 0) {
+    TAILQ_FOREACH(bucket, list, entry) {
+      total_weight++;
+    }
+    if (total_weight == 0) {
+      return NULL;
+    }
+    weight = 0;
+    sel = (pkt->hash64 % total_weight) + 1;
+    TAILQ_FOREACH(bucket, list, entry) {
+      weight++;
+      if (sel <= weight) {
+        break;
+      }
+    }
+  } else {
+    sel = (pkt->hash64 % total_weight) + 1;
+    weight = 0;
+    TAILQ_FOREACH(bucket, list, entry) {
+      weight += bucket->ofp.weight;
+      if (sel <= weight) {
+        break;
+      }
+    }
+  }
+  return bucket;
+}
+
 /**
  * Execute action bucket referenced by group id.
  *
@@ -1041,7 +1141,7 @@ execute_group_action(struct lagopus_packet *pkt, uint32_t group_id) {
    */
   struct group *group;
   struct bucket *bucket;
-  int sel, weight;
+  lagopus_result_t rv;
 
   if (pkt->in_port == NULL || pkt->in_port->bridge == NULL) {
     return LAGOPUS_RESULT_NOT_FOUND;
@@ -1053,65 +1153,54 @@ execute_group_action(struct lagopus_packet *pkt, uint32_t group_id) {
   }
   group->packet_count++;
   group->byte_count += OS_M_PKTLEN(pkt->mbuf);
+  rv = LAGOPUS_RESULT_OK;
 
   switch (group->type) {
-    case OFPGT_ALL:
-      TAILQ_FOREACH(bucket, &group->bucket_list, entry) {
-        bucket->counter.packet_count++;
-        bucket->counter.byte_count += OS_M_PKTLEN(pkt->mbuf);
-        execute_action_set(pkt, bucket->actions);
-      }
-      break;
+  case OFPGT_ALL:
+    TAILQ_FOREACH(bucket, &group->bucket_list, entry) {
+      bucket->counter.packet_count++;
+      bucket->counter.byte_count += OS_M_PKTLEN(pkt->mbuf);
+      rv = execute_action_set(pkt, bucket->actions);
+    }
+    break;
 
-    case OFPGT_SELECT:
-      /*
-       * select one bucket.  selection algorithm is depend on the switch.
-       * current implementation is simple round-robin.
-       * weight parameter is not used yet.
-       */
-      sel = ++group->select;
-      weight = 0;
-      TAILQ_FOREACH(bucket, &group->bucket_list, entry) {
-        weight += bucket->ofp.weight;
-        if (sel <= weight) {
-          break;
-        }
-      }
-      if (bucket == NULL) {
-        group->select = 1;
-        bucket = TAILQ_FIRST(&group->bucket_list);
-      }
-      if (bucket != NULL) {
-        bucket->counter.packet_count++;
-        bucket->counter.byte_count += OS_M_PKTLEN(pkt->mbuf);
-        execute_action_set(pkt, bucket->actions);
-      }
-      break;
+  case OFPGT_SELECT:
+    /*
+     * select one bucket.
+     * selection algorithm is depend on the switch.
+     */
+    bucket = group_select_bucket(pkt, &group->bucket_list);
+    if (bucket != NULL) {
+      bucket->counter.packet_count++;
+      bucket->counter.byte_count += OS_M_PKTLEN(pkt->mbuf);
+      rv = execute_action_set(pkt, bucket->actions);
+    }
+    break;
 
-    case OFPGT_INDIRECT:
-      /* execute only one bucket */
-      bucket = TAILQ_FIRST(&group->bucket_list);
-      if (bucket != NULL) {
-        bucket->counter.packet_count++;
-        bucket->counter.byte_count += OS_M_PKTLEN(pkt->mbuf);
-        return execute_action_set(pkt, bucket->actions);
-      }
-      break;
+  case OFPGT_INDIRECT:
+    /* execute only one bucket */
+    bucket = TAILQ_FIRST(&group->bucket_list);
+    if (bucket != NULL) {
+      bucket->counter.packet_count++;
+      bucket->counter.byte_count += OS_M_PKTLEN(pkt->mbuf);
+      rv = execute_action_set(pkt, bucket->actions);
+    }
+    break;
 
-    case OFPGT_FF:
-      /* execute only one live bucket */
-      bucket = group_live_bucket(pkt->in_port->bridge, group);
-      if (bucket != NULL) {
-        bucket->counter.packet_count++;
-        bucket->counter.byte_count += OS_M_PKTLEN(pkt->mbuf);
-        return execute_action_set(pkt, bucket->actions);
-      }
-      break;
+  case OFPGT_FF:
+    /* execute only one live bucket */
+    bucket = group_live_bucket(pkt->in_port->bridge, group);
+    if (bucket != NULL) {
+      bucket->counter.packet_count++;
+      bucket->counter.byte_count += OS_M_PKTLEN(pkt->mbuf);
+      rv = execute_action_set(pkt, bucket->actions);
+    }
+    break;
 
-    default:
-      break;
+  default:
+    break;
   }
-  return LAGOPUS_RESULT_OK;
+  return rv;
 }
 
 /**
@@ -1147,57 +1236,56 @@ apply_meter(struct lagopus_packet *pkt, struct meter_table *meter_table,
 
   meter = meter_table_lookup(meter_table, meter_id);
   if (meter != NULL) {
-    uint8_t dscp;
+    int dscp;
 
     switch (lagopus_meter_packet(pkt, meter, &prec_level)) {
-      case OFPMBT_DROP:
-        return -1;
+    case OFPMBT_DROP:
+      return -1;
 
-      case OFPMBT_DSCP_REMARK:
-        if (pkt->ether_type == ETHERTYPE_IP) {
-          dscp = IPV4_TOS(pkt->ipv4) >> 2;
-        } else if (pkt->ether_type == ETHERTYPE_IPV6) {
-          dscp = (OS_NTOHL(IPV6_VTCF(pkt->ipv6)) >> 22) & 0x3f;
-        } else {
-          /* DSCP remarking for non-IP packet, no effect. */
-          return 0;
-        }
-        switch (dscp & 0x07) {
-          case 0:
-            /* CSx */
-            if (dscp >= (prec_level << 3)) {
-              dscp -= (uint8_t)(prec_level << 3);
-            }
-            break;
-          case 2:
-          case 4:
-            /* AFxy */
-            if ((dscp & 0x07) + (prec_level << 1) <= 7) {
-              dscp  += (uint8_t)(prec_level << 1);
-            }
-            break;
-          default:
-            /*
-             * experimental or already high drop precedence,
-             * nothing to do.
-             */
-            break;
-        }
-        if (pkt->ether_type == ETHERTYPE_IP) {
-          IPV4_TOS(pkt->ipv4) &= 0x03;
-          IPV4_TOS(pkt->ipv4) |= (uint8_t)(dscp << 2);
-          lagopus_update_iphdr_checksum(pkt);
-        } else if (pkt->ether_type == ETHERTYPE_IPV6) {
-          IPV6_VTCF(pkt->ipv6) &= OS_HTONL(0xf03fffffU);
-          IPV6_VTCF(pkt->ipv6) |= OS_HTONL((uint32_t)(dscp << 22));
-        }
-        break;
-
+    case OFPMBT_DSCP_REMARK:
+      if (pkt->ether_type == ETHERTYPE_IP) {
+	dscp = IPV4_TOS(pkt->ipv4) >> 2;
+      } else if (pkt->ether_type == ETHERTYPE_IPV6) {
+	dscp = (OS_NTOHL(IPV6_VTCF(pkt->ipv6)) >> 22) & 0x3f;
+      } else {
+	/* DSCP remarking for non-IP packet, no effect. */
+	return 0;
+      }
+      switch (dscp & 0x07) {
+      case 0:
+	/* CSx */
+	if (dscp >= (prec_level << 3)) {
+	  dscp -= (uint8_t)(prec_level << 3);
+	}
+	break;
+      case 2:
+      case 4:
+	/* AFxy */
+	if ((dscp & 0x07) + (prec_level << 1) <= 7) {
+	  dscp  += (uint8_t)(prec_level << 1);
+	}
+	break;
       default:
-        break;
+	/*
+	 * experimental or already high drop precedence,
+	 * nothing to do.
+	 */
+	break;
+      }
+      if (pkt->ether_type == ETHERTYPE_IP) {
+	IPV4_TOS(pkt->ipv4) &= 0x03;
+	IPV4_TOS(pkt->ipv4) |= (uint8_t)(dscp << 2);
+	lagopus_update_iphdr_checksum(pkt);
+      } else if (pkt->ether_type == ETHERTYPE_IPV6) {
+	IPV6_VTCF(pkt->ipv6) &= OS_HTONL(0xf03fffffU);
+	IPV6_VTCF(pkt->ipv6) |= OS_HTONL((uint32_t)(dscp << 22));
+      }
+      break;
+
+    default:
+      break;
     }
   }
-  /* XXX not implemented */
   return 0;
 }
 
@@ -1312,7 +1400,8 @@ send_packet_in(struct lagopus_packet *pkt,
   rv = ofp_handler_dataq_data_put(pkt->in_port->bridge->dpid,
                                   &data, PUT_TIMEOUT);
   if (rv != LAGOPUS_RESULT_OK) {
-    lagopus_perror(rv);
+    DP_PRINT("%s: %s\n", __func__, lagopus_error_get_string(rv));
+    data->free(data);
   }
   return rv;
 }
@@ -1329,115 +1418,129 @@ lagopus_forward_packet_to_port(struct lagopus_packet *pkt,
   in_port = pkt->in_port->ofp_port.port_no;
 
   switch (out_port) {
-    case OFPP_TABLE:
-      /*
-       * required: used only valid in an output action
-       * in the action list of a packet-out message
-       * output action to process the packet through the OpenFlow pipeline,
-       * starting at the first flow table.
-       * see 4.5 Reserved Ports and 7.3.7 Packet-Out Message.
-       *
-       * do loop infinity if OFPP_TABLE in flow entry.
-       * - check flow entry by OpenFlow Controller?
-       * - check flow entry at registering flow?
-       * - and/or check loop execution runtime?
-       */
-      DP_PRINT("OFPP_TABLE\n");
-      pkt->table_id = 0;
-      lagopus_match_and_action(pkt);
-      return;
+  case OFPP_TABLE:
+    /*
+     * required: used only valid in an output action
+     * in the action list of a packet-out message
+     * output action to process the packet through the OpenFlow pipeline,
+     * starting at the first flow table.
+     * see 4.5 Reserved Ports and 7.3.7 Packet-Out Message.
+     *
+     * do loop infinity if OFPP_TABLE in flow entry.
+     * - check flow entry by OpenFlow Controller?
+     * - check flow entry at registering flow?
+     * - and/or check loop execution runtime?
+     */
+    DP_PRINT("OFPP_TABLE\n");
+    pkt->table_id = 0;
+    lagopus_match_and_action(pkt);
+    return;
 
-    case OFPP_NORMAL:
-      /* optional */
-      DP_PRINT("OFPP_NORMAL\n");
-      lagopus_send_packet_normal(pkt, pkt->in_port->ifindex);
-      break;
+  case OFPP_NORMAL:
+    /* optional */
+    DP_PRINT("OFPP_NORMAL\n");
+    lagopus_send_packet_normal(pkt, pkt->in_port->ifindex);
+    lagopus_packet_free(pkt);
+    break;
 
-    case OFPP_FLOOD:
-      /* optional */
-      /* XXX not implemented yet */
-      /* if no mac address learning, OFPP_FLOOD is identical to OFPP_ALL. */
-      DP_PRINT("OFPP_FLOOD as ");
+  case OFPP_FLOOD:
+    /* optional */
+    /* XXX not implemented yet */
+    /* if no mac address learning, OFPP_FLOOD is identical to OFPP_ALL. */
+    DP_PRINT("OFPP_FLOOD as ");
     /*FALLTHROUGH*/
 
-    case OFPP_ALL:
-      /* required: send packet to all physical ports except in_port. */
-      /* XXX destination mac address learning should be needed for flooding. */
-      DP_PRINT("OFPP_ALL\n");
-      v = pkt->in_port->bridge->ports;
-      for (id = 0; id < v->allocated; id++) {
-        port = v->index[id];
-        if (port == NULL || lagopus_is_port_enabled(port) != true) {
-          continue;
-        }
+  case OFPP_ALL:
+    /* required: send packet to all physical ports except in_port. */
+    /* XXX destination mac address learning should be needed for flooding. */
+    DP_PRINT("OFPP_ALL\n");
+    v = pkt->in_port->bridge->ports;
+    for (id = 0; id < v->allocated; id++) {
+      port = v->index[id];
+      if (port == NULL || lagopus_is_port_enabled(port) != true) {
+	continue;
+      }
 
-        /* skip except physical port */
+      /* skip except physical port */
 
-        /* skip ingress port */
-        if (port->ofp_port.port_no == in_port) {
-          continue;
-        }
-        /* skip 'no fowrad' port */
-        if ((port->ofp_port.config & OFPPC_NO_FWD) != 0) {
-          continue;
-        }
+      /* skip ingress port */
+      if (port->ofp_port.port_no == in_port) {
+	continue;
+      }
+      /* skip 'no fowrad' port */
+      if ((port->ofp_port.config & OFPPC_NO_FWD) != 0) {
+	continue;
+      }
 
 #ifdef PACKET_CAPTURE
-        /* capture sending packet */
-        if (unlikely(port->pcap_queue != NULL)) {
-          lagopus_pcap_enqueue(port, pkt);
-        }
+      /* capture sending packet */
+      if (unlikely(port->pcap_queue != NULL)) {
+	lagopus_pcap_enqueue(port, pkt);
+      }
 #endif /* PACKET_CAPTURE */
-        /* send packet */
-        lagopus_send_packet_physical(pkt, port->ifindex);
-      }
-      break;
+      /* send packet */
+      OS_M_ADDREF(pkt->mbuf);
+      lagopus_send_packet_physical(pkt, port->ifindex);
+    }
+    lagopus_packet_free(pkt);
+    break;
 
-    case OFPP_CONTROLLER:
-      /* required: send packet-in message with OFPR_ACTION to controller */
-      /* XXX max_len from config */
-      DP_PRINT("OFPP_CONTROLLER\n");
-      bridge = pkt->in_port->bridge;
-      if ((bridge->controller_port.config & OFPPC_NO_PACKET_IN) != 0) {
-        /* nothing to do */
-        break;
-      }
-      send_packet_in(pkt, OS_M_PKTLEN(pkt->mbuf), OFPR_ACTION,
-                     OFPCML_NO_BUFFER, 0);
+  case OFPP_CONTROLLER:
+    /* required: send packet-in message with OFPR_ACTION to controller */
+    /* XXX max_len from config */
+    DP_PRINT("OFPP_CONTROLLER\n");
+    bridge = pkt->in_port->bridge;
+    if ((bridge->controller_port.config & OFPPC_NO_PACKET_IN) != 0) {
+      /* nothing to do */
       break;
+    }
+    send_packet_in(pkt, OS_M_PKTLEN(pkt->mbuf), OFPR_ACTION,
+		   OFPCML_NO_BUFFER, 0);
+    lagopus_packet_free(pkt);
+    break;
 
-    case OFPP_LOCAL:
-      /* optional */
-      /* XXX not implemented yet */
-      DP_PRINT("OFPP_LOCAL\n");
-      break;
+  case OFPP_LOCAL:
+    /* optional */
+    /* XXX not implemented yet */
+    DP_PRINT("OFPP_LOCAL\n");
+    lagopus_packet_free(pkt);
+    break;
 
-    case OFPP_IN_PORT:
-      /* required: send packet to ingress port. */
-      DP_PRINT("OFPP_IN_PORT as ");
-      out_port = in_port;
+  case OFPP_IN_PORT:
+    /* required: send packet to ingress port. */
+    DP_PRINT("OFPP_IN_PORT as ");
+    out_port = in_port;
     /*FALLTHROUGH*/
-    default:
-      v = pkt->in_port->bridge->ports;
-      port = port_lookup(v, out_port);
-      if (port != NULL && (port->ofp_port.config & OFPPC_NO_FWD) == 0) {
+  default:
+    v = pkt->in_port->bridge->ports;
+    port = port_lookup(v, out_port);
+    if (port != NULL && (port->ofp_port.config & OFPPC_NO_FWD) == 0) {
 #ifdef PACKET_CAPTURE
-        /* capture sending packet */
-        if (unlikely(port->pcap_queue != NULL)) {
-          lagopus_pcap_enqueue(port, pkt);
-        }
-#endif /* PACKET_CAPTURE */
-        /* so far, we support only physical port. */
-        DP_PRINT("Forwarding packet to port %d\n", port->ifindex);
-        lagopus_send_packet_physical(pkt, port->ifindex);
+      /* capture sending packet */
+      if (unlikely(port->pcap_queue != NULL)) {
+	lagopus_pcap_enqueue(port, pkt);
       }
-      break;
+#endif /* PACKET_CAPTURE */
+      /* so far, we support only physical port. */
+      DP_PRINT("Forwarding packet to port %d\n", port->ifindex);
+      lagopus_send_packet_physical(pkt, port->ifindex);
+    } else {
+      lagopus_packet_free(pkt);
+    }
+    break;
   }
 }
 
+/**
+ * Output action.
+ * If last action is this, free packet.
+ * freeing packet implicitly by send packet function, or
+ * explicitly by this function.
+ */
 static lagopus_result_t
 execute_action_output(struct lagopus_packet *pkt,
                       struct action *action) {
+  lagopus_result_t rv;
   uint32_t port;
 
   /* required action */
@@ -1447,8 +1550,15 @@ execute_action_output(struct lagopus_packet *pkt,
     if (unlikely(action->flags == OUTPUT_COPIED_PACKET)) {
       /* send copied packet */
       lagopus_forward_packet_to_port(copy_packet(pkt), port);
+      rv = LAGOPUS_RESULT_OK;
     } else {
+      if ((pkt->flags & PKT_FLAG_CACHED_FLOW) == 0 && pkt->cache != NULL) {
+        /* register crc and flows to cache. */
+        register_cache(pkt->cache, pkt->hash64,
+                       pkt->nmatched, pkt->matched_flow);
+      }
       lagopus_forward_packet_to_port(pkt, port);
+      rv = LAGOPUS_RESULT_NO_MORE_ACTION;
     }
   } else {
     struct bridge *bridge;
@@ -1464,9 +1574,15 @@ execute_action_output(struct lagopus_packet *pkt,
       }
       send_packet_in(pkt, OS_M_PKTLEN(pkt->mbuf), reason,
                      OFPCML_NO_BUFFER, action->cookie);
+      if (likely(action->flags != OUTPUT_COPIED_PACKET)) {
+        lagopus_packet_free(pkt);
+        rv = LAGOPUS_RESULT_NO_MORE_ACTION;
+      } else {
+        rv = LAGOPUS_RESULT_OK;
+      }
     }
   }
-  return LAGOPUS_RESULT_OK;
+  return rv;
 }
 
 static lagopus_result_t
@@ -1482,8 +1598,7 @@ execute_action_copy_ttl_out(struct lagopus_packet *pkt,
   m = pkt->mbuf;
 
   /* optional */
-  if (pkt->ether_type == ETHERTYPE_MPLS ||
-      pkt->ether_type == ETHERTYPE_MPLS_MCAST) {
+  if (pkt->mpls != NULL) {
     if (MPLS_BOS(pkt->mpls->mpls_lse) != 0) {
       /* outer MPLS is Bottom of Stack */
       ipv4_hdr = pkt->ipv4;
@@ -1528,8 +1643,7 @@ execute_action_copy_ttl_in(struct lagopus_packet *pkt,
   m = pkt->mbuf;
 
   /* optional */
-  if (pkt->ether_type == ETHERTYPE_MPLS ||
-      pkt->ether_type == ETHERTYPE_MPLS_MCAST) {
+  if (pkt->mpls != NULL) {
     if (MPLS_BOS(pkt->mpls->mpls_lse) != 0) {
       ipv4_hdr = pkt->ipv4;
       ipv6_hdr = pkt->ipv6;
@@ -1677,19 +1791,16 @@ execute_action_push_mpls(struct lagopus_packet *pkt,
   DP_PRINT("action push_mpls: 0x%04x\n",
            ((struct ofp_action_push *)&action->ofpat)->ethertype);
 
-  m = pkt->mbuf;
-
   /* optional */
   /* inherit value from existing fields */
-  if (pkt->ether_type == ETHERTYPE_MPLS ||
-      pkt->ether_type == ETHERTYPE_MPLS_MCAST) {
+  if (pkt->mpls != NULL) {
     /* multiple stack */
-    mpls_hdr = MTOD_OFS(m, sizeof(ETHER_HDR), struct mpls_hdr *);
+    mpls_hdr = pkt->mpls;
     label = MPLS_LBL(mpls_hdr->mpls_lse);
     ttl = MPLS_TTL(mpls_hdr->mpls_lse);
     tc = MPLS_EXP(mpls_hdr->mpls_lse);
     bos = 0;
-    copy_size = pkt->base[MPLS_BASE] - pkt->base[ETH_BASE];
+    copy_size = (size_t)(pkt->base[MPLS_BASE] - pkt->base[ETH_BASE]);
   } else {
     label = 0;
     tc = 0;
@@ -1701,9 +1812,10 @@ execute_action_push_mpls(struct lagopus_packet *pkt,
     } else {
       ttl = 0;
     }
-    copy_size = pkt->base[L3_BASE] - pkt->base[ETH_BASE];
+    copy_size = (size_t)(pkt->base[L3_BASE] - pkt->base[ETH_BASE]);
   }
 
+  m = pkt->mbuf;
   new_hdr = (ETHER_HDR *)OS_M_PREPEND(m, sizeof(struct mpls_hdr));
   if (NEED_COPY_ETH_ADDR(action->flags)) {
     memmove(new_hdr, pkt->eth, copy_size);
@@ -1716,8 +1828,8 @@ execute_action_push_mpls(struct lagopus_packet *pkt,
   } else {
     mpls_hdr = (struct mpls_hdr *)(pkt->l3_hdr_l - 1);
   }
-  pkt->ether_type = ((struct ofp_action_push *)&action->ofpat)->ethertype;
-  *(((uint16_t *)mpls_hdr) - 1) = OS_HTONS(pkt->ether_type);
+  *(((uint16_t *)mpls_hdr) - 1) =
+    OS_HTONS(((struct ofp_action_push *)&action->ofpat)->ethertype);
   SET_MPLS_LSE(mpls_hdr->mpls_lse, label, tc, bos, ttl);
   /* re-classify packet. */
   pkt->eth = new_hdr;
@@ -1752,7 +1864,7 @@ execute_action_pop_mpls(struct lagopus_packet *pkt,
   if (pkt->ether_type != ETHERTYPE_IP &&
       pkt->ether_type != ETHERTYPE_IPV6) {
     /* re-classify packet if needed. */
-    classify_packet(pkt);
+    re_classify_packet(pkt);
   } else {
     pkt->eth = new_hdr;
   }
@@ -1893,7 +2005,7 @@ execute_action_push_pbb(struct lagopus_packet *pkt,
     memset(pbb_hdr->i_sid, 0, sizeof(pbb_hdr->i_sid));
   }
   /* re-classify packet if needed. */
-  classify_packet(pkt);
+  re_classify_packet(pkt);
   return LAGOPUS_RESULT_OK;
 }
 
@@ -1916,7 +2028,7 @@ execute_action_pop_pbb(struct lagopus_packet *pkt,
   memmove(dst, src, size);
   OS_M_ADJ(m, sizeof(struct pbb_hdr));
   /* re-classify packet if needed. */
-  classify_packet(pkt);
+  re_classify_packet(pkt);
   return LAGOPUS_RESULT_OK;
 }
 
@@ -1937,60 +2049,60 @@ execute_action_none(__UNUSED struct lagopus_packet *pkt,
 void
 lagopus_set_action_function(struct action *action) {
   switch (action->ofpat.type) {
-    case OFPAT_OUTPUT:
-      action->exec = execute_action_output;
-      break;
-    case OFPAT_COPY_TTL_OUT:
-      action->exec = execute_action_copy_ttl_out;
-      break;
-    case OFPAT_COPY_TTL_IN:
-      action->exec = execute_action_copy_ttl_in;
-      break;
-    case OFPAT_SET_MPLS_TTL:
-      action->exec = execute_action_set_mpls_ttl;
-      break;
-    case OFPAT_DEC_MPLS_TTL:
-      action->exec = execute_action_dec_mpls_ttl;
-      break;
-    case OFPAT_PUSH_VLAN:
-      action->exec = execute_action_push_vlan;
-      break;
-    case OFPAT_POP_VLAN:
-      action->exec = execute_action_pop_vlan;
-      break;
-    case OFPAT_PUSH_MPLS:
-      action->exec = execute_action_push_mpls;
-      break;
-    case OFPAT_POP_MPLS:
-      action->exec = execute_action_pop_mpls;
-      break;
-    case OFPAT_SET_QUEUE:
-      action->exec = execute_action_set_queue;
-      break;
-    case OFPAT_GROUP:
-      action->exec = execute_action_group;
-      break;
-    case OFPAT_SET_NW_TTL:
-      action->exec = execute_action_set_nw_ttl;
-      break;
-    case OFPAT_DEC_NW_TTL:
-      action->exec = execute_action_dec_nw_ttl;
-      break;
-    case OFPAT_SET_FIELD:
-      action->exec = execute_action_set_field;
-      break;
-    case OFPAT_PUSH_PBB:
-      action->exec = execute_action_push_pbb;
-      break;
-    case OFPAT_POP_PBB:
-      action->exec = execute_action_pop_pbb;
-      break;
-    case OFPAT_EXPERIMENTER:
-      action->exec = execute_action_experimenter;
-      break;
-    default:
-      action->exec = execute_action_none;
-      break;
+  case OFPAT_OUTPUT:
+    action->exec = execute_action_output;
+    break;
+  case OFPAT_COPY_TTL_OUT:
+    action->exec = execute_action_copy_ttl_out;
+    break;
+  case OFPAT_COPY_TTL_IN:
+    action->exec = execute_action_copy_ttl_in;
+    break;
+  case OFPAT_SET_MPLS_TTL:
+    action->exec = execute_action_set_mpls_ttl;
+    break;
+  case OFPAT_DEC_MPLS_TTL:
+    action->exec = execute_action_dec_mpls_ttl;
+    break;
+  case OFPAT_PUSH_VLAN:
+    action->exec = execute_action_push_vlan;
+    break;
+  case OFPAT_POP_VLAN:
+    action->exec = execute_action_pop_vlan;
+    break;
+  case OFPAT_PUSH_MPLS:
+    action->exec = execute_action_push_mpls;
+    break;
+  case OFPAT_POP_MPLS:
+    action->exec = execute_action_pop_mpls;
+    break;
+  case OFPAT_SET_QUEUE:
+    action->exec = execute_action_set_queue;
+    break;
+  case OFPAT_GROUP:
+    action->exec = execute_action_group;
+    break;
+  case OFPAT_SET_NW_TTL:
+    action->exec = execute_action_set_nw_ttl;
+    break;
+  case OFPAT_DEC_NW_TTL:
+    action->exec = execute_action_dec_nw_ttl;
+    break;
+  case OFPAT_SET_FIELD:
+    action->exec = execute_action_set_field;
+    break;
+  case OFPAT_PUSH_PBB:
+    action->exec = execute_action_push_pbb;
+    break;
+  case OFPAT_POP_PBB:
+    action->exec = execute_action_pop_pbb;
+    break;
+  case OFPAT_EXPERIMENTER:
+    action->exec = execute_action_experimenter;
+    break;
+  default:
+    action->exec = execute_action_none;
+    break;
   }
 }
 
@@ -1999,7 +2111,7 @@ execute_instruction_goto_table(struct lagopus_packet *pkt,
                                const struct instruction *instruction) {
   const struct ofp_instruction_goto_table *goto_table;
 
-  if (pkt->cache != NULL && pkt->hash64 == 0) {
+  if (pkt->cache != NULL && (pkt->flags & PKT_FLAG_CACHED_FLOW)) {
     /* cached flow, table pipelining is cached.  do nothing. */
     return LAGOPUS_RESULT_OK;
   }
@@ -2013,9 +2125,8 @@ execute_instruction_goto_table(struct lagopus_packet *pkt,
    */
   if (pkt->table_id < goto_table->table_id) {
     pkt->table_id = goto_table->table_id;
-    OS_M_ADDREF(pkt->mbuf);
     lagopus_match_and_action(pkt);
-    return LAGOPUS_RESULT_OK;
+    return LAGOPUS_RESULT_NO_MORE_ACTION;
   } else {
     /* Stop pipeline, don't backward go to table. */
   }
@@ -2103,30 +2214,30 @@ execute_instruction_none(__UNUSED struct lagopus_packet *pkt,
 void
 lagopus_set_instruction_function(struct instruction *instruction) {
   switch (instruction->ofpit.type) {
-    case OFPIT_GOTO_TABLE:
-      instruction->exec = execute_instruction_goto_table;
-      break;
-    case OFPIT_WRITE_METADATA:
-      instruction->exec = execute_instruction_write_metadata;
-      break;
-    case OFPIT_WRITE_ACTIONS:
-      instruction->exec = execute_instruction_write_actions;
-      break;
-    case OFPIT_APPLY_ACTIONS:
-      instruction->exec = execute_instruction_apply_actions;
-      break;
-    case OFPIT_CLEAR_ACTIONS:
-      instruction->exec = execute_instruction_clear_actions;
-      break;
-    case OFPIT_METER:
-      instruction->exec = execute_instruction_meter;
-      break;
-    case OFPIT_EXPERIMENTER:
-      instruction->exec = execute_instruction_experimenter;
-      break;
-    default:
-      instruction->exec = execute_instruction_none;
-      break;
+  case OFPIT_GOTO_TABLE:
+    instruction->exec = execute_instruction_goto_table;
+    break;
+  case OFPIT_WRITE_METADATA:
+    instruction->exec = execute_instruction_write_metadata;
+    break;
+  case OFPIT_WRITE_ACTIONS:
+    instruction->exec = execute_instruction_write_actions;
+    break;
+  case OFPIT_APPLY_ACTIONS:
+    instruction->exec = execute_instruction_apply_actions;
+    break;
+  case OFPIT_CLEAR_ACTIONS:
+    instruction->exec = execute_instruction_clear_actions;
+    break;
+  case OFPIT_METER:
+    instruction->exec = execute_instruction_meter;
+    break;
+  case OFPIT_EXPERIMENTER:
+    instruction->exec = execute_instruction_experimenter;
+    break;
+  default:
+    instruction->exec = execute_instruction_none;
+    break;
   }
 }
 
@@ -2147,14 +2258,16 @@ lagopus_match_and_action(struct lagopus_packet *pkt) {
   struct flow *flow, **flowp;
   struct table *table;
   const struct cache_entry *cache_entry;
+  lagopus_result_t rv;
   unsigned i;
 
   flowdb = pkt->in_port->bridge->flowdb;
 
+  rv = LAGOPUS_RESULT_OK;
   cache_entry = cache_lookup(pkt->cache, pkt);
   if (likely(cache_entry != NULL)) {
     DP_PRINT("MATCHED (cache)\n");
-    pkt->hash64 = 0;
+    pkt->flags |= PKT_FLAG_CACHED_FLOW;
     flowp = cache_entry->flow;
 
     for (i = 0; i < cache_entry->nmatched; i++) {
@@ -2181,7 +2294,11 @@ lagopus_match_and_action(struct lagopus_packet *pkt) {
       if (likely(flow->priority > 0)) {
         table->matched_count++;
       }
-      execute_instruction(pkt, (const struct instruction **)flow->instruction);
+      rv = execute_instruction(pkt,
+                               (const struct instruction **)flow->instruction);
+      if (rv != LAGOPUS_RESULT_OK) {
+        break;
+      }
     }
   } else {
     /* Get table from tabile_id. */
@@ -2198,7 +2315,7 @@ lagopus_match_and_action(struct lagopus_packet *pkt) {
       /* execute_instruction is able to call this function recursively. */
       pkt->flow = flow;
       pkt->matched_flow[pkt->nmatched++] = flow;
-      execute_instruction(pkt, (const struct instruction **)flow->instruction);
+      rv = execute_instruction(pkt, (const struct instruction **)flow->instruction);
     } else {
       DP_PRINT("NOT MATCHED\n");
       /*
@@ -2225,18 +2342,17 @@ lagopus_match_and_action(struct lagopus_packet *pkt) {
    * 10. group
    * 11. output
    */
-  if ((pkt->flags & PKT_FLAG_HAS_ACTION) != 0) {
-    execute_action_set(pkt, pkt->actions);
-    pkt->flags &= (uint32_t)~PKT_FLAG_HAS_ACTION;
-  }
-  if (pkt->hash64 != 0 && pkt->cache != NULL) {
-    /* register crc and flows to cache. */
-    register_cache(pkt->cache, pkt->hash64,
-                   pkt->nmatched, pkt->matched_flow);
-    pkt->hash64 = 0;
+  if (rv == LAGOPUS_RESULT_OK) {
+    if ((pkt->flags & PKT_FLAG_HAS_ACTION) != 0) {
+      rv = execute_action_set(pkt, pkt->actions);
+      pkt->flags &= (uint32_t)~PKT_FLAG_HAS_ACTION;
+    }
   }
   /* required: if no output action, drop packet. */
-  lagopus_packet_free(pkt);
+  if (rv != LAGOPUS_RESULT_NO_MORE_ACTION) {
+    lagopus_packet_free(pkt);
+  }
+  return rv;
 }
 
 /*

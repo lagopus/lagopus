@@ -17,7 +17,7 @@
 
 /**
  *      @file   comm.c
- *      @brief  Datapath communicator thread functions.
+ *      @brief  Dataplane communicator thread functions.
  */
 
 #ifdef HAVE_DPDK
@@ -40,6 +40,10 @@
 
 #include "pktbuf.h"
 #include "packet.h"
+#include "thread.h"
+
+#include "City.h"
+#include "murmurhash3.h"
 
 #ifdef HAVE_DPDK
 #include "dpdk/dpdk.h"
@@ -58,6 +62,9 @@ rte_atomic32_t dpdk_stop;
 #define MUXER_FAIRNESS(q_size)
 #endif  /* DP_MUXER_MAX_SIZE */
 
+static lagopus_qmuxer_poll_t *polls = NULL;
+static lagopus_qmuxer_t muxer = NULL;
+
 /* process event_dataq. */
 static inline lagopus_result_t
 process_event_dataq_entry(struct dpmgr *dpmgr,
@@ -74,7 +81,8 @@ process_event_dataq_entry(struct dpmgr *dpmgr,
     goto done;
   }
 
-  FLOWDB_RWLOCK_RDLOCK(NULL);
+  flowdb_check_update(NULL);
+  flowdb_rdlock(NULL);
   bridge = bridge_lookup_by_dpid(&dpmgr->bridge_list, ofp_bridge->dpid);
   if (bridge != NULL) {
     struct eventq_data *reply;
@@ -126,26 +134,10 @@ process_event_dataq_entry(struct dpmgr *dpmgr,
 
           (void)OS_M_APPEND(pkt->mbuf, data_len);
           DECODE_GET(OS_MTOD(pkt->mbuf, char *), data_len);
-          lagopus_packet_init(pkt, pkt->mbuf);
           lagopus_set_in_port(pkt, port);
-          pkt->cache = cache;
-#ifdef HAVE_DPDK
-          p = OS_MTOD(pkt->mbuf, char *);
-          hlen = (uint32_t)calc_packet_header_size(p, data_len);
-          switch (app.hashtype) {
-            case HASH_TYPE_CITY64:
-              pkt->hash64 = CityHash64WithSeed(p, hlen, port->ifindex);
-              break;
-            case HASH_TYPE_MURMUR3:
-              MurmurHash3_x86_32(p, hlen, port->ifindex, &pkt->hash32_h);
-              pkt->hash32_l = rte_hash_crc(p, hlen, port->ifindex);
-              break;
-            case HASH_TYPE_INTEL64:
-            default:
-              pkt->hash64 = lagopus_hash_crc64(p, hlen, port->ifindex);
-              break;
-          }
-#endif /* HAVE_DPDK */
+          lagopus_packet_init(pkt, pkt->mbuf);
+          pkt->cache = NULL;
+          pkt->hash64 = 0;
           if (lagopus_register_action_hook != NULL) {
             struct action *action;
 
@@ -184,7 +176,7 @@ process_event_dataq_entry(struct dpmgr *dpmgr,
   } else {
     rv = LAGOPUS_RESULT_INVALID_OBJECT;
   }
-  FLOWDB_RWLOCK_RDUNLOCK(NULL);
+  flowdb_rdunlock(NULL);
 
 done:
   return rv;
@@ -273,9 +265,7 @@ comm_thread_loop(const lagopus_thread_t *t, void *arg) {
   uint64_t n_bridgeqs = 0;
   /* number of default polls. */
   uint64_t n_polls = 0;
-  lagopus_qmuxer_poll_t *polls = NULL;
   lagopus_bbq_t bbq = NULL;
-  lagopus_qmuxer_t muxer = NULL;
   bool *running = NULL;
   (void) t;
 
@@ -290,21 +280,6 @@ comm_thread_loop(const lagopus_thread_t *t, void *arg) {
   dparg = arg;
   dpmgr = dparg->dpmgr;
   running = dparg->running;
-
-  /* allocate polls */
-  polls = (lagopus_qmuxer_poll_t *)calloc(MAX_DP_POLLS, sizeof(*polls));
-  if (polls == NULL) {
-    lagopus_msg_error("Can't allocate polls.\n");
-    return LAGOPUS_RESULT_NO_MEMORY;
-  }
-
-  /* Create the qmuxer. */
-  rv = lagopus_qmuxer_create(&muxer);
-  if (rv != LAGOPUS_RESULT_OK) {
-    lagopus_perror(rv);
-    free(polls);
-    return rv;
-  }
 
 #ifdef HAVE_DPDK
   if (!app.no_cache) {
@@ -403,6 +378,61 @@ comm_thread_loop(const lagopus_thread_t *t, void *arg) {
   if (cache != NULL) {
     fini_flowcache(cache);
   }
+
+  return rv;
+}
+
+/**
+ * dataplane comm lagopus thread.
+ */
+
+static lagopus_thread_t comm_thread = NULL;
+static bool comm_run = false;
+static lagopus_mutex_t comm_lock = NULL;
+
+lagopus_result_t
+dpcomm_initialize(int argc,
+                  const char * const argv[],
+                  void *extarg,
+                  lagopus_thread_t **thdptr) {
+  lagopus_result_t rv = LAGOPUS_RESULT_ANY_FAILURES;
+  static struct datapath_arg commarg;
+
+  (void) argc;
+  (void) argv;
+
+  commarg.dpmgr = extarg;
+  commarg.threadptr = &comm_thread;
+  commarg.running = &comm_run;
+  *thdptr = &comm_thread;
+
+  /* allocate polls */
+  polls = (lagopus_qmuxer_poll_t *)calloc(MAX_DP_POLLS, sizeof(*polls));
+  if (polls == NULL) {
+    lagopus_msg_error("Can't allocate polls.\n");
+    return LAGOPUS_RESULT_NO_MEMORY;
+  }
+
+  /* Create the qmuxer. */
+  rv = lagopus_qmuxer_create(&muxer);
+  if (rv != LAGOPUS_RESULT_OK) {
+    lagopus_perror(rv);
+    free(polls);
+    return rv;
+  }
+
+  return lagopus_thread_create(&comm_thread, comm_thread_loop,
+                               dp_finalproc, dp_freeproc,
+                               "dp_comm", &commarg);
+}
+
+lagopus_result_t
+dpcomm_start(void) {
+  return dp_thread_start(&comm_thread, &comm_lock, &comm_run);
+}
+
+void
+dpcomm_finalize(void) {
   if (polls != NULL) {
     free(polls);
   }
@@ -410,5 +440,35 @@ comm_thread_loop(const lagopus_thread_t *t, void *arg) {
     lagopus_qmuxer_destroy(&muxer);
   }
 
-  return rv;
+  dp_thread_finalize(&comm_thread);
 }
+
+lagopus_result_t
+dpcomm_shutdown(shutdown_grace_level_t level) {
+  return dp_thread_shutdown(&comm_thread, &comm_lock, &comm_run, level);
+}
+
+lagopus_result_t
+dpcomm_stop(void) {
+  return dp_thread_stop(&comm_thread, &comm_run);
+}
+
+#if 0
+#define MODIDX_DPCOMM  LAGOPUS_MODULE_CONSTRUCTOR_INDEX_BASE + 108
+#define MODNAME_DPCOMM "dp_comm"
+
+static void dpcomm_ctors(void) __attr_constructor__(MODIDX_DPCOMM);
+static void dpcomm_dtors(void) __attr_constructor__(MODIDX_DPCOMM);
+
+static void dpcomm_ctors (void) {
+  lagopus_module_register(MODNAME_DPCOMM,
+                          dpcomm_initialize,
+                          s_dpmptr,
+                          dpcomm_start,
+                          dpcomm_shutdown,
+                          dpcomm_stop,
+                          dpcomm_finalize,
+                          NULL
+                          );
+}
+#endif

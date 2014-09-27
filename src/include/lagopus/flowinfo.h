@@ -16,27 +16,27 @@
 
 
 /**
- *	@file	flowinfo.h
- *	@brief	Flow information for fast lookup.
+ *      @file   flowinfo.h
+ *      @brief  Flow information for fast lookup.
  */
 
-#ifndef _SRC_INCLUDE_LAGOPUS_FLOWINFO_H
-#define _SRC_INCLUDE_LAGOPUS_FLOWINFO_H
+#ifndef SRC_INCLUDE_LAGOPUS_FLOWINFO_H_
+#define SRC_INCLUDE_LAGOPUS_FLOWINFO_H_
 
 /**
  * definition of structured flow table.
  */
 struct flowinfo {
-  int nflow;			/*< number of entries. */
-  int nnext;			/*< number of child flowinfo. */
-  union {			/*< entries includes type specific match. */
-    struct ptree *ptree;	/*< patricia tree entries. */
-    struct flow **flows;	/*< simple array entries. */
-    struct flowinfo **next;	/*< child flowinfo array. */
+  int nflow;                    /*< number of entries. */
+  unsigned int nnext;           /*< number of child flowinfo. */
+  union {                       /*< entries includes type specific match. */
+    struct ptree *ptree;        /*< patricia tree entries. */
+    struct flow **flows;        /*< simple array entries. */
+    struct flowinfo **next;     /*< child flowinfo array. */
     /* add more types if needed. */
   };
-  struct flowinfo *misc;	/*< flowinfo includes no specific match. */
-  uint64_t userdata;		/*< type specific data placeholder. */
+  struct flowinfo *misc;        /*< flowinfo includes no specific match. */
+  uint64_t userdata;            /*< type specific data placeholder. */
 
   lagopus_result_t (*add_func)(struct flowinfo *, struct flow *);
   struct flow *(*match_func)(struct flowinfo *, struct lagopus_packet *,
@@ -46,19 +46,113 @@ struct flowinfo {
   void (*destroy_func)(struct flowinfo *);
 };
 
+/**
+ * Allocate and initialize flowinfo for sequencial search.
+ *
+ * @retval      !=NULL  Created flowinfo.
+ *              ==NULL  failed to create flowinfo.
+ */
 struct flowinfo *new_flowinfo_basic(void);
+
+/**
+ * Allocate and initialize flowinfo for ingress port.
+ *
+ * @retval      !=NULL  Created flowinfo.
+ *              ==NULL  failed to create flowinfo.
+ */
 struct flowinfo *new_flowinfo_in_port(void);
+
+/**
+ * Allocate and initialize flowinfo for metadata.
+ *
+ * @retval      !=NULL  Created flowinfo.
+ *              ==NULL  failed to create flowinfo.
+ */
 struct flowinfo *new_flowinfo_metadata(void);
+
+/**
+ * Allocate and initialize flowinfo for VLAN VID.
+ *
+ * @retval      !=NULL  Created flowinfo.
+ *              ==NULL  failed to create flowinfo.
+ */
 struct flowinfo *new_flowinfo_vlan_vid(void);
+
+/**
+ * Allocate and initialize flowinfo for ethernet type.
+ *
+ * @retval      !=NULL  Created flowinfo.
+ *              ==NULL  failed to create flowinfo.
+ */
 struct flowinfo *new_flowinfo_eth_type(void);
+
+/**
+ * Allocate and initialize flowinfo for IPv4 destination address with mask.
+ *
+ * @retval      !=NULL  Created flowinfo.
+ *              ==NULL  failed to create flowinfo.
+ */
 struct flowinfo *new_flowinfo_ipv4_dst_mask(void);
+
+/**
+ * Allocate and initialize flowinfo for IPv4 destination address.
+ *
+ * @retval      !=NULL  Created flowinfo.
+ *              ==NULL  failed to create flowinfo.
+ */
 struct flowinfo *new_flowinfo_ipv4_dst(void);
+
+/**
+ * Allocate and initialize flowinfo for IPv4 packets.
+ *
+ * @retval      !=NULL  Created flowinfo.
+ *              ==NULL  failed to create flowinfo.
+ */
 struct flowinfo *new_flowinfo_ipv4(void);
+
+/**
+ * Allocate and initialize flowinfo for IPv6 packets.
+ *
+ * @retval      !=NULL  Created flowinfo.
+ *              ==NULL  failed to create flowinfo.
+ */
 struct flowinfo *new_flowinfo_ipv6(void);
+
+/**
+ * Allocate and initialize flowinfo for MPLS packets.
+ *
+ * @retval      !=NULL  Created flowinfo.
+ *              ==NULL  failed to create flowinfo.
+ */
 struct flowinfo *new_flowinfo_mpls(void);
+
+/**
+ * Allocate and initialize flowinfo for metadata.
+ *
+ * @retval      !=NULL  Created flowinfo.
+ *              ==NULL  failed to create flowinfo.
+ */
 struct flowinfo *new_flowinfo_metadata(void);
+
+/**
+ * Allocate and initialize flowinfo for metadata with mask.
+ *
+ * @retval      !=NULL  Created flowinfo.
+ *              ==NULL  failed to create flowinfo.
+ */
 struct flowinfo *new_flowinfo_metadata_mask(void);
 
+/**
+ * Initialize flowinfo module.
+ */
 void flowinfo_init(void);
 
-#endif /* _SRC_INCLUDE_LAGOPUS_FLOWINFO_H */
+/**
+ * Make match byte array from the flow.
+ *
+ * @param[in]   flow    Flow.
+ *
+ */
+void flow_make_match(struct flow *flow);
+
+#endif /* SRC_INCLUDE_LAGOPUS_FLOWINFO_H_ */

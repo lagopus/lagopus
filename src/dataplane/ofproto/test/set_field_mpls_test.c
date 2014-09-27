@@ -38,6 +38,7 @@ tearDown(void) {
 
 void
 test_set_field_MPLS_LABEL(void) {
+  struct port port;
   struct action_list action_list;
   struct action *action;
   struct ofp_action_set_field *action_set;
@@ -64,6 +65,7 @@ test_set_field_MPLS_LABEL(void) {
   m->data[16] = 0xff;
   m->data[17] = 0xff;
 
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   set_match(action_set->field, 4, OFPXMT_OFB_MPLS_LABEL << 1,
             0x00, 0x00, 0x01, 0x00);
@@ -100,6 +102,7 @@ test_set_field_MPLS_LABEL(void) {
 
 void
 test_set_field_MPLS_TC(void) {
+  struct port port;
   struct action_list action_list;
   struct action *action;
   struct ofp_action_set_field *action_set;
@@ -125,6 +128,7 @@ test_set_field_MPLS_TC(void) {
   m->data[16] = 0xff;
   m->data[17] = 0xff;
 
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   set_match(action_set->field, 1, OFPXMT_OFB_MPLS_TC << 1,
             0x00);
@@ -161,6 +165,7 @@ test_set_field_MPLS_TC(void) {
 
 void
 test_set_field_MPLS_BOS(void) {
+  struct port port;
   struct action_list action_list;
   struct action *action;
   struct ofp_action_set_field *action_set;
@@ -186,6 +191,7 @@ test_set_field_MPLS_BOS(void) {
   m->data[16] = 0xff;
   m->data[17] = 0xff;
 
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   set_match(action_set->field, 1, OFPXMT_OFB_MPLS_BOS << 1,
             0x00);

@@ -38,6 +38,7 @@ tearDown(void) {
 
 void
 test_set_field_IPV4_IP_DSCP(void) {
+  struct port port;
   struct action_list action_list;
   struct action *action;
   struct ofp_action_set_field *action_set;
@@ -60,6 +61,7 @@ test_set_field_IPV4_IP_DSCP(void) {
   m->data[12] = 0x08;
   m->data[13] = 0x00;
 
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   set_match(action_set->field, 1, OFPXMT_OFB_IP_DSCP << 1,
             0x3f);
@@ -70,6 +72,7 @@ test_set_field_IPV4_IP_DSCP(void) {
 
 void
 test_set_field_IPV4_IP_ECN(void) {
+  struct port port;
   struct action_list action_list;
   struct action *action;
   struct ofp_action_set_field *action_set;
@@ -92,6 +95,7 @@ test_set_field_IPV4_IP_ECN(void) {
   m->data[12] = 0x08;
   m->data[13] = 0x00;
 
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   set_match(action_set->field, 1, OFPXMT_OFB_IP_ECN << 1,
             0x3);
@@ -102,6 +106,7 @@ test_set_field_IPV4_IP_ECN(void) {
 
 void
 test_set_field_IPV4_IP_PROTO(void) {
+  struct port port;
   struct action_list action_list;
   struct action *action;
   struct ofp_action_set_field *action_set;
@@ -124,6 +129,7 @@ test_set_field_IPV4_IP_PROTO(void) {
   m->data[12] = 0x08;
   m->data[13] = 0x00;
 
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   set_match(action_set->field, 1, OFPXMT_OFB_IP_PROTO << 1,
             IPPROTO_ICMP);
@@ -134,6 +140,7 @@ test_set_field_IPV4_IP_PROTO(void) {
 
 void
 test_set_field_IPV4_SRC(void) {
+  struct port port;
   struct action_list action_list;
   struct action *action;
   struct ofp_action_set_field *action_set;
@@ -156,6 +163,7 @@ test_set_field_IPV4_SRC(void) {
   m->data[12] = 0x08;
   m->data[13] = 0x00;
 
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   set_match(action_set->field, 4, OFPXMT_OFB_IPV4_SRC << 1,
             192, 168, 1, 12);
@@ -171,6 +179,7 @@ test_set_field_IPV4_SRC(void) {
 }
 void
 test_set_field_IPV4_DST(void) {
+  struct port port;
   struct action_list action_list;
   struct action *action;
   struct ofp_action_set_field *action_set;
@@ -193,6 +202,7 @@ test_set_field_IPV4_DST(void) {
   m->data[12] = 0x08;
   m->data[13] = 0x00;
 
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   set_match(action_set->field, 4, OFPXMT_OFB_IPV4_DST << 1,
             192, 168, 1, 12);
@@ -209,6 +219,7 @@ test_set_field_IPV4_DST(void) {
 
 void
 test_set_field_IPV4_TCP_SRC(void) {
+  struct port port;
   struct action_list action_list;
   struct action *action;
   struct ofp_action_set_field *action_set;
@@ -236,6 +247,7 @@ test_set_field_IPV4_TCP_SRC(void) {
   *((uint16_t *)&m->data[16]) = OS_HTONS(len);
   m->data[23] = IPPROTO_TCP;
 
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   set_match(action_set->field, 2, OFPXMT_OFB_TCP_SRC << 1,
             0xaa, 0x55);
@@ -248,6 +260,7 @@ test_set_field_IPV4_TCP_SRC(void) {
 
 void
 test_set_field_IPV4_TCP_DST(void) {
+  struct port port;
   struct action_list action_list;
   struct action *action;
   struct ofp_action_set_field *action_set;
@@ -275,6 +288,7 @@ test_set_field_IPV4_TCP_DST(void) {
   *((uint16_t *)&m->data[16]) = OS_HTONS(len);
   m->data[23] = IPPROTO_TCP;
 
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   set_match(action_set->field, 2, OFPXMT_OFB_TCP_DST << 1,
             0xaa, 0x55);
@@ -287,6 +301,7 @@ test_set_field_IPV4_TCP_DST(void) {
 
 void
 test_set_field_IPV4_UDP_SRC(void) {
+  struct port port;
   struct action_list action_list;
   struct action *action;
   struct ofp_action_set_field *action_set;
@@ -314,6 +329,7 @@ test_set_field_IPV4_UDP_SRC(void) {
   *((uint16_t *)&m->data[16]) = OS_HTONS(len);
   m->data[23] = IPPROTO_UDP;
 
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   set_match(action_set->field, 2, OFPXMT_OFB_UDP_SRC << 1,
             0xaa, 0x55);
@@ -326,6 +342,7 @@ test_set_field_IPV4_UDP_SRC(void) {
 
 void
 test_set_field_IPV4_UDP_DST(void) {
+  struct port port;
   struct action_list action_list;
   struct action *action;
   struct ofp_action_set_field *action_set;
@@ -353,6 +370,7 @@ test_set_field_IPV4_UDP_DST(void) {
   *((uint16_t *)&m->data[16]) = OS_HTONS(len);
   m->data[23] = IPPROTO_UDP;
 
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   set_match(action_set->field, 2, OFPXMT_OFB_UDP_DST << 1,
             0xaa, 0x55);
@@ -365,6 +383,7 @@ test_set_field_IPV4_UDP_DST(void) {
 
 void
 test_set_field_IPV4_SCTP_SRC(void) {
+  struct port port;
   struct action_list action_list;
   struct action *action;
   struct ofp_action_set_field *action_set;
@@ -392,6 +411,7 @@ test_set_field_IPV4_SCTP_SRC(void) {
   *((uint16_t *)&m->data[16]) = OS_HTONS(len);
   m->data[23] = IPPROTO_SCTP;
 
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   set_match(action_set->field, 2, OFPXMT_OFB_SCTP_SRC << 1,
             0xaa, 0x55);
@@ -404,6 +424,7 @@ test_set_field_IPV4_SCTP_SRC(void) {
 
 void
 test_set_field_IPV4_SCTP_DST(void) {
+  struct port port;
   struct action_list action_list;
   struct action *action;
   struct ofp_action_set_field *action_set;
@@ -431,6 +452,7 @@ test_set_field_IPV4_SCTP_DST(void) {
   *((uint16_t *)&m->data[16]) = OS_HTONS(len);
   m->data[23] = IPPROTO_SCTP;
 
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   set_match(action_set->field, 2, OFPXMT_OFB_SCTP_DST << 1,
             0xaa, 0x55);
@@ -443,6 +465,7 @@ test_set_field_IPV4_SCTP_DST(void) {
 
 void
 test_set_field_ICMPV4_TYPE(void) {
+  struct port port;
   struct action_list action_list;
   struct action *action;
   struct ofp_action_set_field *action_set;
@@ -470,6 +493,7 @@ test_set_field_ICMPV4_TYPE(void) {
   *((uint16_t *)&m->data[16]) = OS_HTONS(len);
   m->data[23] = IPPROTO_ICMP;
 
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   set_match(action_set->field, 1, OFPXMT_OFB_ICMPV4_TYPE << 1,
             0xaa);
@@ -480,6 +504,7 @@ test_set_field_ICMPV4_TYPE(void) {
 
 void
 test_set_field_ICMPV4_CODE(void) {
+  struct port port;
   struct action_list action_list;
   struct action *action;
   struct ofp_action_set_field *action_set;
@@ -506,6 +531,7 @@ test_set_field_ICMPV4_CODE(void) {
   *((uint16_t *)&m->data[16]) = OS_HTONS(len);
   m->data[23] = IPPROTO_ICMP;
 
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   set_match(action_set->field, 1, OFPXMT_OFB_ICMPV4_CODE << 1,
             0x55);

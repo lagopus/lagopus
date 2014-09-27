@@ -54,8 +54,7 @@ test_flowinfo_mpls_multicast_label_adddel(void) {
   TEST_ASSERT_OBJECTS();
   /* The ptree should be clean. */
   for (s = 0; s < ARRAY_LEN(test_flow); s++) {
-    TEST_ASSERT_FLOWINFO_NOLABEL(flowinfo, TEST_LABEL(s), MPLS_LABEL_BITLEN,
-                                 __func__);
+    TEST_ASSERT_FLOWINFO_NOLABEL(flowinfo, TEST_LABEL(s), MPLS_LABEL_BITLEN, __func__);
   }
 
   /* Add MPLS label matches. */

@@ -36,7 +36,7 @@ const char *dmidecode_param[] = {
 
 static const char *
 get_dmi_string(const char *param) {
-  static buf[128];
+  static char buf[128];
   char cmd[128];
   FILE *fp;
 
@@ -52,7 +52,7 @@ get_dmi_string(const char *param) {
 }
 
 static void
-copy_hw_info(char *buf, int len) {
+copy_hw_info(char *buf, size_t len) {
   int i;
 
   buf[0] = '\0';

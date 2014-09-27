@@ -71,6 +71,7 @@ dpmgr_alloc(void) {
 /* Free datapath manager. */
 void
 dpmgr_free(struct dpmgr *dpmgr) {
+  ports_free(dpmgr->ports);
   free(dpmgr);
   dpmgr_singleton = NULL;
 }
@@ -134,7 +135,7 @@ dpmgr_bridge_dpid_lookup(struct dpmgr *dpmgr,
   struct bridge *bridge;
   lagopus_result_t rv;
 
-  FLOWDB_RWLOCK_RDLOCK(NULL);
+  flowdb_rdlock(NULL);
   bridge = bridge_lookup(&dpmgr->bridge_list, bridge_name);
   if (bridge != NULL) {
     *dpidp = bridge->dpid;
@@ -142,7 +143,7 @@ dpmgr_bridge_dpid_lookup(struct dpmgr *dpmgr,
   } else {
     rv = LAGOPUS_RESULT_NOT_FOUND;
   }
-  FLOWDB_RWLOCK_RDUNLOCK(NULL);
+  flowdb_rdunlock(NULL);
   return rv;
 }
 
@@ -202,7 +203,7 @@ dpmgr_bridge_dpid_set(struct dpmgr *dpmgr,
   struct bridge *bridge;
   lagopus_result_t rv;
 
-  FLOWDB_RWLOCK_WRLOCK(NULL);
+  flowdb_wrlock(NULL);
   bridge = bridge_lookup(&dpmgr->bridge_list, bridge_name);
   if (bridge != NULL) {
     bridge->dpid = dpid;
@@ -210,7 +211,7 @@ dpmgr_bridge_dpid_set(struct dpmgr *dpmgr,
   } else {
     rv = LAGOPUS_RESULT_NOT_FOUND;
   }
-  FLOWDB_RWLOCK_WRUNLOCK(NULL);
+  flowdb_wrunlock(NULL);
   return rv;
 }
 

@@ -135,11 +135,13 @@ struct pbb_hdr {
   uint16_t c_ethtype;
 } __attribute__((__packed__));
 
+
 /**
  * packet flags
  */
 enum {
-  PKT_FLAG_HAS_ACTION = 1 << 0
+  PKT_FLAG_HAS_ACTION =  1 << 0,
+  PKT_FLAG_CACHED_FLOW = 1 << 1
 };
 
 /**
@@ -159,13 +161,19 @@ struct lagopus_packet {
       uint32_t hash32_l;
     };
   };
+
   uint16_t ether_type;
   struct oob_data oob_data;
   struct vlanhdr *vlan;
   union {
     uint8_t *base[MAX_BASE];
     struct {
-      struct ether_header *eth;
+      union {
+        struct ether_header *eth;
+        uint8_t *l2_hdr;
+        uint16_t *l2_hdr_w;
+        uint32_t *l2_hdr_l;
+      };
       struct pbb_hdr *pbb;
       struct mpls_hdr *mpls;
       union {

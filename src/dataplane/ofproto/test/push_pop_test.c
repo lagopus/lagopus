@@ -37,6 +37,7 @@ tearDown(void) {
 
 void
 test_push_mpls(void) {
+  struct port port;
   struct action_list action_list;
   struct action *action;
   struct ofp_action_push *action_push;
@@ -63,6 +64,7 @@ test_push_mpls(void) {
   m->data[14] = 0x45;
   m->data[22] = 240;
 
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   execute_action(&pkt, &action_list);
   TEST_ASSERT_EQUAL_MESSAGE(OS_M_PKTLEN(m), 64 + 4,
@@ -106,6 +108,7 @@ test_push_mpls(void) {
 
 void
 test_push_vlan(void) {
+  struct port port;
   struct action_list action_list;
   struct action *action;
   struct ofp_action_push *action_push;
@@ -131,6 +134,7 @@ test_push_vlan(void) {
   m->data[13] = 0x00;
   m->data[14] = 0x45;
 
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   execute_action(&pkt, &action_list);
   TEST_ASSERT_EQUAL_MESSAGE(OS_M_PKTLEN(m), 64 + 4,
@@ -168,6 +172,7 @@ void
 test_push_pbb(void) {
   static const uint8_t dhost[] = { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55 };
   static const uint8_t shost[] = { 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb };
+  struct port port;
   struct action_list action_list;
   struct action *action;
   struct ofp_action_push *action_push;
@@ -192,6 +197,7 @@ test_push_pbb(void) {
   OS_MEMCPY(&m->data[0], dhost, ETH_ALEN);
   OS_MEMCPY(&m->data[6], shost, ETH_ALEN);
 
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   execute_action(&pkt, &action_list);
   TEST_ASSERT_EQUAL_MESSAGE(OS_M_PKTLEN(m), 64 + 18,
@@ -228,6 +234,7 @@ test_push_pbb(void) {
 
 void
 test_pop_mpls(void) {
+  struct port port;
   struct action_list action_list;
   struct action *action;
   struct ofp_action_pop_mpls *action_pop;
@@ -260,6 +267,7 @@ test_pop_mpls(void) {
   m->data[22] = 0x45;
   m->data[30] = 240;
 
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   action_pop->ethertype = 0x8847;
   execute_action(&pkt, &action_list);
@@ -289,6 +297,7 @@ test_pop_mpls(void) {
 
 void
 test_pop_vlan(void) {
+  struct port port;
   struct action_list action_list;
   struct action *action;
   struct ofp_action_pop_mpls *action_pop;
@@ -317,6 +326,7 @@ test_pop_vlan(void) {
   m->data[18] = 0x45;
   m->data[26] = 240;
 
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   execute_action(&pkt, &action_list);
   TEST_ASSERT_EQUAL_MESSAGE(OS_M_PKTLEN(m), 64,
@@ -337,6 +347,7 @@ test_pop_pbb(void) {
   static const uint8_t oshost[] = { 0xfe, 0xdc, 0xba, 0x98, 0x76, 0x54 };
   static const uint8_t idhost[] = { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55 };
   static const uint8_t ishost[] = { 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb };
+  struct port port;
   struct action_list action_list;
   struct action *action;
   struct ofp_action_pop_mpls *action_pop;
@@ -370,6 +381,7 @@ test_pop_pbb(void) {
   m->data[31] = 0x00;
   m->data[32] = 0x45;
 
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   execute_action(&pkt, &action_list);
   TEST_ASSERT_EQUAL_MESSAGE(OS_M_PKTLEN(m), 64,

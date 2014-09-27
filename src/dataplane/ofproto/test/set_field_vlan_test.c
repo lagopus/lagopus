@@ -38,6 +38,7 @@ tearDown(void) {
 
 void
 test_set_field_VLAN_VID(void) {
+  struct port port;
   struct action_list action_list;
   struct action *action;
   struct ofp_action_set_field *action_set;
@@ -62,6 +63,7 @@ test_set_field_VLAN_VID(void) {
   m->data[14] = 0x20;
   m->data[15] = 0x01;
 
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   set_match(action_set->field, 2, OFPXMT_OFB_VLAN_VID << 1,
             0x0f, 0xfe);
@@ -74,6 +76,7 @@ test_set_field_VLAN_VID(void) {
 
 void
 test_set_field_VLAN_PCP(void) {
+  struct port port;
   struct action_list action_list;
   struct action *action;
   struct ofp_action_set_field *action_set;
@@ -97,6 +100,7 @@ test_set_field_VLAN_PCP(void) {
   m->data[14] = 0x0f;
   m->data[15] = 0xfe;
 
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   set_match(action_set->field, 1, OFPXMT_OFB_VLAN_PCP << 1,
             0x2);

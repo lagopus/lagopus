@@ -23,6 +23,7 @@ DEP_LIBS	+= $(DEP_LAGOPUS_UTIL_LIB)
 
 LDFLAGS		+= $(RTE_LIBS) 
 
+LDFLAGS		+= @PCAP_LIBS@
 
 include $(MKRULESDIR)/vars.mk
 include $(MKRULESDIR)/rules.mk

@@ -40,6 +40,7 @@ tearDown(void) {
 
 void
 test_set_field_IPV6_ND_TARGET(void) {
+  struct port port;
   struct action_list action_list;
   struct action *action;
   struct ofp_action_set_field *action_set;
@@ -64,6 +65,7 @@ test_set_field_IPV6_ND_TARGET(void) {
   m->data[13] = 0xdd;
   m->data[20] = IPPROTO_ICMPV6;
 
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   set_match(action_set->field, 16, OFPXMT_OFB_IPV6_ND_TARGET << 1,
             0x20, 0x01, 0x00, 0x00, 0xe0, 0x45, 0x22, 0xeb,
@@ -146,6 +148,7 @@ test_set_field_IPV6_ND_TARGET(void) {
 
 void
 test_set_field_IPV6_ND_SLL(void) {
+  struct port port;
   struct action_list action_list;
   struct action *action;
   struct ofp_action_set_field *action_set;
@@ -174,6 +177,7 @@ test_set_field_IPV6_ND_SLL(void) {
   m->data[79] = 1;
   m->data[86] = ND_OPT_TARGET_LINKADDR;
   m->data[87] = 1;
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   set_match(action_set->field, ETH_ALEN, OFPXMT_OFB_IPV6_ND_SLL << 1,
             0xe0, 0x4d, 0x01, 0x34, 0x56, 0x78);
@@ -195,6 +199,7 @@ test_set_field_IPV6_ND_SLL(void) {
 
 void
 test_set_field_IPV6_ND_TLL(void) {
+  struct port port;
   struct action_list action_list;
   struct action *action;
   struct ofp_action_set_field *action_set;
@@ -223,6 +228,7 @@ test_set_field_IPV6_ND_TLL(void) {
   m->data[79] = 1;
   m->data[86] = ND_OPT_TARGET_LINKADDR;
   m->data[87] = 1;
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   set_match(action_set->field, ETH_ALEN, OFPXMT_OFB_IPV6_ND_TLL << 1,
             0xe0, 0x4d, 0x01, 0x34, 0x56, 0x78);

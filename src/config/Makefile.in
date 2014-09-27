@@ -12,7 +12,9 @@ INSTALL_EXAMPLE_TARGETS = $(TOPDIR)/samples/lagopus.conf
 INSTALL_EXAMPLE_DIR     = $(DEST_EXAMPLEDIR)
 
 SRCS =	confsys.c cserver.c cclient.c cxml.c cnode.c clex.c cparse.c \
-	validate.c show.c config_parser.c config_lex.c clink.c chgroup.c
+	validate.c show.c clink.c chgroup.c
+
+OBJS = $(SRCS:.c=.lo) config_parser.lo config_lex.lo
 
 LDFLAGS	+=	@EXPAT_LIBS@
 

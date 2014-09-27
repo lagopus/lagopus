@@ -20,8 +20,8 @@
  * @brief	"Bridge" as OpenFlow logical switch APIs.
  */
 
-#ifndef __LAGOPUS_BRIDGE_H__
-#define __LAGOPUS_BRIDGE_H__
+#ifndef SRC_INCLUDE_LAGOPUS_BRIDGE_H_
+#define SRC_INCLUDE_LAGOPUS_BRIDGE_H_
 
 #include "lagopus_apis.h"
 #include "openflow.h"
@@ -152,6 +152,19 @@ bridge_lookup(struct bridge_list *bridge_list, const char *name);
  */
 struct bridge *
 bridge_lookup_by_dpid(struct bridge_list *bridge_list, uint64_t dpid);
+
+/**
+ * Lookup bridge by datapath id.
+ *
+ * @param[in]	bridge_list	Bridge list.
+ * @param[in]	name		Controller address string.
+ *
+ * @retval	!=NULL		Bridge object.
+ * @retval	==NULL		Bridge is not exist.
+ */
+struct bridge *
+bridge_lookup_by_controller_address(struct bridge_list *bridge_list,
+                                    const char *name);
 
 /**
  * Add port to the bridge.
@@ -334,4 +347,4 @@ bridge_controller_delete(struct bridge *bridge,
 uint64_t
 bridge_dpid(struct bridge *bridge);
 
-#endif /* __LAGOPUS_BRIDGE_H__ */
+#endif /* SRC_INCLUDE_LAGOPUS_BRIDGE_H_ */

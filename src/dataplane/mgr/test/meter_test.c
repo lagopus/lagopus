@@ -43,7 +43,7 @@ test_ofp_meter_band_list_elem_free(void) {
   /* data */
   for (i = 0; i < max_cnt; i++) {
     band = (struct meter_band *)
-           malloc(sizeof(struct meter_band));
+      malloc(sizeof(struct meter_band));
     TAILQ_INSERT_TAIL(&band_list, band, entry);
   }
 

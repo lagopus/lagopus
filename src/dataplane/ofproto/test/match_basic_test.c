@@ -73,11 +73,11 @@ test_match_flow_basic(void) {
   }
 
   /* prepare packet */
-  lagopus_set_in_port(&pkt, &port);
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
   OS_M_PKTLEN(m) = 64;
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
 
   /* test */
@@ -151,7 +151,6 @@ test_match_basic_IN_PORT(void) {
   bool rv;
 
   /* prepare packet */
-  pkt.in_port = &port;
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
@@ -163,6 +162,7 @@ test_match_basic_IN_PORT(void) {
 
   /* Port */
   pkt.oob_data.in_port = htonl(2);
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, true,
@@ -190,7 +190,6 @@ test_match_basic_PHY_PORT(void) {
 
   /* prepare packet */
   memset(&port, 0, sizeof(port));
-  lagopus_set_in_port(&pkt, &port);
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
@@ -204,6 +203,7 @@ test_match_basic_PHY_PORT(void) {
   add_match(&flow->match_list, 4, OFPXMT_OFB_IN_PHY_PORT << 1,
             0x00, 0x00, 0x00, 0x04);
   refresh_match(flow);
+  lagopus_set_in_port(&pkt, &port);
   pkt.oob_data.in_port = htonl(4);
   pkt.oob_data.in_phy_port = htonl(1);
   lagopus_packet_init(&pkt, m);
@@ -227,7 +227,6 @@ test_match_basic_METADATA(void) {
   bool rv;
 
   /* prepare packet */
-  pkt.in_port = &port;
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
@@ -242,6 +241,7 @@ test_match_basic_METADATA(void) {
   add_match(&flow->match_list, 8, OFPXMT_OFB_METADATA << 1,
             0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0);
   refresh_match(flow);
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
@@ -263,7 +263,6 @@ test_match_basic_METADATA_W(void) {
   bool rv;
 
   /* prepare packet */
-  pkt.in_port = &port;
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
@@ -279,6 +278,7 @@ test_match_basic_METADATA_W(void) {
             0x12, 0x34, 0x56, 0x78, 0x00, 0x00, 0x00, 0x00,
             0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00);
   refresh_match(flow);
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,

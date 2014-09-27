@@ -16,12 +16,12 @@
 
 
 /**
- * @file	meter.h
- * @brief	OpenFlow meter.
+ * @file        meter.h
+ * @brief       OpenFlow meter.
  */
 
-#ifndef __LAGOPUS_METER_H__
-#define __LAGOPUS_METER_H__
+#ifndef SRC_INCLUDE_LAGOPUS_METER_H_
+#define SRC_INCLUDE_LAGOPUS_METER_H_
 
 #include "lagopus_config.h"
 #include "lagopus_apis.h"
@@ -37,7 +37,7 @@
 struct meter_stats_list;
 struct meter_config_list;
 
-#define LAGOPUS_METER_MAX_BANDS	16
+#define LAGOPUS_METER_MAX_BANDS 16
 
 /* Meter bands. */
 struct meter_band {
@@ -106,8 +106,8 @@ struct meter_table {
 /**
  * Allocate meter table.
  *
- * @retval	!=NULL		Meter table.
- * @retval	==NULL		Memory exhausted.
+ * @retval      !=NULL          Meter table.
+ * @retval      ==NULL          Memory exhausted.
  */
 struct meter_table *
 meter_table_alloc(void);
@@ -115,7 +115,7 @@ meter_table_alloc(void);
 /**
  * Free meter table.
  *
- * @param[in]	meter_table	Metar table.
+ * @param[in]   meter_table     Metar table.
  */
 void
 meter_table_free(struct meter_table *meter_table);
@@ -123,7 +123,7 @@ meter_table_free(struct meter_table *meter_table);
 /**
  * Read lock meter table.
  *
- * @param[in]	meter_table	Metar table.
+ * @param[in]   meter_table     Metar table.
  */
 int
 meter_table_rdlock(struct meter_table *meter_table);
@@ -131,7 +131,7 @@ meter_table_rdlock(struct meter_table *meter_table);
 /**
  * Write lock meter table.
  *
- * @param[in]	meter_table	Metar table.
+ * @param[in]   meter_table     Metar table.
  */
 int
 meter_table_wrlock(struct meter_table *meter_table);
@@ -139,7 +139,7 @@ meter_table_wrlock(struct meter_table *meter_table);
 /**
  * Unlock meter table.
  *
- * @param[in]	meter_table	Metar table.
+ * @param[in]   meter_table     Metar table.
  */
 int
 meter_table_unlock(struct meter_table *meter_table);
@@ -147,12 +147,12 @@ meter_table_unlock(struct meter_table *meter_table);
 /**
  * Add meter.
  *
- * @param[in]	meter_table	Metar table.
- * @param[in]	mod		Meter modificaiton message.
- * @param[in]	band_list	Meter band.
- * @param[out]	error		Error information.
+ * @param[in]   meter_table     Metar table.
+ * @param[in]   mod             Meter modificaiton message.
+ * @param[in]   band_list       Meter band.
+ * @param[out]  error           Error information.
  *
- * @retval	LAGOPUS_RESULT_OK	Success.
+ * @retval      LAGOPUS_RESULT_OK       Success.
  */
 lagopus_result_t
 meter_table_meter_add(struct meter_table *meter_table,
@@ -163,12 +163,12 @@ meter_table_meter_add(struct meter_table *meter_table,
 /**
  * Modify meter.
  *
- * @param[in]	meter_table	Metar table.
- * @param[in]	mod		Meter modificaiton message.
- * @param[in]	band_list	Meter band.
- * @param[out]	error		Error information.
+ * @param[in]   meter_table     Metar table.
+ * @param[in]   mod             Meter modificaiton message.
+ * @param[in]   band_list       Meter band.
+ * @param[out]  error           Error information.
  *
- * @retval	LAGOPUS_RESULT_OK	Success.
+ * @retval      LAGOPUS_RESULT_OK       Success.
  */
 lagopus_result_t
 meter_table_meter_modify(struct meter_table *meter_table,
@@ -218,9 +218,9 @@ void (*lagopus_unregister_meter)(struct meter *);
 /**
  * Free band list elements.
  *
- * @param[in]	band_list	List of \e meter_band structures.
+ * @param[in]   band_list       List of \e meter_band structures.
  *
- * @retval	void
+ * @retval      void
  */
 void
 ofp_meter_band_list_elem_free(struct meter_band_list *band_list);
@@ -251,4 +251,4 @@ get_meter_features(struct meter_table *meter_table,
                    struct ofp_meter_features *features,
                    struct ofp_error *error);
 
-#endif /* __LAGOPUS_METER_H__ */
+#endif /* SRC_INCLUDE_LAGOPUS_METER_H_ */

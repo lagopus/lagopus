@@ -102,7 +102,7 @@ new_flowinfo_ipv4_dst_mask(void) {
 static void
 destroy_flowinfo_ipv4_dst_mask(struct flowinfo *self) {
   struct flowinfo *flowinfo;
-  int i;
+  unsigned int i;
 
   for (i = 0; i < self->nnext; i++) {
     flowinfo = self->next[i];
@@ -151,7 +151,7 @@ add_flow_ipv4_dst_mask(struct flowinfo *self, struct flow *flow) {
   struct flowinfo *flowinfo;
   uint32_t ipv4_dst, mask;
   lagopus_result_t rv;
-  int i;
+  unsigned int i;
 
   rv = get_match_ipv4_dst(&flow->match_list, &ipv4_dst, &mask);
   if (rv == LAGOPUS_RESULT_OK) {
@@ -188,7 +188,7 @@ del_flow_ipv4_dst_mask(struct flowinfo *self, struct flow *flow) {
   struct flowinfo *flowinfo;
   uint32_t ipv4_dst, mask;
   lagopus_result_t rv;
-  int i;
+  unsigned int i;
 
   rv = get_match_ipv4_dst(&flow->match_list, &ipv4_dst, &mask);
   if (rv == LAGOPUS_RESULT_OK) {
@@ -233,7 +233,7 @@ match_flow_ipv4_dst_mask(struct flowinfo *self, struct lagopus_packet *pkt,
     .flow_type = 0,
     .field_bits = 0
   };
-  int i;
+  unsigned int i;
 
   matched = &mismatched;
   //#pragma omp parallel for
@@ -261,7 +261,7 @@ find_flow_ipv4_dst_mask(struct flowinfo *self, struct flow *flow) {
   struct flowinfo *flowinfo;
   uint32_t ipv4_dst, mask;
   lagopus_result_t rv;
-  int i;
+  unsigned int i;
 
   rv = get_match_ipv4_dst(&flow->match_list, &ipv4_dst, &mask);
   if (rv == LAGOPUS_RESULT_OK) {
@@ -342,7 +342,7 @@ match_flow_ipv4_dst(struct flowinfo *self, struct lagopus_packet *pkt,
   struct flow *flow;
 
   flow = NULL;
-  ipv4_dst = (pkt->ipv4->ip_dst.s_addr & self->userdata);
+  ipv4_dst = (pkt->ipv4->ip_dst.s_addr & (uint32_t)self->userdata);
   node = ptree_node_lookup(self->ptree, (uint8_t *)&ipv4_dst, IPV4_DST_BITLEN);
   if (node != NULL) {
     flowinfo = node->info;

@@ -55,7 +55,7 @@ test_match_basic_IPV6_ND_TARGET(void) {
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
-  OS_M_PKTLEN(m) = 64;
+  OS_M_PKTLEN(m) = 128;
 
   /* prepare flow */
   flow = calloc(1, sizeof(struct flow) + 10 * sizeof(struct match));
@@ -133,7 +133,7 @@ test_match_basic_IPV6_ND_SLL(void) {
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
-  OS_M_PKTLEN(m) = 96;
+  OS_M_PKTLEN(m) = 128;
 
   /* prepare flow */
   flow = calloc(1, sizeof(struct flow) + 10 * sizeof(struct match));
@@ -184,11 +184,10 @@ test_match_basic_IPV6_ND_TLL(void) {
   int i;
 
   /* prepare packet */
-  pkt.in_port = &port;
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
-  OS_M_PKTLEN(m) = 96;
+  OS_M_PKTLEN(m) = 128;
 
   /* prepare flow */
   flow = calloc(1, sizeof(struct flow) + 10 * sizeof(struct match));
@@ -213,6 +212,7 @@ test_match_basic_IPV6_ND_TLL(void) {
   add_match(&flow->match_list, ETH_ALEN, OFPXMT_OFB_IPV6_ND_TLL << 1,
             0xe0, 0x4d, 0x01, 0x34, 0x56, 0x78);
   refresh_match(flow);
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,

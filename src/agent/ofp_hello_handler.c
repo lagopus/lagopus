@@ -70,7 +70,7 @@ check_versions(uint8_t bridge_ofp_version,
 /* Hello packet receive. */
 lagopus_result_t
 ofp_hello_handle(struct channel *channel, struct pbuf *pbuf,
-                 struct ofp_error *error) {
+		 struct ofp_error *error) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   uint8_t support_ofp_version = OPENFLOW_VERSION_0_0;
   uint8_t bridge_ofp_version;
@@ -298,7 +298,7 @@ ofp_hello_send(struct channel *channel) {
 
     if (ret == LAGOPUS_RESULT_OK) {
       /* send. */
-      channel_send_packet_nolock(channel, pbuf);
+      channel_send_packet_by_event(channel, pbuf);
 
       /* Success. */
       ret = LAGOPUS_RESULT_OK;

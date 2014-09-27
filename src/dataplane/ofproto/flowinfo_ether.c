@@ -171,8 +171,17 @@ match_flow_eth_type(struct flowinfo *self, struct lagopus_packet *pkt,
   if (flowinfo != NULL) {
     flow = flowinfo->match_func(flowinfo, pkt, pri);
   }
+  if (pkt->mpls != NULL) {
+    flowinfo = self->next[OS_NTOHS(pkt->eth->ether_type)];
+    if (flowinfo != NULL) {
+      alt_flow = flowinfo->match_func(flowinfo, pkt, pri);
+      if (alt_flow != NULL) {
+        flow = alt_flow;
+      }
+    }
+  }
 #ifdef PBB_IS_VLAN
-  if (pkt->pbb != NULL) {
+  else if (pkt->pbb != NULL) {
     flowinfo = self->next[ETHERTYPE_PBB];
     if (flowinfo != NULL) {
       alt_flow = flowinfo->match_func(flowinfo, pkt, pri);

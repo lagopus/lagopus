@@ -93,6 +93,7 @@ test_set_field_IN_PORT(void) {
 
 void
 test_set_field_METADATA(void) {
+  struct port port;
   static const uint8_t metadata[] =
   { 0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0 };
   struct action_list action_list;
@@ -113,6 +114,7 @@ test_set_field_METADATA(void) {
   m->data = &m->dat[128];
 
   pkt.oob_data.metadata = 0;
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   set_match(action_set->field, 8, OFPXMT_OFB_METADATA << 1,
             0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0);

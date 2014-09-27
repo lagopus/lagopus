@@ -17,7 +17,7 @@ RTE_SDK     = @RTE_SDK@
 RTE_TARGET  = @RTE_TARGET@
 RTE_LIBS    = @RTE_LIBS@
 
-CHECK_LDFLAGS     += $(RTE_LIBS) $(LDFLAGS)
+CHECK_LDFLAGS     += $(RTE_LIBS) $(LDFLAGS) @PCAP_LIBS@
 
 include $(MKRULESDIR)/vars.mk
 include $(MKRULESDIR)/rules.mk

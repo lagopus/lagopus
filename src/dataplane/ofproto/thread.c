@@ -17,7 +17,7 @@
 
 /**
  *	@file	thread.c
- *	@brief	Datapath thread control functions
+ *	@brief	Dataplane thread control functions
  */
 
 #ifdef HAVE_DPDK
@@ -34,15 +34,13 @@
 #include "lagopus/dataplane.h"
 #include "lagopus/flowinfo.h"
 
+#include "thread.h"
+
 /* so far, global variable. */
 static struct dpmgr *my_dpmgr;
 static lagopus_thread_t datapath_thread = NULL;
 static bool run = false;
 static lagopus_mutex_t lock = NULL;
-
-static lagopus_thread_t comm_thread = NULL;
-static bool comm_run = false;
-static lagopus_mutex_t comm_lock = NULL;
 
 static lagopus_thread_t timer_thread = NULL;
 static bool timer_run = false;
@@ -56,8 +54,8 @@ int app_lcore_main_loop(void *arg);
 rte_atomic32_t dpdk_stop;
 #endif /* HAVE_DPDK */
 
-static void
-finalproc(const lagopus_thread_t *t, bool is_canceled, void *arg) {
+void
+dp_finalproc(const lagopus_thread_t *t, bool is_canceled, void *arg) {
   bool is_valid = false;
   struct datapath_arg *dparg;
   lagopus_result_t ret;
@@ -78,8 +76,8 @@ finalproc(const lagopus_thread_t *t, bool is_canceled, void *arg) {
   }
 }
 
-static void
-freeproc(const lagopus_thread_t *t, void *arg) {
+void
+dp_freeproc(const lagopus_thread_t *t, void *arg) {
   bool is_valid = false;
   struct datapath_arg *dparg;
   lagopus_result_t ret;
@@ -102,10 +100,10 @@ freeproc(const lagopus_thread_t *t, void *arg) {
   lock = NULL;
 }
 
-static lagopus_result_t
-thread_start(lagopus_thread_t *threadptr,
-             lagopus_mutex_t *lockptr,
-             bool *runptr) {
+lagopus_result_t
+dp_thread_start(lagopus_thread_t *threadptr,
+                lagopus_mutex_t *lockptr,
+                bool *runptr) {
   lagopus_result_t ret;
 
   lagopus_mutex_lock(lockptr);
@@ -123,8 +121,8 @@ done:
   return ret;
 }
 
-static void
-thread_finalize(lagopus_thread_t *threadptr) {
+void
+dp_thread_finalize(lagopus_thread_t *threadptr) {
   bool is_valid = false, is_canceled = false;
   lagopus_result_t ret;
 
@@ -142,11 +140,11 @@ thread_finalize(lagopus_thread_t *threadptr) {
   return;
 }
 
-static lagopus_result_t
-thread_shutdown(lagopus_thread_t *threadptr,
-                lagopus_mutex_t *lockptr,
-                bool *runptr,
-                shutdown_grace_level_t level) {
+lagopus_result_t
+dp_thread_shutdown(lagopus_thread_t *threadptr,
+                   lagopus_mutex_t *lockptr,
+                   bool *runptr,
+                   shutdown_grace_level_t level) {
   bool is_valid = false;
   lagopus_chrono_t nsec;
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
@@ -189,8 +187,8 @@ done:
   return ret;
 }
 
-static lagopus_result_t
-thread_stop(lagopus_thread_t *threadptr, bool *runptr) {
+lagopus_result_t
+dp_thread_stop(lagopus_thread_t *threadptr, bool *runptr) {
   bool is_canceled = false;
   lagopus_result_t ret;
 
@@ -204,16 +202,9 @@ thread_stop(lagopus_thread_t *threadptr, bool *runptr) {
 }
 
 static lagopus_result_t
-commthread_initialize(void *arg) {
-  lagopus_thread_create(&comm_thread, comm_thread_loop,
-                        finalproc, freeproc, "datapath comm", arg);
-  return LAGOPUS_RESULT_OK;
-}
-
-static lagopus_result_t
 timerthread_initialize(void *arg) {
   lagopus_thread_create(&timer_thread, flow_timer_loop,
-                        finalproc, freeproc, "datapath timer", arg);
+                        dp_finalproc, dp_freeproc, "datapath timer", arg);
   return LAGOPUS_RESULT_OK;
 }
 
@@ -223,11 +214,7 @@ datapath_initialize(int argc,
                     void *extarg,
                     lagopus_thread_t **thdptr) {
   static struct datapath_arg dparg;
-  static struct datapath_arg commarg;
   static struct datapath_arg timerarg;
-#ifdef STANDALONE
-  int portid;
-#endif
   lagopus_result_t nb_ports;
 
   dparg.dpmgr = my_dpmgr = extarg;
@@ -239,7 +226,7 @@ datapath_initialize(int argc,
 
   dparg.threadptr = &datapath_thread;
   lagopus_thread_create(&datapath_thread, datapath_thread_loop,
-                        finalproc, freeproc, "datapath", &dparg);
+                        dp_finalproc, dp_freeproc, "datapath", &dparg);
 
   if (lagopus_mutex_create(&lock) != LAGOPUS_RESULT_OK) {
     lagopus_exit_fatal("lagopus_mutex_create");
@@ -249,33 +236,6 @@ datapath_initialize(int argc,
   lagopus_register_action_hook = lagopus_set_action_function;
   lagopus_register_instruction_hook = lagopus_set_instruction_function;
   flowinfo_init();
-
-#ifdef STANDALONE
-  /* register all physical ports */
-  for (portid = 0; portid < nb_ports; portid++) {
-    if ((l2fwd_enabled_port_mask & (1 << portid)) != 0) {
-      struct port nport;
-
-      /* New port API. */
-      nport.ofp_port.port_no = (uint32_t)portid + 1;
-      nport.ifindex = (uint32_t)portid;
-      printf("port id %u\n", nport.ofp_port.port_no);
-
-      snprintf(nport.ofp_port.name , sizeof(nport.ofp_port.name),
-               "eth%d", portid);
-      dpmgr_port_add(my_dpmgr, &nport);
-    }
-  }
-
-  /* assign all ports to br0 */
-  for (portid = 0; portid < nb_ports; portid++) {
-    dpmgr_bridge_port_add(my_dpmgr, "br0", (uint32_t)portid + 1);
-  }
-#endif
-  commarg.dpmgr = my_dpmgr;
-  commarg.threadptr = &comm_thread;
-  commarg.running = &comm_run;
-  commthread_initialize(&commarg);
 
   timerarg.dpmgr = my_dpmgr;
   timerarg.threadptr = &timer_thread;
@@ -294,21 +254,17 @@ datapath_start(void) {
     rte_eal_mp_remote_launch(app_lcore_main_loop, my_dpmgr, SKIP_MASTER);
   }
 #endif /* HAVE_DPDK */
-  rv = thread_start(&comm_thread, &comm_lock, &comm_run);
+  rv = dp_thread_start(&timer_thread, &timer_lock, &timer_run);
   if (rv == LAGOPUS_RESULT_OK) {
-    rv = thread_start(&timer_thread, &timer_lock, &timer_run);
-  }
-  if (rv == LAGOPUS_RESULT_OK) {
-    rv = thread_start(&datapath_thread, &lock, &run);
+    rv = dp_thread_start(&datapath_thread, &lock, &run);
   }
   return rv;
 }
 
 void
 datapath_finalize(void) {
-  thread_finalize(&comm_thread);
-  thread_finalize(&timer_thread);
-  thread_finalize(&datapath_thread);
+  dp_thread_finalize(&timer_thread);
+  dp_thread_finalize(&datapath_thread);
 }
 
 /* Datapath thread shutdown. */
@@ -316,12 +272,8 @@ lagopus_result_t
 datapath_shutdown(shutdown_grace_level_t level) {
   lagopus_result_t rv, rv2;
 
-  rv = thread_shutdown(&comm_thread, &comm_lock, &comm_run, level);
-  rv2 = thread_shutdown(&timer_thread, &timer_lock, &timer_run, level);
-  if (rv == LAGOPUS_RESULT_OK) {
-    rv = rv2;
-  }
-  rv2 = thread_shutdown(&datapath_thread, &lock, &run, level);
+  rv = dp_thread_shutdown(&timer_thread, &timer_lock, &timer_run, level);
+  rv2 = dp_thread_shutdown(&datapath_thread, &lock, &run, level);
   if (rv == LAGOPUS_RESULT_OK) {
     rv = rv2;
   }
@@ -336,12 +288,8 @@ datapath_stop(void) {
   rte_atomic32_inc(&dpdk_stop);
 #endif /* HAVE_DPDK */
 
-  rv = thread_stop(&comm_thread, &comm_run);
-  rv2 = thread_stop(&timer_thread, &timer_run);
-  if (rv == LAGOPUS_RESULT_OK) {
-    rv = rv2;
-  }
-  rv2 = thread_stop(&datapath_thread, &run);
+  rv = dp_thread_stop(&timer_thread, &timer_run);
+  rv2 = dp_thread_stop(&datapath_thread, &run);
   if (rv == LAGOPUS_RESULT_OK) {
     rv = rv2;
   }
