@@ -936,17 +936,17 @@ cserver_start(struct cserver *cserver, struct event_manager *em) {
 
 /* Load lagopus.conf file without lock . */
 static lagopus_result_t
-config_load_lagopus_conf_nolock(void) {
-  return cserver_load_lagopus_conf(cserver_singleton);
+config_load_lagopus_conf_nolock(const char *conffile) {
+  return cserver_load_lagopus_conf(cserver_singleton, conffile);
 }
 
 /* Load lagopus.conf file. */
 lagopus_result_t
-config_load_lagopus_conf(void) {
+config_load_lagopus_conf(const char *conffile) {
   lagopus_result_t ret;
 
   config_wrlock();
-  ret = config_load_lagopus_conf_nolock();
+  ret = config_load_lagopus_conf_nolock(conffile);
   config_unlock();
 
   return ret;
@@ -995,14 +995,6 @@ config_handle_initialize(__UNUSED void *arg, lagopus_thread_t **thdptr) {
   /* Load schema. */
   cserver_load_schema(cserver_singleton);
 
-  /* Load lagopus.conf. */
-  ret = config_load_lagopus_conf_nolock();
-  if (ret != LAGOPUS_RESULT_OK) {
-    lagopus_msg_error("FAILED (%s).\n",
-                      lagopus_error_get_string(ret));
-    goto done;
-  }
-
 done:
   config_unlock();
 
@@ -1025,11 +1017,11 @@ config_free(void) {
 
 /* Propagate lagopus.conf. */
 int
-config_propagate_lagopus_conf(void) {
+config_propagate_lagopus_conf(const char *conffile) {
   int ret;
 
   config_wrlock();
-  ret = cserver_propagate_lagopus_conf(cserver_singleton);
+  ret = cserver_propagate_lagopus_conf(cserver_singleton, conffile);
   config_unlock();
 
   return ret;

@@ -164,6 +164,7 @@ s_hup_handler(int sig) {
 static const char *s_progname;
 static const char *s_logfile;
 static const char *s_pidfile;
+static const char *s_conffile;
 static char s_pidfile_buf[PATH_MAX];
 
 static uint16_t s_debug_level = 0;
@@ -175,6 +176,7 @@ struct option s_longopts[] = {
   { "version", no_argument,        NULL, 'v' },
   { "logfile", required_argument,  NULL, 'l' },
   { "pidfile", required_argument,  NULL, 'p' },
+  { "config",  required_argument,  NULL, 'C' },
 };
 
 
@@ -189,6 +191,7 @@ usage(FILE *fd, int exit_status) {
 -h|-?, --help            Display this help and exit\n\
 -l, --logfile filename   Specify a log/trace file path (default: syslog)\n\
 -p, --pidfile filename   Specify a pid file path (default: /var/run/%s.pid)\n\
+-C, --config filename    Speficy a config file path (default: lagopus.conf)\n\
 \n", s_progname, s_progname);
     lagopus_module_usage_all(fd);
   }
@@ -205,7 +208,7 @@ parse_args(int argc, const char *const argv[]) {
    *	Avoid to use getopt() for proper multi-modules initialization.
    */
   while ((o = getopt_long(argc, (char *const *)argv,
-                          "dh?vl:p:", s_longopts, NULL)) != EOF) {
+			  "dh?vl:p:C:", s_longopts, NULL)) != EOF) {
     switch (o) {
       case 0: {
         break;
@@ -230,6 +233,10 @@ parse_args(int argc, const char *const argv[]) {
       }
       case 'p': {
         s_pidfile = optarg;
+        break;
+      }
+      case 'C': {
+        s_conffile = optarg;
         break;
       }
       default: {
@@ -305,7 +312,7 @@ s_do_main(int argc, const char *const argv[], int ipcfd) {
 
       lagopus_msg_info("All the modules are started and ready to go.\n");
 
-      config_propagate_lagopus_conf();
+      config_propagate_lagopus_conf(s_conffile);
 
       (void)global_state_set(GLOBAL_STATE_STARTED);
 

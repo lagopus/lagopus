@@ -149,9 +149,8 @@ port_add(struct vector *v, const struct port *port_param) {
   port->ofp_port = port_param->ofp_port;
   port->ifindex = port_param->ifindex;
 
-  if (lagopus_register_port_hook != NULL) {
-    lagopus_register_port_hook(port);
-  }
+  lagopus_configure_physical_port(port);
+
   printf("Adding Physical Port %u\n", port->ifindex);
   for (i = 0; i < 6; i++) {
     printf("%02x:", port->ofp_port.hw_addr[i]);
@@ -181,9 +180,7 @@ port_delete(struct vector *v, uint32_t ifindex) {
     return LAGOPUS_RESULT_ANY_FAILURES;
   }
   vector_set_index(v, ifindex, NULL);
-  if (lagopus_unregister_port_hook != NULL) {
-    lagopus_unregister_port_hook(port);
-  }
+  lagopus_unconfigure_physical_port(port);
   port_free(port);
 
   return LAGOPUS_RESULT_OK;
@@ -337,10 +334,9 @@ port_config(struct bridge *bridge,
   /* advertise, depend on lower driver */
   if ((oldconfig != newconfig ||
        ofp_port->advertised != port_mod->advertise) &&
-      port_mod->port_no != OFPP_CONTROLLER &&
-      lagopus_change_port_hook != NULL) {
+      port_mod->port_no != OFPP_CONTROLLER) {
     ofp_port->advertised = port_mod->advertise;
-    lagopus_change_port_hook(port);
+    lagopus_change_physical_port(port);
   }
   /* XXX unlock */
 

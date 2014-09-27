@@ -39,7 +39,7 @@
 
 /* Test port numbers. */
 #define TEST_PORT_OFPNO(_i)	((uint32_t)((_i) + 1))
-#define TEST_PORT_IFINDEX(_i)	((uint32_t)(_i + 1000))
+#define TEST_PORT_IFINDEX(_i)	((uint32_t)(_i + 100))
 
 
 /*
@@ -68,11 +68,15 @@ struct port *port_lookup_number(struct vector *v, uint32_t port_no);
 #define TEST_ASSERT_DPMGR_PORT_ADD_OK(_b, _e, _pi, _msg)		\
   do {									\
     char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];				\
-    \
+    struct port *_port;							\
+									\
     snprintf(_buf, sizeof(_buf), "%s, add ports", (_msg));		\
-    \
-    for (size_t _s = (_b); _s < (_e); _s++)				\
+									\
+    for (size_t _s = (_b); _s < (_e); _s++) {				\
       TEST_ASSERT_TRUE_MESSAGE(LAGOPUS_RESULT_OK == dpmgr_port_add(dpmgr, &(_pi)[_s]), _buf); \
+      TEST_ASSERT_NOT_NULL_MESSAGE((_port = port_lookup(dpmgr->ports, TEST_PORT_IFINDEX(_s))), _buf); \
+      _port->ofp_port.hw_addr[0] = 0xff;                                \
+    }                                                                   \
   } while (0);
 
 /* Negatively assert the port creation. */
