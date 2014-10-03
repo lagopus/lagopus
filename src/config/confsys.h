@@ -1069,6 +1069,8 @@ struct confsys_header {
 /* Confsys configuration file name. */
 #define CONFSYS_CONFIG_FILENAME       "lagopus.conf"
 #define CONFSYS_CONFIG_FILE   CONFDIR "/lagopus.conf"
+#define CONFSYS_CONFIG_DEFAULT_PATH   "/etc/lagopus"
+#define CONFSYS_CONFIG_DEFAULT_FILE   CONFSYS_CONFIG_DEFAULT_PATH "/lagopus.conf"
 
 /* Confsys group. */
 #define CONFSYS_GROUP_NAME    "lagopus"
