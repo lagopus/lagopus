@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <inttypes.h>
+#include <string.h>
 
 #ifdef HAVE_DPDK
 #include <rte_config.h>

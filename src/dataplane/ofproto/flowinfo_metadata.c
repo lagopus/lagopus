@@ -102,7 +102,7 @@ new_flowinfo_metadata_mask(void) {
 static void
 destroy_flowinfo_metadata_mask(struct flowinfo *self) {
   struct flowinfo *flowinfo;
-  int i;
+  unsigned int i;
 
   for (i = 0; i < self->nnext; i++) {
     flowinfo = self->next[i];
@@ -151,7 +151,7 @@ add_flow_metadata_mask(struct flowinfo *self, struct flow *flow) {
   struct flowinfo *flowinfo;
   uint64_t metadata, mask;
   lagopus_result_t rv;
-  int i;
+  unsigned int i;
 
   rv = get_match_metadata(&flow->match_list, &metadata, &mask);
   if (rv == LAGOPUS_RESULT_OK) {
@@ -188,7 +188,7 @@ del_flow_metadata_mask(struct flowinfo *self, struct flow *flow) {
   struct flowinfo *flowinfo;
   uint64_t metadata, mask;
   lagopus_result_t rv;
-  int i;
+  unsigned int i;
 
   rv = get_match_metadata(&flow->match_list, &metadata, &mask);
   if (rv == LAGOPUS_RESULT_OK) {
@@ -233,7 +233,7 @@ match_flow_metadata_mask(struct flowinfo *self, struct lagopus_packet *pkt,
     .flow_type = 0,
     .field_bits = 0
   };
-  int i;
+  unsigned int i;
 
   matched = &mismatched;
   //#pragma omp parallel for
@@ -261,7 +261,7 @@ find_flow_metadata_mask(struct flowinfo *self, struct flow *flow) {
   struct flowinfo *flowinfo;
   uint64_t metadata, mask;
   lagopus_result_t rv;
-  int i;
+  unsigned int i;
 
   rv = get_match_metadata(&flow->match_list, &metadata, &mask);
   if (rv == LAGOPUS_RESULT_OK) {

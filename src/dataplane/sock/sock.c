@@ -243,6 +243,7 @@ lagopus_send_packet_physical(struct lagopus_packet *pkt, uint32_t portid) {
   if (pollfd[portid].fd != 0) {
     (void)write(pollfd[portid].fd, pkt->mbuf->data, OS_M_PKTLEN(pkt->mbuf));
   }
+  lagopus_packet_free(pkt);
   return 0;
 }
 
@@ -571,6 +572,7 @@ datapath_thread_loop(__UNUSED const lagopus_thread_t *selfptr, void *arg) {
 
         flowdb = port->bridge->flowdb;
         flowdb_rdlock(flowdb);
+        lagopus_set_in_port(&pkt, port);
         lagopus_packet_init(&pkt, m);
         if (port->bridge->flowdb->switch_mode == SWITCH_MODE_STANDALONE) {
           pkt.in_port = port;

@@ -322,15 +322,14 @@ void
 channel_send_packet(struct channel *channel, struct pbuf *pbuf);
 
 /**
- * Send a packet to a controller.
- * No lock version.
+ * Send a packet to a controller by event manager.
  *
  *  @param[in] channel  A channel pointer.
  *  @param[in] pbuf     A pbuf pointer.
  *
  */
 void
-channel_send_packet_nolock(struct channel *channel, struct pbuf *pbuf);
+channel_send_packet_by_event(struct channel *channel, struct pbuf *pbuf);
 
 /**
  * Send packets to a controller.

@@ -52,7 +52,6 @@ test_match_flow_eth_type(void) {
   int i, nflow;
 
   /* prepare packet */
-  pkt.in_port = &port;
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
@@ -88,6 +87,7 @@ test_match_flow_eth_type(void) {
   m->data[13] = 0x00;
 
   prio = 0;
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   flow = flowinfo->match_func(flowinfo, &pkt, &prio);
   TEST_ASSERT_NULL_MESSAGE(flow, "match_flow_eth_type mismatch error");
@@ -130,7 +130,6 @@ test_match_basic_ETH_DST(void) {
   bool rv;
 
   /* prepare packet */
-  pkt.in_port = &port;
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
@@ -149,6 +148,7 @@ test_match_basic_ETH_DST(void) {
   m->data[3] = 0x44;
   m->data[4] = 0x55;
   m->data[5] = 0x60;
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, true,
@@ -182,7 +182,6 @@ test_match_basic_ETH_DST_W(void) {
   bool rv;
 
   /* prepare packet */
-  pkt.in_port = &port;
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
@@ -203,6 +202,7 @@ test_match_basic_ETH_DST_W(void) {
             0x11, 0x22, 0x33, 0x00, 0x00, 0x00,
             0xff, 0xff, 0xff, 0x00, 0x00, 0x00);
   refresh_match(flow);
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
@@ -229,7 +229,6 @@ test_match_basic_ETH_SRC(void) {
   bool rv;
 
   /* prepare packet */
-  pkt.in_port = &port;
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
@@ -247,6 +246,7 @@ test_match_basic_ETH_SRC(void) {
   m->data[9] = 0xa0;
   m->data[10] = 0xa0;
   m->data[11] = 0xa0;
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, true,
@@ -280,7 +280,6 @@ test_match_basic_ETH_SRC_W(void) {
   bool rv;
 
   /* prepare packet */
-  pkt.in_port = &port;
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
@@ -301,6 +300,7 @@ test_match_basic_ETH_SRC_W(void) {
             0xaa, 0xbb, 0xcc, 0x00, 0x00, 0x00,
             0xff, 0xff, 0xff, 0x00, 0x00, 0x00);
   refresh_match(flow);
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,

@@ -38,6 +38,7 @@ tearDown(void) {
 
 void
 test_set_field_ETH_DST(void) {
+  struct port port;
   struct action_list action_list;
   struct action *action;
   struct ofp_action_set_field *action_set;
@@ -60,6 +61,7 @@ test_set_field_ETH_DST(void) {
   m->data[12] = 0x08;
   m->data[13] = 0x00;
 
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   set_match(action_set->field, 6, OFPXMT_OFB_ETH_DST << 1,
             0x23, 0x45, 0x67, 0x89, 0xab, 0xcd);
@@ -80,6 +82,7 @@ test_set_field_ETH_DST(void) {
 
 void
 test_set_field_ETH_SRC(void) {
+  struct port port;
   struct action_list action_list;
   struct action *action;
   struct ofp_action_set_field *action_set;
@@ -102,6 +105,7 @@ test_set_field_ETH_SRC(void) {
   m->data[12] = 0x08;
   m->data[13] = 0x00;
 
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   set_match(action_set->field, 6, OFPXMT_OFB_ETH_SRC << 1,
             0x22, 0x44, 0x66, 0x88, 0xaa, 0xcc);
@@ -122,6 +126,7 @@ test_set_field_ETH_SRC(void) {
 
 void
 test_set_field_ETH_TYPE(void) {
+  struct port port;
   struct action_list action_list;
   struct action *action;
   struct ofp_action_set_field *action_set;
@@ -143,6 +148,7 @@ test_set_field_ETH_TYPE(void) {
   m->data[12] = 0x08;
   m->data[13] = 0x00;
 
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   set_match(action_set->field, 2, OFPXMT_OFB_ETH_TYPE << 1,
             0x20, 0xf1);

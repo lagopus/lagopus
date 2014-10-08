@@ -23,7 +23,7 @@
 #include "openflow13packet.h"
 #include "ofp_apis.h"
 
-#define TRACE_OFPT_ECHO (TRACE_OFPT_ECHO_REQUEST | \
+#define TRACE_OFPT_ECHO (TRACE_OFPT_ECHO_REQUEST |	\
                          TRACE_OFPT_ECHO_REPLY)
 
 static void
@@ -56,7 +56,7 @@ ofp_echo_reply_create(struct channel *channel,
       ret = pbuf_length_get(req_pbuf, &pbuf_length);
       if (ret == LAGOPUS_RESULT_OK) {
         length = sizeof(struct ofp_header) +
-                 (size_t) pbuf_length;
+          (size_t) pbuf_length;
       } else {
         lagopus_msg_warning("FAILED (%s).\n",
                             lagopus_error_get_string(ret));
@@ -149,7 +149,7 @@ ofp_echo_request_send(struct channel *channel) {
     /* Echo reply send. */
     ret = ofp_echo_request_create(channel, &send_pbuf, NULL);
     if (ret == LAGOPUS_RESULT_OK) {
-      channel_send_packet_nolock(channel, send_pbuf);
+      channel_send_packet_by_event(channel, send_pbuf);
       ret = LAGOPUS_RESULT_OK;
     } else {
       lagopus_msg_warning("FAILED (%s).\n", lagopus_error_get_string(ret));

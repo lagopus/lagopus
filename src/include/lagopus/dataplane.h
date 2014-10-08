@@ -16,12 +16,12 @@
 
 
 /**
- *	@file	datapath.h
- *	@brief	Datapath APIs
+ *      @file   datapath.h
+ *      @brief  Datapath APIs
  */
 
-#ifndef SRC_LAGOPUS_DATAPLANE_H_
-#define SRC_LAGOPUS_DATAPLANE_H_
+#ifndef SRC_INCLUDE_LAGOPUS_DATAPLANE_H_
+#define SRC_INCLUDE_LAGOPUS_DATAPLANE_H_
 
 #ifdef HAVE_DPDK
 #include <rte_ether.h>
@@ -69,6 +69,8 @@ struct table;
 struct lagopus_packet;
 struct meter;
 struct port;
+struct bucket_list;
+struct bucket;
 
 struct datapath_arg {
   lagopus_thread_t *threadptr;
@@ -236,6 +238,12 @@ execute_instruction_write_metadata(struct lagopus_packet *pkt,
 lagopus_result_t
 execute_instruction_goto_table(struct lagopus_packet *pkt,
                                const struct instruction *instruction);
+lagopus_result_t
+execute_instruction_experimenter(struct lagopus_packet *pkt,
+                                 const struct instruction *instruction);
+lagopus_result_t
+execute_instruction_none(struct lagopus_packet *pkt,
+                         const struct instruction *instruction);
 
 /**
  * Execute OpenFlow Instruction.
@@ -321,8 +329,8 @@ out:
 /**
  * Allocate lagopus packet structure with packet data buffer.
  *
- * @retval	!=NULL	pointer of allocated packet structure.
- *		==NULL	failed to allocate.
+ * @retval      !=NULL  pointer of allocated packet structure.
+ *              ==NULL  failed to allocate.
  */
 struct lagopus_packet *alloc_lagopus_packet(void);
 
@@ -339,7 +347,7 @@ void lagopus_packet_init(struct lagopus_packet *, void *);
  * Bind port structure to the packet.
  *
  * @param[in]   pkt     packet structure.
- * @param[in]	port	port structure.
+ * @param[in]   port    port structure.
  */
 void lagopus_set_in_port(struct lagopus_packet *, struct port *);
 
@@ -374,10 +382,10 @@ void lagopus_instruction_experimenter(struct lagopus_packet *, uint32_t);
 /**
  * Create/Merge action-set.  Do write actions.
  *
- * @param[out]	actions		Action set.
- * @param[in]	action_list	action list.
+ * @param[out]  actions         Action set.
+ * @param[in]   action_list     action list.
  *
- * @retval	LAGOPUS_RESULT_OK	success.
+ * @retval      LAGOPUS_RESULT_OK       success.
  *
  * actlin_list is appended to internal action list in the packet.
  */
@@ -388,17 +396,17 @@ merge_action_set(struct action_list *actions,
 /**
  * Execute action.
  *
- * @param[in]	pkt		packet.
- * @param[in]	action_list	action list.
+ * @param[in]   pkt             packet.
+ * @param[in]   action_list     action list.
  *
- * @retval	LAGOPUS_RESULT_OK	success.
- * @retval	LAGOPUS_RESULT_STOP	stop execution.
+ * @retval      LAGOPUS_RESULT_OK       success.
+ * @retval      LAGOPUS_RESULT_STOP     stop execution.
  *
  * action->flags are hint of omit copying part of header.
- * 	SET_FIELD_ETH_SRC	set-field eth_src after push action.
- *				do not need copy eth_src by push action.
- * 	SET_FIELD_ETH_DST	set-field eth_dst after push action.
- *				do not need copy eth_dst by push action.
+ *      SET_FIELD_ETH_SRC       set-field eth_src after push action.
+ *                              do not need copy eth_src by push action.
+ *      SET_FIELD_ETH_DST       set-field eth_dst after push action.
+ *                              do not need copy eth_dst by push action.
  */
 static inline lagopus_result_t
 execute_action(struct lagopus_packet *pkt,
@@ -460,11 +468,24 @@ bool lagopus_is_portid_enabled(int);
 /**
  * Free data structure associated with the packet.
  *
- * @param[in]   pkt     packet.
+ * @param[in]   pkt     Packet.
  *
  * decrement refcnt and free pkt->mbuf if refcnt is zero.
  */
 void lagopus_packet_free(struct lagopus_packet *);
+
+
+/**
+ * Select bucket of packet.
+ *
+ * @param[in]   pkt             Packet.
+ * @param[in]   list            Bucket list.
+ *
+ * @retval      NULL            bucket list is empty.
+ * @retval      !=NULL          selected bucket.
+ */
+struct bucket *
+group_select_bucket(struct lagopus_packet *pkt, struct bucket_list *list);
 
 /**
  * initialize meter support in lower driver.
@@ -488,9 +509,9 @@ int lagopus_meter_packet(struct lagopus_packet *, struct meter *, uint8_t *);
 /**
  * Configure physical port.
  *
- * @param[in]	port	physical port.
+ * @param[in]   port    physical port.
  *
- * @retval	LAGOPUS_RESULT_OK	success.
+ * @retval      LAGOPUS_RESULT_OK       success.
  */
 lagopus_result_t
 lagopus_configure_physical_port(struct port *);
@@ -498,9 +519,9 @@ lagopus_configure_physical_port(struct port *);
 /**
  * Change physical port state.
  *
- * @param[in]	port	physical port.
+ * @param[in]   port    physical port.
  *
- * @retval	LAGOPUS_RESULT_OK	success.
+ * @retval      LAGOPUS_RESULT_OK       success.
  */
 lagopus_result_t
 lagopus_change_physical_port(struct port *);
@@ -508,9 +529,9 @@ lagopus_change_physical_port(struct port *);
 /**
  * Unconfigure physical port.
  *
- * @param[in]	port	physical port.
+ * @param[in]   port    physical port.
  *
- * @retval	LAGOPUS_RESULT_OK	success.
+ * @retval      LAGOPUS_RESULT_OK       success.
  */
 lagopus_result_t
 lagopus_unconfigure_physical_port(struct port *);
@@ -543,10 +564,10 @@ lagopus_get_switch_config(struct bridge *bridge,
 /**
  * initialize datapath.  e.g. setup Intel DPDK.
  *
- * @param[in]	argc			argc from command line
- * @param[in]	argv			argv from commend line
- * @retval	LAGOPUS_RESULT_OK	initialized successfully.
- * @retval	!=LAGOPUS_RESULT_OK	failed to initialize.
+ * @param[in]   argc                    argc from command line
+ * @param[in]   argv                    argv from commend line
+ * @retval      LAGOPUS_RESULT_OK       initialized successfully.
+ * @retval      !=LAGOPUS_RESULT_OK     failed to initialize.
  *
  * Intel DPDK version note:
  * This function is to be executed on the MASTER lcore only,
@@ -574,8 +595,8 @@ datapath_thread_loop(const lagopus_thread_t *, void *);
 /**
  * datapath start function.
  *
- * @retval	LAGOPUS_RESULT_OK	datapath main thread is created.
- * @retval	!=LAGOPUS_RESULT_OK	datapath main thread is not created.
+ * @retval      LAGOPUS_RESULT_OK       datapath main thread is created.
+ * @retval      !=LAGOPUS_RESULT_OK     datapath main thread is not created.
  *
  * Intel DPDK version note:
  * This function is to be executed on the MASTER lcore only.
@@ -591,6 +612,39 @@ lagopus_result_t datapath_shutdown(shutdown_grace_level_t);
  * datapath stop function.
  */
 lagopus_result_t datapath_stop(void);
+
+/**
+ * Dataplane communicator thread
+ */
+lagopus_result_t
+dpcomm_initialize(int argc,
+                  const char * const argv[],
+                  void *extarg,
+                  lagopus_thread_t **thdptr);
+
+/**
+ * Dataplane communicator thread
+ */
+lagopus_result_t
+dpcomm_start(void);
+
+/**
+ * Dataplane communicator thread
+ */
+void
+dpcomm_finalize(void);
+
+/**
+ * Dataplane communicator thread
+ */
+lagopus_result_t
+dpcomm_shutdown(shutdown_grace_level_t level);
+
+/**
+ * Dataplane communicator thread
+ */
+lagopus_result_t
+dpcomm_stop(void);
 
 /**
  * datapath communicator loop function.
@@ -617,9 +671,9 @@ lagopus_result_t update_port_link_status(struct port *);
 /**
  * Copy packet.
  *
- * @param[in]	pkt	Packet.
+ * @param[in]   pkt     Packet.
  *
- * @retval	Copied packet.
+ * @retval      Copied packet.
  */
 struct lagopus_packet *copy_packet(struct lagopus_packet *);
 
@@ -630,8 +684,8 @@ void register_flow(struct flowdb *flowdb, int);
 /**
  * Process received packet.
  *
- * @param[in]	port		Ingress port.
- * @param[in]	pkt		Packet.
+ * @param[in]   port            Ingress port.
+ * @param[in]   pkt             Packet.
  */
 static inline void
 lagopus_receive_packet(struct port *port, struct lagopus_packet *pkt) {
@@ -640,9 +694,9 @@ lagopus_receive_packet(struct port *port, struct lagopus_packet *pkt) {
   if (port->pcap_queue != NULL) {
     lagopus_pcap_enqueue(port, pkt);
   }
+#else
+  (void) port;
 #endif /* PACKET_CAPTURE */
-
-  lagopus_set_in_port(pkt, port);
   lagopus_match_and_action(pkt);
 }
 
@@ -651,7 +705,10 @@ lagopus_receive_packet(struct port *port, struct lagopus_packet *pkt) {
 void copy_datapath_info(char *buf, int len);
 
 /**
+ * Print usage.
+ *
+ * @param[in]   fp      Output file pointer.
  */
-void datapath_usage(FILE *);
+void datapath_usage(FILE *fp);
 
-#endif /* SRC_LAGOPUS_DATAPLANE_H_ */
+#endif /* SRC_INCLUDE_LAGOPUS_DATAPLANE_H_ */

@@ -40,6 +40,7 @@ tearDown(void) {
 
 void
 test_set_field_IPV6_IP_DSCP(void) {
+  struct port port;
   struct action_list action_list;
   struct action *action;
   struct ofp_action_set_field *action_set;
@@ -61,6 +62,7 @@ test_set_field_IPV6_IP_DSCP(void) {
   OS_M_PKTLEN(m) = 64;
   m->data[12] = 0x86;
   m->data[13] = 0xdd;
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   set_match(action_set->field, 1, OFPXMT_OFB_IP_DSCP << 1,
             0x3f);
@@ -73,6 +75,7 @@ test_set_field_IPV6_IP_DSCP(void) {
 
 void
 test_set_field_IPV6_IP_ECN(void) {
+  struct port port;
   struct action_list action_list;
   struct action *action;
   struct ofp_action_set_field *action_set;
@@ -94,6 +97,7 @@ test_set_field_IPV6_IP_ECN(void) {
   OS_M_PKTLEN(m) = 64;
   m->data[12] = 0x86;
   m->data[13] = 0xdd;
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   set_match(action_set->field, 1, OFPXMT_OFB_IP_ECN << 1,
             0x03);
@@ -106,6 +110,7 @@ test_set_field_IPV6_IP_ECN(void) {
 
 void
 test_set_field_IPV6_IP_PROTO(void) {
+  struct port port;
   struct action_list action_list;
   struct action *action;
   struct ofp_action_set_field *action_set;
@@ -128,6 +133,7 @@ test_set_field_IPV6_IP_PROTO(void) {
   m->data[12] = 0x86;
   m->data[13] = 0xdd;
   m->data[20] = IPPROTO_TCP;
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   set_match(action_set->field, 1, OFPXMT_OFB_IP_PROTO << 1,
             IPPROTO_ICMPV6);
@@ -147,6 +153,7 @@ test_set_field_IPV6_IP_PROTO(void) {
 
 void
 test_set_field_IPV6_SRC(void) {
+  struct port port;
   struct action_list action_list;
   struct action *action;
   struct ofp_action_set_field *action_set;
@@ -168,6 +175,7 @@ test_set_field_IPV6_SRC(void) {
   OS_M_PKTLEN(m) = 64;
   m->data[12] = 0x86;
   m->data[13] = 0xdd;
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   set_match(action_set->field, 16, OFPXMT_OFB_IPV6_SRC << 1,
             0x20, 0x01, 0x00, 0x00, 0xe0, 0x45, 0x22, 0xeb,
@@ -209,6 +217,7 @@ test_set_field_IPV6_SRC(void) {
 
 void
 test_set_field_IPV6_DST(void) {
+  struct port port;
   struct action_list action_list;
   struct action *action;
   struct ofp_action_set_field *action_set;
@@ -231,6 +240,7 @@ test_set_field_IPV6_DST(void) {
   m->data[12] = 0x86;
   m->data[13] = 0xdd;
 
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   set_match(action_set->field, 16, OFPXMT_OFB_IPV6_DST << 1,
             0x20, 0x01, 0x00, 0x00, 0xe0, 0x45, 0x22, 0xeb,
@@ -272,6 +282,7 @@ test_set_field_IPV6_DST(void) {
 
 void
 test_set_field_IPV6_FLABEL(void) {
+  struct port port;
   struct action_list action_list;
   struct action *action;
   struct ofp_action_set_field *action_set;
@@ -294,6 +305,7 @@ test_set_field_IPV6_FLABEL(void) {
   m->data[12] = 0x86;
   m->data[13] = 0xdd;
   m->data[14] = 0x6f;
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   set_match(action_set->field, 4, OFPXMT_OFB_IPV6_FLABEL << 1,
             0x00, 0x0e, 0xab, 0xcd);
@@ -310,6 +322,7 @@ test_set_field_IPV6_FLABEL(void) {
 
 void
 test_set_field_IPV6_TCP_SRC(void) {
+  struct port port;
   struct action_list action_list;
   struct action *action;
   struct ofp_action_set_field *action_set;
@@ -333,6 +346,7 @@ test_set_field_IPV6_TCP_SRC(void) {
   m->data[13] = 0xdd;
   m->data[20] = IPPROTO_TCP;
 
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   set_match(action_set->field, 2, OFPXMT_OFB_TCP_SRC << 1,
             0x80, 0x21);
@@ -356,6 +370,7 @@ test_set_field_IPV6_TCP_SRC(void) {
 
 void
 test_set_field_IPV6_TCP_DST(void) {
+  struct port port;
   struct action_list action_list;
   struct action *action;
   struct ofp_action_set_field *action_set;
@@ -379,6 +394,7 @@ test_set_field_IPV6_TCP_DST(void) {
   m->data[13] = 0xdd;
   m->data[20] = IPPROTO_TCP;
 
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   set_match(action_set->field, 2, OFPXMT_OFB_TCP_DST << 1,
             0x80, 0x21);
@@ -402,6 +418,7 @@ test_set_field_IPV6_TCP_DST(void) {
 
 void
 test_set_field_IPV6_UDP_SRC(void) {
+  struct port port;
   struct action_list action_list;
   struct action *action;
   struct ofp_action_set_field *action_set;
@@ -425,6 +442,7 @@ test_set_field_IPV6_UDP_SRC(void) {
   m->data[13] = 0xdd;
   m->data[20] = IPPROTO_UDP;
 
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   set_match(action_set->field, 2, OFPXMT_OFB_UDP_SRC << 1,
             0x80, 0x21);
@@ -448,6 +466,7 @@ test_set_field_IPV6_UDP_SRC(void) {
 
 void
 test_set_field_IPV6_UDP_DST(void) {
+  struct port port;
   struct action_list action_list;
   struct action *action;
   struct ofp_action_set_field *action_set;
@@ -471,6 +490,7 @@ test_set_field_IPV6_UDP_DST(void) {
   m->data[13] = 0xdd;
   m->data[20] = IPPROTO_UDP;
 
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   set_match(action_set->field, 2, OFPXMT_OFB_UDP_DST << 1,
             0x80, 0x21);
@@ -494,6 +514,7 @@ test_set_field_IPV6_UDP_DST(void) {
 
 void
 test_set_field_IPV6_SCTP_SRC(void) {
+  struct port port;
   struct action_list action_list;
   struct action *action;
   struct ofp_action_set_field *action_set;
@@ -517,6 +538,7 @@ test_set_field_IPV6_SCTP_SRC(void) {
   m->data[13] = 0xdd;
   m->data[20] = IPPROTO_SCTP;
 
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   set_match(action_set->field, 2, OFPXMT_OFB_SCTP_SRC << 1,
             0x80, 0x21);
@@ -540,6 +562,7 @@ test_set_field_IPV6_SCTP_SRC(void) {
 
 void
 test_set_field_IPV6_SCTP_DST(void) {
+  struct port port;
   struct action_list action_list;
   struct action *action;
   struct ofp_action_set_field *action_set;
@@ -563,6 +586,7 @@ test_set_field_IPV6_SCTP_DST(void) {
   m->data[13] = 0xdd;
   m->data[20] = IPPROTO_SCTP;
 
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   set_match(action_set->field, 2, OFPXMT_OFB_SCTP_DST << 1,
             0x80, 0x21);
@@ -586,6 +610,7 @@ test_set_field_IPV6_SCTP_DST(void) {
 
 void
 test_set_field_ICMPV6_TYPE(void) {
+  struct port port;
   struct action_list action_list;
   struct action *action;
   struct ofp_action_set_field *action_set;
@@ -609,6 +634,7 @@ test_set_field_ICMPV6_TYPE(void) {
   m->data[13] = 0xdd;
   m->data[20] = IPPROTO_ICMPV6;
 
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   set_match(action_set->field, 2, OFPXMT_OFB_ICMPV6_TYPE << 1,
             ICMP6_ECHO_REQUEST);
@@ -628,6 +654,7 @@ test_set_field_ICMPV6_TYPE(void) {
 
 void
 test_set_field_ICMPV6_CODE(void) {
+  struct port port;
   struct action_list action_list;
   struct action *action;
   struct ofp_action_set_field *action_set;
@@ -650,6 +677,7 @@ test_set_field_ICMPV6_CODE(void) {
   m->data[13] = 0xdd;
   m->data[20] = IPPROTO_ICMPV6;
 
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   set_match(action_set->field, 2, OFPXMT_OFB_ICMPV6_CODE << 1,
             ICMP6_DST_UNREACH_NOPORT);

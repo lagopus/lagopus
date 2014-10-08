@@ -47,7 +47,6 @@ test_match_basic_ARP_OP(void) {
   bool rv;
 
   /* prepare packet */
-  pkt.in_port = &port;
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
@@ -63,6 +62,7 @@ test_match_basic_ARP_OP(void) {
   m->data[13] = 0x06;
   m->data[20] = 0x00;
   m->data[21] = ARPOP_REQUEST;
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   add_match(&flow->match_list, 2, OFPXMT_OFB_ARP_OP << 1,
             0x00, ARPOP_REPLY);
@@ -85,7 +85,6 @@ test_match_basic_ARP_SPA(void) {
   bool rv;
 
   /* prepare packet */
-  pkt.in_port = &port;
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
@@ -105,6 +104,7 @@ test_match_basic_ARP_SPA(void) {
   m->data[29] = 21;
   m->data[30] = 0;
   m->data[31] = 1;
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   add_match(&flow->match_list, 4, OFPXMT_OFB_ARP_SPA << 1,
             192, 168, 1, 2);
@@ -130,7 +130,6 @@ test_match_basic_ARP_SPA_W(void) {
   bool rv;
 
   /* prepare packet */
-  pkt.in_port = &port;
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
@@ -150,6 +149,8 @@ test_match_basic_ARP_SPA_W(void) {
   m->data[29] = 21;
   m->data[30] = 0;
   m->data[31] = 1;
+
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   add_match(&flow->match_list, 8, (OFPXMT_OFB_ARP_SPA << 1) + 1,
             192, 168, 1, 0, 255, 255, 255, 0);
@@ -182,7 +183,6 @@ test_match_basic_ARP_TPA(void) {
   bool rv;
 
   /* prepare packet */
-  pkt.in_port = &port;
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
@@ -202,6 +202,7 @@ test_match_basic_ARP_TPA(void) {
   m->data[39] = 21;
   m->data[40] = 0;
   m->data[41] = 1;
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   add_match(&flow->match_list, 4, OFPXMT_OFB_ARP_TPA << 1,
             192, 168, 1, 2);
@@ -227,7 +228,6 @@ test_match_basic_ARP_TPA_W(void) {
   bool rv;
 
   /* prepare packet */
-  pkt.in_port = &port;
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
@@ -247,6 +247,8 @@ test_match_basic_ARP_TPA_W(void) {
   m->data[39] = 21;
   m->data[40] = 0;
   m->data[41] = 1;
+
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   add_match(&flow->match_list, 8, (OFPXMT_OFB_ARP_TPA << 1) + 1,
             192, 168, 1, 0, 255, 255, 255, 0);
@@ -279,7 +281,6 @@ test_match_basic_ARP_SHA(void) {
   bool rv;
 
   /* prepare packet */
-  pkt.in_port = &port;
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
@@ -301,6 +302,8 @@ test_match_basic_ARP_SHA(void) {
   m->data[25] = 0x55;
   m->data[26] = 0xaa;
   m->data[27] = 0x55;
+
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   add_match(&flow->match_list, 6, OFPXMT_OFB_ARP_SHA << 1,
             0xe0, 0x4d, 0x01, 0x34, 0x56, 0x78);
@@ -328,7 +331,6 @@ test_match_basic_ARP_SHA_W(void) {
   bool rv;
 
   /* prepare packet */
-  pkt.in_port = &port;
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
@@ -350,6 +352,8 @@ test_match_basic_ARP_SHA_W(void) {
   m->data[25] = 0x55;
   m->data[26] = 0xaa;
   m->data[27] = 0x55;
+
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   add_match(&flow->match_list, 12, (OFPXMT_OFB_ARP_SHA << 1) + 1,
             0xe0, 0x4d, 0x01, 0x00, 0x00, 0x00,
@@ -387,7 +391,6 @@ test_match_basic_ARP_THA(void) {
   bool rv;
 
   /* prepare packet */
-  pkt.in_port = &port;
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
@@ -409,6 +412,8 @@ test_match_basic_ARP_THA(void) {
   m->data[35] = 0x55;
   m->data[36] = 0xaa;
   m->data[37] = 0x55;
+
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   add_match(&flow->match_list, 6, OFPXMT_OFB_ARP_THA << 1,
             0xe0, 0x4d, 0x01, 0x34, 0x56, 0x78);
@@ -436,7 +441,6 @@ test_match_basic_ARP_THA_W(void) {
   bool rv;
 
   /* prepare packet */
-  pkt.in_port = &port;
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
@@ -458,6 +462,8 @@ test_match_basic_ARP_THA_W(void) {
   m->data[35] = 0x55;
   m->data[36] = 0xaa;
   m->data[37] = 0x55;
+
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   add_match(&flow->match_list, 12, (OFPXMT_OFB_ARP_THA << 1) + 1,
             0xe0, 0x4d, 0x01, 0x00, 0x00, 0x00,

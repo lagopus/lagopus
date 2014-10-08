@@ -94,8 +94,12 @@ match_basic(const struct lagopus_packet *pkt, struct flow *flow) {
   if (match->bits != 0) {
     for (off = 0, bits = match->bits; bits != 0; off += 4, bits >>= 4) {
       if ((bits & 0x0f) != 0) {
-        if (((*(uint32_t *)&base[off]) & (*(uint32_t *)&match->masks[off]))
-            != *(uint32_t *)&match->bytes[off]) {
+        uint32_t b, m, c;
+
+        memcpy(&b, &base[off], sizeof(uint32_t));
+        memcpy(&m, &match->masks[off], sizeof(uint32_t));
+        memcpy(&c, &match->bytes[off], sizeof(uint32_t));
+        if ((b & m) != c) {
           DPRINT("oob_data not matched (off=%d)\n", off);
           return false;
         }
@@ -116,8 +120,12 @@ match_basic(const struct lagopus_packet *pkt, struct flow *flow) {
     bits = match->bits;
     do {
       if ((bits & 0x0f) != 0) {
-        if (((*(uint32_t *)&base[off]) & (*(uint32_t *)&match->masks[off]))
-            != *(uint32_t *)&match->bytes[off]) {
+        uint32_t b, m, c;
+
+        memcpy(&b, &base[off], sizeof(uint32_t));
+        memcpy(&m, &match->masks[off], sizeof(uint32_t));
+        memcpy(&c, &match->bytes[off], sizeof(uint32_t));
+        if ((b & m) != c) {
           DPRINT("byteoff not matched (index=%d, off=%d)\n", i, off);
           return false;
         }
@@ -264,12 +272,12 @@ case FIELD_WITH_MASK(field):                                \
         int off = offsetof(struct oob_data, vlan_tci);
         oob_byteoff->bits |= BYTEBITS(1, off);
         OOB_BYTEPTR(off)[0] &= 0x1f;
-        OOB_BYTEPTR(off)[0] |= match->oxm_value[0] << 5;
+        OOB_BYTEPTR(off)[0] |= (uint8_t)(match->oxm_value[0] << 5);
         OOB_MASKPTR(off)[0] |= 0xe0;
       }
       break;
 
-        /* IN_PORT, IN_PHY_PORT, METADATA and METADATA_W as metadata */
+      /* IN_PORT, IN_PHY_PORT, METADATA and METADATA_W as metadata */
       OOB_MAKE_BYTE(OFPXMT_OFB_IN_PORT, oob_data, in_port);
       OOB_MAKE_BYTE(OFPXMT_OFB_IN_PHY_PORT, oob_data, in_phy_port);
       OOB_MAKE_BYTE(OFPXMT_OFB_METADATA, oob_data, metadata);
@@ -333,7 +341,7 @@ case FIELD_WITH_MASK(field):                                \
       MAKE_BYTE(OFPXMT_OFB_PBB_UCA, pbb_hdr, ..., PBB_BASE);
 #endif
 
-        /* TUNNEL_ID and IPV6_EXTHDR as metadata */
+      /* TUNNEL_ID and IPV6_EXTHDR as metadata */
       OOB_MAKE_BYTE(OFPXMT_OFB_TUNNEL_ID, oob_data, tunnel_id);
       OOB_MAKE_BYTE_W(OFPXMT_OFB_TUNNEL_ID, oob_data, tunnel_id);
       OOB_MAKE_BYTE(OFPXMT_OFB_IPV6_EXTHDR, oob_data, ipv6_exthdr);
@@ -349,7 +357,7 @@ case FIELD_WITH_MASK(field):                                \
           BYTEPTR(L3_BASE, off)[0] &= 0xf0;
           BYTEPTR(L3_BASE, off)[0] |= val >> 2;
           BYTEPTR(L3_BASE, off)[1] &= 0x3f;
-          BYTEPTR(L3_BASE, off)[1] |= val << 6;
+          BYTEPTR(L3_BASE, off)[1] |= (uint8_t)(val << 6);
           MASKPTR(L3_BASE, off)[0] |= 0x0f;
           MASKPTR(L3_BASE, off)[1] |= 0xc0;
         } else {
@@ -358,7 +366,7 @@ case FIELD_WITH_MASK(field):                                \
           byteoff[L3_BASE].bits |= BYTEBITS(1, off);
           memcpy(&val, match->oxm_value, 1);
           BYTEPTR(L3_BASE, off)[0] &= 0x03;
-          BYTEPTR(L3_BASE, off)[0] |= val << 2;
+          BYTEPTR(L3_BASE, off)[0] |= (uint8_t)(val << 2);
           MASKPTR(L3_BASE, off)[0] |= 0xfc;
         }
         break;
@@ -370,7 +378,7 @@ case FIELD_WITH_MASK(field):                                \
           byteoff[L3_BASE].bits |= BYTEBITS(1, off);
           memcpy(&val, match->oxm_value, 1);
           BYTEPTR(L3_BASE, off)[0] &= 0xcf;
-          BYTEPTR(L3_BASE, off)[0] |= val << 4;
+          BYTEPTR(L3_BASE, off)[0] |= (uint8_t)(val << 4);
           MASKPTR(L3_BASE, off)[0] |= 0x30;
         } else {
           uint8_t val;
@@ -449,7 +457,7 @@ case FIELD_WITH_MASK(field):                                \
         byteoff[MPLS_BASE].bits |= BYTEBITS(1, off);
         memcpy(&val, match->oxm_value, 1);
         BYTEPTR(MPLS_BASE, off)[0] &= 0xf1;
-        BYTEPTR(MPLS_BASE, off)[0] |= val << 1;
+        BYTEPTR(MPLS_BASE, off)[0] |= (uint8_t)(val << 1);
         MASKPTR(MPLS_BASE, off)[0] |= 0x0e;
       }
       break;

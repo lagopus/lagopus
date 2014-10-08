@@ -38,6 +38,7 @@ tearDown(void) {
 
 void
 test_set_field_PBB_ISID(void) {
+  struct port port;
   struct action_list action_list;
   struct action *action;
   struct ofp_action_set_field *action_set;
@@ -58,6 +59,8 @@ test_set_field_PBB_ISID(void) {
   OS_M_PKTLEN(m) = 64;
   m->data[12] = 0x88;
   m->data[13] = 0xe7;
+
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   set_match(action_set->field, 3, OFPXMT_OFB_PBB_ISID << 1,
             0xa5, 0x5a, 0xc3);

@@ -17,6 +17,7 @@
 
 /* OpenFlow agent configuration. */
 #include "lagopus_apis.h"
+#include "lagopus_version.h"
 #include "confsys.h"
 #include "agent_config.h"
 #include "lagopus/dpmgr.h"
@@ -73,13 +74,15 @@ agent_initialize_config_tree(void) {
   agent_check_certificates_set_config_file(value);
 }
 
-
+
 CALLBACK(show_version_func) {
-  int i;
   ARG_USED();
-  for (i = 0; i < 1000; i++) {
-    show(confsys, "Version %d\n", i);
-  }
+  show(confsys, "%s version %d.%d.%d%s\n",
+                LAGOPUS_PRODUCT_NAME,
+                LAGOPUS_VERSION_MAJOR,
+                LAGOPUS_VERSION_MINOR,
+                LAGOPUS_VERSION_PATCH,
+                LAGOPUS_VERSION_RELEASE);
   return CONFIG_SUCCESS;
 }
 
@@ -211,7 +214,6 @@ CALLBACK(bridge_domain_dpid_func) {
 }
 
 CALLBACK(bridge_domain_fail_secure_mode_func) {
-  lagopus_result_t result;
   struct bridge *bridge;
   ARG_USED();
 

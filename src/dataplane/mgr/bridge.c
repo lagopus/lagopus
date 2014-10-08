@@ -215,9 +215,9 @@ bridge_add(struct bridge_list *bridge_list, const char *name, uint64_t dpid) {
   }
   bridge->dpid = dpid;
 
-  FLOWDB_RWLOCK_WRLOCK(NULL);
+  flowdb_wrlock(NULL);
   TAILQ_INSERT_TAIL(bridge_list, bridge, entry);
-  FLOWDB_RWLOCK_WRUNLOCK(NULL);
+  flowdb_wrunlock(NULL);
 
   lagopus_msg_info("Bridge %s dpid:%0" PRIx64 " is added\n", name, dpid);
   return LAGOPUS_RESULT_OK;
@@ -229,7 +229,7 @@ bridge_delete(struct bridge_list *bridge_list, const char *name) {
   struct bridge *bridge;
   lagopus_result_t ret;
 
-  FLOWDB_RWLOCK_WRLOCK(NULL);
+  flowdb_wrlock(NULL);
   /* Lookup bridge by name. */
   bridge = bridge_lookup(bridge_list, name);
   if (bridge != NULL) {
@@ -239,7 +239,7 @@ bridge_delete(struct bridge_list *bridge_list, const char *name) {
   } else {
     ret = LAGOPUS_RESULT_NOT_FOUND;
   }
-  FLOWDB_RWLOCK_WRUNLOCK(NULL);
+  flowdb_wrunlock(NULL);
   /* not implemented yet. */
   return ret;
 }
@@ -251,21 +251,25 @@ bridge_port_add(struct bridge_list *bridge_list, const char *name,
   struct bridge *bridge;
   lagopus_result_t ret;
 
-  FLOWDB_RWLOCK_WRLOCK(NULL);
+  flowdb_wrlock(NULL);
   /* Lookup bridge by name. */
   bridge = bridge_lookup(bridge_list, name);
   if (bridge != NULL) {
-    /* Set port to the bridge's port vector. */
-    printf("Assigning port id %u to bridge %s\n", port->ifindex, bridge->name);
-    vector_set_index(bridge->ports, port->ofp_port.port_no, port);
-    port->bridge = bridge;
-    send_port_status(port, OFPPR_ADD);
+    static const uint8_t zeromac[] = "\0\0\0\0\0\0";
+    if (memcmp(port->ofp_port.hw_addr, zeromac, 6) != 0) {
+      /* Set port to the bridge's port vector. */
+      printf("Assigning port id %u to bridge %s\n",
+             port->ifindex, bridge->name);
+      vector_set_index(bridge->ports, port->ofp_port.port_no, port);
+      port->bridge = bridge;
+      send_port_status(port, OFPPR_ADD);
+    }
     ret = LAGOPUS_RESULT_OK;
   } else {
     ret = LAGOPUS_RESULT_NOT_FOUND;
   }
 
-  FLOWDB_RWLOCK_WRUNLOCK(NULL);
+  flowdb_wrunlock(NULL);
   return ret;
 }
 
@@ -277,7 +281,7 @@ bridge_port_delete(struct bridge_list *bridge_list, const char *name,
   struct port *port;
   lagopus_result_t ret;
 
-  FLOWDB_RWLOCK_WRLOCK(NULL);
+  flowdb_wrlock(NULL);
   /* Lookup bridge by name. */
   bridge = bridge_lookup(bridge_list, name);
   if (bridge != NULL) {
@@ -296,7 +300,7 @@ bridge_port_delete(struct bridge_list *bridge_list, const char *name,
     ret = LAGOPUS_RESULT_NOT_FOUND;
   }
 
-  FLOWDB_RWLOCK_WRUNLOCK(NULL);
+  flowdb_wrunlock(NULL);
   return ret;
 }
 

@@ -85,9 +85,9 @@ uint128 CityHash128WithSeed(const char *s, size_t len, uint64 first,
 static inline uint64 Hash128to64(const uint64 u, const uint64 v) {
   // Murmur-inspired hashing.
   const uint64 kMul = 0x9ddfea08eb382d69ULL;
-  uint64 a = (v ^ u) * kMul;
+  uint64 a = (v ^ u) * kMul, b;
   a ^= (a >> 47);
-  uint64 b = (v ^ a) * kMul;
+  b = (v ^ a) * kMul;
   b ^= (b >> 47);
   b *= kMul;
   return b;

@@ -109,22 +109,22 @@ FLOWINFO_TEST_DECLARE_DATA;
   do {								\
     struct ptree_node *_n;					\
     char __buf[TEST_ASSERT_MESSAGE_BUFSIZE];			\
-    \
+								\
     snprintf(__buf, sizeof(__buf), "%s, has VID", (_msg));	\
     PTREE_FIND_N16(_n, (_fl)->ptree, _vid, _l);			\
     TEST_ASSERT_NOT_NULL_MESSAGE(_n, __buf);			\
   } while (0)
 
 /* Assert the non-existence of a VLAN VID in a ptree. */
-#define TEST_ASSERT_FLOWINFO_NOVID(_fl, _vid, _l, _msg)	  \
-  do {							  \
-    struct ptree_node *_n;				  \
-    char __buf[TEST_ASSERT_MESSAGE_BUFSIZE];		  \
-    \
-    snprintf(__buf, sizeof(__buf), "%s, no VID", (_msg)); \
-    PTREE_FIND_N16(_n, (_fl)->ptree, _vid, _l);		  \
-    TEST_ASSERT_NULL_MESSAGE(_n, __buf);		  \
-  } while (0)
+#define TEST_ASSERT_FLOWINFO_NOVID(_fl, _vid, _l, _msg)		\
+    do {							\
+      struct ptree_node *_n;					\
+      char __buf[TEST_ASSERT_MESSAGE_BUFSIZE];			\
+								\
+      snprintf(__buf, sizeof(__buf), "%s, no VID", (_msg));	\
+      PTREE_FIND_N16(_n, (_fl)->ptree, _vid, _l);		\
+      TEST_ASSERT_NULL_MESSAGE(_n, __buf);			\
+    } while (0)
 
 void
 setUp(void) {
@@ -280,8 +280,7 @@ test_flowinfo_vlan_pcp_adddel(void) {
   TEST_ASSERT_OBJECTS();
   /* The ptree should be clean. */
   for (s = 0; s < ARRAY_LEN(test_flow); s++) {
-    TEST_ASSERT_FLOWINFO_NOVID(flowinfo, TEST_VID(s),
-                               flowinfo->ptree->max_key_len, __func__);
+    TEST_ASSERT_FLOWINFO_NOVID(flowinfo, TEST_VID(s), flowinfo->ptree->max_key_len, __func__);
   }
 
   /* Add the VLAN PCP matches. */

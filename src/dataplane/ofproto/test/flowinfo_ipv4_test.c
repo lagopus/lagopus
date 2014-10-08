@@ -89,7 +89,7 @@ static struct addrunion testmask[ARRAY_LEN(test_flow)];
         TEST_ASSERT_FLOWINFO_HASIPV4PROTO((_fl)->misc->next[ETHERTYPE_IP]->misc, TEST_IPV4_PROTO(_s), (_msg)); \
     else {								\
       char __buf[TEST_ASSERT_MESSAGE_BUFSIZE];				\
-      \
+                                                                        \
       snprintf(__buf, sizeof(__buf), "%s, positive flow addition", (_msg)); \
       TEST_ASSERT_EQUAL_INT_MESSAGE((_flnum), 0, __buf);		\
     }									\
@@ -107,7 +107,7 @@ static struct addrunion testmask[ARRAY_LEN(test_flow)];
         TEST_ASSERT_FLOWINFO_HASIPV4PROTO((_fl)->misc->next[ETHERTYPE_IP]->misc, TEST_IPV4_PROTO(_s), (_msg)); \
     else {								\
       char __buf[TEST_ASSERT_MESSAGE_BUFSIZE];				\
-      \
+                                                                        \
       snprintf(__buf, sizeof(__buf), "%s, positive flow deletion", (_msg)); \
       TEST_ASSERT_EQUAL_INT_MESSAGE((_flnum), 0, __buf);		\
     }									\
@@ -115,78 +115,78 @@ static struct addrunion testmask[ARRAY_LEN(test_flow)];
 
 /* Negatively assert flow deletion without the IPv4 protocol check. */
 #define _TEST_ASSERT_FLOWINFO_DELFLOW_NG(_fl, _bi, _ei, _flnum, _msg)	\
-  do {									\
-    size_t __s;								\
-    for (__s = (_bi); __s < (_ei); __s++)				\
-      TEST_ASSERT_FLOWINFO_DEL_NG((_fl), test_flow[__s], (_msg));	\
-    TEST_ASSERT_FLOWINFO_FLOW_NUM((_fl), (_flnum), (_msg));		\
-  } while (0)
+    do {								\
+      size_t __s;							\
+      for (__s = (_bi); __s < (_ei); __s++)				\
+	TEST_ASSERT_FLOWINFO_DEL_NG((_fl), test_flow[__s], (_msg));	\
+      TEST_ASSERT_FLOWINFO_FLOW_NUM((_fl), (_flnum), (_msg));		\
+    } while (0)
 
 /* Negatively assert flow deletion. */
 #define TEST_ASSERT_FLOWINFO_DELFLOW_NG(_fl, _bi, _ei, _flnum, _msg)	\
-  do {									\
-    size_t _s;								\
-    _TEST_ASSERT_FLOWINFO_DELFLOW_NG(_fl, _bi, _ei, _flnum, (_msg));	\
-    if (NULL != (_fl)->misc->next[ETHERTYPE_IP])			\
-      for (_s = (_bi); _s < (_ei); _s++)				\
-        TEST_ASSERT_FLOWINFO_HASIPV4PROTO((_fl)->misc->next[ETHERTYPE_IP]->misc, TEST_IPV4_PROTO(_s), (_msg)); \
-    else {								\
-      char __buf[TEST_ASSERT_MESSAGE_BUFSIZE];				\
-      \
-      snprintf(__buf, sizeof(__buf), "%s, negative flow deletion", (_msg)); \
-      TEST_ASSERT_EQUAL_INT_MESSAGE((_flnum), 0, __buf);		\
-    }									\
-  } while (0)
+    do {								\
+      size_t _s;							\
+      _TEST_ASSERT_FLOWINFO_DELFLOW_NG(_fl, _bi, _ei, _flnum, (_msg));	\
+      if (NULL != (_fl)->misc->next[ETHERTYPE_IP])			\
+	for (_s = (_bi); _s < (_ei); _s++)				\
+	  TEST_ASSERT_FLOWINFO_HASIPV4PROTO((_fl)->misc->next[ETHERTYPE_IP]->misc, TEST_IPV4_PROTO(_s), (_msg)); \
+      else {								\
+	char __buf[TEST_ASSERT_MESSAGE_BUFSIZE];			\
+                                                                        \
+	snprintf(__buf, sizeof(__buf), "%s, negative flow deletion", (_msg)); \
+	TEST_ASSERT_EQUAL_INT_MESSAGE((_flnum), 0, __buf);		\
+      }									\
+    } while (0)
 
 /* Negatively assert flow deletion and non-existence of an IPv4 protocol. */
 #undef TEST_ASSERT_FLOWINFO_DELFLOW_NG_CLEAN
 #define TEST_ASSERT_FLOWINFO_DELFLOW_NG_CLEAN(_fl, _bi, _ei, _flnum, _msg) \
-  do {									\
-    size_t _s;								\
-    _TEST_ASSERT_FLOWINFO_DELFLOW_NG(_fl, _bi, _ei, _flnum, (_msg));	\
-    if (NULL != (_fl)->misc->next[ETHERTYPE_IP])			\
-      for (_s = (_bi); _s < (_ei); _s++)				\
-        TEST_ASSERT_FLOWINFO_NOIPV4PROTO((_fl)->misc->next[ETHERTYPE_IP]->misc, TEST_IPV4_PROTO(_s), (_msg)); \
-    else {								\
-      char __buf[TEST_ASSERT_MESSAGE_BUFSIZE];				\
-      \
-      snprintf(__buf, sizeof(__buf), "%s, negative flow deletion, clean", (_msg)); \
-      TEST_ASSERT_EQUAL_INT_MESSAGE((_flnum), 0, __buf);		\
-    }									\
-  } while (0)
+    do {								\
+      size_t _s;							\
+      _TEST_ASSERT_FLOWINFO_DELFLOW_NG(_fl, _bi, _ei, _flnum, (_msg));	\
+      if (NULL != (_fl)->misc->next[ETHERTYPE_IP])			\
+	for (_s = (_bi); _s < (_ei); _s++)				\
+	  TEST_ASSERT_FLOWINFO_NOIPV4PROTO((_fl)->misc->next[ETHERTYPE_IP]->misc, TEST_IPV4_PROTO(_s), (_msg)); \
+      else {								\
+	char __buf[TEST_ASSERT_MESSAGE_BUFSIZE];			\
+									\
+	snprintf(__buf, sizeof(__buf), "%s, negative flow deletion, clean", (_msg)); \
+	TEST_ASSERT_EQUAL_INT_MESSAGE((_flnum), 0, __buf);		\
+      }									\
+    } while (0)
 
 /* Assert flow numbers. */
 #define TEST_ASSERT_FLOWINFO_FLOW_NUM(_fl, _flnum, _msg)		\
-  do {									\
-    TEST_ASSERT_FLOWINFO_NFLOW((_fl), (_flnum), (_msg));		\
-    TEST_ASSERT_FLOWINFO_NFLOW((_fl)->misc, (_flnum), (_msg));		\
-    if (NULL != (_fl)->misc->next[ETHERTYPE_IP])			\
-      TEST_ASSERT_FLOWINFO_NFLOW((_fl)->misc->next[ETHERTYPE_IP], (_flnum), (_msg)); \
-    else {								\
-      char __buf[TEST_ASSERT_MESSAGE_BUFSIZE];				\
-      \
-      snprintf(__buf, sizeof(__buf), "%s, flow count", (_msg));		\
-      TEST_ASSERT_EQUAL_INT_MESSAGE((_flnum), 0, __buf);		\
-    }									\
-  } while (0)
+    do {								\
+      TEST_ASSERT_FLOWINFO_NFLOW((_fl), (_flnum), (_msg));		\
+      TEST_ASSERT_FLOWINFO_NFLOW((_fl)->misc, (_flnum), (_msg));	\
+      if (NULL != (_fl)->misc->next[ETHERTYPE_IP])			\
+	TEST_ASSERT_FLOWINFO_NFLOW((_fl)->misc->next[ETHERTYPE_IP], (_flnum), (_msg)); \
+      else {								\
+	char __buf[TEST_ASSERT_MESSAGE_BUFSIZE];			\
+                                                                        \
+	snprintf(__buf, sizeof(__buf), "%s, flow count", (_msg));	\
+	TEST_ASSERT_EQUAL_INT_MESSAGE((_flnum), 0, __buf);		\
+      }									\
+    } while (0)
 
 /* Assert the existence of an IPv4 protocol in the next table. */
 #define TEST_ASSERT_FLOWINFO_HASIPV4PROTO(_fl, _proto, _msg)		\
-  do {									\
-    char __buf[TEST_ASSERT_MESSAGE_BUFSIZE];				\
-    \
-    snprintf(__buf, sizeof(__buf), "%s, has IPv4 proto", (_msg));	\
-    TEST_ASSERT_NOT_NULL_MESSAGE((_fl)->next[_proto], __buf);		\
-  } while (0)
+      do {								\
+	char __buf[TEST_ASSERT_MESSAGE_BUFSIZE];			\
+                                                                        \
+	snprintf(__buf, sizeof(__buf), "%s, has IPv4 proto", (_msg));	\
+	TEST_ASSERT_NOT_NULL_MESSAGE((_fl)->next[_proto], __buf);	\
+      } while (0)
 
 /* Assert the non-existence of an IPv4 protocol in the next table. */
 #define TEST_ASSERT_FLOWINFO_NOIPV4PROTO(_fl, _proto, _msg)		\
-  do {									\
-    char __buf[TEST_ASSERT_MESSAGE_BUFSIZE];				\
-    \
-    snprintf(__buf, sizeof(__buf), "%s, no IPv4 proto", (_msg));	\
-    TEST_ASSERT_NULL_MESSAGE((_fl)->next[_proto], __buf);		\
-  } while (0)
+      do {								\
+	char __buf[TEST_ASSERT_MESSAGE_BUFSIZE];			\
+                                                                        \
+	snprintf(__buf, sizeof(__buf), "%s, no IPv4 proto", (_msg));	\
+	TEST_ASSERT_NULL_MESSAGE((_fl)->next[_proto], __buf);		\
+      } while (0)
 
 void
 setUp(void) {
@@ -217,13 +217,11 @@ setUp(void) {
   for (s = 0; s < ARRAY_LEN(test_flow); s++) {
     addrunion_ipv4_set(&testsrc[s], testsrcstr);
     p = (uint8_t *)&testsrc[s].addr4.s_addr;
-    p[sizeof(testsrc[s].addr4.s_addr) - 1] = (uint8_t)(TEST_IPV4_ADDR_LSB(
-          s) & 0xff);
+    p[sizeof(testsrc[s].addr4.s_addr) - 1] = (uint8_t)(TEST_IPV4_ADDR_LSB(s) & 0xff);
 
     addrunion_ipv4_set(&testdst[s], testdststr);
     p = (uint8_t *)&testdst[s].addr4.s_addr;
-    p[sizeof(testsrc[s].addr4.s_addr) - 1] = (uint8_t)(TEST_IPV4_ADDR_LSB(
-          s) & 0xff);
+    p[sizeof(testsrc[s].addr4.s_addr) - 1] = (uint8_t)(TEST_IPV4_ADDR_LSB(s) & 0xff);
 
     addrunion_ipv4_set(&testmask[s], testmaskstr);
   }

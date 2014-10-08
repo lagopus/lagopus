@@ -38,6 +38,7 @@ tearDown(void) {
 
 void
 test_set_field_ARP_OP(void) {
+  struct port port;
   struct action_list action_list;
   struct action *action;
   struct ofp_action_set_field *action_set;
@@ -62,6 +63,7 @@ test_set_field_ARP_OP(void) {
   m->data[20] = 0x00;
   m->data[21] = ARPOP_REQUEST;
 
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   set_match(action_set->field, 2, OFPXMT_OFB_ARP_OP << 1,
             0x00, ARPOP_REPLY);
@@ -74,6 +76,7 @@ test_set_field_ARP_OP(void) {
 
 void
 test_set_field_ARP_SPA(void) {
+  struct port port;
   struct action_list action_list;
   struct action *action;
   struct ofp_action_set_field *action_set;
@@ -102,6 +105,7 @@ test_set_field_ARP_SPA(void) {
   m->data[30] = 0;
   m->data[31] = 1;
 
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   set_match(action_set->field, 4, OFPXMT_OFB_ARP_SPA << 1,
             192, 168, 1, 2);
@@ -118,6 +122,7 @@ test_set_field_ARP_SPA(void) {
 
 void
 test_set_field_ARP_TPA(void) {
+  struct port port;
   struct action_list action_list;
   struct action *action;
   struct ofp_action_set_field *action_set;
@@ -145,6 +150,7 @@ test_set_field_ARP_TPA(void) {
   m->data[40] = 0;
   m->data[31] = 1;
 
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   set_match(action_set->field, 4, OFPXMT_OFB_ARP_TPA << 1,
             192, 168, 1, 2);
@@ -161,6 +167,7 @@ test_set_field_ARP_TPA(void) {
 
 void
 test_set_field_ARP_SHA(void) {
+  struct port port;
   struct action_list action_list;
   struct action *action;
   struct ofp_action_set_field *action_set;
@@ -190,6 +197,7 @@ test_set_field_ARP_SHA(void) {
   m->data[26] = 0xaa;
   m->data[27] = 0x55;
 
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   set_match(action_set->field, 6, OFPXMT_OFB_ARP_SHA << 1,
             0xe0, 0x4d, 0x01, 0x34, 0x56, 0x78);
@@ -210,6 +218,7 @@ test_set_field_ARP_SHA(void) {
 
 void
 test_set_field_ARP_THA(void) {
+  struct port port;
   struct action_list action_list;
   struct action *action;
   struct ofp_action_set_field *action_set;
@@ -239,6 +248,7 @@ test_set_field_ARP_THA(void) {
   m->data[36] = 0xaa;
   m->data[37] = 0x55;
 
+  lagopus_set_in_port(&pkt, &port);
   lagopus_packet_init(&pkt, m);
   set_match(action_set->field, 6, OFPXMT_OFB_ARP_THA << 1,
             0xe0, 0x4d, 0x01, 0x34, 0x56, 0x78);

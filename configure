@@ -18020,7 +18020,7 @@ if test "x$?" != "x0"; then
 fi
 
 # emit.
-ac_config_files="$ac_config_files mk/vars.mk mk/doxygen.conf Makefile src/include/Makefile src/include/lagopus_platform.h src/lib/Makefile src/lib/test/Makefile src/lib/check/Makefile src/agent/Makefile src/agent/test/Makefile src/agent/check/Makefile src/cmds/Makefile src/dataplane/Makefile src/dataplane/dpdk/Makefile src/dataplane/dpdk/test/Makefile src/dataplane/sock/Makefile src/dataplane/ofproto/test/Makefile src/dataplane/ofproto/test/lib/Makefile src/dataplane/mgr/test/Makefile tools/Makefile tools/unity/src/Makefile src/config/Makefile src/config/cli/Makefile src/config/cli/libedit/Makefile debian/Makefile debian/control debian/copyright debian/lagopus-DATAPLANE.install"
+ac_config_files="$ac_config_files mk/vars.mk mk/doxygen.conf Makefile src/include/Makefile src/include/lagopus_platform.h src/lib/Makefile src/lib/test/Makefile src/lib/check/Makefile src/agent/Makefile src/agent/test/Makefile src/agent/check/Makefile src/cmds/Makefile src/dataplane/Makefile src/dataplane/dpdk/test/Makefile src/dataplane/ofproto/test/Makefile src/dataplane/ofproto/test/lib/Makefile src/dataplane/mgr/test/Makefile tools/Makefile tools/unity/src/Makefile src/config/Makefile src/config/cli/Makefile src/config/cli/libedit/Makefile debian/Makefile debian/control debian/copyright debian/lagopus-DATAPLANE.install"
 
 
 # emit and set executable attribute.
@@ -19133,9 +19133,7 @@ do
     "src/agent/check/Makefile") CONFIG_FILES="$CONFIG_FILES src/agent/check/Makefile" ;;
     "src/cmds/Makefile") CONFIG_FILES="$CONFIG_FILES src/cmds/Makefile" ;;
     "src/dataplane/Makefile") CONFIG_FILES="$CONFIG_FILES src/dataplane/Makefile" ;;
-    "src/dataplane/dpdk/Makefile") CONFIG_FILES="$CONFIG_FILES src/dataplane/dpdk/Makefile" ;;
     "src/dataplane/dpdk/test/Makefile") CONFIG_FILES="$CONFIG_FILES src/dataplane/dpdk/test/Makefile" ;;
-    "src/dataplane/sock/Makefile") CONFIG_FILES="$CONFIG_FILES src/dataplane/sock/Makefile" ;;
     "src/dataplane/ofproto/test/Makefile") CONFIG_FILES="$CONFIG_FILES src/dataplane/ofproto/test/Makefile" ;;
     "src/dataplane/ofproto/test/lib/Makefile") CONFIG_FILES="$CONFIG_FILES src/dataplane/ofproto/test/lib/Makefile" ;;
     "src/dataplane/mgr/test/Makefile") CONFIG_FILES="$CONFIG_FILES src/dataplane/mgr/test/Makefile" ;;

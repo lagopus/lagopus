@@ -15,6 +15,7 @@
  */
 
 
+
 CALLBACK(interface_ethernet_func) {
   int ret;
   uint32_t portid;

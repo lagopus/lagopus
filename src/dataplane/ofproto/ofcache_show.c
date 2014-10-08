@@ -31,7 +31,6 @@ show_bridge_domains_flowcache(struct confsys *confsys,
                               struct bridge *bridge) {
   struct ofcachestat st;
   struct flowdb *flowdb;
-  struct table *table;
 
   flowdb = bridge->flowdb;
   flowdb_rdlock(flowdb);

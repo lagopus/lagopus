@@ -18,6 +18,8 @@
 #include <stdio.h>
 #include <stdint.h>
 
+#include "openflow.h"
+
 #include "confsys.h"
 #include "lagopus/ethertype.h"
 #include "lagopus/dpmgr.h"
@@ -25,6 +27,45 @@
 
 /* We must have better way to access to dpmgr information. */
 extern struct dpmgr *dpmgr;
+
+/**
+ * Convert port number to human readable string.
+ *
+ * @param[in]	val	port number (host byte order).
+ *
+ * @retval	port string.
+ */
+static const char *
+port_string(uint32_t val) {
+  static char buf[32];
+
+  switch (val) {
+    case OFPP_IN_PORT:
+      return "in_port";
+
+    case OFPP_TABLE:
+      return "table";
+
+    case OFPP_NORMAL:
+      return "normal";
+
+    case OFPP_FLOOD:
+      return "flood";
+
+    case OFPP_ALL:
+      return "all";
+
+    case OFPP_CONTROLLER:
+      return "controller";
+
+    case OFPP_LOCAL:
+      return "local";
+
+    default:
+      snprintf(buf, sizeof(buf), "%u", val);
+      return buf;
+  }
+}
 
 static void
 show_flow_list(struct confsys *, struct flow_list *);
@@ -37,20 +78,23 @@ show_match(struct confsys *confsys, struct match *match) {
   char ip_str[INET6_ADDRSTRLEN];
   int field_type = match->oxm_field >> 1;
   int hasmask = match->oxm_field & 1;
+  unsigned int i;
 
   switch (field_type) {
     case OFPXMT_OFB_IN_PORT:
-      val32 = *((uint32_t *)match->oxm_value);
-      show(confsys, ",in_port=%d", ntohl(val32));
+      memcpy(&val32, match->oxm_value, sizeof(uint32_t));
+      show(confsys, ",in_port=%s", port_string(ntohl(val32)));
       break;
     case OFPXMT_OFB_IN_PHY_PORT:
-      val32 = *((uint32_t *)match->oxm_value);
-      show(confsys, ",in_phy_port=%d", ntohl(val32));
+      memcpy(&val32, match->oxm_value, sizeof(uint32_t));
+      show(confsys, ",in_phy_port=%s", port_string(ntohl(val32)));
       break;
     case OFPXMT_OFB_METADATA:
-      val64 = *(uint32_t *)match->oxm_value;
-      val32 = *(uint32_t *)&match->oxm_value[4];;
-      val64 = (ntohl(val64) << 32) | ntohl(val32);
+      val64 = 0;
+      for (i = 0; i < sizeof(uint64_t); i++) {
+        val64 <<= 8;
+        val64 |= match->oxm_value[i];
+      }
       show(confsys, ",metadata=%d", val64);
       if (hasmask) {
         show(confsys, "/:0x%02x%02x%02x%02x%02x%02x%02x%02x",
@@ -111,10 +155,10 @@ show_match(struct confsys *confsys, struct match *match) {
       }
       break;
     case OFPXMT_OFB_VLAN_VID:
-      val16 = *((uint16_t *)match->oxm_value);
+      memcpy(&val16, match->oxm_value, sizeof(uint16_t));
       show(confsys, ",vlan_vid=%d", ntohs(val16));
       if (hasmask) {
-        val16 = *((uint16_t *)&match->oxm_value[2]);
+        memcpy(&val16, &match->oxm_value[2], sizeof(uint16_t));
         show(confsys, "/0x%02x", ntohs(val16));
       }
       break;
@@ -134,7 +178,7 @@ show_match(struct confsys *confsys, struct match *match) {
       show(confsys, ",ipv4_src=%s",
            inet_ntop(AF_INET, match->oxm_value, ip_str, sizeof(ip_str)));
       if (hasmask) {
-        val32 = *((uint32_t *)&match->oxm_value[4]);
+        memcpy(&val32, &match->oxm_value[4], sizeof(uint32_t));
         show(confsys, "/0x%04x", ntohl(val32));
       }
       break;
@@ -142,32 +186,32 @@ show_match(struct confsys *confsys, struct match *match) {
       show(confsys, ",ipv4_dst=%s",
            inet_ntop(AF_INET, match->oxm_value, ip_str, sizeof(ip_str)));
       if (hasmask) {
-        val32 = *((uint32_t *)&match->oxm_value[4]);
+        memcpy(&val32, &match->oxm_value[4], sizeof(uint32_t));
         show(confsys, "/0x%04x", ntohl(val32));
       }
       break;
     case OFPXMT_OFB_TCP_SRC:
-      val16 = *((uint16_t *)match->oxm_value);
+      memcpy(&val16, match->oxm_value, sizeof(uint16_t));
       show(confsys, ",tcp_src=%d", ntohs(val16));
       break;
     case OFPXMT_OFB_TCP_DST:
-      val16 = *((uint16_t *)match->oxm_value);
+      memcpy(&val16, match->oxm_value, sizeof(uint16_t));
       show(confsys, ",tcp_dst=%d", ntohs(val16));
       break;
     case OFPXMT_OFB_UDP_SRC:
-      val16 = *((uint16_t *)match->oxm_value);
+      memcpy(&val16, match->oxm_value, sizeof(uint16_t));
       show(confsys, ",udp_src=%d", ntohs(val16));
       break;
     case OFPXMT_OFB_UDP_DST:
-      val16 = *((uint16_t *)match->oxm_value);
+      memcpy(&val16, match->oxm_value, sizeof(uint16_t));
       show(confsys, ",udp_dst=%d", ntohs(val16));
       break;
     case OFPXMT_OFB_SCTP_SRC:
-      val16 = *((uint16_t *)match->oxm_value);
+      memcpy(&val16, match->oxm_value, sizeof(uint16_t));
       show(confsys, ",sctp_src=%d", ntohs(val16));
       break;
     case OFPXMT_OFB_SCTP_DST:
-      val16 = *((uint16_t *)match->oxm_value);
+      memcpy(&val16, match->oxm_value, sizeof(uint16_t));
       show(confsys, ",sctp_dst=%d", ntohs(val16));
       break;
     case OFPXMT_OFB_ICMPV4_TYPE:
@@ -177,14 +221,14 @@ show_match(struct confsys *confsys, struct match *match) {
       show(confsys, ",icmpv4_code=%d", *match->oxm_value);
       break;
     case OFPXMT_OFB_ARP_OP:
-      val16 = *((uint16_t *)match->oxm_value);
+      memcpy(&val16, match->oxm_value, sizeof(uint16_t));
       show(confsys, ",arp_op=%d", ntohs(val16));
       break;
     case OFPXMT_OFB_ARP_SPA:
       show(confsys, ",arp_spa=%s",
            inet_ntop(AF_INET, match->oxm_value, ip_str, sizeof(ip_str)));
       if (hasmask) {
-        val32 = *((uint32_t *)&match->oxm_value[4]);
+        memcpy(&val32, &match->oxm_value[4], sizeof(uint32_t));
         show(confsys, "/0x%04x", ntohl(val32));
       }
       break;
@@ -192,7 +236,7 @@ show_match(struct confsys *confsys, struct match *match) {
       show(confsys, ",arp_tpa=%s",
            inet_ntop(AF_INET, match->oxm_value, ip_str, sizeof(ip_str)));
       if (hasmask) {
-        val32 = *((uint32_t *)&match->oxm_value[4]);
+        memcpy(&val32, &match->oxm_value[4], sizeof(uint32_t));
         show(confsys, "/0x%04x", ntohl(val32));
       }
       break;
@@ -224,32 +268,32 @@ show_match(struct confsys *confsys, struct match *match) {
       show(confsys, ",ipv6_src=%s",
            inet_ntop(AF_INET6, match->oxm_value, ip_str, sizeof(ip_str)));
       if (hasmask) {
-        val32 = *(uint32_t *)&match->oxm_value[16];
+        memcpy(&val32, &match->oxm_value[16], sizeof(uint32_t));
         show(confsys, "/0x%04x", ntohl(val32));
-        val32 = *(uint32_t *)&match->oxm_value[20];
-        show(confsys, "0x%04x", ntohl(val32));
-        val32 = *(uint32_t *)&match->oxm_value[24];
-        show(confsys, "0x%04x", ntohl(val32));
-        val32 = *(uint32_t *)&match->oxm_value[28];
-        show(confsys, "0x%04x", ntohl(val32));
+        memcpy(&val32, &match->oxm_value[20], sizeof(uint32_t));
+        show(confsys, "%04x", ntohl(val32));
+        memcpy(&val32, &match->oxm_value[24], sizeof(uint32_t));
+        show(confsys, "%04x", ntohl(val32));
+        memcpy(&val32, &match->oxm_value[28], sizeof(uint32_t));
+        show(confsys, "%04x", ntohl(val32));
       }
       break;
     case OFPXMT_OFB_IPV6_DST:
       show(confsys, ",ipv6_dst=%s",
            inet_ntop(AF_INET6, match->oxm_value, ip_str, sizeof(ip_str)));
       if (hasmask) {
-        val32 = *(uint32_t *)&match->oxm_value[16];
+        memcpy(&val32, &match->oxm_value[16], sizeof(uint32_t));
         show(confsys, "/0x%04x", ntohl(val32));
-        val32 = *(uint32_t *)&match->oxm_value[20];
-        show(confsys, "0x%04x", ntohl(val32));
-        val32 = *(uint32_t *)&match->oxm_value[24];
-        show(confsys, "0x%04x", ntohl(val32));
-        val32 = *(uint32_t *)&match->oxm_value[28];
-        show(confsys, "0x%04x", ntohl(val32));
+        memcpy(&val32, &match->oxm_value[20], sizeof(uint32_t));
+        show(confsys, "%04x", ntohl(val32));
+        memcpy(&val32, &match->oxm_value[24], sizeof(uint32_t));
+        show(confsys, "%04x", ntohl(val32));
+        memcpy(&val32, &match->oxm_value[28], sizeof(uint32_t));
+        show(confsys, "%04x", ntohl(val32));
       }
       break;
     case OFPXMT_OFB_IPV6_FLABEL:
-      val32 = *((uint32_t *)match->oxm_value);
+      memcpy(&val32, match->oxm_value, sizeof(uint32_t));
       show(confsys, ",ipv6_flabel=%d", ntohl(val32));
       break;
     case OFPXMT_OFB_ICMPV6_TYPE:
@@ -298,22 +342,24 @@ show_match(struct confsys *confsys, struct match *match) {
       break;
 
     case OFPXMT_OFB_TUNNEL_ID:
-      val64 = *(uint32_t *)match->oxm_value;
-      val32 = *(uint32_t *)&match->oxm_value[4];;
-      val64 = (ntohl(val64) << 32) | ntohl(val32);
+      val64 = 0;
+      for (i = 0; i < sizeof(uint64_t); i++) {
+        val64 <<= 8;
+        val64 |= match->oxm_value[i];
+      }
       show(confsys, ",tunnel_id=%d", val64);
       if (hasmask) {
-        val32 = *(uint32_t *)&match->oxm_value[8];
+        memcpy(&val32, &match->oxm_value[8], sizeof(uint32_t));
         show(confsys, "/0x%04x", ntohl(val32));
-        val32 = *(uint32_t *)&match->oxm_value[8];
-        show(confsys, "0x%04x", ntohl(val32));
+        memcpy(&val32, &match->oxm_value[12], sizeof(uint32_t));
+        show(confsys, "%04x", ntohl(val32));
       }
       break;
     case OFPXMT_OFB_IPV6_EXTHDR:
-      val16 = *((uint16_t *)match->oxm_value);
+      memcpy(&val16, match->oxm_value, sizeof(uint16_t));
       show(confsys, ",ipv6_exthdr=%d", ntohs(val16));
       if (hasmask) {
-        val16 = *((uint16_t *)match->oxm_value);
+        memcpy(&val16, &match->oxm_value[2], sizeof(uint16_t));
         show(confsys, "/0x%02x", ntohs(val16));
       }
       break;
@@ -331,22 +377,25 @@ show_set_field(struct confsys *confsys, uint8_t *oxm) {
   uint64_t val64;
   char ip_str[INET6_ADDRSTRLEN];
   int field_type = oxm[2] >> 1;
+  unsigned int i;
 
   oxm_value = &oxm[4];
 
   switch (field_type) {
     case OFPXMT_OFB_IN_PORT:
-      val32 = *((uint32_t *)oxm_value);
-      show(confsys, "%d->in_port", ntohl(val32));
+      memcpy(&val32, oxm_value, sizeof(uint32_t));
+      show(confsys, "%s->in_port", port_string(ntohl(val32)));
       break;
     case OFPXMT_OFB_IN_PHY_PORT:
-      val32 = *((uint32_t *)oxm_value);
-      show(confsys, "%d->in_phy_port", ntohl(val32));
+      memcpy(&val32, oxm_value, sizeof(uint32_t));
+      show(confsys, "%s->in_phy_port", port_string(ntohl(val32)));
       break;
     case OFPXMT_OFB_METADATA:
-      val64 = *(uint32_t *)oxm_value;
-      val32 = *(uint32_t *)&oxm_value[4];;
-      val64 = (ntohl(val64) << 32) | ntohl(val32);
+      val64 = 0;
+      for (i = 0; i < sizeof(uint64_t); i++) {
+        val64 <<= 8;
+        val64 |= oxm_value[i];
+      }
       show(confsys, "%d->metadata", val64);
       break;
     case OFPXMT_OFB_ETH_DST:
@@ -366,7 +415,7 @@ show_set_field(struct confsys *confsys, uint8_t *oxm) {
            oxm_value[0], oxm_value[1]);
       break;
     case OFPXMT_OFB_VLAN_VID:
-      val16 = *((uint16_t *)oxm_value);
+      memcpy(&val16, oxm_value, sizeof(uint16_t));
       show(confsys, "%d->vlan_vid", ntohs(val16));
       break;
     case OFPXMT_OFB_VLAN_PCP:
@@ -390,27 +439,27 @@ show_set_field(struct confsys *confsys, uint8_t *oxm) {
            inet_ntop(AF_INET, oxm_value, ip_str, sizeof(ip_str)));
       break;
     case OFPXMT_OFB_TCP_SRC:
-      val16 = *((uint16_t *)oxm_value);
+      memcpy(&val16, oxm_value, sizeof(uint16_t));
       show(confsys, "%d->tcp_src", ntohs(val16));
       break;
     case OFPXMT_OFB_TCP_DST:
-      val16 = *((uint16_t *)oxm_value);
+      memcpy(&val16, oxm_value, sizeof(uint16_t));
       show(confsys, "%d->tcp_dst", ntohs(val16));
       break;
     case OFPXMT_OFB_UDP_SRC:
-      val16 = *((uint16_t *)oxm_value);
+      memcpy(&val16, oxm_value, sizeof(uint16_t));
       show(confsys, "%d->udp_src", ntohs(val16));
       break;
     case OFPXMT_OFB_UDP_DST:
-      val16 = *((uint16_t *)oxm_value);
+      memcpy(&val16, oxm_value, sizeof(uint16_t));
       show(confsys, "%d->udp_dst", ntohs(val16));
       break;
     case OFPXMT_OFB_SCTP_SRC:
-      val16 = *((uint16_t *)oxm_value);
+      memcpy(&val16, oxm_value, sizeof(uint16_t));
       show(confsys, "%d->sctp_src", ntohs(val16));
       break;
     case OFPXMT_OFB_SCTP_DST:
-      val16 = *((uint16_t *)oxm_value);
+      memcpy(&val16, oxm_value, sizeof(uint16_t));
       show(confsys, "%d->sctp_dst", ntohs(val16));
       break;
     case OFPXMT_OFB_ICMPV4_TYPE:
@@ -420,7 +469,7 @@ show_set_field(struct confsys *confsys, uint8_t *oxm) {
       show(confsys, "%d->icmpv4_code", *oxm_value);
       break;
     case OFPXMT_OFB_ARP_OP:
-      val16 = *((uint16_t *)oxm_value);
+      memcpy(&val16, oxm_value, sizeof(uint16_t));
       show(confsys, "%d->arp_op", ntohs(val16));
       break;
     case OFPXMT_OFB_ARP_SPA:
@@ -452,7 +501,7 @@ show_set_field(struct confsys *confsys, uint8_t *oxm) {
            inet_ntop(AF_INET6, oxm_value, ip_str, sizeof(ip_str)));
       break;
     case OFPXMT_OFB_IPV6_FLABEL:
-      val32 = *((uint32_t *)oxm_value);
+      memcpy(&val32, oxm_value, sizeof(uint32_t));
       show(confsys, "%d->ipv6_flabel", ntohl(val32));
       break;
     case OFPXMT_OFB_ICMPV6_TYPE:
@@ -478,7 +527,7 @@ show_set_field(struct confsys *confsys, uint8_t *oxm) {
            oxm_value[4], oxm_value[5]);
       break;
     case OFPXMT_OFB_MPLS_LABEL:
-      val32 = *((uint32_t *)oxm_value);
+      memcpy(&val32, oxm_value, sizeof(uint32_t));
       show(confsys, "%d->mpls_label", ntohl(val32));
       break;
     case OFPXMT_OFB_MPLS_TC:
@@ -495,13 +544,15 @@ show_set_field(struct confsys *confsys, uint8_t *oxm) {
       break;
 
     case OFPXMT_OFB_TUNNEL_ID:
-      val64 = *(uint32_t *)oxm_value;
-      val32 = *(uint32_t *)&oxm_value[4];;
-      val64 = (ntohl(val64) << 32) | ntohl(val32);
+      val64 = 0;
+      for (i = 0; i < sizeof(uint64_t); i++) {
+        val64 <<= 8;
+        val64 |= oxm_value[i];
+      }
       show(confsys, "%d->tunnel_id", val64);
       break;
     case OFPXMT_OFB_IPV6_EXTHDR:
-      val16 = *((uint16_t *)oxm_value);
+      memcpy(&val16, oxm_value, sizeof(uint16_t));
       show(confsys, "%d->ipv6_exthdr", ntohs(val16));
       break;
     default:
@@ -514,8 +565,8 @@ static void
 show_action(struct confsys *confsys, struct action *action) {
   switch (action->ofpat.type) {
     case OFPAT_OUTPUT:
-      show(confsys, "output:%d",
-           ((struct ofp_action_output *)&action->ofpat)->port);
+      show(confsys, "output:%s",
+           port_string(((struct ofp_action_output *)&action->ofpat)->port));
       break;
     case OFPAT_COPY_TTL_OUT:
       show(confsys, "copy_ttl_out");
@@ -580,18 +631,22 @@ show_action(struct confsys *confsys, struct action *action) {
 static void
 show_instruction(struct confsys *confsys, struct instruction *instruction) {
   struct action *action;
-  uint32_t val32;
   uint64_t val64;
   int first;
+  unsigned int i;
+  uint8_t *p;
 
   switch (instruction->ofpit.type) {
     case OFPIT_GOTO_TABLE:
       show(confsys, "goto_table:%d", instruction->ofpit_goto_table.table_id);
       break;
     case OFPIT_WRITE_METADATA:
-      val32 = *(uint32_t *)&instruction->ofpit_write_metadata.metadata;
-      val64 = ((uint32_t *)&instruction->ofpit_write_metadata.metadata)[1];
-      val64 = (ntohl(val64) << 32) | ntohl(val32);
+      val64 = 0;
+      p = (uint8_t *)&instruction->ofpit_write_metadata.metadata;
+      for (i = 0; i < sizeof(uint64_t); i++) {
+        val64 <<= 8;
+        val64 |= p[i];
+      }
       show(confsys, "write_metadata:0x%x", val64);
       break;
     case OFPIT_WRITE_ACTIONS:

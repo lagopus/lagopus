@@ -16,12 +16,13 @@
 
 
 /**
- * @file	group.h
- * @brief	OpenFlow Group.
+ * @file        group.h
+ * @brief       OpenFlow Group.
  */
 
 #ifndef SRC_INCLUDE_LAGOPUS_GROUP_H_
 #define SRC_INCLUDE_LAGOPUS_GROUP_H_
+
 #include "ofp_dp_apis.h"
 
 struct group {
@@ -56,10 +57,10 @@ struct group {
 /**
  * Allocate a new group table.
  *
- * @param[in]	bridge	Parent bridge.
+ * @param[in]   bridge  Parent bridge.
  *
- * @retval	!=NULL	Allocated group table.
- * @retval	==NULL	Memory exhausted.
+ * @retval      !=NULL  Allocated group table.
+ * @retval      ==NULL  Memory exhausted.
  */
 struct group_table *
 group_table_alloc(struct bridge *);
@@ -67,7 +68,7 @@ group_table_alloc(struct bridge *);
 /**
  * Free group table.
  *
- * @param[in]	group_table	Group table to be freed.
+ * @param[in]   group_table     Group table to be freed.
  */
 void
 group_table_free(struct group_table *group_table);
@@ -75,11 +76,11 @@ group_table_free(struct group_table *group_table);
 /**
  * Lookup group.
  *
- * @param[in]	group_table	Group table.
- * @param[in]	id		Group ID.
+ * @param[in]   group_table     Group table.
+ * @param[in]   id              Group ID.
  *
- * @retval	!=NULL	Group.
- * @retval	==NULL	Group is not found.
+ * @retval      !=NULL  Group.
+ * @retval      ==NULL  Group is not found.
  */
 struct group *
 group_table_lookup(struct group_table *group_table, uint32_t id);
@@ -87,13 +88,13 @@ group_table_lookup(struct group_table *group_table, uint32_t id);
 /**
  * Add group.
  *
- * @param[in]	group_table	Group table.
- * @param[in]	group		Group.
- * @param[out]	error		Error information.
+ * @param[in]   group_table     Group table.
+ * @param[in]   group           Group.
+ * @param[out]  error           Error information.
  *
- * @retval	LAGOPUS_RESULT_OK		Success.
- * @retval	LAGOPUS_RESULT_OFP_ERROR	Detected loop.
- * @retval	LAGOPUS_RESULT_NO_MEMORY	Memory exhausted.
+ * @retval      LAGOPUS_RESULT_OK               Success.
+ * @retval      LAGOPUS_RESULT_OFP_ERROR        Detected loop.
+ * @retval      LAGOPUS_RESULT_NO_MEMORY        Memory exhausted.
  */
 lagopus_result_t
 group_table_add(struct group_table *group_table,
@@ -103,11 +104,11 @@ group_table_add(struct group_table *group_table,
 /**
  * Delete group.
  *
- * @param[in]	group_table	Group table.
- * @param[in]	id		Group ID.
+ * @param[in]   group_table     Group table.
+ * @param[in]   id              Group ID.
  *
- * @retval	LAGOPUS_RESULT_OK		Success.
- * @retval	LAGOPUS_RESULT_NOT_FOUND	Group is not exist.
+ * @retval      LAGOPUS_RESULT_OK               Success.
+ * @retval      LAGOPUS_RESULT_NOT_FOUND        Group is not exist.
  */
 lagopus_result_t
 group_table_delete(struct group_table *group_table, uint32_t group_id);

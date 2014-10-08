@@ -19,7 +19,7 @@
 #define __LAGOPUS_ERROR_H__
 
 
-
+
 
 
 /**
@@ -27,7 +27,7 @@
  */
 
 
-
+
 
 
 #define LAGOPUS_RESULT_OK		0
@@ -72,9 +72,10 @@
 #define LAGOPUS_RESULT_NOT_ALLOWED		-29
 #define LAGOPUS_RESULT_NOT_DEFINED	-30
 #define LAGOPUS_RESULT_WAKEUP_REQUESTED	-31
+#define LAGOPUS_RESULT_NO_MORE_ACTION		-32
 
 
-
+
 
 
 /**
@@ -87,7 +88,7 @@
 const char 	*lagopus_error_get_string(lagopus_result_t err);
 
 
-
+
 
 
 #endif /* ! __LAGOPUS_ERROR_H__ */

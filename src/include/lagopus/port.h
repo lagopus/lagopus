@@ -16,11 +16,11 @@
 
 
 /**
- *	@file	port.h
+ *      @file   port.h
  */
 
-#ifndef _SRC_INCLUDE_LAGOPUS_PORT_H
-#define _SRC_INCLUDE_LAGOPUS_PORT_H
+#ifndef SRC_INCLUDE_LAGOPUS_PORT_H_
+#define SRC_INCLUDE_LAGOPUS_PORT_H_
 
 struct port_stats_list;
 struct port_desc_list;
@@ -82,8 +82,8 @@ lagopus_result_t (*lagopus_unregister_port_hook)(struct port *);
 /**
  * Create port database.
  *
- * @retval	!=NULL	Port database.
- * @retval	==NULL	Memory exhausted.
+ * @retval      !=NULL  Port database.
+ * @retval      ==NULL  Memory exhausted.
  */
 struct vector *
 ports_alloc(void);
@@ -91,7 +91,7 @@ ports_alloc(void);
 /**
  * Destroy port database.
  *
- * @param[in]	v	Port database.
+ * @param[in]   v       Port database.
  */
 void
 ports_free(struct vector *v);
@@ -99,11 +99,11 @@ ports_free(struct vector *v);
 /**
  * Lookup port.
  *
- * @param[in]	v	Port database.
- * @param[in]	port_no	OpenFlow port number.
+ * @param[in]   v       Port database.
+ * @param[in]   port_no OpenFlow port number.
  *
- * @retval	!=NULL	Port object.
- * @retval	==NULL	Port is not exist.
+ * @retval      !=NULL  Port object.
+ * @retval      ==NULL  Port is not exist.
  */
 struct port *
 port_lookup(struct vector *v, uint32_t port_no);
@@ -111,12 +111,12 @@ port_lookup(struct vector *v, uint32_t port_no);
 /**
  * Create and register port object.
  *
- * @param[in]	v		Port database.
- * @param[in]	pport_param	parameter of the port.
+ * @param[in]   v               Port database.
+ * @param[in]   pport_param     parameter of the port.
  *
- * @retval	LAGOPUS_RESULT_OK		Succeeded.
- * @retval	LAGOPUS_RESULT_ALREADY_EXISTS	Port is already assigned.
- * @retval	LAGOPUS_RESULT_NO_MEMORY	Memory exhausted.
+ * @retval      LAGOPUS_RESULT_OK               Succeeded.
+ * @retval      LAGOPUS_RESULT_ALREADY_EXISTS   Port is already assigned.
+ * @retval      LAGOPUS_RESULT_NO_MEMORY        Memory exhausted.
  */
 lagopus_result_t
 port_add(struct vector *v, const struct port *port_param);
@@ -124,11 +124,11 @@ port_add(struct vector *v, const struct port *port_param);
 /**
  * Delete port.
  *
- * @param[in]	v	Port database.
- * @param[in]	port_no	OpenFlow port number.
+ * @param[in]   v       Port database.
+ * @param[in]   port_no OpenFlow port number.
  *
- * @retval	LAGOPUS_RESULT_OK		Succeeded.
- * @retval	LAGOPUS_RESULT_NOT_FOUND	Port is not exist.
+ * @retval      LAGOPUS_RESULT_OK               Succeeded.
+ * @retval      LAGOPUS_RESULT_NOT_FOUND        Port is not exist.
  */
 lagopus_result_t
 port_delete(struct vector *v, uint32_t port_no);
@@ -136,9 +136,9 @@ port_delete(struct vector *v, uint32_t port_no);
 /**
  * Count number of ports.
  *
- * @param[in]	v		Port database.
+ * @param[in]   v               Port database.
  *
- * @retval	Number of ports.
+ * @retval      Number of ports.
  */
 unsigned int
 num_ports(struct vector *v);
@@ -146,13 +146,13 @@ num_ports(struct vector *v);
 /**
  * get port statistics.
  *
- * @param[in]	ports	Port database.
- * @param[in]	request	request data includes port number.
- * @param[out]	list	list of port statistics.
- * @param[out]	error	error type and code.
+ * @param[in]   ports   Port database.
+ * @param[in]   request request data includes port number.
+ * @param[out]  list    list of port statistics.
+ * @param[out]  error   error type and code.
  *
- * @retval	LAGOPUS_RESULT_OK	Succeeded.
- * @retval	!=LAGOPUS_RESULT_OK	Failed
+ * @retval      LAGOPUS_RESULT_OK       Succeeded.
+ * @retval      !=LAGOPUS_RESULT_OK     Failed
  */
 lagopus_result_t
 lagopus_get_port_statistics(struct vector *ports,
@@ -195,7 +195,7 @@ TAILQ_HEAD(lagopus_queue_list, lagopus_queue);
 
 enum {
   /* physical ports */
-  LAGOPUS_PORT_TYPE_PHYSICAL,	/* eth* */
+  LAGOPUS_PORT_TYPE_PHYSICAL,   /* eth* */
   /* logical ports */
   LAGOPUS_PORT_TYPE_VLAN,
   LAGOPUS_PORT_TYPE_GRE,
@@ -215,4 +215,4 @@ struct lagopus_packet;
 struct port *ifindex2port(struct vector *, uint32_t);
 void lagopus_send_packet(uint32_t, struct lagopus_packet *);
 
-#endif /* _SRC_INCLUDE_LAGOPUS_PORT_H */
+#endif /* SRC_INCLUDE_LAGOPUS_PORT_H_ */

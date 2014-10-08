@@ -28,13 +28,13 @@
 #include "confsys.h"
 
 
-
+
 
 
 static struct dpmgr *s_dpmptr = NULL;
 
 
-
+
 
 
 static inline char **
@@ -74,7 +74,7 @@ s_free_argv(char **argv) {
 }
 
 
-
+
 
 
 static lagopus_result_t
@@ -141,7 +141,7 @@ snmpmgr_initialize_wrap(int argc, const char *const argv[],
 #endif /* ENABLE_SNMP_MODULE */
 
 
-
+
 
 
 #define CTOR_IDX	LAGOPUS_MODULE_CONSTRUCTOR_INDEX_BASE + 1
@@ -181,6 +181,18 @@ s_once_proc(void) {
                                    datapath_stop,
                                    datapath_finalize,
                                    datapath_usage)) != LAGOPUS_RESULT_OK) {
+    lagopus_perror(r);
+    lagopus_exit_fatal("can't register the \"%s\" module.\n", name);
+  }
+
+  name = "dp_comm";
+  if ((r = lagopus_module_register(name,
+                                   dpcomm_initialize, s_dpmptr,
+                                   dpcomm_start,
+                                   dpcomm_shutdown,
+                                   dpcomm_stop,
+                                   dpcomm_finalize,
+                                   NULL)) != LAGOPUS_RESULT_OK) {
     lagopus_perror(r);
     lagopus_exit_fatal("can't register the \"%s\" module.\n", name);
   }

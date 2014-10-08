@@ -500,9 +500,7 @@ AC_CONFIG_FILES(
 	src/agent/check/Makefile
 	src/cmds/Makefile
 	src/dataplane/Makefile
-	src/dataplane/dpdk/Makefile
 	src/dataplane/dpdk/test/Makefile
-	src/dataplane/sock/Makefile
 	src/dataplane/ofproto/test/Makefile
 	src/dataplane/ofproto/test/lib/Makefile
 	src/dataplane/mgr/test/Makefile

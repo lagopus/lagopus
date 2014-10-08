@@ -246,9 +246,13 @@
 #error "APP_DEFAULT_BURST_SIZE_WORKER_WRITE is too big"
 #endif
 
-#define FIFONESS_NONE 0
+#define CORE_ASSIGN_PERFORMANCE 0 /* default */
+#define CORE_ASSIGN_BALANCE     1
+#define CORE_ASSIGN_MINIMUM     2
+
+#define FIFONESS_FLOW 0 /* default */
 #define FIFONESS_PORT 1
-#define FIFONESS_FLOW 2
+#define FIFONESS_NONE 2
 
 struct flowcache;
 
@@ -374,6 +378,9 @@ struct app_params {
 
   /* kvs type */
   uint8_t kvs_type;
+
+  /* core assign algorithm */
+  uint8_t core_assign;
 
   /* flow-cache */
   uint8_t no_cache;
