@@ -121,11 +121,11 @@ If NIC used for management (ex: ssh) was selected, you will lose connection.
 
 Unbound NICs from ixgbe driver.
 
-	$ sudo ${RTE_SDK}/pci_unbind.py -b igb_uio 0000:02:02.0 0000:02:03.0 0000:02:04.0
+	$ sudo ${RTE_SDK}/tools/pci_unbind.py -b igb_uio 0000:02:02.0 0000:02:03.0 0000:02:04.0
 
 Check the current status of NICs whehter the 2nd, 3rd and 4th interface is registerd with igb_uio driver
 
-	$ sudo ${RTE_SDK}/pci_unbind.py --status
+	$ sudo ${RTE_SDK}/tools/pci_unbind.py --status
 
 	Network devices using IGB_UIO driver
 	====================================
