@@ -15,9 +15,9 @@
  */
 
 /**
- * @file	ofp_queue_get_config_apis.h
- * @brief	Agent/Data-Plane APIs for ofp_queue_get_config
- * @details	Describe APIs between Agent and Data-Plane for ofp_queue_get_config.
+ * @file        ofp_queue_get_config_apis.h
+ * @brief       Agent/Data-Plane APIs for ofp_queue_get_config
+ * @details     Describe APIs between Agent and Data-Plane for ofp_queue_get_config.
  */
 #ifndef __LAGOPUS_OFP_QUEUE_GET_CONFIG_APIS_H__
 #define __LAGOPUS_OFP_QUEUE_GET_CONFIG_APIS_H__
@@ -66,17 +66,17 @@ TAILQ_HEAD(packet_queue_list, packet_queue);
 /**
  * Get array of queue configuration for \b OFPT_QUEUE_GET_CONFIG_REQUEST/REPLY.
  *
- *     @param[in]	dpid	Datapath id.
- *     @param[in]	queue_request	A pointer to \e ofp_queue_get_config_request
+ *     @param[in]       dpid    Datapath id.
+ *     @param[in]       queue_request   A pointer to \e ofp_queue_get_config_request
  *     structures.
- *     @param[out]	packet_queue_list	A pointer to list of packet queue.
- *     @param[out]	error	A pointer to \e ofp_error structure.
+ *     @param[out]      packet_queue_list       A pointer to list of packet queue.
+ *     @param[out]      error   A pointer to \e ofp_error structure.
  *     If errors occur, set filed values.
  *
- *     @retval	LAGOPUS_RESULT_OK	Succeeded.
- *     @retval	LAGOPUS_RESULT_ANY_FAILURES	Failed.
+ *     @retval  LAGOPUS_RESULT_OK       Succeeded.
+ *     @retval  LAGOPUS_RESULT_ANY_FAILURES     Failed.
  *
- *     @details	The \e free() of a list element is executed
+ *     @details The \e free() of a list element is executed
  *     by the Agent side.
  */
 lagopus_result_t

@@ -1,5 +1,5 @@
-/*	$NetBSD: strlcat.c,v 1.4 2013/01/23 07:57:27 matt Exp $	*/
-/*	$OpenBSD: strlcat.c,v 1.10 2003/04/12 21:56:39 millert Exp $	*/
+/*      $NetBSD: strlcat.c,v 1.4 2013/01/23 07:57:27 matt Exp $ */
+/*      $OpenBSD: strlcat.c,v 1.10 2003/04/12 21:56:39 millert Exp $    */
 
 /*
  * Copyright (c) 1998 Todd C. Miller <Todd.Miller@courtesan.com>
@@ -71,7 +71,7 @@ strlcat(char *dst, const char *src, size_t siz) {
   }
   *d = '\0';
 
-  return (dlen + (s - src));	/* count does not include NUL */
+  return (dlen + (s - src));    /* count does not include NUL */
 #else
   _DIAGASSERT(dst != NULL);
   _DIAGASSERT(src != NULL);

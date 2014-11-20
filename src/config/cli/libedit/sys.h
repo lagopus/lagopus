@@ -1,8 +1,8 @@
-/*	$NetBSD: sys.h,v 1.17 2011/09/28 14:08:04 christos Exp $	*/
+/*      $NetBSD: sys.h,v 1.17 2011/09/28 14:08:04 christos Exp $        */
 
 /*-
  * Copyright (c) 1992, 1993
- *	The Regents of the University of California.  All rights reserved.
+ *      The Regents of the University of California.  All rights reserved.
  *
  * This code is derived from software contributed to Berkeley by
  * Christos Zoulas of Cornell University.
@@ -31,14 +31,14 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	@(#)sys.h	8.1 (Berkeley) 6/4/93
+ *      @(#)sys.h       8.1 (Berkeley) 6/4/93
  */
 
 /*
  * sys.h: Put all the stupid compiler and system dependencies here...
  */
 #ifndef _h_sys
-#define	_h_sys
+#define _h_sys
 
 #ifdef HAVE_SYS_CDEFS_H
 #include <sys/cdefs.h>
@@ -63,16 +63,16 @@
 #endif
 
 #ifndef public
-# define public		/* Externally visible functions/variables */
+# define public         /* Externally visible functions/variables */
 #endif
 
 #ifndef private
-# define private	static	/* Always hidden internals */
+# define private        static  /* Always hidden internals */
 #endif
 
 #ifndef protected
-# define protected	/* Redefined from elsewhere to "static" */
-/* When we want to hide everything	*/
+# define protected      /* Redefined from elsewhere to "static" */
+/* When we want to hide everything      */
 #endif
 
 #ifndef __arraycount
@@ -81,29 +81,29 @@
 
 #ifndef _PTR_T
 # define _PTR_T
-typedef void	*ptr_t;
+typedef void    *ptr_t;
 #endif
 
 #ifndef _IOCTL_T
 # define _IOCTL_T
-typedef void	*ioctl_t;
+typedef void    *ioctl_t;
 #endif
 
 #include <stdio.h>
 
 #ifndef HAVE_STRLCAT
-#define	strlcat libedit_strlcat
-size_t	strlcat(char *dst, const char *src, size_t size);
+#define strlcat libedit_strlcat
+size_t  strlcat(char *dst, const char *src, size_t size);
 #endif
 
 #ifndef HAVE_STRLCPY
-#define	strlcpy libedit_strlcpy
-size_t	strlcpy(char *dst, const char *src, size_t size);
+#define strlcpy libedit_strlcpy
+size_t  strlcpy(char *dst, const char *src, size_t size);
 #endif
 
 #ifndef HAVE_FGETLN
-#define	fgetln libedit_fgetln
-char	*fgetln(FILE *fp, size_t *len);
+#define fgetln libedit_fgetln
+char    *fgetln(FILE *fp, size_t *len);
 #endif
 
 #ifndef HAVE_WCSDUP
@@ -120,15 +120,15 @@ wchar_t *wcsdup(const wchar_t *);
 #endif
 
 #ifndef HAVE_U_INT32_T
-typedef unsigned int	u_int32_t;
+typedef unsigned int    u_int32_t;
 #endif
 
 #ifndef SIZE_T_MAX
-#define SIZE_T_MAX	((size_t)-1)
+#define SIZE_T_MAX      ((size_t)-1)
 #endif
 
-#define	REGEX		/* Use POSIX.2 regular expression functions */
-#undef	REGEXP		/* Use UNIX V8 regular expression functions */
+#define REGEX           /* Use POSIX.2 regular expression functions */
+#undef  REGEXP          /* Use UNIX V8 regular expression functions */
 
 #if defined(__sun)
 extern int tgetent(char *, const char *);

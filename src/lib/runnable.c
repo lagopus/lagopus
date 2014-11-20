@@ -22,7 +22,7 @@
 
 
 
-#define DEFAULT_RUNNABLE_ALLOC_SZ	(sizeof(lagopus_runnable_record))
+#define DEFAULT_RUNNABLE_ALLOC_SZ       (sizeof(lagopus_runnable_record))
 
 
 

@@ -79,9 +79,9 @@ create_packet(char in_data[], struct pbuf **pbuf) {
 static uint64_t
 build_metadata(const uint8_t *b) {
   return (uint64_t)b[0] << 56 | (uint64_t)b[1] << 48
-    | (uint64_t)b[2] << 40 | (uint64_t)b[3] << 32
-    | (uint64_t)b[4] << 24 | (uint64_t)b[5] << 16
-    | (uint64_t)b[6] << 8 | (uint64_t)b[7];
+         | (uint64_t)b[2] << 40 | (uint64_t)b[3] << 32
+         | (uint64_t)b[4] << 24 | (uint64_t)b[5] << 16
+         | (uint64_t)b[6] << 8 | (uint64_t)b[7];
 }
 
 
@@ -110,7 +110,8 @@ setUp(void) {
   TEST_ASSERT_NULL(group_table);
 
   TEST_ASSERT_NOT_NULL(dpmgr = dpmgr_alloc());
-  TEST_ASSERT_TRUE(LAGOPUS_RESULT_OK == dpmgr_bridge_add(dpmgr, bridge_name, dpid));
+  TEST_ASSERT_TRUE(LAGOPUS_RESULT_OK == dpmgr_bridge_add(dpmgr, bridge_name,
+                   dpid));
   TEST_ASSERT_NOT_NULL(bridge = dpmgr_bridge_lookup(dpmgr, bridge_name));
   TEST_ASSERT_NOT_NULL(flowdb = bridge->flowdb);
   TEST_ASSERT_NOT_NULL(ports = ports_alloc());
@@ -149,7 +150,7 @@ test_ofp_match_list_elem_free(void) {
   /* data */
   for (i = 0; i < max_cnt; i++) {
     match = (struct match *)
-      malloc(sizeof(struct match));
+            malloc(sizeof(struct match));
     TAILQ_INSERT_TAIL(&match_list, match, entry);
   }
 
@@ -173,7 +174,7 @@ test_ofp_instruction_list_elem_free(void) {
 
   /* instruction packet. */
   char nomal_data[] = "00 03 00 18 00 00 00 00"
-    "00 00 00 10 00 00 01 00 00 30 00 00 00 00 00 00";
+                      "00 00 00 10 00 00 01 00 00 30 00 00 00 00 00 00";
 
   /* data */
   TAILQ_INIT(&instruction_list);
@@ -205,7 +206,7 @@ test_ofp_action_list_elem_free(void) {
   /* data */
   for (i = 0; i < max_cnt; i++) {
     action = (struct action *)
-      malloc(sizeof(struct action));
+             malloc(sizeof(struct action));
     TAILQ_INSERT_TAIL(&action_list, action, entry);
   }
 
@@ -232,7 +233,7 @@ static const uint8_t md_n[][8] = {
   { 0x00, 0x00, 0x00, 0x5a, 0x5a, 0x00, 0x00, 0x00},
 };
 static const uint8_t md_m[] =
-  { 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00};
+{ 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00};
 static void
 add_write_metadata_instruction(struct instruction_list *instruction_list,
                                int mdset) {
@@ -349,19 +350,19 @@ test_flowdb_flow_add(void) {
  */
 
 /* Assert if a flow has a Metadata Write instruction. */
-#define TEST_ASSERT_HAS_METADATA_WRITE(_fl, _mdset)			\
-  do {									\
-    struct instruction *_insn;						\
-    TEST_ASSERT_NOT_NULL(_fl);						\
+#define TEST_ASSERT_HAS_METADATA_WRITE(_fl, _mdset)                     \
+  do {                                                                  \
+    struct instruction *_insn;                                          \
+    TEST_ASSERT_NOT_NULL(_fl);                                          \
     TEST_ASSERT_INSNL_HAS_INSN(_insn, OFPIT_WRITE_METADATA, &(_fl)->instruction_list, entry); \
     TEST_ASSERT_TRUE(build_metadata(md_n[(_mdset)]) == _insn->ofpit_write_metadata.metadata); \
     TEST_ASSERT_TRUE(build_metadata(md_m) == _insn->ofpit_write_metadata.metadata_mask); \
   } while (0)
 
 /* Assert if a flow has no Metadata Write instruction. */
-#define TEST_ASSERT_NO_METADATA_WRITE(_fl)				\
-  do {									\
-    TEST_ASSERT_NOT_NULL(_fl);						\
+#define TEST_ASSERT_NO_METADATA_WRITE(_fl)                              \
+  do {                                                                  \
+    TEST_ASSERT_NOT_NULL(_fl);                                          \
     TEST_ASSERT_INSNL_NO_INSN(OFPIT_WRITE_METADATA, &(_fl)->instruction_list, entry); \
   } while (0)
 void
@@ -421,19 +422,19 @@ test_flowdb_flow_del_strict(void) {
  */
 
 /* Assert if a flow has a Metadata Write instruction. */
-#define TEST_ASSERT_HAS_METADATA_WRITE(_fl, _mdset)			\
-  do {									\
-    struct instruction *_insn;						\
-    TEST_ASSERT_NOT_NULL(_fl);						\
+#define TEST_ASSERT_HAS_METADATA_WRITE(_fl, _mdset)                     \
+  do {                                                                  \
+    struct instruction *_insn;                                          \
+    TEST_ASSERT_NOT_NULL(_fl);                                          \
     TEST_ASSERT_INSNL_HAS_INSN(_insn, OFPIT_WRITE_METADATA, &(_fl)->instruction_list, entry); \
     TEST_ASSERT_TRUE(build_metadata(md_n[(_mdset)]) == _insn->ofpit_write_metadata.metadata); \
     TEST_ASSERT_TRUE(build_metadata(md_m) == _insn->ofpit_write_metadata.metadata_mask); \
   } while (0)
 
 /* Assert if a flow has no Metadata Write instruction. */
-#define TEST_ASSERT_NO_METADATA_WRITE(_fl)				\
-  do {									\
-    TEST_ASSERT_NOT_NULL(_fl);						\
+#define TEST_ASSERT_NO_METADATA_WRITE(_fl)                              \
+  do {                                                                  \
+    TEST_ASSERT_NOT_NULL(_fl);                                          \
     TEST_ASSERT_INSNL_NO_INSN(OFPIT_WRITE_METADATA, &(_fl)->instruction_list, entry); \
   } while (0)
 void
@@ -662,7 +663,7 @@ test_flowdb_switch_mode(void) {
   };
 
   TEST_ASSERT_TRUE(LAGOPUS_RESULT_OK == flowdb_switch_mode_get(flowdb,
-                                                               &origmode));
+                   &origmode));
 
   for (i = 0; i < sizeof(modes) / sizeof(modes[0]); i++) {
     mode = modes[i];
@@ -672,5 +673,6 @@ test_flowdb_switch_mode(void) {
     TEST_ASSERT_TRUE(modes[i] == mode);
   }
 
-  TEST_ASSERT_TRUE(LAGOPUS_RESULT_OK == flowdb_switch_mode_set(flowdb, origmode));
+  TEST_ASSERT_TRUE(LAGOPUS_RESULT_OK == flowdb_switch_mode_set(flowdb,
+                   origmode));
 }

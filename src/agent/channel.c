@@ -70,8 +70,7 @@ enum channel_status {
   CHANNEL_STATUS_MAX = 5
 };
 
-struct multipart
-{
+struct multipart {
   struct ofp_header ofp_header;
   uint16_t multipart_type;
   uint16_t used;
@@ -80,8 +79,7 @@ struct multipart
 };
 
 /* OpenFlow channel. */
-struct channel
-{
+struct channel {
   /* Datapath ID */
   uint64_t dpid;
 
@@ -158,7 +156,8 @@ struct channel_list {
 };
 
 /* Prototypes. */
-static void channel_event_nolock(struct channel *channel, enum channel_event cevent);
+static void channel_event_nolock(struct channel *channel,
+                                 enum channel_event cevent);
 static void channel_read(struct event *event);
 static void channel_write_nolock(struct channel *channel);
 static void channel_write(struct event *event);
@@ -172,8 +171,7 @@ static void channel_do_expire(struct event *event);
 /* Non-blocking connect result check. */
 /* Assume channel locked. */
 static int
-channel_connect_check(struct channel *channel)
-{
+channel_connect_check(struct channel *channel) {
   lagopus_result_t ret;
 
   /* Cancel read and write event. */
@@ -203,10 +201,10 @@ channel_connect_check(struct channel *channel)
 /* Channel read on. */
 /* Assume channel locked. */
 static void
-channel_read_on(struct channel *channel)
-{
+channel_read_on(struct channel *channel) {
   if (channel->read_ev == NULL) {
-    channel->read_ev = event_register_read(channel->em, session_sockfd_get(channel->session),
+    channel->read_ev = event_register_read(channel->em,
+                                           session_sockfd_get(channel->session),
                                            channel_read, channel);
   }
 }
@@ -214,24 +212,24 @@ channel_read_on(struct channel *channel)
 /* Channel write on. */
 /* Assume channel locked. */
 static void
-channel_write_on(struct channel *channel)
-{
+channel_write_on(struct channel *channel) {
   if (channel->write_ev == NULL) {
-    channel->write_ev = event_register_write(channel->em, session_sockfd_get(channel->session),
-                                             channel_write, channel);
+    channel->write_ev = event_register_write(channel->em,
+                        session_sockfd_get(channel->session),
+                        channel_write, channel);
   }
 }
 
 /* Assume channel locked. */
 static bool
 channelq_data_create(struct channelq_data **retptr,
-                              struct channel *channel) {
+                     struct channel *channel) {
   struct ofp_header sneak;
   struct channelq_data *cdata = NULL;
 
   if (channel_packet_ready(channel->in, &sneak) == true) {
     /* create channelq_data */
-    cdata = (struct channelq_data*)malloc(sizeof(*cdata));
+    cdata = (struct channelq_data *)malloc(sizeof(*cdata));
     if (cdata == NULL) {
       channel_unlock(channel);
       return false;
@@ -259,8 +257,7 @@ channelq_data_create(struct channelq_data **retptr,
 
 /* Return XID with incrementing it. */
 uint32_t
-channel_xid_get_nolock(struct channel *channel)
-{
+channel_xid_get_nolock(struct channel *channel) {
   if (channel->xid >= UINT32_MAX) {
     channel->xid = START_XID;
   }
@@ -268,8 +265,7 @@ channel_xid_get_nolock(struct channel *channel)
 }
 
 uint32_t
-channel_xid_get(struct channel *channel)
-{
+channel_xid_get(struct channel *channel) {
   uint32_t xid;
 
   channel_lock(channel);
@@ -281,8 +277,7 @@ channel_xid_get(struct channel *channel)
 
 /* Socket read function. */
 static void
-channel_read(struct event *event)
-{
+channel_read(struct event *event) {
   lagopus_result_t rc = LAGOPUS_RESULT_ANY_FAILURES;
   channelq_t *channelq;
   struct channelq_data *cdata;
@@ -331,7 +326,7 @@ channel_read(struct event *event)
     /* put channel to ofp_handler */
     channel_unlock(channel);
     channel_refs_get(channel);
-    lagopus_bbq_put(channelq, &cdata, struct channel*, -1);
+    lagopus_bbq_put(channelq, &cdata, struct channel *, -1);
     channel_lock(channel);
   }
 done:
@@ -349,8 +344,7 @@ channelq_data_destroy(struct channelq_data *cdata) {
 
 /* Is packet ready to parse. */
 static bool
-channel_packet_ready(struct pbuf *pbuf, struct ofp_header *sneak)
-{
+channel_packet_ready(struct pbuf *pbuf, struct ofp_header *sneak) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   /* Set readable size to pbuf. */
   pbuf_plen_set(pbuf, pbuf_readable_size(pbuf));
@@ -369,8 +363,7 @@ channel_packet_ready(struct pbuf *pbuf, struct ofp_header *sneak)
 }
 
 static void
-channel_write_nolock(struct channel *channel)
-{
+channel_write_nolock(struct channel *channel) {
   ssize_t nbytes;
 
   /* Connect status. */
@@ -386,18 +379,18 @@ channel_write_nolock(struct channel *channel)
   if (nbytes < 0) {
     /* EAGAIN is not an error.  Simply ignore it. */
     if (errno == EAGAIN) {
-			return;
+      return;
     }
     lagopus_msg_warning("FAILED : channel_write TCP_Connection_Failed\n");
     channel_event_nolock(channel, TCP_Connection_Failed);
-		return;
+    return;
   }
 
   /* Write socket is closed. */
   if (nbytes == 0) {
     lagopus_msg_info("channel_write TCP_Connection_Closed\n");
     channel_event_nolock(channel, TCP_Connection_Closed);
-		return;
+    return;
   }
 
   /* If there is packet to be written, turn of write. */
@@ -408,8 +401,7 @@ channel_write_nolock(struct channel *channel)
 
 /* Socket write function. */
 static void
-channel_write(struct event *event)
-{
+channel_write(struct event *event) {
   struct channel *channel;
 
   /* Get channel. */
@@ -424,8 +416,7 @@ channel_write(struct event *event)
 }
 
 void
-channel_send_packet_by_event(struct channel *channel, struct pbuf *pbuf)
-{
+channel_send_packet_by_event(struct channel *channel, struct pbuf *pbuf) {
   if (channel != NULL) {
     pbuf_list_add(channel->out, pbuf);
     channel_write_on(channel);
@@ -433,15 +424,13 @@ channel_send_packet_by_event(struct channel *channel, struct pbuf *pbuf)
 }
 
 static void
-channel_send_packet_nolock(struct channel *channel, struct pbuf *pbuf)
-{
+channel_send_packet_nolock(struct channel *channel, struct pbuf *pbuf) {
   pbuf_list_add(channel->out, pbuf);
   channel_write_nolock(channel);
 }
 
 void
-channel_send_packet(struct channel *channel, struct pbuf *pbuf)
-{
+channel_send_packet(struct channel *channel, struct pbuf *pbuf) {
   channel_lock(channel);
   channel_send_packet_nolock(channel, pbuf);
   channel_unlock(channel);
@@ -450,8 +439,7 @@ channel_send_packet(struct channel *channel, struct pbuf *pbuf)
 
 lagopus_result_t
 channel_send_packet_list(struct channel *channel,
-                         struct pbuf_list *pbuf_list)
-{
+                         struct pbuf_list *pbuf_list) {
   lagopus_result_t res = LAGOPUS_RESULT_ANY_FAILURES;
   struct pbuf *pbuf = NULL;
 
@@ -471,8 +459,7 @@ channel_send_packet_list(struct channel *channel,
 }
 
 static void
-channel_timer(struct event *event)
-{
+channel_timer(struct event *event) {
   struct channel *channel = event_get_arg(event);
 
   channel_lock(channel);
@@ -483,17 +470,17 @@ channel_timer(struct event *event)
 
 /* Update channel timer according to channel status. */
 static void
-channel_update(struct channel *channel, enum channel_status next)
-{
-  if (channel->status != next)
+channel_update(struct channel *channel, enum channel_status next) {
+  if (channel->status != next) {
     channel->status = next;
+  }
 
   switch (channel->status) {
     case Idle:
       if (channel->start_timer == NULL)
         channel->start_timer = event_register_timer(channel->em,
-                                                    channel_timer,
-                                                    channel, channel->interval);
+                               channel_timer,
+                               channel, channel->interval);
       break;
     case Connect:
       break;
@@ -513,8 +500,7 @@ channel_update(struct channel *channel, enum channel_status next)
 
 /* Initiate connection to OpenFlow controller. */
 static int
-channel_start(struct channel *channel)
-{
+channel_start(struct channel *channel) {
   lagopus_result_t ret;
 
   if (channel->session == NULL) {
@@ -528,10 +514,11 @@ channel_start(struct channel *channel)
   }
 
   /* Logging. */
-  lagopus_msg_info("Connecting to OpenFlow controller %s:%d\n", channel->hostname, channel->port);
+  lagopus_msg_info("Connecting to OpenFlow controller %s:%d\n",
+                   channel->hostname, channel->port);
 
   ret = session_connect(channel->session, &channel->controller, channel->port,
-                          &channel->local_addr, channel->local_port);
+                        &channel->local_addr, channel->local_port);
   if (ret < 0 && errno != EINPROGRESS) {
     lagopus_msg_warning("connect error %s\n", strerror(errno));
     return -1;
@@ -552,17 +539,17 @@ channel_start(struct channel *channel)
 }
 
 static int
-channel_stop(struct channel *channel)
-{
+channel_stop(struct channel *channel) {
   lagopus_msg_info("channel_stop() is called\n");
 
   if (session_is_alive(channel->session)) {
-    lagopus_msg_info("closing the socket %d\n", session_sockfd_get(channel->session));
+    lagopus_msg_info("closing the socket %d\n",
+                     session_sockfd_get(channel->session));
     session_close(channel->session);
   }
 
   if (channel_mgr_has_alive_channel_by_dpid(channel->dpid)
-            == false) {
+      == false) {
     lagopus_result_t ret;
     enum fail_mode sm;
 
@@ -594,8 +581,7 @@ channel_stop(struct channel *channel)
 }
 
 static void
-channel_do_expire(struct event *event)
-{
+channel_do_expire(struct event *event) {
   struct channel *channel;
   channel = event_get_arg(event);
 
@@ -606,8 +592,7 @@ channel_do_expire(struct event *event)
 }
 
 static int
-channel_expire(struct channel *channel)
-{
+channel_expire(struct channel *channel) {
   if (channel->refs == 1 || channel->refs == 0) {
     channel_stop(channel);
     channel->refs = 0;
@@ -621,16 +606,14 @@ channel_expire(struct channel *channel)
 
 /* No operation. */
 static int
-channel_ignore(struct channel *channel)
-{
+channel_ignore(struct channel *channel) {
   /* Nothing to do. */
   lagopus_msg_info("channel_ignore is called %p\n", channel);
   return 0;
 }
 
 static int
-channel_connect_success(struct channel *channel)
-{
+channel_connect_success(struct channel *channel) {
   int rv = 0;
   /* Reset connect interval. */
 
@@ -648,8 +631,7 @@ channel_connect_success(struct channel *channel)
 }
 
 static int
-channel_connect_fail(struct channel *channel)
-{
+channel_connect_fail(struct channel *channel) {
   lagopus_msg_info("connect fail\n");
   /* Double connect interval. */
   channel->interval *= 2;
@@ -663,8 +645,7 @@ channel_connect_fail(struct channel *channel)
 
 /* Debug ping timer. */
 static void
-ping_timer(struct event *event)
-{
+ping_timer(struct event *event) {
   struct channel *channel;
 
   channel = event_get_arg(event);
@@ -681,8 +662,7 @@ ping_timer(struct event *event)
 }
 
 static int
-channel_hello_confirm(struct channel *channel)
-{
+channel_hello_confirm(struct channel *channel) {
   lagopus_result_t ret;
   lagopus_msg_debug(10, "read_on\n");
   channel_read_on(channel);
@@ -698,8 +678,7 @@ channel_hello_confirm(struct channel *channel)
 }
 
 static int
-channel_process(struct channel *channel)
-{
+channel_process(struct channel *channel) {
   lagopus_msg_info("channel_process() is called %p\n", channel);
   return 0;
 }
@@ -708,8 +687,7 @@ channel_process(struct channel *channel)
 struct {
   int (*func)(struct channel *);
   int next;
-} FSM[CHANNEL_STATUS_MAX][CHANNEL_EVENT_MAX] =
-{
+} FSM[CHANNEL_STATUS_MAX][CHANNEL_EVENT_MAX] = {
   {
     /* Idle state */
     {channel_start,           Connect},      /* Channel_Start */
@@ -723,8 +701,8 @@ struct {
   },
   {
     /* Connect */
-    {channel_connect_check,   Connect},	     /* Channel_Start */
-    {channel_stop,            Idle},	       /* Channel_Stop */
+    {channel_connect_check,   Connect},      /* Channel_Start */
+    {channel_stop,            Idle},           /* Channel_Stop */
     {channel_expire,          Disable},      /* Channel_Expired */
     {channel_connect_success, HelloSent},    /* TCP_Connection_Open */
     {channel_stop,            Idle},         /* TCP_Connection_Closed */
@@ -769,8 +747,7 @@ struct {
 
 /* Execute FSM event of the channel. */
 void
-channel_event_nolock(struct channel *channel, enum channel_event cevent)
-{
+channel_event_nolock(struct channel *channel, enum channel_event cevent) {
   int ret;
   enum channel_status next;
 
@@ -791,16 +768,16 @@ channel_event_nolock(struct channel *channel, enum channel_event cevent)
 
   /* Execute function. */
   ret = (*(FSM[channel->status][cevent].func))(channel);
-  if (ret < 0)
+  if (ret < 0) {
     return;
+  }
 
   /* Status and timer update. */
   channel_update(channel, next);
 }
 
 static void
-channel_event(struct channel *channel, enum channel_event cevent)
-{
+channel_event(struct channel *channel, enum channel_event cevent) {
   channel_lock(channel);
   channel_event_nolock(channel, cevent);
   channel_unlock(channel);
@@ -808,8 +785,7 @@ channel_event(struct channel *channel, enum channel_event cevent)
 
 /* Assume channel locked. */
 static lagopus_result_t
-session_set(struct channel *channel)
-{
+session_set(struct channel *channel) {
   if (session_is_alive(channel->session) == true) {
     lagopus_msg_info("session is alive.\n");
     return LAGOPUS_RESULT_ALREADY_EXISTS;
@@ -818,21 +794,21 @@ session_set(struct channel *channel)
   }
 
   switch (channel->protocol) {
-  case PROTOCOL_TCP:
-    channel->session = session_create(SESSION_TCP);
-    break;
-  case PROTOCOL_TLS:
-    channel->session = session_create(SESSION_TLS);
-    break;
-  case PROTOCOL_TCP6:
-    channel->session = session_create(SESSION_TCP6);
-    break;
-  case PROTOCOL_TLS6:
-    channel->session = session_create(SESSION_TLS6);
-    break;
-  default:
-    lagopus_msg_warning("unknown protocol %d\n", channel->protocol);
-    break;
+    case PROTOCOL_TCP:
+      channel->session = session_create(SESSION_TCP);
+      break;
+    case PROTOCOL_TLS:
+      channel->session = session_create(SESSION_TLS);
+      break;
+    case PROTOCOL_TCP6:
+      channel->session = session_create(SESSION_TCP6);
+      break;
+    case PROTOCOL_TLS6:
+      channel->session = session_create(SESSION_TLS6);
+      break;
+    default:
+      lagopus_msg_warning("unknown protocol %d\n", channel->protocol);
+      break;
   }
   if (channel->session == NULL) {
     return LAGOPUS_RESULT_ANY_FAILURES;
@@ -843,8 +819,7 @@ session_set(struct channel *channel)
 
 /* Multipart object init. */
 static void
-multipart_init(struct multipart *m)
-{
+multipart_init(struct multipart *m) {
   TAILQ_INIT(&m->multipart_list);
 }
 
@@ -852,16 +827,16 @@ multipart_init(struct multipart *m)
 static struct channel *
 channel_alloc_internal(struct addrunion *controller,
                        struct event_manager *em,
-                       uint64_t dpid)
-{
+                       uint64_t dpid) {
   int i;
   lagopus_result_t ret;
   struct channel *channel;
 
   /* Allocate a new channel. */
   channel = (struct channel *)calloc(1, sizeof(struct channel));
-  if (channel == NULL)
+  if (channel == NULL) {
     return NULL;
+  }
 
   /* Set dpid. */
   channel->dpid = dpid;
@@ -872,20 +847,20 @@ channel_alloc_internal(struct addrunion *controller,
   channel->local_port = 0;
 
   switch (addrunion_af_get(controller)) {
-  case AF_INET:
-    addrunion_ipv4_set(&channel->local_addr, "0.0.0.0");
-    channel->protocol = PROTOCOL_TCP;
-  //  channel->protocol = PROTOCOL_TLS;
-    break;
-  case AF_INET6:
-    addrunion_ipv6_set(&channel->local_addr, "::0");
-    channel->protocol = PROTOCOL_TCP6;
-    break;
-  default:
-    lagopus_msg_warning("unknown address family %d\n",
-                                  addrunion_af_get(controller));
-    free(channel);
-    return NULL;
+    case AF_INET:
+      addrunion_ipv4_set(&channel->local_addr, "0.0.0.0");
+      channel->protocol = PROTOCOL_TCP;
+      //  channel->protocol = PROTOCOL_TLS;
+      break;
+    case AF_INET6:
+      addrunion_ipv6_set(&channel->local_addr, "::0");
+      channel->protocol = PROTOCOL_TCP6;
+      break;
+    default:
+      lagopus_msg_warning("unknown address family %d\n",
+                          addrunion_af_get(controller));
+      free(channel);
+      return NULL;
   }
 
   ret = session_set(channel);
@@ -919,7 +894,7 @@ channel_alloc_internal(struct addrunion *controller,
   channel->status = Disable;
   channel->interval = CHANNEL_CONNECT_INTERVAL_DEFAULT;
   /* Init multipart objects. */
-  for(i = 0; i < CHANNEL_SIMULTANEOUS_MULTIPART_MAX; i++) {
+  for (i = 0; i < CHANNEL_SIMULTANEOUS_MULTIPART_MAX; i++) {
     multipart_init(&channel->multipart[i]);
   }
 
@@ -965,14 +940,13 @@ channel_alloc_ip4addr(const char *ipaddr, const char *port,
 
 /* Multipart object init. */
 static void
-multipart_free(struct multipart *m)
-{
+multipart_free(struct multipart *m) {
   struct pbuf *p;
 
   if (m->used == 1) {
     lagopus_msg_warning("unfinished multiparts existed."
-                                " xid %d, multipart_type %d\n",
-                                    m->ofp_header.xid, m->multipart_type);
+                        " xid %d, multipart_type %d\n",
+                        m->ofp_header.xid, m->multipart_type);
     while ((p = TAILQ_FIRST(&m->multipart_list)) != NULL) {
       TAILQ_REMOVE(&m->multipart_list, p, entry);
       pbuf_reset(p);
@@ -982,16 +956,14 @@ multipart_free(struct multipart *m)
 }
 
 void
-channel_refs_get(struct channel *channel)
-{
+channel_refs_get(struct channel *channel) {
   channel_lock(channel);
   channel->refs++;
   channel_unlock(channel);
 }
 
 void
-channel_refs_put(struct channel *channel)
-{
+channel_refs_put(struct channel *channel) {
   channel_lock(channel);
   assert(channel->refs > 0);
   channel->refs--;
@@ -1000,8 +972,7 @@ channel_refs_put(struct channel *channel)
 
 /* Free channel. */
 lagopus_result_t
-channel_free(struct channel *channel)
-{
+channel_free(struct channel *channel) {
   if (channel != NULL) {
     int i;
     lagopus_result_t ret = LAGOPUS_RESULT_OK;
@@ -1029,7 +1000,7 @@ channel_free(struct channel *channel)
     pbuf_list_free(channel->out);
 
     /* Free multipart objects. */
-    for(i = 0; i < CHANNEL_SIMULTANEOUS_MULTIPART_MAX; i++) {
+    for (i = 0; i < CHANNEL_SIMULTANEOUS_MULTIPART_MAX; i++) {
       multipart_free(&channel->multipart[i]);
     }
 
@@ -1041,7 +1012,7 @@ channel_free(struct channel *channel)
     lagopus_mutex_destroy(&channel->lock);
     free(channel);
 
- done:
+  done:
     return ret;
   } else {
     return LAGOPUS_RESULT_INVALID_ARGS;
@@ -1079,7 +1050,7 @@ channel_version_set(struct channel *channel, uint8_t version) {
   channel_unlock(channel);
 }
 
-struct session*
+struct session *
 channel_session_get(struct channel *channel) {
   struct session *s;
 
@@ -1162,18 +1133,16 @@ channel_unlock(struct channel *channel) {
   lagopus_mutex_unlock(&channel->lock);
 }
 
-struct pbuf*
-channel_pbuf_list_get_nolock(struct channel *channel, size_t size)
-{
+struct pbuf *
+channel_pbuf_list_get_nolock(struct channel *channel, size_t size) {
   struct pbuf *pbuf;
   pbuf = pbuf_list_get(channel->out, size);
 
   return pbuf;
 }
 
-struct pbuf*
-channel_pbuf_list_get(struct channel *channel, size_t size)
-{
+struct pbuf *
+channel_pbuf_list_get(struct channel *channel, size_t size) {
   struct pbuf *pbuf;
 
   channel_lock(channel);
@@ -1184,22 +1153,19 @@ channel_pbuf_list_get(struct channel *channel, size_t size)
 }
 
 void
-channel_pbuf_list_unget_nolock(struct channel *channel, struct pbuf *pbuf)
-{
+channel_pbuf_list_unget_nolock(struct channel *channel, struct pbuf *pbuf) {
   pbuf_list_unget(channel->out, pbuf);
 }
 
 void
-channel_pbuf_list_unget(struct channel *channel, struct pbuf *pbuf)
-{
+channel_pbuf_list_unget(struct channel *channel, struct pbuf *pbuf) {
   lagopus_mutex_lock(&channel->lock);
   channel_pbuf_list_unget_nolock(channel, pbuf);
   lagopus_mutex_unlock(&channel->lock);
 }
 
 lagopus_result_t
-channel_addr_get(struct channel *channel, struct addrunion *addrunion)
-{
+channel_addr_get(struct channel *channel, struct addrunion *addrunion) {
   channel_lock(channel);
   *addrunion = channel->controller;
   channel_unlock(channel);
@@ -1207,8 +1173,7 @@ channel_addr_get(struct channel *channel, struct addrunion *addrunion)
 }
 
 lagopus_result_t
-channel_protocol_set(struct channel *channel, enum channel_protocol protocol)
-{
+channel_protocol_set(struct channel *channel, enum channel_protocol protocol) {
   lagopus_result_t ret = LAGOPUS_RESULT_BUSY;
 
   channel_lock(channel);
@@ -1225,8 +1190,7 @@ channel_protocol_set(struct channel *channel, enum channel_protocol protocol)
 }
 
 lagopus_result_t
-channel_protocol_unset(struct channel *channel)
-{
+channel_protocol_unset(struct channel *channel) {
   lagopus_result_t ret = LAGOPUS_RESULT_BUSY;
 
   channel_lock(channel);
@@ -1242,8 +1206,8 @@ channel_protocol_unset(struct channel *channel)
 }
 
 lagopus_result_t
-channel_protocol_get(struct channel *channel, enum channel_protocol *protocol)
-{
+channel_protocol_get(struct channel *channel,
+                     enum channel_protocol *protocol) {
   channel_lock(channel);
   *protocol = channel->protocol;
   channel_unlock(channel);
@@ -1251,8 +1215,7 @@ channel_protocol_get(struct channel *channel, enum channel_protocol *protocol)
 }
 
 lagopus_result_t
-channel_port_set(struct channel *channel, uint16_t port)
-{
+channel_port_set(struct channel *channel, uint16_t port) {
   lagopus_result_t ret = LAGOPUS_RESULT_BUSY;
 
   channel_lock(channel);
@@ -1265,8 +1228,7 @@ channel_port_set(struct channel *channel, uint16_t port)
 }
 
 lagopus_result_t
-channel_port_unset(struct channel *channel)
-{
+channel_port_unset(struct channel *channel) {
   lagopus_result_t ret = LAGOPUS_RESULT_BUSY;
 
   channel_lock(channel);
@@ -1279,8 +1241,7 @@ channel_port_unset(struct channel *channel)
 }
 
 lagopus_result_t
-channel_port_get(struct channel *channel, uint16_t *port)
-{
+channel_port_get(struct channel *channel, uint16_t *port) {
   channel_lock(channel);
   *port= channel->port;
   channel_unlock(channel);
@@ -1288,8 +1249,7 @@ channel_port_get(struct channel *channel, uint16_t *port)
 }
 
 lagopus_result_t
-channel_local_port_set(struct channel *channel, uint16_t port)
-{
+channel_local_port_set(struct channel *channel, uint16_t port) {
   lagopus_result_t ret = LAGOPUS_RESULT_BUSY;
 
   channel_lock(channel);
@@ -1302,8 +1262,7 @@ channel_local_port_set(struct channel *channel, uint16_t port)
 }
 
 lagopus_result_t
-channel_local_port_unset(struct channel *channel)
-{
+channel_local_port_unset(struct channel *channel) {
   lagopus_result_t ret = LAGOPUS_RESULT_BUSY;
 
   channel_lock(channel);
@@ -1316,8 +1275,7 @@ channel_local_port_unset(struct channel *channel)
 }
 
 lagopus_result_t
-channel_local_port_get(struct channel *channel, uint16_t *port)
-{
+channel_local_port_get(struct channel *channel, uint16_t *port) {
   channel_lock(channel);
   *port= channel->local_port;
   channel_unlock(channel);
@@ -1325,8 +1283,7 @@ channel_local_port_get(struct channel *channel, uint16_t *port)
 }
 
 lagopus_result_t
-channel_local_addr_set(struct channel *channel, struct addrunion *addrunion)
-{
+channel_local_addr_set(struct channel *channel, struct addrunion *addrunion) {
   lagopus_result_t ret = LAGOPUS_RESULT_BUSY;
 
   channel_lock(channel);
@@ -1339,8 +1296,7 @@ channel_local_addr_set(struct channel *channel, struct addrunion *addrunion)
 }
 
 lagopus_result_t
-channel_local_addr_unset(struct channel *channel)
-{
+channel_local_addr_unset(struct channel *channel) {
   lagopus_result_t ret = LAGOPUS_RESULT_BUSY;
 
   channel_lock(channel);
@@ -1348,7 +1304,8 @@ channel_local_addr_unset(struct channel *channel)
     if (channel->protocol == PROTOCOL_TCP || channel->protocol == PROTOCOL_TLS) {
       addrunion_ipv4_set(&channel->local_addr, "0.0.0.0");
       ret = LAGOPUS_RESULT_OK;
-    } else if (channel->protocol == PROTOCOL_TCP6 || channel->protocol == PROTOCOL_TLS6) {
+    } else if (channel->protocol == PROTOCOL_TCP6 ||
+               channel->protocol == PROTOCOL_TLS6) {
       addrunion_ipv6_set(&channel->local_addr, "::0");
       ret = LAGOPUS_RESULT_OK;
     } else {
@@ -1360,8 +1317,7 @@ channel_local_addr_unset(struct channel *channel)
 }
 
 lagopus_result_t
-channel_local_addr_get(struct channel *channel, struct addrunion *addrunion)
-{
+channel_local_addr_get(struct channel *channel, struct addrunion *addrunion) {
   channel_lock(channel);
   *addrunion = channel->local_addr;
   channel_unlock(channel);
@@ -1370,17 +1326,15 @@ channel_local_addr_get(struct channel *channel, struct addrunion *addrunion)
 
 lagopus_result_t
 channel_features_get(struct channel *channel,
-                     struct ofp_switch_features *features)
-{
+                     struct ofp_switch_features *features) {
   return dpmgr_bridge_ofp_features_get(channel->dpid, features);
 }
 
 int
-channel_multipart_used_count_get(struct channel *channel)
-{
+channel_multipart_used_count_get(struct channel *channel) {
   int i, cnt = 0;
   channel_lock(channel);
-  for(i = 0; i < CHANNEL_SIMULTANEOUS_MULTIPART_MAX; i++) {
+  for (i = 0; i < CHANNEL_SIMULTANEOUS_MULTIPART_MAX; i++) {
     if (channel->multipart[i].used == 1) {
       cnt++;
     }
@@ -1392,18 +1346,17 @@ channel_multipart_used_count_get(struct channel *channel)
 
 lagopus_result_t
 channel_multipart_put(struct channel *channel, struct pbuf *pbuf,
-                struct ofp_header *xid_header, uint16_t mtype)
-{
+                      struct ofp_header *xid_header, uint16_t mtype) {
   int i;
   struct multipart *m = NULL;
   lagopus_result_t ret;
 
   channel_lock(channel);
-  for(i = 0; i < CHANNEL_SIMULTANEOUS_MULTIPART_MAX; i++) {
+  for (i = 0; i < CHANNEL_SIMULTANEOUS_MULTIPART_MAX; i++) {
     if (channel->multipart[i].used == 0) {
       m = &channel->multipart[i];
     } else if (channel->multipart[i].ofp_header.xid
-                                       == xid_header->xid) {
+               == xid_header->xid) {
       if (channel->multipart[i].multipart_type != mtype) {
         /* but multipart type is not matched. */
         ret = LAGOPUS_RESULT_OFP_ERROR;
@@ -1435,24 +1388,22 @@ channel_multipart_put(struct channel *channel, struct pbuf *pbuf,
 }
 
 static void
-reset(struct multipart *m)
-{
+reset(struct multipart *m) {
   m->used = 0;
 }
-  
+
 
 lagopus_result_t
 channel_multipart_get(struct channel *channel, struct pbuf **pbuf,
-                struct ofp_header *xid_header, uint16_t mtype)
-{
+                      struct ofp_header *xid_header, uint16_t mtype) {
   int i;
   struct pbuf *p;
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
 
   channel_lock(channel);
-  for(i = 0; i < CHANNEL_SIMULTANEOUS_MULTIPART_MAX; i++) {
+  for (i = 0; i < CHANNEL_SIMULTANEOUS_MULTIPART_MAX; i++) {
     if (channel->multipart[i].ofp_header.xid == xid_header->xid
-      && channel->multipart[i].multipart_type == mtype) {
+        && channel->multipart[i].multipart_type == mtype) {
       /* found */
       ret = LAGOPUS_RESULT_OK;
       break;
@@ -1468,7 +1419,7 @@ channel_multipart_get(struct channel *channel, struct pbuf **pbuf,
       /* set return val. */
       ret = LAGOPUS_RESULT_OK;
       while ((p = TAILQ_FIRST(&channel->multipart[i].multipart_list))
-                                                              != NULL) {
+             != NULL) {
         TAILQ_REMOVE(&channel->multipart[i].multipart_list, p, entry);
         ret = pbuf_copy(*pbuf, p);
         pbuf_reset(p);
@@ -1496,14 +1447,12 @@ channel_multipart_get(struct channel *channel, struct pbuf **pbuf,
 }
 
 uint8_t
-channel_auxiliary_id_get(struct channel *channel)
-{
+channel_auxiliary_id_get(struct channel *channel) {
   return channel->auxiliary_id;
 }
 
 struct channel_list *
-channel_list_alloc(void)
-{
+channel_list_alloc(void) {
   lagopus_result_t ret;
   struct channel_list *channel_list;
 
@@ -1531,8 +1480,7 @@ channel_list_alloc(void)
 
 /* Assume all channels was freed. */
 void
-channel_list_free(struct channel_list *channel_list)
-{
+channel_list_free(struct channel_list *channel_list) {
   if (LIST_EMPTY(&channel_list->channel_h) == false) {
     lagopus_msg_fatal("channel exists.\n");
   }
@@ -1544,8 +1492,8 @@ channel_list_free(struct channel_list *channel_list)
 }
 
 lagopus_result_t
-channel_list_insert(struct channel_list *channel_list, struct channel *channel)
-{
+channel_list_insert(struct channel_list *channel_list,
+                    struct channel *channel) {
   if (channel_list == NULL || channel == NULL) {
     return LAGOPUS_RESULT_INVALID_ARGS;
   }
@@ -1559,8 +1507,7 @@ channel_list_insert(struct channel_list *channel_list, struct channel *channel)
 
 lagopus_result_t
 channel_list_iterate(struct channel_list *channel_list,
-        lagopus_result_t (*func)(struct channel *channel, void *val), void *val)
-{
+                     lagopus_result_t (*func)(struct channel *channel, void *val), void *val) {
   lagopus_result_t ret;
   struct channel *channel;
 
@@ -1581,8 +1528,7 @@ channel_list_iterate(struct channel_list *channel_list,
 }
 
 uint64_t
-channel_list_channel_id_get(struct channel_list *channel_list)
-{
+channel_list_channel_id_get(struct channel_list *channel_list) {
   uint64_t ret;
 
   channel_list_lock(channel_list);
@@ -1593,8 +1539,7 @@ channel_list_channel_id_get(struct channel_list *channel_list)
 }
 
 bool
-channel_is_alive(struct channel *channel)
-{
+channel_is_alive(struct channel *channel) {
   if (channel == NULL) {
     return false;
   }
@@ -1611,24 +1556,23 @@ channel_is_alive(struct channel *channel)
 }
 
 void
-channel_role_mask_get(struct channel *channel, struct ofp_async_config *role_mask)
-{
+channel_role_mask_get(struct channel *channel,
+                      struct ofp_async_config *role_mask) {
   channel_lock(channel);
   *role_mask = channel->role_mask;
   channel_unlock(channel);
 }
 
 void
-channel_role_mask_set(struct channel *channel, struct ofp_async_config *role_mask)
-{
+channel_role_mask_set(struct channel *channel,
+                      struct ofp_async_config *role_mask) {
   channel_lock(channel);
   channel->role_mask = *role_mask;
   channel_unlock(channel);
 }
 
 static lagopus_result_t
-count_alive_num(struct channel *channel, void *val)
-{
+count_alive_num(struct channel *channel, void *val) {
   if (channel_is_alive(channel) == true) {
     (*(int *) val)++;
   }
@@ -1637,8 +1581,7 @@ count_alive_num(struct channel *channel, void *val)
 }
 
 int
-channel_list_get_alive_num(struct channel_list *channel_list)
-{
+channel_list_get_alive_num(struct channel_list *channel_list) {
   int cnt = 0;
   lagopus_result_t ret;
 
@@ -1651,21 +1594,18 @@ channel_list_get_alive_num(struct channel_list *channel_list)
 }
 
 void
-channel_list_lock(struct channel_list *channel_list)
-{
+channel_list_lock(struct channel_list *channel_list) {
   lagopus_mutex_lock(&channel_list->lock);
 }
 
 void
-channel_list_unlock(struct channel_list *channel_list)
-{
+channel_list_unlock(struct channel_list *channel_list) {
   lagopus_mutex_unlock(&channel_list->lock);
 }
 
 bool
 channel_role_channel_check_mask(struct channel *channel,
-            uint8_t type, uint8_t reason)
-{
+                                uint8_t type, uint8_t reason) {
   bool ret;
   channel_lock(channel);
   ret = ofp_role_channel_check_mask(&channel->role_mask, type,
@@ -1676,8 +1616,7 @@ channel_role_channel_check_mask(struct channel *channel,
 }
 
 bool
-channel_list_generation_id_is_defined(struct channel_list *channel_list)
-{
+channel_list_generation_id_is_defined(struct channel_list *channel_list) {
   bool ret;
   channel_list_lock(channel_list);
   ret = channel_list->generation_is_defined;
@@ -1687,8 +1626,7 @@ channel_list_generation_id_is_defined(struct channel_list *channel_list)
 }
 
 uint64_t
-channel_list_generation_id_get(struct channel_list *channel_list)
-{
+channel_list_generation_id_get(struct channel_list *channel_list) {
   uint64_t gen;
 
   channel_list_lock(channel_list);
@@ -1699,8 +1637,8 @@ channel_list_generation_id_get(struct channel_list *channel_list)
 }
 
 void
-channel_list_generation_id_set(struct channel_list *channel_list, uint64_t gen)
-{
+channel_list_generation_id_set(struct channel_list *channel_list,
+                               uint64_t gen) {
   channel_list_lock(channel_list);
   channel_list->generation_is_defined = true;
   channel_list->generation_id = gen;
@@ -1710,28 +1648,25 @@ channel_list_generation_id_set(struct channel_list *channel_list, uint64_t gen)
 }
 
 void
-channel_enable(struct channel *channel)
-{
+channel_enable(struct channel *channel) {
   channel_lock(channel);
   channel_update(channel, Idle);
   channel_unlock(channel);
 }
 
 void
-channel_hello_received_set(struct channel *channel)
-{
+channel_hello_received_set(struct channel *channel) {
   channel_event(channel, OpenFlow_Hello_Received);
 }
 
 void
-channel_disable(struct channel *channel)
-{
+channel_disable(struct channel *channel) {
   channel_lock(channel);
   if (channel->expire_ev == NULL
-        && channel->event != Channel_Expired) {
+      && channel->event != Channel_Expired) {
     channel_update(channel, Disable);
     channel->expire_ev =
-          event_register_event(channel->em, channel_do_expire, channel);
+      event_register_event(channel->em, channel_do_expire, channel);
   }
   channel_unlock(channel);
 }

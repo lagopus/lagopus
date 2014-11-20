@@ -16,15 +16,15 @@
 
 
 /**
- * @file	ofp_element.h
+ * @file        ofp_element.h
  */
 
 #ifndef __OFP_ELEMENT_H__
 #define __OFP_ELEMENT_H__
 
 /**
- * @brief	bitmap
- * @details	bitmap in element.
+ * @brief       bitmap
+ * @details     bitmap in element.
  */
 struct bitmap {
   TAILQ_ENTRY(bitmap) entry;
@@ -33,8 +33,8 @@ struct bitmap {
 TAILQ_HEAD(bitmap_list, bitmap);
 
 /**
- * @brief	element
- * @details	element in ofp_hello.
+ * @brief       element
+ * @details     element in ofp_hello.
  */
 struct element {
   TAILQ_ENTRY(element) entry;
@@ -49,8 +49,8 @@ TAILQ_HEAD(element_list, element);
 /**
  * Alloc bitmap.
  *
- *     @retval	*bitmap	Succeeded, A pointer to \e bitmap structure.
- *     @retval	NULL	Failed.
+ *     @retval  *bitmap Succeeded, A pointer to \e bitmap structure.
+ *     @retval  NULL    Failed.
  */
 struct bitmap *
 bitmap_alloc(void);
@@ -58,10 +58,10 @@ bitmap_alloc(void);
 /**
  * Free bitmap_list elements.
  *
- *     @param[in]	bitmap_list	A pointer to list of
+ *     @param[in]       bitmap_list     A pointer to list of
  *     \e bitmap structures.
  *
- *     @retval	void
+ *     @retval  void
  */
 void
 bitmap_list_elem_free(struct bitmap_list *bitmap_list);
@@ -69,8 +69,8 @@ bitmap_list_elem_free(struct bitmap_list *bitmap_list);
 /**
  * Alloc element.
  *
- *     @retval	*element	Succeeded, A pointer to \e element structure.
- *     @retval	NULL	Failed.
+ *     @retval  *element        Succeeded, A pointer to \e element structure.
+ *     @retval  NULL    Failed.
  */
 struct element *
 element_alloc(void);
@@ -78,10 +78,10 @@ element_alloc(void);
 /**
  * Free element_list elements.
  *
- *     @param[in]	element_list	A pointer to list of
+ *     @param[in]       element_list    A pointer to list of
  *     \e element structures.
  *
- *     @retval	void
+ *     @retval  void
  */
 void
 element_list_elem_free(struct element_list *element_list);
@@ -89,14 +89,14 @@ element_list_elem_free(struct element_list *element_list);
 /**
  * Parse element.
  *
- *     @param[in]	pbuf	A pointer to \e pbuf structure.
- *     @param[out]	element_list	A pointer to list of \e element structures.
- *     @param[out]	error	A pointer to \e ofp_error structure.
+ *     @param[in]       pbuf    A pointer to \e pbuf structure.
+ *     @param[out]      element_list    A pointer to list of \e element structures.
+ *     @param[out]      error   A pointer to \e ofp_error structure.
  *     If errors occur, set filed values.
  *
- *     @retval	LAGOPUS_RESULT_OK	Succeeded.
- *     @retval	LAGOPUS_RESULT_OFP_ERROR Failed, ofp_error.
- *     @retval	LAGOPUS_RESULT_ANY_FAILURES Failed.
+ *     @retval  LAGOPUS_RESULT_OK       Succeeded.
+ *     @retval  LAGOPUS_RESULT_OFP_ERROR Failed, ofp_error.
+ *     @retval  LAGOPUS_RESULT_ANY_FAILURES Failed.
  */
 lagopus_result_t
 ofp_element_parse(struct pbuf *pbuf,
@@ -106,14 +106,14 @@ ofp_element_parse(struct pbuf *pbuf,
 /**
  * Encode element_list.
  *
- *     @param[out]	pbuf_list	A pointer to list of \e pbuf structures.
- *     @param[out]	pbuf	A pointer to \e pbuf structure.
- *     @param[in]	element_list	A pointer to list of \e element structures.
- *     @param[out]	total_length	A pointer to \e size of packet.
+ *     @param[out]      pbuf_list       A pointer to list of \e pbuf structures.
+ *     @param[out]      pbuf    A pointer to \e pbuf structure.
+ *     @param[in]       element_list    A pointer to list of \e element structures.
+ *     @param[out]      total_length    A pointer to \e size of packet.
  *
- *     @retval	LAGOPUS_RESULT_OK	Succeeded.
- *     @retval	LAGOPUS_RESULT_OUT_OF_RANGE Failed, out of range.
- *     @retval	LAGOPUS_RESULT_ANY_FAILURES Failed.
+ *     @retval  LAGOPUS_RESULT_OK       Succeeded.
+ *     @retval  LAGOPUS_RESULT_OUT_OF_RANGE Failed, out of range.
+ *     @retval  LAGOPUS_RESULT_ANY_FAILURES Failed.
  */
 lagopus_result_t
 ofp_element_list_encode(struct pbuf *pbuf,

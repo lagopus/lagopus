@@ -23,7 +23,7 @@
 
 
 /**
- *	@file	lagopus_strutils.h
+ *      @file   lagopus_strutils.h
  */
 
 

@@ -22,7 +22,7 @@
 
 
 
-#define N_EMPTY_ROOM	1LL
+#define N_EMPTY_ROOM    1LL
 
 
 

@@ -759,12 +759,12 @@ app_parse_args(int argc, const char *argv[]) {
     port_count = 0;
     for (i = 0; i < 32; i++) {
       if ((portmask & (uint32_t)(1 << i)) != 0) {
-	port_count++;
+        port_count++;
       }
     }
     if (port_count == 0) {
       lagopus_exit_error(EXIT_FAILURE,
-	 "error: port is not specified.  use -p HEXNUM or --rx, --tx.\n");
+                         "error: port is not specified.  use -p HEXNUM or --rx, --tx.\n");
     }
   }
   for (lcore_count = 0, lcore = 0; lcore < RTE_MAX_LCORE; lcore++) {
@@ -798,11 +798,11 @@ app_parse_args(int argc, const char *argv[]) {
 
   if (lcore_count == 0) {
     lagopus_exit_error(
-        EXIT_FAILURE,
-        "Not enough active core "
-        "(need at least 2 active core%s)\n",
-        app.core_assign == CORE_ASSIGN_PERFORMANCE ?
-        " except for HTT core" : "");
+      EXIT_FAILURE,
+      "Not enough active core "
+      "(need at least 2 active core%s)\n",
+      app.core_assign == CORE_ASSIGN_PERFORMANCE ?
+      " except for HTT core" : "");
   }
   if (app.core_assign == CORE_ASSIGN_MINIMUM) {
     lcore_count = 1;

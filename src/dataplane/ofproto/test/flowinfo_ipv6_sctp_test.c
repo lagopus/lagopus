@@ -32,12 +32,12 @@
 #include "datapath_test_match_macros.h"
 #include "flowinfo_test.h"
 
-#define FLOW_ADD_UT_PREREQUISITE(_x)		\
+#define FLOW_ADD_UT_PREREQUISITE(_x)            \
   FLOW_ADD_IPV6_SCTP_PREREQUISITE(_x)
-#define	TEST_ASSERT_FLOW_MATCH_UT_PREREQUISITE(_x)	\
+#define TEST_ASSERT_FLOW_MATCH_UT_PREREQUISITE(_x)      \
   TEST_ASSERT_FLOW_MATCH_IPV6_SCTP_PREREQUISITE(_x)
-#define	ETHERTYPE_UT	ETHERTYPE_IPV6
-#define	IPPROTO_UT	IPPROTO_SCTP
+#define ETHERTYPE_UT    ETHERTYPE_IPV6
+#define IPPROTO_UT      IPPROTO_SCTP
 
 #include "flowinfo_l4_test.c"
 

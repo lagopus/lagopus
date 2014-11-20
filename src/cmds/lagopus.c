@@ -25,10 +25,10 @@
 
 
 
-#define ONE_SEC		1000LL * 1000LL * 1000LL
-#define REQ_TIMEDOUT	ONE_SEC
+#define ONE_SEC         1000LL * 1000LL * 1000LL
+#define REQ_TIMEDOUT    ONE_SEC
 
-#define DEFAULT_PIDFILE_DIR	"/var/run/"
+#define DEFAULT_PIDFILE_DIR     "/var/run/"
 
 
 
@@ -207,10 +207,10 @@ parse_args(int argc, const char *const argv[]) {
 
   /*
    * FIXME:
-   *	Avoid to use getopt() for proper multi-modules initialization.
+   *    Avoid to use getopt() for proper multi-modules initialization.
    */
   while ((o = getopt_long(argc, (char *const *)argv,
-			  "dh?vl:p:C:", s_longopts, NULL)) != EOF) {
+                          "dh?vl:p:C:", s_longopts, NULL)) != EOF) {
     switch (o) {
       case 0: {
         break;

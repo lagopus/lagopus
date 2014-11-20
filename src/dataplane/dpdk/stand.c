@@ -16,8 +16,8 @@
 
 
 /**
- *	@file	stand.c
- *	@brief	for Standalone test use with DPDK
+ *      @file   stand.c
+ *      @brief  for Standalone test use with DPDK
  */
 
 /*-

@@ -16,7 +16,7 @@
 
 
 /**
- * @file	ofp_meter.h
+ * @file        ofp_meter.h
  */
 
 #ifndef __OFP_METER_H__
@@ -25,12 +25,12 @@
 /**
  * Check meter id.
  *
- *     @param[in]	meter_id 	meter id.
- *     @param[out]	error 	A pointer to \e ofp_error structure.
+ *     @param[in]       meter_id        meter id.
+ *     @param[out]      error   A pointer to \e ofp_error structure.
  *
- *     @retval	LAGOPUS_RESULT_OK	Succeeded.
- *     @retval	LAGOPUS_RESULT_OXM_ERROR Failed, Invalid meter_id.
- *     @retval	LAGOPUS_RESULT_ANY_FAILURES Failed.
+ *     @retval  LAGOPUS_RESULT_OK       Succeeded.
+ *     @retval  LAGOPUS_RESULT_OXM_ERROR Failed, Invalid meter_id.
+ *     @retval  LAGOPUS_RESULT_ANY_FAILURES Failed.
  */
 lagopus_result_t
 ofp_meter_id_check(uint32_t meter_id, struct ofp_error *error);

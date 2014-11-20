@@ -142,7 +142,7 @@ dpmgr_bridge_lookup(struct dpmgr *dpmgr, const char *bridge_name);
  */
 struct bridge *
 dpmgr_bridge_lookup_by_controller_address(struct dpmgr *dpmgr,
-                                          const char *controller_address);
+    const char *controller_address);
 /**
  * Lookup bridge dpid.
  *

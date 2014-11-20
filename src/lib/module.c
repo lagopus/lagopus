@@ -21,8 +21,8 @@
 
 
 
-#define MAX_MODULES		1024
-#define MAX_MODULE_NAME		64
+#define MAX_MODULES             1024
+#define MAX_MODULE_NAME         64
 
 
 
@@ -64,8 +64,8 @@ static pthread_once_t s_once = PTHREAD_ONCE_INIT;
 static lagopus_mutex_t s_lck = NULL;
 
 
-static void	s_ctors(void) __attr_constructor__(108);
-static void	s_dtors(void) __attr_destructor__(108);
+static void     s_ctors(void) __attr_constructor__(108);
+static void     s_dtors(void) __attr_destructor__(108);
 
 
 

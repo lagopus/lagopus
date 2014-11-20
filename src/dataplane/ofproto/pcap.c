@@ -17,7 +17,7 @@
 
 /**
  *      @file   pcap.c
- *	@brief	Packet capture routines
+ *      @brief  Packet capture routines
  */
 
 #include <inttypes.h>

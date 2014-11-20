@@ -85,11 +85,11 @@ void clear_all_cache(struct flowcache *cache);
 /**
  * Lookup cache.
  *
- * @param[in]	cache	Cache.
- * @param[in]	pkt	Packet.
+ * @param[in]   cache   Cache.
+ * @param[in]   pkt     Packet.
  *
- * @retval	!=NULL	Cache entry.
- * @retval	==NULL	does not exist in cache.
+ * @retval      !=NULL  Cache entry.
+ * @retval      ==NULL  does not exist in cache.
  */
 struct cache_entry *
 cache_lookup(struct flowcache *cache, struct lagopus_packet *pkt);
@@ -97,7 +97,7 @@ cache_lookup(struct flowcache *cache, struct lagopus_packet *pkt);
 /**
  * Finalize cache.
  *
- * @param[in]	cache	Cache.
+ * @param[in]   cache   Cache.
  */
 void
 fini_flowcache(struct flowcache *cache);

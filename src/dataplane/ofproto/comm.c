@@ -392,7 +392,7 @@ static lagopus_mutex_t comm_lock = NULL;
 
 lagopus_result_t
 dpcomm_initialize(int argc,
-                  const char * const argv[],
+                  const char *const argv[],
                   void *extarg,
                   lagopus_thread_t **thdptr) {
   lagopus_result_t rv = LAGOPUS_RESULT_ANY_FAILURES;
@@ -469,6 +469,6 @@ static void dpcomm_ctors (void) {
                           dpcomm_stop,
                           dpcomm_finalize,
                           NULL
-                          );
+                         );
 }
 #endif

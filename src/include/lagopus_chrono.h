@@ -23,7 +23,7 @@
 
 
 /**
- *	@file	lagopus_chrono.h
+ *      @file   lagopus_chrono.h
  */
 
 

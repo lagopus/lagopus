@@ -23,19 +23,19 @@
 
 
 /**
- *	@file	lagopus_lock.h
+ *      @file   lagopus_lock.h
  */
 
 
 
 
 
-typedef struct lagopus_mutex_record 	*lagopus_mutex_t;
-typedef struct lagopus_rwlock_record 	*lagopus_rwlock_t;
+typedef struct lagopus_mutex_record     *lagopus_mutex_t;
+typedef struct lagopus_rwlock_record    *lagopus_rwlock_t;
 
-typedef struct lagopus_cond_record 	*lagopus_cond_t;
+typedef struct lagopus_cond_record      *lagopus_cond_t;
 
-typedef struct lagopus_barrier_record 	*lagopus_barrier_t;
+typedef struct lagopus_barrier_record   *lagopus_barrier_t;
 
 
 

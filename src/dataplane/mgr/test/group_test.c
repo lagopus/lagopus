@@ -130,8 +130,8 @@ test_group_table_add(void) {
   TEST_ASSERT_EQUAL_MESSAGE(action->ofpat.type, OFPAT_OUTPUT,
                             "action copy error");
   TEST_ASSERT_EQUAL_MESSAGE(
-			    ((struct ofp_action_output *)&action->ofpat)->port, 3,
-			    "action copy error");
+    ((struct ofp_action_output *)&action->ofpat)->port, 3,
+    "action copy error");
 
   group_mod.group_id = 3;
   group_mod.type = OFPGT_ALL;

@@ -34,11 +34,11 @@ typedef struct lagopus_pipeline_worker_record {
   lagopus_thread_record m_thd;  /* must be placed at the head. */
   lagopus_pipeline_stage_t *m_sptr;
   /* ref. to the parent container. */
-  size_t m_idx;			/* A worker index in the m_sptr */
+  size_t m_idx;                 /* A worker index in the m_sptr */
   worker_main_proc_t m_proc;
   bool m_is_started;
 
-  uint8_t m_buf[0];		/* A buffer for the batch, must be >=
+  uint8_t m_buf[0];             /* A buffer for the batch, must be >=
                                  * (*m_sptr)->m_batch_buffer_size (in
                                  * bytes) and placed at the tail of
                                  * the record. */
@@ -48,9 +48,9 @@ typedef struct lagopus_pipeline_worker_record {
 
 
 
-static inline void	s_worker_pause(lagopus_pipeline_worker_t w,
+static inline void      s_worker_pause(lagopus_pipeline_worker_t w,
                                    lagopus_pipeline_stage_t ps);
-static inline void	s_worker_maintenance(lagopus_pipeline_worker_t w,
+static inline void      s_worker_maintenance(lagopus_pipeline_worker_t w,
     lagopus_pipeline_stage_t ps);
 
 
@@ -95,12 +95,12 @@ static inline void	s_worker_maintenance(lagopus_pipeline_worker_t w,
 /*
  * The st indicates how the main loop iterates:
  *
- *	st <  0:	... stop iteration immediately.
- *	st == 0:	... If the graceful shutdown is requested,
- *			    stop iterateion.
- *	st >  0:	... If the immediate shutdown is requested,
- *			    stop iterateion. Otherwise conrinues the
- *			    iteration.
+ *      st <  0:        ... stop iteration immediately.
+ *      st == 0:        ... If the graceful shutdown is requested,
+ *                          stop iterateion.
+ *      st >  0:        ... If the immediate shutdown is requested,
+ *                          stop iterateion. Otherwise conrinues the
+ *                          iteration.
  */
 
 

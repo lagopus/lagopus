@@ -16,8 +16,8 @@
 
 
 /**
- *	@file	dpdk.h
- *	@brief	Parameter, structure and function for datapath w/  Intel DPDK.
+ *      @file   dpdk.h
+ *      @brief  Parameter, structure and function for datapath w/  Intel DPDK.
  */
 
 /*-
@@ -265,7 +265,7 @@ enum app_lcore_type {
   e_APP_LCORE_DISABLED = 0,
   e_APP_LCORE_IO,
   e_APP_LCORE_WORKER,
-  e_APP_LCORE_IO_WORKER	/* mixed */
+  e_APP_LCORE_IO_WORKER /* mixed */
 };
 
 struct app_lcore_params_io {
@@ -422,7 +422,7 @@ void app_print_params(void);
 /**
  * Clear flowcache for each worker.
  *
- * @param[in]	wait_flush	Wait for flush if true.
+ * @param[in]   wait_flush      Wait for flush if true.
  */
 void clear_worker_flowcache(bool);
 

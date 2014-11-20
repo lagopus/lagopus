@@ -23,7 +23,7 @@
 
 
 /**
- *	@file	lagopus_pipeline_stage_funcs.h
+ *      @file   lagopus_pipeline_stage_funcs.h
  */
 
 
@@ -37,7 +37,7 @@
 
 
 #ifndef PIPELINE_STAGE_T_DECLARED
-typedef struct lagopus_pipeline_stage_record 	*lagopus_pipeline_stage_t;
+typedef struct lagopus_pipeline_stage_record    *lagopus_pipeline_stage_t;
 #define PIPELINE_STAGE_T_DECLARED
 #endif /* ! PIPELINE_STAGE_T_DECLARED */
 
@@ -48,11 +48,11 @@ typedef struct lagopus_pipeline_stage_record 	*lagopus_pipeline_stage_t;
 /**
  * The signature of pipeline stage setup functions.
  *
- *	@param[in] sptr A pointer to the pipeline stage where this
- *	proc belongs to.
+ *      @param[in] sptr A pointer to the pipeline stage where this
+ *      proc belongs to.
  *
- *	@retval	LAGOPUS_RESULT_OK		Succeeded.
- *	@retval <0				Failed.
+ *      @retval LAGOPUS_RESULT_OK               Succeeded.
+ *      @retval <0                              Failed.
  *
  * @details A pipeline stage setup function is invoked once per the
  * pipeline stage, in order to setup (e.g. find the next hop of the
@@ -66,14 +66,14 @@ typedef lagopus_result_t
 /**
  * The signature of pipeline stage fetch functions.
  *
- *	@param[in] sptr A pointer to the pipeline stage where this
- *	proc belongs to.
- *	@param[in] idx An index # of a worker in the stage.
- *	@param[out] evbuf A buffer to store the fetched events into.
- *	@oaram[in] max_n_evs A maximum # of the events to fetch.
+ *      @param[in] sptr A pointer to the pipeline stage where this
+ *      proc belongs to.
+ *      @param[in] idx An index # of a worker in the stage.
+ *      @param[out] evbuf A buffer to store the fetched events into.
+ *      @oaram[in] max_n_evs A maximum # of the events to fetch.
  *
- *	@retval	>=0	# of events fetched.
- *	@retval <0	Failed.
+ *      @retval >=0     # of events fetched.
+ *      @retval <0      Failed.
  *
  * @details A pipeline stage fetch function is invoked once per each
  * main stage loop iteration, in order to fetch the events to be dealt
@@ -89,14 +89,14 @@ typedef lagopus_result_t
 /**
  * The signature of pipeline stage main functions.
  *
- *	@param[in] sptr A pointer to the pipeline stage where this
- *	proc belongs to.
- *	@param[in] idx An index # of a worker in the stage.
- *	@param[inout] evbuf A buffer of the events to be dealt.
- *	@param[in] n_evs A # of events in the \b evbuf.
+ *      @param[in] sptr A pointer to the pipeline stage where this
+ *      proc belongs to.
+ *      @param[in] idx An index # of a worker in the stage.
+ *      @param[inout] evbuf A buffer of the events to be dealt.
+ *      @param[in] n_evs A # of events in the \b evbuf.
  *
- *	@retval	>=0	# of events dealt.
- *	@retval <0	Failed.
+ *      @retval >=0     # of events dealt.
+ *      @retval <0      Failed.
  *
  * @details A pipeline stage main function is invoked once per each
  * main stage loop iteration. This is the main workhorse of the pipline stage.
@@ -118,14 +118,14 @@ typedef lagopus_result_t
 /**
  * The signature of pipeline stage throw functions.
  *
- *	@param[in] sptr A pointer to the pipeline stage where this
- *	proc belongs to.
- *	@param[in] idx An index # of a worker in the stage.
- *	@param[in] evbuf A buffer of the events to be thrown.
- *	@param[in] n_evs A # of events in the \b evbuf.
+ *      @param[in] sptr A pointer to the pipeline stage where this
+ *      proc belongs to.
+ *      @param[in] idx An index # of a worker in the stage.
+ *      @param[in] evbuf A buffer of the events to be thrown.
+ *      @param[in] n_evs A # of events in the \b evbuf.
  *
- *	@retval	>=0	# of events thrown.
- *	@retval <0	Failed.
+ *      @retval >=0     # of events thrown.
+ *      @retval <0      Failed.
  *
  * @details A pipeline stage throw function is invoked once per each
  * main stage loop iteration, in order to throw the delat events to
@@ -141,12 +141,12 @@ typedef lagopus_result_t
 /**
  * The signature of piplline stage shutdown functions.
  *
- *	@param[in] sptr A pointer to the pipeline stage where this
- *	proc belongs to.
- *	@param[in] l A shutdown graceful level.
+ *      @param[in] sptr A pointer to the pipeline stage where this
+ *      proc belongs to.
+ *      @param[in] l A shutdown graceful level.
  *
- *	@retval	LAGOPUS_RESULT_OK		Succeeded.
- *	@retval <0				Failed.
+ *      @retval LAGOPUS_RESULT_OK               Succeeded.
+ *      @retval <0                              Failed.
  *
  * @details A pipeline stage shutdown function is invoked when the
  * stage is required to shutdown.
@@ -160,9 +160,9 @@ typedef lagopus_result_t
 /**
  * The signature of piplline stage finalization functions.
  *
- *	@param[in] sptr A pointer to the pipeline stage where this
- *	proc belongs to.
- *	@param[in] is_canceled \b true if the stage is canceled.
+ *      @param[in] sptr A pointer to the pipeline stage where this
+ *      proc belongs to.
+ *      @param[in] is_canceled \b true if the stage is canceled.
  *
  * @details A pipeline stage finalization function is invoked after the
  * stage is shutted down or canceled, in order to release any temporally
@@ -178,8 +178,8 @@ typedef void
 /**
  * The signature of piplline stage free-up functions.
  *
- *	@param[in] sptr A pointer to the pipeline stage where this
- *	proc belongs to.
+ *      @param[in] sptr A pointer to the pipeline stage where this
+ *      proc belongs to.
  *
  * @details A pipeline stage free-up function is invoked when the
  * stage is destroyed, in order to free all the allocated resources
@@ -196,13 +196,13 @@ typedef void
 /**
  * The signature of pipeline stage schedule functions.
  *
- *	@param[in] sptr A pointer to the pipeline stage where this
- *	proc belongs to.
- *	@param[in] evbuf A buffer of the events to be thrown.
- *	@param[in] n_evs A # of events in the \b evbuf.
+ *      @param[in] sptr A pointer to the pipeline stage where this
+ *      proc belongs to.
+ *      @param[in] evbuf A buffer of the events to be thrown.
+ *      @param[in] n_evs A # of events in the \b evbuf.
  *
- *	@retval	>=0	# of events thrown.
- *	@retval <0	Failed.
+ *      @retval >=0     # of events thrown.
+ *      @retval <0      Failed.
  *
  * @details A pipeline stage schedule function is invoked when any
  * batches are submitted by calling \b lagopus_pipeline_stage_submit()
@@ -217,12 +217,12 @@ typedef lagopus_result_t
 /**
  * The signature of pipeline stage maintenance functions.
  *
- *	@param[in] sptr A pointer to the pipeline stage where this
- *	proc belongs to.
- *	@param[in] arg	An argument.
+ *      @param[in] sptr A pointer to the pipeline stage where this
+ *      proc belongs to.
+ *      @param[in] arg  An argument.
  *
- *	@retval	LAGOPUS_RESULT_OK		Succeeded.
- *	@retval <0				Failed.
+ *      @retval LAGOPUS_RESULT_OK               Succeeded.
+ *      @retval <0                              Failed.
  *
  * @details A pipeline stage maintenance function is invoked when the
  * \b lagopus_pipeline_stage_maintenance() is called, in order to
@@ -239,8 +239,8 @@ typedef lagopus_result_t
 /**
  * The signature of pipeline stage pre-pause functions.
  *
- *	@param[in] sptr A pointer to the pipeline stage where this
- *	proc belongs to.
+ *      @param[in] sptr A pointer to the pipeline stage where this
+ *      proc belongs to.
  *
  * @details A pipeline stage pre-pause function is invoked when the \b
  * lagopus_pipeline_stage_pause() or \b

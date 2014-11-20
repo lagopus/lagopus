@@ -79,11 +79,11 @@ test_flowinfo_mpls_unicast_label_adddel(void) {
  */
 #undef TEST_ASSERT_FLOWINFO_HASLABEL
 #undef TEST_ASSERT_FLOWINFO_NOLABEL
-#define TEST_ASSERT_FLOWINFO_HASLABEL(_fl, _label, _l, _msg)	\
-  do {								\
+#define TEST_ASSERT_FLOWINFO_HASLABEL(_fl, _label, _l, _msg)    \
+  do {                                                          \
   } while (0)
-#define TEST_ASSERT_FLOWINFO_NOLABEL(_fl, _label, _l, _msg)	\
-  do {								\
+#define TEST_ASSERT_FLOWINFO_NOLABEL(_fl, _label, _l, _msg)     \
+  do {                                                          \
   } while (0)
 
 /*

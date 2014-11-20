@@ -16,8 +16,8 @@
 
 
 /**
- *	@file	sock.c
- *	@brief	Datapath driver use with raw socket
+ *      @file   sock.c
+ *      @brief  Datapath driver use with raw socket
  */
 
 #include <stdio.h>
@@ -451,7 +451,7 @@ port_stats(struct port *port) {
 #ifdef IFLA_STATS64
               case IFLA_STATS64:
 #else
-	      case IFLA_STATS:
+              case IFLA_STATS:
 #endif /* IFLA_STATS64 */
                 link_stats = RTA_DATA(rta);
                 goto found;

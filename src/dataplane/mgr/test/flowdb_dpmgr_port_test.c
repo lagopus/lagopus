@@ -28,18 +28,18 @@
  * Test port number.
  * (extra: for the negative deletion tests only)
  */
-#define TEST_PORT_NUM		(3)
-#define TEST_PORT_EXTRA_NUM	(1)
+#define TEST_PORT_NUM           (3)
+#define TEST_PORT_EXTRA_NUM     (1)
 
 /* Test DPID. */
-#define TEST_DPID(_i)	((uint64_t)((_i) + dpid_base))
+#define TEST_DPID(_i)   ((uint64_t)((_i) + dpid_base))
 
 /* Shift the test bridge index for the controller overwriting test. */
-#define TEST_SHIFT_BRIDGE_INDEX(_i)	(((_i) + 1) % TEST_PORT_NUM)
+#define TEST_SHIFT_BRIDGE_INDEX(_i)     (((_i) + 1) % TEST_PORT_NUM)
 
 /* Test port numbers. */
-#define TEST_PORT_OFPNO(_i)	((uint32_t)((_i) + 1))
-#define TEST_PORT_IFINDEX(_i)	((uint32_t)(_i + 100))
+#define TEST_PORT_OFPNO(_i)     ((uint32_t)((_i) + 1))
+#define TEST_PORT_IFINDEX(_i)   ((uint32_t)(_i + 100))
 
 
 /*
@@ -59,20 +59,20 @@ struct port *port_lookup_number(struct vector *v, uint32_t port_no);
 
 
 /* Make the assertion message string for each step. */
-#define TEST_SCENARIO_MSG_STEP(_buf, _step)		\
-  do {							\
-    snprintf((_buf), sizeof(_buf), "Step %d", (_step));	\
+#define TEST_SCENARIO_MSG_STEP(_buf, _step)             \
+  do {                                                  \
+    snprintf((_buf), sizeof(_buf), "Step %d", (_step)); \
   } while (0)
 
 /* Positively assert the port creation. */
-#define TEST_ASSERT_DPMGR_PORT_ADD_OK(_b, _e, _pi, _msg)		\
-  do {									\
-    char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];				\
-    struct port *_port;							\
-									\
-    snprintf(_buf, sizeof(_buf), "%s, add ports", (_msg));		\
-									\
-    for (size_t _s = (_b); _s < (_e); _s++) {				\
+#define TEST_ASSERT_DPMGR_PORT_ADD_OK(_b, _e, _pi, _msg)                \
+  do {                                                                  \
+    char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];                             \
+    struct port *_port;                                                 \
+    \
+    snprintf(_buf, sizeof(_buf), "%s, add ports", (_msg));              \
+    \
+    for (size_t _s = (_b); _s < (_e); _s++) {                           \
       TEST_ASSERT_TRUE_MESSAGE(LAGOPUS_RESULT_OK == dpmgr_port_add(dpmgr, &(_pi)[_s]), _buf); \
       TEST_ASSERT_NOT_NULL_MESSAGE((_port = port_lookup(dpmgr->ports, TEST_PORT_IFINDEX(_s))), _buf); \
       _port->ofp_port.hw_addr[0] = 0xff;                                \
@@ -80,175 +80,175 @@ struct port *port_lookup_number(struct vector *v, uint32_t port_no);
   } while (0);
 
 /* Negatively assert the port creation. */
-#define TEST_ASSERT_DPMGR_PORT_ADD_NG(_b, _e, _pi, _msg)		\
-  do {									\
-    char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];				\
+#define TEST_ASSERT_DPMGR_PORT_ADD_NG(_b, _e, _pi, _msg)                \
+  do {                                                                  \
+    char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];                             \
     \
-    snprintf(_buf, sizeof(_buf), "%s, negatively add ports", (_msg));		\
+    snprintf(_buf, sizeof(_buf), "%s, negatively add ports", (_msg));           \
     \
-    for (size_t _s = (_b); _s < (_e); _s++)				\
+    for (size_t _s = (_b); _s < (_e); _s++)                             \
       TEST_ASSERT_TRUE_MESSAGE(LAGOPUS_RESULT_OK != dpmgr_port_add(dpmgr, &(_pi)[_s]), _buf); \
   } while (0);
 
 /* Positively assert the port deletion. */
-#define TEST_ASSERT_DPMGR_PORT_DELETE_OK(_b, _e, _msg)			\
-  do {									\
-    char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];				\
+#define TEST_ASSERT_DPMGR_PORT_DELETE_OK(_b, _e, _msg)                  \
+  do {                                                                  \
+    char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];                             \
     \
-    snprintf(_buf, sizeof(_buf), "%s, delete ports", (_msg));		\
+    snprintf(_buf, sizeof(_buf), "%s, delete ports", (_msg));           \
     \
-    for (size_t _s = (_b); _s < (_e); _s++)					\
+    for (size_t _s = (_b); _s < (_e); _s++)                                     \
       TEST_ASSERT_TRUE_MESSAGE(LAGOPUS_RESULT_OK == dpmgr_port_delete(dpmgr, TEST_PORT_IFINDEX(_s)), _buf); \
   } while (0);
 
 /* Negatively assert the port deletion. */
-#define TEST_ASSERT_DPMGR_PORT_DELETE_NG(_b, _e, _msg)			\
-  do {									\
-    char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];				\
+#define TEST_ASSERT_DPMGR_PORT_DELETE_NG(_b, _e, _msg)                  \
+  do {                                                                  \
+    char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];                             \
     \
-    snprintf(_buf, sizeof(_buf), "%s, negatively delete ports", (_msg));		\
+    snprintf(_buf, sizeof(_buf), "%s, negatively delete ports", (_msg));                \
     \
-    for (size_t _s = (_b); _s < (_e); _s++)					\
+    for (size_t _s = (_b); _s < (_e); _s++)                                     \
       TEST_ASSERT_TRUE_MESSAGE(LAGOPUS_RESULT_OK != dpmgr_port_delete(dpmgr, TEST_PORT_IFINDEX(_s)), _buf); \
   } while (0);
 
 /* Assert the port count in dpmgr. */
-#define TEST_ASSERT_DPMGR_PORT_COUNT(_count, _msg)		\
-  do {								\
-    char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];			\
+#define TEST_ASSERT_DPMGR_PORT_COUNT(_count, _msg)              \
+  do {                                                          \
+    char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];                     \
     \
-    snprintf(_buf, sizeof(_buf), "%s, count ports", (_msg));	\
+    snprintf(_buf, sizeof(_buf), "%s, count ports", (_msg));    \
     \
     TEST_ASSERT_EQUAL_INT_MESSAGE((_count), num_ports(dpmgr->ports), (_msg)); \
   } while (0);
 
 /* Positively assert the ports in dpmgr. */
-#define TEST_ASSERT_DPMGR_PORT_FIND_OK(_b, _e, _msg)			\
-  do {									\
-    char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];				\
+#define TEST_ASSERT_DPMGR_PORT_FIND_OK(_b, _e, _msg)                    \
+  do {                                                                  \
+    char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];                             \
     \
-    snprintf(_buf, sizeof(_buf), "%s, find ports", (_msg));		\
+    snprintf(_buf, sizeof(_buf), "%s, find ports", (_msg));             \
     \
-    for (size_t _s = (_b); _s < (_e); _s++) {				\
+    for (size_t _s = (_b); _s < (_e); _s++) {                           \
       TEST_ASSERT_TRUE_MESSAGE(NULL != port_lookup(dpmgr->ports, TEST_PORT_IFINDEX(_s)), _buf); \
       TEST_ASSERT_TRUE_MESSAGE(NULL != port_lookup_number(dpmgr->ports, TEST_PORT_OFPNO(_s)), _buf); \
-    }									\
+    }                                                                   \
   } while (0);
 
 /* Negatively assert the ports in dpmgr. */
-#define TEST_ASSERT_DPMGR_PORT_FIND_NG(_b, _e, _msg)			\
-  do {									\
-    char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];				\
+#define TEST_ASSERT_DPMGR_PORT_FIND_NG(_b, _e, _msg)                    \
+  do {                                                                  \
+    char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];                             \
     \
-    snprintf(_buf, sizeof(_buf), "%s, negatively find ports", (_msg));	\
+    snprintf(_buf, sizeof(_buf), "%s, negatively find ports", (_msg));  \
     \
-    for (size_t _s = (_b); _s < (_e); _s++) {				\
+    for (size_t _s = (_b); _s < (_e); _s++) {                           \
       TEST_ASSERT_TRUE_MESSAGE(NULL == port_lookup(dpmgr->ports, TEST_PORT_IFINDEX(_s)), _buf); \
       TEST_ASSERT_TRUE_MESSAGE(NULL == port_lookup_number(dpmgr->ports, TEST_PORT_OFPNO(_s)), _buf); \
-    }									\
+    }                                                                   \
   } while (0);
 
 /* Positively assert the port adddition to a bridge. */
-#define TEST_ASSERT_DPMGR_BRIDGE_ADD_PORT_OK(_b, _e, _msg)		\
-  do {									\
-    char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];				\
+#define TEST_ASSERT_DPMGR_BRIDGE_ADD_PORT_OK(_b, _e, _msg)              \
+  do {                                                                  \
+    char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];                             \
     \
     snprintf(_buf, sizeof(_buf), "%s, add ports to the bridge", (_msg)); \
     \
-    for (size_t _s = (_b); _s < (_e); _s++)				\
+    for (size_t _s = (_b); _s < (_e); _s++)                             \
       TEST_ASSERT_TRUE_MESSAGE(LAGOPUS_RESULT_OK == dpmgr_bridge_port_add(dpmgr, bridge_name[_s], TEST_PORT_IFINDEX(_s), TEST_PORT_OFPNO(_s)), _buf); \
   } while (0);
 
 /* Negatively assert the port adddition to a bridge. */
-#define TEST_ASSERT_DPMGR_BRIDGE_ADD_PORT_NG(_b, _e, _msg)		\
-  do {									\
-    char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];				\
+#define TEST_ASSERT_DPMGR_BRIDGE_ADD_PORT_NG(_b, _e, _msg)              \
+  do {                                                                  \
+    char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];                             \
     \
     snprintf(_buf, sizeof(_buf), "%s, negatively add ports to the bridge", (_msg)); \
     \
-    for (size_t _s = (_b); _s < (_e); _s++)				\
+    for (size_t _s = (_b); _s < (_e); _s++)                             \
       TEST_ASSERT_TRUE_MESSAGE(LAGOPUS_RESULT_OK != dpmgr_bridge_port_add(dpmgr, bridge_name[_s], TEST_PORT_IFINDEX(_s), TEST_PORT_OFPNO(_s)), _buf); \
   } while (0);
 
 /* Negatively assert the port adddition to a shifted bridge. */
-#define TEST_ASSERT_DPMGR_SHIFTEDBRIDGE_ADD_PORT_NG(_b, _e, _msg)	\
-  do {									\
-    char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];				\
+#define TEST_ASSERT_DPMGR_SHIFTEDBRIDGE_ADD_PORT_NG(_b, _e, _msg)       \
+  do {                                                                  \
+    char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];                             \
     \
     snprintf(_buf, sizeof(_buf), "%s, negatively add ports to the shifted bridge", (_msg)); \
     \
-    for (size_t _s = (_b); _s < (_e); _s++)				\
+    for (size_t _s = (_b); _s < (_e); _s++)                             \
       TEST_ASSERT_TRUE_MESSAGE(LAGOPUS_RESULT_OK != dpmgr_bridge_port_add(dpmgr, bridge_name[TEST_SHIFT_BRIDGE_INDEX(_s)], TEST_PORT_IFINDEX(_s), TEST_PORT_OFPNO(_s)), _buf); \
   } while (0);
 
 /* Positively assert the port deletion from a bridge. */
-#define TEST_ASSERT_DPMGR_BRIDGE_DELETE_PORT_OK(_b, _e, _msg)		\
-  do {									\
-    char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];				\
+#define TEST_ASSERT_DPMGR_BRIDGE_DELETE_PORT_OK(_b, _e, _msg)           \
+  do {                                                                  \
+    char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];                             \
     \
     snprintf(_buf, sizeof(_buf), "%s, delete ports from the bridge", (_msg)); \
     \
-    for (size_t _s = (_b); _s < (_e); _s++)				\
+    for (size_t _s = (_b); _s < (_e); _s++)                             \
       TEST_ASSERT_TRUE_MESSAGE(LAGOPUS_RESULT_OK == dpmgr_bridge_port_delete(dpmgr, bridge_name[_s], TEST_PORT_IFINDEX(_s)), _buf); \
   } while (0);
 
 /* Negatively assert the port deletion from a bridge. */
-#define TEST_ASSERT_DPMGR_BRIDGE_DELETE_PORT_NG(_b, _e, _msg)		\
-  do {									\
-    char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];				\
+#define TEST_ASSERT_DPMGR_BRIDGE_DELETE_PORT_NG(_b, _e, _msg)           \
+  do {                                                                  \
+    char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];                             \
     \
     snprintf(_buf, sizeof(_buf), "%s, negatively delete ports from the bridge", (_msg)); \
     \
-    for (size_t _s = (_b); _s < (_e); _s++)				\
+    for (size_t _s = (_b); _s < (_e); _s++)                             \
       TEST_ASSERT_TRUE_MESSAGE(LAGOPUS_RESULT_OK != dpmgr_bridge_port_delete(dpmgr, bridge_name[_s], TEST_PORT_IFINDEX(_s)), _buf); \
   } while (0);
 
 /* Negatively assert the port deletion from a shifted bridge. */
-#define TEST_ASSERT_DPMGR_SHIFTEDBRIDGE_DELETE_PORT_NG(_b, _e, _msg)	\
-  do {									\
-    char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];				\
+#define TEST_ASSERT_DPMGR_SHIFTEDBRIDGE_DELETE_PORT_NG(_b, _e, _msg)    \
+  do {                                                                  \
+    char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];                             \
     \
     snprintf(_buf, sizeof(_buf), "%s, negatively delete ports from the shifted bridge", (_msg)); \
     \
-    for (size_t _s = (_b); _s < (_e); _s++)				\
+    for (size_t _s = (_b); _s < (_e); _s++)                             \
       TEST_ASSERT_TRUE_MESSAGE(LAGOPUS_RESULT_OK != dpmgr_bridge_port_delete(dpmgr, bridge_name[TEST_SHIFT_BRIDGE_INDEX(_s)], TEST_PORT_IFINDEX(_s)), _buf); \
   } while (0);
 
 /* Assert the port count in a bridge. */
-#define TEST_ASSERT_DPMGR_BRIDGE_COUNT_PORT(_b, _e, _count, _msg)	\
-  do {									\
-    char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];				\
+#define TEST_ASSERT_DPMGR_BRIDGE_COUNT_PORT(_b, _e, _count, _msg)       \
+  do {                                                                  \
+    char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];                             \
     \
     snprintf(_buf, sizeof(_buf), "%s, count ports in a bridge", (_msg)); \
     \
-    for (size_t _s = (_b); _s < (_e); _s++)				\
+    for (size_t _s = (_b); _s < (_e); _s++)                             \
       TEST_ASSERT_EQUAL_INT_MESSAGE((_count), num_ports(bridge[_s]->ports), (_msg)); \
   } while (0);
 
 /* Positively assert the ports in a bridge. */
-#define TEST_ASSERT_DPMGR_BRIDGE_FIND_PORT_OK(_b, _e, _msg)		\
-  do {									\
-    char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];				\
+#define TEST_ASSERT_DPMGR_BRIDGE_FIND_PORT_OK(_b, _e, _msg)             \
+  do {                                                                  \
+    char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];                             \
     \
-    snprintf(_buf, sizeof(_buf), "%s, find ports in a bridge", (_msg));	\
+    snprintf(_buf, sizeof(_buf), "%s, find ports in a bridge", (_msg)); \
     \
-    for (size_t _s = (_b); _s < (_e); _s++) {				\
+    for (size_t _s = (_b); _s < (_e); _s++) {                           \
       TEST_ASSERT_TRUE_MESSAGE(NULL != port_lookup(bridge[_s]->ports, TEST_PORT_OFPNO(_s)), _buf); \
       TEST_ASSERT_TRUE_MESSAGE(NULL != port_lookup_number(bridge[_s]->ports, TEST_PORT_OFPNO(_s)), _buf); \
-    }									\
+    }                                                                   \
   } while (0);
 
 /* Negatively assert the ports in a bridge. */
-#define TEST_ASSERT_DPMGR_BRIDGE_FIND_PORT_NG(_b, _e, _msg)		\
-  do {									\
-    char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];				\
+#define TEST_ASSERT_DPMGR_BRIDGE_FIND_PORT_NG(_b, _e, _msg)             \
+  do {                                                                  \
+    char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];                             \
     \
-    snprintf(_buf, sizeof(_buf), "%s, find ports in a bridge", (_msg));	\
+    snprintf(_buf, sizeof(_buf), "%s, find ports in a bridge", (_msg)); \
     \
-    for (size_t _s = (_b); _s < (_e); _s++) {				\
+    for (size_t _s = (_b); _s < (_e); _s++) {                           \
       TEST_ASSERT_TRUE_MESSAGE(NULL == port_lookup(bridge[_s]->ports, TEST_PORT_OFPNO(_s)), _buf); \
       TEST_ASSERT_TRUE_MESSAGE(NULL == port_lookup_number(bridge[_s]->ports, TEST_PORT_OFPNO(_s)), _buf); \
-    }									\
+    }                                                                   \
   } while (0);
 
 

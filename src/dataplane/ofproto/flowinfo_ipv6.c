@@ -16,8 +16,8 @@
 
 
 /**
- *	@file	flowinfo_ipv6.c
- *	@brief	Optimized flow database for datapath, for IPv6
+ *      @file   flowinfo_ipv6.c
+ *      @brief  Optimized flow database for datapath, for IPv6
  */
 
 #include <stdlib.h>

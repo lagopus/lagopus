@@ -16,7 +16,7 @@
 
 
 /**
- * @file	ofp_tlv.h
+ * @file        ofp_tlv.h
  */
 
 #ifndef __OFP_TLV_H__
@@ -25,11 +25,11 @@
 /**
  * Set length in TLV.
  *
- *     @param[out]	tlv_head	A pointer to head of TLV.
- *     @param[in]	length	Size of packet.
+ *     @param[out]      tlv_head        A pointer to head of TLV.
+ *     @param[in]       length  Size of packet.
  *
- *     @retval	LAGOPUS_RESULT_OK	Succeeded.
- *     @retval	LAGOPUS_RESULT_ANY_FAILURES Failed.
+ *     @retval  LAGOPUS_RESULT_OK       Succeeded.
+ *     @retval  LAGOPUS_RESULT_ANY_FAILURES Failed.
  */
 lagopus_result_t
 ofp_tlv_length_set(uint8_t *tlv_head,
@@ -38,12 +38,12 @@ ofp_tlv_length_set(uint8_t *tlv_head,
 /**
  * Sum length and check overflow(uint16_t).
  *
- *     @param[out]	total_length	A pointer to sum length.
- *     @param[in]	length	length.
+ *     @param[out]      total_length    A pointer to sum length.
+ *     @param[in]       length  length.
  *
- *     @retval	LAGOPUS_RESULT_OK	Succeeded.
- *     @retval	LAGOPUS_RESULT_OUT_OF_RANGE Failed, overflow.
- *     @retval	LAGOPUS_RESULT_ANY_FAILURES Failed.
+ *     @retval  LAGOPUS_RESULT_OK       Succeeded.
+ *     @retval  LAGOPUS_RESULT_OUT_OF_RANGE Failed, overflow.
+ *     @retval  LAGOPUS_RESULT_ANY_FAILURES Failed.
  */
 lagopus_result_t
 ofp_tlv_length_sum(uint16_t *total_length,

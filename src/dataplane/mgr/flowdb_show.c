@@ -31,9 +31,9 @@ extern struct dpmgr *dpmgr;
 /**
  * Convert port number to human readable string.
  *
- * @param[in]	val	port number (host byte order).
+ * @param[in]   val     port number (host byte order).
  *
- * @retval	port string.
+ * @retval      port string.
  */
 static const char *
 port_string(uint32_t val) {

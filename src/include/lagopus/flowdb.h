@@ -16,8 +16,8 @@
 
 
 /**
- * @file	flowdb.h
- * @brief	Flow database.
+ * @file        flowdb.h
+ * @brief       Flow database.
  */
 
 #ifndef SRC_INCLUDE_LAGOPUS_FLOWDB_H_
@@ -40,16 +40,16 @@ rte_rwlock_t dpmgr_lock;
 
 #define FLOWDB_RWLOCK_INIT()
 #define FLOWDB_RWLOCK_RDLOCK()  do {                                    \
-    rte_rwlock_read_lock(&dpmgr_lock);					\
+    rte_rwlock_read_lock(&dpmgr_lock);                                  \
   } while(0)
 #define FLOWDB_RWLOCK_WRLOCK()  do {                                    \
-    rte_rwlock_write_lock(&dpmgr_lock);					\
+    rte_rwlock_write_lock(&dpmgr_lock);                                 \
   } while(0)
 #define FLOWDB_RWLOCK_RDUNLOCK() do {                                   \
-    rte_rwlock_read_unlock(&dpmgr_lock);				\
+    rte_rwlock_read_unlock(&dpmgr_lock);                                \
   } while(0)
 #define FLOWDB_RWLOCK_WRUNLOCK() do {                                   \
-    rte_rwlock_write_unlock(&dpmgr_lock);				\
+    rte_rwlock_write_unlock(&dpmgr_lock);                               \
   } while(0)
 #define FLOWDB_UPDATE_CHECK() do {                      \
     rte_rwlock_read_lock(&flowdb_update_lock);          \
@@ -69,10 +69,10 @@ pthread_rwlock_t dpmgr_lock;
     pthread_rwlock_init(&dpmgr_lock, NULL);                             \
   } while(0)
 #define FLOWDB_RWLOCK_RDLOCK()  do {                                    \
-    pthread_rwlock_rdlock(&dpmgr_lock);					\
+    pthread_rwlock_rdlock(&dpmgr_lock);                                 \
   } while(0)
 #define FLOWDB_RWLOCK_WRLOCK()  do {                                    \
-    pthread_rwlock_wrlock(&dpmgr_lock);					\
+    pthread_rwlock_wrlock(&dpmgr_lock);                                 \
   } while(0)
 #define FLOWDB_RWLOCK_RDUNLOCK() do {                                   \
     pthread_rwlock_unlock(&dpmgr_lock);                                 \
@@ -81,15 +81,15 @@ pthread_rwlock_t dpmgr_lock;
     pthread_rwlock_unlock(&dpmgr_lock);                                 \
   } while(0)
 #define FLOWDB_UPDATE_CHECK() do {                      \
-        pthread_rwlock_rdlock(&flowdb_update_lock);    \
-        pthread_rwlock_unlock(&flowdb_update_lock);     \
-      } while (0)
+    pthread_rwlock_rdlock(&flowdb_update_lock);    \
+    pthread_rwlock_unlock(&flowdb_update_lock);     \
+  } while (0)
 #define FLOWDB_UPDATE_BEGIN() do {                      \
-        pthread_rwlock_wrlock(&flowdb_update_lock);    \
-      } while (0)
+    pthread_rwlock_wrlock(&flowdb_update_lock);    \
+  } while (0)
 #define FLOWDB_UPDATE_END() do {                        \
-        pthread_rwlock_unlock(&flowdb_update_lock);     \
-      } while (0)
+    pthread_rwlock_unlock(&flowdb_update_lock);     \
+  } while (0)
 #endif /* HAVE_DPDK */
 
 struct channel;
@@ -332,9 +332,9 @@ struct flow *(*lagopus_find_flow_hook)(struct flow *, struct table *);
 /**
  * Allocate a new flow database.
  *
- * @param[in]	table_size	Table size of the flow database.
+ * @param[in]   table_size      Table size of the flow database.
  *
- * @retval NULL	Allocation failed.
+ * @retval NULL Allocation failed.
  * @retval Non-NULL Allocation success.
  */
 struct flowdb *
@@ -343,7 +343,7 @@ flowdb_alloc(uint8_t table_size);
 /**
  * Free flow database.
  *
- * @param[in]	flowdb	Flow database to be freed.
+ * @param[in]   flowdb  Flow database to be freed.
  */
 void
 flowdb_free(struct flowdb *flowdb);
@@ -351,10 +351,10 @@ flowdb_free(struct flowdb *flowdb);
 /**
  * Get current switch mode (openflow, secure or standalone).
  *
- * @param[in]	flowdb	Flow database.
- * @param[out]  switch_mode	Current switch_mode.
+ * @param[in]   flowdb  Flow database.
+ * @param[out]  switch_mode     Current switch_mode.
  *
- * @retval LAGOPUS_RESULT_OK		Succeeded.
+ * @retval LAGOPUS_RESULT_OK            Succeeded.
  */
 lagopus_result_t
 flowdb_switch_mode_get(struct flowdb *flowdb, enum switch_mode *switch_mode);
@@ -362,10 +362,10 @@ flowdb_switch_mode_get(struct flowdb *flowdb, enum switch_mode *switch_mode);
 /**
  * Set switch mode (openflow, secure or standalone).
  *
- * @param[in]	flowdb	Flow database.
- * @param[in]  switch_mode	switch_mode to be set.
+ * @param[in]   flowdb  Flow database.
+ * @param[in]  switch_mode      switch_mode to be set.
  *
- * @retval LAGOPUS_RESULT_OK		Succeeded.
+ * @retval LAGOPUS_RESULT_OK            Succeeded.
  */
 lagopus_result_t
 flowdb_switch_mode_set(struct flowdb *flowdb, enum switch_mode switch_mode);
@@ -373,16 +373,16 @@ flowdb_switch_mode_set(struct flowdb *flowdb, enum switch_mode switch_mode);
 /**
  * Add flow entry to the flow database.
  *
- * @param[in]	bridge	Bridge.
- * @param[in]	flow_mod	ofp_flow_mod structure of the flow.
- * @param[in]	match	ofp_match structure of the flow.
- * @param[in]	instruction ofp_instruction of the flow.
- * @param[out]  error	OFP_ERROR value.
+ * @param[in]   bridge  Bridge.
+ * @param[in]   flow_mod        ofp_flow_mod structure of the flow.
+ * @param[in]   match   ofp_match structure of the flow.
+ * @param[in]   instruction ofp_instruction of the flow.
+ * @param[out]  error   OFP_ERROR value.
  *
- * @retval LAGOPUS_RESULT_OK		Succeeded.
- * @retval LAGOPUS_RESULT_INVALID_ARGS	Failed, invalid argument(s).
- * @retval LAGOPUS_RESULT_NO_MEMORY	Failed, no memory.
- * @retval LAGOPUS_RESULT_OFP_ERROR	Failed with OFP error message.
+ * @retval LAGOPUS_RESULT_OK            Succeeded.
+ * @retval LAGOPUS_RESULT_INVALID_ARGS  Failed, invalid argument(s).
+ * @retval LAGOPUS_RESULT_NO_MEMORY     Failed, no memory.
+ * @retval LAGOPUS_RESULT_OFP_ERROR     Failed with OFP error message.
  */
 lagopus_result_t
 flowdb_flow_add(struct bridge *bridge,
@@ -394,16 +394,16 @@ flowdb_flow_add(struct bridge *bridge,
 /**
  * Modify flow entry of the flow database.
  *
- * @param[in]	bridge	Bridge.
- * @param[in]	flow_mod	ofp_flow_mod structure of the flow.
- * @param[in]	match_list	list of match structures.
- * @param[in]	instruction_list	list of instruction structures.
- * @param[out]  error	OFP_ERROR value.
+ * @param[in]   bridge  Bridge.
+ * @param[in]   flow_mod        ofp_flow_mod structure of the flow.
+ * @param[in]   match_list      list of match structures.
+ * @param[in]   instruction_list        list of instruction structures.
+ * @param[out]  error   OFP_ERROR value.
  *
- * @retval LAGOPUS_RESULT_OK		Succeeded.
- * @retval LAGOPUS_RESULT_INVALID_ARGS	Failed, invalid argument(s).
- * @retval LAGOPUS_RESULT_NO_MEMORY	Failed, no memory.
- * @retval LAGOPUS_RESULT_OFP_ERROR	Failed with OFP error message.
+ * @retval LAGOPUS_RESULT_OK            Succeeded.
+ * @retval LAGOPUS_RESULT_INVALID_ARGS  Failed, invalid argument(s).
+ * @retval LAGOPUS_RESULT_NO_MEMORY     Failed, no memory.
+ * @retval LAGOPUS_RESULT_OFP_ERROR     Failed with OFP error message.
  */
 lagopus_result_t
 flowdb_flow_modify(struct bridge *bridge,
@@ -415,15 +415,15 @@ flowdb_flow_modify(struct bridge *bridge,
 /**
  * Delete flow entry from the flow database.
  *
- * @param[in]	bridge	Bridge.
- * @param[in]	flow_mod	ofp_flow_mod structure of the flow.
- * @param[in]	match_list	list of match structures.
- * @param[out]  error	OFP_ERROR value.
+ * @param[in]   bridge  Bridge.
+ * @param[in]   flow_mod        ofp_flow_mod structure of the flow.
+ * @param[in]   match_list      list of match structures.
+ * @param[out]  error   OFP_ERROR value.
  *
- * @retval LAGOPUS_RESULT_OK		Succeeded.
- * @retval LAGOPUS_RESULT_INVALID_ARGS	Failed, invalid argument(s).
- * @retval LAGOPUS_RESULT_NO_MEMORY	Failed, no memory.
- * @retval LAGOPUS_RESULT_OFP_ERROR	Failed with OFP error message.
+ * @retval LAGOPUS_RESULT_OK            Succeeded.
+ * @retval LAGOPUS_RESULT_INVALID_ARGS  Failed, invalid argument(s).
+ * @retval LAGOPUS_RESULT_NO_MEMORY     Failed, no memory.
+ * @retval LAGOPUS_RESULT_OFP_ERROR     Failed with OFP error message.
  */
 lagopus_result_t
 flowdb_flow_delete(struct bridge *bridge,
@@ -440,10 +440,10 @@ flowdb_flow_delete(struct bridge *bridge,
  * @param[out]  flow_stats_list  matched flow statistics.
  * @param[out]  error   OFP_ERROR value.
  *
- * @retval LAGOPUS_RESULT_OK		Succeeded.
- * @retval LAGOPUS_RESULT_INVALID_ARGS	Failed, invalid argument(s).
- * @retval LAGOPUS_RESULT_NO_MEMORY	Failed, no memory.
- * @retval LAGOPUS_RESULT_OFP_ERROR	Failed with OFP error message.
+ * @retval LAGOPUS_RESULT_OK            Succeeded.
+ * @retval LAGOPUS_RESULT_INVALID_ARGS  Failed, invalid argument(s).
+ * @retval LAGOPUS_RESULT_NO_MEMORY     Failed, no memory.
+ * @retval LAGOPUS_RESULT_OFP_ERROR     Failed with OFP error message.
  */
 lagopus_result_t
 flowdb_flow_stats(struct flowdb *flowdb,
@@ -472,7 +472,7 @@ flowdb_get_table_features(struct flowdb *,
 /**
  * Initialize lock of the flow database.
  *
- * @param[in]	flowdb	Flow database to be locked.
+ * @param[in]   flowdb  Flow database to be locked.
  */
 static inline void
 flowdb_lock_init(struct flowdb *flowdb) {
@@ -483,7 +483,7 @@ flowdb_lock_init(struct flowdb *flowdb) {
 /**
  * Read lock the flow database.
  *
- * @param[in]	flowdb	Flow database to be locked.
+ * @param[in]   flowdb  Flow database to be locked.
  */
 static inline void
 flowdb_rdlock(struct flowdb *flowdb) {
@@ -494,7 +494,7 @@ flowdb_rdlock(struct flowdb *flowdb) {
 /**
  * Check write lock the flow database.
  *
- * @param[in]	flowdb	Flow database to be locked.
+ * @param[in]   flowdb  Flow database to be locked.
  */
 static inline void
 flowdb_check_update(struct flowdb *flowdb) {
@@ -505,7 +505,7 @@ flowdb_check_update(struct flowdb *flowdb) {
 /**
  * Write lock the flow database.
  *
- * @param[in]	flowdb	Flow database to be locked.
+ * @param[in]   flowdb  Flow database to be locked.
  */
 static inline void
 flowdb_wrlock(struct flowdb *flowdb) {
@@ -517,7 +517,7 @@ flowdb_wrlock(struct flowdb *flowdb) {
 /**
  * Unlock read lock the flow database.
  *
- * @param[in]	flowdb	Flow database to be unlocked.
+ * @param[in]   flowdb  Flow database to be unlocked.
  */
 static inline void
 flowdb_rdunlock(struct flowdb *flowdb) {
@@ -528,7 +528,7 @@ flowdb_rdunlock(struct flowdb *flowdb) {
 /**
  * Unlock write lock the flow database.
  *
- * @param[in]	flowdb	Flow database to be unlocked.
+ * @param[in]   flowdb  Flow database to be unlocked.
  */
 static inline void
 flowdb_wrunlock(struct flowdb *flowdb) {
@@ -593,7 +593,7 @@ void init_flow_timer(void);
 /**
  * register flow with timeout to timer list.
  *
- * @param[in]	flow	flow.
+ * @param[in]   flow    flow.
  */
 lagopus_result_t add_flow_timer(struct flow *flow);
 
@@ -605,19 +605,19 @@ lagopus_result_t flow_timer_loop(const lagopus_thread_t *t, void *arg);
 /**
  * Free match list elements.
  *
- * @param[in]	match_list	List of \e math structures.
+ * @param[in]   match_list      List of \e math structures.
  *
- * @retval	void
+ * @retval      void
  */
 void
 ofp_match_list_elem_free(struct match_list *match_list);
 
 /**
- * Free instruction	list elements.
+ * Free instruction     list elements.
  *
- * @param[in]	instruction_list	List of \e instruction structures.
+ * @param[in]   instruction_list        List of \e instruction structures.
  *
- * @retval	void
+ * @retval      void
  */
 void
 ofp_instruction_list_elem_free(struct instruction_list *instruction_list);
@@ -625,9 +625,9 @@ ofp_instruction_list_elem_free(struct instruction_list *instruction_list);
 /**
  * Free action list elements.
  *
- * @param[in]	action_list	List of \e action structures.
+ * @param[in]   action_list     List of \e action structures.
  *
- * @retval	void
+ * @retval      void
  */
 void
 ofp_action_list_elem_free(struct action_list *action_list);

@@ -1,8 +1,8 @@
-/*	$NetBSD: chared.c,v 1.38 2013/07/12 17:48:29 christos Exp $	*/
+/*      $NetBSD: chared.c,v 1.38 2013/07/12 17:48:29 christos Exp $     */
 
 /*-
  * Copyright (c) 1992, 1993
- *	The Regents of the University of California.  All rights reserved.
+ *      The Regents of the University of California.  All rights reserved.
  *
  * This code is derived from software contributed to Berkeley by
  * Christos Zoulas of Cornell University.
@@ -35,7 +35,7 @@
 #include "config.h"
 #if !defined(lint) && !defined(SCCSID)
 #if 0
-static char sccsid[] = "@(#)chared.c	8.1 (Berkeley) 6/4/93";
+static char sccsid[] = "@(#)chared.c    8.1 (Berkeley) 6/4/93";
 #else
 __RCSID("$NetBSD: chared.c,v 1.38 2013/07/12 17:48:29 christos Exp $");
 #endif
@@ -50,10 +50,10 @@ __RCSID("$NetBSD: chared.c,v 1.38 2013/07/12 17:48:29 christos Exp $");
 private void ch__clearmacro (EditLine *);
 
 /* value to leave unused in line buffer */
-#define	EL_LEAVE	2
+#define EL_LEAVE        2
 
 /* cv_undo():
- *	Handle state for the vi undo command
+ *      Handle state for the vi undo command
  */
 protected void
 cv_undo(EditLine *el) {
@@ -76,7 +76,7 @@ cv_undo(EditLine *el) {
 }
 
 /* cv_yank():
- *	Save yank/delete data for paste
+ *      Save yank/delete data for paste
  */
 protected void
 cv_yank(EditLine *el, const Char *ptr, int size) {
@@ -88,7 +88,7 @@ cv_yank(EditLine *el, const Char *ptr, int size) {
 
 
 /* c_insert():
- *	Insert num characters
+ *      Insert num characters
  */
 protected void
 c_insert(EditLine *el, int num) {
@@ -111,7 +111,7 @@ c_insert(EditLine *el, int num) {
 
 
 /* c_delafter():
- *	Delete num characters after the cursor
+ *      Delete num characters after the cursor
  */
 protected void
 c_delafter(EditLine *el, int num) {
@@ -138,7 +138,7 @@ c_delafter(EditLine *el, int num) {
 
 
 /* c_delafter1():
- *	Delete the character after the cursor, do not yank
+ *      Delete the character after the cursor, do not yank
  */
 protected void
 c_delafter1(EditLine *el) {
@@ -153,7 +153,7 @@ c_delafter1(EditLine *el) {
 
 
 /* c_delbefore():
- *	Delete num characters before the cursor
+ *      Delete num characters before the cursor
  */
 protected void
 c_delbefore(EditLine *el, int num) {
@@ -182,7 +182,7 @@ c_delbefore(EditLine *el, int num) {
 
 
 /* c_delbefore1():
- *	Delete the character before the cursor, do not yank
+ *      Delete the character before the cursor, do not yank
  */
 protected void
 c_delbefore1(EditLine *el) {
@@ -197,7 +197,7 @@ c_delbefore1(EditLine *el) {
 
 
 /* ce__isword():
- *	Return if p is part of a word according to emacs
+ *      Return if p is part of a word according to emacs
  */
 protected int
 ce__isword(Int p) {
@@ -206,7 +206,7 @@ ce__isword(Int p) {
 
 
 /* cv__isword():
- *	Return if p is part of a word according to vi
+ *      Return if p is part of a word according to vi
  */
 protected int
 cv__isword(Int p) {
@@ -221,7 +221,7 @@ cv__isword(Int p) {
 
 
 /* cv__isWord():
- *	Return if p is part of a big word according to vi
+ *      Return if p is part of a big word according to vi
  */
 protected int
 cv__isWord(Int p) {
@@ -230,7 +230,7 @@ cv__isWord(Int p) {
 
 
 /* c__prev_word():
- *	Find the previous word
+ *      Find the previous word
  */
 protected Char *
 c__prev_word(Char *p, Char *low, int n, int (*wtest)(Int)) {
@@ -256,7 +256,7 @@ c__prev_word(Char *p, Char *low, int n, int (*wtest)(Int)) {
 
 
 /* c__next_word():
- *	Find the next word
+ *      Find the next word
  */
 protected Char *
 c__next_word(Char *p, Char *high, int n, int (*wtest)(Int)) {
@@ -276,7 +276,7 @@ c__next_word(Char *p, Char *high, int n, int (*wtest)(Int)) {
 }
 
 /* cv_next_word():
- *	Find the next word vi style
+ *      Find the next word vi style
  */
 protected Char *
 cv_next_word(EditLine *el, Char *p, Char *high, int n, int (*wtest)(Int)) {
@@ -307,7 +307,7 @@ cv_next_word(EditLine *el, Char *p, Char *high, int n, int (*wtest)(Int)) {
 
 
 /* cv_prev_word():
- *	Find the previous word vi style
+ *      Find the previous word vi style
  */
 protected Char *
 cv_prev_word(Char *p, Char *low, int n, int (*wtest)(Int)) {
@@ -335,7 +335,7 @@ cv_prev_word(Char *p, Char *low, int n, int (*wtest)(Int)) {
 
 
 /* cv_delfini():
- *	Finish vi delete action
+ *      Finish vi delete action
  */
 protected void
 cv_delfini(EditLine *el) {
@@ -377,7 +377,7 @@ cv_delfini(EditLine *el) {
 
 
 /* cv__endword():
- *	Go to the end of this word according to vi
+ *      Go to the end of this word according to vi
  */
 protected Char *
 cv__endword(Char *p, Char *high, int n, int (*wtest)(Int)) {
@@ -400,13 +400,13 @@ cv__endword(Char *p, Char *high, int n, int (*wtest)(Int)) {
 }
 
 /* ch_init():
- *	Initialize the character editor
+ *      Initialize the character editor
  */
 protected int
 ch_init(EditLine *el) {
   c_macro_t *ma = &el->el_chared.c_macro;
 
-  el->el_line.buffer		= el_malloc(EL_BUFSIZ *
+  el->el_line.buffer            = el_malloc(EL_BUFSIZ *
                                     sizeof(*el->el_line.buffer));
   if (el->el_line.buffer == NULL) {
     return -1;
@@ -414,54 +414,54 @@ ch_init(EditLine *el) {
 
   (void) memset(el->el_line.buffer, 0, EL_BUFSIZ *
                 sizeof(*el->el_line.buffer));
-  el->el_line.cursor		= el->el_line.buffer;
-  el->el_line.lastchar		= el->el_line.buffer;
-  el->el_line.limit		= &el->el_line.buffer[EL_BUFSIZ - EL_LEAVE];
+  el->el_line.cursor            = el->el_line.buffer;
+  el->el_line.lastchar          = el->el_line.buffer;
+  el->el_line.limit             = &el->el_line.buffer[EL_BUFSIZ - EL_LEAVE];
 
-  el->el_chared.c_undo.buf	= el_malloc(EL_BUFSIZ *
+  el->el_chared.c_undo.buf      = el_malloc(EL_BUFSIZ *
                                         sizeof(*el->el_chared.c_undo.buf));
   if (el->el_chared.c_undo.buf == NULL) {
     return -1;
   }
   (void) memset(el->el_chared.c_undo.buf, 0, EL_BUFSIZ *
                 sizeof(*el->el_chared.c_undo.buf));
-  el->el_chared.c_undo.len	= -1;
-  el->el_chared.c_undo.cursor	= 0;
-  el->el_chared.c_redo.buf	= el_malloc(EL_BUFSIZ *
+  el->el_chared.c_undo.len      = -1;
+  el->el_chared.c_undo.cursor   = 0;
+  el->el_chared.c_redo.buf      = el_malloc(EL_BUFSIZ *
                                         sizeof(*el->el_chared.c_redo.buf));
   if (el->el_chared.c_redo.buf == NULL) {
     return -1;
   }
-  el->el_chared.c_redo.pos	= el->el_chared.c_redo.buf;
-  el->el_chared.c_redo.lim	= el->el_chared.c_redo.buf + EL_BUFSIZ;
-  el->el_chared.c_redo.cmd	= ED_UNASSIGNED;
+  el->el_chared.c_redo.pos      = el->el_chared.c_redo.buf;
+  el->el_chared.c_redo.lim      = el->el_chared.c_redo.buf + EL_BUFSIZ;
+  el->el_chared.c_redo.cmd      = ED_UNASSIGNED;
 
-  el->el_chared.c_vcmd.action	= NOP;
-  el->el_chared.c_vcmd.pos	= el->el_line.buffer;
+  el->el_chared.c_vcmd.action   = NOP;
+  el->el_chared.c_vcmd.pos      = el->el_line.buffer;
 
-  el->el_chared.c_kill.buf	= el_malloc(EL_BUFSIZ *
+  el->el_chared.c_kill.buf      = el_malloc(EL_BUFSIZ *
                                         sizeof(*el->el_chared.c_kill.buf));
   if (el->el_chared.c_kill.buf == NULL) {
     return -1;
   }
   (void) memset(el->el_chared.c_kill.buf, 0, EL_BUFSIZ *
                 sizeof(*el->el_chared.c_kill.buf));
-  el->el_chared.c_kill.mark	= el->el_line.buffer;
-  el->el_chared.c_kill.last	= el->el_chared.c_kill.buf;
-  el->el_chared.c_resizefun	= NULL;
-  el->el_chared.c_resizearg	= NULL;
+  el->el_chared.c_kill.mark     = el->el_line.buffer;
+  el->el_chared.c_kill.last     = el->el_chared.c_kill.buf;
+  el->el_chared.c_resizefun     = NULL;
+  el->el_chared.c_resizearg     = NULL;
 
-  el->el_map.current		= el->el_map.key;
+  el->el_map.current            = el->el_map.key;
 
-  el->el_state.inputmode		= MODE_INSERT; /* XXX: save a default */
-  el->el_state.doingarg		= 0;
-  el->el_state.metanext		= 0;
-  el->el_state.argument		= 1;
-  el->el_state.lastcmd		= ED_UNASSIGNED;
+  el->el_state.inputmode                = MODE_INSERT; /* XXX: save a default */
+  el->el_state.doingarg         = 0;
+  el->el_state.metanext         = 0;
+  el->el_state.argument         = 1;
+  el->el_state.lastcmd          = ED_UNASSIGNED;
 
-  ma->level	= -1;
-  ma->offset	= 0;
-  ma->macro	= el_malloc(EL_MAXMACRO * sizeof(*ma->macro));
+  ma->level     = -1;
+  ma->offset    = 0;
+  ma->macro     = el_malloc(EL_MAXMACRO * sizeof(*ma->macro));
   if (ma->macro == NULL) {
     return -1;
   }
@@ -469,30 +469,30 @@ ch_init(EditLine *el) {
 }
 
 /* ch_reset():
- *	Reset the character editor
+ *      Reset the character editor
  */
 protected void
 ch_reset(EditLine *el, int mclear) {
-  el->el_line.cursor		= el->el_line.buffer;
-  el->el_line.lastchar		= el->el_line.buffer;
+  el->el_line.cursor            = el->el_line.buffer;
+  el->el_line.lastchar          = el->el_line.buffer;
 
-  el->el_chared.c_undo.len	= -1;
-  el->el_chared.c_undo.cursor	= 0;
+  el->el_chared.c_undo.len      = -1;
+  el->el_chared.c_undo.cursor   = 0;
 
-  el->el_chared.c_vcmd.action	= NOP;
-  el->el_chared.c_vcmd.pos	= el->el_line.buffer;
+  el->el_chared.c_vcmd.action   = NOP;
+  el->el_chared.c_vcmd.pos      = el->el_line.buffer;
 
-  el->el_chared.c_kill.mark	= el->el_line.buffer;
+  el->el_chared.c_kill.mark     = el->el_line.buffer;
 
-  el->el_map.current		= el->el_map.key;
+  el->el_map.current            = el->el_map.key;
 
-  el->el_state.inputmode		= MODE_INSERT; /* XXX: save a default */
-  el->el_state.doingarg		= 0;
-  el->el_state.metanext		= 0;
-  el->el_state.argument		= 1;
-  el->el_state.lastcmd		= ED_UNASSIGNED;
+  el->el_state.inputmode                = MODE_INSERT; /* XXX: save a default */
+  el->el_state.doingarg         = 0;
+  el->el_state.metanext         = 0;
+  el->el_state.argument         = 1;
+  el->el_state.lastcmd          = ED_UNASSIGNED;
 
-  el->el_history.eventno		= 0;
+  el->el_history.eventno                = 0;
 
   if (mclear) {
     ch__clearmacro(el);
@@ -508,8 +508,8 @@ ch__clearmacro(EditLine *el) {
 }
 
 /* ch_enlargebufs():
- *	Enlarge line buffer to be able to hold twice as much characters.
- *	Returns 1 if successful, 0 if not.
+ *      Enlarge line buffer to be able to hold twice as much characters.
+ *      Returns 1 if successful, 0 if not.
  */
 protected int
 ch_enlargebufs(EditLine *el, size_t addlen) {
@@ -604,7 +604,7 @@ ch_enlargebufs(EditLine *el, size_t addlen) {
 }
 
 /* ch_end():
- *	Free the data structures used by the editor
+ *      Free the data structures used by the editor
  */
 protected void
 ch_end(EditLine *el) {
@@ -627,7 +627,7 @@ ch_end(EditLine *el) {
 
 
 /* el_insertstr():
- *	Insert string at cursorI
+ *      Insert string at cursorI
  */
 public int
 FUN(el,insertstr)(EditLine *el, const Char *s) {
@@ -651,7 +651,7 @@ FUN(el,insertstr)(EditLine *el, const Char *s) {
 
 
 /* el_deletestr():
- *	Delete num characters before the cursor
+ *      Delete num characters before the cursor
  */
 public void
 el_deletestr(EditLine *el, int n) {
@@ -663,7 +663,7 @@ el_deletestr(EditLine *el, int n) {
     return;
   }
 
-  c_delbefore(el, n);		/* delete before dot */
+  c_delbefore(el, n);           /* delete before dot */
   el->el_line.cursor -= n;
   if (el->el_line.cursor < el->el_line.buffer) {
     el->el_line.cursor = el->el_line.buffer;
@@ -671,7 +671,7 @@ el_deletestr(EditLine *el, int n) {
 }
 
 /* el_cursor():
- *	Move the cursor to the left or the right of the current position
+ *      Move the cursor to the left or the right of the current position
  */
 public int
 el_cursor(EditLine *el, int n) {
@@ -692,7 +692,7 @@ out:
 }
 
 /* c_gets():
- *	Get a string
+ *      Get a string
  */
 protected int
 c_gets(EditLine *el, Char *buf, const Char *prompt) {
@@ -721,7 +721,7 @@ c_gets(EditLine *el, Char *buf, const Char *prompt) {
 
     switch (ch) {
 
-      case 0010:	/* Delete and backspace */
+      case 0010:        /* Delete and backspace */
       case 0177:
         if (len == 0) {
           len = -1;
@@ -730,8 +730,8 @@ c_gets(EditLine *el, Char *buf, const Char *prompt) {
         cp--;
         continue;
 
-      case 0033:	/* ESC */
-      case '\r':	/* Newline */
+      case 0033:        /* ESC */
+      case '\r':        /* Newline */
       case '\n':
         buf[len] = ch;
         break;
@@ -756,7 +756,7 @@ c_gets(EditLine *el, Char *buf, const Char *prompt) {
 
 
 /* c_hpos():
- *	Return the current horizontal position of the cursor
+ *      Return the current horizontal position of the cursor
  */
 protected int
 c_hpos(EditLine *el) {
