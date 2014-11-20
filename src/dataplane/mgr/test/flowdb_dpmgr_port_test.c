@@ -273,7 +273,7 @@ setUp(void) {
   for (s = 0; s < ARRAY_LEN(bridge); s++) {
     snprintf(buf, sizeof(buf), bridge_name_format, (int)s);
     bridge_name[s] = strdup(buf);
-    nports[s].type = LAGOPUS_PORT_TYPE_PHYSICAL;
+    nports[s].type = LAGOPUS_PORT_TYPE_NULL; /* for test */
     nports[s].ofp_port.port_no = TEST_PORT_OFPNO(s);
     nports[s].ifindex = TEST_PORT_IFINDEX(s);
   }

@@ -61,7 +61,7 @@ test_lagopus_receive_packet(void) {
   rv = dpmgr_bridge_add(my_dpmgr, "br0", 0);
   TEST_ASSERT_EQUAL_MESSAGE(rv, LAGOPUS_RESULT_OK, "bridge add error\n");
 
-  nport.type = LAGOPUS_PORT_TYPE_PHYSICAL;
+  nport.type = LAGOPUS_PORT_TYPE_NULL; /* for test */
   nport.ifindex = 0;
   nport.ofp_port.hw_addr[0] = 1;
   dpmgr_port_add(my_dpmgr, &nport);
@@ -121,7 +121,7 @@ test_action_OUTPUT(void) {
   /* setup bridge and port */
   my_dpmgr = dpmgr_alloc();
   dpmgr_bridge_add(my_dpmgr, "br0", 0);
-  nport.type = LAGOPUS_PORT_TYPE_PHYSICAL;
+  nport.type = LAGOPUS_PORT_TYPE_NULL; /* for test */
   nport.ofp_port.port_no = 1;
   nport.ifindex = 0;
   nport.ofp_port.hw_addr[0] = 1;
@@ -231,7 +231,7 @@ test_lagopus_match_and_action(void) {
   my_dpmgr = dpmgr_alloc();
   dpmgr_bridge_add(my_dpmgr, "br0", 0);
 
-  nport.type = LAGOPUS_PORT_TYPE_PHYSICAL;
+  nport.type = LAGOPUS_PORT_TYPE_NULL; /* for test */
   nport.ifindex = 0;
   nport.ofp_port.hw_addr[0] = 1;
   dpmgr_port_add(my_dpmgr, &nport);

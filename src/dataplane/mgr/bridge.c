@@ -255,15 +255,12 @@ bridge_port_add(struct bridge_list *bridge_list, const char *name,
   /* Lookup bridge by name. */
   bridge = bridge_lookup(bridge_list, name);
   if (bridge != NULL) {
-    static const uint8_t zeromac[] = "\0\0\0\0\0\0";
-    if (memcmp(port->ofp_port.hw_addr, zeromac, 6) != 0) {
-      /* Set port to the bridge's port vector. */
-      printf("Assigning port id %u to bridge %s\n",
-             port->ifindex, bridge->name);
-      vector_set_index(bridge->ports, port->ofp_port.port_no, port);
-      port->bridge = bridge;
-      send_port_status(port, OFPPR_ADD);
-    }
+    /* Set port to the bridge's port vector. */
+    printf("Assigning port id %u to bridge %s\n",
+           port->ifindex, bridge->name);
+    vector_set_index(bridge->ports, port->ofp_port.port_no, port);
+    port->bridge = bridge;
+    send_port_status(port, OFPPR_ADD);
     ret = LAGOPUS_RESULT_OK;
   } else {
     ret = LAGOPUS_RESULT_NOT_FOUND;

@@ -160,9 +160,12 @@ lagopus_configure_physical_port(struct port *port) {
   struct sockaddr_ll sll;
   int fd, on;
 
+  if (port->type != LAGOPUS_PORT_TYPE_PHYSICAL) {
+    return LAGOPUS_RESULT_OK;
+  }
   fd = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
   if (fd == -1) {
-    lagopus_msg_warning("%s: %s\n", port->ofp_port.name, strerror(errno));
+    lagopus_msg_error("%s: %s\n", port->ofp_port.name, strerror(errno));
     return LAGOPUS_RESULT_POSIX_API_ERROR;
   }
   on = 1;
