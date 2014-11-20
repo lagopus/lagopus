@@ -1158,10 +1158,21 @@ execute_group_action(struct lagopus_packet *pkt, uint32_t group_id) {
   switch (group->type) {
     case OFPGT_ALL:
       TAILQ_FOREACH(bucket, &group->bucket_list, entry) {
+        struct lagopus_packet *cpkt;
+
         bucket->counter.packet_count++;
         bucket->counter.byte_count += OS_M_PKTLEN(pkt->mbuf);
-        rv = execute_action_set(copy_packet(pkt), bucket->actions);
+        cpkt = copy_packet(pkt);
+        if (cpkt != NULL) {
+          re_classify_packet(cpkt);
+          rv = execute_action_set(cpkt, bucket->actions);
+          if (rv != LAGOPUS_RESULT_NO_MORE_ACTION) {
+            lagopus_packet_free(cpkt);
+          }
+        }
       }
+      /* to free original packet */
+      rv = LAGOPUS_RESULT_OK;
       break;
 
     case OFPGT_SELECT:
