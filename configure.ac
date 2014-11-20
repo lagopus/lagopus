@@ -543,6 +543,7 @@ AC_CONFIG_COMMANDS([config-clean],
 AC_OUTPUT
 
 ${MAKE} clean
+${MAKE} generate
 
 echo ""
 echo "CC:	'${CC}'"

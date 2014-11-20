@@ -20548,6 +20548,7 @@ fi
 
 
 ${MAKE} clean
+${MAKE} generate
 
 echo ""
 echo "CC:	'${CC}'"
