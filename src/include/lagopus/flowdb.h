@@ -572,6 +572,15 @@ flow_remove_with_reason(struct flow *flow,
                         uint8_t reason,
                         struct ofp_error *error);
 
+/**
+ * no lock version of flow_remove_with_reason.
+ */
+lagopus_result_t
+flow_remove_with_reason_nolock(struct flow *flow,
+                               struct bridge *bridge,
+                               uint8_t reason,
+                               struct ofp_error *error);
+
 struct timespec now_ts;
 
 static inline struct timespec
