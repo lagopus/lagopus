@@ -33,9 +33,9 @@
 
 /*
  * Usage:
- *  --vdev eth_pipe0,port=N:master,port=N:slave --vdev eth_pipe1,port=N:...
+ *  --vdev eth_pipe0,socket=N --vdev eth_pipe1,socket=N
  *  N: numa node (0 or 1)
- *  single --vdev creates twa virtual ports and connected.
+ *  single --vdev creates twa virtual ports and connected via ring.
  */
 
 #include <rte_config.h>
@@ -49,9 +49,7 @@
 
 #include "rte_eth_pipe.h"
 
-#define ETH_PIPE_PORT_ARG	"port"
-#define ETH_PIPE_ACTION_CREATE	"master"
-#define ETH_PIPE_ACTION_ATTACH	"slave"
+#define ETH_PIPE_SOCKET_ARG	"socket"
 
 #ifndef RTE_PMD_PIPE_MAX_RX_RING
 #define RTE_PMD_PIPE_MAX_RX_RINGS 16
@@ -61,7 +59,7 @@
 #endif
 
 static const char *valid_arguments[] = {
-	ETH_PIPE_PORT_ARG,
+	ETH_PIPE_SOCKET_ARG,
 	NULL
 };
 
@@ -371,7 +369,7 @@ eth_dev_ring_pair_create(const char *name, const unsigned numa_node,
 			return -1;
 	}
 
-        devname = (action == DEV_CREATE) ? rx_rng_name : tx_rng_name;
+	devname = (action == DEV_CREATE) ? rx_rng_name : tx_rng_name;
 	if (rte_eth_from_rings(devname, rx, num_rings, tx, num_rings,
 			       numa_node))
 		return -1;
@@ -396,54 +394,38 @@ parse_kvlist (const char *key __rte_unused, const char *value, void *data)
 {
 	struct vport_list *info = data;
 	int ret;
-	char *name;
-	char *action;
-	char *node;
 	char *end;
-
-	node = strdup(value);
+	long node;
 
 	ret = -EINVAL;
 
-	if (!node) {
+	if (!value) {
 		RTE_LOG(WARNING, PMD,
 			"command line paramter is empty for pipe pmd!\n");
 		goto out;
 	}
 
-	action = strchr(node, ':');
-	if (!action) {
-		RTE_LOG(WARNING, PMD, "could not action value from %s", node);
-		goto out;
-	}
-
-	*action = '\0';
-	action++;
-
 	/*
 	 * Need to do some sanity checking here
 	 */
 
-	if (strcmp(action, ETH_PIPE_ACTION_ATTACH) == 0)
-		info->list[info->count].action = DEV_ATTACH;
-	else if (strcmp(action, ETH_PIPE_ACTION_CREATE) == 0)
-		info->list[info->count].action = DEV_CREATE;
-	else
-		goto out;
-
 	errno = 0;
-	info->list[info->count].node = strtol(node, &end, 10);
+	node = strtol(value, &end, 10);
 
 	if ((errno != 0) || (*end != '\0')) {
 		RTE_LOG(WARNING, PMD,
-			"node value %s is unparseable as a number\n", node);
+			"node value %s is unparseable as a number\n", value);
 		goto out;
 	}
+	info->list[info->count].node = node;
+	info->list[info->count].action = DEV_CREATE;
+	info->count++;
+	info->list[info->count].node = node;
+	info->list[info->count].action = DEV_ATTACH;
 	info->count++;
 
 	ret = 0;
 out:
-	free(node);
 	return ret;
 }
 
@@ -465,17 +447,17 @@ rte_pmd_pipe_devinit(const char *name, const char *params)
 		eth_dev_ring_pair_create(name, rte_socket_id(), DEV_CREATE);
 			return 0;
 	} else {
-		ret = rte_kvargs_count(kvlist, ETH_PIPE_PORT_ARG);
+		ret = rte_kvargs_count(kvlist, ETH_PIPE_SOCKET_ARG);
 		info = rte_zmalloc("struct vport_list",
 				   sizeof(struct vport_list) +
-				   (sizeof(struct vport_pair) * ret), 0);
+				   (sizeof(struct vport_pair) * ret * 2), 0);
 		if (!info)
 			goto out;
 
-		info->total = ret;
+		info->total = ret * 2;
 		info->list = (struct vport_pair *)(info + 1);
 
-		ret = rte_kvargs_process(kvlist, ETH_PIPE_PORT_ARG,
+		ret = rte_kvargs_process(kvlist, ETH_PIPE_SOCKET_ARG,
 					 parse_kvlist, info);
 
 		if (ret < 0)
