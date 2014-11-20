@@ -134,6 +134,7 @@ port_add(struct vector *v, const struct port *port_param) {
   int i;
   struct port *find;
   struct port *port;
+  lagopus_result_t rv;
 
   find = port_lookup(v, port_param->ifindex);
   if (find != NULL) {
@@ -149,11 +150,15 @@ port_add(struct vector *v, const struct port *port_param) {
   port->ofp_port = port_param->ofp_port;
   port->ifindex = port_param->ifindex;
 
-  lagopus_configure_physical_port(port);
+  rv = lagopus_configure_physical_port(port);
+  if (rv != LAGOPUS_RESULT_OK) {
+    port_free(port);
+    return rv;
+  }
 
-  printf("Adding Physical Port %u\n", port->ifindex);
+  printf("Adding Physical Port %u", port->ifindex);
   for (i = 0; i < 6; i++) {
-    printf("%02x:", port->ofp_port.hw_addr[i]);
+    printf(":%02x", port->ofp_port.hw_addr[i]);
   }
   printf("\n");
   vector_set_index(v, port->ifindex, port);

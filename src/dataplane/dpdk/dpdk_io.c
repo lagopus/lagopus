@@ -1189,7 +1189,7 @@ lagopus_configure_physical_port(struct port *port) {
   /* DPDK engine */
   if (app_get_nic_rx_queues_per_port((uint8_t)port->ifindex) == 0) {
     /* Do not configured by DPDK, nothing to do. */
-    return LAGOPUS_RESULT_OK;
+    return LAGOPUS_RESULT_INVALID_ARGS;
   }
   lagopus_port_mask |= (unsigned long)(1 << port->ifindex);
   port->stats = port_stats;

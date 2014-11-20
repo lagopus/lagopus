@@ -194,6 +194,9 @@ struct lagopus_queue {
 TAILQ_HEAD(lagopus_queue_list, lagopus_queue);
 
 enum {
+  /* null ports for test */
+  LAGOPUS_PORT_TYPE_NULL = 0,
+
   /* physical ports */
   LAGOPUS_PORT_TYPE_PHYSICAL,   /* eth* */
   /* logical ports */
