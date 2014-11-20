@@ -91,6 +91,9 @@ CPPFLAGS	+= @OS_CPPFLAGS@ @FLOWCACHE_FLAGS@ \
 ifneq ($(RTE_SDK),)
 # so far, hardcoded to use dpdk version.
 CPPFLAGS += -DHAVE_DPDK -I$(RTE_SDK)/$(RTE_TARGET)/include -msse4.2
+ifneq (@RTE_MBUF_HAS_PKT@,)
+CPPFLAGS += -DRTE_MBUF_HAS_PKT
+endif
 endif
 
 WARN_BASE_CFLAGS	+= -W -Wall -Wextra -std=gnu99 \

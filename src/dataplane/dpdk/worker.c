@@ -192,7 +192,11 @@ app_lcore_worker(struct app_lcore_params_worker *lp,
       pkt = (struct lagopus_packet *)
             (m->buf_addr + APP_DEFAULT_MBUF_LOCALDATA_OFFSET);
       APP_WORKER_PREFETCH0(pkt);
+#ifdef RTE_MBUF_HAS_PKT
       port = port_lookup(dpmgr->ports, m->pkt.in_port);
+#else
+      port = port_lookup(dpmgr->ports, m->port);
+#endif /* RTE_MBUF_HAS_PKT */
       if (port == NULL ||
           port->bridge == NULL ||
           (port->ofp_port.config & OFPPC_NO_RECV) != 0) {

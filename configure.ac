@@ -251,20 +251,33 @@ if test "x$with_dpdk_dir" != "x"; then
                 RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_virtio_uio",)
   AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_i40e.a,
                 RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_i40e",)
-  RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_ixgbe -Xlinker -lrte_pmd_e1000"
+  AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_ixgbe.a,
+                RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_ixgbe",)
+  AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_e1000.a,
+                RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_e1000",)
   AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_ring.a,
                 RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_ring",)
   AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_pcap.a,
                 RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_pcap",)
   RTE_LIBS="$RTE_LIBS -Xlinker --end-group -Xlinker --no-whole-archive"
+  CPPFLAGS_BKUP="$CPPFLAGS"
+  CPPFLAGS="$CPPFLAGS -I$RTE_SDK/$RTE_TARGET/include"
+  AC_CHECK_MEMBER([struct rte_mbuf.pkt],
+                  [RTE_MBUF_HAS_PKT=1],
+		  [],
+		  [[#include "rte_config.h"]
+		   [#include "rte_mbuf.h"]])
+  CPPFLAGS="$CPPFLAGS_BKUP"
 else
  RTE_SDK=
  RTE_TARGET=
  RTE_LIBS=
+ RTE_MBUF_HAS_PKT=
 fi
 AC_SUBST(RTE_SDK)
 AC_SUBST(RTE_TARGET)
 AC_SUBST(RTE_LIBS)
+AC_SUBST(RTE_MBUF_HAS_PKT)
 
 AC_ARG_ENABLE([flowcache],
               [AC_HELP_STRING([--enable-flowcache],

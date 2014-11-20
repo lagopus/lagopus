@@ -186,7 +186,7 @@ str_to_unsigned_array(
   int i, num_splits = 0;
 
   /* copy s so we don't modify original string */
-  rte_snprintf(str, sizeof(str), "%s", s);
+  snprintf(str, sizeof(str), "%s", s);
   num_splits = rte_strsplit(str, (int)sizeof(str),
                             splits, (int)num_vals, separator);
 
