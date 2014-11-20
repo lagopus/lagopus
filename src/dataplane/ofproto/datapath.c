@@ -1160,7 +1160,7 @@ execute_group_action(struct lagopus_packet *pkt, uint32_t group_id) {
       TAILQ_FOREACH(bucket, &group->bucket_list, entry) {
         bucket->counter.packet_count++;
         bucket->counter.byte_count += OS_M_PKTLEN(pkt->mbuf);
-        rv = execute_action_set(pkt, bucket->actions);
+        rv = execute_action_set(copy_packet(pkt), bucket->actions);
       }
       break;
 
