@@ -677,10 +677,6 @@ lagopus_result_t update_port_link_status(struct port *);
  */
 struct lagopus_packet *copy_packet(struct lagopus_packet *);
 
-#ifdef STANDALONE
-void register_flow(struct flowdb *flowdb, int);
-#endif
-
 /**
  * Process received packet.
  *
