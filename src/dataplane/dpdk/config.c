@@ -628,7 +628,7 @@ app_parse_args(int argc, const char *argv[]) {
   uint32_t arg_rsz = 0;
   uint32_t arg_bsz = 0;
 
-  uint32_t portmask = 0;
+  uint64_t portmask = 0;
   char *end = NULL;
   struct app_lcore_params *lp, *htlp;
   unsigned lcore, htcore, lcore_count, i, wk_lcore_count = 0;
@@ -645,7 +645,7 @@ app_parse_args(int argc, const char *argv[]) {
         if (optarg[0] == '\0') {
           return -1;
         }
-        portmask = (uint32_t)strtoul(optarg, &end, 16);
+        portmask = (uint64_t)strtoul(optarg, &end, 16);
         if (end == NULL || *end != '\0') {
           return -1;
         }
@@ -758,7 +758,7 @@ app_parse_args(int argc, const char *argv[]) {
      */
     port_count = 0;
     for (i = 0; i < 32; i++) {
-      if ((portmask & (uint32_t)(1 << i)) != 0) {
+      if ((portmask & (uint64_t)(1 << i)) != 0) {
         port_count++;
       }
     }
@@ -868,7 +868,7 @@ app_parse_args(int argc, const char *argv[]) {
   if (arg_rx == 0) {
     lcore = rx_lcore_start;
     for (portid = 0; portid < RTE_MAX_ETHPORTS; portid++) {
-      if ((portmask & (uint32_t)(1 << portid)) == 0) {
+      if ((portmask & (uint64_t)(1 << portid)) == 0) {
         continue;
       }
       app.nic_rx_queue_mask[portid][0] = 1;
@@ -888,7 +888,7 @@ app_parse_args(int argc, const char *argv[]) {
   if (arg_tx == 0) {
     lcore = tx_lcore_start;
     for (portid = 0; portid < RTE_MAX_ETHPORTS; portid++) {
-      if ((portmask & (uint32_t)(1 << portid)) == 0) {
+      if ((portmask & (uint64_t)(1 << portid)) == 0) {
         continue;
       }
       app.nic_tx_port_mask[portid] = 1;
