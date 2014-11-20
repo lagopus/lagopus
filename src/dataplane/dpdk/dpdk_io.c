@@ -728,7 +728,7 @@ app_init_mbuf_pools(void) {
       continue;
     }
 
-    rte_snprintf(name, sizeof(name), "mbuf_pool_%u", socket);
+    snprintf(name, sizeof(name), "mbuf_pool_%u", socket);
     lagopus_msg_debug("Creating the mbuf pool for socket %u ...\n", socket);
     app.pools[socket] = rte_mempool_create(
                           name,
@@ -789,7 +789,7 @@ app_init_rings_rx(void) {
         lcore,
         socket_io,
         lcore_worker);
-      rte_snprintf(name, sizeof(name),
+      snprintf(name, sizeof(name),
                    "app_ring_rx_s%u_io%u_w%u",
                    socket_io,
                    lcore,
@@ -883,7 +883,7 @@ app_init_rings_tx(void) {
                         port,
                         (unsigned)lcore_io,
                         (unsigned)socket_io);
-      rte_snprintf(name, sizeof(name),
+      snprintf(name, sizeof(name),
                    "app_ring_tx_s%u_w%u_p%u",
                    socket_io, lcore, port);
       ring = rte_ring_create(
@@ -1041,7 +1041,7 @@ app_init_kni(void) {
     memset(&conf, 0, sizeof(conf));
     memset(&dev_info, 0, sizeof(dev_info));
     memset(&ops, 0, sizeof(ops));
-    rte_snprintf(conf.name, RTE_KNI_NAMESIZE, "vEth%u", portid);
+    snprintf(conf.name, RTE_KNI_NAMESIZE, "vEth%u", portid);
     conf.group_id = (uint16_t)portid;
     conf.mbuf_size = MAX_PACKET_SZ;
     rte_eth_dev_info_get(portid, &dev_info);
