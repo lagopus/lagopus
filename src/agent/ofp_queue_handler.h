@@ -16,7 +16,7 @@
 
 
 /**
- * @file	ofp_queue_handler.h
+ * @file        ofp_queue_handler.h
  */
 
 #ifndef __OFP_QUEUE_HANDLER_H__
@@ -27,15 +27,15 @@
 /**
  * ofp_queue_stats_request handler.
  *
- *     @param[in]	channel	A pointer to \e channel structure.
- *     @param[in]	pbuf	A pointer to \e pbuf structure.
- *     @param[in]	xid_header	A pointer to \e ofp_header structure in request.
- *     @param[out]	error	A pointer to \e ofp_error structure.
+ *     @param[in]       channel A pointer to \e channel structure.
+ *     @param[in]       pbuf    A pointer to \e pbuf structure.
+ *     @param[in]       xid_header      A pointer to \e ofp_header structure in request.
+ *     @param[out]      error   A pointer to \e ofp_error structure.
  *     If errors occur, set filed values.
  *
- *     @retval	LAGOPUS_RESULT_OK	Succeeded.
- *     @retval	LAGOPUS_RESULT_OFP_ERROR Failed, ofp_error.
- *     @retval	LAGOPUS_RESULT_ANY_FAILURES Failed.
+ *     @retval  LAGOPUS_RESULT_OK       Succeeded.
+ *     @retval  LAGOPUS_RESULT_OFP_ERROR Failed, ofp_error.
+ *     @retval  LAGOPUS_RESULT_ANY_FAILURES Failed.
  */
 lagopus_result_t
 ofp_queue_stats_request_handle(struct channel *channel, struct pbuf *pbuf,
@@ -45,10 +45,10 @@ ofp_queue_stats_request_handle(struct channel *channel, struct pbuf *pbuf,
 /**
  * Free queue_stats_list elements.
  *
- *     @param[in]	queue_stats_list	A pointer to list of
+ *     @param[in]       queue_stats_list        A pointer to list of
  *     \e queue_stats structure.
  *
- *     @retval	void
+ *     @retval  void
  */
 void
 queue_stats_list_elem_free(struct queue_stats_list *queue_stats_list);
@@ -57,14 +57,14 @@ queue_stats_list_elem_free(struct queue_stats_list *queue_stats_list);
 /**
  * Create ofp_queue_stats_reply.
  *
- *     @param[in]	channel	A pointer to \e channel structure.
- *     @param[out]	pbuf_list	A pointer to list of \e pbuf structures.
- *     @param[in]	queue_stats_list	A pointer to list of
+ *     @param[in]       channel A pointer to \e channel structure.
+ *     @param[out]      pbuf_list       A pointer to list of \e pbuf structures.
+ *     @param[in]       queue_stats_list        A pointer to list of
  *     \e queue_stats structure.
- *     @param[in]	xid_header	A pointer to \e ofp_header structure.
+ *     @param[in]       xid_header      A pointer to \e ofp_header structure.
  *
- *     @retval	LAGOPUS_RESULT_OK	Succeeded.
- *     @retval	LAGOPUS_RESULT_ANY_FAILURES Failed.
+ *     @retval  LAGOPUS_RESULT_OK       Succeeded.
+ *     @retval  LAGOPUS_RESULT_ANY_FAILURES Failed.
  */
 lagopus_result_t
 ofp_queue_stats_reply_create(struct channel *channel,

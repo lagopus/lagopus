@@ -16,8 +16,8 @@
 
 
 /**
- *	@file	ofcache.c
- *	@brief	OpenFlow flowcache implementation.
+ *      @file   ofcache.c
+ *      @brief  OpenFlow flowcache implementation.
  */
 
 #include <sys/queue.h>

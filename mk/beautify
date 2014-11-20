@@ -7,7 +7,7 @@ beautify() {
     astyle \
 	--mode=c \
 	--style=java \
-	-xC78 -s2 -m0 \
+	-xC79 -s2 -m0 \
 	-L -S -H \
 	-xL -w -j \
 	-o -O \

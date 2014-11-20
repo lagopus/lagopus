@@ -22,7 +22,7 @@
 
 
 /**
- *	@file	lagopus_runnable_funcs.h
+ *      @file   lagopus_runnable_funcs.h
  */
 
 
@@ -30,7 +30,7 @@
 
 
 #ifndef RUNNABLE_T_DECLARED
-typedef struct lagopus_runnable_record 	*lagopus_runnable_t;
+typedef struct lagopus_runnable_record  *lagopus_runnable_t;
 #define RUNNABLE_T_DECLARED
 #endif /* ! RUNNABLE_T_DECLARED */
 
@@ -41,8 +41,8 @@ typedef struct lagopus_runnable_record 	*lagopus_runnable_t;
 /**
  * A procedure for a runnable.
  *
- *	@param[in]	rptr	A runnable.
- *	@param[in]	arg	An argument.
+ *      @param[in]      rptr    A runnable.
+ *      @param[in]      arg     An argument.
  *
  * @details If any resoures acquired in the function must be released
  * before returning. Doing this must be the functions's responsibility.
@@ -57,7 +57,7 @@ typedef void (*lagopus_runnable_proc_t)(const lagopus_runnable_t *rptr,
 /**
  * Free a runnable up.
  *
- *	@param[in]	rptr	A pointer to a runnable.
+ *      @param[in]      rptr    A pointer to a runnable.
  *
  * @details Don't free the \b *rptr itself up.
  */

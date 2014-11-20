@@ -1,8 +1,8 @@
-/*	$NetBSD: tty.h,v 1.14 2012/05/15 15:59:01 christos Exp $	*/
+/*      $NetBSD: tty.h,v 1.14 2012/05/15 15:59:01 christos Exp $        */
 
 /*-
  * Copyright (c) 1992, 1993
- *	The Regents of the University of California.  All rights reserved.
+ *      The Regents of the University of California.  All rights reserved.
  *
  * This code is derived from software contributed to Berkeley by
  * Christos Zoulas of Cornell University.
@@ -31,14 +31,14 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	@(#)tty.h	8.1 (Berkeley) 6/4/93
+ *      @(#)tty.h       8.1 (Berkeley) 6/4/93
  */
 
 /*
  * el.tty.h: Local terminal header
  */
 #ifndef _h_el_tty
-#define	_h_el_tty
+#define _h_el_tty
 
 #include "sys.h"
 #include "histedit.h"
@@ -46,7 +46,7 @@
 #include <unistd.h>
 
 /* Define our own since everyone gets it wrong! */
-#define	CONTROL(A)	((A) & 037)
+#define CONTROL(A)      ((A) & 037)
 
 /*
  * Aix compatible names
@@ -164,104 +164,104 @@
 #endif /* !CDISCARD && CFLUSH */
 
 #ifndef CINTR
-# define CINTR		CONTROL('c')
+# define CINTR          CONTROL('c')
 #endif /* CINTR */
 #ifndef CQUIT
-# define CQUIT		034	/* ^\ */
+# define CQUIT          034     /* ^\ */
 #endif /* CQUIT */
 #ifndef CERASE
-# define CERASE		0177	/* ^? */
+# define CERASE         0177    /* ^? */
 #endif /* CERASE */
 #ifndef CKILL
-# define CKILL		CONTROL('u')
+# define CKILL          CONTROL('u')
 #endif /* CKILL */
 #ifndef CEOF
-# define CEOF		CONTROL('d')
+# define CEOF           CONTROL('d')
 #endif /* CEOF */
 #ifndef CEOL
-# define CEOL		_POSIX_VDISABLE
+# define CEOL           _POSIX_VDISABLE
 #endif /* CEOL */
 #ifndef CEOL2
-# define CEOL2		_POSIX_VDISABLE
+# define CEOL2          _POSIX_VDISABLE
 #endif /* CEOL2 */
 #ifndef CSWTCH
-# define CSWTCH		_POSIX_VDISABLE
+# define CSWTCH         _POSIX_VDISABLE
 #endif /* CSWTCH */
 #ifndef CDSWTCH
-# define CDSWTCH	_POSIX_VDISABLE
+# define CDSWTCH        _POSIX_VDISABLE
 #endif /* CDSWTCH */
 #ifndef CERASE2
-# define CERASE2	_POSIX_VDISABLE
+# define CERASE2        _POSIX_VDISABLE
 #endif /* CERASE2 */
 #ifndef CSTART
-# define CSTART		CONTROL('q')
+# define CSTART         CONTROL('q')
 #endif /* CSTART */
 #ifndef CSTOP
-# define CSTOP		CONTROL('s')
+# define CSTOP          CONTROL('s')
 #endif /* CSTOP */
 #ifndef CSUSP
-# define CSUSP		CONTROL('z')
+# define CSUSP          CONTROL('z')
 #endif /* CSUSP */
 #ifndef CDSUSP
-# define CDSUSP		CONTROL('y')
+# define CDSUSP         CONTROL('y')
 #endif /* CDSUSP */
 
 #ifdef hpux
 
 # ifndef CREPRINT
-#  define CREPRINT	_POSIX_VDISABLE
+#  define CREPRINT      _POSIX_VDISABLE
 # endif /* CREPRINT */
 # ifndef CDISCARD
-#  define CDISCARD	_POSIX_VDISABLE
+#  define CDISCARD      _POSIX_VDISABLE
 # endif /* CDISCARD */
 # ifndef CLNEXT
-#  define CLNEXT	_POSIX_VDISABLE
+#  define CLNEXT        _POSIX_VDISABLE
 # endif /* CLNEXT */
 # ifndef CWERASE
-#  define CWERASE	_POSIX_VDISABLE
+#  define CWERASE       _POSIX_VDISABLE
 # endif /* CWERASE */
 
 #else /* !hpux */
 
 # ifndef CREPRINT
-#  define CREPRINT	CONTROL('r')
+#  define CREPRINT      CONTROL('r')
 # endif /* CREPRINT */
 # ifndef CDISCARD
-#  define CDISCARD	CONTROL('o')
+#  define CDISCARD      CONTROL('o')
 # endif /* CDISCARD */
 # ifndef CLNEXT
-#  define CLNEXT	CONTROL('v')
+#  define CLNEXT        CONTROL('v')
 # endif /* CLNEXT */
 # ifndef CWERASE
-#  define CWERASE	CONTROL('w')
+#  define CWERASE       CONTROL('w')
 # endif /* CWERASE */
 
 #endif /* hpux */
 
 #ifndef CSTATUS
-# define CSTATUS	CONTROL('t')
+# define CSTATUS        CONTROL('t')
 #endif /* CSTATUS */
 #ifndef CPAGE
-# define CPAGE		' '
+# define CPAGE          ' '
 #endif /* CPAGE */
 #ifndef CPGOFF
-# define CPGOFF		CONTROL('m')
+# define CPGOFF         CONTROL('m')
 #endif /* CPGOFF */
 #ifndef CKILL2
-# define CKILL2		_POSIX_VDISABLE
+# define CKILL2         _POSIX_VDISABLE
 #endif /* CKILL2 */
 #ifndef CBRK
 # ifndef masscomp
-#  define CBRK		0377
+#  define CBRK          0377
 # else
-#  define CBRK		'\0'
+#  define CBRK          '\0'
 # endif /* masscomp */
 #endif /* CBRK */
 #ifndef CMIN
-# define CMIN		CEOF
+# define CMIN           CEOF
 #endif /* CMIN */
 #ifndef CTIME
-# define CTIME		CEOL
+# define CTIME          CEOL
 #endif /* CTIME */
 
 /*
@@ -270,10 +270,10 @@
  */
 #if defined(TERMIO) || defined(POSIX)
 # if defined(POSIX) && defined(NCCS)
-#  define NUMCC		NCCS
+#  define NUMCC         NCCS
 # else
 #  ifdef NCC
-#   define NUMCC	NCC
+#   define NUMCC        NCC
 #  endif /* NCC */
 # endif /* POSIX && NCCS */
 # ifdef NUMCC
@@ -405,66 +405,66 @@
 # endif /* NUMCC */
 #endif /* !POSIX */
 
-#define	C_INTR		 0
-#define	C_QUIT		 1
-#define	C_ERASE		 2
-#define	C_KILL		 3
-#define	C_EOF		 4
-#define	C_EOL		 5
-#define	C_EOL2		 6
-#define	C_SWTCH		 7
-#define	C_DSWTCH	 8
-#define	C_ERASE2	 9
-#define	C_START		10
-#define	C_STOP		11
-#define	C_WERASE	12
-#define	C_SUSP		13
-#define	C_DSUSP		14
-#define	C_REPRINT	15
-#define	C_DISCARD	16
-#define	C_LNEXT		17
-#define	C_STATUS	18
-#define	C_PAGE		19
-#define	C_PGOFF		20
-#define	C_KILL2		21
-#define	C_BRK		22
-#define	C_MIN		23
-#define	C_TIME		24
-#define	C_NCC		25
-#define	C_SH(A)		((unsigned int)(1 << (A)))
+#define C_INTR           0
+#define C_QUIT           1
+#define C_ERASE          2
+#define C_KILL           3
+#define C_EOF            4
+#define C_EOL            5
+#define C_EOL2           6
+#define C_SWTCH          7
+#define C_DSWTCH         8
+#define C_ERASE2         9
+#define C_START         10
+#define C_STOP          11
+#define C_WERASE        12
+#define C_SUSP          13
+#define C_DSUSP         14
+#define C_REPRINT       15
+#define C_DISCARD       16
+#define C_LNEXT         17
+#define C_STATUS        18
+#define C_PAGE          19
+#define C_PGOFF         20
+#define C_KILL2         21
+#define C_BRK           22
+#define C_MIN           23
+#define C_TIME          24
+#define C_NCC           25
+#define C_SH(A)         ((unsigned int)(1 << (A)))
 
 /*
  * Terminal dependend data structures
  */
-#define	EX_IO	0	/* while we are executing	*/
-#define	ED_IO	1	/* while we are editing		*/
-#define	TS_IO	2	/* new mode from terminal	*/
-#define	QU_IO	2	/* used only for quoted chars	*/
-#define	NN_IO	3	/* The number of entries	*/
+#define EX_IO   0       /* while we are executing       */
+#define ED_IO   1       /* while we are editing         */
+#define TS_IO   2       /* new mode from terminal       */
+#define QU_IO   2       /* used only for quoted chars   */
+#define NN_IO   3       /* The number of entries        */
 
-#define	MD_INP	0
-#define	MD_OUT	1
-#define	MD_CTL	2
-#define	MD_LIN	3
-#define	MD_CHAR	4
-#define	MD_NN	5
+#define MD_INP  0
+#define MD_OUT  1
+#define MD_CTL  2
+#define MD_LIN  3
+#define MD_CHAR 4
+#define MD_NN   5
 
 typedef struct {
-  const char	*t_name;
-  unsigned int	 t_setmask;
-  unsigned int	 t_clrmask;
+  const char    *t_name;
+  unsigned int   t_setmask;
+  unsigned int   t_clrmask;
 } ttyperm_t[NN_IO][MD_NN];
 
 typedef unsigned char ttychar_t[NN_IO][C_NCC];
 
-protected int	tty_init(EditLine *);
-protected void	tty_end(EditLine *);
-protected int	tty_stty(EditLine *, int, const Char **);
-protected int	tty_rawmode(EditLine *);
-protected int	tty_cookedmode(EditLine *);
-protected int	tty_quotemode(EditLine *);
-protected int	tty_noquotemode(EditLine *);
-protected void	tty_bind_char(EditLine *, int);
+protected int   tty_init(EditLine *);
+protected void  tty_end(EditLine *);
+protected int   tty_stty(EditLine *, int, const Char **);
+protected int   tty_rawmode(EditLine *);
+protected int   tty_cookedmode(EditLine *);
+protected int   tty_quotemode(EditLine *);
+protected int   tty_noquotemode(EditLine *);
+protected void  tty_bind_char(EditLine *, int);
 
 typedef struct {
   ttyperm_t t_t;

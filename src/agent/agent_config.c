@@ -78,11 +78,11 @@ agent_initialize_config_tree(void) {
 CALLBACK(show_version_func) {
   ARG_USED();
   show(confsys, "%s version %d.%d.%d%s\n",
-                LAGOPUS_PRODUCT_NAME,
-                LAGOPUS_VERSION_MAJOR,
-                LAGOPUS_VERSION_MINOR,
-                LAGOPUS_VERSION_PATCH,
-                LAGOPUS_VERSION_RELEASE);
+       LAGOPUS_PRODUCT_NAME,
+       LAGOPUS_VERSION_MAJOR,
+       LAGOPUS_VERSION_MINOR,
+       LAGOPUS_VERSION_PATCH,
+       LAGOPUS_VERSION_RELEASE);
   return CONFIG_SUCCESS;
 }
 

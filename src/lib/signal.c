@@ -26,7 +26,7 @@
 #ifdef _NSIG
 #define NSIG _NSIG
 #else
-#define NSIG	64	/* Super wild guess. */
+#define NSIG    64      /* Super wild guess. */
 #endif /* _NSIG */
 #endif /* ! NSIG */
 
@@ -41,7 +41,7 @@ typedef struct signal_thread_record {
   sigset_t m_sigset;
   bool m_do_loop;
 } signal_thread_record;
-typedef signal_thread_record 	*signal_thread_t;
+typedef signal_thread_record    *signal_thread_t;
 
 
 

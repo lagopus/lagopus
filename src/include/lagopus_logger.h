@@ -23,7 +23,7 @@
 
 
 /**
- * @file	lagopus_logger.h
+ * @file        lagopus_logger.h
  */
 
 
@@ -100,21 +100,21 @@ typedef enum {
 /**
  * Initialize the logger.
  *
- *	@param[in]	dst	Where to log;
- *	\b LAGOPUS_LOG_EMIT_TO_UNKNOWN: stderr,
- *	\b LAGOPUS_LOG_EMIT_TO_FILE: Any regular file,
- *	\b LAGOPUS_LOG_EMIT_TO_SYSLOG: syslog
- *	@param[in]	arg	For \b LAGOPUS_LOG_EMIT_TO_FILE: a file name,
- *	for \b LAGOPUS_LOG_EMIT_TO_SYSLOG: An identifier for syslog.
- *	@param[in]	multi_process	If the \b dst is
- *	\b LAGOPUS_LOG_EMIT_TO_FILE, use \b true if the application shares
- *	the log file between child processes.
- *	@param[in]	emit_date	Use \b true if date is needed in each
- *	line header.
- *	@param[in]	debug_level	A debug level.
+ *      @param[in]      dst     Where to log;
+ *      \b LAGOPUS_LOG_EMIT_TO_UNKNOWN: stderr,
+ *      \b LAGOPUS_LOG_EMIT_TO_FILE: Any regular file,
+ *      \b LAGOPUS_LOG_EMIT_TO_SYSLOG: syslog
+ *      @param[in]      arg     For \b LAGOPUS_LOG_EMIT_TO_FILE: a file name,
+ *      for \b LAGOPUS_LOG_EMIT_TO_SYSLOG: An identifier for syslog.
+ *      @param[in]      multi_process   If the \b dst is
+ *      \b LAGOPUS_LOG_EMIT_TO_FILE, use \b true if the application shares
+ *      the log file between child processes.
+ *      @param[in]      emit_date       Use \b true if date is needed in each
+ *      line header.
+ *      @param[in]      debug_level     A debug level.
  *
- *	@retval	LAGOPUS_RESULT_OK		Succeeded.
- *	@retval	LAGOPUS_RESULT_ANY_FAILURES	Failed.
+ *      @retval LAGOPUS_RESULT_OK               Succeeded.
+ *      @retval LAGOPUS_RESULT_ANY_FAILURES     Failed.
  */
 lagopus_result_t
 lagopus_log_initialize(lagopus_log_destination_t dst,
@@ -127,65 +127,65 @@ lagopus_log_initialize(lagopus_log_destination_t dst,
 /**
  * Re-initialize the logger.
  *
- *	@details Calling this function implies 1) close opened log
- *	file. 2) re-open the log file, convenient for the log rotation.
+ *      @details Calling this function implies 1) close opened log
+ *      file. 2) re-open the log file, convenient for the log rotation.
  *
- *	@retval	LAGOPUS_RESULT_OK		Succeeded.
- *	@retval	LAGOPUS_RESULT_ANY_FAILURES	Failed.
+ *      @retval LAGOPUS_RESULT_OK               Succeeded.
+ *      @retval LAGOPUS_RESULT_ANY_FAILURES     Failed.
  */
-lagopus_result_t	lagopus_log_reinitialize(void);
+lagopus_result_t        lagopus_log_reinitialize(void);
 
 
 /**
  * Finalize the logger.
  */
-void	lagopus_log_finalize(void);
+void    lagopus_log_finalize(void);
 
 
 /**
  * Set the debug level.
  *
- *	@param[in]	lvl	A debug level.
+ *      @param[in]      lvl     A debug level.
  */
-void	lagopus_log_set_debug_level(uint16_t lvl);
+void    lagopus_log_set_debug_level(uint16_t lvl);
 
 
 /**
  * Get the debug level.
  *
- *	@returns	The debug level.
+ *      @returns        The debug level.
  */
-uint16_t	lagopus_log_get_debug_level(void);
+uint16_t        lagopus_log_get_debug_level(void);
 
 
 /**
  * Set the trace flags.
  *
- *	@param[in]	flags	trace flags. Or'd value of TRACE_OFPT_*.
+ *      @param[in]      flags   trace flags. Or'd value of TRACE_OFPT_*.
  */
-void	lagopus_log_set_trace_flags(uint32_t flags);
+void    lagopus_log_set_trace_flags(uint32_t flags);
 
 
 /**
  * Unset the trace flags.
  *
- *	@param[in]	flags	trace flags. Or'd value of TRACE_OFPT_*.
+ *      @param[in]      flags   trace flags. Or'd value of TRACE_OFPT_*.
  */
-void	lagopus_log_unset_trace_flags(uint32_t flags);
+void    lagopus_log_unset_trace_flags(uint32_t flags);
 
 
 /**
  * Get the trace flags.
  *
- *	@returns The trace flags.
+ *      @returns The trace flags.
  */
-uint32_t	lagopus_log_get_trace_flags(void);
+uint32_t        lagopus_log_get_trace_flags(void);
 
 
 /**
  * Set the trace packet flag.
  *
- *	@param[in]	flag	trace packet flags(true or false).
+ *      @param[in]      flag    trace packet flags(true or false).
  */
 void
 lagopus_log_set_trace_packet_flag(bool flag);
@@ -194,15 +194,15 @@ lagopus_log_set_trace_packet_flag(bool flag);
 /**
  * Check the trace flags.
  *
- *	@returns Enable or disable the trace flags.
+ *      @returns Enable or disable the trace flags.
  */
-bool	lagopus_log_check_trace_flags(uint64_t flags);
+bool    lagopus_log_check_trace_flags(uint64_t flags);
 
 
 /**
  * Check where the log is emitted to.
  *
- *	@returns The log destination.
+ *      @returns The log destination.
  */
 lagopus_log_destination_t
 lagopus_log_get_destination(void);
@@ -211,7 +211,7 @@ lagopus_log_get_destination(void);
 /**
  * The main logging workhorse: not intended for direct use.
  */
-void	lagopus_log_emit(lagopus_log_level_t log_level,
+void    lagopus_log_emit(lagopus_log_level_t log_level,
                        uint64_t debug_level,
                        const char *file,
                        int line,
@@ -224,16 +224,16 @@ __attr_format_printf__(6, 7);
 
 
 #ifdef __GNUC__
-#define __PROC__	__PRETTY_FUNCTION__
+#define __PROC__        __PRETTY_FUNCTION__
 #else
-#define	__PROC__	__func__
+#define __PROC__        __func__
 #endif /* __GNUC__ */
 
 
 /**
  * Emit a debug message to the log.
  *
- *	@param[in]	level	A debug level (int).
+ *      @param[in]      level   A debug level (int).
  */
 #define lagopus_msg_debug(level, ...) \
   lagopus_log_emit(LAGOPUS_LOG_LEVEL_DEBUG, (uint64_t)(level), \
@@ -243,8 +243,8 @@ __attr_format_printf__(6, 7);
 /**
  * Emit a trace message to the log.
  *
- *	@param[in]	flags	Or'd value of TRACE_OFPT_*.
- *	@param[in]	detail	A boolean for detailed trace logging.
+ *      @param[in]      flags   Or'd value of TRACE_OFPT_*.
+ *      @param[in]      detail  A boolean for detailed trace logging.
  */
 #define lagopus_msg_trace(flags, detail, ...)                           \
   lagopus_log_emit(LAGOPUS_LOG_LEVEL_TRACE,                             \
@@ -256,10 +256,10 @@ __attr_format_printf__(6, 7);
 /**
  * Emit a packet dump to the log.
  *
- *	@param[in]	flags	Or'd value of TRACE_OFPT_*.
- *	@param[in]	type	Type of pdump (PDUMP_OFP_*).
- *	@param[in]	packet	A ofp_* variable name.
- *	@param[in]	fmt	Format of output.
+ *      @param[in]      flags   Or'd value of TRACE_OFPT_*.
+ *      @param[in]      type    Type of pdump (PDUMP_OFP_*).
+ *      @param[in]      packet  A ofp_* variable name.
+ *      @param[in]      fmt     Format of output.
  */
 #define lagopus_msg_pdump(flags, type, packet, fmt, ...) {              \
     char __tbuf[TRACE_MAX_SIZE];                                        \
@@ -330,7 +330,7 @@ __attr_format_printf__(6, 7);
 /**
  * Emit a readable error message for the errornous result.
  *
- *	@param[in]	s	A result code (lagopus_result_t)
+ *      @param[in]      s       A result code (lagopus_result_t)
  */
 #define lagopus_perror(s) \
   do {                                                                  \
@@ -344,7 +344,7 @@ __attr_format_printf__(6, 7);
 /**
  * Emit an error message and exit.
  *
- *	@param[in]	ecode	An exit code (int)
+ *      @param[in]      ecode   An exit code (int)
  */
 #define lagopus_exit_error(ecode, ...) {        \
     lagopus_msg_error(__VA_ARGS__);             \

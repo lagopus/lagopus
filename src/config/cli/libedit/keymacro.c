@@ -1,8 +1,8 @@
-/*	$NetBSD: keymacro.c,v 1.7 2011/08/16 16:25:15 christos Exp $	*/
+/*      $NetBSD: keymacro.c,v 1.7 2011/08/16 16:25:15 christos Exp $    */
 
 /*-
  * Copyright (c) 1992, 1993
- *	The Regents of the University of California.  All rights reserved.
+ *      The Regents of the University of California.  All rights reserved.
  *
  * This code is derived from software contributed to Berkeley by
  * Christos Zoulas of Cornell University.
@@ -35,7 +35,7 @@
 #include "config.h"
 #if !defined(lint) && !defined(SCCSID)
 #if 0
-static char sccsid[] = "@(#)key.c	8.1 (Berkeley) 6/4/93";
+static char sccsid[] = "@(#)key.c       8.1 (Berkeley) 6/4/93";
 #else
 __RCSID("$NetBSD: keymacro.c,v 1.7 2011/08/16 16:25:15 christos Exp $");
 #endif
@@ -43,25 +43,25 @@ __RCSID("$NetBSD: keymacro.c,v 1.7 2011/08/16 16:25:15 christos Exp $");
 
 /*
  * keymacro.c: This module contains the procedures for maintaining
- *	       the extended-key map.
+ *             the extended-key map.
  *
  *      An extended-key (key) is a sequence of keystrokes introduced
- *	with a sequence introducer and consisting of an arbitrary
- *	number of characters.  This module maintains a map (the
- *	el->el_keymacro.map)
- *	to convert these extended-key sequences into input strs
- *	(XK_STR), editor functions (XK_CMD), or unix commands (XK_EXE).
+ *      with a sequence introducer and consisting of an arbitrary
+ *      number of characters.  This module maintains a map (the
+ *      el->el_keymacro.map)
+ *      to convert these extended-key sequences into input strs
+ *      (XK_STR), editor functions (XK_CMD), or unix commands (XK_EXE).
  *
  *      Warning:
- *	  If key is a substr of some other keys, then the longer
- *	  keys are lost!!  That is, if the keys "abcd" and "abcef"
- *	  are in el->el_keymacro.map, adding the key "abc" will cause
- *	  the first two definitions to be lost.
+ *        If key is a substr of some other keys, then the longer
+ *        keys are lost!!  That is, if the keys "abcd" and "abcef"
+ *        are in el->el_keymacro.map, adding the key "abc" will cause
+ *        the first two definitions to be lost.
  *
  *      Restrictions:
  *      -------------
  *      1) It is not possible to have one key that is a
- *	   substr of another.
+ *         substr of another.
  */
 #include <string.h>
 #include <stdlib.h>
@@ -73,32 +73,32 @@ __RCSID("$NetBSD: keymacro.c,v 1.7 2011/08/16 16:25:15 christos Exp $");
  * linked list of these node elements
  */
 struct keymacro_node_t {
-  Char		 ch;		/* single character of key 	 */
-  int		 type;		/* node type			 */
-  keymacro_value_t val;		/* command code or pointer to str,  */
-  /* if this is a leaf 		 */
-  struct keymacro_node_t *next;	/* ptr to next char of this key  */
+  Char           ch;            /* single character of key       */
+  int            type;          /* node type                     */
+  keymacro_value_t val;         /* command code or pointer to str,  */
+  /* if this is a leaf           */
+  struct keymacro_node_t *next; /* ptr to next char of this key  */
   struct keymacro_node_t *sibling;/* ptr to another key with same prefix*/
 };
 
-private int		 node_trav(EditLine *, keymacro_node_t *, Char *,
+private int              node_trav(EditLine *, keymacro_node_t *, Char *,
                          keymacro_value_t *);
-private int		 node__try(EditLine *, keymacro_node_t *, const Char *,
+private int              node__try(EditLine *, keymacro_node_t *, const Char *,
                          keymacro_value_t *, int);
-private keymacro_node_t	*node__get(Int);
-private void		 node__free(keymacro_node_t *);
-private void		 node__put(EditLine *, keymacro_node_t *);
-private int		 node__delete(EditLine *, keymacro_node_t **,
+private keymacro_node_t *node__get(Int);
+private void             node__free(keymacro_node_t *);
+private void             node__put(EditLine *, keymacro_node_t *);
+private int              node__delete(EditLine *, keymacro_node_t **,
                             const Char *);
-private int		 node_lookup(EditLine *, const Char *,
+private int              node_lookup(EditLine *, const Char *,
                            keymacro_node_t *, size_t);
-private int		 node_enum(EditLine *, keymacro_node_t *, size_t);
+private int              node_enum(EditLine *, keymacro_node_t *, size_t);
 
-#define	KEY_BUFSIZ	EL_BUFSIZ
+#define KEY_BUFSIZ      EL_BUFSIZ
 
 
 /* keymacro_init():
- *	Initialize the key maps
+ *      Initialize the key maps
  */
 protected int
 keymacro_init(EditLine *el) {
@@ -114,7 +114,7 @@ keymacro_init(EditLine *el) {
 }
 
 /* keymacro_end():
- *	Free the key maps
+ *      Free the key maps
  */
 protected void
 keymacro_end(EditLine *el) {
@@ -126,7 +126,7 @@ keymacro_end(EditLine *el) {
 
 
 /* keymacro_map_cmd():
- *	Associate cmd with a key value
+ *      Associate cmd with a key value
  */
 protected keymacro_value_t *
 keymacro_map_cmd(EditLine *el, int cmd) {
@@ -137,7 +137,7 @@ keymacro_map_cmd(EditLine *el, int cmd) {
 
 
 /* keymacro_map_str():
- *	Associate str with a key value
+ *      Associate str with a key value
  */
 protected keymacro_value_t *
 keymacro_map_str(EditLine *el, Char *str) {
@@ -148,9 +148,9 @@ keymacro_map_str(EditLine *el, Char *str) {
 
 
 /* keymacro_reset():
- *	Takes all nodes on el->el_keymacro.map and puts them on free list.
- *	Then initializes el->el_keymacro.map with arrow keys
- *	[Always bind the ansi arrow keys?]
+ *      Takes all nodes on el->el_keymacro.map and puts them on free list.
+ *      Then initializes el->el_keymacro.map with arrow keys
+ *      [Always bind the ansi arrow keys?]
  */
 protected void
 keymacro_reset(EditLine *el) {
@@ -162,7 +162,7 @@ keymacro_reset(EditLine *el) {
 
 
 /* keymacro_get():
- *	Calls the recursive function with entry point el->el_keymacro.map
+ *      Calls the recursive function with entry point el->el_keymacro.map
  *      Looks up *ch in map and then reads characters until a
  *      complete match is found or a mismatch occurs. Returns the
  *      type of the match found (XK_STR, XK_CMD, or XK_EXE).
@@ -178,9 +178,9 @@ keymacro_get(EditLine *el, Char *ch, keymacro_value_t *val) {
 
 /* keymacro_add():
  *      Adds key to the el->el_keymacro.map and associates the value in
- *	val with it. If key is already is in el->el_keymacro.map, the new
- *	code is applied to the existing key. Ntype specifies if code is a
- *	command, an out str or a unix command.
+ *      val with it. If key is already is in el->el_keymacro.map, the new
+ *      code is applied to the existing key. Ntype specifies if code is a
+ *      command, an out str or a unix command.
  */
 protected void
 keymacro_add(EditLine *el, const Char *key, keymacro_value_t *val,
@@ -251,8 +251,8 @@ keymacro_delete(EditLine *el, const Char *key) {
 
 
 /* keymacro_print():
- *	Print the binding associated with key key.
- *	Print entire el->el_keymacro.map if null
+ *      Print the binding associated with key key.
+ *      Print entire el->el_keymacro.map if null
  */
 protected void
 keymacro_print(EditLine *el, const Char *key) {
@@ -272,8 +272,8 @@ keymacro_print(EditLine *el, const Char *key) {
 
 
 /* node_trav():
- *	recursively traverses node in tree until match or mismatch is
- * 	found.  May read in more characters.
+ *      recursively traverses node in tree until match or mismatch is
+ *      found.  May read in more characters.
  */
 private int
 node_trav(EditLine *el, keymacro_node_t *ptr, Char *ch,
@@ -311,7 +311,7 @@ node_trav(EditLine *el, keymacro_node_t *ptr, Char *ch,
 
 
 /* node__try():
- * 	Find a node that matches *str or allocate a new one
+ *      Find a node that matches *str or allocate a new one
  */
 private int
 node__try(EditLine *el, keymacro_node_t *ptr, const Char *str,
@@ -378,7 +378,7 @@ node__try(EditLine *el, keymacro_node_t *ptr, const Char *str,
 
 
 /* node__delete():
- *	Delete node that matches str
+ *      Delete node that matches str
  */
 private int
 node__delete(EditLine *el, keymacro_node_t **inptr, const Char *str) {
@@ -430,7 +430,7 @@ node__delete(EditLine *el, keymacro_node_t **inptr, const Char *str) {
 
 
 /* node__put():
- *	Puts a tree of nodes onto free list using free(3).
+ *      Puts a tree of nodes onto free list using free(3).
  */
 private void
 node__put(EditLine *el, keymacro_node_t *ptr) {
@@ -463,7 +463,7 @@ node__put(EditLine *el, keymacro_node_t *ptr) {
 
 
 /* node__get():
- *	Returns pointer to a keymacro_node_t for ch.
+ *      Returns pointer to a keymacro_node_t for ch.
  */
 private keymacro_node_t *
 node__get(Int ch) {
@@ -492,8 +492,8 @@ node__free(keymacro_node_t *k) {
 }
 
 /* node_lookup():
- *	look for the str starting at node ptr.
- *	Print if last node
+ *      look for the str starting at node ptr.
+ *      Print if last node
  */
 private int
 node_lookup(EditLine *el, const Char *str, keymacro_node_t *ptr, size_t cnt) {
@@ -548,13 +548,13 @@ node_lookup(EditLine *el, const Char *str, keymacro_node_t *ptr, size_t cnt) {
 
 
 /* node_enum():
- *	Traverse the node printing the characters it is bound in buffer
+ *      Traverse the node printing the characters it is bound in buffer
  */
 private int
 node_enum(EditLine *el, keymacro_node_t *ptr, size_t cnt) {
   ssize_t used;
 
-  if (cnt >= KEY_BUFSIZ - 5) {	/* buffer too small */
+  if (cnt >= KEY_BUFSIZ - 5) {  /* buffer too small */
     el->el_keymacro.buf[++cnt] = '"';
     el->el_keymacro.buf[++cnt] = '\0';
     (void) fprintf(el->el_errfile,
@@ -591,8 +591,8 @@ node_enum(EditLine *el, keymacro_node_t *ptr, size_t cnt) {
 
 
 /* keymacro_kprint():
- *	Print the specified key and its associated
- *	function specified by val
+ *      Print the specified key and its associated
+ *      function specified by val
  */
 protected void
 keymacro_kprint(EditLine *el, const Char *key, keymacro_value_t *val,
@@ -643,7 +643,7 @@ keymacro_kprint(EditLine *el, const Char *key, keymacro_value_t *val,
   else \
     b++
 /* keymacro__decode_str():
- *	Make a printable version of the ey
+ *      Make a printable version of the ey
  */
 protected size_t
 keymacro__decode_str(const Char *str, char *buf, size_t len,

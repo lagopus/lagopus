@@ -1,4 +1,4 @@
-/*	$NetBSD: filecomplete.c,v 1.31 2011/09/16 16:13:16 plunky Exp $	*/
+/*      $NetBSD: filecomplete.c,v 1.31 2011/09/16 16:13:16 plunky Exp $ */
 
 /*-
  * Copyright (c) 1997 The NetBSD Foundation, Inc.
@@ -50,7 +50,7 @@ __RCSID("$NetBSD: filecomplete.c,v 1.31 2011/09/16 16:13:16 plunky Exp $");
 #include <vis.h>
 
 #include "el.h"
-#include "fcns.h"		/* for EL_NUM_FCNS */
+#include "fcns.h"               /* for EL_NUM_FCNS */
 #include "histedit.h"
 #include "filecomplete.h"
 
@@ -128,7 +128,7 @@ fn_tilde_expand(const char *txt) {
     pass = getpwnam(temp);
 #endif
   }
-  el_free(temp);		/* value no more needed */
+  el_free(temp);                /* value no more needed */
   if (pass == NULL) {
     return strdup(txt);
   }
@@ -178,7 +178,7 @@ fn_filename_completion_function(const char *text, int state) {
       }
       filename = nptr;
       (void)strcpy(filename, temp);
-      len = (size_t)(temp - text);	/* including last slash */
+      len = (size_t)(temp - text);      /* including last slash */
 
       nptr = el_realloc(dirname, (len + 1) *
                         sizeof(*nptr));
@@ -248,7 +248,7 @@ fn_filename_completion_function(const char *text, int state) {
       break;
     }
     /* otherwise, get first entry where first */
-    /* filename_len characters are equal	  */
+    /* filename_len characters are equal          */
     if (entry->d_name[0] == filename[0]
         /* Some dirents have d_namlen, but it is not portable. */
         && strlen(entry->d_name) >= filename_len
@@ -258,7 +258,7 @@ fn_filename_completion_function(const char *text, int state) {
     }
   }
 
-  if (entry) {		/* match found */
+  if (entry) {          /* match found */
 
     /* Some dirents have d_namlen, but it is not portable. */
     len = strlen(entry->d_name);

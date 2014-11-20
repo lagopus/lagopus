@@ -16,7 +16,7 @@
 
 
 /**
- * @file	ofp_action.h
+ * @file        ofp_action.h
  */
 
 #ifndef __ACTION_H__
@@ -25,10 +25,10 @@
 /**
  * Alloc action.
  *
- *     @param[in]	size	Size of body in action.
+ *     @param[in]       size    Size of body in action.
  *
- *     @retval	*action	Succeeded, A pointer to \e action structure.
- *     @retval	NULL	Failed.
+ *     @retval  *action Succeeded, A pointer to \e action structure.
+ *     @retval  NULL    Failed.
  */
 struct action *
 action_alloc(uint16_t size);
@@ -36,9 +36,9 @@ action_alloc(uint16_t size);
 /**
  * Free action.
  *
- *     @param[in]	action	A pointer to \e action structure.
+ *     @param[in]       action  A pointer to \e action structure.
  *
- *     @retval	void
+ *     @retval  void
  */
 void
 action_free(struct action *action);
@@ -46,10 +46,10 @@ action_free(struct action *action);
 /**
  * Trace action list.
  *
- *     @param[in]	flag	Trace flags. Or'd value of TRACE_OFPT_*.
- *     @param[in]	action_list	A pointer to list of \e action structures.
+ *     @param[in]       flag    Trace flags. Or'd value of TRACE_OFPT_*.
+ *     @param[in]       action_list     A pointer to list of \e action structures.
  *
- *     @retval	void
+ *     @retval  void
  */
 void
 ofp_action_list_trace(uint32_t flags,
@@ -58,15 +58,15 @@ ofp_action_list_trace(uint32_t flags,
 /**
  * Parse action.
  *
- *     @param[in]	pbuf	A pointer to \e pbuf structure.
- *     @param[in]	action_length	Size of action.
- *     @param[out]	action_list	A pointer to list of \e action structures.
- *     @param[out]	error	A pointer to \e ofp_error structure.
+ *     @param[in]       pbuf    A pointer to \e pbuf structure.
+ *     @param[in]       action_length   Size of action.
+ *     @param[out]      action_list     A pointer to list of \e action structures.
+ *     @param[out]      error   A pointer to \e ofp_error structure.
  *     If errors occur, set filed values.
  *
- *     @retval	LAGOPUS_RESULT_OK	Succeeded.
- *     @retval	LAGOPUS_RESULT_OFP_ERROR Failed, ofp_error.
- *     @retval	LAGOPUS_RESULT_ANY_FAILURES Failed.
+ *     @retval  LAGOPUS_RESULT_OK       Succeeded.
+ *     @retval  LAGOPUS_RESULT_OFP_ERROR Failed, ofp_error.
+ *     @retval  LAGOPUS_RESULT_ANY_FAILURES Failed.
  */
 lagopus_result_t
 ofp_action_parse(struct pbuf *pbuf, size_t action_length,
@@ -76,14 +76,14 @@ ofp_action_parse(struct pbuf *pbuf, size_t action_length,
 /**
  * Encode action list.
  *
- *     @param[out]	pbuf_list	A pointer to list of \e pbuf structures.
- *     @param[out]	pbuf	A pointer to \e pbuf structure.
- *     @param[in]	action_list	A pointer to list of \e action structures.
- *     @param[out]	total_length	A pointer to \e size of packet.
+ *     @param[out]      pbuf_list       A pointer to list of \e pbuf structures.
+ *     @param[out]      pbuf    A pointer to \e pbuf structure.
+ *     @param[in]       action_list     A pointer to list of \e action structures.
+ *     @param[out]      total_length    A pointer to \e size of packet.
  *
- *     @retval	LAGOPUS_RESULT_OK	Succeeded.
- *     @retval	LAGOPUS_RESULT_OUT_OF_RANGE Failed, out of range.
- *     @retval	LAGOPUS_RESULT_ANY_FAILURES Failed.
+ *     @retval  LAGOPUS_RESULT_OK       Succeeded.
+ *     @retval  LAGOPUS_RESULT_OUT_OF_RANGE Failed, out of range.
+ *     @retval  LAGOPUS_RESULT_ANY_FAILURES Failed.
  */
 lagopus_result_t
 ofp_action_list_encode(struct pbuf_list *pbuf_list,
@@ -94,15 +94,15 @@ ofp_action_list_encode(struct pbuf_list *pbuf_list,
 /**
  * Parse action header for ofp_table_feature.
  *
- *     @param[in]	pbuf	A pointer to \e pbuf structure
- *     @param[in]	action_length	Size of action.
- *     @param[out]	action_list	A pointer to list of \e action structures.
- *     @param[out]	error	A pointer to \e ofp_error structure.
+ *     @param[in]       pbuf    A pointer to \e pbuf structure
+ *     @param[in]       action_length   Size of action.
+ *     @param[out]      action_list     A pointer to list of \e action structures.
+ *     @param[out]      error   A pointer to \e ofp_error structure.
  *     If errors occur, set filed values.
  *
- *     @retval	LAGOPUS_RESULT_OK	Succeeded.
- *     @retval	LAGOPUS_RESULT_OFP_ERROR Failed, ofp_error.
- *     @retval	LAGOPUS_RESULT_ANY_FAILURES Failed.
+ *     @retval  LAGOPUS_RESULT_OK       Succeeded.
+ *     @retval  LAGOPUS_RESULT_OFP_ERROR Failed, ofp_error.
+ *     @retval  LAGOPUS_RESULT_ANY_FAILURES Failed.
  */
 lagopus_result_t
 ofp_action_header_parse(struct pbuf *pbuf, size_t action_length,
@@ -112,14 +112,14 @@ ofp_action_header_parse(struct pbuf *pbuf, size_t action_length,
 /**
  * Encode action header for ofp_table_feature.
  *
- *     @param[out]	pbuf_list	A pointer to list of \e pbuf structures.
- *     @param[out]	pbuf	A pointer to \e pbuf structure.
- *     @param[in]	action_list	A pointer to list of \e action structures.
- *     @param[out]	total_length	A pointer to \e size of packet.
+ *     @param[out]      pbuf_list       A pointer to list of \e pbuf structures.
+ *     @param[out]      pbuf    A pointer to \e pbuf structure.
+ *     @param[in]       action_list     A pointer to list of \e action structures.
+ *     @param[out]      total_length    A pointer to \e size of packet.
  *
- *     @retval	LAGOPUS_RESULT_OK	Succeeded.
- *     @retval	LAGOPUS_RESULT_OUT_OF_RANGE Failed, out of range.
- *     @retval	LAGOPUS_RESULT_ANY_FAILURES Failed.
+ *     @retval  LAGOPUS_RESULT_OK       Succeeded.
+ *     @retval  LAGOPUS_RESULT_OUT_OF_RANGE Failed, out of range.
+ *     @retval  LAGOPUS_RESULT_ANY_FAILURES Failed.
  */
 lagopus_result_t
 ofp_action_header_list_encode(struct pbuf_list *pbuf_list,

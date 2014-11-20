@@ -32,19 +32,19 @@
 #include "datapath_test_match_macros.h"
 #include "flowinfo_test.h"
 
-#define FLOW_ADD_UT_PREREQUISITE(_x)		\
+#define FLOW_ADD_UT_PREREQUISITE(_x)            \
   FLOW_ADD_IPV4_ICMP_PREREQUISITE(_x)
-#define	TEST_ASSERT_FLOW_MATCH_UT_PREREQUISITE(_x)	\
+#define TEST_ASSERT_FLOW_MATCH_UT_PREREQUISITE(_x)      \
   TEST_ASSERT_FLOW_MATCH_IPV4_ICMP_PREREQUISITE(_x)
-#define	ETHERTYPE_UT	ETHERTYPE_IP
-#define	IPPROTO_UT	IPPROTO_ICMP
+#define ETHERTYPE_UT    ETHERTYPE_IP
+#define IPPROTO_UT      IPPROTO_ICMP
 
 #include "flowinfo_l4_test.c"
 
 
 /* Test ICMP type and code. */
-#define TEST_ICMP_TYPE(_s)	((uint8_t)((_s) + 1))
-#define TEST_ICMP_CODE(_s)	((uint8_t)((_s) + 1))
+#define TEST_ICMP_TYPE(_s)      ((uint8_t)((_s) + 1))
+#define TEST_ICMP_CODE(_s)      ((uint8_t)((_s) + 1))
 
 
 /*

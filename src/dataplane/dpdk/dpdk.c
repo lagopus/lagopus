@@ -16,8 +16,8 @@
 
 
 /**
- *	@file	dpdk.c
- *	@brief	Datapath driver use with Intel DPDK
+ *      @file   dpdk.c
+ *      @brief  Datapath driver use with Intel DPDK
  */
 
 /*-

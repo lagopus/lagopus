@@ -16,8 +16,8 @@
 
 
 /**
- *	@file	version.c
- *	@brief	version information API.
+ *      @file   version.c
+ *      @brief  version information API.
  */
 
 #include <stdio.h>

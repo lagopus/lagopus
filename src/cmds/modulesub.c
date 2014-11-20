@@ -144,12 +144,12 @@ snmpmgr_initialize_wrap(int argc, const char *const argv[],
 
 
 
-#define CTOR_IDX	LAGOPUS_MODULE_CONSTRUCTOR_INDEX_BASE + 1
+#define CTOR_IDX        LAGOPUS_MODULE_CONSTRUCTOR_INDEX_BASE + 1
 
 
 static pthread_once_t s_once = PTHREAD_ONCE_INIT;
-static void	s_ctors(void) __attr_constructor__(CTOR_IDX);
-static void	s_dtors(void) __attr_destructor__(CTOR_IDX);
+static void     s_ctors(void) __attr_constructor__(CTOR_IDX);
+static void     s_dtors(void) __attr_destructor__(CTOR_IDX);
 
 
 static void

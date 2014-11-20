@@ -16,7 +16,7 @@
 
 
 /**
- * @file	ofp_band.h
+ * @file        ofp_band.h
  */
 
 #ifndef __BAND_H__
@@ -27,10 +27,10 @@
 /**
  * Trace band list.
  *
- *     @param[in]	flags	Trace flags. Or'd value of TRACE_OFPT_*.
- *     @param[in]	band_list	A pointer to list of \e meter_band structures.
+ *     @param[in]       flags   Trace flags. Or'd value of TRACE_OFPT_*.
+ *     @param[in]       band_list       A pointer to list of \e meter_band structures.
  *
- *     @retval	void
+ *     @retval  void
  */
 void
 ofp_meter_band_list_trace(uint32_t flags,
@@ -39,14 +39,14 @@ ofp_meter_band_list_trace(uint32_t flags,
 /**
  * Parse drop.
  *
- *     @param[in]	pbuf	A pointer to \e pbuf structure.
- *     @param[in]	band_list	A pointer to list of \e meter_band structures.
- *     @param[out]	error	A pointer to \e ofp_error structure.
+ *     @param[in]       pbuf    A pointer to \e pbuf structure.
+ *     @param[in]       band_list       A pointer to list of \e meter_band structures.
+ *     @param[out]      error   A pointer to \e ofp_error structure.
  *     If errors occur, set filed values.
  *
- *     @retval	LAGOPUS_RESULT_OK	Succeeded.
- *     @retval	LAGOPUS_RESULT_OFP_ERROR Failed, ofp_error.
- *     @retval	LAGOPUS_RESULT_ANY_FAILURES Failed.
+ *     @retval  LAGOPUS_RESULT_OK       Succeeded.
+ *     @retval  LAGOPUS_RESULT_OFP_ERROR Failed, ofp_error.
+ *     @retval  LAGOPUS_RESULT_ANY_FAILURES Failed.
  */
 lagopus_result_t
 ofp_meter_band_drop_parse(struct pbuf *pbuf,
@@ -56,14 +56,14 @@ ofp_meter_band_drop_parse(struct pbuf *pbuf,
 /**
  * Parse DSCP remark.
  *
- *     @param[in]	pbuf	A pointer to \e pbuf structure.
- *     @param[in]	band_list	A pointer to list of \e meter_band structures.
- *     @param[out]	error	A pointer to \e ofp_error structure.
+ *     @param[in]       pbuf    A pointer to \e pbuf structure.
+ *     @param[in]       band_list       A pointer to list of \e meter_band structures.
+ *     @param[out]      error   A pointer to \e ofp_error structure.
  *     If errors occur, set filed values.
  *
- *     @retval	LAGOPUS_RESULT_OK	Succeeded.
- *     @retval	LAGOPUS_RESULT_OFP_ERROR Failed, ofp_error.
- *     @retval	LAGOPUS_RESULT_ANY_FAILURES Failed.
+ *     @retval  LAGOPUS_RESULT_OK       Succeeded.
+ *     @retval  LAGOPUS_RESULT_OFP_ERROR Failed, ofp_error.
+ *     @retval  LAGOPUS_RESULT_ANY_FAILURES Failed.
  */
 lagopus_result_t
 ofp_meter_band_dscp_remark_parse(struct pbuf *pbuf,
@@ -73,14 +73,14 @@ ofp_meter_band_dscp_remark_parse(struct pbuf *pbuf,
 /**
  * Parse Experimenter.
  *
- *     @param[in]	pbuf	A pointer to \e pbuf structure.
- *     @param[in]	band_list	A pointer to list of \e meter_band structures.
- *     @param[out]	error	A pointer to \e ofp_error structure.
+ *     @param[in]       pbuf    A pointer to \e pbuf structure.
+ *     @param[in]       band_list       A pointer to list of \e meter_band structures.
+ *     @param[out]      error   A pointer to \e ofp_error structure.
  *     If errors occur, set filed values.
  *
- *     @retval	LAGOPUS_RESULT_OK	Succeeded.
- *     @retval	LAGOPUS_RESULT_OFP_ERROR Failed, ofp_error.
- *     @retval	LAGOPUS_RESULT_ANY_FAILURES Failed.
+ *     @retval  LAGOPUS_RESULT_OK       Succeeded.
+ *     @retval  LAGOPUS_RESULT_OFP_ERROR Failed, ofp_error.
+ *     @retval  LAGOPUS_RESULT_ANY_FAILURES Failed.
  */
 lagopus_result_t
 ofp_meter_band_experimenter_parse(struct pbuf *pbuf,
@@ -90,13 +90,13 @@ ofp_meter_band_experimenter_parse(struct pbuf *pbuf,
 /**
  * Encode band list.
  *
- *     @param[out]	pbuf_list	A pointer to list of \e pbuf structures.
- *     @param[out]	pbuf	A pointer to \e pbuf structure.
- *     @param[in]	band_list	A pointer to list of \e meter_band structures.
- *     @param[out]	total_length	Size of packet.
+ *     @param[out]      pbuf_list       A pointer to list of \e pbuf structures.
+ *     @param[out]      pbuf    A pointer to \e pbuf structure.
+ *     @param[in]       band_list       A pointer to list of \e meter_band structures.
+ *     @param[out]      total_length    Size of packet.
  *
- *     @retval	LAGOPUS_RESULT_OK	Succeeded.
- *     @retval	LAGOPUS_RESULT_ANY_FAILURES Failed.
+ *     @retval  LAGOPUS_RESULT_OK       Succeeded.
+ *     @retval  LAGOPUS_RESULT_ANY_FAILURES Failed.
  */
 lagopus_result_t
 ofp_band_list_encode(struct pbuf_list *pbuf_list,

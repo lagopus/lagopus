@@ -19,7 +19,7 @@
 #define SRC_DATAPLANE_SOCK_PKTBUF_H_
 
 /**
- *	@file	pktbuf.h
+ *      @file   pktbuf.h
  */
 
 #include <net/ethernet.h>

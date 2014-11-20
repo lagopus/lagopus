@@ -15,9 +15,9 @@
  */
 
 /**
- * @file	ofp_group_mod_apis.h
- * @brief	Agent/Data-Plane APIs for ofp_group_mod
- * @details	Describe APIs between Agent and Data-Plane for ofp_group_mod.
+ * @file        ofp_group_mod_apis.h
+ * @brief       Agent/Data-Plane APIs for ofp_group_mod
+ * @details     Describe APIs between Agent and Data-Plane for ofp_group_mod.
  */
 #ifndef __LAGOPUS_OFP_GROUP_MOD_APIS_H__
 #define __LAGOPUS_OFP_GROUP_MOD_APIS_H__
@@ -46,16 +46,16 @@ TAILQ_HEAD(bucket_list, bucket);
 /**
  * Add entry to a group table for \b OFPT_GROUP_MOD(OFPGC_ADD).
  *
- *     @param[in]	dpid	Datapath id.
- *     @param[in]	group_mod	A pointer to \e group_mod structure.
- *     @param[in]	bucket_list	A pointer to list of bucket.
- *     @param[out]	error	A pointer to \e ofp_error structure.
+ *     @param[in]       dpid    Datapath id.
+ *     @param[in]       group_mod       A pointer to \e group_mod structure.
+ *     @param[in]       bucket_list     A pointer to list of bucket.
+ *     @param[out]      error   A pointer to \e ofp_error structure.
  *     If errors occur, set filed values.
  *
- *     @retval	LAGOPUS_RESULT_OK	Succeeded.
- *     @retval	LAGOPUS_RESULT_ANY_FAILURES	Failed.
+ *     @retval  LAGOPUS_RESULT_OK       Succeeded.
+ *     @retval  LAGOPUS_RESULT_ANY_FAILURES     Failed.
  *
- *     @details	The \e free() of a list element is executed
+ *     @details The \e free() of a list element is executed
  *     by the Data-Plane side.
  */
 lagopus_result_t
@@ -68,16 +68,16 @@ ofp_group_mod_add(uint64_t dpid,
  * A group table which match \e group_id is updated
  * for \b OFPT_GROUP_MOD(OFPGC_MODIFY).
  *
- *     @param[in]	dpid	Datapath id.
- *     @param[in]	group_mod	A pointer to \e group_mod structure.
- *     @param[in]	bucket_list	A pointer to list of bucket.
- *     @param[out]	error	A pointer to \e ofp_error structure.
+ *     @param[in]       dpid    Datapath id.
+ *     @param[in]       group_mod       A pointer to \e group_mod structure.
+ *     @param[in]       bucket_list     A pointer to list of bucket.
+ *     @param[out]      error   A pointer to \e ofp_error structure.
  *     If errors occur, set filed values.
  *
- *     @retval	LAGOPUS_RESULT_OK	Succeeded.
- *     @retval	LAGOPUS_RESULT_ANY_FAILURES	Failed.
+ *     @retval  LAGOPUS_RESULT_OK       Succeeded.
+ *     @retval  LAGOPUS_RESULT_ANY_FAILURES     Failed.
  *
- *     @details	The \e free() of a list element is executed
+ *     @details The \e free() of a list element is executed
  *     by the Data-Plane side.
  */
 lagopus_result_t
@@ -90,13 +90,13 @@ ofp_group_mod_modify(uint64_t dpid,
  * A group table which match \e group_id is deleted
  * for \b OFPT_GROUP_MOD(OFPGC_DELETE).
  *
- *     @param[in]	dpid	Datapath id.
- *     @param[in]	group_mod	A pointer to \e group_mod structure.
- *     @param[out]	error	A pointer to \e ofp_error structure.
+ *     @param[in]       dpid    Datapath id.
+ *     @param[in]       group_mod       A pointer to \e group_mod structure.
+ *     @param[out]      error   A pointer to \e ofp_error structure.
  *     If errors occur, set filed values.
  *
- *     @retval	LAGOPUS_RESULT_OK	Succeeded.
- *     @retval	LAGOPUS_RESULT_ANY_FAILURES	Failed.
+ *     @retval  LAGOPUS_RESULT_OK       Succeeded.
+ *     @retval  LAGOPUS_RESULT_ANY_FAILURES     Failed.
  */
 lagopus_result_t
 ofp_group_mod_delete(uint64_t dpid,

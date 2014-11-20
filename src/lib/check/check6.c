@@ -22,7 +22,7 @@
 
 
 
-#define NTHDS	8
+#define NTHDS   8
 
 
 static lagopus_bbq_t s_q = NULL;

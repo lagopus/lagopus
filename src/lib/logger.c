@@ -110,7 +110,7 @@ s_lock_fd(FILE *fd, bool cmd) {
     fl.l_type = (cmd == true) ? F_WRLCK : F_UNLCK;
     fl.l_start = 0;
     fl.l_whence = SEEK_SET;
-    fl.l_len = 0;	/* Entire lock. */
+    fl.l_len = 0;       /* Entire lock. */
     fl.l_pid = 0;
 
     (void)fcntl(fileno(fd), F_SETLKW, &fl);
@@ -205,7 +205,7 @@ s_log_init(lagopus_log_destination_t dst,
         }
       }
     } else {
-      s_log_fd = NULL;	/* use stderr. */
+      s_log_fd = NULL;  /* use stderr. */
       ret = true;
     }
   } else if (dst == LAGOPUS_LOG_EMIT_TO_SYSLOG) {
@@ -589,7 +589,7 @@ static void s_ctors(void) __attr_constructor__(103);
 static void s_dtors(void) __attr_destructor__(103);
 
 
-typedef bool	(*path_verify_func_t)(const char *path,
+typedef bool    (*path_verify_func_t)(const char *path,
                                     char *buf,
                                     size_t buflen);
 

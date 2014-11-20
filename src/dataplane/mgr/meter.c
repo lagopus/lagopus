@@ -16,8 +16,8 @@
 
 
 /**
- *	@file	meter.c
- *	@brief	OpenFlow Meter management.
+ *      @file   meter.c
+ *      @brief  OpenFlow Meter management.
  */
 
 #include "lagopus/dpmgr.h"

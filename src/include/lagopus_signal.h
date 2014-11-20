@@ -23,7 +23,7 @@
 
 
 /**
- *	@file lagopus_signal.h
+ *      @file lagopus_signal.h
  */
 
 
@@ -41,7 +41,7 @@ lagopus_signal(int signum, sighandler_t new, sighandler_t *oldptr);
  * Fallback the signal handling mechanism to the good-old-school
  * semantics.
  */
-void	lagopus_signal_old_school_semantics(void);
+void    lagopus_signal_old_school_semantics(void);
 
 
 

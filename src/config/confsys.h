@@ -19,7 +19,7 @@
 #define SRC_CONFIG_CONFSYS_H_
 
 /**
- * @file	confsys.h
+ * @file        confsys.h
 
 1) Confsys Architecture
 
@@ -130,7 +130,7 @@ operational.xml
 <cnode:schema>
   <!-- Mode: Operational -->
   <cnode name="configure"
-	 help="Manipulate software configuration information"/>
+         help="Manipulate software configuration information"/>
   </cnode>
   ...
   <!-- Show commands -->
@@ -153,17 +153,17 @@ configuration.xml
 <cnode:schema>
   <!-- Exec -->
   <cnode name="exit"
-	 help="Exit from this configuration level"/>
+         help="Exit from this configuration level"/>
   <cnode name="show"
-	 help="Show the configuration (default values may be suppressed)"/>
+         help="Show the configuration (default values may be suppressed)"/>
   <cnode name="save"
-	 help="Save the configuration"/>
+         help="Save the configuration"/>
   <cnode name="stop-process"
-	 help="Stop lagopus process"/>
+         help="Stop lagopus process"/>
 
   <!-- Configuration -->
   <cnode name="set"
-	 help="Set value of a parameter or create a new element">
+         help="Set value of a parameter or create a new element">
   </cnode>
 </cnode:schema>
 </pre>
@@ -930,7 +930,7 @@ struct event_manager;
 /**
  * Callback function define macro.
  *
- * @param[in]	callback_func_name
+ * @param[in]   callback_func_name
  *
  * @retval CONFIG_SUCCESS  Successded.
  * @retval CONFIG_FAILURE  Failed.
@@ -955,13 +955,13 @@ typedef int callback_t(struct confsys *confsys, int argc, const char **argv);
 /**
  * Install callback function to the str's confsys path node.
  *
- * @param[in]	top	Top node of the cnode tree.
- * @param[in]	str	cnode path which the callback to be installed.
- * @param[in]	callback	Callback function pointer.
+ * @param[in]   top     Top node of the cnode tree.
+ * @param[in]   str     cnode path which the callback to be installed.
+ * @param[in]   callback        Callback function pointer.
  *
- * @retval LAGOPUS_RESULT_OK		Succeeded.
- * @retval LAGOPUS_RESULT_NO_MEMORY	Failed, no memory.
- * @retval LAGOPUS_RESULT_NOT_FOUND	Failed.  The cnode path node does not exists.
+ * @retval LAGOPUS_RESULT_OK            Succeeded.
+ * @retval LAGOPUS_RESULT_NO_MEMORY     Failed, no memory.
+ * @retval LAGOPUS_RESULT_NOT_FOUND     Failed.  The cnode path node does not exists.
  */
 lagopus_result_t
 install_callback(struct cnode *top, const char *str, callback_t callback);
@@ -969,13 +969,13 @@ install_callback(struct cnode *top, const char *str, callback_t callback);
 /**
  * Install server side config callback function to the str's confsys path node.
  *
- * @param[in]	str	cnode path which the callback to be installed.
- * @param[in]	callback	Callback function pointer.
+ * @param[in]   str     cnode path which the callback to be installed.
+ * @param[in]   callback        Callback function pointer.
  *
- * @retval LAGOPUS_RESULT_OK		Succeeded.
- * @retval LAGOPUS_RESULT_NOT_STARTED	Failed, cserver is not started.
- * @retval LAGOPUS_RESULT_NO_MEMORY	Failed, no memory.
- * @retval LAGOPUS_RESULT_NOT_FOUND	Failed.  The cnode path node does not exists.
+ * @retval LAGOPUS_RESULT_OK            Succeeded.
+ * @retval LAGOPUS_RESULT_NOT_STARTED   Failed, cserver is not started.
+ * @retval LAGOPUS_RESULT_NO_MEMORY     Failed, no memory.
+ * @retval LAGOPUS_RESULT_NOT_FOUND     Failed.  The cnode path node does not exists.
  */
 lagopus_result_t
 install_config_callback(const char *str, callback_t callback);
@@ -983,13 +983,13 @@ install_config_callback(const char *str, callback_t callback);
 /**
  * Install server side exec callback function to the str's confsys path node.
  *
- * @param[in]	str	cnode path which the callback to be installed.
- * @param[in]	callback	Callback function pointer.
+ * @param[in]   str     cnode path which the callback to be installed.
+ * @param[in]   callback        Callback function pointer.
  *
- * @retval LAGOPUS_RESULT_OK		Succeeded.
- * @retval LAGOPUS_RESULT_NOT_STARTED	Failed, cserver is not started.
- * @retval LAGOPUS_RESULT_NO_MEMORY	Failed, no memory.
- * @retval LAGOPUS_RESULT_NOT_FOUND	Failed.  The cnode path node does not exists.
+ * @retval LAGOPUS_RESULT_OK            Succeeded.
+ * @retval LAGOPUS_RESULT_NOT_STARTED   Failed, cserver is not started.
+ * @retval LAGOPUS_RESULT_NO_MEMORY     Failed, no memory.
+ * @retval LAGOPUS_RESULT_NOT_FOUND     Failed.  The cnode path node does not exists.
  */
 lagopus_result_t
 install_exec_callback(const char *str, callback_t callback);
@@ -997,13 +997,13 @@ install_exec_callback(const char *str, callback_t callback);
 /**
  * Install server side show callback function to the str's confsys path node.
  *
- * @param[in]	str	cnode path which the callback to be installed.
- * @param[in]	callback	Callback function pointer.
+ * @param[in]   str     cnode path which the callback to be installed.
+ * @param[in]   callback        Callback function pointer.
  *
- * @retval LAGOPUS_RESULT_OK		Succeeded.
- * @retval LAGOPUS_RESULT_NOT_STARTED	Failed, cserver is not started.
- * @retval LAGOPUS_RESULT_NO_MEMORY	Failed, no memory.
- * @retval LAGOPUS_RESULT_NOT_FOUND	Failed.  The cnode path node does not exists.
+ * @retval LAGOPUS_RESULT_OK            Succeeded.
+ * @retval LAGOPUS_RESULT_NOT_STARTED   Failed, cserver is not started.
+ * @retval LAGOPUS_RESULT_NO_MEMORY     Failed, no memory.
+ * @retval LAGOPUS_RESULT_NOT_FOUND     Failed.  The cnode path node does not exists.
  */
 lagopus_result_t
 install_show_callback(const char *str, callback_t callback);
@@ -1079,9 +1079,9 @@ confsys_sock_path(const char *basename);
 /**
  * Load confsys schema file then return top cnode pointer.
  *
- * @param[in]	filename	Filename of the schema file.
+ * @param[in]   filename        Filename of the schema file.
  *
- * @retval NULL	Schema file load error.
+ * @retval NULL Schema file load error.
  * @retval Non-Null Top cnode pointer of the loaded schema.
  */
 struct cnode *
@@ -1092,13 +1092,13 @@ confsys_schema_load(const char *filename);
  * configuration.  location of lagopus.conf is ${sysconfdir}/lagopus.
  * Default is /usr/local/etc/lagopus.
  *
- * @param[in]	cserver
- * @param[in]   conffile	Config file path.  NULL means use default.
+ * @param[in]   cserver
+ * @param[in]   conffile        Config file path.  NULL means use default.
  *
- * @retval LAGOPUS_RESULT_OK	Succeeded.
- * @retval LAGOPUS_RESULT_NOT_FOUND	Fialed, lagopus.conf file not found.
- * @retval LAGOPUS_RESULT_NO_MEMORY	Failed, no memory.
- * @retval LAGOPUS_RESULT_INVALID_ARGS	Failed, parse error.
+ * @retval LAGOPUS_RESULT_OK    Succeeded.
+ * @retval LAGOPUS_RESULT_NOT_FOUND     Fialed, lagopus.conf file not found.
+ * @retval LAGOPUS_RESULT_NO_MEMORY     Failed, no memory.
+ * @retval LAGOPUS_RESULT_INVALID_ARGS  Failed, parse error.
  *
  */
 int
@@ -1109,13 +1109,13 @@ cserver_load_lagopus_conf(struct cserver *cserver, const char *conffile);
  * configuration.  location of lagopus.conf is ${sysconfdir}/lagopus.
  * Default is /usr/local/etc/lagopus.
  *
- * @param[in]	cserver
- * @param[in]   conffile	Config file path.  NULL means use default.
+ * @param[in]   cserver
+ * @param[in]   conffile        Config file path.  NULL means use default.
  *
- * @retval LAGOPUS_RESULT_OK	Succeeded.
- * @retval LAGOPUS_RESULT_NOT_FOUND	Fialed, lagopus.conf file not found.
- * @retval LAGOPUS_RESULT_NO_MEMORY	Failed, no memory.
- * @retval LAGOPUS_RESULT_INVALID_ARGS	Failed, parse error.
+ * @retval LAGOPUS_RESULT_OK    Succeeded.
+ * @retval LAGOPUS_RESULT_NOT_FOUND     Fialed, lagopus.conf file not found.
+ * @retval LAGOPUS_RESULT_NO_MEMORY     Failed, no memory.
+ * @retval LAGOPUS_RESULT_INVALID_ARGS  Failed, parse error.
  *
  */
 int
@@ -1156,8 +1156,8 @@ config_handle_start(void);
  * default value exists in schema, return cnode which has default
  * value.
  *
- * @param[in]	cserver	cserver which has config and schema.
- * @param[in]	cnode path for the value.
+ * @param[in]   cserver cserver which has config and schema.
+ * @param[in]   cnode path for the value.
  *
  * @retval NULL No cnode nor default value configured.
  * @retval cnode cnode which has configuration value or default value for the cnode path.
@@ -1168,13 +1168,13 @@ config_get(const char *path);
 /**
  * Set default value for the cnode.
  *
- * @param[in]	top	Top node of the config.
- * @param[in]	path cnode path for the value.
- * @param[in]	value Deafult value to be set.
+ * @param[in]   top     Top node of the config.
+ * @param[in]   path cnode path for the value.
+ * @param[in]   value Deafult value to be set.
  *
- * @retval LAGOPUS_RESULT_OK	Succeeded.
- * @retval LAGOPUS_RESULT_NOT_FOUND	Fialed, path does not exist.
- * @retval LAGOPUS_RESULT_NO_MEMORY	Failed, no memory.
+ * @retval LAGOPUS_RESULT_OK    Succeeded.
+ * @retval LAGOPUS_RESULT_NOT_FOUND     Fialed, path does not exist.
+ * @retval LAGOPUS_RESULT_NO_MEMORY     Failed, no memory.
  */
 int
 config_set_default(const char *path, char *val);

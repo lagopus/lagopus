@@ -16,8 +16,8 @@
 
 
 /**
- *	@file	flowinfo_port.c
- *	@brief	Optimized flow database for datapath, for Port
+ *      @file   flowinfo_port.c
+ *      @brief  Optimized flow database for datapath, for Port
  */
 
 #include <stdlib.h>

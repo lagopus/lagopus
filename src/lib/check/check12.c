@@ -32,7 +32,7 @@ typedef struct {
 
   size_t *m_counts;
 } test_stage_record;
-typedef test_stage_record 	*test_stage_t;
+typedef test_stage_record       *test_stage_t;
 
 
 

@@ -16,8 +16,8 @@
 
 
 /**
- *	@file	flowinfo.c
- *	@brief	Flow database optimized for speed.
+ *      @file   flowinfo.c
+ *      @brief  Flow database optimized for speed.
  */
 
 #include "lagopus/flowdb.h"

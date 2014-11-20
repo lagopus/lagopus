@@ -16,8 +16,8 @@
 
 
 /**
- *	@file	bridge.c
- *	@brief	Bridge (a.k.a. OpenFlow Switch) management.
+ *      @file   bridge.c
+ *      @brief  Bridge (a.k.a. OpenFlow Switch) management.
  */
 
 #include "openflow.h"

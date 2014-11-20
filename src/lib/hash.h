@@ -64,26 +64,26 @@ struct HashTable;
  */
 
 typedef struct HashEntry {
-  struct HashEntry *nextPtr;		/* Pointer to next entry in this
-					 * hash bucket, or NULL for end of
-					 * chain. */
-  struct HashTable *tablePtr;		/* Pointer to table containing
+  struct HashEntry *nextPtr;            /* Pointer to next entry in this
+                                         * hash bucket, or NULL for end of
+                                         * chain. */
+  struct HashTable *tablePtr;           /* Pointer to table containing
                                          * entry. */
-  struct HashEntry **bucketPtr;	/* Pointer to bucket that points to
-					 * first entry in this entry's chain:
-					 * used for deleting the entry. */
-  ClientData clientData;		/* Application stores something here
-					 * with SetHashValue. */
-  union {				/* Key has one of these forms: */
-    const void *oneWordKey;		/* One-word value for key. */
-    char const string[0];		/* String for key.  The actual size
-					 * will be as large as needed to hold
-					 * the key. */
-    uint8_t const bytes[0];		/* Multiple bytes for key.
-					 * The actual size will be as large
-					 * as necessary for this table's
-					 * keys. */
-  } key;				/* MUST BE LAST FIELD IN RECORD!! */
+  struct HashEntry **bucketPtr; /* Pointer to bucket that points to
+                                         * first entry in this entry's chain:
+                                         * used for deleting the entry. */
+  ClientData clientData;                /* Application stores something here
+                                         * with SetHashValue. */
+  union {                               /* Key has one of these forms: */
+    const void *oneWordKey;             /* One-word value for key. */
+    char const string[0];               /* String for key.  The actual size
+                                         * will be as large as needed to hold
+                                         * the key. */
+    uint8_t const bytes[0];             /* Multiple bytes for key.
+                                         * The actual size will be as large
+                                         * as necessary for this table's
+                                         * keys. */
+  } key;                                /* MUST BE LAST FIELD IN RECORD!! */
 } HashEntry;
 
 /*
@@ -94,34 +94,34 @@ typedef struct HashEntry {
 
 #define HASH_SMALL_HASH_TABLE 4
 typedef struct HashTable {
-  HashEntry **buckets;		/* Pointer to bucket array.  Each
-					 * element points to first entry in
-					 * bucket's hash chain, or NULL. */
+  HashEntry **buckets;          /* Pointer to bucket array.  Each
+                                         * element points to first entry in
+                                         * bucket's hash chain, or NULL. */
   HashEntry *staticBuckets[HASH_SMALL_HASH_TABLE];
   /* Bucket array used for small tables
    * (to avoid mallocs and frees). */
-  unsigned int numBuckets;		/* Total number of buckets allocated
-					 * at **bucketPtr. */
-  unsigned int numEntries;		/* Total number of entries present
-					 * in table. */
-  unsigned int rebuildSize;		/* Enlarge table when numEntries gets
-					 * to be this large. */
-  unsigned int downShift;		/* Shift count used in hashing
-					 * function.  Designed to use high-
-					 * order bits of randomized keys. */
-  unsigned int mask;			/* Mask value used in hashing
-					 * function. */
-  unsigned int keyLen;		/* Type of keys used in this
-					 * table.  It's either
-					 * HASH_STRING_KEYS (zero)
-					 * HASH_ONE_WORD_KEYS
-					 * (sizeof(unsigned long int)),
-					 * or an integer giving the
-					 * number of ints that is the
-					 * size (in bytes) of the key.
-					 */
-  unsigned int keyIntLen;		/* keyLen / SIZEOF_INT. */
-  unsigned int keyModLen;		/* keyLen % SIZEOF_INT. */
+  unsigned int numBuckets;              /* Total number of buckets allocated
+                                         * at **bucketPtr. */
+  unsigned int numEntries;              /* Total number of entries present
+                                         * in table. */
+  unsigned int rebuildSize;             /* Enlarge table when numEntries gets
+                                         * to be this large. */
+  unsigned int downShift;               /* Shift count used in hashing
+                                         * function.  Designed to use high-
+                                         * order bits of randomized keys. */
+  unsigned int mask;                    /* Mask value used in hashing
+                                         * function. */
+  unsigned int keyLen;          /* Type of keys used in this
+                                         * table.  It's either
+                                         * HASH_STRING_KEYS (zero)
+                                         * HASH_ONE_WORD_KEYS
+                                         * (sizeof(unsigned long int)),
+                                         * or an integer giving the
+                                         * number of ints that is the
+                                         * size (in bytes) of the key.
+                                         */
+  unsigned int keyIntLen;               /* keyLen / SIZEOF_INT. */
+  unsigned int keyModLen;               /* keyLen % SIZEOF_INT. */
 
   HashEntry *(*findProc) (struct HashTable *tablePtr,
                           const void *key);
@@ -135,19 +135,19 @@ typedef struct HashTable {
  */
 
 typedef struct HashSearch {
-  HashTable *tablePtr;		/* Table being searched. */
-  unsigned int nextIndex;		/* Index of next bucket to be
-					 * enumerated after present one. */
-  HashEntry *nextEntryPtr;	/* Next entry to be enumerated in the
-					 * the current bucket. */
+  HashTable *tablePtr;          /* Table being searched. */
+  unsigned int nextIndex;               /* Index of next bucket to be
+                                         * enumerated after present one. */
+  HashEntry *nextEntryPtr;      /* Next entry to be enumerated in the
+                                         * the current bucket. */
 } HashSearch;
 
 /*
  * Acceptable key types for hash tables:
  */
 
-#define HASH_STRING_KEYS	LAGOPUS_HASHMAP_TYPE_STRING
-#define HASH_ONE_WORD_KEYS	LAGOPUS_HASHMAP_TYPE_ONE_WORD
+#define HASH_STRING_KEYS        LAGOPUS_HASHMAP_TYPE_STRING
+#define HASH_ONE_WORD_KEYS      LAGOPUS_HASHMAP_TYPE_ONE_WORD
 
 /*
  * Macros for clients to use to access fields of hash entries:
@@ -169,13 +169,13 @@ typedef struct HashSearch {
 #define CreateHashEntry(tablePtr, key, newPtr) \
   (*((tablePtr)->createProc))(tablePtr, key, newPtr)
 
-void		DeleteHashEntry(HashEntry *entryPtr);
-void		DeleteHashTable(HashTable *tablePtr);
-HashEntry 	*FirstHashEntry(HashTable *tablePtr,
+void            DeleteHashEntry(HashEntry *entryPtr);
+void            DeleteHashTable(HashTable *tablePtr);
+HashEntry       *FirstHashEntry(HashTable *tablePtr,
                             HashSearch *searchPtr);
-char 		*HashStats(HashTable *tablePtr);
-void		InitHashTable(HashTable *tablePtr,
+char            *HashStats(HashTable *tablePtr);
+void            InitHashTable(HashTable *tablePtr,
                       unsigned int keyType);
-HashEntry 	*NextHashEntry(HashSearch *searchPtr);
+HashEntry       *NextHashEntry(HashSearch *searchPtr);
 
 #endif /* ! __HASH_H__ */

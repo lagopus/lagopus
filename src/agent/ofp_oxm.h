@@ -16,7 +16,7 @@
 
 
 /**
- * @file	ofp_oxm.h
+ * @file        ofp_oxm.h
  */
 
 #ifndef __OFP_OXM_H__
@@ -27,11 +27,11 @@
 /**
  * Check oxm.
  *
- *     @param[in]	oxm_field	oxm field.
+ *     @param[in]       oxm_field       oxm field.
  *
- *     @retval	LAGOPUS_RESULT_OK	Succeeded.
- *     @retval	LAGOPUS_RESULT_OXM_ERROR Failed, Bad oxm.
- *     @retval	LAGOPUS_RESULT_ANY_FAILURES Failed.
+ *     @retval  LAGOPUS_RESULT_OK       Succeeded.
+ *     @retval  LAGOPUS_RESULT_OXM_ERROR Failed, Bad oxm.
+ *     @retval  LAGOPUS_RESULT_ANY_FAILURES Failed.
  */
 lagopus_result_t
 ofp_oxm_field_check(uint8_t oxm_field);

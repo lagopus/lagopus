@@ -17,7 +17,7 @@
 
 /**
  *      @file   match.h
- *	@brief	Flow match internal APIs
+ *      @brief  Flow match internal APIs
  */
 
 #ifndef SRC_DATAPLANE_OFPROTO_MATCH_H_
@@ -37,11 +37,11 @@ typedef struct flow *
 /**
  * Check if packet is matched by specified flow entry.
  *
- * @param[in]   pkt		packet.
- * @param[in]   flow		flow within match field.
+ * @param[in]   pkt             packet.
+ * @param[in]   flow            flow within match field.
  *
- * @retval LAGOPUS_MATCHED	flow is matched
- * @retval LAGOPUS_MISMATCH	flow is not matched
+ * @retval LAGOPUS_MATCHED      flow is matched
+ * @retval LAGOPUS_MISMATCH     flow is not matched
  *
  * flow has multiple match field.
  * return LAGOPUS_MATCHED if the packet is matched as all match field.

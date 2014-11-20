@@ -17,7 +17,7 @@
 
 /**
  *      @file   pcap.h
- *	@brief	Packet capture APIs
+ *      @brief  Packet capture APIs
  */
 
 #ifndef SRC_DATAPLANE_OFPROTO_PCAP_H_

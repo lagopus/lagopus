@@ -16,8 +16,8 @@
 
 
 /**
- *	@file	thread.c
- *	@brief	Dataplane thread control functions
+ *      @file   thread.c
+ *      @brief  Dataplane thread control functions
  */
 
 #ifdef HAVE_DPDK

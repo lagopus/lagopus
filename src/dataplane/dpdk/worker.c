@@ -16,8 +16,8 @@
 
 
 /**
- *	@file	dpdk.c
- *	@brief	Datapath driver use with Intel DPDK
+ *      @file   dpdk.c
+ *      @brief  Datapath driver use with Intel DPDK
  */
 
 /*-
@@ -427,9 +427,9 @@ lagopus_send_packet_physical(struct lagopus_packet *pkt, uint32_t portid) {
   }
 
   ret = rte_ring_sp_enqueue_bulk(
-                                 lp->rings_out[portid],
-                                 (void **) lp->mbuf_out[portid].array,
-                                 bsz_wr);
+          lp->rings_out[portid],
+          (void **) lp->mbuf_out[portid].array,
+          bsz_wr);
 
 #if APP_STATS
   lp->rings_out_iters[portid] ++;

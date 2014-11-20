@@ -28,7 +28,7 @@
 
 
 
-typedef struct lagopus_pipeline_worker_record 	*lagopus_pipeline_worker_t;
+typedef struct lagopus_pipeline_worker_record   *lagopus_pipeline_worker_t;
 
 
 typedef enum {
@@ -64,7 +64,7 @@ typedef struct lagopus_pipeline_stage_record {
 
   size_t m_event_size;
   size_t m_max_batch;
-  size_t m_batch_buffer_size;	/* == m_event_size * m_max_batch (in bytes.) */
+  size_t m_batch_buffer_size;   /* == m_event_size * m_max_batch (in bytes.) */
 
   bool m_is_heap_allocd;
 

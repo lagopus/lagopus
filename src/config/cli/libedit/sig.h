@@ -1,8 +1,8 @@
-/*	$NetBSD: sig.h,v 1.8 2009/02/19 15:20:22 christos Exp $	*/
+/*      $NetBSD: sig.h,v 1.8 2009/02/19 15:20:22 christos Exp $ */
 
 /*-
  * Copyright (c) 1992, 1993
- *	The Regents of the University of California.  All rights reserved.
+ *      The Regents of the University of California.  All rights reserved.
  *
  * This code is derived from software contributed to Berkeley by
  * Christos Zoulas of Cornell University.
@@ -31,14 +31,14 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	@(#)sig.h	8.1 (Berkeley) 6/4/93
+ *      @(#)sig.h       8.1 (Berkeley) 6/4/93
  */
 
 /*
  * el.sig.h: Signal handling functions
  */
 #ifndef _h_el_sig
-#define	_h_el_sig
+#define _h_el_sig
 
 #include <signal.h>
 
@@ -48,15 +48,15 @@
  * Define here all the signals we are going to handle
  * The _DO macro is used to iterate in the source code
  */
-#define	ALLSIGS		\
-  _DO(SIGINT)	\
-  _DO(SIGTSTP)	\
-  _DO(SIGQUIT)	\
-  _DO(SIGHUP)	\
-  _DO(SIGTERM)	\
-  _DO(SIGCONT)	\
+#define ALLSIGS         \
+  _DO(SIGINT)   \
+  _DO(SIGTSTP)  \
+  _DO(SIGQUIT)  \
+  _DO(SIGHUP)   \
+  _DO(SIGTERM)  \
+  _DO(SIGCONT)  \
   _DO(SIGWINCH)
-#define ALLSIGSNO	7
+#define ALLSIGSNO       7
 
 typedef struct {
   struct sigaction sig_action[ALLSIGSNO];
@@ -64,9 +64,9 @@ typedef struct {
   volatile sig_atomic_t sig_no;
 } *el_signal_t;
 
-protected void	sig_end(EditLine *);
-protected int	sig_init(EditLine *);
-protected void	sig_set(EditLine *);
-protected void	sig_clr(EditLine *);
+protected void  sig_end(EditLine *);
+protected int   sig_init(EditLine *);
+protected void  sig_set(EditLine *);
+protected void  sig_clr(EditLine *);
 
 #endif /* _h_el_sig */

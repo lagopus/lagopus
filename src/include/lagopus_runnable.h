@@ -23,7 +23,7 @@
 
 
 /**
- *	@file	lagopus_runnable.h
+ *      @file   lagopus_runnable.h
  */
 
 
@@ -37,7 +37,7 @@
 
 
 #ifndef RUNNABLE_T_DECLARED
-typedef struct lagopus_runnable_record 	*lagopus_runnable_t;
+typedef struct lagopus_runnable_record  *lagopus_runnable_t;
 #define RUNNABLE_T_DECLARED
 #endif /* ! RUNNABLE_T_DECLARED */
 
@@ -48,17 +48,17 @@ typedef struct lagopus_runnable_record 	*lagopus_runnable_t;
 /**
  * Create a runnable.
  *
- *	@param[out]	rptr	A pointer to a created runnable.
- *	@param[in]	sz	A memory allocation size for this object
- *	(in bytes.)
- *	@param[in]	func	A runnable procedure.
- *	@param[in]	arg	An argument for the\b func (\b NULL allowed.)
- *	@param[in]	freeup_proc	A freeup prosedure (\b NULL allowed.)
+ *      @param[out]     rptr    A pointer to a created runnable.
+ *      @param[in]      sz      A memory allocation size for this object
+ *      (in bytes.)
+ *      @param[in]      func    A runnable procedure.
+ *      @param[in]      arg     An argument for the\b func (\b NULL allowed.)
+ *      @param[in]      freeup_proc     A freeup prosedure (\b NULL allowed.)
  *
- *	@retval LAGOPUS_RESULT_OK		Succeeded.
- *	@retval LAGOPUS_RESULT_NO_MEMORY	Failed, no memory.
- *	@retval LAGOPUS_RESULT_INVALID_ARGS	Failed, invalid args.
- *	@retval LAGOPUS_RESULT_ANY_FAILURES	Failed.
+ *      @retval LAGOPUS_RESULT_OK               Succeeded.
+ *      @retval LAGOPUS_RESULT_NO_MEMORY        Failed, no memory.
+ *      @retval LAGOPUS_RESULT_INVALID_ARGS     Failed, invalid args.
+ *      @retval LAGOPUS_RESULT_ANY_FAILURES     Failed.
  *
  * @details If the \b rptr is \b NULL, it allocates a memory area and
  * the allocated area is always free'd by calling \b
@@ -78,7 +78,7 @@ lagopus_runnable_create(lagopus_runnable_t *rptr,
 /**
  * Destroy a runnable.
  *
- *	@param[in]	rptr	A pointer to a runnable.
+ *      @param[in]      rptr    A pointer to a runnable.
  *
  * @details If the \b freeup_proc was specified at creation, the \b
  * freeup_proc is called BEFORE free the \b *rptr up.
@@ -90,7 +90,7 @@ lagopus_runnable_destroy(lagopus_runnable_t *rptr);
 /**
  * Execute a runnable.
  *
- *	@param[in]	rptr	A pointer to a runnable.
+ *      @param[in]      rptr    A pointer to a runnable.
  */
 void
 lagopus_runnable_start(const lagopus_runnable_t *rptr);

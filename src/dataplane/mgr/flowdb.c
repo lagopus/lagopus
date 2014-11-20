@@ -53,7 +53,7 @@
 #define SET_FLAG(V, F)          (V) = (V) | (F)
 #define FIELD_TYPE_BIT(T)       ((uint64_t)1 << T)
 
-#define GET_OXM_FIELD(ofpat)						\
+#define GET_OXM_FIELD(ofpat)                                            \
   ((((const struct ofp_action_set_field *)(ofpat))->field[2] >> 1) & 0x7f)
 
 static lagopus_result_t
@@ -117,27 +117,27 @@ instruction_index(struct instruction *instruction) {
   int idx;
 
   switch (instruction->ofpit.type) {
-  case OFPIT_METER:
-    idx = INSTRUCTION_INDEX_METER;
-    break;
-  case OFPIT_APPLY_ACTIONS:
-    idx = INSTRUCTION_INDEX_APPLY_ACTIONS;
-    break;
-  case OFPIT_CLEAR_ACTIONS:
-    idx = INSTRUCTION_INDEX_CLEAR_ACTIONS;
-    break;
-  case OFPIT_WRITE_ACTIONS:
-    idx = INSTRUCTION_INDEX_WRITE_ACTIONS;
-    break;
-  case OFPIT_WRITE_METADATA:
-    idx = INSTRUCTION_INDEX_WRITE_METADATA;
-    break;
-  case OFPIT_GOTO_TABLE:
-    idx = INSTRUCTION_INDEX_GOTO_TABLE;
-    break;
-  default:
-    idx = INSTRUCTION_INDEX_MAX;
-    break;
+    case OFPIT_METER:
+      idx = INSTRUCTION_INDEX_METER;
+      break;
+    case OFPIT_APPLY_ACTIONS:
+      idx = INSTRUCTION_INDEX_APPLY_ACTIONS;
+      break;
+    case OFPIT_CLEAR_ACTIONS:
+      idx = INSTRUCTION_INDEX_CLEAR_ACTIONS;
+      break;
+    case OFPIT_WRITE_ACTIONS:
+      idx = INSTRUCTION_INDEX_WRITE_ACTIONS;
+      break;
+    case OFPIT_WRITE_METADATA:
+      idx = INSTRUCTION_INDEX_WRITE_METADATA;
+      break;
+    case OFPIT_GOTO_TABLE:
+      idx = INSTRUCTION_INDEX_GOTO_TABLE;
+      break;
+    default:
+      idx = INSTRUCTION_INDEX_MAX;
+      break;
   }
   return idx;
 }
@@ -225,7 +225,7 @@ flow_alloc(struct ofp_flow_mod *flow_mod,
   flow->create_time = get_current_time();
   flow->update_time = flow->create_time;
 
- out:
+out:
   return ret;
 }
 
@@ -361,30 +361,30 @@ flow_match_ether_type(struct match *match) {
   int flow_type;
 
   switch (OXM_DECODE_GETL(match->oxm_value)) {
-  case ETHERTYPE_ARP:
-    flow_type = ARP_FLOWS;
-    break;
-  case ETHERTYPE_VLAN:
-    flow_type = VLAN_FLOWS;
-    break;
-  case ETHERTYPE_IP:
-    flow_type = IPV4_FLOWS;
-    break;
-  case ETHERTYPE_IPV6:
-    flow_type = IPV6_FLOWS;
-    break;
-  case ETHERTYPE_MPLS:
-    flow_type = MPLS_FLOWS;
-    break;
-  case ETHERTYPE_MPLS_MCAST:
-    flow_type = MPLSMC_FLOWS;
-    break;
-  case ETHERTYPE_PBB:
-    flow_type = PBB_FLOWS;
-    break;
-  default:
-    flow_type = MISC_FLOWS;
-    break;
+    case ETHERTYPE_ARP:
+      flow_type = ARP_FLOWS;
+      break;
+    case ETHERTYPE_VLAN:
+      flow_type = VLAN_FLOWS;
+      break;
+    case ETHERTYPE_IP:
+      flow_type = IPV4_FLOWS;
+      break;
+    case ETHERTYPE_IPV6:
+      flow_type = IPV6_FLOWS;
+      break;
+    case ETHERTYPE_MPLS:
+      flow_type = MPLS_FLOWS;
+      break;
+    case ETHERTYPE_MPLS_MCAST:
+      flow_type = MPLSMC_FLOWS;
+      break;
+    case ETHERTYPE_PBB:
+      flow_type = PBB_FLOWS;
+      break;
+    default:
+      flow_type = MISC_FLOWS;
+      break;
   }
   return flow_type;
 }
@@ -428,109 +428,109 @@ flow_pre_requisite_check(struct flow *flow,
     SET_FLAG(flow->field_bits, FIELD_TYPE_BIT(field_type));
 
     switch (field_type) {
-    case OFPXMT_OFB_IN_PORT:
-      /* No prerequisite. */
-      break;
-    case OFPXMT_OFB_IN_PHY_PORT:
-      /* IN_PORT must exist. */
-      if (!CHECK_FIELD_BIT(flow->field_bits, OFPXMT_OFB_IN_PORT)) {
-	goto bad_out;
-      }
-      break;
-    case OFPXMT_OFB_METADATA:
-    case OFPXMT_OFB_ETH_DST:
-    case OFPXMT_OFB_ETH_SRC:
-      /* No prerequisite. */
-      break;
-    case OFPXMT_OFB_ETH_TYPE:
-      /* Determine flow type based upon ether type. */
-      flow_type = flow_match_ether_type(match);
-      break;
-    case OFPXMT_OFB_VLAN_VID:
-      /* No prerequisite. */
-      break;
-    case OFPXMT_OFB_VLAN_PCP:
-      /* VLAN_VID must exist. */
-      if (!CHECK_FIELD_BIT(flow->field_bits, OFPXMT_OFB_VLAN_VID)) {
-	goto bad_out;
-      }
-      break;
+      case OFPXMT_OFB_IN_PORT:
+        /* No prerequisite. */
+        break;
+      case OFPXMT_OFB_IN_PHY_PORT:
+        /* IN_PORT must exist. */
+        if (!CHECK_FIELD_BIT(flow->field_bits, OFPXMT_OFB_IN_PORT)) {
+          goto bad_out;
+        }
+        break;
+      case OFPXMT_OFB_METADATA:
+      case OFPXMT_OFB_ETH_DST:
+      case OFPXMT_OFB_ETH_SRC:
+        /* No prerequisite. */
+        break;
+      case OFPXMT_OFB_ETH_TYPE:
+        /* Determine flow type based upon ether type. */
+        flow_type = flow_match_ether_type(match);
+        break;
+      case OFPXMT_OFB_VLAN_VID:
+        /* No prerequisite. */
+        break;
+      case OFPXMT_OFB_VLAN_PCP:
+        /* VLAN_VID must exist. */
+        if (!CHECK_FIELD_BIT(flow->field_bits, OFPXMT_OFB_VLAN_VID)) {
+          goto bad_out;
+        }
+        break;
       /* Check pre-requisites  */
-    case OFPXMT_OFB_IP_DSCP:
-    case OFPXMT_OFB_IP_ECN:
-    case OFPXMT_OFB_IP_PROTO:
-    case OFPXMT_OFB_IPV4_SRC:
-    case OFPXMT_OFB_IPV4_DST:
-      if (!CHECK_FIELD_BIT(flow->field_bits, OFPXMT_OFB_ETH_TYPE)) {
-	/* ETH_TYPE must exist. */
-	goto bad_out;
-      }
-      break;
-    case OFPXMT_OFB_TCP_SRC:
-    case OFPXMT_OFB_TCP_DST:
-    case OFPXMT_OFB_UDP_SRC:
-    case OFPXMT_OFB_UDP_DST:
-    case OFPXMT_OFB_SCTP_SRC:
-    case OFPXMT_OFB_SCTP_DST:
-    case OFPXMT_OFB_ICMPV4_TYPE:
-    case OFPXMT_OFB_ICMPV4_CODE:
-      if (!CHECK_FIELD_BIT(flow->field_bits, OFPXMT_OFB_ETH_TYPE)) {
-	/* ETH_TYPE must exist. */
-	goto bad_out;
-      }
-      if (!CHECK_FIELD_BIT(flow->field_bits, OFPXMT_OFB_IP_PROTO)) {
-	/* IP_PROTO must exist. */
-	goto bad_out;
-      }
-      break;
-    case OFPXMT_OFB_ARP_OP:
-    case OFPXMT_OFB_ARP_SPA:
-    case OFPXMT_OFB_ARP_TPA:
-    case OFPXMT_OFB_ARP_SHA:
-    case OFPXMT_OFB_ARP_THA:
-    case OFPXMT_OFB_IPV6_SRC:
-    case OFPXMT_OFB_IPV6_DST:
-    case OFPXMT_OFB_IPV6_FLABEL:
-      if (!CHECK_FIELD_BIT(flow->field_bits, OFPXMT_OFB_ETH_TYPE)) {
-	/* ETH_TYPE must exist. */
-	goto bad_out;
-      }
-      break;
-    case OFPXMT_OFB_ICMPV6_TYPE:
-    case OFPXMT_OFB_ICMPV6_CODE:
-    case OFPXMT_OFB_IPV6_ND_TARGET:
-    case OFPXMT_OFB_IPV6_ND_SLL:
-    case OFPXMT_OFB_IPV6_ND_TLL:
-      if (!CHECK_FIELD_BIT(flow->field_bits, OFPXMT_OFB_ETH_TYPE)) {
-	/* ETH_TYPE must exist. */
-	goto bad_out;
-      }
-      if (!CHECK_FIELD_BIT(flow->field_bits, OFPXMT_OFB_IP_PROTO)) {
-	/* IP_PROTO must exist. */
-	goto bad_out;
-      }
-      break;
-    case OFPXMT_OFB_IPV6_EXTHDR:
-    case OFPXMT_OFB_MPLS_LABEL:
-    case OFPXMT_OFB_MPLS_TC:
-    case OFPXMT_OFB_MPLS_BOS:
-      if (!CHECK_FIELD_BIT(flow->field_bits, OFPXMT_OFB_ETH_TYPE)) {
-	/* ETH_TYPE must exist. */
-	goto bad_out;
-      }
-      break;
-    case OFPXMT_OFB_PBB_ISID:
-    case OFPXMT_OFB_TUNNEL_ID:
-      /* No prerequisite. */
-      break;
-    default:
-      break;
+      case OFPXMT_OFB_IP_DSCP:
+      case OFPXMT_OFB_IP_ECN:
+      case OFPXMT_OFB_IP_PROTO:
+      case OFPXMT_OFB_IPV4_SRC:
+      case OFPXMT_OFB_IPV4_DST:
+        if (!CHECK_FIELD_BIT(flow->field_bits, OFPXMT_OFB_ETH_TYPE)) {
+          /* ETH_TYPE must exist. */
+          goto bad_out;
+        }
+        break;
+      case OFPXMT_OFB_TCP_SRC:
+      case OFPXMT_OFB_TCP_DST:
+      case OFPXMT_OFB_UDP_SRC:
+      case OFPXMT_OFB_UDP_DST:
+      case OFPXMT_OFB_SCTP_SRC:
+      case OFPXMT_OFB_SCTP_DST:
+      case OFPXMT_OFB_ICMPV4_TYPE:
+      case OFPXMT_OFB_ICMPV4_CODE:
+        if (!CHECK_FIELD_BIT(flow->field_bits, OFPXMT_OFB_ETH_TYPE)) {
+          /* ETH_TYPE must exist. */
+          goto bad_out;
+        }
+        if (!CHECK_FIELD_BIT(flow->field_bits, OFPXMT_OFB_IP_PROTO)) {
+          /* IP_PROTO must exist. */
+          goto bad_out;
+        }
+        break;
+      case OFPXMT_OFB_ARP_OP:
+      case OFPXMT_OFB_ARP_SPA:
+      case OFPXMT_OFB_ARP_TPA:
+      case OFPXMT_OFB_ARP_SHA:
+      case OFPXMT_OFB_ARP_THA:
+      case OFPXMT_OFB_IPV6_SRC:
+      case OFPXMT_OFB_IPV6_DST:
+      case OFPXMT_OFB_IPV6_FLABEL:
+        if (!CHECK_FIELD_BIT(flow->field_bits, OFPXMT_OFB_ETH_TYPE)) {
+          /* ETH_TYPE must exist. */
+          goto bad_out;
+        }
+        break;
+      case OFPXMT_OFB_ICMPV6_TYPE:
+      case OFPXMT_OFB_ICMPV6_CODE:
+      case OFPXMT_OFB_IPV6_ND_TARGET:
+      case OFPXMT_OFB_IPV6_ND_SLL:
+      case OFPXMT_OFB_IPV6_ND_TLL:
+        if (!CHECK_FIELD_BIT(flow->field_bits, OFPXMT_OFB_ETH_TYPE)) {
+          /* ETH_TYPE must exist. */
+          goto bad_out;
+        }
+        if (!CHECK_FIELD_BIT(flow->field_bits, OFPXMT_OFB_IP_PROTO)) {
+          /* IP_PROTO must exist. */
+          goto bad_out;
+        }
+        break;
+      case OFPXMT_OFB_IPV6_EXTHDR:
+      case OFPXMT_OFB_MPLS_LABEL:
+      case OFPXMT_OFB_MPLS_TC:
+      case OFPXMT_OFB_MPLS_BOS:
+        if (!CHECK_FIELD_BIT(flow->field_bits, OFPXMT_OFB_ETH_TYPE)) {
+          /* ETH_TYPE must exist. */
+          goto bad_out;
+        }
+        break;
+      case OFPXMT_OFB_PBB_ISID:
+      case OFPXMT_OFB_TUNNEL_ID:
+        /* No prerequisite. */
+        break;
+      default:
+        break;
     }
   }
   flow->flow_type = (uint8_t)flow_type;
   return LAGOPUS_RESULT_OK;
 
- bad_out:
+bad_out:
   lagopus_msg_info("Pre-requisite error on match type %s\n",
                    oxm_ofb_match_fields_str(field_type));
   ofp_error_set(error, OFPET_BAD_MATCH, OFPBMC_BAD_PREREQ);
@@ -562,67 +562,67 @@ flow_action_check(struct bridge *bridge,
       continue;
     }
     switch (instruction->ofpit.type) {
-    case OFPIT_METER:
-      meter_table_wrlock(meter_table);
-      meter = meter_table_lookup(meter_table,
-				 instruction->ofpit_meter.meter_id);
-      if (meter != NULL) {
-	meter->flow_count++;
-      } else {
-	ofp_error_set(error, OFPET_METER_MOD_FAILED,
-		      OFPMMFC_UNKNOWN_METER);
-      }
-      meter_table_unlock(meter_table);
-      break;
-    case OFPIT_GOTO_TABLE:
-      if (instruction->ofpit_goto_table.table_id > OFPTT_MAX) {
-	ofp_error_set(error,
-		      OFPET_BAD_INSTRUCTION, OFPBIC_BAD_TABLE_ID);
-	return LAGOPUS_RESULT_OFP_ERROR;
-      }
-      break;
-    case OFPIT_WRITE_ACTIONS:
-    case OFPIT_APPLY_ACTIONS:
-      TAILQ_FOREACH(action, &instruction->action_list, entry) {
-	switch (action->ofpat.type) {
-	case OFPAT_OUTPUT:
-	  /* is exist specified port? */
-	  output = (struct ofp_action_output *)&action->ofpat;
-	  switch (output->port) {
-	  case OFPP_TABLE:
-	  case OFPP_NORMAL:
-	  case OFPP_FLOOD:
-	  case OFPP_ALL:
-	  case OFPP_CONTROLLER:
-	  case OFPP_LOCAL:
-	    break;
+      case OFPIT_METER:
+        meter_table_wrlock(meter_table);
+        meter = meter_table_lookup(meter_table,
+                                   instruction->ofpit_meter.meter_id);
+        if (meter != NULL) {
+          meter->flow_count++;
+        } else {
+          ofp_error_set(error, OFPET_METER_MOD_FAILED,
+                        OFPMMFC_UNKNOWN_METER);
+        }
+        meter_table_unlock(meter_table);
+        break;
+      case OFPIT_GOTO_TABLE:
+        if (instruction->ofpit_goto_table.table_id > OFPTT_MAX) {
+          ofp_error_set(error,
+                        OFPET_BAD_INSTRUCTION, OFPBIC_BAD_TABLE_ID);
+          return LAGOPUS_RESULT_OFP_ERROR;
+        }
+        break;
+      case OFPIT_WRITE_ACTIONS:
+      case OFPIT_APPLY_ACTIONS:
+        TAILQ_FOREACH(action, &instruction->action_list, entry) {
+          switch (action->ofpat.type) {
+            case OFPAT_OUTPUT:
+              /* is exist specified port? */
+              output = (struct ofp_action_output *)&action->ofpat;
+              switch (output->port) {
+                case OFPP_TABLE:
+                case OFPP_NORMAL:
+                case OFPP_FLOOD:
+                case OFPP_ALL:
+                case OFPP_CONTROLLER:
+                case OFPP_LOCAL:
+                  break;
 
-	  default:
-	    if (port_lookup(ports, output->port) == NULL) {
-	      ofp_error_set(error,
-			    OFPET_BAD_ACTION, OFPBAC_BAD_OUT_PORT);
-	      return LAGOPUS_RESULT_OFP_ERROR;
-	    }
-	  }
-	  break;
-	case OFPAT_SET_QUEUE:
-	  /* is exist specified queue? */
-	  break;
-	case OFPAT_GROUP:
-	  /* is exist specified group? */
-	  group_id = ((struct ofp_action_group *)&action->ofpat)->group_id;
-	  group = group_table_lookup(group_table, group_id);
-	  if (group == NULL) {
-	    ofp_error_set(error, OFPET_BAD_ACTION, OFPBAC_BAD_OUT_GROUP);
-	    return LAGOPUS_RESULT_OFP_ERROR;
-	  }
-	  /* create relationship with specified group. */
-	  group_add_ref_flow(group, flow);
-	  break;
-	default:
-	  break;
-	}
-      }
+                default:
+                  if (port_lookup(ports, output->port) == NULL) {
+                    ofp_error_set(error,
+                                  OFPET_BAD_ACTION, OFPBAC_BAD_OUT_PORT);
+                    return LAGOPUS_RESULT_OFP_ERROR;
+                  }
+              }
+              break;
+            case OFPAT_SET_QUEUE:
+              /* is exist specified queue? */
+              break;
+            case OFPAT_GROUP:
+              /* is exist specified group? */
+              group_id = ((struct ofp_action_group *)&action->ofpat)->group_id;
+              group = group_table_lookup(group_table, group_id);
+              if (group == NULL) {
+                ofp_error_set(error, OFPET_BAD_ACTION, OFPBAC_BAD_OUT_GROUP);
+                return LAGOPUS_RESULT_OFP_ERROR;
+              }
+              /* create relationship with specified group. */
+              group_add_ref_flow(group, flow);
+              break;
+            default:
+              break;
+          }
+        }
     }
   }
   return LAGOPUS_RESULT_OK;
@@ -745,7 +745,7 @@ flow_remove_with_reason(struct flow *flow,
       }
     }
   }
- out:
+out:
   flowdb_wrunlock(NULL);
   return ret;
 }
@@ -837,68 +837,68 @@ flow_action_examination(struct flow *flow,
   action_push = NULL;
   TAILQ_FOREACH(action, action_list, entry) {
     switch (action->ofpat.type) {
-    case OFPAT_PUSH_VLAN:
-    case OFPAT_PUSH_MPLS:
-    case OFPAT_PUSH_PBB:
-    case OFPAT_POP_VLAN:
-    case OFPAT_POP_MPLS:
-    case OFPAT_POP_PBB:
-      if (action_output != NULL) {
-	action_output->flags = OUTPUT_COPIED_PACKET;
-      }
-      action_push = action;
-      flags = 0;
-      break;
+      case OFPAT_PUSH_VLAN:
+      case OFPAT_PUSH_MPLS:
+      case OFPAT_PUSH_PBB:
+      case OFPAT_POP_VLAN:
+      case OFPAT_POP_MPLS:
+      case OFPAT_POP_PBB:
+        if (action_output != NULL) {
+          action_output->flags = OUTPUT_COPIED_PACKET;
+        }
+        action_push = action;
+        flags = 0;
+        break;
 
-    case OFPAT_SET_FIELD:
-      if (action_output != NULL) {
-	action_output->flags = OUTPUT_COPIED_PACKET;
-      }
-      if (action_push != NULL) {
-	if (GET_OXM_FIELD(&action->ofpat) == OFPXMT_OFB_ETH_DST) {
-	  flags |= SET_FIELD_ETH_DST;
-	} else if (GET_OXM_FIELD(&action->ofpat) == OFPXMT_OFB_ETH_SRC) {
-	  flags |= SET_FIELD_ETH_SRC;
-	}
-	action_push->flags = flags;
-      }
-      break;
+      case OFPAT_SET_FIELD:
+        if (action_output != NULL) {
+          action_output->flags = OUTPUT_COPIED_PACKET;
+        }
+        if (action_push != NULL) {
+          if (GET_OXM_FIELD(&action->ofpat) == OFPXMT_OFB_ETH_DST) {
+            flags |= SET_FIELD_ETH_DST;
+          } else if (GET_OXM_FIELD(&action->ofpat) == OFPXMT_OFB_ETH_SRC) {
+            flags |= SET_FIELD_ETH_SRC;
+          }
+          action_push->flags = flags;
+        }
+        break;
 
-    case OFPAT_OUTPUT:
-      if (action_output != NULL) {
-	action_output->flags = OUTPUT_COPIED_PACKET;
-      }
-      action_output = action;
-      action->cookie = flow->cookie;
-      break;
+      case OFPAT_OUTPUT:
+        if (action_output != NULL) {
+          action_output->flags = OUTPUT_COPIED_PACKET;
+        }
+        action_output = action;
+        action->cookie = flow->cookie;
+        break;
 
-    case OFPAT_GROUP:
-      group_id = ((struct ofp_action_group *)&action->ofpat)->group_id;
-      group = group_table_lookup(flow->bridge->group_table, group_id);
-      if (group == NULL) {
-	break;
-      }
-      if (group->type == OFPGT_ALL) {
-	struct bucket *bucket;
+      case OFPAT_GROUP:
+        group_id = ((struct ofp_action_group *)&action->ofpat)->group_id;
+        group = group_table_lookup(flow->bridge->group_table, group_id);
+        if (group == NULL) {
+          break;
+        }
+        if (group->type == OFPGT_ALL) {
+          struct bucket *bucket;
 
-	TAILQ_FOREACH(bucket, &group->bucket_list, entry) {
-	  struct action *bucket_output;
+          TAILQ_FOREACH(bucket, &group->bucket_list, entry) {
+            struct action *bucket_output;
 
-	  TAILQ_FOREACH(bucket_output,
-			&bucket->actions[LAGOPUS_ACTION_SET_ORDER_OUTPUT],
-			entry) {
-	    if (action_output != NULL) {
-	      action_output->flags = OUTPUT_COPIED_PACKET;
-	    }
-	    action_output = bucket_output;
-	    action_output->cookie = flow->cookie;
-	  }
-	}
-      }
-      break;
+            TAILQ_FOREACH(bucket_output,
+                          &bucket->actions[LAGOPUS_ACTION_SET_ORDER_OUTPUT],
+                          entry) {
+              if (action_output != NULL) {
+                action_output->flags = OUTPUT_COPIED_PACKET;
+              }
+              action_output = bucket_output;
+              action_output->cookie = flow->cookie;
+            }
+          }
+        }
+        break;
 
-    default:
-      break;
+      default:
+        break;
     }
   }
 
@@ -971,7 +971,7 @@ flow_add_sub(struct flow *flow, struct flow_list *flows) {
   /* Insert flow into the point. */
   flows->flows[i] = flow;
   flows->nflow++;
- out:
+out:
   return ret;
 }
 
@@ -1081,18 +1081,18 @@ flowdb_flow_add(struct bridge *bridge,
       goto out;
     }
     switch (flow_type) {
-    case ARP_FLOWS:
-    case VLAN_FLOWS:
-    case IPV4_FLOWS:
-    case IPV6_FLOWS:
-    case MPLS_FLOWS:
-    case MPLSMC_FLOWS:
-    case PBB_FLOWS:
-    case MISC_FLOWS:
-      ret = flow_add_sub(flow, &table->flows[flow_type]);
-      break;
-    default:
-      break;
+      case ARP_FLOWS:
+      case VLAN_FLOWS:
+      case IPV4_FLOWS:
+      case IPV6_FLOWS:
+      case MPLS_FLOWS:
+      case MPLSMC_FLOWS:
+      case PBB_FLOWS:
+      case MISC_FLOWS:
+        ret = flow_add_sub(flow, &table->flows[flow_type]);
+        break;
+      default:
+        break;
     }
     if (ret != LAGOPUS_RESULT_OK) {
       goto out;
@@ -1113,7 +1113,7 @@ flowdb_flow_add(struct bridge *bridge,
   clear_worker_flowcache(false);
 #endif /* HAVE_DPDK */
 
- out:
+out:
   /* Unlock the flowdb then return result. */
   flowdb_wrunlock(flowdb);
   return ret;
@@ -1223,7 +1223,7 @@ flow_modify_sub(struct bridge *bridge,
     }
     instruction_list_entry_free(instruction_list);
   }
- out:
+out:
   return ret;
 }
 
@@ -1268,17 +1268,17 @@ flow_del_from_group(struct group_table *group_table, struct flow *flow) {
       continue;
     }
     switch (instruction->ofpit.type) {
-    case OFPIT_WRITE_ACTIONS:
-    case OFPIT_APPLY_ACTIONS:
-      TAILQ_FOREACH(action, &instruction->action_list, entry) {
-	if (action->ofpat.type == OFPAT_GROUP) {
-	  group_id = ((struct ofp_action_group *)&action->ofpat)->group_id;
-	  group = group_table_lookup(group_table, group_id);
-	  group_remove_ref_flow(group, flow);
-	  break;
-	}
-      }
-      break;
+      case OFPIT_WRITE_ACTIONS:
+      case OFPIT_APPLY_ACTIONS:
+        TAILQ_FOREACH(action, &instruction->action_list, entry) {
+          if (action->ofpat.type == OFPAT_GROUP) {
+            group_id = ((struct ofp_action_group *)&action->ofpat)->group_id;
+            group = group_table_lookup(group_table, group_id);
+            group_remove_ref_flow(group, flow);
+            break;
+          }
+        }
+        break;
     }
   }
 }
@@ -1505,7 +1505,7 @@ flow_del_sub(struct bridge *bridge,
       }
     }
   }
- out:
+out:
   return ret;
 }
 
@@ -1518,21 +1518,21 @@ table_flow_modify(struct bridge *bridge, struct table *table,
                   struct ofp_error *error,
                   int strict) {
   switch (flow->flow_type) {
-  case ARP_FLOWS:
-  case VLAN_FLOWS:
-  case IPV4_FLOWS:
-  case IPV6_FLOWS:
-  case MPLS_FLOWS:
-  case MPLSMC_FLOWS:
-  case PBB_FLOWS:
-  case MISC_FLOWS:
-    flow_modify_sub(bridge, flow_mod,
-		    &table->flows[flow->flow_type],
-		    match_list, instruction_list,
-		    error, strict);
-    break;
-  default:
-    break;
+    case ARP_FLOWS:
+    case VLAN_FLOWS:
+    case IPV4_FLOWS:
+    case IPV6_FLOWS:
+    case MPLS_FLOWS:
+    case MPLSMC_FLOWS:
+    case PBB_FLOWS:
+    case MISC_FLOWS:
+      flow_modify_sub(bridge, flow_mod,
+                      &table->flows[flow->flow_type],
+                      match_list, instruction_list,
+                      error, strict);
+      break;
+    default:
+      break;
   }
   return LAGOPUS_RESULT_OK;
 }
@@ -1545,20 +1545,20 @@ table_flow_delete(struct bridge *bridge,
                   int strict,
                   struct ofp_error *error) {
   switch (flow->flow_type) {
-  case ARP_FLOWS:
-  case VLAN_FLOWS:
-  case IPV4_FLOWS:
-  case IPV6_FLOWS:
-  case MPLS_FLOWS:
-  case MPLSMC_FLOWS:
-  case PBB_FLOWS:
-  case MISC_FLOWS:
-    flow_del_sub(bridge, table, flow_mod,
-		 &table->flows[flow->flow_type], match_list,
-		 strict, error);
-    break;
-  default:
-    break;
+    case ARP_FLOWS:
+    case VLAN_FLOWS:
+    case IPV4_FLOWS:
+    case IPV6_FLOWS:
+    case MPLS_FLOWS:
+    case MPLSMC_FLOWS:
+    case PBB_FLOWS:
+    case MISC_FLOWS:
+      flow_del_sub(bridge, table, flow_mod,
+                   &table->flows[flow->flow_type], match_list,
+                   strict, error);
+      break;
+    default:
+      break;
   }
 }
 
@@ -1615,7 +1615,7 @@ flowdb_flow_modify(struct bridge *bridge,
 #endif /* HAVE_DPDK */
 
   /* Unlock the flowdb and return result. */
- out:
+out:
   flowdb_wrunlock(bridge->flowdb);
   return result;
 }
@@ -1680,7 +1680,7 @@ flowdb_flow_delete(struct bridge *bridge,
 #endif /* HAVE_DPDK */
 
   /* Unlock the flowdb and return result. */
- out:
+out:
   flowdb_wrunlock(flowdb);
   return result;
 }
@@ -1792,7 +1792,7 @@ flowdb_flow_stats(struct flowdb *flowdb,
   }
 
   /* Unlock the flowdb and return result. */
- out:
+out:
   flowdb_wrunlock(flowdb);
   return result;
 }
@@ -1863,7 +1863,7 @@ flowdb_aggregate_stats(struct flowdb *flowdb,
   }
 
   /* Unlock the flowdb and return result. */
- out:
+out:
   flowdb_wrunlock(flowdb);
   return result;
 }
@@ -2374,145 +2374,145 @@ flow_dump_match(uint8_t oxm_field, uint8_t oxm_length, uint8_t *oxm_value,
   }
 
   switch (printer) {
-  case PRINTER_U8:
-    fprintf(fp, "%s%s=%d", indent, field_str, *oxm_value);
-    if (hasmask) {
-      fprintf(fp, "/0x%02x", *(oxm_value + 1));
-    }
-    fprintf(fp, "\n");
-    break;
-  case PRINTER_U16:
-    fprintf(fp, "%s%s=%d", indent, field_str, ntohs(*(uint16_t *)oxm_value));
-    if (hasmask) {
-      fprintf(fp, "/0x%04x", ntohs(*((uint16_t *)oxm_value + 1)));
-    }
-    fprintf(fp, "\n");
-    break;
-  case PRINTER_U24:
-    if (hasmask) {
-      fprintf(fp, "%s%s=%d/0x%06x\n", indent, field_str,
-	      (uint32_t)oxm_value[oxm_length / 2 - 3] << 16
-	      | (uint32_t)oxm_value[oxm_length / 2 - 2] << 8
-	      | (uint32_t)oxm_value[oxm_length / 2 - 1],
-	      (uint32_t)oxm_value[oxm_length - 3] << 16
-	      | (uint32_t)oxm_value[oxm_length - 2] << 8
-	      | (uint32_t)oxm_value[oxm_length - 1]);
-    } else {
-      fprintf(fp, "%s%s=%d\n", indent, field_str,
-	      (uint32_t)oxm_value[oxm_length - 3] << 16
-	      | (uint32_t)oxm_value[oxm_length - 2] << 8
-	      | (uint32_t)oxm_value[oxm_length - 1]);
-    }
-    break;
-  case PRINTER_U32:
-    fprintf(fp, "%s%s=%d", indent, field_str, ntohl(*(uint32_t *)oxm_value));
-    if (hasmask) {
-      fprintf(fp, "/0x%08x", ntohl(*((uint32_t *)oxm_value + 1)));
-    }
-    fprintf(fp, "\n");
-    break;
-  case PRINTER_U64:
-    fprintf(fp, "%s%s=%" PRIu64, indent, field_str,
-	    (uint64_t)oxm_value[0] << 56
-	    | (uint64_t)oxm_value[1] << 48
-	    | (uint64_t)oxm_value[2] << 40
-	    | (uint64_t)oxm_value[3] << 32
-	    | (uint64_t)oxm_value[4] << 24
-	    | (uint64_t)oxm_value[5] << 16
-	    | (uint64_t)oxm_value[6] << 8
-	    | (uint64_t)oxm_value[7]);
-    if (hasmask) {
-      fprintf(fp, "/0x%016" PRIx64,
-	      (uint64_t)oxm_value[8] << 56
-	      | (uint64_t)oxm_value[9] << 48
-	      | (uint64_t)oxm_value[10] << 40
-	      | (uint64_t)oxm_value[11] << 32
-	      | (uint64_t)oxm_value[12] << 24
-	      | (uint64_t)oxm_value[13] << 16
-	      | (uint64_t)oxm_value[14] << 8
-	      | (uint64_t)oxm_value[15]);
-    }
-    fprintf(fp, "\n");
-    break;
-  case PRINTER_X16:
-    fprintf(fp, "%s%s=0x%04x", indent, field_str,
-	    ntohs(*(uint16_t *)oxm_value));
-    if (hasmask) {
-      fprintf(fp, "/0x%04x", ntohs(*((uint16_t *)oxm_value + 1)));
-    }
-    fprintf(fp, "\n");
-    break;
-  case PRINTER_X24:
-    if (hasmask) {
-      fprintf(fp, "%s%s=0x%06x/0x%06x\n", indent, field_str,
-	      (uint32_t)oxm_value[oxm_length / 2 - 3] << 16
-	      | (uint32_t)oxm_value[oxm_length / 2 - 2] << 8
-	      | (uint32_t)oxm_value[oxm_length / 2 - 1],
-	      (uint32_t)oxm_value[oxm_length - 3] << 16
-	      | (uint32_t)oxm_value[oxm_length - 2] << 8
-	      | (uint32_t)oxm_value[oxm_length - 1]);
-    } else {
-      fprintf(fp, "%s%s=0x%06x\n", indent, field_str,
-	      (uint32_t)oxm_value[oxm_length - 3] << 16
-	      | (uint32_t)oxm_value[oxm_length - 2] << 8
-	      | (uint32_t)oxm_value[oxm_length - 1]);
-    }
-    break;
-  case PRINTER_X64:
-    fprintf(fp, "%s%s=0x%016" PRIx64, indent, field_str,
-	    (uint64_t)oxm_value[0] << 56
-	    | (uint64_t)oxm_value[1] << 48
-	    | (uint64_t)oxm_value[2] << 40
-	    | (uint64_t)oxm_value[3] << 32
-	    | (uint64_t)oxm_value[4] << 24
-	    | (uint64_t)oxm_value[5] << 16
-	    | (uint64_t)oxm_value[6] << 8
-	    | (uint64_t)oxm_value[7]);
-    if (hasmask) {
-      fprintf(fp, "/0x%016" PRIx64,
-	      (uint64_t)oxm_value[8] << 56
-	      | (uint64_t)oxm_value[9] << 48
-	      | (uint64_t)oxm_value[10] << 40
-	      | (uint64_t)oxm_value[11] << 32
-	      | (uint64_t)oxm_value[12] << 24
-	      | (uint64_t)oxm_value[13] << 16
-	      | (uint64_t)oxm_value[14] << 8
-	      | (uint64_t)oxm_value[15]);
-    }
-    fprintf(fp, "\n");
-    break;
-  case PRINTER_ETHADDR:
-    fprintf(fp, "%s%s=%02x:%02x:%02x:%02x:%02x:%02x", indent, field_str,
-	    oxm_value[0], oxm_value[1], oxm_value[2],
-	    oxm_value[3], oxm_value[4], oxm_value[5]);
-    if (hasmask) {
-      fprintf(fp, "/%02x:%02x:%02x:%02x:%02x:%02x",
-	      oxm_value[6], oxm_value[7], oxm_value[8],
-	      oxm_value[9], oxm_value[10], oxm_value[11]);
-    }
-    fprintf(fp, "\n");
-    break;
-  case PRINTER_IPV4ADDR:
-    fprintf(fp, "%s%s=%s", indent, field_str,
-	    inet_ntop(AF_INET, oxm_value, ipaddr, sizeof(ipaddr)));
-    if (hasmask) {
-      fprintf(fp, "/%s",
-	      inet_ntop(AF_INET, &oxm_value[4], ipaddr, sizeof(ipaddr)));
-    }
-    fprintf(fp, "\n");
-    break;
-  case PRINTER_IPV6ADDR:
-    fprintf(fp, "%s%s=%s", indent, field_str,
-	    inet_ntop(AF_INET6, oxm_value, ipaddr, sizeof(ipaddr)));
-    if (hasmask) {
-      fprintf(fp, "/%s",
-	      inet_ntop(AF_INET6, &oxm_value[4], ipaddr, sizeof(ipaddr)));
-    }
-    break;
-  case PRINTER_UNKNOWN:
-  default:
-    fprintf(fp, "%s%s\n", indent, field_str);
-    break;
+    case PRINTER_U8:
+      fprintf(fp, "%s%s=%d", indent, field_str, *oxm_value);
+      if (hasmask) {
+        fprintf(fp, "/0x%02x", *(oxm_value + 1));
+      }
+      fprintf(fp, "\n");
+      break;
+    case PRINTER_U16:
+      fprintf(fp, "%s%s=%d", indent, field_str, ntohs(*(uint16_t *)oxm_value));
+      if (hasmask) {
+        fprintf(fp, "/0x%04x", ntohs(*((uint16_t *)oxm_value + 1)));
+      }
+      fprintf(fp, "\n");
+      break;
+    case PRINTER_U24:
+      if (hasmask) {
+        fprintf(fp, "%s%s=%d/0x%06x\n", indent, field_str,
+                (uint32_t)oxm_value[oxm_length / 2 - 3] << 16
+                | (uint32_t)oxm_value[oxm_length / 2 - 2] << 8
+                | (uint32_t)oxm_value[oxm_length / 2 - 1],
+                (uint32_t)oxm_value[oxm_length - 3] << 16
+                | (uint32_t)oxm_value[oxm_length - 2] << 8
+                | (uint32_t)oxm_value[oxm_length - 1]);
+      } else {
+        fprintf(fp, "%s%s=%d\n", indent, field_str,
+                (uint32_t)oxm_value[oxm_length - 3] << 16
+                | (uint32_t)oxm_value[oxm_length - 2] << 8
+                | (uint32_t)oxm_value[oxm_length - 1]);
+      }
+      break;
+    case PRINTER_U32:
+      fprintf(fp, "%s%s=%d", indent, field_str, ntohl(*(uint32_t *)oxm_value));
+      if (hasmask) {
+        fprintf(fp, "/0x%08x", ntohl(*((uint32_t *)oxm_value + 1)));
+      }
+      fprintf(fp, "\n");
+      break;
+    case PRINTER_U64:
+      fprintf(fp, "%s%s=%" PRIu64, indent, field_str,
+              (uint64_t)oxm_value[0] << 56
+              | (uint64_t)oxm_value[1] << 48
+              | (uint64_t)oxm_value[2] << 40
+              | (uint64_t)oxm_value[3] << 32
+              | (uint64_t)oxm_value[4] << 24
+              | (uint64_t)oxm_value[5] << 16
+              | (uint64_t)oxm_value[6] << 8
+              | (uint64_t)oxm_value[7]);
+      if (hasmask) {
+        fprintf(fp, "/0x%016" PRIx64,
+                (uint64_t)oxm_value[8] << 56
+                | (uint64_t)oxm_value[9] << 48
+                | (uint64_t)oxm_value[10] << 40
+                | (uint64_t)oxm_value[11] << 32
+                | (uint64_t)oxm_value[12] << 24
+                | (uint64_t)oxm_value[13] << 16
+                | (uint64_t)oxm_value[14] << 8
+                | (uint64_t)oxm_value[15]);
+      }
+      fprintf(fp, "\n");
+      break;
+    case PRINTER_X16:
+      fprintf(fp, "%s%s=0x%04x", indent, field_str,
+              ntohs(*(uint16_t *)oxm_value));
+      if (hasmask) {
+        fprintf(fp, "/0x%04x", ntohs(*((uint16_t *)oxm_value + 1)));
+      }
+      fprintf(fp, "\n");
+      break;
+    case PRINTER_X24:
+      if (hasmask) {
+        fprintf(fp, "%s%s=0x%06x/0x%06x\n", indent, field_str,
+                (uint32_t)oxm_value[oxm_length / 2 - 3] << 16
+                | (uint32_t)oxm_value[oxm_length / 2 - 2] << 8
+                | (uint32_t)oxm_value[oxm_length / 2 - 1],
+                (uint32_t)oxm_value[oxm_length - 3] << 16
+                | (uint32_t)oxm_value[oxm_length - 2] << 8
+                | (uint32_t)oxm_value[oxm_length - 1]);
+      } else {
+        fprintf(fp, "%s%s=0x%06x\n", indent, field_str,
+                (uint32_t)oxm_value[oxm_length - 3] << 16
+                | (uint32_t)oxm_value[oxm_length - 2] << 8
+                | (uint32_t)oxm_value[oxm_length - 1]);
+      }
+      break;
+    case PRINTER_X64:
+      fprintf(fp, "%s%s=0x%016" PRIx64, indent, field_str,
+              (uint64_t)oxm_value[0] << 56
+              | (uint64_t)oxm_value[1] << 48
+              | (uint64_t)oxm_value[2] << 40
+              | (uint64_t)oxm_value[3] << 32
+              | (uint64_t)oxm_value[4] << 24
+              | (uint64_t)oxm_value[5] << 16
+              | (uint64_t)oxm_value[6] << 8
+              | (uint64_t)oxm_value[7]);
+      if (hasmask) {
+        fprintf(fp, "/0x%016" PRIx64,
+                (uint64_t)oxm_value[8] << 56
+                | (uint64_t)oxm_value[9] << 48
+                | (uint64_t)oxm_value[10] << 40
+                | (uint64_t)oxm_value[11] << 32
+                | (uint64_t)oxm_value[12] << 24
+                | (uint64_t)oxm_value[13] << 16
+                | (uint64_t)oxm_value[14] << 8
+                | (uint64_t)oxm_value[15]);
+      }
+      fprintf(fp, "\n");
+      break;
+    case PRINTER_ETHADDR:
+      fprintf(fp, "%s%s=%02x:%02x:%02x:%02x:%02x:%02x", indent, field_str,
+              oxm_value[0], oxm_value[1], oxm_value[2],
+              oxm_value[3], oxm_value[4], oxm_value[5]);
+      if (hasmask) {
+        fprintf(fp, "/%02x:%02x:%02x:%02x:%02x:%02x",
+                oxm_value[6], oxm_value[7], oxm_value[8],
+                oxm_value[9], oxm_value[10], oxm_value[11]);
+      }
+      fprintf(fp, "\n");
+      break;
+    case PRINTER_IPV4ADDR:
+      fprintf(fp, "%s%s=%s", indent, field_str,
+              inet_ntop(AF_INET, oxm_value, ipaddr, sizeof(ipaddr)));
+      if (hasmask) {
+        fprintf(fp, "/%s",
+                inet_ntop(AF_INET, &oxm_value[4], ipaddr, sizeof(ipaddr)));
+      }
+      fprintf(fp, "\n");
+      break;
+    case PRINTER_IPV6ADDR:
+      fprintf(fp, "%s%s=%s", indent, field_str,
+              inet_ntop(AF_INET6, oxm_value, ipaddr, sizeof(ipaddr)));
+      if (hasmask) {
+        fprintf(fp, "/%s",
+                inet_ntop(AF_INET6, &oxm_value[4], ipaddr, sizeof(ipaddr)));
+      }
+      break;
+    case PRINTER_UNKNOWN:
+    default:
+      fprintf(fp, "%s%s\n", indent, field_str);
+      break;
   }
 }
 
@@ -2536,137 +2536,137 @@ flow_dump(struct flow *flow, FILE *fp) {
 
   TAILQ_FOREACH(instruction, &flow->instruction_list, entry) {
     switch (instruction->ofpit.type) {
-    case OFPIT_WRITE_ACTIONS:
-      fprintf(fp, "  instruction write_actions\n");
-      goto dump_actions;
-    case OFPIT_APPLY_ACTIONS:
-      fprintf(fp, "  instruction apply_actions\n");
-      goto dump_actions;
-    case OFPIT_CLEAR_ACTIONS:
-      fprintf(fp, "  instruction clear_actions\n");
-    dump_actions:
-      TAILQ_FOREACH(action, &instruction->action_list, entry) {
-	struct ofp_action_header *ofpat = &action->ofpat;
+      case OFPIT_WRITE_ACTIONS:
+        fprintf(fp, "  instruction write_actions\n");
+        goto dump_actions;
+      case OFPIT_APPLY_ACTIONS:
+        fprintf(fp, "  instruction apply_actions\n");
+        goto dump_actions;
+      case OFPIT_CLEAR_ACTIONS:
+        fprintf(fp, "  instruction clear_actions\n");
+      dump_actions:
+        TAILQ_FOREACH(action, &instruction->action_list, entry) {
+          struct ofp_action_header *ofpat = &action->ofpat;
 
-	switch (ofpat->type) {
-	case OFPAT_OUTPUT: {
-	  struct ofp_action_output *output;
+          switch (ofpat->type) {
+            case OFPAT_OUTPUT: {
+              struct ofp_action_output *output;
 
-	  output = (struct ofp_action_output *)ofpat;
-	  fprintf(fp, "   action OUTPUT\n");
-	  fprintf(fp, "    port: %d\n", output->port);
-	  if (output->port == OFPP_CONTROLLER) {
-	    fprintf(fp, "    max_len: %d\n", output->max_len);
-	  }
-	}
-	  break;
-	case OFPAT_COPY_TTL_OUT:
-	  fprintf(fp, "   action COPY_TTL_OUT\n");
-	  break;
-	case OFPAT_COPY_TTL_IN:
-	  fprintf(fp, "   action COPY_TTL_IN\n");
-	  break;
-	case OFPAT_SET_MPLS_TTL:
-	  fprintf(fp, "   action SET_MPLS_TTL\n");
-	  fprintf(fp, "    ttl: %d\n",
-		  ((struct ofp_action_mpls_ttl *)ofpat)->mpls_ttl);
-	  break;
-	case OFPAT_DEC_MPLS_TTL:
-	  fprintf(fp, "   action DEC_MPLS_TTL\n");
-	  break;
-	case OFPAT_PUSH_VLAN:
-	  fprintf(fp, "   action PUSH_VLAN\n");
-	  fprintf(fp, "    ethertype: 0x%04x\n",
-		  ((struct ofp_action_push *)ofpat)->ethertype);
-	  break;
-	case OFPAT_POP_VLAN:
-	  fprintf(fp, "   action POP_VLAN\n");
-	  break;
-	case OFPAT_PUSH_MPLS:
-	  fprintf(fp, "   action PUSH_MPLS\n");
-	  fprintf(fp, "    ethertype: 0x%04x\n",
-		  ((struct ofp_action_push *)ofpat)->ethertype);
-	  break;
-	case OFPAT_POP_MPLS:
-	  fprintf(fp, "   action POP_MPLS\n");
-	  fprintf(fp, "    ethertype: 0x%04x\n",
-		  ((struct ofp_action_pop_mpls *)ofpat)->ethertype);
-	  break;
-	case OFPAT_SET_QUEUE:
-	  fprintf(fp, "   action SET_QUEUE\n");
-	  fprintf(fp, "    queue_id: %d\n",
-		  ((struct ofp_action_set_queue *)ofpat)->queue_id);
-	  break;
-	case OFPAT_GROUP:
-	  fprintf(fp, "   action GROUP\n");
-	  fprintf(fp, "    group_id: %d\n",
-		  ((struct ofp_action_group *)ofpat)->group_id);
-	  break;
-	case OFPAT_SET_NW_TTL:
-	  fprintf(fp, "   action SET_NW_TTL\n");
-	  fprintf(fp, "    nw_ttl: %d\n",
-		  ((struct ofp_action_nw_ttl *)ofpat)->nw_ttl);
-	  break;
-	case OFPAT_DEC_NW_TTL:
-	  fprintf(fp, "   action DEC_NW_TTL\n");
-	  break;
-	case OFPAT_SET_FIELD: {
-	  struct ofp_action_set_field *set_field;
-	  struct ofp_oxm *oxm;
+              output = (struct ofp_action_output *)ofpat;
+              fprintf(fp, "   action OUTPUT\n");
+              fprintf(fp, "    port: %d\n", output->port);
+              if (output->port == OFPP_CONTROLLER) {
+                fprintf(fp, "    max_len: %d\n", output->max_len);
+              }
+            }
+            break;
+            case OFPAT_COPY_TTL_OUT:
+              fprintf(fp, "   action COPY_TTL_OUT\n");
+              break;
+            case OFPAT_COPY_TTL_IN:
+              fprintf(fp, "   action COPY_TTL_IN\n");
+              break;
+            case OFPAT_SET_MPLS_TTL:
+              fprintf(fp, "   action SET_MPLS_TTL\n");
+              fprintf(fp, "    ttl: %d\n",
+                      ((struct ofp_action_mpls_ttl *)ofpat)->mpls_ttl);
+              break;
+            case OFPAT_DEC_MPLS_TTL:
+              fprintf(fp, "   action DEC_MPLS_TTL\n");
+              break;
+            case OFPAT_PUSH_VLAN:
+              fprintf(fp, "   action PUSH_VLAN\n");
+              fprintf(fp, "    ethertype: 0x%04x\n",
+                      ((struct ofp_action_push *)ofpat)->ethertype);
+              break;
+            case OFPAT_POP_VLAN:
+              fprintf(fp, "   action POP_VLAN\n");
+              break;
+            case OFPAT_PUSH_MPLS:
+              fprintf(fp, "   action PUSH_MPLS\n");
+              fprintf(fp, "    ethertype: 0x%04x\n",
+                      ((struct ofp_action_push *)ofpat)->ethertype);
+              break;
+            case OFPAT_POP_MPLS:
+              fprintf(fp, "   action POP_MPLS\n");
+              fprintf(fp, "    ethertype: 0x%04x\n",
+                      ((struct ofp_action_pop_mpls *)ofpat)->ethertype);
+              break;
+            case OFPAT_SET_QUEUE:
+              fprintf(fp, "   action SET_QUEUE\n");
+              fprintf(fp, "    queue_id: %d\n",
+                      ((struct ofp_action_set_queue *)ofpat)->queue_id);
+              break;
+            case OFPAT_GROUP:
+              fprintf(fp, "   action GROUP\n");
+              fprintf(fp, "    group_id: %d\n",
+                      ((struct ofp_action_group *)ofpat)->group_id);
+              break;
+            case OFPAT_SET_NW_TTL:
+              fprintf(fp, "   action SET_NW_TTL\n");
+              fprintf(fp, "    nw_ttl: %d\n",
+                      ((struct ofp_action_nw_ttl *)ofpat)->nw_ttl);
+              break;
+            case OFPAT_DEC_NW_TTL:
+              fprintf(fp, "   action DEC_NW_TTL\n");
+              break;
+            case OFPAT_SET_FIELD: {
+              struct ofp_action_set_field *set_field;
+              struct ofp_oxm *oxm;
 
-	  set_field = (struct ofp_action_set_field *)ofpat;
-	  oxm = (struct ofp_oxm *)set_field->field;
-	  fprintf(fp, "   action SET_FIELD\n");
-	  if (oxm->oxm_class == htons(OFPXMC_OPENFLOW_BASIC)) {
-	    flow_dump_match(oxm->oxm_field, oxm->oxm_length,
-			    oxm->oxm_value, "    ", fp);
-	  }
-	}
-	  break;
-	case OFPAT_PUSH_PBB:
-	  fprintf(fp, "   action PUSH_PBB\n");
-	  fprintf(fp, "    ethertype: 0x%04x\n",
-		  ((struct ofp_action_push *)ofpat)->ethertype);
-	  break;
-	case OFPAT_POP_PBB:
-	  fprintf(fp, "   action POP_PBB\n");
-	  break;
-	case OFPAT_EXPERIMENTER: {
-	  struct ofp_action_experimenter_header *experimenter;
+              set_field = (struct ofp_action_set_field *)ofpat;
+              oxm = (struct ofp_oxm *)set_field->field;
+              fprintf(fp, "   action SET_FIELD\n");
+              if (oxm->oxm_class == htons(OFPXMC_OPENFLOW_BASIC)) {
+                flow_dump_match(oxm->oxm_field, oxm->oxm_length,
+                                oxm->oxm_value, "    ", fp);
+              }
+            }
+            break;
+            case OFPAT_PUSH_PBB:
+              fprintf(fp, "   action PUSH_PBB\n");
+              fprintf(fp, "    ethertype: 0x%04x\n",
+                      ((struct ofp_action_push *)ofpat)->ethertype);
+              break;
+            case OFPAT_POP_PBB:
+              fprintf(fp, "   action POP_PBB\n");
+              break;
+            case OFPAT_EXPERIMENTER: {
+              struct ofp_action_experimenter_header *experimenter;
 
-	  experimenter = (struct ofp_action_experimenter_header *)ofpat;
-	  fprintf(fp, "   action EXPERIMENTER\n");
-	  fprintf(fp, "    experimenter: %d\n",
-		  experimenter->experimenter);
-	}
-	  break;
-	default:
-	  break;
-	}
-      }
-      break;
-    case OFPIT_GOTO_TABLE:
-      fprintf(fp, "  instruction goto_table\n");
-      fprintf(fp, "   table_id: %d\n",
-	      instruction->ofpit_goto_table.table_id);
-      break;
-    case OFPIT_WRITE_METADATA:
-      fprintf(fp, "  instruction write_metadata\n");
-      fprintf(fp, "   metadata: 0x%016" PRIx64 "/0x%016" PRIx64 "\n",
-	      instruction->ofpit_write_metadata.metadata,
-	      instruction->ofpit_write_metadata.metadata_mask);
-      break;
-    case OFPIT_METER:
-      fprintf(fp, "  instruction meter\n");
-      fprintf(fp, "   meter_id: %d\n", instruction->ofpit_meter.meter_id);
-      break;
-    case OFPIT_EXPERIMENTER:
-      fprintf(fp, "  instruction experimenter\n");
-      fprintf(fp, "   experimenter: %d\n",
-	      instruction->ofpit_experimenter.experimenter);
-      break;
-    default:
-      break;
+              experimenter = (struct ofp_action_experimenter_header *)ofpat;
+              fprintf(fp, "   action EXPERIMENTER\n");
+              fprintf(fp, "    experimenter: %d\n",
+                      experimenter->experimenter);
+            }
+            break;
+            default:
+              break;
+          }
+        }
+        break;
+      case OFPIT_GOTO_TABLE:
+        fprintf(fp, "  instruction goto_table\n");
+        fprintf(fp, "   table_id: %d\n",
+                instruction->ofpit_goto_table.table_id);
+        break;
+      case OFPIT_WRITE_METADATA:
+        fprintf(fp, "  instruction write_metadata\n");
+        fprintf(fp, "   metadata: 0x%016" PRIx64 "/0x%016" PRIx64 "\n",
+                instruction->ofpit_write_metadata.metadata,
+                instruction->ofpit_write_metadata.metadata_mask);
+        break;
+      case OFPIT_METER:
+        fprintf(fp, "  instruction meter\n");
+        fprintf(fp, "   meter_id: %d\n", instruction->ofpit_meter.meter_id);
+        break;
+      case OFPIT_EXPERIMENTER:
+        fprintf(fp, "  instruction experimenter\n");
+        fprintf(fp, "   experimenter: %d\n",
+                instruction->ofpit_experimenter.experimenter);
+        break;
+      default:
+        break;
     }
   }
 }
@@ -2751,14 +2751,14 @@ ofp_flow_mod_modify(uint64_t dpid,
   }
 
   switch (flow_mod->command) {
-  case OFPFC_MODIFY:
-  case OFPFC_MODIFY_STRICT:
-    ret = flowdb_flow_modify(bridge, flow_mod,
-			     match_list, instruction_list,
-			     error);
-    break;
-  default:
-    ret = LAGOPUS_RESULT_OFP_ERROR;
+    case OFPFC_MODIFY:
+    case OFPFC_MODIFY_STRICT:
+      ret = flowdb_flow_modify(bridge, flow_mod,
+                               match_list, instruction_list,
+                               error);
+      break;
+    default:
+      ret = LAGOPUS_RESULT_OFP_ERROR;
   }
 
   return ret;
@@ -2780,12 +2780,12 @@ ofp_flow_mod_delete(uint64_t dpid,
   }
 
   switch (flow_mod->command) {
-  case OFPFC_DELETE:
-  case OFPFC_DELETE_STRICT:
-    ret = flowdb_flow_delete(bridge, flow_mod, match_list, error);
-    break;
-  default:
-    ret = LAGOPUS_RESULT_OFP_ERROR;
+    case OFPFC_DELETE:
+    case OFPFC_DELETE_STRICT:
+      ret = flowdb_flow_delete(bridge, flow_mod, match_list, error);
+      break;
+    default:
+      ret = LAGOPUS_RESULT_OFP_ERROR;
   }
 
   return ret;

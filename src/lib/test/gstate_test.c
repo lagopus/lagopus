@@ -27,7 +27,7 @@ typedef struct null_thread_record {
   lagopus_thread_record m_thd;
   shutdown_grace_level_t m_gl;
 } null_thread_record;
-typedef null_thread_record 	*null_thread_t;
+typedef null_thread_record      *null_thread_t;
 
 
 

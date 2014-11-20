@@ -112,13 +112,13 @@ s_qmx_setup_for_poll(lagopus_qmuxer_t *qmxptr,
                                         is_pre);
           /*
            * Note:
-           *	st < 0:		Any lagopus API error(s).
-           *	st == 0:	The queue is readable/writable.
-           *	st == 1:	Need to wait for reaable.
-           *	st == 2:	Need to wait for writable.
-           *	st == 3:	Need to wait for both readable and writable.
-           *			So this must not happen and the
-           *			function guarantees it.
+           *    st < 0:         Any lagopus API error(s).
+           *    st == 0:        The queue is readable/writable.
+           *    st == 1:        Need to wait for reaable.
+           *    st == 2:        Need to wait for writable.
+           *    st == 3:        Need to wait for both readable and writable.
+           *                    So this must not happen and the
+           *                    function guarantees it.
            */
           if (st == 0) {
             /*
@@ -229,16 +229,16 @@ lagopus_qmuxer_poll(lagopus_qmuxer_t *qmxptr,
        * Need to wait.
        *
        * Note:
-       *	As you see, locking the muxer itself is almost
-       *	meaningless. If we don't need to concern about the
-       *	performance, we want to lock the qmuxer just like
-       *	using a giant lock among all the queues in the
-       *	polls. Only reason to lock the *qmxptr is because
-       *	pthread_cond_wait() needs it, at least at this
-       *	moment. We would change this if the qmuxer mechanism
-       *	seems doropping events regular basis and if we realize
-       *	that catching events is more important than the
-       *	overall performance.
+       *        As you see, locking the muxer itself is almost
+       *        meaningless. If we don't need to concern about the
+       *        performance, we want to lock the qmuxer just like
+       *        using a giant lock among all the queues in the
+       *        polls. Only reason to lock the *qmxptr is because
+       *        pthread_cond_wait() needs it, at least at this
+       *        moment. We would change this if the qmuxer mechanism
+       *        seems doropping events regular basis and if we realize
+       *        that catching events is more important than the
+       *        overall performance.
        */
       s_lock(*qmxptr);
       {
@@ -256,45 +256,45 @@ lagopus_qmuxer_poll(lagopus_qmuxer_t *qmxptr,
         if (ret != 0) {
           /*
            * ret > 0 ... Having at least a queue that is ready for
-           *		   play with.
+           *               play with.
            * ret < 0 ... An error.
            *
-           *	no matter what the ret is we have to return anyway.
+           *    no matter what the ret is we have to return anyway.
            */
           goto done;
         } else {
           /*
            * What happens here:
            *
-           *	We are just awakened even the queues have no
-           *	events (means ret == 0). Why ?:
+           *    We are just awakened even the queues have no
+           *    events (means ret == 0). Why ?:
            *
-           *		1) We are running on a operating system other
-           *		than the Linux since the Linux guarantees that
-           *		the sleepers in pthread_cond_wait(3) are
-           *		awakened ONLY by calling the
-           *		pthread_cond_broadcast(3)/pthread_cond_signal(3),
-           *		no system dependent events wakes the sleepers.
+           *            1) We are running on a operating system other
+           *            than the Linux since the Linux guarantees that
+           *            the sleepers in pthread_cond_wait(3) are
+           *            awakened ONLY by calling the
+           *            pthread_cond_broadcast(3)/pthread_cond_signal(3),
+           *            no system dependent events wakes the sleepers.
            *
-           *		2) Most likely, any other threads just steal
-           *		the events already. If this occured, maybe you
-           *		better think why and rewrite your code.
+           *            2) Most likely, any other threads just steal
+           *            the events already. If this occured, maybe you
+           *            better think why and rewrite your code.
            *
-           *	Anyway, we have to start this all over again.
+           *    Anyway, we have to start this all over again.
            */
           goto recheck;
         }
       }
       /*
        * else {
-       *	Any errors occur. Just return.
+       *        Any errors occur. Just return.
        * }
        */
     }
     /*
      * else {
-     *	We already have at least a queue having events, or, an
-     *	error occurs. Either ways Just return.
+     *  We already have at least a queue having events, or, an
+     *  error occurs. Either ways Just return.
      * }
      */
 

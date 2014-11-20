@@ -618,7 +618,7 @@ lagopus_result_t datapath_stop(void);
  */
 lagopus_result_t
 dpcomm_initialize(int argc,
-                  const char * const argv[],
+                  const char *const argv[],
                   void *extarg,
                   lagopus_thread_t **thdptr);
 

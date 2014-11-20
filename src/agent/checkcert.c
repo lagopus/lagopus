@@ -80,8 +80,8 @@ s_compile(const char *pat, regex_t **retpat) {
     if (st == 0) {
       /*
        * FIXME;
-       *	I'm not sure that this won't cause a memory leak around
-       *	the rc handling on all the regex implementations.
+       *        I'm not sure that this won't cause a memory leak around
+       *        the rc handling on all the regex implementations.
        */
       regex_t *rpat = (regex_t *)malloc(sizeof(rc));
       if (rpat != NULL) {

@@ -22,7 +22,7 @@
 
 
 
-#define NTHDS	8
+#define NTHDS   8
 
 
 
@@ -40,7 +40,7 @@ typedef struct null_thread_record {
   lagopus_mutex_t m_lock;
   a_obj_t m_o;
 } null_thread_record;
-typedef null_thread_record 	*null_thread_t;
+typedef null_thread_record      *null_thread_t;
 
 
 

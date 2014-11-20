@@ -31,20 +31,20 @@
  * Compatibility pads.
  */
 
-#define KSEED128(_a, _b)			\
-  {						\
-    .first = (_a),				\
-      .second = (_b),				\
-      }
+#define KSEED128(_a, _b)                        \
+  {                                             \
+    .first = (_a),                              \
+             .second = (_b),                            \
+  }
 
 /*
  * Declarations.
  */
-#define	K0		(0xc3a5c85c97cb3127ULL)
-#define	KSEED0		(1234567)
-#define	KSEED1		(K0)
-#define	KDATASIZE	(1 << 20)
-#define	KTESTSIZE	(300)
+#define K0              (0xc3a5c85c97cb3127ULL)
+#define KSEED0          (1234567)
+#define KSEED1          (K0)
+#define KDATASIZE       (1 << 20)
+#define KTESTSIZE       (300)
 static const uint64 k0 = K0;
 static const uint64 kSeed0 = KSEED0;
 static const uint64 kSeed1 = K0;
@@ -1566,78 +1566,78 @@ static const uint64 testdata[KTESTSIZE][15] = {
 
 
 // Initialize data to pseudorandom values.
-#define SETUP()						\
-  do {							\
-    uint64 _a = 9;					\
-    uint64 _b = 777;					\
-    uint8 _u;						\
-    for (int _i = 0; _i < kDataSize; _i++) {		\
-      _a = (_a ^ (_a >> 41)) * k0 + _b;			\
-      _b = (_b ^ (_b >> 41)) * k0 + (uint64)_i;		\
-      _u = (uint8)((_b >> 37) & 0xff);			\
-      memcpy(data + _i, &_u, 1);  /* uint8 -> char */	\
-    }							\
+#define SETUP()                                         \
+  do {                                                  \
+    uint64 _a = 9;                                      \
+    uint64 _b = 777;                                    \
+    uint8 _u;                                           \
+    for (int _i = 0; _i < kDataSize; _i++) {            \
+      _a = (_a ^ (_a >> 41)) * k0 + _b;                 \
+      _b = (_b ^ (_b >> 41)) * k0 + (uint64)_i;         \
+      _u = (uint8)((_b >> 37) & 0xff);                  \
+      memcpy(data + _i, &_u, 1);  /* uint8 -> char */   \
+    }                                                   \
   } while (0)
 
-#define	CHECK(_e, _a, __len)						\
-  do {									\
-    uint64 __e;								\
-    uint64 __a;								\
-    __e = (uint64)(_e);							\
-    __a = (uint64)(_a);							\
-    if (__e != __a) {							\
+#define CHECK(_e, _a, __len)                                            \
+  do {                                                                  \
+    uint64 __e;                                                         \
+    uint64 __a;                                                         \
+    __e = (uint64)(_e);                                                 \
+    __a = (uint64)(_a);                                                 \
+    if (__e != __a) {                                                   \
       fprintf(stderr, "error: %s, len = %u, expected %lu (0x%lx), actual %lu (0x%lx)\n", \
-              (# _a),							\
-              (unsigned)(__len),					\
-              (unsigned long)__e, (unsigned long)__e,			\
-              (unsigned long)__a, (unsigned long)__a);			\
-      ++errors;								\
-    }									\
+              (# _a),                                                   \
+              (unsigned)(__len),                                        \
+              (unsigned long)__e, (unsigned long)__e,                   \
+              (unsigned long)__a, (unsigned long)__a);                  \
+      ++errors;                                                         \
+    }                                                                   \
   } while (0)
 
-#define	TEST(_expected, _offset, _len)					\
-  do {									\
-    const uint128 _u = CityHash128(data + (_offset), (_len));		\
+#define TEST(_expected, _offset, _len)                                  \
+  do {                                                                  \
+    const uint128 _u = CityHash128(data + (_offset), (_len));           \
     const uint128 _v = CityHash128WithSeed(data + (_offset), (_len), kSeed128.first, kSeed128.second); \
     CHECK((_expected)[0], CityHash64(data + (_offset), (_len)), (_len)); \
     CHECK((_expected)[1], CityHash64WithSeed(data + (_offset), (_len), kSeed0), (_len)); \
     CHECK((_expected)[2], CityHash64WithSeeds(data + (_offset), (_len), kSeed0, kSeed1), (_len)); \
-    CHECK((_expected)[3], Uint128Low64(_u), (_len));			\
-    CHECK((_expected)[4], Uint128High64(_u), (_len));			\
-    CHECK((_expected)[5], Uint128Low64(_v), (_len));			\
-    CHECK((_expected)[6], Uint128High64(_v), (_len));			\
-    TEST_SSE42((_expected), (_offset), (_len));				\
+    CHECK((_expected)[3], Uint128Low64(_u), (_len));                    \
+    CHECK((_expected)[4], Uint128High64(_u), (_len));                   \
+    CHECK((_expected)[5], Uint128Low64(_v), (_len));                    \
+    CHECK((_expected)[6], Uint128High64(_v), (_len));                   \
+    TEST_SSE42((_expected), (_offset), (_len));                         \
   } while (0)
 
 #ifdef __SSE4_2__
-#define	TEST_SSE42(_expected, _offset, _len)				\
-  do {									\
-    const uint128 _y = CityHashCrc128(data + (_offset), (_len));	\
+#define TEST_SSE42(_expected, _offset, _len)                            \
+  do {                                                                  \
+    const uint128 _y = CityHashCrc128(data + (_offset), (_len));        \
     const uint128 _z = CityHashCrc128WithSeed(data + (_offset), (_len), kSeed128); \
-    uint64 _crc256_results[4];						\
-    CityHashCrc256(data + (_offset), (_len), _crc256_results);		\
-    CHECK((_expected)[7], Uint128Low64(_y), (_len));			\
-    CHECK((_expected)[8], Uint128High64(_y), (_len));			\
-    CHECK((_expected)[9], Uint128Low64(_z), (_len));			\
-    CHECK((_expected)[10], Uint128High64(_z), (_len));			\
-    for (int __i = 0; __i < 4; __i++) {					\
-      CHECK((_expected)[11 + __i], _crc256_results[__i], (_len));	\
-    }									\
+    uint64 _crc256_results[4];                                          \
+    CityHashCrc256(data + (_offset), (_len), _crc256_results);          \
+    CHECK((_expected)[7], Uint128Low64(_y), (_len));                    \
+    CHECK((_expected)[8], Uint128High64(_y), (_len));                   \
+    CHECK((_expected)[9], Uint128Low64(_z), (_len));                    \
+    CHECK((_expected)[10], Uint128High64(_z), (_len));                  \
+    for (int __i = 0; __i < 4; __i++) {                                 \
+      CHECK((_expected)[11 + __i], _crc256_results[__i], (_len));       \
+    }                                                                   \
   } while (0)
 #else /* __SSE4_2__ */
-#define	TEST_SSE42(_expected, _offset, _len)	\
-  do {						\
-    /* NOP */					\
+#define TEST_SSE42(_expected, _offset, _len)    \
+  do {                                          \
+    /* NOP */                                   \
   } while (0)
 #endif /* __SSE4_2__ */
 
-#define TEST_RUN_CITYHASH()				\
-  do {							\
-    int _i;						\
-    for (_i = 0 ; _i < kTestSize - 1; _i++) {		\
-      TEST(testdata[_i], _i * _i, (size_t)_i);		\
-    }							\
-    TEST(testdata[kTestSize - 1], 0, (size_t)kDataSize);	\
+#define TEST_RUN_CITYHASH()                             \
+  do {                                                  \
+    int _i;                                             \
+    for (_i = 0 ; _i < kTestSize - 1; _i++) {           \
+      TEST(testdata[_i], _i * _i, (size_t)_i);          \
+    }                                                   \
+    TEST(testdata[kTestSize - 1], 0, (size_t)kDataSize);        \
   } while (0)
 
 #endif /* __SRC_DATAPLANE_OFPROTO_TEST_CITYHASH_TEST_IMPORTED_H__ */

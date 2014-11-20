@@ -16,8 +16,8 @@
 
 
 /**
- *	@file	dpdk_io.c
- *	@brief	Datapath I/O driver use with Intel DPDK
+ *      @file   dpdk_io.c
+ *      @brief  Datapath I/O driver use with Intel DPDK
  */
 
 /*-
@@ -784,11 +784,11 @@ app_init_rings_rx(void) {
       }
 
       lagopus_msg_debug(
-          "Creating ring to connect I/O "
-          "lcore %u (socket %u) with worker lcore %u ...\n",
-          lcore,
-          socket_io,
-          lcore_worker);
+        "Creating ring to connect I/O "
+        "lcore %u (socket %u) with worker lcore %u ...\n",
+        lcore,
+        socket_io,
+        lcore_worker);
       rte_snprintf(name, sizeof(name),
                    "app_ring_rx_s%u_io%u_w%u",
                    socket_io,

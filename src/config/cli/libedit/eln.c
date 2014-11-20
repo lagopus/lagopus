@@ -1,4 +1,4 @@
-/*	$NetBSD: eln.c,v 1.14 2012/03/11 21:15:25 christos Exp $	*/
+/*      $NetBSD: eln.c,v 1.14 2012/03/11 21:15:25 christos Exp $        */
 
 /*-
  * Copyright (c) 2009 The NetBSD Foundation, Inc.
@@ -129,7 +129,7 @@ el_set(EditLine *el, int op, ...) {
       ret = el_wset(el, op, va_arg(ap, char *));
       break;
 
-    case EL_EDITOR:		/* const wchar_t * */
+    case EL_EDITOR:             /* const wchar_t * */
       ret = el_wset(el, op, ct_decode_string(va_arg(ap, char *),
                                              &el->el_lgcyconv));
       break;
