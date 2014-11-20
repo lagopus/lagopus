@@ -708,9 +708,29 @@ flow_remove_with_reason(struct flow *flow,
 
   (void) error;
 
+  flowdb_wrlock(NULL);
+  ret = flow_remove_with_reason_nolock(flow, bridge, reason, error);
+  flowdb_wrunlock(NULL);
+
+  return ret;
+}
+
+lagopus_result_t
+flow_remove_with_reason_nolock(struct flow *flow,
+                               struct bridge *bridge,
+                               uint8_t reason,
+                               struct ofp_error *error) {
+  struct table *table;
+  struct group_table *group_table;
+  struct meter_table *meter_table;
+  struct flow_list *flow_list;
+  lagopus_result_t ret;
+  int type, i;
+
+  (void) error;
+
   ret = LAGOPUS_RESULT_OK;
 
-  flowdb_wrlock(NULL);
   /* Clear flow cache */
 #ifdef HAVE_DPDK
   clear_worker_flowcache(false);
@@ -746,7 +766,6 @@ flow_remove_with_reason(struct flow *flow,
     }
   }
 out:
-  flowdb_wrunlock(NULL);
   return ret;
 }
 
