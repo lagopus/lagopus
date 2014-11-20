@@ -42,6 +42,8 @@
 #define DPRINT(...)
 #endif
 
+#define KBPS2BYTEPS(kbps) ((kbps) * 1000 / 8)
+
 /*
  * implementation of OpwnFlow meter and (rate) queue.
  * meter is ralated with flow entry,
@@ -55,8 +57,8 @@ struct lagopus_band {
   TAILQ_ENTRY(lagopus_band) next;
   struct meter_band *band;
   union {
-    struct rte_meter_trtcm kbps_meter;
-    struct rte_meter_trtcm pps_meter;
+    struct rte_meter_srtcm kbps_meter;
+    struct rte_meter_srtcm pps_meter;
   };
 };
 
@@ -77,12 +79,17 @@ lagopus_meter_init(void) {
  * - pps
  * - burst size
  * - collect statistics
+ *
+ * srtcm parameters are:
+ *  cir - commited information rate, in bytes per second
+ *  cbs - commited burst size, in bytes
+ *  ebs - excess burst size, in bytes
  */
 static void
 dpdk_register_meter(struct meter *meter) {
   struct meter_band *band;
   struct lagopus_band_list *list;
-  struct rte_meter_trtcm_params param;
+  struct rte_meter_srtcm_params param;
 
   DPRINT("registering meter, id=%d\n", meter->meter_id);
   list = calloc(1, sizeof(struct lagopus_band_list));
@@ -101,29 +108,27 @@ dpdk_register_meter(struct meter *meter) {
     if ((meter->flags & OFPMF_PKTPS) == 0) {
       /* unit of rate is kbps, DPDK needs Bytes/sec */
       DPRINT("rate limit: %d kilo bit per second\n", band->rate);
-      param.cir = band->rate * 1000 / 8;
-      param.pir = band->rate * 1000 / 8;
+      param.cir = KBPS2BYTEPS(band->rate);
       if ((meter->flags & OFPMF_BURST) != 0) {
-        param.pbs = band->burst_size * 1000 / 8;
-        param.cbs = band->burst_size * 1000 / 8;
+        param.ebs = KBPS2BYTEPS(band->burst_size);
+        param.cbs = KBPS2BYTEPS(band->rate);
       } else {
-        param.pbs = band->rate * 1000 / 8 / 5;
-        param.cbs = band->rate * 1000 / 8 / 5;
+        param.ebs = 0;
+        param.cbs = KBPS2BYTEPS(band->rate);
       }
-      rte_meter_trtcm_config(&lband->kbps_meter, &param);
+      rte_meter_srtcm_config(&lband->kbps_meter, &param);
     } else {
       /* unit of rate is pps */
       DPRINT("rate limit: %d packet per second\n", band->rate);
       param.cir = band->rate;
-      param.pir = band->rate;
       if ((meter->flags & OFPMF_BURST) != 0) {
-        param.pbs = band->burst_size;
-        param.cbs = band->burst_size;
+        param.ebs = band->burst_size;
+        param.cbs = band->rate;
       } else {
-        param.pbs = band->rate;
+        param.ebs = 0;
         param.cbs = band->rate;
       }
-      rte_meter_trtcm_config(&lband->pps_meter, &param);
+      rte_meter_srtcm_config(&lband->pps_meter, &param);
     }
     TAILQ_INSERT_TAIL(list, lband, next);
   }
@@ -151,7 +156,7 @@ lagopus_meter_packet(struct lagopus_packet *pkt, struct meter *meter,
   color_band = NULL;
   if ((meter->flags & OFPMF_PKTPS) == 0) {
     TAILQ_FOREACH(lband, list, next) {
-      color = rte_meter_trtcm_color_blind_check(&lband->kbps_meter,
+      color = rte_meter_srtcm_color_blind_check(&lband->kbps_meter,
               rte_rdtsc(),
               OS_M_PKTLEN(pkt->mbuf));
       if (color_band == NULL && color == e_RTE_METER_RED) {
@@ -160,7 +165,7 @@ lagopus_meter_packet(struct lagopus_packet *pkt, struct meter *meter,
     }
   } else {
     TAILQ_FOREACH(lband, list, next) {
-      color = rte_meter_trtcm_color_blind_check(&lband->pps_meter,
+      color = rte_meter_srtcm_color_blind_check(&lband->pps_meter,
               rte_rdtsc(),
               1);
       if (color_band == NULL && color == e_RTE_METER_RED) {
