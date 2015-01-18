@@ -87,7 +87,6 @@
 #include <rte_ip.h>
 #include <rte_tcp.h>
 #include <rte_string_fns.h>
-#include <exec-env/rte_lcore.h>
 
 #include "undef.h"
 #include "lagopus_apis.h"
