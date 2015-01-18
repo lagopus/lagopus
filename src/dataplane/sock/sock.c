@@ -251,7 +251,22 @@ lagopus_send_packet_normal(__UNUSED struct lagopus_packet *pkt,
 
 struct lagopus_packet *
 copy_packet(struct lagopus_packet *src_pkt) {
-  return src_pkt;
+  OS_MBUF *mbuf;
+  struct lagopus_packet *pkt;
+  size_t pktlen;
+
+  pkt = alloc_lagopus_packet();
+  if (pkt == NULL) {
+    lagopus_msg_error("alloc_lagopus_packet failed\n");
+    return NULL;
+  }
+  mbuf = pkt->mbuf;
+  pktlen = OS_M_PKTLEN(src_pkt->mbuf);
+  OS_M_APPEND(mbuf, pktlen);
+  memcpy(OS_MTOD(pkt->mbuf, char *), OS_MTOD(src_pkt->mbuf, char *), pktlen);
+  pkt->in_port = src_pkt->in_port;
+  /* other pkt members are not used in physical output. */
+  return pkt;
 }
 
 void
