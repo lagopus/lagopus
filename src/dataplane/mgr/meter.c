@@ -24,6 +24,31 @@
 #include "lagopus/meter.h"
 #include "lagopus/ofp_dp_apis.h"
 
+static inline void
+meter_table_lock_init(struct meter_table *meter_table) {
+  (void) meter_table;
+}
+
+static inline void
+meter_table_rdlock(struct meter_table *meter_table) {
+  FLOWDB_RWLOCK_RDLOCK();
+}
+
+static inline void
+meter_table_rdunlock(struct meter_table *meter_table) {
+  FLOWDB_RWLOCK_RDUNLOCK();
+}
+
+static inline void
+meter_table_wrlock(struct meter_table *meter_table) {
+  FLOWDB_UPDATE_BEGIN();
+}
+
+static inline void
+meter_table_wrunlock(struct meter_table *meter_table) {
+  FLOWDB_UPDATE_END();
+}
+
 static struct meter *
 meter_alloc(uint32_t meter_id,
             uint16_t flags,
@@ -97,7 +122,7 @@ meter_table_alloc(void) {
   /* 32bit meter_id table. */
   meter_table->ptree = ptree_init(32);
 
-  pthread_rwlock_init(&meter_table->rwlock, NULL);
+  meter_table_lock_init(meter_table);
 
   return meter_table;
 }
@@ -153,7 +178,7 @@ meter_table_meter_add(struct meter_table *meter_table,
 
 out:
   /* Unlock the meter_table then return result. */
-  meter_table_unlock(meter_table);
+  meter_table_wrunlock(meter_table);
   return ret;
 }
 
@@ -204,7 +229,7 @@ meter_table_meter_modify(struct meter_table *meter_table,
 
 out:
   /* Unlock the meter_table then return result. */
-  meter_table_unlock(meter_table);
+  meter_table_wrunlock(meter_table);
   return ret;
 }
 
@@ -275,7 +300,7 @@ meter_table_meter_delete(struct meter_table *meter_table,
   }
 out:
   /* Unlock the meter_table then return result. */
-  meter_table_unlock(meter_table);
+  meter_table_wrunlock(meter_table);
   return ret;
 }
 
@@ -295,21 +320,6 @@ meter_table_lookup(struct meter_table *meter_table, uint32_t meter_id) {
   ptree_unlock_node(node);
 
   return meter;
-}
-
-int
-meter_table_rdlock(struct meter_table *meter_table) {
-  return pthread_rwlock_rdlock(&meter_table->rwlock);
-}
-
-int
-meter_table_wrlock(struct meter_table *meter_table) {
-  return pthread_rwlock_wrlock(&meter_table->rwlock);
-}
-
-int
-meter_table_unlock(struct meter_table *meter_table) {
-  return pthread_rwlock_unlock(&meter_table->rwlock);
 }
 
 union meter_band_union {

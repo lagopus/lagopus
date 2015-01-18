@@ -121,30 +121,6 @@ void
 meter_table_free(struct meter_table *meter_table);
 
 /**
- * Read lock meter table.
- *
- * @param[in]   meter_table     Metar table.
- */
-int
-meter_table_rdlock(struct meter_table *meter_table);
-
-/**
- * Write lock meter table.
- *
- * @param[in]   meter_table     Metar table.
- */
-int
-meter_table_wrlock(struct meter_table *meter_table);
-
-/**
- * Unlock meter table.
- *
- * @param[in]   meter_table     Metar table.
- */
-int
-meter_table_unlock(struct meter_table *meter_table);
-
-/**
  * Add meter.
  *
  * @param[in]   meter_table     Metar table.

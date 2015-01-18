@@ -563,7 +563,7 @@ flow_action_check(struct bridge *bridge,
     }
     switch (instruction->ofpit.type) {
       case OFPIT_METER:
-        meter_table_wrlock(meter_table);
+        /* already locked meter table */
         meter = meter_table_lookup(meter_table,
                                    instruction->ofpit_meter.meter_id);
         if (meter != NULL) {
@@ -572,7 +572,6 @@ flow_action_check(struct bridge *bridge,
           ofp_error_set(error, OFPET_METER_MOD_FAILED,
                         OFPMMFC_UNKNOWN_METER);
         }
-        meter_table_unlock(meter_table);
         break;
       case OFPIT_GOTO_TABLE:
         if (instruction->ofpit_goto_table.table_id > OFPTT_MAX) {
@@ -1256,7 +1255,6 @@ flow_del_from_meter(struct meter_table *meter_table, struct flow *flow) {
     return;
   }
   /* remove from meter */
-  meter_table_wrlock(meter_table);
   inst = flow->instruction[INSTRUCTION_INDEX_METER];
   if (inst != NULL) {
     meter = meter_table_lookup(meter_table, inst->ofpit_meter.meter_id);
@@ -1264,7 +1262,6 @@ flow_del_from_meter(struct meter_table *meter_table, struct flow *flow) {
       meter->flow_count--;
     }
   }
-  meter_table_unlock(meter_table);
 }
 
 static void
