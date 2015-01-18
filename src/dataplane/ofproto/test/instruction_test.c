@@ -22,7 +22,6 @@
 #include "lagopus/port.h"
 #include "lagopus/flowinfo.h"
 #include "lagopus/dataplane.h"
-#include "match.h"
 #include "pktbuf.h"
 #include "packet.h"
 #include "datapath_test_misc.h"
@@ -178,6 +177,7 @@ test_execute_instruction_CLEAR_ACTIONS(void) {
   action_push->ethertype = 0x8847;
   lagopus_set_action_function(action);
   TAILQ_INSERT_TAIL(&pkt.actions[2], action, entry);
+  pkt.flags |= PKT_FLAG_HAS_ACTION;
 
   execute_instruction(&pkt, (const struct instruction **)insns);
   TEST_ASSERT_NULL_MESSAGE(TAILQ_FIRST(&pkt.actions[2]),
