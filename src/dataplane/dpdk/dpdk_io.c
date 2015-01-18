@@ -940,11 +940,11 @@ app_init_nics(void) {
   if (rte_pmd_init_all() < 0) {
     rte_panic("Cannot init PMD\n");
   }
-#endif
-
+#elif RTE_VERSION < RTE_VERSION_NUM(1, 8, 0, 0)
   if (rte_eal_pci_probe() < 0) {
     rte_panic("Cannot probe PCI\n");
   }
+#endif /* RTE_VERSION */
 
   /* Init NIC ports and queues, then start the ports */
   for (port = 0; port < APP_MAX_NIC_PORTS; port ++) {
