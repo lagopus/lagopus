@@ -23,7 +23,6 @@
 #include "lagopus/flowdb.h"
 #include "lagopus/port.h"
 #include "lagopus/dataplane.h"
-#include "match.h"
 #include "pktbuf.h"
 #include "packet.h"
 #include "datapath_test_misc.h"

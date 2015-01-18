@@ -583,9 +583,6 @@ lagopus_packet_init(struct lagopus_packet *pkt, void *m) {
 
   pkt->flags = 0;
   pkt->nmatched = 0;
-  for (i = 0; i < LAGOPUS_ACTION_SET_ORDER_MAX; i++) {
-    TAILQ_INIT(&pkt->actions[i]);
-  }
   /* set raw packet data */
   pkt->mbuf = (OS_MBUF *)m;
   /* pre match */
@@ -1061,14 +1058,16 @@ STATIC void
 clear_action_set(struct lagopus_packet *pkt) {
   int i;
 
-  for (i = 0; i < LAGOPUS_ACTION_SET_ORDER_MAX; i++) {
-    struct action_list *action_list;
-    struct action *action;
+  if ((pkt->flags & PKT_FLAG_HAS_ACTION) != 0) {
+    for (i = 0; i < LAGOPUS_ACTION_SET_ORDER_MAX; i++) {
+      struct action_list *action_list;
+      struct action *action;
 
-    action_list = &pkt->actions[i];
-    while ((action = TAILQ_FIRST(action_list)) != NULL) {
-      TAILQ_REMOVE(action_list, action, entry);
-      free(action);
+      action_list = &pkt->actions[i];
+      while ((action = TAILQ_FIRST(action_list)) != NULL) {
+        TAILQ_REMOVE(action_list, action, entry);
+        free(action);
+      }
     }
   }
 }
@@ -2161,6 +2160,13 @@ execute_instruction_write_actions(struct lagopus_packet *pkt,
                                   const struct instruction *instruction) {
   /* required instruction */
   DP_PRINT("instruction write_actions\n");
+  if ((pkt->flags & PKT_FLAG_HAS_ACTION) == 0) {
+    int i;
+
+    for (i = 0; i < LAGOPUS_ACTION_SET_ORDER_MAX; i++) {
+      TAILQ_INIT(&pkt->actions[i]);
+    }
+  }
   merge_action_set(pkt->actions, &instruction->action_list);
   pkt->flags |= PKT_FLAG_HAS_ACTION;
   return LAGOPUS_RESULT_OK;
