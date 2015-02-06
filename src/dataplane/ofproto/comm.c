@@ -168,6 +168,7 @@ process_event_dataq_entry(struct dpmgr *dpmgr,
         reply->free = ofp_barrier_free;
         reply->barrier.req = NULL;
         reply->barrier.xid = data->barrier.xid;
+        reply->barrier.channel_id = data->barrier.channel_id;
         (void) ofp_handler_eventq_data_put(dpid, &reply, PUT_TIMEOUT);
         break;
       default:
