@@ -659,6 +659,7 @@ OS_LDFLAGS
 OS_CFLAGS
 OS_CPPFLAGS
 MAKE
+SSE42_CPPFLAGS
 FLOWCACHE_FLAGS
 RTE_MBUF_HAS_PKT
 RTE_LIBS
@@ -783,6 +784,7 @@ with_sysroot
 enable_libtool_lock
 with_dpdk_dir
 enable_flowcache
+enable_sse4_2
 enable_developer
 '
       ac_precious_vars='build_alias
@@ -1418,6 +1420,7 @@ Optional Features:
                           optimize for fast installation [default=yes]
   --disable-libtool-lock  avoid locking (might break parallel builds)
   --enable-flowcache      build with flowcache feature [default is no]
+  --enable-sse4.2         build with SSE4.2 instruction [default is yes]
   --enable-developer      enable build for developers, like unit tests
                           [default is no]
 
@@ -17463,7 +17466,6 @@ if test "x$ac_cv_member_struct_rte_mbuf_pkt" = xyes; then :
   RTE_MBUF_HAS_PKT=1
 fi
 
-  CPPFLAGS="$CPPFLAGS_BKUP"
 else
  RTE_SDK=
  RTE_TARGET=
@@ -17487,6 +17489,19 @@ if test "X${flowcache}" != "Xno"; then
    FLOWCACHE_FLAGS="-DFLOWCACHE"
 
 fi
+
+SSE42_CPPFLAGS=''
+# Check whether --enable-sse4.2 was given.
+if test "${enable_sse4_2+set}" = set; then :
+  enableval=$enable_sse4_2; sse42="$enableval"
+else
+  sse42="yes"
+fi
+
+if test "X${sse42}" != "Xno"; then
+  SSE42_CPPFLAGS="-msse4.2"
+fi
+
 
 ac_fn_c_check_func "$LINENO" "strtold" "ac_cv_func_strtold"
 if test "x$ac_cv_func_strtold" = xyes; then :

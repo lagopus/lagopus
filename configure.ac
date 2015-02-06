@@ -267,7 +267,6 @@ if test "x$with_dpdk_dir" != "x"; then
 		  [],
 		  [[#include "rte_config.h"]
 		   [#include "rte_mbuf.h"]])
-  CPPFLAGS="$CPPFLAGS_BKUP"
 else
  RTE_SDK=
  RTE_TARGET=
@@ -288,6 +287,16 @@ if test "X${flowcache}" != "Xno"; then
    FLOWCACHE_FLAGS="-DFLOWCACHE"
    AC_SUBST(FLOWCACHE_FLAGS)
 fi
+
+SSE42_CPPFLAGS=''
+AC_ARG_ENABLE([sse4.2],
+	[AC_HELP_STRING([--enable-sse4.2],
+	 [build with SSE4.2 instruction [default is yes]])],
+	 [sse42="$enableval"], [sse42="yes"])
+if test "X${sse42}" != "Xno"; then
+  SSE42_CPPFLAGS="-msse4.2"
+fi
+AC_SUBST(SSE42_CPPFLAGS)
 
 AC_CHECK_FUNC(strtold, [AC_DEFINE(HAVE_STRTOLD)])
 
