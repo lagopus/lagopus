@@ -267,6 +267,7 @@ if test "x$with_dpdk_dir" != "x"; then
 		  [],
 		  [[#include "rte_config.h"]
 		   [#include "rte_mbuf.h"]])
+  CPPFLAGS="$CPPFLAGS_BKUP"
 else
  RTE_SDK=
  RTE_TARGET=
