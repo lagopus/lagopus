@@ -89,7 +89,11 @@
 #include <rte_ethdev.h>
 #include <rte_ring.h>
 #include <rte_mempool.h>
+#ifdef __SSE4_2__
 #include <rte_hash_crc.h>
+#else
+#include "City.h"
+#endif /* __SSE4_2__ */
 #include <rte_string_fns.h>
 #include <rte_kni.h>
 
@@ -350,10 +354,17 @@ app_lcore_io_rx(
 
       switch (fifoness) {
         case FIFONESS_FLOW:
+#ifdef __SSE4_2__
           worker_0 = rte_hash_crc(rte_pktmbuf_mtod(mbuf_0_0, void *),
                                   sizeof(ETHER_HDR) + 2, port) % n_workers;
           worker_1 = rte_hash_crc(rte_pktmbuf_mtod(mbuf_0_1, void *),
                                   sizeof(ETHER_HDR) + 2, port) % n_workers;
+#else
+          worker_0 = CityHash64WithSeed(rte_pktmbuf_mtod(mbuf_0_0, void *),
+                                  sizeof(ETHER_HDR) + 2, port) % n_workers;
+          worker_1 = CityHash64WithSeed(rte_pktmbuf_mtod(mbuf_0_1, void *),
+                                  sizeof(ETHER_HDR) + 2, port) % n_workers;
+#endif /* __SSE4_2__ */
           break;
         case FIFONESS_PORT:
           worker_0 = worker_1 = port % n_workers;
@@ -384,8 +395,13 @@ app_lcore_io_rx(
 
       switch (fifoness) {
         case FIFONESS_FLOW:
+#ifdef __SSE4_2__
           worker = rte_hash_crc(rte_pktmbuf_mtod(mbuf, void *),
                                 sizeof(ETHER_HDR) + 2, port) % n_workers;
+#else
+          worker = CityHash64WithSeed(rte_pktmbuf_mtod(mbuf, void *),
+                                sizeof(ETHER_HDR) + 2, port) % n_workers;
+#endif /* __SSE4_2__ */
           break;
         case FIFONESS_PORT:
           worker = port % n_workers;
