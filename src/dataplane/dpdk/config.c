@@ -119,10 +119,12 @@ static const char usage[] =
   "           hashmap_nolock  Use hashmap without rwlock (default)                \n"
   "           hashmap         Use hashmap                                         \n"
   "           ptree           Use ptree                                           \n"
+#ifdef __SSE4_2__
   "    --hashtype TYPE: Select hash type for flow cache                           \n"
   "           city64   CityHash(64bit) (default)                                  \n"
   "           intel64  Intel_hash64                                               \n"
   "           murmur3  MurmurHash3 (32bit)                                        \n"
+#endif /* __SSE4_2__ */
   "    --fifoness MODE: Select FIFOness mode, MODE is one of none, port, or flow  \n"
   "           flow : FIFOness per each flow (default.)                            \n"
   "           port : FIFOness per each port.                                      \n"
@@ -637,7 +639,9 @@ app_parse_args(int argc, const char *argv[]) {
     {"no-cache", 0, 0, 0},
     {"core-assign", 1, 0, 0},
     {"kvstype", 1, 0, 0},
+#ifdef __SSE4_2__
     {"hashtype", 1, 0, 0},
+#endif /* __SSE4_2__ */
     {"fifoness", 1, 0, 0},
     {NULL, 0, 0, 0}
   };

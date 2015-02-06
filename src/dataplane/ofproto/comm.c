@@ -25,7 +25,6 @@
 #include <rte_lcore.h>
 #include <rte_atomic.h>
 #include <rte_launch.h>
-#include <rte_hash_crc.h>
 #endif /* HAVE_DPDK */
 
 #include "lagopus_apis.h"
@@ -47,7 +46,6 @@
 
 #ifdef HAVE_DPDK
 #include "dpdk/dpdk.h"
-#include "dpdk/rte_hash_crc64.h"
 
 rte_atomic32_t dpdk_stop;
 #endif /* HAVE_DPDK */

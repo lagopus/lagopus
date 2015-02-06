@@ -108,9 +108,6 @@
 #include "pktbuf.h"
 #include "packet.h"
 #include "dpdk/dpdk.h"
-#include "dpdk/rte_hash_crc64.h"
-#include "City.h"
-#include "murmurhash3.h"
 
 #ifndef APP_LCORE_WORKER_FLUSH
 #define APP_LCORE_WORKER_FLUSH       10000

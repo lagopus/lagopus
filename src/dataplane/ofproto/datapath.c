@@ -52,8 +52,10 @@
 #include "murmurhash3.h"
 
 #ifdef HAVE_DPDK
+#ifdef __SSE4_2__
 #include "rte_hash_crc.h"
 #include "dpdk/rte_hash_crc64.h"
+#endif /* __SSE4_2__ */
 #include "dpdk/dpdk.h"
 #endif /* HAVE_DPDK */
 
@@ -158,6 +160,7 @@ lagopus_get_switch_config(struct bridge *bridge,
 }
 
 #ifdef HAVE_DPDK
+#ifdef __SSE4_2__
 static uint64_t
 calc_murmur_hash(const char *buf, size_t len, uint64_t seed) {
   union {
@@ -171,6 +174,7 @@ calc_murmur_hash(const char *buf, size_t len, uint64_t seed) {
   val.hash32_l = rte_hash_crc(buf, (uint32_t)len, (uint32_t)seed);
   return val.hash64;
 }
+#endif /* __SSE4_2__ */
 
 static inline uint64_t
 calc_hash(const uint8_t *buf, size_t len, uint64_t seed) {
@@ -179,10 +183,13 @@ calc_hash(const uint8_t *buf, size_t len, uint64_t seed) {
 
   if (hash_func == NULL) {
     switch (app.hashtype) {
+#ifndef __SSE4_2__
+      default:
+#endif /* !__SSE4_2__ */
       case HASH_TYPE_CITY64:
         hash_func = CityHash64WithSeed;
         break;
-
+#ifdef __SSE4_2__
       case HASH_TYPE_MURMUR3:
         hash_func = calc_murmur_hash;
         break;
@@ -191,6 +198,7 @@ calc_hash(const uint8_t *buf, size_t len, uint64_t seed) {
       default:
         hash_func = lagopus_hash_crc64;
         break;
+#endif /* __SSE4_2__ */
     }
   }
   return hash_func((const char *)buf, len, seed);
