@@ -168,7 +168,7 @@ group_live_bucket(struct bridge *bridge,
     }
     rv = group_live_bucket(bridge, a_group);
     if (rv != NULL) {
-      return rv;
+      return bucket;
     }
   }
   return NULL;
