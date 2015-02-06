@@ -235,51 +235,72 @@ parse_arg_rx(const char *arg) {
   n_tuples = 0;
   while ((p = strchr(p0,'(')) != NULL) {
     struct app_lcore_params *lp;
-    uint32_t port, queue, lcore, i;
+    const char *p1, *p2;
+    uint32_t port, queue, lcore, i, queue_min, queue_max;
 
     p0 = strchr(p++, ')');
-    if ((p0 == NULL) ||
-        (str_to_unsigned_vals(p, (size_t)(p0 - p), ',', 3,
-                              &port, &queue, &lcore) !=  3)) {
-      return -2;
+    if (p0 == NULL) {
+        return -2;
+    }
+    if (str_to_unsigned_vals(p, (size_t)(p0 - p), ',', 3,
+                             &port, &queue, &lcore) !=  3) {
+      p1 = strchr(p, ',');
+      if (p1++ == NULL) {
+        return -2;
+      }
+      port = atoi(p);
+      p2 = strchr(p1, ',');
+      if (p2 == NULL ||
+          str_to_unsigned_vals(p1, (size_t)(p2 - p1), '-', 2,
+                               &queue_min, &queue_max) != 2) {
+        return -2;
+      }
+      p2++;
+      lcore = atoi(p2);
+      if (queue_min > queue_max) {
+        return -2;
+      }
+    } else {
+      queue_min = queue_max = queue;
     }
 
     /* Enable port and queue for later initialization */
-    if ((port >= APP_MAX_NIC_PORTS) ||
-        (queue >= APP_MAX_RX_QUEUES_PER_NIC_PORT)) {
-      return -3;
-    }
-    if (app.nic_rx_queue_mask[port][queue] != 0) {
-      return -4;
-    }
-    app.nic_rx_queue_mask[port][queue] = 1;
-
-    /* Check and assign (port, queue) to I/O lcore */
-    if (rte_lcore_is_enabled(lcore) == 0) {
-      return -5;
-    }
-
-    if (lcore >= APP_MAX_LCORES) {
-      return -6;
-    }
-    lp = &app.lcore_params[lcore];
-    if (lp->type == e_APP_LCORE_WORKER) {
-      return -7;
-    }
-    lp->type = e_APP_LCORE_IO;
-    for (i = 0; i < lp->io.rx.n_nic_queues; i ++) {
-      if ((lp->io.rx.nic_queues[i].port == port) &&
-          (lp->io.rx.nic_queues[i].queue == queue)) {
-        return -8;
+    for (queue = queue_min; queue <= queue_max; queue++) {
+      if ((port >= APP_MAX_NIC_PORTS) ||
+          (queue >= APP_MAX_RX_QUEUES_PER_NIC_PORT)) {
+        return -3;
       }
-    }
-    if (lp->io.rx.n_nic_queues >= APP_MAX_NIC_RX_QUEUES_PER_IO_LCORE) {
-      return -9;
-    }
-    lp->io.rx.nic_queues[lp->io.rx.n_nic_queues].port = (uint8_t) port;
-    lp->io.rx.nic_queues[lp->io.rx.n_nic_queues].queue = (uint8_t) queue;
-    lp->io.rx.n_nic_queues ++;
+      if (app.nic_rx_queue_mask[port][queue] != 0) {
+        return -4;
+      }
+      app.nic_rx_queue_mask[port][queue] = 1;
 
+      /* Check and assign (port, queue) to I/O lcore */
+      if (rte_lcore_is_enabled(lcore) == 0) {
+        return -5;
+      }
+
+      if (lcore >= APP_MAX_LCORES) {
+        return -6;
+      }
+      lp = &app.lcore_params[lcore];
+      if (lp->type == e_APP_LCORE_WORKER) {
+        return -7;
+      }
+      lp->type = e_APP_LCORE_IO;
+      for (i = 0; i < lp->io.rx.n_nic_queues; i ++) {
+        if ((lp->io.rx.nic_queues[i].port == port) &&
+            (lp->io.rx.nic_queues[i].queue == queue)) {
+          return -8;
+        }
+      }
+      if (lp->io.rx.n_nic_queues >= APP_MAX_NIC_RX_QUEUES_PER_IO_LCORE) {
+        return -9;
+      }
+      lp->io.rx.nic_queues[lp->io.rx.n_nic_queues].port = (uint8_t) port;
+      lp->io.rx.nic_queues[lp->io.rx.n_nic_queues].queue = (uint8_t) queue;
+      lp->io.rx.n_nic_queues ++;
+    }
     n_tuples ++;
     if (n_tuples > APP_ARG_RX_MAX_TUPLES) {
       return -10;
