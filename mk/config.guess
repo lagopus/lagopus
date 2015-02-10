@@ -342,7 +342,7 @@ case "${UNAME_MACHINE}:${UNAME_SYSTEM}:${UNAME_RELEASE}:${UNAME_VERSION}" in
 	echo sparc-icl-nx6
 	exit ;;
     DRS?6000:UNIX_SV:4.2*:7* | DRS?6000:isis:4.2*:7*)
-	case `/usr/bin/uname -p` in
+	case `/usr/bin/uname -m` in
 	    sparc) echo sparc-icl-nx7; exit ;;
 	esac ;;
     s390x:SunOS:*:*)
@@ -502,7 +502,7 @@ EOF
 	exit ;;
     AViiON:dgux:*:*)
 	# DG/UX returns AViiON for all architectures
-	UNAME_PROCESSOR=`/usr/bin/uname -p`
+	UNAME_PROCESSOR=`/usr/bin/uname -m`
 	if [ $UNAME_PROCESSOR = mc88100 ] || [ $UNAME_PROCESSOR = mc88110 ]
 	then
 	    if [ ${TARGET_BINARY_INTERFACE}x = m88kdguxelfx ] || \
@@ -790,12 +790,12 @@ EOF
 	exit ;;
     F30[01]:UNIX_System_V:*:* | F700:UNIX_System_V:*:*)
 	FUJITSU_PROC=`uname -m | tr 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' 'abcdefghijklmnopqrstuvwxyz'`
-	FUJITSU_SYS=`uname -p | tr 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' 'abcdefghijklmnopqrstuvwxyz' | sed -e 's/\///'`
+	FUJITSU_SYS=`uname -m | tr 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' 'abcdefghijklmnopqrstuvwxyz' | sed -e 's/\///'`
 	FUJITSU_REL=`echo ${UNAME_RELEASE} | sed -e 's/ /_/'`
 	echo "${FUJITSU_PROC}-fujitsu-${FUJITSU_SYS}${FUJITSU_REL}"
 	exit ;;
     5000:UNIX_System_V:4.*:*)
-	FUJITSU_SYS=`uname -p | tr 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' 'abcdefghijklmnopqrstuvwxyz' | sed -e 's/\///'`
+	FUJITSU_SYS=`uname -m | tr 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' 'abcdefghijklmnopqrstuvwxyz' | sed -e 's/\///'`
 	FUJITSU_REL=`echo ${UNAME_RELEASE} | tr 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' 'abcdefghijklmnopqrstuvwxyz' | sed -e 's/ /_/'`
 	echo "sparc-fujitsu-${FUJITSU_SYS}${FUJITSU_REL}"
 	exit ;;
@@ -809,7 +809,7 @@ EOF
 	echo ${UNAME_MACHINE}-unknown-bsdi${UNAME_RELEASE}
 	exit ;;
     *:FreeBSD:*:*)
-	UNAME_PROCESSOR=`/usr/bin/uname -p`
+	UNAME_PROCESSOR=`/usr/bin/uname -m`
 	case ${UNAME_PROCESSOR} in
 	    amd64)
 		echo x86_64-unknown-freebsd`echo ${UNAME_RELEASE}|sed -e 's/[-(].*//'` ;;
@@ -1132,22 +1132,22 @@ EOF
 	OS_REL=''
 	test -r /etc/.relid \
 	&& OS_REL=.`sed -n 's/[^ ]* [^ ]* \([0-9][0-9]\).*/\1/p' < /etc/.relid`
-	/bin/uname -p 2>/dev/null | grep 86 >/dev/null \
+	/bin/uname -m 2>/dev/null | grep 86 >/dev/null \
 	  && { echo i486-ncr-sysv4.3${OS_REL}; exit; }
-	/bin/uname -p 2>/dev/null | /bin/grep entium >/dev/null \
+	/bin/uname -m 2>/dev/null | /bin/grep entium >/dev/null \
 	  && { echo i586-ncr-sysv4.3${OS_REL}; exit; } ;;
     3[34]??:*:4.0:* | 3[34]??,*:*:4.0:*)
-	/bin/uname -p 2>/dev/null | grep 86 >/dev/null \
+	/bin/uname -m 2>/dev/null | grep 86 >/dev/null \
 	  && { echo i486-ncr-sysv4; exit; } ;;
     NCR*:*:4.2:* | MPRAS*:*:4.2:*)
 	OS_REL='.3'
 	test -r /etc/.relid \
 	    && OS_REL=.`sed -n 's/[^ ]* [^ ]* \([0-9][0-9]\).*/\1/p' < /etc/.relid`
-	/bin/uname -p 2>/dev/null | grep 86 >/dev/null \
+	/bin/uname -m 2>/dev/null | grep 86 >/dev/null \
 	    && { echo i486-ncr-sysv4.3${OS_REL}; exit; }
-	/bin/uname -p 2>/dev/null | /bin/grep entium >/dev/null \
+	/bin/uname -m 2>/dev/null | /bin/grep entium >/dev/null \
 	    && { echo i586-ncr-sysv4.3${OS_REL}; exit; }
-	/bin/uname -p 2>/dev/null | /bin/grep pteron >/dev/null \
+	/bin/uname -m 2>/dev/null | /bin/grep pteron >/dev/null \
 	    && { echo i586-ncr-sysv4.3${OS_REL}; exit; } ;;
     m68*:LynxOS:2.*:* | m68*:LynxOS:3.0*:*)
 	echo m68k-unknown-lynxos${UNAME_RELEASE}
@@ -1174,8 +1174,8 @@ EOF
 	echo mips-sni-sysv4
 	exit ;;
     *:SINIX-*:*:*)
-	if uname -p 2>/dev/null >/dev/null ; then
-		UNAME_MACHINE=`(uname -p) 2>/dev/null`
+	if uname -m 2>/dev/null >/dev/null ; then
+		UNAME_MACHINE=`(uname -m) 2>/dev/null`
 		echo ${UNAME_MACHINE}-sni-sysv4
 	else
 		echo ns32k-sni-sysv
@@ -1255,7 +1255,7 @@ EOF
 	echo ${UNAME_MACHINE}-apple-rhapsody${UNAME_RELEASE}
 	exit ;;
     *:Darwin:*:*)
-	UNAME_PROCESSOR=`uname -p` || UNAME_PROCESSOR=unknown
+	UNAME_PROCESSOR=`uname -m` || UNAME_PROCESSOR=unknown
 	eval $set_cc_for_build
 	if test "$UNAME_PROCESSOR" = unknown ; then
 	    UNAME_PROCESSOR=powerpc
@@ -1274,7 +1274,7 @@ EOF
 	echo ${UNAME_PROCESSOR}-apple-darwin${UNAME_RELEASE}
 	exit ;;
     *:procnto*:*:* | *:QNX:[0123456789]*:*)
-	UNAME_PROCESSOR=`uname -p`
+	UNAME_PROCESSOR=`uname -m`
 	if test "$UNAME_PROCESSOR" = "x86"; then
 		UNAME_PROCESSOR=i386
 		UNAME_MACHINE=pc
@@ -1338,7 +1338,7 @@ EOF
 	echo ${UNAME_MACHINE}-unknown-dragonfly`echo ${UNAME_RELEASE}|sed -e 's/[-(].*//'`
 	exit ;;
     *:*VMS:*:*)
-	UNAME_MACHINE=`(uname -p) 2>/dev/null`
+	UNAME_MACHINE=`(uname -m) 2>/dev/null`
 	case "${UNAME_MACHINE}" in
 	    A*) echo alpha-dec-vms ; exit ;;
 	    I*) echo ia64-dec-vms ; exit ;;
@@ -1532,7 +1532,7 @@ uname -r = `(uname -r) 2>/dev/null || echo unknown`
 uname -s = `(uname -s) 2>/dev/null || echo unknown`
 uname -v = `(uname -v) 2>/dev/null || echo unknown`
 
-/usr/bin/uname -p = `(/usr/bin/uname -p) 2>/dev/null`
+/usr/bin/uname -m = `(/usr/bin/uname -m) 2>/dev/null`
 /bin/uname -X     = `(/bin/uname -X) 2>/dev/null`
 
 hostinfo               = `(hostinfo) 2>/dev/null`
