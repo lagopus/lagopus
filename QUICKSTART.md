@@ -15,15 +15,15 @@ Install kernel headers
 
 	$ sudo apt-get install linux-headers-`uname -r`
 
-Get Intel DPDK 1.6.0 and extract Intel DPDK zip file
+Get Intel DPDK 1.8.0 and extract Intel DPDK zip file
 
-	$ wget https://downloads.sourceforge.net/project/lagopus/Intel-DPDK/DPDK-1.6.0-18.zip
-	$ unzip DPDK-1.6.0-18.zip
+	$ wget http://dpdk.org/browse/dpdk/snapshot/dpdk-1.8.0.zip
+	$ unzip dpdk-1.8.0.zip
 
 Compile
 
 	$ export RTE_SDK=<Absolute Path of Intel DPDK>
-	$ export RTE_TARGET="x86_64-default-linuxapp-gcc"
+	$ export RTE_TARGET="x86_64-native-linuxapp-gcc"
 	$ make config T=${RTE_TARGET}
 	$ make install T=${RTE_TARGET}
 
@@ -101,7 +101,7 @@ Check PCI ID to enable DPDK on 2nd, 3rd, and 4th NIC.
 
 If NIC used for management (ex: ssh) was selected, you will lose connection.
 
-	$ sudo ${RTE_SDK}/tools/pci_unbind.py --status
+	$ sudo ${RTE_SDK}/tools/dpdk_nic_bind.py --status
 
 	Network devices using IGB_UIO driver
 	====================================
@@ -121,11 +121,11 @@ If NIC used for management (ex: ssh) was selected, you will lose connection.
 
 Unbound NICs from ixgbe driver.
 
-	$ sudo ${RTE_SDK}/tools/pci_unbind.py -b igb_uio 0000:02:02.0 0000:02:03.0 0000:02:04.0
+	$ sudo ${RTE_SDK}/tools/dpdk_nic_bind.py -b igb_uio 0000:02:02.0 0000:02:03.0 0000:02:04.0
 
 Check the current status of NICs whehter the 2nd, 3rd and 4th interface is registerd with igb_uio driver
 
-	$ sudo ${RTE_SDK}/tools/pci_unbind.py --status
+	$ sudo ${RTE_SDK}/tools/dpdk_nic_bind.py --status
 
 	Network devices using IGB_UIO driver
 	====================================
