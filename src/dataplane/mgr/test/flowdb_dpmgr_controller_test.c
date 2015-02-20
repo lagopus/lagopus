@@ -27,14 +27,14 @@
  * Test bridge number.
  * (extra: for the negative deletion tests only)
  */
-#define TEST_BRIDGE_NUM		(3)
-#define TEST_BRIDGE_EXTRA_NUM	(1)
+#define TEST_BRIDGE_NUM         (3)
+#define TEST_BRIDGE_EXTRA_NUM   (1)
 
 /* Test DPID. */
-#define TEST_DPID(_i)	((uint64_t)((_i) + dpid_base))
+#define TEST_DPID(_i)   ((uint64_t)((_i) + dpid_base))
 
 /* Shift the test bridge index for the controller overwriting test. */
-#define TEST_SHIFT_BRIDGE_INDEX(_i)	(((_i) + 1) % TEST_BRIDGE_NUM)
+#define TEST_SHIFT_BRIDGE_INDEX(_i)     (((_i) + 1) % TEST_BRIDGE_NUM)
 
 
 /*
@@ -51,20 +51,20 @@ static uint64_t dpid_base;
 
 
 /* Make the assertion message string for each step. */
-#define TEST_SCENARIO_MSG_STEP(_buf, _step)		\
-  do {							\
-    snprintf((_buf), sizeof(_buf), "Step %d", (_step));	\
+#define TEST_SCENARIO_MSG_STEP(_buf, _step)             \
+  do {                                                  \
+    snprintf((_buf), sizeof(_buf), "Step %d", (_step)); \
   } while (0)
 
 /* Positively assert the controller addition. */
-#define TEST_ASSERT_DPMGR_CONTROLLER_ADD_OK(_b, _e, _msg)		\
-  do {									\
-    size_t _s;								\
-    char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];				\
+#define TEST_ASSERT_DPMGR_CONTROLLER_ADD_OK(_b, _e, _msg)               \
+  do {                                                                  \
+    size_t _s;                                                          \
+    char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];                             \
     \
-    snprintf(_buf, sizeof(_buf), "%s, add controller", (_msg));		\
+    snprintf(_buf, sizeof(_buf), "%s, add controller", (_msg));         \
     \
-    for (_s = (_b); _s < (_e); _s++)					\
+    for (_s = (_b); _s < (_e); _s++)                                    \
       TEST_ASSERT_TRUE_MESSAGE(LAGOPUS_RESULT_OK == dpmgr_controller_add(dpmgr, bridge_name[_s], controller_address[_s]), _buf); \
   } while (0);
 
@@ -72,90 +72,90 @@ static uint64_t dpid_base;
  * Positively assert the controller addition with the shifted
  * controller indices.
  */
-#define TEST_ASSERT_DPMGR_CONTROLLER_SHIFTEDADD_OK(_b, _e, _msg)	\
-  do {									\
-    size_t _s;								\
-    char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];				\
+#define TEST_ASSERT_DPMGR_CONTROLLER_SHIFTEDADD_OK(_b, _e, _msg)        \
+  do {                                                                  \
+    size_t _s;                                                          \
+    char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];                             \
     \
-    snprintf(_buf, sizeof(_buf), "%s, add shifted controller", (_msg));	\
+    snprintf(_buf, sizeof(_buf), "%s, add shifted controller", (_msg)); \
     \
-    for (_s = (_b); _s < (_e); _s++)					\
+    for (_s = (_b); _s < (_e); _s++)                                    \
       TEST_ASSERT_TRUE_MESSAGE(LAGOPUS_RESULT_OK == dpmgr_controller_add(dpmgr, bridge_name[_s], controller_address[TEST_SHIFT_BRIDGE_INDEX(_s)]), _buf); \
   } while (0);
 
 /* Positively assert the controller deletion. */
-#define TEST_ASSERT_DPMGR_CONTROLLER_DELETE_OK(_b, _e, _msg)		\
-  do {									\
-    size_t _s;								\
-    char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];				\
+#define TEST_ASSERT_DPMGR_CONTROLLER_DELETE_OK(_b, _e, _msg)            \
+  do {                                                                  \
+    size_t _s;                                                          \
+    char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];                             \
     \
-    snprintf(_buf, sizeof(_buf), "%s, delete controller", (_msg));		\
+    snprintf(_buf, sizeof(_buf), "%s, delete controller", (_msg));              \
     \
-    for (_s = (_b); _s < (_e); _s++)					\
+    for (_s = (_b); _s < (_e); _s++)                                    \
       TEST_ASSERT_TRUE_MESSAGE(LAGOPUS_RESULT_OK == dpmgr_controller_delete(dpmgr, bridge_name[_s], controller_address[_s]), _buf); \
   } while (0);
 
 /* Negatively assert the controller deletion. */
-#define TEST_ASSERT_DPMGR_CONTROLLER_DELETE_NG(_b, _e, _msg)		\
-  do {									\
-    size_t _s;								\
-    char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];				\
+#define TEST_ASSERT_DPMGR_CONTROLLER_DELETE_NG(_b, _e, _msg)            \
+  do {                                                                  \
+    size_t _s;                                                          \
+    char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];                             \
     \
-    snprintf(_buf, sizeof(_buf), "%s, negatively delete controller", (_msg));		\
+    snprintf(_buf, sizeof(_buf), "%s, negatively delete controller", (_msg));           \
     \
-    for (_s = (_b); _s < (_e); _s++)					\
+    for (_s = (_b); _s < (_e); _s++)                                    \
       TEST_ASSERT_FALSE_MESSAGE(LAGOPUS_RESULT_OK == dpmgr_controller_delete(dpmgr, bridge_name[_s], controller_address[_s]), _buf); \
   } while (0);
 
 /* Assert the controllers on the bridges. */
-#define TEST_ASSERT_DPMGR_HASCONTROLLER(_b, _e, _msg)			\
-  do {									\
-    size_t _s;								\
-    uint64_t dpid;							\
-    char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];				\
+#define TEST_ASSERT_DPMGR_HASCONTROLLER(_b, _e, _msg)                   \
+  do {                                                                  \
+    size_t _s;                                                          \
+    uint64_t dpid;                                                      \
+    char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];                             \
     \
-    snprintf(_buf, sizeof(_buf), "%s, has controller", (_msg));		\
+    snprintf(_buf, sizeof(_buf), "%s, has controller", (_msg));         \
     \
-    for (_s = (_b); _s < (_e); _s++) {					\
+    for (_s = (_b); _s < (_e); _s++) {                                  \
       TEST_ASSERT_TRUE_MESSAGE(0 == strcmp(controller_address[_s], bridge[_s]->controller_address), _buf); \
       TEST_ASSERT_TRUE_MESSAGE(dpmgr_bridge_lookup_by_controller_address(dpmgr, controller_address[_s]) == bridge[_s], _buf); \
       TEST_ASSERT_TRUE_MESSAGE(LAGOPUS_RESULT_OK == dpmgr_controller_dpid_find(dpmgr, controller_address[_s], &dpid), _buf); \
-      TEST_ASSERT_EQUAL_UINT64_MESSAGE(TEST_DPID(_s), dpid, _buf);	\
-    }									\
+      TEST_ASSERT_EQUAL_UINT64_MESSAGE(TEST_DPID(_s), dpid, _buf);      \
+    }                                                                   \
   } while (0);
 
 /* Assert the controllers on the bridges with the shifted indices. */
-#define TEST_ASSERT_DPMGR_HASSHIFTEDCONTROLLER(_b, _e, _msg)		\
-  do {									\
-    size_t _s;								\
-    uint64_t dpid;							\
-    char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];				\
+#define TEST_ASSERT_DPMGR_HASSHIFTEDCONTROLLER(_b, _e, _msg)            \
+  do {                                                                  \
+    size_t _s;                                                          \
+    uint64_t dpid;                                                      \
+    char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];                             \
     \
-    snprintf(_buf, sizeof(_buf), "%s, has shifted controller", (_msg));		\
+    snprintf(_buf, sizeof(_buf), "%s, has shifted controller", (_msg));         \
     \
-    for (_s = (_b); _s < (_e); _s++) {					\
+    for (_s = (_b); _s < (_e); _s++) {                                  \
       TEST_ASSERT_TRUE_MESSAGE(0 == strcmp(controller_address[TEST_SHIFT_BRIDGE_INDEX(_s)], bridge[_s]->controller_address), _buf); \
       TEST_ASSERT_TRUE_MESSAGE(dpmgr_bridge_lookup_by_controller_address(dpmgr, controller_address[TEST_SHIFT_BRIDGE_INDEX(_s)]) == bridge[_s], _buf); \
       TEST_ASSERT_TRUE_MESSAGE(LAGOPUS_RESULT_OK == dpmgr_controller_dpid_find(dpmgr, controller_address[TEST_SHIFT_BRIDGE_INDEX(_s)], &dpid), _buf); \
-      /* A DPID is on a bridge; not affected by shifting. */		\
-      TEST_ASSERT_EQUAL_UINT64_MESSAGE(TEST_DPID(_s), dpid, _buf);	\
-    }									\
+      /* A DPID is on a bridge; not affected by shifting. */            \
+      TEST_ASSERT_EQUAL_UINT64_MESSAGE(TEST_DPID(_s), dpid, _buf);      \
+    }                                                                   \
   } while (0);
 
 /* Assert no controllers on the bridges. */
-#define TEST_ASSERT_DPMGR_NOCONTROLLER(_b, _e, _msg)			\
-  do {									\
-    size_t _s;								\
-    uint64_t dpid;							\
-    char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];				\
+#define TEST_ASSERT_DPMGR_NOCONTROLLER(_b, _e, _msg)                    \
+  do {                                                                  \
+    size_t _s;                                                          \
+    uint64_t dpid;                                                      \
+    char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];                             \
     \
-    snprintf(_buf, sizeof(_buf), "%s, no controller", (_msg));		\
+    snprintf(_buf, sizeof(_buf), "%s, no controller", (_msg));          \
     \
-    for (_s = (_b); _s < (_e); _s++) {					\
+    for (_s = (_b); _s < (_e); _s++) {                                  \
       TEST_ASSERT_TRUE_MESSAGE(NULL == bridge[_s]->controller_address, _buf); \
       TEST_ASSERT_NULL_MESSAGE(dpmgr_bridge_lookup_by_controller_address(dpmgr, controller_address[_s]), _buf); \
       TEST_ASSERT_FALSE_MESSAGE(LAGOPUS_RESULT_OK == dpmgr_controller_dpid_find(dpmgr, controller_address[_s], &dpid), _buf); \
-    }									\
+    }                                                                   \
   } while (0);
 
 

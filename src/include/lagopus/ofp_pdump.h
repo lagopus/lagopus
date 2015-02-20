@@ -16,16 +16,16 @@
 
 
 /**
- * @file	ofp_pdump.h
- * @brief	Packet dumper.
+ * @file        ofp_pdump.h
+ * @brief       Packet dumper.
  */
 
 #ifndef __LAGOPUS_OFP_PDUMP_H__
 #define __LAGOPUS_OFP_PDUMP_H__
 
 /**
- * @brief	trace_pdump_type
- * @details	Type of trace pdump.
+ * @brief       trace_pdump_type
+ * @details     Type of trace pdump.
  */
 enum trace_pdump_type {
   /* OFP header. */
@@ -138,16 +138,16 @@ enum trace_pdump_type {
 /**
  * Call trace func.
  *
- *     @param[in]	type	Type of pdump (PDUMP_OFP_*).
- *     @param[in]	pac	A pointer to \e ofp_* structure.
- *     @param[in]	pac_size	Size of \e ofp_* structure.
- *     @param[out]	str	A pointer to \e trace string.
- *     @param[in]	max_len	Max length.
+ *     @param[in]       type    Type of pdump (PDUMP_OFP_*).
+ *     @param[in]       pac     A pointer to \e ofp_* structure.
+ *     @param[in]       pac_size        Size of \e ofp_* structure.
+ *     @param[out]      str     A pointer to \e trace string.
+ *     @param[in]       max_len Max length.
  *
- *     @retval	LAGOPUS_RESULT_OK	Succeeded.
- *     @retval	LAGOPUS_RESULT_OUT_OF_RANGE	Over max length.
- *     @retval	LAGOPUS_RESULT_INVALID_ARGS	Invalid args.
- *     @retval	LAGOPUS_RESULT_ANY_FAILURES	Failed.
+ *     @retval  LAGOPUS_RESULT_OK       Succeeded.
+ *     @retval  LAGOPUS_RESULT_OUT_OF_RANGE     Over max length.
+ *     @retval  LAGOPUS_RESULT_INVALID_ARGS     Invalid args.
+ *     @retval  LAGOPUS_RESULT_ANY_FAILURES     Failed.
  */
 lagopus_result_t
 trace_call(enum trace_pdump_type type,

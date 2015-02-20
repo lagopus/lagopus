@@ -20,4 +20,4 @@
 #ifdef perror
 #undef perror
 #endif /* perror */
-#define perror(str)	lagopus_msg_error("%s: %s\n", str, strerror(errno))
+#define perror(str)     lagopus_msg_error("%s: %s\n", str, strerror(errno))

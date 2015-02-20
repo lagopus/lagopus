@@ -1,4 +1,4 @@
-/*	$NetBSD: chartype.c,v 1.10 2011/08/16 16:25:15 christos Exp $	*/
+/*      $NetBSD: chartype.c,v 1.10 2011/08/16 16:25:15 christos Exp $   */
 
 /*-
  * Copyright (c) 2009 The NetBSD Foundation, Inc.

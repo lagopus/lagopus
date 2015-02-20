@@ -16,8 +16,8 @@
 
 
 /**
- *	@file	dpdk_io.c
- *	@brief	Datapath I/O driver use with Intel DPDK
+ *      @file   dpdk_io.c
+ *      @brief  Datapath I/O driver use with Intel DPDK
  */
 
 /*-
@@ -89,7 +89,11 @@
 #include <rte_ethdev.h>
 #include <rte_ring.h>
 #include <rte_mempool.h>
+#ifdef __SSE4_2__
 #include <rte_hash_crc.h>
+#else
+#include "City.h"
+#endif /* __SSE4_2__ */
 #include <rte_string_fns.h>
 #include <rte_kni.h>
 
@@ -350,10 +354,17 @@ app_lcore_io_rx(
 
       switch (fifoness) {
         case FIFONESS_FLOW:
+#ifdef __SSE4_2__
           worker_0 = rte_hash_crc(rte_pktmbuf_mtod(mbuf_0_0, void *),
                                   sizeof(ETHER_HDR) + 2, port) % n_workers;
           worker_1 = rte_hash_crc(rte_pktmbuf_mtod(mbuf_0_1, void *),
                                   sizeof(ETHER_HDR) + 2, port) % n_workers;
+#else
+          worker_0 = CityHash64WithSeed(rte_pktmbuf_mtod(mbuf_0_0, void *),
+                                  sizeof(ETHER_HDR) + 2, port) % n_workers;
+          worker_1 = CityHash64WithSeed(rte_pktmbuf_mtod(mbuf_0_1, void *),
+                                  sizeof(ETHER_HDR) + 2, port) % n_workers;
+#endif /* __SSE4_2__ */
           break;
         case FIFONESS_PORT:
           worker_0 = worker_1 = port % n_workers;
@@ -384,8 +395,13 @@ app_lcore_io_rx(
 
       switch (fifoness) {
         case FIFONESS_FLOW:
+#ifdef __SSE4_2__
           worker = rte_hash_crc(rte_pktmbuf_mtod(mbuf, void *),
                                 sizeof(ETHER_HDR) + 2, port) % n_workers;
+#else
+          worker = CityHash64WithSeed(rte_pktmbuf_mtod(mbuf, void *),
+                                sizeof(ETHER_HDR) + 2, port) % n_workers;
+#endif /* __SSE4_2__ */
           break;
         case FIFONESS_PORT:
           worker = port % n_workers;
@@ -728,7 +744,7 @@ app_init_mbuf_pools(void) {
       continue;
     }
 
-    rte_snprintf(name, sizeof(name), "mbuf_pool_%u", socket);
+    snprintf(name, sizeof(name), "mbuf_pool_%u", socket);
     lagopus_msg_debug("Creating the mbuf pool for socket %u ...\n", socket);
     app.pools[socket] = rte_mempool_create(
                           name,
@@ -784,12 +800,12 @@ app_init_rings_rx(void) {
       }
 
       lagopus_msg_debug(
-          "Creating ring to connect I/O "
-          "lcore %u (socket %u) with worker lcore %u ...\n",
-          lcore,
-          socket_io,
-          lcore_worker);
-      rte_snprintf(name, sizeof(name),
+        "Creating ring to connect I/O "
+        "lcore %u (socket %u) with worker lcore %u ...\n",
+        lcore,
+        socket_io,
+        lcore_worker);
+      snprintf(name, sizeof(name),
                    "app_ring_rx_s%u_io%u_w%u",
                    socket_io,
                    lcore,
@@ -883,7 +899,7 @@ app_init_rings_tx(void) {
                         port,
                         (unsigned)lcore_io,
                         (unsigned)socket_io);
-      rte_snprintf(name, sizeof(name),
+      snprintf(name, sizeof(name),
                    "app_ring_tx_s%u_w%u_p%u",
                    socket_io, lcore, port);
       ring = rte_ring_create(
@@ -933,6 +949,7 @@ app_init_nics(void) {
   uint8_t port, queue;
   int ret;
   uint32_t n_rx_queues, n_tx_queues;
+  struct rte_eth_dev_info dev_info;
 
 #ifndef RTE_VERSION_NUM
   /* Init driver */
@@ -940,11 +957,11 @@ app_init_nics(void) {
   if (rte_pmd_init_all() < 0) {
     rte_panic("Cannot init PMD\n");
   }
-#endif
-
+#elif RTE_VERSION < RTE_VERSION_NUM(1, 8, 0, 0)
   if (rte_eal_pci_probe() < 0) {
     rte_panic("Cannot probe PCI\n");
   }
+#endif /* RTE_VERSION */
 
   /* Init NIC ports and queues, then start the ports */
   for (port = 0; port < APP_MAX_NIC_PORTS; port ++) {
@@ -968,6 +985,15 @@ app_init_nics(void) {
       rte_panic("Cannot init NIC port %u (%s)\n",
                 (unsigned) port, strerror(-ret));
     }
+
+    rte_eth_dev_info_get(port, &dev_info);
+    if (strcmp(dev_info.driver_name, "rte_virtio_pmd") == 0) {
+      /* Virtio does not support hw offload */
+      tx_conf.txq_flags = ETH_TXQ_FLAGS_NOOFFLOADS;
+    } else {
+      tx_conf.txq_flags = 0;
+    }
+
     rte_eth_promiscuous_enable(port);
 
     /* Init RX queues */
@@ -1041,7 +1067,7 @@ app_init_kni(void) {
     memset(&conf, 0, sizeof(conf));
     memset(&dev_info, 0, sizeof(dev_info));
     memset(&ops, 0, sizeof(ops));
-    rte_snprintf(conf.name, RTE_KNI_NAMESIZE, "vEth%u", portid);
+    snprintf(conf.name, RTE_KNI_NAMESIZE, "vEth%u", portid);
     conf.group_id = (uint16_t)portid;
     conf.mbuf_size = MAX_PACKET_SZ;
     rte_eth_dev_info_get(portid, &dev_info);
@@ -1189,7 +1215,7 @@ lagopus_configure_physical_port(struct port *port) {
   /* DPDK engine */
   if (app_get_nic_rx_queues_per_port((uint8_t)port->ifindex) == 0) {
     /* Do not configured by DPDK, nothing to do. */
-    return LAGOPUS_RESULT_OK;
+    return LAGOPUS_RESULT_INVALID_ARGS;
   }
   lagopus_port_mask |= (unsigned long)(1 << port->ifindex);
   port->stats = port_stats;

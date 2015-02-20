@@ -1,8 +1,8 @@
-/*	$NetBSD: vis.c,v 1.60 2013/02/21 16:21:20 joerg Exp $	*/
+/*      $NetBSD: vis.c,v 1.60 2013/02/21 16:21:20 joerg Exp $   */
 
 /*-
  * Copyright (c) 1989, 1993
- *	The Regents of the University of California.  All rights reserved.
+ *      The Regents of the University of California.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -99,13 +99,13 @@ static wchar_t *do_svis(wchar_t *, wint_t, int, wint_t, const wchar_t *);
 #undef BELL
 #define BELL L'\a'
 
-#define iswoctal(c)	(((u_char)(c)) >= L'0' && ((u_char)(c)) <= L'7')
-#define iswwhite(c)	(c == L' ' || c == L'\t' || c == L'\n')
-#define iswsafe(c)	(c == L'\b' || c == BELL || c == L'\r')
-#define xtoa(c)		L"0123456789abcdef"[c]
-#define XTOA(c)		(wchar_t)L"0123456789ABCDEF"[c]
+#define iswoctal(c)     (((u_char)(c)) >= L'0' && ((u_char)(c)) <= L'7')
+#define iswwhite(c)     (c == L' ' || c == L'\t' || c == L'\n')
+#define iswsafe(c)      (c == L'\b' || c == BELL || c == L'\r')
+#define xtoa(c)         L"0123456789abcdef"[c]
+#define XTOA(c)         (wchar_t)L"0123456789ABCDEF"[c]
 
-#define MAXEXTRAS	10
+#define MAXEXTRAS       10
 
 #if !HAVE_NBTOOL_CONFIG_H
 #ifndef __NetBSD__
@@ -228,7 +228,7 @@ do_mbyte(wchar_t *dst, wint_t c, int flags, wint_t nextc, int iswextra) {
     *dst++ = L'\\';
     *dst++ = (u_char)(((u_int32_t)(u_char)c >> 6) & 03) + L'0';
     *dst++ = (u_char)(((u_int32_t)(u_char)c >> 3) & 07) + L'0';
-    *dst++ =		    (wchar_t)(c	      & 07) + L'0';
+    *dst++ =                (wchar_t)(c       & 07) + L'0';
   } else {
     if ((flags & VIS_NOSLASH) == 0) {
       *dst++ = L'\\';
@@ -257,12 +257,12 @@ do_mbyte(wchar_t *dst, wint_t c, int flags, wint_t nextc, int iswextra) {
 
 /*
  * This is do_vis, the central code of vis.
- * dst:	      Pointer to the destination buffer
- * c:	      Character to encode
+ * dst:       Pointer to the destination buffer
+ * c:         Character to encode
  * flags:     Flags word
  * nextc:     The character following 'c'
  * extra:     Pointer to the list of extra characters to be
- *	      backslash-protected.
+ *            backslash-protected.
  */
 static wchar_t *
 do_svis(wchar_t *dst, wint_t c, int flags, wint_t nextc,
@@ -349,8 +349,8 @@ makeextralist(int flags, const char *src) {
 
 /*
  * istrsenvisx()
- * 	The main internal function.
- *	All user-visible functions call this one.
+ *      The main internal function.
+ *      All user-visible functions call this one.
  */
 static int
 istrsenvisx(char *mbdst, size_t *dlen, const char *mbsrc, size_t mblength,
@@ -457,7 +457,7 @@ istrsenvisx(char *mbdst, size_t *dlen, const char *mbsrc, size_t mblength,
       errno = ENOSPC;
       goto out;
     }
-    *mbdst = '\0';		/* can't create extra, return "" */
+    *mbdst = '\0';              /* can't create extra, return "" */
     error = 0;
     goto out;
   }
@@ -500,8 +500,8 @@ istrsenvisx(char *mbdst, size_t *dlen, const char *mbsrc, size_t mblength,
        * Conversion error, process as a byte(s) instead.
        * Examine each byte and higher-order bytes for
        * data.  E.g.,
-       *	0x000000000000a264 -> a2 64
-       *	0x000000001f00a264 -> 1f 00 a2 64
+       *        0x000000000000a264 -> a2 64
+       *        0x000000001f00a264 -> 1f 00 a2 64
        */
       clen = 0;
       wmsk = 0;
@@ -551,10 +551,10 @@ out:
 
 #if !HAVE_SVIS
 /*
- *	The "svis" variants all take an "extra" arg that is a pointer
- *	to a NUL-terminated list of characters to be encoded, too.
- *	These functions are useful e. g. to encode strings in such a
- *	way so that they are not interpreted by a shell.
+ *      The "svis" variants all take an "extra" arg that is a pointer
+ *      to a NUL-terminated list of characters to be encoded, too.
+ *      These functions are useful e. g. to encode strings in such a
+ *      way so that they are not interpreted by a shell.
  */
 
 char *
@@ -655,9 +655,9 @@ nvis(char *mbdst, size_t dlen, int c, int flags, int nextc) {
 /*
  * strvis - visually encode characters from src into dst
  *
- *	Dst must be 4 times the size of src to account for possible
- *	expansion.  The length of dst, not including the trailing NULL,
- *	is returned.
+ *      Dst must be 4 times the size of src to account for possible
+ *      expansion.  The length of dst, not including the trailing NULL,
+ *      is returned.
  */
 
 int
@@ -673,12 +673,12 @@ strnvis(char *mbdst, size_t dlen, const char *mbsrc, int flags) {
 /*
  * strvisx - visually encode characters from src into dst
  *
- *	Dst must be 4 times the size of src to account for possible
- *	expansion.  The length of dst, not including the trailing NULL,
- *	is returned.
+ *      Dst must be 4 times the size of src to account for possible
+ *      expansion.  The length of dst, not including the trailing NULL,
+ *      is returned.
  *
- *	Strvisx encodes exactly len characters from src into dst.
- *	This is useful for encoding a block of data.
+ *      Strvisx encodes exactly len characters from src into dst.
+ *      This is useful for encoding a block of data.
  */
 
 int

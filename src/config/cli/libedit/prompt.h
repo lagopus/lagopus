@@ -1,8 +1,8 @@
-/*	$NetBSD: prompt.h,v 1.10 2009/12/30 22:37:40 christos Exp $	*/
+/*      $NetBSD: prompt.h,v 1.10 2009/12/30 22:37:40 christos Exp $     */
 
 /*-
  * Copyright (c) 1992, 1993
- *	The Regents of the University of California.  All rights reserved.
+ *      The Regents of the University of California.  All rights reserved.
  *
  * This code is derived from software contributed to Berkeley by
  * Christos Zoulas of Cornell University.
@@ -31,30 +31,30 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	@(#)prompt.h	8.1 (Berkeley) 6/4/93
+ *      @(#)prompt.h    8.1 (Berkeley) 6/4/93
  */
 
 /*
  * el.prompt.h: Prompt printing stuff
  */
 #ifndef _h_el_prompt
-#define	_h_el_prompt
+#define _h_el_prompt
 
 #include "histedit.h"
 
 typedef Char    *(*el_pfunc_t)(EditLine *);
 
 typedef struct el_prompt_t {
-  el_pfunc_t	p_func;		/* Function to return the prompt */
-  coord_t		p_pos;		/* position in the line after prompt */
-  Char		p_ignore;	/* character to start/end literal */
-  int		p_wide;
+  el_pfunc_t    p_func;         /* Function to return the prompt */
+  coord_t               p_pos;          /* position in the line after prompt */
+  Char          p_ignore;       /* character to start/end literal */
+  int           p_wide;
 } el_prompt_t;
 
-protected void	prompt_print(EditLine *, int);
-protected int	prompt_set(EditLine *, el_pfunc_t, Char, int, int);
-protected int	prompt_get(EditLine *, el_pfunc_t *, Char *, int);
-protected int	prompt_init(EditLine *);
-protected void	prompt_end(EditLine *);
+protected void  prompt_print(EditLine *, int);
+protected int   prompt_set(EditLine *, el_pfunc_t, Char, int, int);
+protected int   prompt_get(EditLine *, el_pfunc_t *, Char *, int);
+protected int   prompt_init(EditLine *);
+protected void  prompt_end(EditLine *);
 
 #endif /* _h_el_prompt */

@@ -15,9 +15,9 @@
  */
 
 /**
- * @file	ofp_handler.h
- * @brief	OpenFlow Packet handler
- * @details	Handling OpenFlow Packet
+ * @file        ofp_handler.h
+ * @brief       OpenFlow Packet handler
+ * @details     Handling OpenFlow Packet
  */
 #ifndef __LAGOPUS_OFP_HANDLER_H__
 #define __LAGOPUS_OFP_HANDLER_H__
@@ -82,11 +82,11 @@ ofp_handler_register_cahnnel(uint64_t dpid, struct channel *channel);
 /**
  * Put data to dataq.
  *
- *     @param[in]	dpid	Datapath id.
- *     @param[in]	dataq	A pointer to \e eventq_data structure.
- *     @param[in]	A wait time (in nsec).
+ *     @param[in]       dpid    Datapath id.
+ *     @param[in]       dataq   A pointer to \e eventq_data structure.
+ *     @param[in]       A wait time (in nsec).
  *
- *     @retval	LAGOPUS_RESULT_OK	Succeeded.
+ *     @retval  LAGOPUS_RESULT_OK       Succeeded.
 
  */
 lagopus_result_t
@@ -97,14 +97,14 @@ ofp_handler_dataq_data_put(uint64_t dpid,
 /**
  * Put data to eventq.
  *
- *     @param[in]	dpid	Datapath id.
- *     @param[in]	dataq	A pointer to \e eventq_data structure.
- *     @param[in]	A wait time (in nsec).
+ *     @param[in]       dpid    Datapath id.
+ *     @param[in]       dataq   A pointer to \e eventq_data structure.
+ *     @param[in]       A wait time (in nsec).
  *
- *     @retval	LAGOPUS_RESULT_OK	Succeeded.
- *     @retval	LAGOPUS_RESULT_NOT_FOUND	Not found dpid.
- *     @retval	LAGOPUS_RESULT_TIMEDOUT	Timedout.
- *     @retval	LAGOPUS_RESULT_ANY_FAILURES	Failed.
+ *     @retval  LAGOPUS_RESULT_OK       Succeeded.
+ *     @retval  LAGOPUS_RESULT_NOT_FOUND        Not found dpid.
+ *     @retval  LAGOPUS_RESULT_TIMEDOUT Timedout.
+ *     @retval  LAGOPUS_RESULT_ANY_FAILURES     Failed.
  */
 lagopus_result_t
 ofp_handler_eventq_data_put(uint64_t dpid,
@@ -114,14 +114,14 @@ ofp_handler_eventq_data_put(uint64_t dpid,
 /**
  * Get data event_dataq.
  *
- *     @param[in]	dpid	Datapath id.
- *     @param[in]	dataq	A pointer to \e eventq_data structure.
- *     @param[in]	A wait time (in nsec).
+ *     @param[in]       dpid    Datapath id.
+ *     @param[in]       dataq   A pointer to \e eventq_data structure.
+ *     @param[in]       A wait time (in nsec).
  *
- *     @retval	LAGOPUS_RESULT_OK	Succeeded.
- *     @retval	LAGOPUS_RESULT_NOT_FOUND	Not found dpid.
- *     @retval	LAGOPUS_RESULT_TIMEDOUT	Timedout.
- *     @retval	LAGOPUS_RESULT_ANY_FAILURES	Failed.
+ *     @retval  LAGOPUS_RESULT_OK       Succeeded.
+ *     @retval  LAGOPUS_RESULT_NOT_FOUND        Not found dpid.
+ *     @retval  LAGOPUS_RESULT_TIMEDOUT Timedout.
+ *     @retval  LAGOPUS_RESULT_ANY_FAILURES     Failed.
  */
 lagopus_result_t
 ofp_handler_event_dataq_data_get(uint64_t dpid,
@@ -130,10 +130,10 @@ ofp_handler_event_dataq_data_get(uint64_t dpid,
 /**
  * Returns \b true if the bounded blocking queue is operational.
  *
- *     @param[in]	bbq	A pointer to \e BBQ.
+ *     @param[in]       bbq     A pointer to \e BBQ.
  *
- *     @retval	true	Operational.
- *     @retval	false	Not operational.
+ *     @retval  true    Operational.
+ *     @retval  false   Not operational.
  */
 bool
 ofp_handler_validate_bbq(lagopus_bbq_t *bbq);

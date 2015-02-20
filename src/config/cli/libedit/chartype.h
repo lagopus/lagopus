@@ -1,4 +1,4 @@
-/*	$NetBSD: chartype.h,v 1.10 2011/11/16 01:45:10 christos Exp $	*/
+/*      $NetBSD: chartype.h,v 1.10 2011/11/16 01:45:10 christos Exp $   */
 
 /*-
  * Copyright (c) 2009 The NetBSD Foundation, Inc.
@@ -71,14 +71,14 @@ wchar_t *wcsdup(const wchar_t *s);
 #define ct_wcstombs          wcstombs
 #define ct_mbstowcs          mbstowcs
 
-#define Char			wchar_t
-#define Int			wint_t
-#define FUN(prefix,rest)	prefix ## _w ## rest
-#define FUNW(type)		type ## _w
-#define TYPE(type)		type ## W
-#define FSTR			"%ls"
-#define STR(x) 			L ## x
-#define UC(c)			c
+#define Char                    wchar_t
+#define Int                     wint_t
+#define FUN(prefix,rest)        prefix ## _w ## rest
+#define FUNW(type)              type ## _w
+#define TYPE(type)              type ## W
+#define FSTR                    "%ls"
+#define STR(x)                  L ## x
+#define UC(c)                   c
 #define Isalpha(x)  iswalpha(x)
 #define Isalnum(x)  iswalnum(x)
 #define Isgraph(x)  iswgraph(x)
@@ -124,14 +124,14 @@ Width(wchar_t c) {
 #define ct_wcstombs(a, b, c)    (strncpy(a, b, c), strlen(a))
 #define ct_mbstowcs(a, b, c)    (strncpy(a, b, c), strlen(a))
 
-#define Char			char
-#define Int			int
-#define FUN(prefix,rest)	prefix ## _ ## rest
-#define FUNW(type)		type
-#define TYPE(type)		type
-#define FSTR			"%s"
-#define STR(x) 			x
-#define UC(c)			(unsigned char)(c)
+#define Char                    char
+#define Int                     int
+#define FUN(prefix,rest)        prefix ## _ ## rest
+#define FUNW(type)              type
+#define TYPE(type)              type
+#define FSTR                    "%s"
+#define STR(x)                  x
+#define UC(c)                   (unsigned char)(c)
 
 #define Isalpha(x)  isalpha((unsigned char)x)
 #define Isalnum(x)  isalnum((unsigned char)x)
@@ -163,7 +163,7 @@ Width(wchar_t c) {
 
 #define Strtol(p,e,b)   strtol(p,e,b)
 
-#define Width(c)	1
+#define Width(c)        1
 
 #endif
 
@@ -196,14 +196,14 @@ protected void ct_conv_buff_resize(ct_buffer_t *, size_t, size_t);
 protected ssize_t ct_encode_char(char *, size_t, Char);
 protected size_t ct_enc_width(Char);
 
-#define ct_free_argv(s)	el_free(s)
+#define ct_free_argv(s) el_free(s)
 
 #else
-#define	ct_encode_string(s, b)	(s)
-#define ct_decode_string(s, b)	(s)
-#define ct_decode_argv(l, s, b)	(s)
+#define ct_encode_string(s, b)  (s)
+#define ct_decode_string(s, b)  (s)
+#define ct_decode_argv(l, s, b) (s)
 #define ct_conv_buff_resize(b, os, ns)
-#define ct_encode_char(d, l, s)	(*d = s, 1)
+#define ct_encode_char(d, l, s) (*d = s, 1)
 #define ct_free_argv(s)
 #endif
 

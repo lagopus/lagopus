@@ -23,7 +23,7 @@
 
 
 typedef struct {
-  lagopus_thread_record m_thd;	/* must be on the head. */
+  lagopus_thread_record m_thd;  /* must be on the head. */
 
   lagopus_mutex_t m_lock;
 

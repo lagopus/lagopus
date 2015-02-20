@@ -26,6 +26,7 @@
 
 #include "openflow.h"
 #include "lagopus/dpmgr.h"
+#include "lagopus/flowdb.h"
 #include "lagopus/ofp_handler.h"
 #include "lagopus/ptree.h"
 #include "lagopus/vector.h"
@@ -54,6 +55,26 @@ struct group_table {
   struct ptree *ptree;
   struct bridge *bridge;
 };
+
+static inline void
+group_table_rdlock(struct group_table *group_table) {
+  FLOWDB_RWLOCK_RDLOCK();
+}
+
+static inline void
+group_table_rdunlock(struct group_table *group_table) {
+  FLOWDB_RWLOCK_RDUNLOCK();
+}
+
+static inline void
+group_table_wrlock(struct group_table *group_table) {
+  FLOWDB_UPDATE_BEGIN();
+}
+
+static inline void
+group_table_wrunlock(struct group_table *group_table) {
+  FLOWDB_UPDATE_END();
+}
 
 struct group_table *
 group_table_alloc(struct bridge *parent) {
@@ -147,7 +168,7 @@ group_live_bucket(struct bridge *bridge,
     }
     rv = group_live_bucket(bridge, a_group);
     if (rv != NULL) {
-      return rv;
+      return bucket;
     }
   }
   return NULL;
@@ -165,15 +186,14 @@ group_table_add(struct group_table *group_table,
     return LAGOPUS_RESULT_OFP_ERROR;
   }
   key = htonl(group->id);
-  node = ptree_node_get(group_table->ptree, (uint8_t *)&key, GROUP_ID_KEY_LEN);
+  node = ptree_node_get(group_table->ptree, (uint8_t *)&key,
+                        GROUP_ID_KEY_LEN);
   if (node == NULL) {
     return LAGOPUS_RESULT_NO_MEMORY;
   }
   /* Reference table. */
   group->group_table = group_table;
-
   node->info = group;
-
   return LAGOPUS_RESULT_OK;
 }
 
@@ -207,7 +227,6 @@ group_table_delete(struct group_table *group_table, uint32_t group_id) {
     if (node == NULL) {
       return LAGOPUS_RESULT_NOT_FOUND;
     }
-
     group = (struct group *)node->info;
     if (group != NULL) {
       group_free(group);
@@ -221,6 +240,9 @@ group_table_delete(struct group_table *group_table, uint32_t group_id) {
   return LAGOPUS_RESULT_OK;
 }
 
+/*
+ * note: no need lock.
+ */
 struct group *
 group_table_lookup(struct group_table *group_table, uint32_t id) {
   uint32_t key;
@@ -304,10 +326,10 @@ group_free(struct group *group) {
   for (i = 0; i < nflow; i++) {
     struct flow *flow = vector_slot(group->flows, i);
     if (flow != NULL) {
-      flow_remove_with_reason(flow,
-                              group->group_table->bridge,
-                              OFPRR_GROUP_DELETE,
-                              &error);
+      flow_remove_with_reason_nolock(flow,
+                                     group->group_table->bridge,
+                                     OFPRR_GROUP_DELETE,
+                                     &error);
     }
   }
   vector_free(group->flows);
@@ -398,6 +420,8 @@ group_stats(struct group_table *group_table,
   struct group *group;
 
   (void)error;
+
+  group_table_rdlock(group_table);
   if (request->group_id == OFPG_ALL) {
     struct ptree_node *node;
 
@@ -410,6 +434,7 @@ group_stats(struct group_table *group_table,
       }
       stats = calloc(1, sizeof(struct group_stats));
       if (stats == NULL) {
+        group_table_rdunlock(group_table);
         return LAGOPUS_RESULT_NO_MEMORY;
       }
       set_group_stats(stats, group);
@@ -427,6 +452,7 @@ group_stats(struct group_table *group_table,
       TAILQ_INSERT_TAIL(list, stats, entry);
     }
   }
+  group_table_rdunlock(group_table);
 
   return LAGOPUS_RESULT_OK;
 }
@@ -514,6 +540,7 @@ ofp_group_mod_add(uint64_t dpid,
   struct dpmgr *dpmgr;
   struct bridge *bridge;
   struct group *group;
+  lagopus_result_t rv;
 
   dpmgr = dpmgr_get_instance();
   bridge = bridge_lookup_by_dpid(&dpmgr->bridge_list, dpid);
@@ -521,23 +548,27 @@ ofp_group_mod_add(uint64_t dpid,
     return LAGOPUS_RESULT_NOT_FOUND;
   }
 
+  group_table_wrlock(bridge->group_table);
   /* Look up existing group. */
   group = group_table_lookup(bridge->group_table, group_mod->group_id);
   if (group != NULL) {
     /* Group exists, send error. */
     ofp_error_set(error, OFPET_GROUP_MOD_FAILED, OFPGMFC_GROUP_EXISTS);
-    return LAGOPUS_RESULT_OFP_ERROR;
+    rv = LAGOPUS_RESULT_OFP_ERROR;
+  } else {
+    /* Allocate a new group. */
+    group = group_alloc(group_mod, bucket_list);
+    if (group == NULL) {
+      ofp_bucket_list_free(bucket_list);
+      rv = LAGOPUS_RESULT_NO_MEMORY;
+    } else {
+      /* Add a group. */
+      rv = group_table_add(bridge->group_table, group, error);
+    }
   }
+  group_table_wrunlock(bridge->group_table);
 
-  /* Allocate a new group. */
-  group = group_alloc(group_mod, bucket_list);
-  if (group == NULL) {
-    ofp_bucket_list_free(bucket_list);
-    return LAGOPUS_RESULT_NO_MEMORY;
-  }
-
-  /* Add a group. */
-  return group_table_add(bridge->group_table, group, error);
+  return rv;
 }
 
 lagopus_result_t
@@ -548,6 +579,7 @@ ofp_group_mod_modify(uint64_t dpid,
   struct dpmgr *dpmgr;
   struct bridge *bridge;
   struct group *group;
+  lagopus_result_t rv;
 
   dpmgr = dpmgr_get_instance();
   bridge = bridge_lookup_by_dpid(&dpmgr->bridge_list, dpid);
@@ -555,18 +587,21 @@ ofp_group_mod_modify(uint64_t dpid,
     return LAGOPUS_RESULT_NOT_FOUND;
   }
 
+  group_table_wrlock(bridge->group_table);
   /* Look up existing group. */
   group = group_table_lookup(bridge->group_table, group_mod->group_id);
   if (group == NULL) {
     /* Group does not exist, send error. */
     ofp_error_set(error, OFPET_GROUP_MOD_FAILED, OFPGMFC_UNKNOWN_GROUP);
-    return LAGOPUS_RESULT_OFP_ERROR;
+    rv = LAGOPUS_RESULT_OFP_ERROR;
+  } else {
+    /* Modify group contents. */
+    group_modify(group, group_mod, bucket_list);
+    rv = LAGOPUS_RESULT_OK;
   }
+  group_table_wrunlock(bridge->group_table);
 
-  /* Modify group contents. */
-  group_modify(group, group_mod, bucket_list);
-
-  return LAGOPUS_RESULT_OK;
+  return rv;
 }
 
 lagopus_result_t
@@ -585,7 +620,9 @@ ofp_group_mod_delete(uint64_t dpid,
   }
 
   /* Delete group with group_id. */
+  group_table_wrlock(bridge->group_table);
   group_table_delete(bridge->group_table, group_mod->group_id);
+  group_table_wrunlock(bridge->group_table);
 
   return LAGOPUS_RESULT_OK;
 }

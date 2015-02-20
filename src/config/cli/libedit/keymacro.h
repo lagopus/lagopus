@@ -1,8 +1,8 @@
-/*	$NetBSD: keymacro.h,v 1.2 2011/07/28 03:44:36 christos Exp $	*/
+/*      $NetBSD: keymacro.h,v 1.2 2011/07/28 03:44:36 christos Exp $    */
 
 /*-
  * Copyright (c) 1992, 1993
- *	The Regents of the University of California.  All rights reserved.
+ *      The Regents of the University of California.  All rights reserved.
  *
  * This code is derived from software contributed to Berkeley by
  * Christos Zoulas of Cornell University.
@@ -31,32 +31,32 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	@(#)key.h	8.1 (Berkeley) 6/4/93
+ *      @(#)key.h       8.1 (Berkeley) 6/4/93
  */
 
 /*
  * el.keymacro.h: Key macro header
  */
 #ifndef _h_el_keymacro
-#define	_h_el_keymacro
+#define _h_el_keymacro
 
 typedef union keymacro_value_t {
-  el_action_t	 cmd;	/* If it is a command the #	*/
-  Char		*str;	/* If it is a string...		*/
+  el_action_t    cmd;   /* If it is a command the #     */
+  Char          *str;   /* If it is a string...         */
 } keymacro_value_t;
 
 typedef struct keymacro_node_t keymacro_node_t;
 
 typedef struct el_keymacromacro_t {
-  Char		*buf;	/* Key print buffer		*/
-  keymacro_node_t	*map;	/* Key map			*/
-  keymacro_value_t val;	/* Local conversion buffer	*/
+  Char          *buf;   /* Key print buffer             */
+  keymacro_node_t       *map;   /* Key map                      */
+  keymacro_value_t val; /* Local conversion buffer      */
 } el_keymacro_t;
 
-#define	XK_CMD	0
-#define	XK_STR	1
-#define	XK_NOD	2
-#define	XK_EXE	3
+#define XK_CMD  0
+#define XK_STR  1
+#define XK_NOD  2
+#define XK_EXE  3
 
 protected int keymacro_init(EditLine *);
 protected void keymacro_end(EditLine *);

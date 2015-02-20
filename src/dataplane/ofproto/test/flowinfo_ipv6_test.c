@@ -20,7 +20,6 @@
 #include "lagopus/dpmgr.h"
 #include "lagopus/flowdb.h"
 #include "lagopus/port.h"
-#include "match.h"
 #include "pktbuf.h"
 #include "packet.h"
 #include "lagopus/dataplane.h"
@@ -51,22 +50,22 @@ static const uint16_t exthdrmask = 0x1f0;
 
 
 /* Compute an IPv6 DSCP. */
-#define TEST_IPV6_DSCP(_i)	((uint8_t)((_i) + 1))
+#define TEST_IPV6_DSCP(_i)      ((uint8_t)((_i) + 1))
 
 /* Compute an IPv6 ECN. */
-#define TEST_IPV6_ECN(_i)	((uint8_t)(_i))
+#define TEST_IPV6_ECN(_i)       ((uint8_t)(_i))
 
 /* Compute an IPv6 protocol. */
-#define TEST_IPV6_PROTO(_i)	((uint8_t)((_i) + 1))
+#define TEST_IPV6_PROTO(_i)     ((uint8_t)((_i) + 1))
 
 /* Compute an IPv6 flowlabel. */
-#define TEST_IPV6_FLOWLABEL(_i)	((uint32_t)((_i) + 1))
+#define TEST_IPV6_FLOWLABEL(_i) ((uint32_t)((_i) + 1))
 
 /* Compute an IPv6 extension headers. */
-#define TEST_IPV6_EXTHDRS(_i)	((uint16_t)((_i) + 1))
+#define TEST_IPV6_EXTHDRS(_i)   ((uint16_t)((_i) + 1))
 
 /* Compute the LSB octet of an IPv6 address. */
-#define TEST_IPV6_ADDR_LSB(_i)	((uint8_t)((_i) + 1))
+#define TEST_IPV6_ADDR_LSB(_i)  ((uint8_t)((_i) + 1))
 
 
 /*
@@ -74,128 +73,128 @@ static const uint16_t exthdrmask = 0x1f0;
  *
  * The test flows must have the prerequisite matches only.
  */
-#define TEST_ASSERT_OBJECTS()						\
-  do {									\
-    size_t _s, _c;							\
-    TEST_ASSERT_NOT_NULL(flowinfo);					\
-    for (_s = 0; _s < ARRAY_LEN(test_flow); _s++) {			\
-      TEST_ASSERT_NOT_NULL(test_flow[_s]);				\
-      _c = 0;								\
+#define TEST_ASSERT_OBJECTS()                                           \
+  do {                                                                  \
+    size_t _s, _c;                                                      \
+    TEST_ASSERT_NOT_NULL(flowinfo);                                     \
+    for (_s = 0; _s < ARRAY_LEN(test_flow); _s++) {                     \
+      TEST_ASSERT_NOT_NULL(test_flow[_s]);                              \
+      _c = 0;                                                           \
       TAILQ_COUNT(_c, struct match, &test_flow[_s]->match_list, entry); \
-      TEST_ASSERT_EQUAL_INT(1, _c);					\
-      TEST_ASSERT_FLOW_MATCH_IPV6_PREREQUISITE(test_flow[_s]);		\
-    }									\
+      TEST_ASSERT_EQUAL_INT(1, _c);                                     \
+      TEST_ASSERT_FLOW_MATCH_IPV6_PREREQUISITE(test_flow[_s]);          \
+    }                                                                   \
   } while (0)
 
 /* Positively assert flow addition. */
-#define TEST_ASSERT_FLOWINFO_ADDFLOW_OK(_fl, _bi, _ei, _flnum, _msg)	\
-  do {									\
-    size_t _s;								\
-    for (_s = (_bi); _s < (_ei); _s++)					\
-      TEST_ASSERT_FLOWINFO_ADD_OK((_fl), test_flow[_s], (_msg));	\
-    TEST_ASSERT_FLOWINFO_FLOW_NUM((_fl), (_flnum), (_msg));		\
-    if (NULL != (_fl)->misc->next[ETHERTYPE_IPV6])			\
-      for (_s = (_bi); _s < (_ei); _s++)				\
+#define TEST_ASSERT_FLOWINFO_ADDFLOW_OK(_fl, _bi, _ei, _flnum, _msg)    \
+  do {                                                                  \
+    size_t _s;                                                          \
+    for (_s = (_bi); _s < (_ei); _s++)                                  \
+      TEST_ASSERT_FLOWINFO_ADD_OK((_fl), test_flow[_s], (_msg));        \
+    TEST_ASSERT_FLOWINFO_FLOW_NUM((_fl), (_flnum), (_msg));             \
+    if (NULL != (_fl)->misc->next[ETHERTYPE_IPV6])                      \
+      for (_s = (_bi); _s < (_ei); _s++)                                \
         TEST_ASSERT_FLOWINFO_HASIPV6PROTO((_fl)->misc->next[ETHERTYPE_IPV6], TEST_IPV6_PROTO(_s), (_msg)); \
-    else {								\
-      char __buf[TEST_ASSERT_MESSAGE_BUFSIZE];				\
+    else {                                                              \
+      char __buf[TEST_ASSERT_MESSAGE_BUFSIZE];                          \
       \
       snprintf(__buf, sizeof(__buf), "%s, positive flow addition", (_msg)); \
-      TEST_ASSERT_EQUAL_INT_MESSAGE((_flnum), 0, __buf);		\
-    }									\
+      TEST_ASSERT_EQUAL_INT_MESSAGE((_flnum), 0, __buf);                \
+    }                                                                   \
   } while (0)
 
 /* Positively assert flow deletion. */
-#define TEST_ASSERT_FLOWINFO_DELFLOW_OK(_fl, _bi, _ei, _flnum, _msg)	\
-  do {									\
-    size_t _s;								\
-    for (_s = (_bi); _s < (_ei); _s++)					\
-      TEST_ASSERT_FLOWINFO_DEL_OK((_fl), test_flow[_s], (_msg));	\
-    TEST_ASSERT_FLOWINFO_FLOW_NUM((_fl), (_flnum), (_msg));		\
-    if (NULL != (_fl)->misc->next[ETHERTYPE_IPV6])			\
-      for (_s = (_bi); _s < (_ei); _s++)				\
+#define TEST_ASSERT_FLOWINFO_DELFLOW_OK(_fl, _bi, _ei, _flnum, _msg)    \
+  do {                                                                  \
+    size_t _s;                                                          \
+    for (_s = (_bi); _s < (_ei); _s++)                                  \
+      TEST_ASSERT_FLOWINFO_DEL_OK((_fl), test_flow[_s], (_msg));        \
+    TEST_ASSERT_FLOWINFO_FLOW_NUM((_fl), (_flnum), (_msg));             \
+    if (NULL != (_fl)->misc->next[ETHERTYPE_IPV6])                      \
+      for (_s = (_bi); _s < (_ei); _s++)                                \
         TEST_ASSERT_FLOWINFO_HASIPV6PROTO((_fl)->misc->next[ETHERTYPE_IPV6], TEST_IPV6_PROTO(_s), (_msg)); \
-    else {								\
-      char __buf[TEST_ASSERT_MESSAGE_BUFSIZE];				\
+    else {                                                              \
+      char __buf[TEST_ASSERT_MESSAGE_BUFSIZE];                          \
       \
       snprintf(__buf, sizeof(__buf), "%s, positive flow deletion", (_msg)); \
-      TEST_ASSERT_EQUAL_INT_MESSAGE((_flnum), 0, __buf);		\
-    }									\
+      TEST_ASSERT_EQUAL_INT_MESSAGE((_flnum), 0, __buf);                \
+    }                                                                   \
   } while (0)
 
 /* Negatively assert flow deletion without the IPv6 protocol check. */
-#define _TEST_ASSERT_FLOWINFO_DELFLOW_NG(_fl, _bi, _ei, _flnum, _msg)	\
-  do {									\
-    size_t __s;								\
-    for (__s = (_bi); __s < (_ei); __s++)				\
-      TEST_ASSERT_FLOWINFO_DEL_NG((_fl), test_flow[__s], (_msg));	\
-    TEST_ASSERT_FLOWINFO_FLOW_NUM((_fl), (_flnum), (_msg));		\
+#define _TEST_ASSERT_FLOWINFO_DELFLOW_NG(_fl, _bi, _ei, _flnum, _msg)   \
+  do {                                                                  \
+    size_t __s;                                                         \
+    for (__s = (_bi); __s < (_ei); __s++)                               \
+      TEST_ASSERT_FLOWINFO_DEL_NG((_fl), test_flow[__s], (_msg));       \
+    TEST_ASSERT_FLOWINFO_FLOW_NUM((_fl), (_flnum), (_msg));             \
   } while (0)
 
 /* Negatively assert flow deletion. */
-#define TEST_ASSERT_FLOWINFO_DELFLOW_NG(_fl, _bi, _ei, _flnum, _msg)	\
-  do {									\
-    size_t _s;								\
-    _TEST_ASSERT_FLOWINFO_DELFLOW_NG(_fl, _bi, _ei, (_flnum), (_msg));	\
-    if (NULL != (_fl)->misc->next[ETHERTYPE_IPV6])			\
-      for (_s = (_bi); _s < (_ei); _s++)				\
+#define TEST_ASSERT_FLOWINFO_DELFLOW_NG(_fl, _bi, _ei, _flnum, _msg)    \
+  do {                                                                  \
+    size_t _s;                                                          \
+    _TEST_ASSERT_FLOWINFO_DELFLOW_NG(_fl, _bi, _ei, (_flnum), (_msg));  \
+    if (NULL != (_fl)->misc->next[ETHERTYPE_IPV6])                      \
+      for (_s = (_bi); _s < (_ei); _s++)                                \
         TEST_ASSERT_FLOWINFO_HASIPV6PROTO((_fl)->misc->next[ETHERTYPE_IPV6], TEST_IPV6_PROTO(_s), (_msg)); \
-    else {								\
-      char __buf[TEST_ASSERT_MESSAGE_BUFSIZE];				\
+    else {                                                              \
+      char __buf[TEST_ASSERT_MESSAGE_BUFSIZE];                          \
       \
       snprintf(__buf, sizeof(__buf), "%s, negative flow deletion", (_msg)); \
-      TEST_ASSERT_EQUAL_INT_MESSAGE((_flnum), 0, __buf);		\
-    }									\
+      TEST_ASSERT_EQUAL_INT_MESSAGE((_flnum), 0, __buf);                \
+    }                                                                   \
   } while (0)
 
 /* Negatively assert flow deletion and non-existence of an IPv6 protocol. */
 #undef TEST_ASSERT_FLOWINFO_DELFLOW_NG_CLEAN
 #define TEST_ASSERT_FLOWINFO_DELFLOW_NG_CLEAN(_fl, _bi, _ei, _flnum, _msg) \
-  do {									\
-    size_t _s;								\
-    _TEST_ASSERT_FLOWINFO_DELFLOW_NG(_fl, _bi, _ei, (_flnum), (_msg));	\
-    if (NULL != (_fl)->misc->next[ETHERTYPE_IPV6])			\
-      for (_s = (_bi); _s < (_ei); _s++)				\
+  do {                                                                  \
+    size_t _s;                                                          \
+    _TEST_ASSERT_FLOWINFO_DELFLOW_NG(_fl, _bi, _ei, (_flnum), (_msg));  \
+    if (NULL != (_fl)->misc->next[ETHERTYPE_IPV6])                      \
+      for (_s = (_bi); _s < (_ei); _s++)                                \
         TEST_ASSERT_FLOWINFO_NOIPV6PROTO((_fl)->misc->next[ETHERTYPE_IPV6], TEST_IPV6_PROTO(_s), (_msg)); \
-    else {								\
-      char __buf[TEST_ASSERT_MESSAGE_BUFSIZE];				\
+    else {                                                              \
+      char __buf[TEST_ASSERT_MESSAGE_BUFSIZE];                          \
       \
       snprintf(__buf, sizeof(__buf), "%s, negative flow deletion, clean", (_msg)); \
-      TEST_ASSERT_EQUAL_INT_MESSAGE((_flnum), 0, __buf);		\
-    }									\
+      TEST_ASSERT_EQUAL_INT_MESSAGE((_flnum), 0, __buf);                \
+    }                                                                   \
   } while (0)
 
 /* Assert flow numbers. */
-#define TEST_ASSERT_FLOWINFO_FLOW_NUM(_fl, _flnum, _msg)		\
-  do {									\
-    TEST_ASSERT_FLOWINFO_NFLOW((_fl), (_flnum), (_msg));		\
-    TEST_ASSERT_FLOWINFO_NFLOW((_fl)->misc, (_flnum), (_msg));		\
-    if (NULL != (_fl)->misc->next[ETHERTYPE_IPV6])			\
+#define TEST_ASSERT_FLOWINFO_FLOW_NUM(_fl, _flnum, _msg)                \
+  do {                                                                  \
+    TEST_ASSERT_FLOWINFO_NFLOW((_fl), (_flnum), (_msg));                \
+    TEST_ASSERT_FLOWINFO_NFLOW((_fl)->misc, (_flnum), (_msg));          \
+    if (NULL != (_fl)->misc->next[ETHERTYPE_IPV6])                      \
       TEST_ASSERT_FLOWINFO_NFLOW((_fl)->misc->next[ETHERTYPE_IPV6], (_flnum), (_msg)); \
-    else {								\
-      char __buf[TEST_ASSERT_MESSAGE_BUFSIZE];				\
+    else {                                                              \
+      char __buf[TEST_ASSERT_MESSAGE_BUFSIZE];                          \
       \
-      snprintf(__buf, sizeof(__buf), "%s, flow count", (_msg));		\
-      TEST_ASSERT_EQUAL_INT_MESSAGE((_flnum), 0, __buf);		\
-    }									\
+      snprintf(__buf, sizeof(__buf), "%s, flow count", (_msg));         \
+      TEST_ASSERT_EQUAL_INT_MESSAGE((_flnum), 0, __buf);                \
+    }                                                                   \
   } while (0)
 
 /* Assert the existence of an IPv6 protocol in the next table. */
-#define TEST_ASSERT_FLOWINFO_HASIPV6PROTO(_fl, _proto, _msg)		\
-  do {									\
-    char __buf[TEST_ASSERT_MESSAGE_BUFSIZE];				\
+#define TEST_ASSERT_FLOWINFO_HASIPV6PROTO(_fl, _proto, _msg)            \
+  do {                                                                  \
+    char __buf[TEST_ASSERT_MESSAGE_BUFSIZE];                            \
     \
-    snprintf(__buf, sizeof(__buf), "%s, has IPv6 proto", (_msg));	\
-    TEST_ASSERT_NOT_NULL_MESSAGE((_fl)->next[_proto], __buf);		\
+    snprintf(__buf, sizeof(__buf), "%s, has IPv6 proto", (_msg));       \
+    TEST_ASSERT_NOT_NULL_MESSAGE((_fl)->next[_proto], __buf);           \
   } while (0)
 
 /* Assert the non-existence of an IPv6 protocol in the next table. */
-#define TEST_ASSERT_FLOWINFO_NOIPV6PROTO(_fl, _proto, _msg)		\
-  do {									\
-    char __buf[TEST_ASSERT_MESSAGE_BUFSIZE];				\
+#define TEST_ASSERT_FLOWINFO_NOIPV6PROTO(_fl, _proto, _msg)             \
+  do {                                                                  \
+    char __buf[TEST_ASSERT_MESSAGE_BUFSIZE];                            \
     \
-    snprintf(__buf, sizeof(__buf), "%s, no IPv6 proto", (_msg));	\
-    TEST_ASSERT_NULL_MESSAGE((_fl)->next[_proto], __buf);		\
+    snprintf(__buf, sizeof(__buf), "%s, no IPv6 proto", (_msg));        \
+    TEST_ASSERT_NULL_MESSAGE((_fl)->next[_proto], __buf);               \
   } while (0)
 
 void

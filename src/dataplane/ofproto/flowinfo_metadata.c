@@ -16,8 +16,8 @@
 
 
 /**
- *	@file	flowinfo_metadata.c
- *	@brief	Optimized flow database for datapath, for metadata
+ *      @file   flowinfo_metadata.c
+ *      @brief  Optimized flow database for datapath, for metadata
  */
 
 #include <stdlib.h>

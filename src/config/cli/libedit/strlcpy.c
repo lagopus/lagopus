@@ -1,5 +1,5 @@
-/*	$NetBSD: strlcpy.c,v 1.3 2007/06/04 18:19:27 christos Exp $	*/
-/*	$OpenBSD: strlcpy.c,v 1.7 2003/04/12 21:56:39 millert Exp $	*/
+/*      $NetBSD: strlcpy.c,v 1.3 2007/06/04 18:19:27 christos Exp $     */
+/*      $OpenBSD: strlcpy.c,v 1.7 2003/04/12 21:56:39 millert Exp $     */
 
 /*
  * Copyright (c) 1998 Todd C. Miller <Todd.Miller@courtesan.com>
@@ -66,6 +66,6 @@ strlcpy(char *dst, const char *src, size_t siz) {
       ;
   }
 
-  return (s - src - 1);	/* count does not include NUL */
+  return (s - src - 1); /* count does not include NUL */
 }
 #endif

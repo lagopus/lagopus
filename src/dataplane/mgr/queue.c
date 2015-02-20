@@ -16,8 +16,8 @@
 
 
 /**
- *	@file	queue.c
- *	@brief	OpenFlow Queue management.
+ *      @file   queue.c
+ *      @brief  OpenFlow Queue management.
  */
 
 #include "lagopus/ofp_dp_apis.h"

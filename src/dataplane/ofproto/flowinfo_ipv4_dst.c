@@ -16,8 +16,8 @@
 
 
 /**
- *	@file	flowinfo_ipv4_dst.c
- *	@brief	Optimized flow database for datapath, for ipv4_dst
+ *      @file   flowinfo_ipv4_dst.c
+ *      @brief  Optimized flow database for datapath, for ipv4_dst
  */
 
 #include <stdlib.h>

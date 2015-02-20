@@ -29,7 +29,8 @@ static struct genl_family vswitch_flow_family = {
 };
 
 static struct genl_ops vswitch_flow_ops[] = {
-  { .cmd = VSWITCH_FLOW_CMD_NEW,
+  {
+    .cmd = VSWITCH_FLOW_CMD_NEW,
     .flags = 0,                        /* Temporary all user can set. */
     /* .policy = flow_policy, */
     .doit = vswitch_flow_set
@@ -42,8 +43,9 @@ genetlink_register(void) {
 
   ret = genl_register_family_with_ops(&vswitch_flow_family,
                                       vswitch_flow_ops, 1);
-  if (ret)
+  if (ret) {
     return ret;
+  }
 
   genl_skb = genlmsg_new(0, GFP_KERNEL);
   if (genl_skb == NULL) {

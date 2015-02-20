@@ -20,7 +20,6 @@
 #include "lagopus/dpmgr.h"
 #include "lagopus/flowdb.h"
 #include "lagopus/port.h"
-#include "match.h"
 #include "pktbuf.h"
 #include "packet.h"
 #include "lagopus/dataplane.h"
@@ -32,12 +31,12 @@
 #include "datapath_test_match_macros.h"
 #include "flowinfo_test.h"
 
-#define FLOW_ADD_UT_PREREQUISITE(_x)		\
+#define FLOW_ADD_UT_PREREQUISITE(_x)            \
   FLOW_ADD_IPV6_UDP_PREREQUISITE(_x)
-#define	TEST_ASSERT_FLOW_MATCH_UT_PREREQUISITE(_x)	\
+#define TEST_ASSERT_FLOW_MATCH_UT_PREREQUISITE(_x)      \
   TEST_ASSERT_FLOW_MATCH_IPV6_UDP_PREREQUISITE(_x)
-#define	ETHERTYPE_UT	ETHERTYPE_IPV6
-#define	IPPROTO_UT	IPPROTO_UDP
+#define ETHERTYPE_UT    ETHERTYPE_IPV6
+#define IPPROTO_UT      IPPROTO_UDP
 
 #include "flowinfo_l4_test.c"
 

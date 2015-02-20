@@ -33,7 +33,7 @@ typedef struct {
 
   size_t m_n_total_events;
 } test_stage_record;
-typedef test_stage_record 	*test_stage_t;
+typedef test_stage_record       *test_stage_t;
 
 
 

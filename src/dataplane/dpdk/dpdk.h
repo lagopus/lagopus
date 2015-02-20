@@ -16,8 +16,8 @@
 
 
 /**
- *	@file	dpdk.h
- *	@brief	Parameter, structure and function for datapath w/  Intel DPDK.
+ *      @file   dpdk.h
+ *      @brief  Parameter, structure and function for datapath w/  Intel DPDK.
  */
 
 /*-
@@ -85,11 +85,11 @@
 #endif
 
 #ifndef APP_MAX_NIC_RX_QUEUES_PER_IO_LCORE
-#define APP_MAX_NIC_RX_QUEUES_PER_IO_LCORE 16
+#define APP_MAX_NIC_RX_QUEUES_PER_IO_LCORE 32
 #endif
 
 #ifndef APP_MAX_NIC_TX_PORTS_PER_IO_LCORE
-#define APP_MAX_NIC_TX_PORTS_PER_IO_LCORE 16
+#define APP_MAX_NIC_TX_PORTS_PER_IO_LCORE 32
 #endif
 #if (APP_MAX_NIC_TX_PORTS_PER_IO_LCORE > APP_MAX_NIC_PORTS)
 #error "APP_MAX_NIC_TX_PORTS_PER_IO_LCORE too big"
@@ -265,7 +265,7 @@ enum app_lcore_type {
   e_APP_LCORE_DISABLED = 0,
   e_APP_LCORE_IO,
   e_APP_LCORE_WORKER,
-  e_APP_LCORE_IO_WORKER	/* mixed */
+  e_APP_LCORE_IO_WORKER /* mixed */
 };
 
 struct app_lcore_params_io {
@@ -422,7 +422,7 @@ void app_print_params(void);
 /**
  * Clear flowcache for each worker.
  *
- * @param[in]	wait_flush	Wait for flush if true.
+ * @param[in]   wait_flush      Wait for flush if true.
  */
 void clear_worker_flowcache(bool);
 

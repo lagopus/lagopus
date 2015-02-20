@@ -87,7 +87,6 @@
 #include <rte_ip.h>
 #include <rte_tcp.h>
 #include <rte_string_fns.h>
-#include <exec-env/rte_lcore.h>
 
 #include "undef.h"
 #include "lagopus_apis.h"
@@ -120,10 +119,12 @@ static const char usage[] =
   "           hashmap_nolock  Use hashmap without rwlock (default)                \n"
   "           hashmap         Use hashmap                                         \n"
   "           ptree           Use ptree                                           \n"
+#ifdef __SSE4_2__
   "    --hashtype TYPE: Select hash type for flow cache                           \n"
   "           city64   CityHash(64bit) (default)                                  \n"
   "           intel64  Intel_hash64                                               \n"
   "           murmur3  MurmurHash3 (32bit)                                        \n"
+#endif /* __SSE4_2__ */
   "    --fifoness MODE: Select FIFOness mode, MODE is one of none, port, or flow  \n"
   "           flow : FIFOness per each flow (default.)                            \n"
   "           port : FIFOness per each port.                                      \n"
@@ -186,7 +187,7 @@ str_to_unsigned_array(
   int i, num_splits = 0;
 
   /* copy s so we don't modify original string */
-  rte_snprintf(str, sizeof(str), "%s", s);
+  snprintf(str, sizeof(str), "%s", s);
   num_splits = rte_strsplit(str, (int)sizeof(str),
                             splits, (int)num_vals, separator);
 
@@ -236,51 +237,72 @@ parse_arg_rx(const char *arg) {
   n_tuples = 0;
   while ((p = strchr(p0,'(')) != NULL) {
     struct app_lcore_params *lp;
-    uint32_t port, queue, lcore, i;
+    const char *p1, *p2;
+    uint32_t port, queue, lcore, i, queue_min, queue_max;
 
     p0 = strchr(p++, ')');
-    if ((p0 == NULL) ||
-        (str_to_unsigned_vals(p, (size_t)(p0 - p), ',', 3,
-                              &port, &queue, &lcore) !=  3)) {
-      return -2;
+    if (p0 == NULL) {
+        return -2;
+    }
+    if (str_to_unsigned_vals(p, (size_t)(p0 - p), ',', 3,
+                             &port, &queue, &lcore) !=  3) {
+      p1 = strchr(p, ',');
+      if (p1++ == NULL) {
+        return -2;
+      }
+      port = atoi(p);
+      p2 = strchr(p1, ',');
+      if (p2 == NULL ||
+          str_to_unsigned_vals(p1, (size_t)(p2 - p1), '-', 2,
+                               &queue_min, &queue_max) != 2) {
+        return -2;
+      }
+      p2++;
+      lcore = atoi(p2);
+      if (queue_min > queue_max) {
+        return -2;
+      }
+    } else {
+      queue_min = queue_max = queue;
     }
 
     /* Enable port and queue for later initialization */
-    if ((port >= APP_MAX_NIC_PORTS) ||
-        (queue >= APP_MAX_RX_QUEUES_PER_NIC_PORT)) {
-      return -3;
-    }
-    if (app.nic_rx_queue_mask[port][queue] != 0) {
-      return -4;
-    }
-    app.nic_rx_queue_mask[port][queue] = 1;
-
-    /* Check and assign (port, queue) to I/O lcore */
-    if (rte_lcore_is_enabled(lcore) == 0) {
-      return -5;
-    }
-
-    if (lcore >= APP_MAX_LCORES) {
-      return -6;
-    }
-    lp = &app.lcore_params[lcore];
-    if (lp->type == e_APP_LCORE_WORKER) {
-      return -7;
-    }
-    lp->type = e_APP_LCORE_IO;
-    for (i = 0; i < lp->io.rx.n_nic_queues; i ++) {
-      if ((lp->io.rx.nic_queues[i].port == port) &&
-          (lp->io.rx.nic_queues[i].queue == queue)) {
-        return -8;
+    for (queue = queue_min; queue <= queue_max; queue++) {
+      if ((port >= APP_MAX_NIC_PORTS) ||
+          (queue >= APP_MAX_RX_QUEUES_PER_NIC_PORT)) {
+        return -3;
       }
-    }
-    if (lp->io.rx.n_nic_queues >= APP_MAX_NIC_RX_QUEUES_PER_IO_LCORE) {
-      return -9;
-    }
-    lp->io.rx.nic_queues[lp->io.rx.n_nic_queues].port = (uint8_t) port;
-    lp->io.rx.nic_queues[lp->io.rx.n_nic_queues].queue = (uint8_t) queue;
-    lp->io.rx.n_nic_queues ++;
+      if (app.nic_rx_queue_mask[port][queue] != 0) {
+        return -4;
+      }
+      app.nic_rx_queue_mask[port][queue] = 1;
 
+      /* Check and assign (port, queue) to I/O lcore */
+      if (rte_lcore_is_enabled(lcore) == 0) {
+        return -5;
+      }
+
+      if (lcore >= APP_MAX_LCORES) {
+        return -6;
+      }
+      lp = &app.lcore_params[lcore];
+      if (lp->type == e_APP_LCORE_WORKER) {
+        return -7;
+      }
+      lp->type = e_APP_LCORE_IO;
+      for (i = 0; i < lp->io.rx.n_nic_queues; i ++) {
+        if ((lp->io.rx.nic_queues[i].port == port) &&
+            (lp->io.rx.nic_queues[i].queue == queue)) {
+          return -8;
+        }
+      }
+      if (lp->io.rx.n_nic_queues >= APP_MAX_NIC_RX_QUEUES_PER_IO_LCORE) {
+        return -9;
+      }
+      lp->io.rx.nic_queues[lp->io.rx.n_nic_queues].port = (uint8_t) port;
+      lp->io.rx.nic_queues[lp->io.rx.n_nic_queues].queue = (uint8_t) queue;
+      lp->io.rx.n_nic_queues ++;
+    }
     n_tuples ++;
     if (n_tuples > APP_ARG_RX_MAX_TUPLES) {
       return -10;
@@ -617,7 +639,9 @@ app_parse_args(int argc, const char *argv[]) {
     {"no-cache", 0, 0, 0},
     {"core-assign", 1, 0, 0},
     {"kvstype", 1, 0, 0},
+#ifdef __SSE4_2__
     {"hashtype", 1, 0, 0},
+#endif /* __SSE4_2__ */
     {"fifoness", 1, 0, 0},
     {NULL, 0, 0, 0}
   };
@@ -628,7 +652,7 @@ app_parse_args(int argc, const char *argv[]) {
   uint32_t arg_rsz = 0;
   uint32_t arg_bsz = 0;
 
-  uint32_t portmask = 0;
+  uint64_t portmask = 0;
   char *end = NULL;
   struct app_lcore_params *lp, *htlp;
   unsigned lcore, htcore, lcore_count, i, wk_lcore_count = 0;
@@ -645,7 +669,7 @@ app_parse_args(int argc, const char *argv[]) {
         if (optarg[0] == '\0') {
           return -1;
         }
-        portmask = (uint32_t)strtoul(optarg, &end, 16);
+        portmask = (uint64_t)strtoul(optarg, &end, 16);
         if (end == NULL || *end != '\0') {
           return -1;
         }
@@ -758,13 +782,13 @@ app_parse_args(int argc, const char *argv[]) {
      */
     port_count = 0;
     for (i = 0; i < 32; i++) {
-      if ((portmask & (uint32_t)(1 << i)) != 0) {
-	port_count++;
+      if ((portmask & (uint64_t)(1 << i)) != 0) {
+        port_count++;
       }
     }
     if (port_count == 0) {
       lagopus_exit_error(EXIT_FAILURE,
-	 "error: port is not specified.  use -p HEXNUM or --rx, --tx.\n");
+                         "error: port is not specified.  use -p HEXNUM or --rx, --tx.\n");
     }
   }
   for (lcore_count = 0, lcore = 0; lcore < RTE_MAX_LCORE; lcore++) {
@@ -798,11 +822,11 @@ app_parse_args(int argc, const char *argv[]) {
 
   if (lcore_count == 0) {
     lagopus_exit_error(
-        EXIT_FAILURE,
-        "Not enough active core "
-        "(need at least 2 active core%s)\n",
-        app.core_assign == CORE_ASSIGN_PERFORMANCE ?
-        " except for HTT core" : "");
+      EXIT_FAILURE,
+      "Not enough active core "
+      "(need at least 2 active core%s)\n",
+      app.core_assign == CORE_ASSIGN_PERFORMANCE ?
+      " except for HTT core" : "");
   }
   if (app.core_assign == CORE_ASSIGN_MINIMUM) {
     lcore_count = 1;
@@ -868,7 +892,7 @@ app_parse_args(int argc, const char *argv[]) {
   if (arg_rx == 0) {
     lcore = rx_lcore_start;
     for (portid = 0; portid < RTE_MAX_ETHPORTS; portid++) {
-      if ((portmask & (uint32_t)(1 << portid)) == 0) {
+      if ((portmask & (uint64_t)(1 << portid)) == 0) {
         continue;
       }
       app.nic_rx_queue_mask[portid][0] = 1;
@@ -888,7 +912,7 @@ app_parse_args(int argc, const char *argv[]) {
   if (arg_tx == 0) {
     lcore = tx_lcore_start;
     for (portid = 0; portid < RTE_MAX_ETHPORTS; portid++) {
-      if ((portmask & (uint32_t)(1 << portid)) == 0) {
+      if ((portmask & (uint64_t)(1 << portid)) == 0) {
         continue;
       }
       app.nic_tx_port_mask[portid] = 1;

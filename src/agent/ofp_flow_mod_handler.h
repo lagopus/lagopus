@@ -16,7 +16,7 @@
 
 
 /**
- * @file	ofp_flow_mod_handler.h
+ * @file        ofp_flow_mod_handler.h
  */
 
 #ifndef __OFP_FLOW_MOD_HANDLER_H__
@@ -27,15 +27,15 @@
 /**
  * ofp_flow_mod handler.
  *
- *     @param[in]	channel	A pointer to \e channel structure.
- *     @param[in]	pbuf	A pointer to \e pbuf structure.
- *     @param[in]	xid_header	A pointer to \e ofp_header structure in request.
- *     @param[out]	error	A pointer to \e ofp_error structure.
+ *     @param[in]       channel A pointer to \e channel structure.
+ *     @param[in]       pbuf    A pointer to \e pbuf structure.
+ *     @param[in]       xid_header      A pointer to \e ofp_header structure in request.
+ *     @param[out]      error   A pointer to \e ofp_error structure.
  *     If errors occur, set filed values.
  *
- *     @retval	LAGOPUS_RESULT_OK	Succeeded.
- *     @retval	LAGOPUS_RESULT_OFP_ERROR Failed, ofp_error.
- *     @retval	LAGOPUS_RESULT_ANY_FAILURES Failed.
+ *     @retval  LAGOPUS_RESULT_OK       Succeeded.
+ *     @retval  LAGOPUS_RESULT_OFP_ERROR Failed, ofp_error.
+ *     @retval  LAGOPUS_RESULT_ANY_FAILURES Failed.
  */
 lagopus_result_t
 ofp_flow_mod_handle(struct channel *channel, struct pbuf *pbuf,

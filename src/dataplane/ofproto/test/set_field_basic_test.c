@@ -21,7 +21,6 @@
 #include "lagopus/flowdb.h"
 #include "lagopus/port.h"
 #include "lagopus/dataplane.h"
-#include "match.h"
 #include "pktbuf.h"
 #include "packet.h"
 #include "datapath_test_misc.h"
@@ -51,7 +50,7 @@ test_set_field_IN_PORT(void) {
   /* setup bridge and port */
   my_dpmgr = dpmgr_alloc();
   dpmgr_bridge_add(my_dpmgr, "br0", 0);
-  nport.type = LAGOPUS_PORT_TYPE_PHYSICAL;
+  nport.type = LAGOPUS_PORT_TYPE_NULL; /* for test */
   nport.ofp_port.port_no = 1;
   nport.ifindex = 0;
   dpmgr_port_add(my_dpmgr, &nport);

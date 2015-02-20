@@ -1,8 +1,8 @@
-/*	$NetBSD: parse.c,v 1.26 2011/08/16 16:25:15 christos Exp $	*/
+/*      $NetBSD: parse.c,v 1.26 2011/08/16 16:25:15 christos Exp $      */
 
 /*-
  * Copyright (c) 1992, 1993
- *	The Regents of the University of California.  All rights reserved.
+ *      The Regents of the University of California.  All rights reserved.
  *
  * This code is derived from software contributed to Berkeley by
  * Christos Zoulas of Cornell University.
@@ -35,7 +35,7 @@
 #include "config.h"
 #if !defined(lint) && !defined(SCCSID)
 #if 0
-static char sccsid[] = "@(#)parse.c	8.1 (Berkeley) 6/4/93";
+static char sccsid[] = "@(#)parse.c     8.1 (Berkeley) 6/4/93";
 #else
 __RCSID("$NetBSD: parse.c,v 1.26 2011/08/16 16:25:15 christos Exp $");
 #endif
@@ -46,13 +46,13 @@ __RCSID("$NetBSD: parse.c,v 1.26 2011/08/16 16:25:15 christos Exp $");
  *
  * commands are:
  *
- *	bind
- *	echotc
- *	edit
- *	gettc
- *	history
- *	settc
- *	setty
+ *      bind
+ *      echotc
+ *      edit
+ *      gettc
+ *      history
+ *      settc
+ *      setty
  */
 #include "el.h"
 #include <stdlib.h>
@@ -61,19 +61,19 @@ private const struct {
   const Char *name;
   int (*func)(EditLine *, int, const Char **);
 } cmds[] = {
-  { STR("bind"),  	map_bind	},
-  { STR("echotc"),	terminal_echotc	},
-  { STR("edit"),  	el_editmode	},
-  { STR("history"),	hist_command	},
-  { STR("telltc"),	terminal_telltc	},
-  { STR("settc"),	        terminal_settc	},
-  { STR("setty"),	        tty_stty	},
-  { NULL,		        NULL		}
+  { STR("bind"),        map_bind        },
+  { STR("echotc"),      terminal_echotc },
+  { STR("edit"),        el_editmode     },
+  { STR("history"),     hist_command    },
+  { STR("telltc"),      terminal_telltc },
+  { STR("settc"),               terminal_settc  },
+  { STR("setty"),               tty_stty        },
+  { NULL,                       NULL            }
 };
 
 
 /* parse_line():
- *	Parse a line and dispatch it
+ *      Parse a line and dispatch it
  */
 protected int
 parse_line(EditLine *el, const Char *line) {
@@ -90,7 +90,7 @@ parse_line(EditLine *el, const Char *line) {
 
 
 /* el_parse():
- *	Command dispatcher
+ *      Command dispatcher
  */
 public int
 FUN(el,parse)(EditLine *el, int argc, const Char *argv[]) {
@@ -135,8 +135,8 @@ FUN(el,parse)(EditLine *el, int argc, const Char *argv[]) {
 
 
 /* parse__escape():
- *	Parse a string of the form ^<char> \<odigit> \<char> \U+xxxx and return
- *	the appropriate character or -1 if the escape is not valid
+ *      Parse a string of the form ^<char> \<odigit> \<char> \U+xxxx and return
+ *      the appropriate character or -1 if the escape is not valid
  */
 protected int
 parse__escape(const Char **ptr) {
@@ -153,28 +153,28 @@ parse__escape(const Char **ptr) {
     p++;
     switch (*p) {
       case 'a':
-        c = '\007';	/* Bell */
+        c = '\007';     /* Bell */
         break;
       case 'b':
-        c = '\010';	/* Backspace */
+        c = '\010';     /* Backspace */
         break;
       case 't':
-        c = '\011';	/* Horizontal Tab */
+        c = '\011';     /* Horizontal Tab */
         break;
       case 'n':
-        c = '\012';	/* New Line */
+        c = '\012';     /* New Line */
         break;
       case 'v':
-        c = '\013';	/* Vertical Tab */
+        c = '\013';     /* Vertical Tab */
         break;
       case 'f':
-        c = '\014';	/* Form Feed */
+        c = '\014';     /* Form Feed */
         break;
       case 'r':
-        c = '\015';	/* Carriage Return */
+        c = '\015';     /* Carriage Return */
         break;
       case 'e':
-        c = '\033';	/* Escape */
+        c = '\033';     /* Escape */
         break;
       case 'U': {             /* Unicode \U+xxxx or \U+xxxxx format */
         int i;
@@ -239,7 +239,7 @@ parse__escape(const Char **ptr) {
 }
 
 /* parse__string():
- *	Parse the escapes from in and put the raw string out
+ *      Parse the escapes from in and put the raw string out
  */
 protected Char *
 parse__string(Char *out, const Char *in) {
@@ -276,8 +276,8 @@ parse__string(Char *out, const Char *in) {
 
 
 /* parse_cmd():
- *	Return the command number for the command string given
- *	or -1 if one is not found
+ *      Return the command number for the command string given
+ *      or -1 if one is not found
  */
 protected int
 parse_cmd(EditLine *el, const Char *cmd) {

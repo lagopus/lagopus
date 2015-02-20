@@ -20,7 +20,6 @@
 #include "lagopus/dpmgr.h"
 #include "lagopus/flowdb.h"
 #include "lagopus/port.h"
-#include "match.h"
 #include "pktbuf.h"
 #include "packet.h"
 #include "lagopus/dataplane.h"
@@ -54,7 +53,8 @@ test_flowinfo_mpls_multicast_label_adddel(void) {
   TEST_ASSERT_OBJECTS();
   /* The ptree should be clean. */
   for (s = 0; s < ARRAY_LEN(test_flow); s++) {
-    TEST_ASSERT_FLOWINFO_NOLABEL(flowinfo, TEST_LABEL(s), MPLS_LABEL_BITLEN, __func__);
+    TEST_ASSERT_FLOWINFO_NOLABEL(flowinfo, TEST_LABEL(s), MPLS_LABEL_BITLEN,
+                                 __func__);
   }
 
   /* Add MPLS label matches. */
@@ -78,11 +78,11 @@ test_flowinfo_mpls_multicast_label_adddel(void) {
  */
 #undef TEST_ASSERT_FLOWINFO_HASLABEL
 #undef TEST_ASSERT_FLOWINFO_NOLABEL
-#define TEST_ASSERT_FLOWINFO_HASLABEL(_fl, _label, _l, _msg)	\
-  do {								\
+#define TEST_ASSERT_FLOWINFO_HASLABEL(_fl, _label, _l, _msg)    \
+  do {                                                          \
   } while (0)
-#define TEST_ASSERT_FLOWINFO_NOLABEL(_fl, _label, _l, _msg)	\
-  do {								\
+#define TEST_ASSERT_FLOWINFO_NOLABEL(_fl, _label, _l, _msg)     \
+  do {                                                          \
   } while (0)
 
 /*

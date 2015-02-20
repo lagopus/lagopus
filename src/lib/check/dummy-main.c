@@ -21,8 +21,8 @@
 
 
 
-#define ONE_SEC		1000LL * 1000LL * 1000LL
-#define REQ_TIMEDOUT	ONE_SEC
+#define ONE_SEC         1000LL * 1000LL * 1000LL
+#define REQ_TIMEDOUT    ONE_SEC
 
 
 

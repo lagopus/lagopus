@@ -16,8 +16,8 @@
 
 
 /**
- *	@file	flowinfo_ether.c
- *	@brief	Optimized flow database for datapath, for ethernet
+ *      @file   flowinfo_ether.c
+ *      @brief  Optimized flow database for datapath, for ethernet
  */
 
 #include <stdlib.h>

@@ -16,8 +16,8 @@
 
 
 /**
- *	@file	dpmgr.c
- *	@brief	Datapath manager.
+ *      @file   dpmgr.c
+ *      @brief  Datapath manager.
  */
 
 #include "lagopus_apis.h"

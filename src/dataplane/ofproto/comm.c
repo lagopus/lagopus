@@ -25,7 +25,6 @@
 #include <rte_lcore.h>
 #include <rte_atomic.h>
 #include <rte_launch.h>
-#include <rte_hash_crc.h>
 #endif /* HAVE_DPDK */
 
 #include "lagopus_apis.h"
@@ -47,7 +46,6 @@
 
 #ifdef HAVE_DPDK
 #include "dpdk/dpdk.h"
-#include "dpdk/rte_hash_crc64.h"
 
 rte_atomic32_t dpdk_stop;
 #endif /* HAVE_DPDK */
@@ -168,6 +166,7 @@ process_event_dataq_entry(struct dpmgr *dpmgr,
         reply->free = ofp_barrier_free;
         reply->barrier.req = NULL;
         reply->barrier.xid = data->barrier.xid;
+        reply->barrier.channel_id = data->barrier.channel_id;
         (void) ofp_handler_eventq_data_put(dpid, &reply, PUT_TIMEOUT);
         break;
       default:
@@ -392,7 +391,7 @@ static lagopus_mutex_t comm_lock = NULL;
 
 lagopus_result_t
 dpcomm_initialize(int argc,
-                  const char * const argv[],
+                  const char *const argv[],
                   void *extarg,
                   lagopus_thread_t **thdptr) {
   lagopus_result_t rv = LAGOPUS_RESULT_ANY_FAILURES;
@@ -469,6 +468,6 @@ static void dpcomm_ctors (void) {
                           dpcomm_stop,
                           dpcomm_finalize,
                           NULL
-                          );
+                         );
 }
 #endif

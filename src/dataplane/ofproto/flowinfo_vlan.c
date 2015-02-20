@@ -16,8 +16,8 @@
 
 
 /**
- *	@file	flowinfo_vlan.c
- *	@brief	Optimized flow database for datapath, for VLAN
+ *      @file   flowinfo_vlan.c
+ *      @brief  Optimized flow database for datapath, for VLAN
  */
 
 #include <stdlib.h>
