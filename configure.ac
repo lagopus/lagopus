@@ -195,9 +195,9 @@ AC_ARG_WITH(dpdk-dir,
             [with_dpdk_dir=""])
 if test "x$with_dpdk_dir" != "x"; then
   RTE_SDK=$with_dpdk_dir
-  RTE_TARGET=`uname -p`-default-linuxapp-${CC}
+  RTE_TARGET=`uname -m`-default-linuxapp-${CC}
   AC_CHECK_HEADER(${RTE_SDK}/${RTE_TARGET}/include/rte_config.h, [],
-  		  [RTE_TARGET=`uname -p`-native-linuxapp-${CC}])
+                  [RTE_TARGET=`uname -m`-native-linuxapp-${CC}])
   AC_CHECK_HEADER(${RTE_SDK}/${RTE_TARGET}/include/rte_config.h, [],
                   [AC_MSG_ERROR([Intel DPDK must be installed.])])
   RTE_LIBS=-L$RTE_SDK/$RTE_TARGET/lib

@@ -2265,7 +2265,7 @@ uname -r = `(uname -r) 2>/dev/null || echo unknown`
 uname -s = `(uname -s) 2>/dev/null || echo unknown`
 uname -v = `(uname -v) 2>/dev/null || echo unknown`
 
-/usr/bin/uname -p = `(/usr/bin/uname -p) 2>/dev/null || echo unknown`
+/usr/bin/uname -m = `(/usr/bin/uname -m) 2>/dev/null || echo unknown`
 /bin/uname -X     = `(/bin/uname -X) 2>/dev/null     || echo unknown`
 
 /bin/arch              = `(/bin/arch) 2>/dev/null              || echo unknown`
@@ -16903,13 +16903,13 @@ fi
 
 if test "x$with_dpdk_dir" != "x"; then
   RTE_SDK=$with_dpdk_dir
-  RTE_TARGET=`uname -p`-default-linuxapp-${CC}
+  RTE_TARGET=`uname -m`-default-linuxapp-${CC}
   as_ac_Header=`$as_echo "ac_cv_header_${RTE_SDK}/${RTE_TARGET}/include/rte_config.h" | $as_tr_sh`
 ac_fn_c_check_header_mongrel "$LINENO" "${RTE_SDK}/${RTE_TARGET}/include/rte_config.h" "$as_ac_Header" "$ac_includes_default"
 if eval test \"x\$"$as_ac_Header"\" = x"yes"; then :
 
 else
-  RTE_TARGET=`uname -p`-native-linuxapp-${CC}
+  RTE_TARGET=`uname -m`-native-linuxapp-${CC}
 fi
 
 
