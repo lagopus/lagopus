@@ -201,6 +201,7 @@ static const struct rte_eth_rxconf rx_conf = {
   .rx_drop_en = APP_DEFAULT_NIC_RX_DROP_EN,
 };
 
+#if !defined(RTE_VERSION_NUM) || RTE_VERSION < RTE_VERSION_NUM(1, 8, 0, 0)
 static struct rte_eth_txconf tx_conf = {
   .tx_thresh = {
     .pthresh = APP_DEFAULT_NIC_TX_PTHRESH,
@@ -209,7 +210,9 @@ static struct rte_eth_txconf tx_conf = {
   },
   .tx_free_thresh = APP_DEFAULT_NIC_TX_FREE_THRESH,
   .tx_rs_thresh = APP_DEFAULT_NIC_TX_RS_THRESH,
+  .txq_flags = ETH_TXQ_FLAGS_NOMULTSEGS & ETH_TXQ_FLAGS_NOOFFLOADS,
 };
+#endif /* !RTE_VESRION_NUM */
 
 /* Per-port statistics struct */
 struct lagopus_port_statistics {
@@ -944,6 +947,7 @@ app_init_rings_tx(void) {
 
 void
 app_init_nics(void) {
+  struct rte_eth_dev_info devinfo;
   unsigned socket;
   uint32_t lcore;
   uint8_t port, queue;
@@ -972,6 +976,9 @@ app_init_nics(void) {
     if ((n_rx_queues == 0) && (n_tx_queues == 0)) {
       continue;
     }
+
+    memset(&devinfo, 0, sizeof(devinfo));
+    rte_eth_dev_info_get((uint8_t)port, &devinfo);
 
     /* Init port */
     printf("Initializing NIC port %u ...\n", (unsigned) port);
@@ -1025,7 +1032,12 @@ app_init_nics(void) {
               0,
               (uint16_t) app.nic_tx_ring_size,
               socket,
-              &tx_conf);
+#if defined(RTE_VERSION_NUM) && RTE_VERSION >= RTE_VERSION_NUM(1, 8, 0, 0)
+                                 &devinfo.default_txconf
+#else
+                                 &tx_conf
+#endif /* RTE_VERSION_NUM */
+                                   );
       if (ret < 0) {
         rte_panic("Cannot init TX queue 0 for port %d (%d)\n",
                   port,
