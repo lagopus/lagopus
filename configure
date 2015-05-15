@@ -16903,22 +16903,46 @@ fi
 
 if test "x$with_dpdk_dir" != "x"; then
   RTE_SDK=$with_dpdk_dir
-  RTE_TARGET=`uname -p`-default-linuxapp-${CC}
+  RTE_TARGET=build
   as_ac_Header=`$as_echo "ac_cv_header_${RTE_SDK}/${RTE_TARGET}/include/rte_config.h" | $as_tr_sh`
 ac_fn_c_check_header_mongrel "$LINENO" "${RTE_SDK}/${RTE_TARGET}/include/rte_config.h" "$as_ac_Header" "$ac_includes_default"
 if eval test \"x\$"$as_ac_Header"\" = x"yes"; then :
 
 else
-  RTE_TARGET=`uname -p`-native-linuxapp-${CC}
+  RTE_ARCH=`uname -p`
+     if test "x$RTE_ARCH" = "xunknown"; then
+        RTE_ARCH=`uname -m`
+     fi
+     case `uname` in
+     Linux)
+     RTE_OS=linuxapp
+     ;;
+     FreeBSD)
+     RTE_OS=bsdapp
+     ;;
+     *)
+     as_fn_error $? "DPDK must be supported your OS." "$LINENO" 5
+     ;;
+     esac
+     RTE_TARGET=${RTE_ARCH}-native-${RTE_OS}-${CC}
+     as_ac_Header=`$as_echo "ac_cv_header_${RTE_SDK}/${RTE_TARGET}/include/rte_config.h" | $as_tr_sh`
+ac_fn_c_check_header_mongrel "$LINENO" "${RTE_SDK}/${RTE_TARGET}/include/rte_config.h" "$as_ac_Header" "$ac_includes_default"
+if eval test \"x\$"$as_ac_Header"\" = x"yes"; then :
+
+else
+  RTE_TARGET=${RTE_ARCH}-default-${RTE_OS}-${CC}
+       	as_ac_Header=`$as_echo "ac_cv_header_${RTE_SDK}/${RTE_TARGET}/include/rte_config.h" | $as_tr_sh`
+ac_fn_c_check_header_mongrel "$LINENO" "${RTE_SDK}/${RTE_TARGET}/include/rte_config.h" "$as_ac_Header" "$ac_includes_default"
+if eval test \"x\$"$as_ac_Header"\" = x"yes"; then :
+
+else
+  as_fn_error $? "DPDK must be installed." "$LINENO" 5
 fi
 
 
-  as_ac_Header=`$as_echo "ac_cv_header_${RTE_SDK}/${RTE_TARGET}/include/rte_config.h" | $as_tr_sh`
-ac_fn_c_check_header_mongrel "$LINENO" "${RTE_SDK}/${RTE_TARGET}/include/rte_config.h" "$as_ac_Header" "$ac_includes_default"
-if eval test \"x\$"$as_ac_Header"\" = x"yes"; then :
+fi
 
-else
-  as_fn_error $? "Intel DPDK must be installed." "$LINENO" 5
+
 fi
 
 

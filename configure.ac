@@ -195,11 +195,28 @@ AC_ARG_WITH(dpdk-dir,
             [with_dpdk_dir=""])
 if test "x$with_dpdk_dir" != "x"; then
   RTE_SDK=$with_dpdk_dir
-  RTE_TARGET=`uname -p`-default-linuxapp-${CC}
+  RTE_TARGET=build
   AC_CHECK_HEADER(${RTE_SDK}/${RTE_TARGET}/include/rte_config.h, [],
-  		  [RTE_TARGET=`uname -p`-native-linuxapp-${CC}])
-  AC_CHECK_HEADER(${RTE_SDK}/${RTE_TARGET}/include/rte_config.h, [],
-                  [AC_MSG_ERROR([Intel DPDK must be installed.])])
+    [RTE_ARCH=`uname -p`
+     if test "x$RTE_ARCH" = "xunknown"; then
+        RTE_ARCH=`uname -m`
+     fi
+     case `uname` in
+     Linux)
+     RTE_OS=linuxapp
+     ;;
+     FreeBSD)
+     RTE_OS=bsdapp
+     ;;
+     *)
+     AC_MSG_ERROR([DPDK must be supported your OS.])
+     ;;
+     esac
+     RTE_TARGET=${RTE_ARCH}-native-${RTE_OS}-${CC}
+     AC_CHECK_HEADER(${RTE_SDK}/${RTE_TARGET}/include/rte_config.h, [],
+       [RTE_TARGET=${RTE_ARCH}-default-${RTE_OS}-${CC}
+       	AC_CHECK_HEADER(${RTE_SDK}/${RTE_TARGET}/include/rte_config.h, [],
+          [AC_MSG_ERROR([DPDK must be installed.])])])])
   RTE_LIBS=-L$RTE_SDK/$RTE_TARGET/lib
   RTE_LIBS="$RTE_LIBS -Xlinker --whole-archive"
   AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_distributor.a,
