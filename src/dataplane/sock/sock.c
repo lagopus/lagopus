@@ -104,9 +104,15 @@ read_packet(int fd, uint8_t *buf, size_t buflen) {
       continue;
     }
     auxdata = (struct tpacket_auxdata *)CMSG_DATA(cmsg);
+#if defined (TP_STATUS_VLAN_VALID)
+    if ((auxdata->tp_status & TP_STATUS_VLAN_VALID) == 0) {
+      continue;
+    }
+#else
     if (auxdata->tp_vlan_tci == 0) {
       continue;
     }
+#endif /* TP_STATUS_VLAN_VALID */
     p = (uint16_t *)(buf + ETHER_ADDR_LEN * 2);
     switch (OS_NTOHS(p[0])) {
       case ETHERTYPE_PBB:
