@@ -113,7 +113,7 @@ ofp_echo_request_create(struct channel *channel,
 
   if (channel != NULL && pbuf != NULL) {
     /* create reply. */
-    *pbuf = channel_pbuf_list_get_nolock(channel, sizeof(struct ofp_header));
+    *pbuf = channel_pbuf_list_get(channel, sizeof(struct ofp_header));
 
     if (*pbuf != NULL) {
       pbuf_plen_set(*pbuf, sizeof(struct ofp_header));
