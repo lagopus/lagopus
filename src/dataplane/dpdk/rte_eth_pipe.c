@@ -46,6 +46,7 @@
 #include <rte_string_fns.h>
 #include <rte_dev.h>
 #include <rte_kvargs.h>
+#include <rte_version.h>
 
 #include "rte_eth_pipe.h"
 
@@ -244,82 +245,91 @@ static struct eth_dev_ops ops = {
 
 static int
 rte_eth_from_rings(const char *name, struct rte_ring *const rx_queues[],
-		const unsigned nb_rx_queues,
-		struct rte_ring *const tx_queues[],
-		const unsigned nb_tx_queues,
-		const unsigned numa_node)
-{
-	struct rte_eth_dev_data *data = NULL;
-	struct rte_pci_device *pci_dev = NULL;
-	struct pmd_internals *internals = NULL;
-	struct rte_eth_dev *eth_dev = NULL;
-	unsigned i;
+                   const unsigned nb_rx_queues,
+                   struct rte_ring *const tx_queues[],
+                   const unsigned nb_tx_queues,
+                   const unsigned numa_node) {
+  struct rte_eth_dev_data *data = NULL;
+  struct rte_pci_device *pci_dev = NULL;
+  struct pmd_internals *internals = NULL;
+  struct rte_eth_dev *eth_dev = NULL;
+  unsigned i;
 
-	/* do some parameter checking */
-	if (rx_queues == NULL && nb_rx_queues > 0)
-		goto error;
-	if (tx_queues == NULL && nb_tx_queues > 0)
-		goto error;
+  /* do some parameter checking */
+  if (rx_queues == NULL && nb_rx_queues > 0) {
+    goto error;
+  }
+  if (tx_queues == NULL && nb_tx_queues > 0) {
+    goto error;
+  }
 
-	RTE_LOG(INFO, PMD, "Creating pipe ethdev %s on numa socket %u\n",
-		name, numa_node);
+  RTE_LOG(INFO, PMD, "Creating pipe ethdev %s on numa socket %u\n",
+          name, numa_node);
 
-	/* now do all data allocation - for eth_dev structure, dummy pci driver
-	 * and internal (private) data
-	 */
-	data = rte_zmalloc_socket(name, sizeof(*data), 0, numa_node);
-	if (data == NULL)
-		goto error;
+  /* now do all data allocation - for eth_dev structure, dummy pci driver
+   * and internal (private) data
+   */
+  data = rte_zmalloc_socket(name, sizeof(*data), 0, numa_node);
+  if (data == NULL) {
+    goto error;
+  }
 
-	pci_dev = rte_zmalloc_socket(name, sizeof(*pci_dev), 0, numa_node);
-	if (pci_dev == NULL)
-		goto error;
+  pci_dev = rte_zmalloc_socket(name, sizeof(*pci_dev), 0, numa_node);
+  if (pci_dev == NULL) {
+    goto error;
+  }
 
-	internals = rte_zmalloc_socket(name, sizeof(*internals), 0, numa_node);
-	if (internals == NULL)
-		goto error;
+  internals = rte_zmalloc_socket(name, sizeof(*internals), 0, numa_node);
+  if (internals == NULL) {
+    goto error;
+  }
 
-	/* reserve an ethdev entry */
-	eth_dev = rte_eth_dev_allocate(name);
-	if (eth_dev == NULL)
-		goto error;
+  /* reserve an ethdev entry */
+#if !defined(RTE_VERSION_NUM) || RTE_VERSION < RTE_VERSION_NUM(2, 0, 0, 0)
+  eth_dev = rte_eth_dev_allocate(name);
+#else
+  eth_dev = rte_eth_dev_allocate(name, RTE_ETH_DEV_VIRTUAL);
+#endif /* RTE_VERSION_NUM */
+  if (eth_dev == NULL) {
+    goto error;
+  }
 
-	/* now put it all together
-	 * - store queue data in internals,
-	 * - store numa_node info in pci_driver
-	 * - point eth_dev_data to internals and pci_driver
-	 * - and point eth_dev structure to new eth_dev_data structure
-	 */
-	/* NOTE: we'll replace the data element, of originally allocated eth_dev
-	 * so the rings are local per-process */
+  /* now put it all together
+   * - store queue data in internals,
+   * - store numa_node info in pci_driver
+   * - point eth_dev_data to internals and pci_driver
+   * - and point eth_dev structure to new eth_dev_data structure
+   */
+  /* NOTE: we'll replace the data element, of originally allocated eth_dev
+   * so the rings are local per-process */
 
-	internals->nb_rx_queues = nb_rx_queues;
-	internals->nb_tx_queues = nb_tx_queues;
-	for (i = 0; i < nb_rx_queues; i++) {
-		internals->rx_ring_queues[i].rng = rx_queues[i];
-	}
-	for (i = 0; i < nb_tx_queues; i++) {
-		internals->tx_ring_queues[i].rng = tx_queues[i];
-	}
+  internals->nb_rx_queues = nb_rx_queues;
+  internals->nb_tx_queues = nb_tx_queues;
+  for (i = 0; i < nb_rx_queues; i++) {
+    internals->rx_ring_queues[i].rng = rx_queues[i];
+  }
+  for (i = 0; i < nb_tx_queues; i++) {
+    internals->tx_ring_queues[i].rng = tx_queues[i];
+  }
 
-	pci_dev->numa_node = numa_node;
+  pci_dev->numa_node = numa_node;
 
-	data->dev_private = internals;
-	data->port_id = eth_dev->data->port_id;
-	data->nb_rx_queues = (uint16_t)nb_rx_queues;
-	data->nb_tx_queues = (uint16_t)nb_tx_queues;
-	data->dev_link = pmd_link;
-	data->mac_addrs = &eth_addr;
+  data->dev_private = internals;
+  data->port_id = eth_dev->data->port_id;
+  data->nb_rx_queues = (uint16_t)nb_rx_queues;
+  data->nb_tx_queues = (uint16_t)nb_tx_queues;
+  data->dev_link = pmd_link;
+  data->mac_addrs = &eth_addr;
 
-	eth_dev ->data = data;
-	eth_dev ->dev_ops = &ops;
-	eth_dev ->pci_dev = pci_dev;
+  eth_dev ->data = data;
+  eth_dev ->dev_ops = &ops;
+  eth_dev ->pci_dev = pci_dev;
 
-	/* finally assign rx and tx ops */
-	eth_dev->rx_pkt_burst = eth_ring_rx;
-	eth_dev->tx_pkt_burst = eth_ring_tx;
+  /* finally assign rx and tx ops */
+  eth_dev->rx_pkt_burst = eth_ring_rx;
+  eth_dev->tx_pkt_burst = eth_ring_tx;
 
-	return 0;
+  return 0;
 
 error:
 	if (data)

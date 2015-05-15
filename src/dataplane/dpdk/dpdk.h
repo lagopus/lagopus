@@ -17,7 +17,7 @@
 
 /**
  *      @file   dpdk.h
- *      @brief  Parameter, structure and function for datapath w/  Intel DPDK.
+ *      @brief  Parameter, structure and function for dataplane w/ DPDK.
  */
 
 /*-
@@ -55,6 +55,8 @@
 
 #ifndef SRC_DATAPLANE_DPDK_DPDK_H_
 #define SRC_DATAPLANE_DPDK_DPDK_H_
+
+#include <rte_config.h>
 
 /* Logical cores */
 #ifndef APP_MAX_SOCKETS

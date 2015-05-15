@@ -24,6 +24,7 @@
 #define SRC_INCLUDE_LAGOPUS_FLOWDB_H_
 
 #ifdef HAVE_DPDK
+#include "rte_config.h"
 #include "rte_rwlock.h"
 #endif /* HAVE_DPDK */
 
