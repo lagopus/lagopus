@@ -13,10 +13,9 @@ beautify() {
 	-o -O \
 	-k3 \
 	-z2 \
+	-r \
+	-n \
 	${1+"$@"}
-    for i in ${1+"$@"}; do
-	rm -f "${i}".orig
-    done
 }
 
 
