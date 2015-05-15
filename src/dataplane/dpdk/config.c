@@ -242,7 +242,7 @@ parse_arg_rx(const char *arg) {
 
     p0 = strchr(p++, ')');
     if (p0 == NULL) {
-        return -2;
+      return -2;
     }
     if (str_to_unsigned_vals(p, (size_t)(p0 - p), ',', 3,
                              &port, &queue, &lcore) !=  3) {

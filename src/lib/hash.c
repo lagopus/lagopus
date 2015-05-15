@@ -81,25 +81,25 @@ terms specified in this license.
  */
 
 static inline unsigned int      HashArray (HashTable *tablePtr,
-                                       const void *key);
+    const void *key);
 static HashEntry        *ArrayFind (HashTable *tablePtr,
-                              const void *key);
+                                    const void *key);
 static HashEntry        *ArrayCreate (HashTable *tablePtr,
-                                const void *key, int *newPtr);
+                                      const void *key, int *newPtr);
 static HashEntry        *BogusFind (HashTable *tablePtr,
-                              const void *key);
+                                    const void *key);
 static HashEntry        *BogusCreate (HashTable *tablePtr,
-                                const void *key, int *newPtr);
+                                      const void *key, int *newPtr);
 static inline unsigned int      HashString (const char *string);
 static void             RebuildTable (HashTable *tablePtr);
 static HashEntry        *StringFind (HashTable *tablePtr,
-                               const void *key);
+                                     const void *key);
 static HashEntry        *StringCreate (HashTable *tablePtr,
-                                 const void *key, int *newPtr);
+                                       const void *key, int *newPtr);
 static HashEntry        *OneWordFind (HashTable *tablePtr,
-                                const void *key);
+                                      const void *key);
 static HashEntry        *OneWordCreate (HashTable *tablePtr,
-                                  const void *key, int *newPtr);
+                                        const void *key, int *newPtr);
 
 /*
  *----------------------------------------------------------------------

@@ -364,9 +364,9 @@ app_lcore_io_rx(
                                   sizeof(ETHER_HDR) + 2, port) % n_workers;
 #else
           worker_0 = CityHash64WithSeed(rte_pktmbuf_mtod(mbuf_0_0, void *),
-                                  sizeof(ETHER_HDR) + 2, port) % n_workers;
+                                        sizeof(ETHER_HDR) + 2, port) % n_workers;
           worker_1 = CityHash64WithSeed(rte_pktmbuf_mtod(mbuf_0_1, void *),
-                                  sizeof(ETHER_HDR) + 2, port) % n_workers;
+                                        sizeof(ETHER_HDR) + 2, port) % n_workers;
 #endif /* __SSE4_2__ */
           break;
         case FIFONESS_PORT:
@@ -403,7 +403,7 @@ app_lcore_io_rx(
                                 sizeof(ETHER_HDR) + 2, port) % n_workers;
 #else
           worker = CityHash64WithSeed(rte_pktmbuf_mtod(mbuf, void *),
-                                sizeof(ETHER_HDR) + 2, port) % n_workers;
+                                      sizeof(ETHER_HDR) + 2, port) % n_workers;
 #endif /* __SSE4_2__ */
           break;
         case FIFONESS_PORT:
@@ -809,10 +809,10 @@ app_init_rings_rx(void) {
         socket_io,
         lcore_worker);
       snprintf(name, sizeof(name),
-                   "app_ring_rx_s%u_io%u_w%u",
-                   socket_io,
-                   lcore,
-                   lcore_worker);
+               "app_ring_rx_s%u_io%u_w%u",
+               socket_io,
+               lcore,
+               lcore_worker);
       ring = rte_ring_create(
                name,
                app.ring_rx_size,
@@ -903,8 +903,8 @@ app_init_rings_tx(void) {
                         (unsigned)lcore_io,
                         (unsigned)socket_io);
       snprintf(name, sizeof(name),
-                   "app_ring_tx_s%u_w%u_p%u",
-                   socket_io, lcore, port);
+               "app_ring_tx_s%u_w%u_p%u",
+               socket_io, lcore, port);
       ring = rte_ring_create(
                name,
                app.ring_tx_size,
@@ -1033,11 +1033,11 @@ app_init_nics(void) {
               (uint16_t) app.nic_tx_ring_size,
               socket,
 #if defined(RTE_VERSION_NUM) && RTE_VERSION >= RTE_VERSION_NUM(1, 8, 0, 0)
-                                 &devinfo.default_txconf
+              &devinfo.default_txconf
 #else
-                                 &tx_conf
+              &tx_conf
 #endif /* RTE_VERSION_NUM */
-                                   );
+            );
       if (ret < 0) {
         rte_panic("Cannot init TX queue 0 for port %d (%d)\n",
                   port,

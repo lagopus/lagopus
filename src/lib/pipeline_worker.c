@@ -49,7 +49,7 @@ typedef struct lagopus_pipeline_worker_record {
 
 
 static inline void      s_worker_pause(lagopus_pipeline_worker_t w,
-                                   lagopus_pipeline_stage_t ps);
+                                       lagopus_pipeline_stage_t ps);
 static inline void      s_worker_maintenance(lagopus_pipeline_worker_t w,
     lagopus_pipeline_stage_t ps);
 

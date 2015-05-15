@@ -590,8 +590,8 @@ static void s_dtors(void) __attr_destructor__(103);
 
 
 typedef bool    (*path_verify_func_t)(const char *path,
-                                    char *buf,
-                                    size_t buflen);
+                                      char *buf,
+                                      size_t buflen);
 
 
 static inline bool
