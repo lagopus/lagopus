@@ -1507,13 +1507,10 @@ lagopus_forward_packet_to_port(struct lagopus_packet *pkt,
       /* required: send packet-in message with OFPR_ACTION to controller */
       /* XXX max_len from config */
       DP_PRINT("OFPP_CONTROLLER\n");
-      bridge = pkt->in_port->bridge;
-      if ((bridge->controller_port.config & OFPPC_NO_PACKET_IN) != 0) {
-        /* nothing to do */
-        break;
+      if ((pkt->in_port->ofp_port.config & OFPPC_NO_PACKET_IN) == 0) {
+        send_packet_in(pkt, OS_M_PKTLEN(pkt->mbuf), OFPR_ACTION,
+                       OFPCML_NO_BUFFER, 0);
       }
-      send_packet_in(pkt, OS_M_PKTLEN(pkt->mbuf), OFPR_ACTION,
-                     OFPCML_NO_BUFFER, 0);
       lagopus_packet_free(pkt);
       break;
 
