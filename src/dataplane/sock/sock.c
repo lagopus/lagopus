@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +16,8 @@
 
 
 /**
- *	@file	sock.c
- *	@brief	Datapath driver use with raw socket
+ *      @file   sock.c
+ *      @brief  Datapath driver use with raw socket
  */
 
 #include <stdio.h>
@@ -55,16 +55,8 @@ static struct port_stats *port_stats(struct port *port);
 static struct pollfd pollfd[256]; /* XXX */
 static int ifindex[256];
 
-#ifdef STANDALONE
-static struct dpmgr *my_dpmgr;
-#endif /* STANDALONE */
-
 #define TIMEOUT_SHUTDOWN_RIGHT_NOW     (100*1000*1000) /* 100msec */
 #define TIMEOUT_SHUTDOWN_GRACEFULLY    (1500*1000*1000) /* 1.5sec */
-
-#ifdef STANDALONE
-static bool capture = false;
-#endif
 
 static bool no_cache = true;
 static int kvs_type = FLOWCACHE_HASHMAP_NOLOCK;
@@ -112,9 +104,15 @@ read_packet(int fd, uint8_t *buf, size_t buflen) {
       continue;
     }
     auxdata = (struct tpacket_auxdata *)CMSG_DATA(cmsg);
+#if defined (TP_STATUS_VLAN_VALID)
+    if ((auxdata->tp_status & TP_STATUS_VLAN_VALID) == 0) {
+      continue;
+    }
+#else
     if (auxdata->tp_vlan_tci == 0) {
       continue;
     }
+#endif /* TP_STATUS_VLAN_VALID */
     p = (uint16_t *)(buf + ETHER_ADDR_LEN * 2);
     switch (OS_NTOHS(p[0])) {
       case ETHERTYPE_PBB:
@@ -168,9 +166,12 @@ lagopus_configure_physical_port(struct port *port) {
   struct sockaddr_ll sll;
   int fd, on;
 
+  if (port->type != LAGOPUS_PORT_TYPE_PHYSICAL) {
+    return LAGOPUS_RESULT_OK;
+  }
   fd = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
   if (fd == -1) {
-    lagopus_msg_warning("%s: %s\n", port->ofp_port.name, strerror(errno));
+    lagopus_msg_error("%s: %s\n", port->ofp_port.name, strerror(errno));
     return LAGOPUS_RESULT_POSIX_API_ERROR;
   }
   on = 1;
@@ -256,7 +257,22 @@ lagopus_send_packet_normal(__UNUSED struct lagopus_packet *pkt,
 
 struct lagopus_packet *
 copy_packet(struct lagopus_packet *src_pkt) {
-  return src_pkt;
+  OS_MBUF *mbuf;
+  struct lagopus_packet *pkt;
+  size_t pktlen;
+
+  pkt = alloc_lagopus_packet();
+  if (pkt == NULL) {
+    lagopus_msg_error("alloc_lagopus_packet failed\n");
+    return NULL;
+  }
+  mbuf = pkt->mbuf;
+  pktlen = OS_M_PKTLEN(src_pkt->mbuf);
+  OS_M_APPEND(mbuf, pktlen);
+  memcpy(OS_MTOD(pkt->mbuf, char *), OS_MTOD(src_pkt->mbuf, char *), pktlen);
+  pkt->in_port = src_pkt->in_port;
+  /* other pkt members are not used in physical output. */
+  return pkt;
 }
 
 void
@@ -280,38 +296,6 @@ lagopus_meter_init(void) {
 
 lagopus_result_t
 lagopus_datapath_init(int argc, const char *argv[]) {
-#ifdef STANDALONE
-  uint32_t portid;
-
-  for (portid = 0; portid < (uint32_t)argc - 2; portid++) {
-    {
-      struct port nport;
-
-      /* New port API. */
-      nport.type = LAGOPUS_PORT_TYPE_PHYSICAL;
-      nport.ofp_port.port_no = portid + 1;
-      nport.ifindex = portid;
-      strlcpy(nport.ofp_port.name, argv[portid + 2],
-              sizeof(nport.ofp_port.name));
-      dpmgr_port_add(my_dpmgr, &nport);
-      dpmgr_bridge_port_add(my_dpmgr, "br0", portid + 1);
-
-      if (capture == true) {
-        struct port *port;
-
-        port = port_lookup(my_dpmgr->ports, portid + 1);
-        if (port != NULL) {
-          char fname[256];
-
-          snprintf(fname, sizeof(fname), "port%d.cap", portid + 1);
-          lagopus_pcap_init(port, fname);
-        }
-      }
-    }
-  }
-  return argc - 2;
-
-#else
   static struct option lgopts[] = {
     {"no-cache", 0, 0, 0},
     {"kvstype", 1, 0, 0},
@@ -351,7 +335,6 @@ lagopus_datapath_init(int argc, const char *argv[]) {
         break;
     }
   }
-#endif
   return 0;
 }
 
@@ -451,7 +434,7 @@ port_stats(struct port *port) {
 #ifdef IFLA_STATS64
               case IFLA_STATS64:
 #else
-	      case IFLA_STATS:
+              case IFLA_STATS:
 #endif /* IFLA_STATS64 */
                 link_stats = RTA_DATA(rta);
                 goto found;
@@ -600,71 +583,3 @@ void
 datapath_usage(__UNUSED FILE *fp) {
   /* so far, nothing additional options. */
 }
-
-#ifdef STANDALONE
-int
-main(int argc, char *argv[]) {
-  static struct option lgopts[] = {
-    {"no-cache", 0, 0, 0},
-    {NULL, 0, 0, 0}
-  };
-  struct datapath_arg dparg;
-  struct bridge *bridge;
-  lagopus_thread_t *datapath;
-  uint32_t nb_ports;
-  int opt, ret, optind;
-
-  no_cache = 0;
-  while ((opt = getopt_long(argc, argv, "c", lgopts, &optind)) != -1) {
-    switch (opt) {
-      case 'c':
-        /* capture port */
-        capture = true;
-        break;
-      case 0: /* long options */
-        if (!strcmp(lgopts[optind].name, "no-cache")) {
-          no_cache = true;
-        }
-        break;
-    }
-  }
-  argc -= optind - 1;
-  argv += optind - 1;
-
-  nb_ports = (uint32_t)argc - 1;
-  if (nb_ports < 2) {
-    err(EXIT_FAILURE, "Usage: ofswitch <i/f> <i/f> [...]\n");
-  }
-
-  my_dpmgr = dpmgr_alloc();
-  if (my_dpmgr == NULL) {
-    err(EXIT_FAILURE, "datapath manager allocation error\n");
-  }
-
-  /* Create default bridge. */
-  ret = dpmgr_bridge_add(my_dpmgr, "br0", 0);
-  if (ret < 0) {
-    err(EXIT_FAILURE, "Adding br0 failed\n");
-  }
-
-  /* setup flow table. */
-  bridge = dpmgr_bridge_lookup(my_dpmgr, "br0");
-  register_flow(bridge->flowdb, 100000);
-  flowdb_switch_mode_set(bridge->flowdb, SWITCH_MODE_OPENFLOW);
-
-  /* Start datapath. */
-  dparg.dpmgr = my_dpmgr;
-  dparg.argc = argc;
-  dparg.argv = argv;
-  datapath_initialize(&dparg, &datapath);
-  datapath_start();
-
-  while (lagopus_thread_wait(datapath, 1000000) == LAGOPUS_RESULT_TIMEDOUT) {
-    sleep(1);
-  }
-
-  dpmgr_free(my_dpmgr);
-
-  return 0;
-}
-#endif /* STANDALONE */

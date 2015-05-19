@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 
 
 /**
- * @file	ofp_queue_config_handler.h
+ * @file        ofp_queue_config_handler.h
  */
 
 #ifndef __OFP_QUEUE_CONFIG_HANDLER_H__
@@ -29,15 +29,15 @@
 /**
  * ofp_queue_get_config_request handler.
  *
- *     @param[in]	channel	A pointer to \e channel structure.
- *     @param[in]	pbuf	A pointer to \e pbuf structure.
- *     @param[in]	xid_header	A pointer to \e ofp_header structure in request.
- *     @param[out]	error	A pointer to \e ofp_error structure.
+ *     @param[in]       channel A pointer to \e channel structure.
+ *     @param[in]       pbuf    A pointer to \e pbuf structure.
+ *     @param[in]       xid_header      A pointer to \e ofp_header structure in request.
+ *     @param[out]      error   A pointer to \e ofp_error structure.
  *     If errors occur, set filed values.
  *
- *     @retval	LAGOPUS_RESULT_OK	Succeeded.
- *     @retval	LAGOPUS_RESULT_OFP_ERROR Failed, ofp_error.
- *     @retval	LAGOPUS_RESULT_ANY_FAILURES Failed.
+ *     @retval  LAGOPUS_RESULT_OK       Succeeded.
+ *     @retval  LAGOPUS_RESULT_OFP_ERROR Failed, ofp_error.
+ *     @retval  LAGOPUS_RESULT_ANY_FAILURES Failed.
  */
 lagopus_result_t
 ofp_queue_get_config_request_handle(struct channel *channel,
@@ -49,15 +49,15 @@ ofp_queue_get_config_request_handle(struct channel *channel,
 /**
  * Create ofp_queue_get_config_reply.
  *
- *     @param[in]	channel	A pointer to \e channel structure.
- *     @param[out]	pbuf	A pointer to \e pbuf structure.
- *     @param[in]	port	Port num.
- *     @param[in]	packet_queue_list	A pointer to list of
+ *     @param[in]       channel A pointer to \e channel structure.
+ *     @param[out]      pbuf    A pointer to \e pbuf structure.
+ *     @param[in]       port    Port num.
+ *     @param[in]       packet_queue_list       A pointer to list of
  *     \e packet_queue structure.
- *     @param[in]	xid_header	A pointer to \e ofp_header structure.
+ *     @param[in]       xid_header      A pointer to \e ofp_header structure.
  *
- *     @retval	LAGOPUS_RESULT_OK	Succeeded.
- *     @retval	LAGOPUS_RESULT_ANY_FAILURES Failed.
+ *     @retval  LAGOPUS_RESULT_OK       Succeeded.
+ *     @retval  LAGOPUS_RESULT_ANY_FAILURES Failed.
  */
 lagopus_result_t
 ofp_queue_get_config_reply_create(struct channel *channel, struct pbuf **pbuf,

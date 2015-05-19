@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@
 
 
 /**
- *	@file	lagopus_types.h
+ *      @file   lagopus_types.h
  */
 
 
@@ -41,7 +41,7 @@ typedef int64_t lagopus_result_t;
  * acquired by \b clock_gettime(). For arithmetic operations, the sign
  * extension is needed.
  */
-typedef	int64_t	lagopus_chrono_t;
+typedef int64_t lagopus_chrono_t;
 
 
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,36 +21,36 @@
 
 /*-
  *   BSD LICENSE
- * 
+ *
  *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
  *   All rights reserved.
- * 
- *   Redistribution and use in source and binary forms, with or without 
- *   modification, are permitted provided that the following conditions 
+ *
+ *   Redistribution and use in source and binary forms, with or without
+ *   modification, are permitted provided that the following conditions
  *   are met:
- * 
- *     * Redistributions of source code must retain the above copyright 
+ *
+ *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above copyright 
- *       notice, this list of conditions and the following disclaimer in 
- *       the documentation and/or other materials provided with the 
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in
+ *       the documentation and/or other materials provided with the
  *       distribution.
- *     * Neither the name of Intel Corporation nor the names of its 
- *       contributors may be used to endorse or promote products derived 
+ *     * Neither the name of Intel Corporation nor the names of its
+ *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
- * 
- *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
- *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT 
- *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR 
- *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
- *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
- *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
- *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
- *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
- *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
- *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+ *
+ *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ *   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ *   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ *   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ *   LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ *   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ *   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
+ *
  */
 
 #ifndef SRC_DATAPLANE_OFPROTO_CSUM_H_
@@ -208,7 +208,7 @@ lagopus_update_tcp_checksum(struct lagopus_packet *pkt) {
     } else {
       TCP_CKSUM(pkt->tcp) = 0;
       TCP_CKSUM(pkt->tcp) = get_ipv4_l4_checksum(pkt->ipv4, pkt->l4_hdr_w,
-                                                 get_ipv4_psd_sum(pkt->ipv4));
+                            get_ipv4_psd_sum(pkt->ipv4));
     }
   } else if (pkt->ether_type == ETHERTYPE_IPV6) {
     if (HW_TCP_CKSUM_IS_ENABLED) {
@@ -217,7 +217,7 @@ lagopus_update_tcp_checksum(struct lagopus_packet *pkt) {
     } else {
       TCP_CKSUM(pkt->tcp) = 0;
       TCP_CKSUM(pkt->tcp) = get_ipv6_l4_checksum(pkt->ipv6, pkt->l4_hdr_w,
-                                                 get_ipv6_psd_sum(pkt->ipv6));
+                            get_ipv6_psd_sum(pkt->ipv6));
     }
   }
 }
@@ -236,7 +236,7 @@ lagopus_update_udp_checksum(struct lagopus_packet *pkt) {
     } else {
       UDP_CKSUM(pkt->udp) = 0;
       UDP_CKSUM(pkt->udp) = get_ipv4_l4_checksum(pkt->ipv4, pkt->l4_hdr_w,
-                                                 get_ipv4_psd_sum(pkt->ipv4));
+                            get_ipv4_psd_sum(pkt->ipv4));
     }
   } else if (pkt->ether_type == ETHERTYPE_IPV6) {
     if (HW_UDP_CKSUM_IS_ENABLED) {
@@ -245,7 +245,7 @@ lagopus_update_udp_checksum(struct lagopus_packet *pkt) {
     } else {
       UDP_CKSUM(pkt->udp) = 0;
       UDP_CKSUM(pkt->udp) = get_ipv6_l4_checksum(pkt->ipv6, pkt->l4_hdr_w,
-                                                 get_ipv6_psd_sum(pkt->ipv6));
+                            get_ipv6_psd_sum(pkt->ipv6));
     }
   }
 }
@@ -264,14 +264,14 @@ lagopus_update_ipv4_checksum(struct lagopus_packet *pkt) {
     IPV4_CSUM(pkt->ipv4) = get_ipv4_cksum(pkt->l3_hdr_w);
   }
   switch (IPV4_PROTO(pkt->ipv4)) {
-  case IPPROTO_TCP:
-    lagopus_update_tcp_checksum(pkt);
-    break;
-  case IPPROTO_UDP:
-    lagopus_update_udp_checksum(pkt);
-    break;
-  default:
-    break;
+    case IPPROTO_TCP:
+      lagopus_update_tcp_checksum(pkt);
+      break;
+    case IPPROTO_UDP:
+      lagopus_update_udp_checksum(pkt);
+      break;
+    default:
+      break;
   }
 }
 
@@ -284,14 +284,14 @@ static inline void
 lagopus_update_ipv6_checksum(struct lagopus_packet *pkt) {
   if (pkt->proto != NULL) {
     switch (*pkt->proto) {
-    case IPPROTO_TCP:
-      lagopus_update_tcp_checksum(pkt);
-      break;
-    case IPPROTO_UDP:
-      lagopus_update_udp_checksum(pkt);
-      break;
-    default:
-      break;
+      case IPPROTO_TCP:
+        lagopus_update_tcp_checksum(pkt);
+        break;
+      case IPPROTO_UDP:
+        lagopus_update_udp_checksum(pkt);
+        break;
+      default:
+        break;
     }
   }
 }
@@ -372,7 +372,7 @@ static inline void
 lagopus_update_icmpv6_checksum(struct lagopus_packet *pkt) {
   ICMP_CKSUM(pkt->icmp) = 0;
   ICMP_CKSUM(pkt->icmp) = get_ipv6_l4_checksum(pkt->ipv6, pkt->l4_hdr_w,
-                                               get_ipv6_psd_sum(pkt->ipv6));
+                          get_ipv6_psd_sum(pkt->ipv6));
 }
 
 #endif /* SRC_DATAPLANE_OFPROTO_CSUM_H_ */

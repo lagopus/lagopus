@@ -1,8 +1,8 @@
-/*	$NetBSD: tty.c,v 1.42 2012/05/15 15:59:01 christos Exp $	*/
+/*      $NetBSD: tty.c,v 1.42 2012/05/15 15:59:01 christos Exp $        */
 
 /*-
  * Copyright (c) 1992, 1993
- *	The Regents of the University of California.  All rights reserved.
+ *      The Regents of the University of California.  All rights reserved.
  *
  * This code is derived from software contributed to Berkeley by
  * Christos Zoulas of Cornell University.
@@ -35,7 +35,7 @@
 #include "config.h"
 #if !defined(lint) && !defined(SCCSID)
 #if 0
-static char sccsid[] = "@(#)tty.c	8.1 (Berkeley) 6/4/93";
+static char sccsid[] = "@(#)tty.c       8.1 (Berkeley) 6/4/93";
 #else
 __RCSID("$NetBSD: tty.c,v 1.42 2012/05/15 15:59:01 christos Exp $");
 #endif
@@ -46,8 +46,8 @@ __RCSID("$NetBSD: tty.c,v 1.42 2012/05/15 15:59:01 christos Exp $");
  */
 #include <assert.h>
 #include <errno.h>
-#include <unistd.h>	/* for isatty */
-#include <strings.h>	/* for ffs */
+#include <unistd.h>     /* for isatty */
+#include <strings.h>    /* for ffs */
 #include "el.h"
 #include "tty.h"
 
@@ -58,8 +58,8 @@ typedef struct ttymodes_t {
 }          ttymodes_t;
 
 typedef struct ttymap_t {
-  Int nch, och;		/* Internal and termio rep of chars */
-  el_action_t bind[3];	/* emacs, vi, and vi-cmd */
+  Int nch, och;         /* Internal and termio rep of chars */
+  el_action_t bind[3];  /* emacs, vi, and vi-cmd */
 } ttymap_t;
 
 
@@ -183,132 +183,132 @@ private const ttymap_t tty_map[] = {
 };
 
 private const ttymodes_t ttymodes[] = {
-#ifdef	IGNBRK
+#ifdef  IGNBRK
   {"ignbrk", IGNBRK, MD_INP},
 #endif /* IGNBRK */
-#ifdef	BRKINT
+#ifdef  BRKINT
   {"brkint", BRKINT, MD_INP},
 #endif /* BRKINT */
-#ifdef	IGNPAR
+#ifdef  IGNPAR
   {"ignpar", IGNPAR, MD_INP},
 #endif /* IGNPAR */
-#ifdef	PARMRK
+#ifdef  PARMRK
   {"parmrk", PARMRK, MD_INP},
 #endif /* PARMRK */
-#ifdef	INPCK
+#ifdef  INPCK
   {"inpck", INPCK, MD_INP},
 #endif /* INPCK */
-#ifdef	ISTRIP
+#ifdef  ISTRIP
   {"istrip", ISTRIP, MD_INP},
 #endif /* ISTRIP */
-#ifdef	INLCR
+#ifdef  INLCR
   {"inlcr", INLCR, MD_INP},
 #endif /* INLCR */
-#ifdef	IGNCR
+#ifdef  IGNCR
   {"igncr", IGNCR, MD_INP},
 #endif /* IGNCR */
-#ifdef	ICRNL
+#ifdef  ICRNL
   {"icrnl", ICRNL, MD_INP},
 #endif /* ICRNL */
-#ifdef	IUCLC
+#ifdef  IUCLC
   {"iuclc", IUCLC, MD_INP},
 #endif /* IUCLC */
-#ifdef	IXON
+#ifdef  IXON
   {"ixon", IXON, MD_INP},
 #endif /* IXON */
-#ifdef	IXANY
+#ifdef  IXANY
   {"ixany", IXANY, MD_INP},
 #endif /* IXANY */
-#ifdef	IXOFF
+#ifdef  IXOFF
   {"ixoff", IXOFF, MD_INP},
 #endif /* IXOFF */
 #ifdef  IMAXBEL
   {"imaxbel", IMAXBEL, MD_INP},
 #endif /* IMAXBEL */
 
-#ifdef	OPOST
+#ifdef  OPOST
   {"opost", OPOST, MD_OUT},
 #endif /* OPOST */
-#ifdef	OLCUC
+#ifdef  OLCUC
   {"olcuc", OLCUC, MD_OUT},
 #endif /* OLCUC */
-#ifdef	ONLCR
+#ifdef  ONLCR
   {"onlcr", ONLCR, MD_OUT},
 #endif /* ONLCR */
-#ifdef	OCRNL
+#ifdef  OCRNL
   {"ocrnl", OCRNL, MD_OUT},
 #endif /* OCRNL */
-#ifdef	ONOCR
+#ifdef  ONOCR
   {"onocr", ONOCR, MD_OUT},
 #endif /* ONOCR */
 #ifdef ONOEOT
   {"onoeot", ONOEOT, MD_OUT},
 #endif /* ONOEOT */
-#ifdef	ONLRET
+#ifdef  ONLRET
   {"onlret", ONLRET, MD_OUT},
 #endif /* ONLRET */
-#ifdef	OFILL
+#ifdef  OFILL
   {"ofill", OFILL, MD_OUT},
 #endif /* OFILL */
-#ifdef	OFDEL
+#ifdef  OFDEL
   {"ofdel", OFDEL, MD_OUT},
 #endif /* OFDEL */
-#ifdef	NLDLY
+#ifdef  NLDLY
   {"nldly", NLDLY, MD_OUT},
 #endif /* NLDLY */
-#ifdef	CRDLY
+#ifdef  CRDLY
   {"crdly", CRDLY, MD_OUT},
 #endif /* CRDLY */
-#ifdef	TABDLY
+#ifdef  TABDLY
   {"tabdly", TABDLY, MD_OUT},
 #endif /* TABDLY */
-#ifdef	XTABS
+#ifdef  XTABS
   {"xtabs", XTABS, MD_OUT},
 #endif /* XTABS */
-#ifdef	BSDLY
+#ifdef  BSDLY
   {"bsdly", BSDLY, MD_OUT},
 #endif /* BSDLY */
-#ifdef	VTDLY
+#ifdef  VTDLY
   {"vtdly", VTDLY, MD_OUT},
 #endif /* VTDLY */
-#ifdef	FFDLY
+#ifdef  FFDLY
   {"ffdly", FFDLY, MD_OUT},
 #endif /* FFDLY */
-#ifdef	PAGEOUT
+#ifdef  PAGEOUT
   {"pageout", PAGEOUT, MD_OUT},
 #endif /* PAGEOUT */
-#ifdef	WRAP
+#ifdef  WRAP
   {"wrap", WRAP, MD_OUT},
 #endif /* WRAP */
 
-#ifdef	CIGNORE
+#ifdef  CIGNORE
   {"cignore", CIGNORE, MD_CTL},
 #endif /* CBAUD */
-#ifdef	CBAUD
+#ifdef  CBAUD
   {"cbaud", CBAUD, MD_CTL},
 #endif /* CBAUD */
-#ifdef	CSTOPB
+#ifdef  CSTOPB
   {"cstopb", CSTOPB, MD_CTL},
 #endif /* CSTOPB */
-#ifdef	CREAD
+#ifdef  CREAD
   {"cread", CREAD, MD_CTL},
 #endif /* CREAD */
-#ifdef	PARENB
+#ifdef  PARENB
   {"parenb", PARENB, MD_CTL},
 #endif /* PARENB */
-#ifdef	PARODD
+#ifdef  PARODD
   {"parodd", PARODD, MD_CTL},
 #endif /* PARODD */
-#ifdef	HUPCL
+#ifdef  HUPCL
   {"hupcl", HUPCL, MD_CTL},
 #endif /* HUPCL */
-#ifdef	CLOCAL
+#ifdef  CLOCAL
   {"clocal", CLOCAL, MD_CTL},
 #endif /* CLOCAL */
-#ifdef	LOBLK
+#ifdef  LOBLK
   {"loblk", LOBLK, MD_CTL},
 #endif /* LOBLK */
-#ifdef	CIBAUD
+#ifdef  CIBAUD
   {"cibaud", CIBAUD, MD_CTL},
 #endif /* CIBAUD */
 #ifdef CRTSCTS
@@ -334,61 +334,61 @@ private const ttymodes_t ttymodes[] = {
   {"xmt1en", XMT1EN, MD_CTL},
 #endif /* XMT1EN */
 
-#ifdef	ISIG
+#ifdef  ISIG
   {"isig", ISIG, MD_LIN},
 #endif /* ISIG */
-#ifdef	ICANON
+#ifdef  ICANON
   {"icanon", ICANON, MD_LIN},
 #endif /* ICANON */
-#ifdef	XCASE
+#ifdef  XCASE
   {"xcase", XCASE, MD_LIN},
 #endif /* XCASE */
-#ifdef	ECHO
+#ifdef  ECHO
   {"echo", ECHO, MD_LIN},
 #endif /* ECHO */
-#ifdef	ECHOE
+#ifdef  ECHOE
   {"echoe", ECHOE, MD_LIN},
 #endif /* ECHOE */
-#ifdef	ECHOK
+#ifdef  ECHOK
   {"echok", ECHOK, MD_LIN},
 #endif /* ECHOK */
-#ifdef	ECHONL
+#ifdef  ECHONL
   {"echonl", ECHONL, MD_LIN},
 #endif /* ECHONL */
-#ifdef	NOFLSH
+#ifdef  NOFLSH
   {"noflsh", NOFLSH, MD_LIN},
 #endif /* NOFLSH */
-#ifdef	TOSTOP
+#ifdef  TOSTOP
   {"tostop", TOSTOP, MD_LIN},
 #endif /* TOSTOP */
-#ifdef	ECHOCTL
+#ifdef  ECHOCTL
   {"echoctl", ECHOCTL, MD_LIN},
 #endif /* ECHOCTL */
-#ifdef	ECHOPRT
+#ifdef  ECHOPRT
   {"echoprt", ECHOPRT, MD_LIN},
 #endif /* ECHOPRT */
-#ifdef	ECHOKE
+#ifdef  ECHOKE
   {"echoke", ECHOKE, MD_LIN},
 #endif /* ECHOKE */
-#ifdef	DEFECHO
+#ifdef  DEFECHO
   {"defecho", DEFECHO, MD_LIN},
 #endif /* DEFECHO */
-#ifdef	FLUSHO
+#ifdef  FLUSHO
   {"flusho", FLUSHO, MD_LIN},
 #endif /* FLUSHO */
-#ifdef	PENDIN
+#ifdef  PENDIN
   {"pendin", PENDIN, MD_LIN},
 #endif /* PENDIN */
-#ifdef	IEXTEN
+#ifdef  IEXTEN
   {"iexten", IEXTEN, MD_LIN},
 #endif /* IEXTEN */
-#ifdef	NOKERNINFO
+#ifdef  NOKERNINFO
   {"nokerninfo", NOKERNINFO, MD_LIN},
 #endif /* NOKERNINFO */
-#ifdef	ALTWERASE
+#ifdef  ALTWERASE
   {"altwerase", ALTWERASE, MD_LIN},
 #endif /* ALTWERASE */
-#ifdef	EXTPROC
+#ifdef  EXTPROC
   {"extproc", EXTPROC, MD_LIN},
 #endif /* EXTPROC */
 
@@ -472,22 +472,22 @@ private const ttymodes_t ttymodes[] = {
 
 
 
-#define	tty__gettabs(td)	((((td)->c_oflag & TAB3) == TAB3) ? 0 : 1)
-#define	tty__geteightbit(td)	(((td)->c_cflag & CSIZE) == CS8)
-#define	tty__cooked_mode(td)	((td)->c_lflag & ICANON)
+#define tty__gettabs(td)        ((((td)->c_oflag & TAB3) == TAB3) ? 0 : 1)
+#define tty__geteightbit(td)    (((td)->c_cflag & CSIZE) == CS8)
+#define tty__cooked_mode(td)    ((td)->c_lflag & ICANON)
 
-private int	tty_getty(EditLine *, struct termios *);
-private int	tty_setty(EditLine *, int, const struct termios *);
-private int	tty__getcharindex(int);
-private void	tty__getchar(struct termios *, unsigned char *);
-private void	tty__setchar(struct termios *, unsigned char *);
-private speed_t	tty__getspeed(struct termios *);
-private int	tty_setup(EditLine *);
+private int     tty_getty(EditLine *, struct termios *);
+private int     tty_setty(EditLine *, int, const struct termios *);
+private int     tty__getcharindex(int);
+private void    tty__getchar(struct termios *, unsigned char *);
+private void    tty__setchar(struct termios *, unsigned char *);
+private speed_t tty__getspeed(struct termios *);
+private int     tty_setup(EditLine *);
 
-#define	t_qu	t_ts
+#define t_qu    t_ts
 
 /* tty_getty():
- *	Wrapper for tcgetattr to handle EINTR
+ *      Wrapper for tcgetattr to handle EINTR
  */
 private int
 tty_getty(EditLine *el, struct termios *t) {
@@ -499,7 +499,7 @@ tty_getty(EditLine *el, struct termios *t) {
 }
 
 /* tty_setty():
- *	Wrapper for tcsetattr to handle EINTR
+ *      Wrapper for tcsetattr to handle EINTR
  */
 private int
 tty_setty(EditLine *el, int action, const struct termios *t) {
@@ -511,7 +511,7 @@ tty_setty(EditLine *el, int action, const struct termios *t) {
 }
 
 /* tty_setup():
- *	Get the tty parameters and initialize the editing state
+ *      Get the tty parameters and initialize the editing state
  */
 private int
 tty_setup(EditLine *el) {
@@ -615,7 +615,7 @@ tty_init(EditLine *el) {
 
 
 /* tty_end():
- *	Restore the tty to its original settings
+ *      Restore the tty to its original settings
  */
 protected void
 /*ARGSUSED*/
@@ -630,7 +630,7 @@ tty_end(EditLine *el) {
 
 
 /* tty__getspeed():
- *	Get the tty speed
+ *      Get the tty speed
  */
 private speed_t
 tty__getspeed(struct termios *td) {
@@ -643,7 +643,7 @@ tty__getspeed(struct termios *td) {
 }
 
 /* tty__getspeed():
- *	Return the index of the asked char in the c_cc array
+ *      Return the index of the asked char in the c_cc array
  */
 private int
 tty__getcharindex(int i) {
@@ -750,7 +750,7 @@ tty__getcharindex(int i) {
 }
 
 /* tty__getchar():
- *	Get the tty characters
+ *      Get the tty characters
  */
 private void
 tty__getchar(struct termios *td, unsigned char *s) {
@@ -827,11 +827,11 @@ tty__getchar(struct termios *td, unsigned char *s) {
 #ifdef VTIME
   s[C_TIME] = td->c_cc[VTIME];
 #endif /* VTIME */
-}				/* tty__getchar */
+}                               /* tty__getchar */
 
 
 /* tty__setchar():
- *	Set the tty characters
+ *      Set the tty characters
  */
 private void
 tty__setchar(struct termios *td, unsigned char *s) {
@@ -908,11 +908,11 @@ tty__setchar(struct termios *td, unsigned char *s) {
 #ifdef VTIME
   td->c_cc[VTIME] = s[C_TIME];
 #endif /* VTIME */
-}				/* tty__setchar */
+}                               /* tty__setchar */
 
 
 /* tty_bind_char():
- *	Rebind the editline functions
+ *      Rebind the editline functions
  */
 protected void
 tty_bind_char(EditLine *el, int force) {
@@ -958,7 +958,7 @@ tty_bind_char(EditLine *el, int force) {
 
 
 /* tty_rawmode():
- * 	Set terminal into 1 character at a time mode.
+ *      Set terminal into 1 character at a time mode.
  */
 protected int
 tty_rawmode(EditLine *el) {
@@ -1120,7 +1120,7 @@ tty_rawmode(EditLine *el) {
 
 
 /* tty_cookedmode():
- *	Set the tty back to normal mode
+ *      Set the tty back to normal mode
  */
 protected int
 tty_cookedmode(EditLine *el) {
@@ -1147,7 +1147,7 @@ tty_cookedmode(EditLine *el) {
 
 
 /* tty_quotemode():
- *	Turn on quote mode
+ *      Turn on quote mode
  */
 protected int
 tty_quotemode(EditLine *el) {
@@ -1182,7 +1182,7 @@ tty_quotemode(EditLine *el) {
 
 
 /* tty_noquotemode():
- *	Turn off quote mode
+ *      Turn off quote mode
  */
 protected int
 tty_noquotemode(EditLine *el) {
@@ -1203,7 +1203,7 @@ tty_noquotemode(EditLine *el) {
 
 
 /* tty_stty():
- *	Stty builtin
+ *      Stty builtin
  */
 protected int
 /*ARGSUSED*/
@@ -1368,7 +1368,7 @@ tty_stty(EditLine *el, int argc __attribute__((__unused__)),
 
 #ifdef notyet
 /* tty_printchar():
- *	DEbugging routine to print the tty characters
+ *      DEbugging routine to print the tty characters
  */
 private void
 tty_printchar(EditLine *el, unsigned char *s) {

@@ -1,8 +1,8 @@
-/*	$NetBSD: hist.c,v 1.20 2011/07/29 15:16:33 christos Exp $	*/
+/*      $NetBSD: hist.c,v 1.20 2011/07/29 15:16:33 christos Exp $       */
 
 /*-
  * Copyright (c) 1992, 1993
- *	The Regents of the University of California.  All rights reserved.
+ *      The Regents of the University of California.  All rights reserved.
  *
  * This code is derived from software contributed to Berkeley by
  * Christos Zoulas of Cornell University.
@@ -35,7 +35,7 @@
 #include "config.h"
 #if !defined(lint) && !defined(SCCSID)
 #if 0
-static char sccsid[] = "@(#)hist.c	8.1 (Berkeley) 6/4/93";
+static char sccsid[] = "@(#)hist.c      8.1 (Berkeley) 6/4/93";
 #else
 __RCSID("$NetBSD: hist.c,v 1.20 2011/07/29 15:16:33 christos Exp $");
 #endif
@@ -48,7 +48,7 @@ __RCSID("$NetBSD: hist.c,v 1.20 2011/07/29 15:16:33 christos Exp $");
 #include "el.h"
 
 /* hist_init():
- *	Initialization function.
+ *      Initialization function.
  */
 protected int
 hist_init(EditLine *el) {
@@ -66,7 +66,7 @@ hist_init(EditLine *el) {
 
 
 /* hist_end():
- *	clean up history;
+ *      clean up history;
  */
 protected void
 hist_end(EditLine *el) {
@@ -77,7 +77,7 @@ hist_end(EditLine *el) {
 
 
 /* hist_set():
- *	Set new history interface
+ *      Set new history interface
  */
 protected int
 hist_set(EditLine *el, hist_fun_t fun, void *ptr) {
@@ -89,15 +89,15 @@ hist_set(EditLine *el, hist_fun_t fun, void *ptr) {
 
 
 /* hist_get():
- *	Get a history line and update it in the buffer.
- *	eventno tells us the event to get.
+ *      Get a history line and update it in the buffer.
+ *      eventno tells us the event to get.
  */
 protected el_action_t
 hist_get(EditLine *el) {
   const Char *hp;
   int h;
 
-  if (el->el_history.eventno == 0) {	/* if really the current line */
+  if (el->el_history.eventno == 0) {    /* if really the current line */
     (void) Strncpy(el->el_line.buffer, el->el_history.buf,
                    el->el_history.sz);
     el->el_line.lastchar = el->el_line.buffer +
@@ -154,7 +154,7 @@ hist_get(EditLine *el) {
 
 
 /* hist_command()
- *	process a history command
+ *      process a history command
  */
 protected int
 hist_command(EditLine *el, int argc, const Char **argv) {
@@ -193,8 +193,8 @@ hist_command(EditLine *el, int argc, const Char **argv) {
 }
 
 /* hist_enlargebuf()
- *	Enlarge history buffer to specified value. Called from el_enlargebufs().
- *	Return 0 for failure, 1 for success.
+ *      Enlarge history buffer to specified value. Called from el_enlargebufs().
+ *      Return 0 for failure, 1 for success.
  */
 protected int
 /*ARGSUSED*/

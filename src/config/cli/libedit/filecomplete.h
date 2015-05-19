@@ -1,4 +1,4 @@
-/*	$NetBSD: filecomplete.h,v 1.9 2009/12/30 22:37:40 christos Exp $	*/
+/*      $NetBSD: filecomplete.h,v 1.9 2009/12/30 22:37:40 christos Exp $        */
 
 /*-
  * Copyright (c) 1997 The NetBSD Foundation, Inc.

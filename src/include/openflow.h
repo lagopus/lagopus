@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +16,8 @@
 
 
 /**
- * @file	openflow.h
- * @brief	Openflow common header.
+ * @file        openflow.h
+ * @brief       Openflow common header.
  */
 
 #ifndef __OPENFLOW_H__
@@ -58,14 +58,14 @@
 #define OXM_OF_ETH_DST_W   OXM_HEADER_W(0x8000, OFPXMT_OFB_ETH_DST, 6)
 #define OXM_OF_ETH_SRC     OXM_HEADER  (0x8000, OFPXMT_OFB_ETH_SRC, 6)
 #define OXM_OF_ETH_SRC_W   OXM_HEADER_W(0x8000, OFPXMT_OFB_ETH_SRC, 6)
-#define OXM_OF_ETH_TYPE	   OXM_HEADER  (0x8000, OFPXMT_OFB_ETH_TYPE, 2)
-#define OXM_OF_VLAN_VID	   OXM_HEADER  (0x8000, OFPXMT_OFB_VLAN_VID, 2)
+#define OXM_OF_ETH_TYPE    OXM_HEADER  (0x8000, OFPXMT_OFB_ETH_TYPE, 2)
+#define OXM_OF_VLAN_VID    OXM_HEADER  (0x8000, OFPXMT_OFB_VLAN_VID, 2)
 #define OXM_OF_VLAN_VID_W  OXM_HEADER_W(0x8000, OFPXMT_OFB_VLAN_VID, 2)
-#define OXM_OF_VLAN_PCP	   OXM_HEADER  (0x8000, OFPXMT_OFB_VLAN_PCP, 1)
+#define OXM_OF_VLAN_PCP    OXM_HEADER  (0x8000, OFPXMT_OFB_VLAN_PCP, 1)
 #define OXM_OF_IP_DSCP     OXM_HEADER  (0x8000, OFPXMT_OFB_IP_DSCP, 1)
 #define OXM_OF_IP_ECN      OXM_HEADER  (0x8000, OFPXMT_OFB_IP_ECN, 1)
-#define OXM_OF_IP_PROTO	   OXM_HEADER  (0x8000, OFPXMT_OFB_IP_PROTO, 1)
-#define OXM_OF_IPV4_SRC	   OXM_HEADER  (0x8000, OFPXMT_OFB_IPV4_SRC, 4)
+#define OXM_OF_IP_PROTO    OXM_HEADER  (0x8000, OFPXMT_OFB_IP_PROTO, 1)
+#define OXM_OF_IPV4_SRC    OXM_HEADER  (0x8000, OFPXMT_OFB_IPV4_SRC, 4)
 #define OXM_OF_IPV4_SRC_W  OXM_HEADER_W(0x8000, OFPXMT_OFB_IPV4_SRC, 4)
 #define OXM_OF_IPV4_DST    OXM_HEADER  (0x8000, OFPXMT_OFB_IPV4_DST, 4)
 #define OXM_OF_IPV4_DST_W  OXM_HEADER_W(0x8000, OFPXMT_OFB_IPV4_DST, 4)

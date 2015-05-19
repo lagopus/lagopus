@@ -39,6 +39,9 @@ AC_PROG_CC
 AC_PROG_CXX
 AC_PROG_YACC
 AC_PROG_LEX
+if test "x$LEX" != xflex -a "x$LEX" != xlex; then
+    AC_MSG_ERROR([flex/lex must be installed.])
+fi
 AC_PROG_AWK
 AC_TYPE_SIGNAL
 PYTHON_BIN=python2.7
@@ -192,11 +195,28 @@ AC_ARG_WITH(dpdk-dir,
             [with_dpdk_dir=""])
 if test "x$with_dpdk_dir" != "x"; then
   RTE_SDK=$with_dpdk_dir
-  RTE_TARGET=`uname -p`-default-linuxapp-${CC}
+  RTE_TARGET=build
   AC_CHECK_HEADER(${RTE_SDK}/${RTE_TARGET}/include/rte_config.h, [],
-  		  [RTE_TARGET=`uname -p`-native-linuxapp-${CC}])
-  AC_CHECK_HEADER(${RTE_SDK}/${RTE_TARGET}/include/rte_config.h, [],
-                  [AC_MSG_ERROR([Intel DPDK must be installed.])])
+    [RTE_ARCH=`uname -p`
+     if test "x$RTE_ARCH" = "xunknown"; then
+        RTE_ARCH=`uname -m`
+     fi
+     case `uname` in
+     Linux)
+     RTE_OS=linuxapp
+     ;;
+     FreeBSD)
+     RTE_OS=bsdapp
+     ;;
+     *)
+     AC_MSG_ERROR([DPDK must be supported your OS.])
+     ;;
+     esac
+     RTE_TARGET=${RTE_ARCH}-native-${RTE_OS}-${CC}
+     AC_CHECK_HEADER(${RTE_SDK}/${RTE_TARGET}/include/rte_config.h, [],
+       [RTE_TARGET=${RTE_ARCH}-default-${RTE_OS}-${CC}
+       	AC_CHECK_HEADER(${RTE_SDK}/${RTE_TARGET}/include/rte_config.h, [],
+          [AC_MSG_ERROR([DPDK must be installed.])])])])
   RTE_LIBS=-L$RTE_SDK/$RTE_TARGET/lib
   RTE_LIBS="$RTE_LIBS -Xlinker --whole-archive"
   AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_distributor.a,
@@ -248,20 +268,33 @@ if test "x$with_dpdk_dir" != "x"; then
                 RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_virtio_uio",)
   AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_i40e.a,
                 RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_i40e",)
-  RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_ixgbe -Xlinker -lrte_pmd_e1000"
+  AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_ixgbe.a,
+                RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_ixgbe",)
+  AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_e1000.a,
+                RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_e1000",)
   AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_ring.a,
                 RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_ring",)
   AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_pcap.a,
                 RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_pcap",)
   RTE_LIBS="$RTE_LIBS -Xlinker --end-group -Xlinker --no-whole-archive"
+  CPPFLAGS_BKUP="$CPPFLAGS"
+  CPPFLAGS="$CPPFLAGS -I$RTE_SDK/$RTE_TARGET/include"
+  AC_CHECK_MEMBER([struct rte_mbuf.pkt],
+                  [RTE_MBUF_HAS_PKT=1],
+		  [],
+		  [[#include "rte_config.h"]
+		   [#include "rte_mbuf.h"]])
+  CPPFLAGS="$CPPFLAGS_BKUP"
 else
  RTE_SDK=
  RTE_TARGET=
  RTE_LIBS=
+ RTE_MBUF_HAS_PKT=
 fi
 AC_SUBST(RTE_SDK)
 AC_SUBST(RTE_TARGET)
 AC_SUBST(RTE_LIBS)
+AC_SUBST(RTE_MBUF_HAS_PKT)
 
 AC_ARG_ENABLE([flowcache],
               [AC_HELP_STRING([--enable-flowcache],
@@ -272,6 +305,16 @@ if test "X${flowcache}" != "Xno"; then
    FLOWCACHE_FLAGS="-DFLOWCACHE"
    AC_SUBST(FLOWCACHE_FLAGS)
 fi
+
+SSE42_CPPFLAGS=''
+AC_ARG_ENABLE([sse4.2],
+	[AC_HELP_STRING([--enable-sse4.2],
+	 [build with SSE4.2 instruction [default is yes]])],
+	 [sse42="$enableval"], [sse42="yes"])
+if test "X${sse42}" != "Xno"; then
+  SSE42_CPPFLAGS="-msse4.2"
+fi
+AC_SUBST(SSE42_CPPFLAGS)
 
 AC_CHECK_FUNC(strtold, [AC_DEFINE(HAVE_STRTOLD)])
 
@@ -543,6 +586,7 @@ AC_CONFIG_COMMANDS([config-clean],
 AC_OUTPUT
 
 ${MAKE} clean
+${MAKE} generate
 
 echo ""
 echo "CC:	'${CC}'"

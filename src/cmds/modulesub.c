@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -144,12 +144,12 @@ snmpmgr_initialize_wrap(int argc, const char *const argv[],
 
 
 
-#define CTOR_IDX	LAGOPUS_MODULE_CONSTRUCTOR_INDEX_BASE + 1
+#define CTOR_IDX        LAGOPUS_MODULE_CONSTRUCTOR_INDEX_BASE + 1
 
 
 static pthread_once_t s_once = PTHREAD_ONCE_INIT;
-static void	s_ctors(void) __attr_constructor__(CTOR_IDX);
-static void	s_dtors(void) __attr_destructor__(CTOR_IDX);
+static void     s_ctors(void) __attr_constructor__(CTOR_IDX);
+static void     s_dtors(void) __attr_destructor__(CTOR_IDX);
 
 
 static void

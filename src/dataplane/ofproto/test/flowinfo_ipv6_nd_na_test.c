@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,6 @@
 #include "lagopus/dpmgr.h"
 #include "lagopus/flowdb.h"
 #include "lagopus/port.h"
-#include "match.h"
 #include "pktbuf.h"
 #include "packet.h"
 #include "lagopus/dataplane.h"
@@ -35,9 +34,9 @@
 #include "flowinfo_test.h"
 
 
-#define FLOW_ADD_IPV6_ND_UT_PREREQUISITE(_fl)	\
+#define FLOW_ADD_IPV6_ND_UT_PREREQUISITE(_fl)   \
   FLOW_ADD_IPV6_ND_NA_PREREQUISITE((_fl))
-#define TEST_ASSERT_FLOW_MATCH_IPV6_ND_UT_PREREQUISITE(_fl)	\
+#define TEST_ASSERT_FLOW_MATCH_IPV6_ND_UT_PREREQUISITE(_fl)     \
   TEST_ASSERT_FLOW_MATCH_IPV6_ND_NA_PREREQUISITE((_fl))
 
 

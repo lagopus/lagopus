@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ typedef struct {
   lagopus_hashmap_t *s_tblptr[2];
   lagopus_bbq_t *s_qptr;
 } test_stage_record;
-typedef test_stage_record 	*test_stage_t;
+typedef test_stage_record       *test_stage_t;
 
 
 typedef struct {
@@ -36,7 +36,7 @@ typedef struct {
   lagopus_chrono_t s_begin_time;
   lagopus_chrono_t s_end_time;
 } test_event_record;
-typedef test_event_record 	*test_event_t;
+typedef test_event_record       *test_event_t;
 
 
 

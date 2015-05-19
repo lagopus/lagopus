@@ -1,8 +1,8 @@
-/*	$NetBSD: sig.c,v 1.17 2011/07/28 20:50:55 christos Exp $	*/
+/*      $NetBSD: sig.c,v 1.17 2011/07/28 20:50:55 christos Exp $        */
 
 /*-
  * Copyright (c) 1992, 1993
- *	The Regents of the University of California.  All rights reserved.
+ *      The Regents of the University of California.  All rights reserved.
  *
  * This code is derived from software contributed to Berkeley by
  * Christos Zoulas of Cornell University.
@@ -35,7 +35,7 @@
 #include "config.h"
 #if !defined(lint) && !defined(SCCSID)
 #if 0
-static char sccsid[] = "@(#)sig.c	8.1 (Berkeley) 6/4/93";
+static char sccsid[] = "@(#)sig.c       8.1 (Berkeley) 6/4/93";
 #else
 __RCSID("$NetBSD: sig.c,v 1.17 2011/07/28 20:50:55 christos Exp $");
 #endif
@@ -43,8 +43,8 @@ __RCSID("$NetBSD: sig.c,v 1.17 2011/07/28 20:50:55 christos Exp $");
 
 /*
  * sig.c: Signal handling stuff.
- *	  our policy is to trap all signals, set a good state
- *	  and pass the ball to our caller.
+ *        our policy is to trap all signals, set a good state
+ *        and pass the ball to our caller.
  */
 #include "el.h"
 #include <stdlib.h>
@@ -52,18 +52,18 @@ __RCSID("$NetBSD: sig.c,v 1.17 2011/07/28 20:50:55 christos Exp $");
 private EditLine *sel = NULL;
 
 private const int sighdl[] = {
-#define	_DO(a)	(a),
+#define _DO(a)  (a),
   ALLSIGS
-#undef	_DO
+#undef  _DO
   - 1
 };
 
 private void sig_handler(int);
 
 /* sig_handler():
- *	This is the handler called for all signals
- *	XXX: we cannot pass any data so we just store the old editline
- *	state in a private variable
+ *      This is the handler called for all signals
+ *      XXX: we cannot pass any data so we just store the old editline
+ *      state in a private variable
  */
 private void
 sig_handler(int signo) {
@@ -109,7 +109,7 @@ sig_handler(int signo) {
 
 
 /* sig_init():
- *	Initialize all signal stuff
+ *      Initialize all signal stuff
  */
 protected int
 sig_init(EditLine *el) {
@@ -123,9 +123,9 @@ sig_init(EditLine *el) {
 
   nset = &el->el_signal->sig_set;
   (void) sigemptyset(nset);
-#define	_DO(a) (void) sigaddset(nset, a);
+#define _DO(a) (void) sigaddset(nset, a);
   ALLSIGS
-#undef	_DO
+#undef  _DO
   (void) sigprocmask(SIG_BLOCK, nset, &oset);
 
   for (i = 0; sighdl[i] != -1; i++) {
@@ -141,7 +141,7 @@ sig_init(EditLine *el) {
 
 
 /* sig_end():
- *	Clear all signal stuff
+ *      Clear all signal stuff
  */
 protected void
 sig_end(EditLine *el) {
@@ -152,7 +152,7 @@ sig_end(EditLine *el) {
 
 
 /* sig_set():
- *	set all the signal handlers
+ *      set all the signal handlers
  */
 protected void
 sig_set(EditLine *el) {
@@ -179,7 +179,7 @@ sig_set(EditLine *el) {
 
 
 /* sig_clr():
- *	clear all the signal handlers
+ *      clear all the signal handlers
  */
 protected void
 sig_clr(EditLine *el) {
@@ -193,7 +193,7 @@ sig_clr(EditLine *el) {
       (void)sigaction(sighdl[i],
                       &el->el_signal->sig_action[i], NULL);
 
-  sel = NULL;		/* we are going to die if the handler is
-				 * called */
+  sel = NULL;           /* we are going to die if the handler is
+                                 * called */
   (void)sigprocmask(SIG_SETMASK, &oset, NULL);
 }

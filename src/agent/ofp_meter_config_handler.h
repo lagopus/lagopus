@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 
 
 /**
- * @file	ofp_meter_config_handler.h
+ * @file        ofp_meter_config_handler.h
  */
 
 #ifndef __OFP_METER_CONFIG_HANDLER_H__
@@ -27,15 +27,15 @@
 /**
  * ofp_meter_config_request handler.
  *
- *     @param[in]	channel	A pointer to \e channel structure.
- *     @param[in]	pbuf	A pointer to \e pbuf structure.
- *     @param[in]	xid_header	A pointer to \e ofp_header structure in request.
- *     @param[out]	error	A pointer to \e ofp_error structure.
+ *     @param[in]       channel A pointer to \e channel structure.
+ *     @param[in]       pbuf    A pointer to \e pbuf structure.
+ *     @param[in]       xid_header      A pointer to \e ofp_header structure in request.
+ *     @param[out]      error   A pointer to \e ofp_error structure.
  *     If errors occur, set filed values.
  *
- *     @retval	LAGOPUS_RESULT_OK	Succeeded.
- *     @retval	LAGOPUS_RESULT_OFP_ERROR Failed, ofp_error.
- *     @retval	LAGOPUS_RESULT_ANY_FAILURES Failed.
+ *     @retval  LAGOPUS_RESULT_OK       Succeeded.
+ *     @retval  LAGOPUS_RESULT_OFP_ERROR Failed, ofp_error.
+ *     @retval  LAGOPUS_RESULT_ANY_FAILURES Failed.
  */
 lagopus_result_t
 ofp_meter_config_request_handle(struct channel *channel, struct pbuf *pbuf,
@@ -45,10 +45,10 @@ ofp_meter_config_request_handle(struct channel *channel, struct pbuf *pbuf,
 /**
  * Free meter_config_list elements.
  *
- *     @param[in]	meter_config_list	A pointer to list of
+ *     @param[in]       meter_config_list       A pointer to list of
  *     \e meter_config structures.
  *
- *     @retval	void
+ *     @retval  void
  */
 void
 meter_config_list_elem_free(struct meter_config_list *meter_config_list);
@@ -57,14 +57,14 @@ meter_config_list_elem_free(struct meter_config_list *meter_config_list);
 /**
  * Create ofp_meter_config_reply.
  *
- *     @param[in]	channel	A pointer to \e channel structure.
- *     @param[out]	pbuf_list	A pointer to list of \e pbuf structures.
- *     @param[in]	meter_config_list	A pointer to list of
+ *     @param[in]       channel A pointer to \e channel structure.
+ *     @param[out]      pbuf_list       A pointer to list of \e pbuf structures.
+ *     @param[in]       meter_config_list       A pointer to list of
  *     \e meter_config structures.
- *     @param[in]	xid_header	A pointer to \e ofp_header structure.
+ *     @param[in]       xid_header      A pointer to \e ofp_header structure.
  *
- *     @retval	LAGOPUS_RESULT_OK	Succeeded.
- *     @retval	LAGOPUS_RESULT_ANY_FAILURES Failed.
+ *     @retval  LAGOPUS_RESULT_OK       Succeeded.
+ *     @retval  LAGOPUS_RESULT_ANY_FAILURES Failed.
  */
 lagopus_result_t
 ofp_meter_config_reply_create(struct channel *channel,

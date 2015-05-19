@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +16,8 @@
 
 
 /**
- *	@file	bridge.c
- *	@brief	Bridge (a.k.a. OpenFlow Switch) management.
+ *      @file   bridge.c
+ *      @brief  Bridge (a.k.a. OpenFlow Switch) management.
  */
 
 #include "openflow.h"
@@ -255,15 +255,12 @@ bridge_port_add(struct bridge_list *bridge_list, const char *name,
   /* Lookup bridge by name. */
   bridge = bridge_lookup(bridge_list, name);
   if (bridge != NULL) {
-    static const uint8_t zeromac[] = "\0\0\0\0\0\0";
-    if (memcmp(port->ofp_port.hw_addr, zeromac, 6) != 0) {
-      /* Set port to the bridge's port vector. */
-      printf("Assigning port id %u to bridge %s\n",
-             port->ifindex, bridge->name);
-      vector_set_index(bridge->ports, port->ofp_port.port_no, port);
-      port->bridge = bridge;
-      send_port_status(port, OFPPR_ADD);
-    }
+    /* Set port to the bridge's port vector. */
+    printf("Assigning port id %u to bridge %s\n",
+           port->ifindex, bridge->name);
+    vector_set_index(bridge->ports, port->ofp_port.port_no, port);
+    port->bridge = bridge;
+    send_port_status(port, OFPPR_ADD);
     ret = LAGOPUS_RESULT_OK;
   } else {
     ret = LAGOPUS_RESULT_NOT_FOUND;

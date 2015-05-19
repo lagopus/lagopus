@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 
 /**
  *      @file   pcap.h
- *	@brief	Packet capture APIs
+ *      @brief  Packet capture APIs
  */
 
 #ifndef SRC_DATAPLANE_OFPROTO_PCAP_H_

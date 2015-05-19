@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,6 @@
 #include "lagopus/dpmgr.h"
 #include "lagopus/flowdb.h"
 #include "lagopus/port.h"
-#include "match.h"
 #include "pktbuf.h"
 #include "packet.h"
 #include "lagopus/dataplane.h"
@@ -51,7 +50,7 @@ test_lagopus_find_flow(void) {
   /* setup bridge and port */
   my_dpmgr = dpmgr_alloc();
   dpmgr_bridge_add(my_dpmgr, "br0", 0);
-  nport.type = LAGOPUS_PORT_TYPE_PHYSICAL;
+  nport.type = LAGOPUS_PORT_TYPE_NULL; /* for test */
   nport.ofp_port.port_no = 1;
   nport.ifindex = 0;
   dpmgr_port_add(my_dpmgr, &nport);

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -130,8 +130,8 @@ test_group_table_add(void) {
   TEST_ASSERT_EQUAL_MESSAGE(action->ofpat.type, OFPAT_OUTPUT,
                             "action copy error");
   TEST_ASSERT_EQUAL_MESSAGE(
-			    ((struct ofp_action_output *)&action->ofpat)->port, 3,
-			    "action copy error");
+    ((struct ofp_action_output *)&action->ofpat)->port, 3,
+    "action copy error");
 
   group_mod.group_id = 3;
   group_mod.type = OFPGT_ALL;

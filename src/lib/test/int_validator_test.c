@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -52,21 +52,21 @@ static int64_t s_i64_max = LLONG_MAX;
 static char s_i64_max_str[32];
 static int64_t s_i64_min = LLONG_MIN;
 static char s_i64_min_str[32];
-static uint64_t	s_u64_max = ULLONG_MAX;
+static uint64_t s_u64_max = ULLONG_MAX;
 static char s_u64_max_str[32];
 
 static int32_t s_i32_max = INT_MAX;
 static char s_i32_max_str[32];
 static int32_t s_i32_min = INT_MIN;
 static char s_i32_min_str[32];
-static uint32_t	s_u32_max = UINT_MAX;
+static uint32_t s_u32_max = UINT_MAX;
 static char s_u32_max_str[32];
 
 static int16_t s_i16_max = SHRT_MAX;
 static char s_i16_max_str[32];
 static int16_t s_i16_min = SHRT_MIN;
 static char s_i16_min_str[32];
-static uint16_t	s_u16_max = USHRT_MAX;
+static uint16_t s_u16_max = USHRT_MAX;
 static char s_u16_max_str[32];
 
 static const char *const s_u128_max_str =

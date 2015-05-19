@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,44 +38,44 @@
  * Constructor attribute
  */
 #ifdef __GNUC__
-#define __attr_constructor__(p)	__attribute__ ((constructor(p)))
-#define __attr_destructor__(p)	__attribute__ ((destructor(p)))
+#define __attr_constructor__(p) __attribute__ ((constructor(p)))
+#define __attr_destructor__(p)  __attribute__ ((destructor(p)))
 #else
-#define __attr_constructor__(p)	/**/
+#define __attr_constructor__(p) /**/
 #endif /* __GNUC__ */
 
 /*
  * Macro tricks
  */
-#define MACRO_STRINGIFY(x)	STRINGIFY(x)
-#define STRINGIFY(x)	#x
+#define MACRO_STRINGIFY(x)      STRINGIFY(x)
+#define STRINGIFY(x)    #x
 
-#define MACRO_CONSTANTIFY(x, t)	CONSTANTIFY(x, t)
-#define CONSTANTIFY(x, t)	x##t
+#define MACRO_CONSTANTIFY(x, t) CONSTANTIFY(x, t)
+#define CONSTANTIFY(x, t)       x##t
 
-#define MACRO_CONSTANTIFY_LONG(x)	MACRO_CONSTANTIFY(x, L)
-#define MACRO_CONSTANTIFY_LONG_LONG(x)	MACRO_CONSTANTIFY(x, LL)
+#define MACRO_CONSTANTIFY_LONG(x)       MACRO_CONSTANTIFY(x, L)
+#define MACRO_CONSTANTIFY_LONG_LONG(x)  MACRO_CONSTANTIFY(x, LL)
 
-#define MACRO_CONSTANTIFY_UNSIGNED(x)		MACRO_CONSTANTIFY(x, U)
-#define MACRO_CONSTANTIFY_UNSIGNED_LONG(x)	MACRO_CONSTANTIFY(x, UL)
-#define MACRO_CONSTANTIFY_UNSIGNED_LONG_LONG(x)	MACRO_CONSTANTIFY(x, ULL)
+#define MACRO_CONSTANTIFY_UNSIGNED(x)           MACRO_CONSTANTIFY(x, U)
+#define MACRO_CONSTANTIFY_UNSIGNED_LONG(x)      MACRO_CONSTANTIFY(x, UL)
+#define MACRO_CONSTANTIFY_UNSIGNED_LONG_LONG(x) MACRO_CONSTANTIFY(x, ULL)
 
 /*
  * 64 bit value printing format
  */
-#define PRINT_FORMAT_LONG	l
-#define PRINT_FORMAT_LONG_LONG	ll
+#define PRINT_FORMAT_LONG       l
+#define PRINT_FORMAT_LONG_LONG  ll
 
 /*
  * long long is kinda obsolete since we have int64_t.
  */
 #if SIZEOF_INT64_T == SIZEOF_LONG_INT
-#define PRINT_FORMAT_64		PRINT_FORMAT_LONG
+#define PRINT_FORMAT_64         PRINT_FORMAT_LONG
 #elif SIZEOF_INT64_T == SIZEOF_LONG_LONG
-#define PRINT_FORMAT_64		PRINT_FORMAT_LONG_LONG
+#define PRINT_FORMAT_64         PRINT_FORMAT_LONG_LONG
 #endif /* SIZEOF_INT64_T == SIZEOF_LONG_INT ... */
 
-#define PF64(c)	\
+#define PF64(c) \
   STRINGIFY(%) MACRO_STRINGIFY(PRINT_FORMAT_64) MACRO_STRINGIFY(c)
 #define PF64S(s, c) \
   STRINGIFY(%) MACRO_STRINGIFY(s) MACRO_STRINGIFY(PRINT_FORMAT_64) \
@@ -83,21 +83,21 @@
 
 #ifdef HAVE_PRINT_FORMAT_FOR_SIZE_T
 
-#define PRINT_FORMAT_SIZE_T	z
+#define PRINT_FORMAT_SIZE_T     z
 
 #else
 
 #if SIZEOF_SIZE_T == SIZEOF_LONG_LONG || SIZEOF_SIZE_T == SIZEOF_INT64_T
-#define PRINT_FORMAT_SIZE_T	PRINT_FORMAT_64
+#define PRINT_FORMAT_SIZE_T     PRINT_FORMAT_64
 #elif SIZEOF_SIZE_T == SIZEOF_LONG_INT
-#define PRINT_FORMAT_SIZE_T	PRINT_FORMAT_LONG
+#define PRINT_FORMAT_SIZE_T     PRINT_FORMAT_LONG
 #elif SIZEOF_SIZE_T == SIZEOF_INT
-#define PRINT_FORMAT_SIZE_T	d
+#define PRINT_FORMAT_SIZE_T     d
 #endif /* SIZEOF_SIZE_T == SIZEOF_LONG_LONG ... */
 
 #endif /* HAVE_PRINT_FORMAT_FOR_SIZE_T */
 
-#define PFSZ(c)	STRINGIFY(%) MACRO_STRINGIFY(PRINT_FORMAT_SIZE_T) \
+#define PFSZ(c) STRINGIFY(%) MACRO_STRINGIFY(PRINT_FORMAT_SIZE_T) \
   MACRO_STRINGIFY(c)
 #define PFSZS(s, c) \
   STRINGIFY(%) MACRO_STRINGIFY(s) MACRO_STRINGIFY(PRINT_FORMAT_SIZE_T) \
@@ -111,12 +111,12 @@
 #define PFTIDS(s, c) STRINGIFY(%) MACRO_STRINGIFY(s) MACRO_STRINGIFY(c)
 #endif /* SIZEOF_PTHREAD_T == SIZEOF_INT64_T ... */
 
-#define IS_VALID_STRING(x)	(((x) != NULL && *(x) != '\0') ? true : false)
+#define IS_VALID_STRING(x)      (((x) != NULL && *(x) != '\0') ? true : false)
 
-#define BOOL_TO_STR(a)		((a) == true) ? "true" : "false"
-#define IS_BIT_SET(A, B)	((((A) & (B)) == (B)) ? true : false)
+#define BOOL_TO_STR(a)          ((a) == true) ? "true" : "false"
+#define IS_BIT_SET(A, B)        ((((A) & (B)) == (B)) ? true : false)
 
-#define IS_LAGOPUS_RESULT_OK(s)	(((s) >= 0) ? true : false)
+#define IS_LAGOPUS_RESULT_OK(s) (((s) >= 0) ? true : false)
 
 #define NSEC_TO_USEC(nsec) \
   (lagopus_chrono_t)((((nsec) / 100LL) + 5LL) / 10LL)

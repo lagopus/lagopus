@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +16,8 @@
 
 
 /**
- * @file	bridge.h
- * @brief	"Bridge" as OpenFlow logical switch APIs.
+ * @file        bridge.h
+ * @brief       "Bridge" as OpenFlow logical switch APIs.
  */
 
 #ifndef SRC_INCLUDE_LAGOPUS_BRIDGE_H_
@@ -98,13 +98,13 @@ struct bridge {
 /**
  * Create and add bridge.
  *
- * @param[in]	bridge_list	Bridge list.
- * @param[in]	name		Bridge name.
- * @param[in]	dpid		Datapath id associated with the bridge.
+ * @param[in]   bridge_list     Bridge list.
+ * @param[in]   name            Bridge name.
+ * @param[in]   dpid            Datapath id associated with the bridge.
  *
- * @retval	LAGOPUS_RESULT_OK		Succeeded.
- * @retval	LAGOPUS_RESULT_ALREADY_EXISTS	Already exist same name bridge.
- * @retval	LAGOPUS_RESULT_NO_MEMORY	Memory exhausted.
+ * @retval      LAGOPUS_RESULT_OK               Succeeded.
+ * @retval      LAGOPUS_RESULT_ALREADY_EXISTS   Already exist same name bridge.
+ * @retval      LAGOPUS_RESULT_NO_MEMORY        Memory exhausted.
  */
 lagopus_result_t
 bridge_add(struct bridge_list *bridge_list, const char *name, uint64_t dpid);
@@ -112,11 +112,11 @@ bridge_add(struct bridge_list *bridge_list, const char *name, uint64_t dpid);
 /**
  * Delete bridge.
  *
- * @param[in]	bridge_list	Bridge list.
- * @param[in]	name		Bridge name.
+ * @param[in]   bridge_list     Bridge list.
+ * @param[in]   name            Bridge name.
  *
- * @retval	LAGOPUS_RESULT_OK		Succeeded.
- * @retval	LAGOPUS_RESULT_NOT_FOUND	Bridge is not exist.
+ * @retval      LAGOPUS_RESULT_OK               Succeeded.
+ * @retval      LAGOPUS_RESULT_NOT_FOUND        Bridge is not exist.
  */
 lagopus_result_t
 bridge_delete(struct bridge_list *bridge_list, const char *name);
@@ -124,7 +124,7 @@ bridge_delete(struct bridge_list *bridge_list, const char *name);
 /**
  * Free bridge object.
  *
- * @param[in]	bridge	Bridge.
+ * @param[in]   bridge  Bridge.
  */
 void
 bridge_free(struct bridge *bridge);
@@ -132,11 +132,11 @@ bridge_free(struct bridge *bridge);
 /**
  * Lookup bridge.
  *
- * @param[in]	bridge_list	Bridge list.
- * @param[in]	name		Bridge name.
+ * @param[in]   bridge_list     Bridge list.
+ * @param[in]   name            Bridge name.
  *
- * @retval	!=NULL		Bridge object.
- * @retval	==NULL		Bridge is not exist.
+ * @retval      !=NULL          Bridge object.
+ * @retval      ==NULL          Bridge is not exist.
  */
 struct bridge *
 bridge_lookup(struct bridge_list *bridge_list, const char *name);
@@ -144,11 +144,11 @@ bridge_lookup(struct bridge_list *bridge_list, const char *name);
 /**
  * Lookup bridge by datapath id.
  *
- * @param[in]	bridge_list	Bridge list.
- * @param[in]	dpid		Datapath id.
+ * @param[in]   bridge_list     Bridge list.
+ * @param[in]   dpid            Datapath id.
  *
- * @retval	!=NULL		Bridge object.
- * @retval	==NULL		Bridge is not exist.
+ * @retval      !=NULL          Bridge object.
+ * @retval      ==NULL          Bridge is not exist.
  */
 struct bridge *
 bridge_lookup_by_dpid(struct bridge_list *bridge_list, uint64_t dpid);
@@ -156,11 +156,11 @@ bridge_lookup_by_dpid(struct bridge_list *bridge_list, uint64_t dpid);
 /**
  * Lookup bridge by datapath id.
  *
- * @param[in]	bridge_list	Bridge list.
- * @param[in]	name		Controller address string.
+ * @param[in]   bridge_list     Bridge list.
+ * @param[in]   name            Controller address string.
  *
- * @retval	!=NULL		Bridge object.
- * @retval	==NULL		Bridge is not exist.
+ * @retval      !=NULL          Bridge object.
+ * @retval      ==NULL          Bridge is not exist.
  */
 struct bridge *
 bridge_lookup_by_controller_address(struct bridge_list *bridge_list,
@@ -169,12 +169,12 @@ bridge_lookup_by_controller_address(struct bridge_list *bridge_list,
 /**
  * Add port to the bridge.
  *
- * @param[in]	bridge_list	Bridge list.
- * @param[in]	name		Bridge name.
- * @param[in]	port		Port.
+ * @param[in]   bridge_list     Bridge list.
+ * @param[in]   name            Bridge name.
+ * @param[in]   port            Port.
  *
- * @retval	LAGOPUS_RESULT_OK		Succeeded.
- * @retval	LAGOPUS_RESULT_NOT_FOUND	Bridge is not exist.
+ * @retval      LAGOPUS_RESULT_OK               Succeeded.
+ * @retval      LAGOPUS_RESULT_NOT_FOUND        Bridge is not exist.
  */
 lagopus_result_t
 bridge_port_add(struct bridge_list *bridge_list, const char *name,
@@ -183,12 +183,12 @@ bridge_port_add(struct bridge_list *bridge_list, const char *name,
 /**
  * Delete port to the bridge.
  *
- * @param[in]	bridge_list	Bridge list.
- * @param[in]	name		Bridge name.
- * @param[in]	port_no		OpenFlow Port number.
+ * @param[in]   bridge_list     Bridge list.
+ * @param[in]   name            Bridge name.
+ * @param[in]   port_no         OpenFlow Port number.
  *
- * @retval	LAGOPUS_RESULT_OK		Succeeded.
- * @retval	LAGOPUS_RESULT_NOT_FOUND	Bridge is not exist.
+ * @retval      LAGOPUS_RESULT_OK               Succeeded.
+ * @retval      LAGOPUS_RESULT_NOT_FOUND        Bridge is not exist.
  */
 lagopus_result_t
 bridge_port_delete(struct bridge_list *bridge_list, const char *name,
@@ -197,10 +197,10 @@ bridge_port_delete(struct bridge_list *bridge_list, const char *name,
 /**
  * Get OpenFlow switch fail mode.
  *
- * @param[in]	bridge	Bridge.
- * @param[out]  fail_mode	Bridge fail mode.
+ * @param[in]   bridge  Bridge.
+ * @param[out]  fail_mode       Bridge fail mode.
  *
- * @retval LAGOPUS_RESULT_OK		Succeeded.
+ * @retval LAGOPUS_RESULT_OK            Succeeded.
  */
 lagopus_result_t
 bridge_fail_mode_get(struct bridge *bridge, enum fail_mode *fail_mode);
@@ -208,11 +208,11 @@ bridge_fail_mode_get(struct bridge *bridge, enum fail_mode *fail_mode);
 /**
  * Get OpenFlow switch fail mode.
  *
- * @param[in]	bridge	Bridge.
- * @param[in]	fail_mode	Bridge fail mode.
+ * @param[in]   bridge  Bridge.
+ * @param[in]   fail_mode       Bridge fail mode.
  *
- * @retval LAGOPUS_RESULT_OK		Succeeded.
- * @retval LAGOPUS_RESULT_INVALID_ARGS	fail_mode value is wrong.
+ * @retval LAGOPUS_RESULT_OK            Succeeded.
+ * @retval LAGOPUS_RESULT_INVALID_ARGS  fail_mode value is wrong.
  */
 lagopus_result_t
 bridge_fail_mode_set(struct bridge *bridge, enum fail_mode fail_mode);
@@ -220,10 +220,10 @@ bridge_fail_mode_set(struct bridge *bridge, enum fail_mode fail_mode);
 /**
  * Get OpenFlow switch features.
  *
- * @param[in]	bridge	Bridge.
- * @param[out]  features	ofp_switch_features structure.
+ * @param[in]   bridge  Bridge.
+ * @param[out]  features        ofp_switch_features structure.
  *
- * @retval LAGOPUS_RESULT_OK		Succeeded.
+ * @retval LAGOPUS_RESULT_OK            Succeeded.
  */
 lagopus_result_t
 bridge_ofp_features_get(struct bridge *bridge,
@@ -232,10 +232,10 @@ bridge_ofp_features_get(struct bridge *bridge,
 /**
  * Get primary OpenFlow version.
  *
- * @param[in]	bridge	Bridge.
- * @param[out]  version	Wire protocol version.
+ * @param[in]   bridge  Bridge.
+ * @param[out]  version Wire protocol version.
  *
- * @retval LAGOPUS_RESULT_OK		Succeeded.
+ * @retval LAGOPUS_RESULT_OK            Succeeded.
  */
 lagopus_result_t
 bridge_ofp_version_get(struct bridge *bridge, uint8_t *version);
@@ -243,11 +243,11 @@ bridge_ofp_version_get(struct bridge *bridge, uint8_t *version);
 /**
  * Set primary OpenFlow version.
  *
- * @param[in]	bridge	Bridge.
- * @param[in]	version	Wire protocol version.
+ * @param[in]   bridge  Bridge.
+ * @param[in]   version Wire protocol version.
  *
- * @retval LAGOPUS_RESULT_OK		Succeeded.
- * @retval LAGOPUS_RESULT_INVALID_ARGS	Version number is wrong.
+ * @retval LAGOPUS_RESULT_OK            Succeeded.
+ * @retval LAGOPUS_RESULT_INVALID_ARGS  Version number is wrong.
  */
 lagopus_result_t
 bridge_ofp_version_set(struct bridge *bridge, uint8_t version);
@@ -255,10 +255,10 @@ bridge_ofp_version_set(struct bridge *bridge, uint8_t version);
 /**
  * Get supported OpenFlow version bitmap.
  *
- * @param[in]	bridge	Bridge.
- * @param[out]  version_bitmap	Support version bitmap.
+ * @param[in]   bridge  Bridge.
+ * @param[out]  version_bitmap  Support version bitmap.
  *
- * @retval LAGOPUS_RESULT_OK		Succeeded.
+ * @retval LAGOPUS_RESULT_OK            Succeeded.
  */
 lagopus_result_t
 bridge_ofp_version_bitmap_get(struct bridge *bridge,
@@ -267,11 +267,11 @@ bridge_ofp_version_bitmap_get(struct bridge *bridge,
 /**
  * Set supported OpenFlow version bitmap.
  *
- * @param[in]	bridge	Bridge.
- * @param[in]	version	Wire protocol version to be set to version bitmap.
+ * @param[in]   bridge  Bridge.
+ * @param[in]   version Wire protocol version to be set to version bitmap.
  *
- * @retval LAGOPUS_RESULT_OK		Succeeded.
- * @retval LAGOPUS_RESULT_INVALID_ARGS	Version number is wrong.
+ * @retval LAGOPUS_RESULT_OK            Succeeded.
+ * @retval LAGOPUS_RESULT_INVALID_ARGS  Version number is wrong.
  */
 lagopus_result_t
 bridge_ofp_version_bitmap_set(struct bridge *bridge, uint8_t version);
@@ -279,11 +279,11 @@ bridge_ofp_version_bitmap_set(struct bridge *bridge, uint8_t version);
 /**
  * Get supported OpenFlow version bitmap.
  *
- * @param[in]	bridge	Bridge.
- * @param[in]	version	Wire protocol version to be unset from version bitmap.
+ * @param[in]   bridge  Bridge.
+ * @param[in]   version Wire protocol version to be unset from version bitmap.
  *
- * @retval LAGOPUS_RESULT_OK		Succeeded.
- * @retval LAGOPUS_RESULT_INVALID_ARGS	Version number is wrong.
+ * @retval LAGOPUS_RESULT_OK            Succeeded.
+ * @retval LAGOPUS_RESULT_INVALID_ARGS  Version number is wrong.
  */
 lagopus_result_t
 bridge_ofp_version_bitmap_unset(struct bridge *bridge, uint8_t version);
@@ -291,11 +291,11 @@ bridge_ofp_version_bitmap_unset(struct bridge *bridge, uint8_t version);
 /**
  * Get switch features.
  *
- * @param[in]	bridge			Bridge.
- * @param[out]	features		Pointer of features.
+ * @param[in]   bridge                  Bridge.
+ * @param[out]  features                Pointer of features.
  *
- * @retval LAGOPUS_RESULT_OK		Succeeded.
- * @retval	LAGOPUS_RESULT_NOT_FOUND Bridge is not exist.
+ * @retval LAGOPUS_RESULT_OK            Succeeded.
+ * @retval      LAGOPUS_RESULT_NOT_FOUND Bridge is not exist.
  */
 lagopus_result_t
 bridge_ofp_features_get(struct bridge *bridge,
@@ -304,9 +304,9 @@ bridge_ofp_features_get(struct bridge *bridge,
 /**
  * Get bridge name.
  *
- * @param[in]	bridge			Bridge.
+ * @param[in]   bridge                  Bridge.
  *
- * @retval	Bridge name.
+ * @retval      Bridge name.
  */
 const char *
 bridge_name_get(struct bridge *bridge);
@@ -314,11 +314,11 @@ bridge_name_get(struct bridge *bridge);
 /**
  * Add controller address to the bridge.
  *
- * @param[in]	bridge			Bridge.
- * @param[in]	controller_addresss	Controller address string.
+ * @param[in]   bridge                  Bridge.
+ * @param[in]   controller_addresss     Controller address string.
  *
- * @retval	LAGOPUS_RESULT_OK	Success.
- * @retval	LAGOPUS_RESULT_NOT_FOUND Bridge is not exist.
+ * @retval      LAGOPUS_RESULT_OK       Success.
+ * @retval      LAGOPUS_RESULT_NOT_FOUND Bridge is not exist.
  */
 lagopus_result_t
 bridge_controller_add(struct bridge *bridge,
@@ -327,11 +327,11 @@ bridge_controller_add(struct bridge *bridge,
 /**
  * Delete controller address to the bridge.
  *
- * @param[in]	bridge			Bridge.
- * @param[in]	controller_addresss	Controller address string.
+ * @param[in]   bridge                  Bridge.
+ * @param[in]   controller_addresss     Controller address string.
  *
- * @retval	LAGOPUS_RESULT_OK	Success.
- * @retval	LAGOPUS_RESULT_NOT_FOUND Bridge is not exist.
+ * @retval      LAGOPUS_RESULT_OK       Success.
+ * @retval      LAGOPUS_RESULT_NOT_FOUND Bridge is not exist.
  */
 lagopus_result_t
 bridge_controller_delete(struct bridge *bridge,
@@ -340,9 +340,9 @@ bridge_controller_delete(struct bridge *bridge,
 /**
  * Get datapath id owned by bridge.
  *
- * @param[in]	bridge			Bridge.
+ * @param[in]   bridge                  Bridge.
  *
- * @retval	Datapath id.
+ * @retval      Datapath id.
  */
 uint64_t
 bridge_dpid(struct bridge *bridge);

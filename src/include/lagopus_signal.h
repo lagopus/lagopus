@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@
 
 
 /**
- *	@file lagopus_signal.h
+ *      @file lagopus_signal.h
  */
 
 
@@ -41,7 +41,7 @@ lagopus_signal(int signum, sighandler_t new, sighandler_t *oldptr);
  * Fallback the signal handling mechanism to the good-old-school
  * semantics.
  */
-void	lagopus_signal_old_school_semantics(void);
+void    lagopus_signal_old_school_semantics(void);
 
 
 

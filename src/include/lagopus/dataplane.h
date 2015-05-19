@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -618,7 +618,7 @@ lagopus_result_t datapath_stop(void);
  */
 lagopus_result_t
 dpcomm_initialize(int argc,
-                  const char * const argv[],
+                  const char *const argv[],
                   void *extarg,
                   lagopus_thread_t **thdptr);
 
@@ -676,10 +676,6 @@ lagopus_result_t update_port_link_status(struct port *);
  * @retval      Copied packet.
  */
 struct lagopus_packet *copy_packet(struct lagopus_packet *);
-
-#ifdef STANDALONE
-void register_flow(struct flowdb *flowdb, int);
-#endif
 
 /**
  * Process received packet.

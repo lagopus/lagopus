@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 
 
 /**
- * @file	ofp_hello_handler.h
+ * @file        ofp_hello_handler.h
  */
 
 #ifndef __OFP_HELLO_HANDLER_H__
@@ -28,14 +28,14 @@
 /**
  * ofp_hello handler.
  *
- *     @param[in]	channel	A pointer to \e channel structure.
- *     @param[in]	pbuf	A pointer to \e pbuf structure.
- *     @param[out]	error	A pointer to \e ofp_error structure.
+ *     @param[in]       channel A pointer to \e channel structure.
+ *     @param[in]       pbuf    A pointer to \e pbuf structure.
+ *     @param[out]      error   A pointer to \e ofp_error structure.
  *     If errors occur, set filed values.
  *
- *     @retval	LAGOPUS_RESULT_OK	Succeeded.
- *     @retval	LAGOPUS_RESULT_OFP_ERROR Failed, ofp_error.
- *     @retval	LAGOPUS_RESULT_ANY_FAILURES Failed.
+ *     @retval  LAGOPUS_RESULT_OK       Succeeded.
+ *     @retval  LAGOPUS_RESULT_OFP_ERROR Failed, ofp_error.
+ *     @retval  LAGOPUS_RESULT_ANY_FAILURES Failed.
  */
 lagopus_result_t
 ofp_hello_handle(struct channel *channel, struct pbuf *pbuf,
@@ -44,10 +44,10 @@ ofp_hello_handle(struct channel *channel, struct pbuf *pbuf,
 /**
  * Send ofp_hello.
  *
- *     @param[in]	channel	A pointer to \e channel structure.
+ *     @param[in]       channel A pointer to \e channel structure.
  *
- *     @retval	LAGOPUS_RESULT_OK	Succeeded.
- *     @retval	LAGOPUS_RESULT_ANY_FAILURES Failed.
+ *     @retval  LAGOPUS_RESULT_OK       Succeeded.
+ *     @retval  LAGOPUS_RESULT_ANY_FAILURES Failed.
  */
 lagopus_result_t
 ofp_hello_send(struct channel *channel);
@@ -56,11 +56,11 @@ ofp_hello_send(struct channel *channel);
 /**
  * Create ofp_hello.
  *
- *     @param[in]	channel	A pointer to \e channel structure.
- *     @param[out]	pbuf	A pointer to \e pbuf structure.
+ *     @param[in]       channel A pointer to \e channel structure.
+ *     @param[out]      pbuf    A pointer to \e pbuf structure.
  *
- *     @retval	LAGOPUS_RESULT_OK	Succeeded.
- *     @retval	LAGOPUS_RESULT_ANY_FAILURES Failed.
+ *     @retval  LAGOPUS_RESULT_OK       Succeeded.
+ *     @retval  LAGOPUS_RESULT_ANY_FAILURES Failed.
  */
 lagopus_result_t
 ofp_hello_create(struct channel *channel, struct pbuf **pbuf);

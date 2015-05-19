@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,9 +31,9 @@ extern struct dpmgr *dpmgr;
 /**
  * Convert port number to human readable string.
  *
- * @param[in]	val	port number (host byte order).
+ * @param[in]   val     port number (host byte order).
  *
- * @retval	port string.
+ * @retval      port string.
  */
 static const char *
 port_string(uint32_t val) {
@@ -95,7 +95,7 @@ show_match(struct confsys *confsys, struct match *match) {
         val64 <<= 8;
         val64 |= match->oxm_value[i];
       }
-      show(confsys, ",metadata=%d", val64);
+      show(confsys, ",metadata=%" PRIu64, val64);
       if (hasmask) {
         show(confsys, "/:0x%02x%02x%02x%02x%02x%02x%02x%02x",
              match->oxm_value[8], match->oxm_value[9],
@@ -347,7 +347,7 @@ show_match(struct confsys *confsys, struct match *match) {
         val64 <<= 8;
         val64 |= match->oxm_value[i];
       }
-      show(confsys, ",tunnel_id=%d", val64);
+      show(confsys, ",tunnel_id=%" PRIu64, val64);
       if (hasmask) {
         memcpy(&val32, &match->oxm_value[8], sizeof(uint32_t));
         show(confsys, "/0x%04x", ntohl(val32));
@@ -396,7 +396,7 @@ show_set_field(struct confsys *confsys, uint8_t *oxm) {
         val64 <<= 8;
         val64 |= oxm_value[i];
       }
-      show(confsys, "%d->metadata", val64);
+      show(confsys, "%" PRIu64 "->metadata", val64);
       break;
     case OFPXMT_OFB_ETH_DST:
       show(confsys, "%02x:%02x:%02x:%02x:%02x:%02x->eth_dst",
@@ -549,7 +549,7 @@ show_set_field(struct confsys *confsys, uint8_t *oxm) {
         val64 <<= 8;
         val64 |= oxm_value[i];
       }
-      show(confsys, "%d->tunnel_id", val64);
+      show(confsys, "%" PRIu64 "->tunnel_id", val64);
       break;
     case OFPXMT_OFB_IPV6_EXTHDR:
       memcpy(&val16, oxm_value, sizeof(uint16_t));
@@ -647,7 +647,7 @@ show_instruction(struct confsys *confsys, struct instruction *instruction) {
         val64 <<= 8;
         val64 |= p[i];
       }
-      show(confsys, "write_metadata:0x%x", val64);
+      show(confsys, "write_metadata:0x%" PRIx64, val64);
       break;
     case OFPIT_WRITE_ACTIONS:
       first = 1;

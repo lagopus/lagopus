@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -142,7 +142,7 @@ dpmgr_bridge_lookup(struct dpmgr *dpmgr, const char *bridge_name);
  */
 struct bridge *
 dpmgr_bridge_lookup_by_controller_address(struct dpmgr *dpmgr,
-                                          const char *controller_address);
+    const char *controller_address);
 /**
  * Lookup bridge dpid.
  *

@@ -11,7 +11,7 @@ if [ "x${TOPDIR}" = "x" -o "x${PKGDIR}" = "x" ]; then
 fi
 
 PKGWORKDIR=lagopus
-TMP_TAR=`mktemp --dry-run /tmp/lagopus_XXXXX.tar.gz 2>/dev/null`
+TMP_TAR="/tmp/lagopus_pkg_$$.tar.gz"
 
 . ${TOPDIR}/mk/pkg_param.conf
 

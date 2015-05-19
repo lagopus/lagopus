@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 
 
 /**
- * @file	ofp_barrier_handler.h
+ * @file        ofp_barrier_handler.h
  */
 
 #ifndef __OFP_BARRIER_HANDLER_H__
@@ -28,15 +28,15 @@
 /**
  * ofp_barrier_request handler.
  *
- *     @param[in]	channel	A pointer to \e channel structure.
- *     @param[in]	pbuf	A pointer to \e pbuf structure.
- *     @param[in]	xid_header	A pointer to \e ofp_header structure in request.
- *     @param[out]	error	A pointer to \e ofp_error structure.
+ *     @param[in]       channel A pointer to \e channel structure.
+ *     @param[in]       pbuf    A pointer to \e pbuf structure.
+ *     @param[in]       xid_header      A pointer to \e ofp_header structure in request.
+ *     @param[out]      error   A pointer to \e ofp_error structure.
  *     If errors occur, set filed values.
  *
- *     @retval	LAGOPUS_RESULT_OK	Succeeded.
- *     @retval	LAGOPUS_RESULT_OFP_ERROR Failed, ofp_error.
- *     @retval	LAGOPUS_RESULT_ANY_FAILURES Failed.
+ *     @retval  LAGOPUS_RESULT_OK       Succeeded.
+ *     @retval  LAGOPUS_RESULT_OFP_ERROR Failed, ofp_error.
+ *     @retval  LAGOPUS_RESULT_ANY_FAILURES Failed.
  */
 lagopus_result_t
 ofp_barrier_request_handle(struct channel *channel, struct pbuf *pbuf,
@@ -46,12 +46,12 @@ ofp_barrier_request_handle(struct channel *channel, struct pbuf *pbuf,
 /**
  * Send ofp_barrier_reply.
  *
- *     @param[in]	channel	A pointer to \e channel structure.
- *     @param[in]	barrier	A pointer to \e barrier structure.
- *     @param[in]	dpid	dpid.
+ *     @param[in]       channel A pointer to \e channel structure.
+ *     @param[in]       barrier A pointer to \e barrier structure.
+ *     @param[in]       dpid    dpid.
  *
- *     @retval	LAGOPUS_RESULT_OK	Succeeded.
- *     @retval	LAGOPUS_RESULT_ANY_FAILURES Failed.
+ *     @retval  LAGOPUS_RESULT_OK       Succeeded.
+ *     @retval  LAGOPUS_RESULT_ANY_FAILURES Failed.
  */
 lagopus_result_t
 ofp_barrier_reply_send(struct channel *channel,
@@ -61,11 +61,11 @@ ofp_barrier_reply_send(struct channel *channel,
 /**
  * ofp_barrier_reply handler (for dp).
  *
- *     @param[in]	barrier	A pointer to \e barrier structure.
- *     @param[in]	dpid	dpid.
+ *     @param[in]       barrier A pointer to \e barrier structure.
+ *     @param[in]       dpid    dpid.
  *
- *     @retval	LAGOPUS_RESULT_OK	Succeeded.
- *     @retval	LAGOPUS_RESULT_ANY_FAILURES Failed.
+ *     @retval  LAGOPUS_RESULT_OK       Succeeded.
+ *     @retval  LAGOPUS_RESULT_ANY_FAILURES Failed.
  */
 lagopus_result_t
 ofp_barrier_reply_handle(struct barrier *barrier,
@@ -75,12 +75,12 @@ ofp_barrier_reply_handle(struct barrier *barrier,
 /**
  * Create ofp_barrier_reply.
  *
- *     @param[in]	channel	A pointer to \e channel structure.
- *     @param[in]	barrier	A pointer to \e barrier structure.
- *     @param[out]	pbuf	A pointer to \e pbuf structure.
+ *     @param[in]       channel A pointer to \e channel structure.
+ *     @param[in]       barrier A pointer to \e barrier structure.
+ *     @param[out]      pbuf    A pointer to \e pbuf structure.
  *
- *     @retval	LAGOPUS_RESULT_OK	Succeeded.
- *     @retval	LAGOPUS_RESULT_ANY_FAILURES Failed.
+ *     @retval  LAGOPUS_RESULT_OK       Succeeded.
+ *     @retval  LAGOPUS_RESULT_ANY_FAILURES Failed.
  */
 lagopus_result_t
 ofp_barrier_reply_create(struct channel *channel,

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 
 
 /**
- * @file	ofp_bucket_counter.h
+ * @file        ofp_bucket_counter.h
  */
 
 #ifndef __BUCKET_COUNTER_H__
@@ -28,9 +28,9 @@
 /**
  * Alloc bucket counter.
  *
- *     @retval	*bucket_counter	Succeeded,
+ *     @retval  *bucket_counter Succeeded,
  *     A pointer to \e bucket_counter structure.
- *     @retval	NULL	Failed.
+ *     @retval  NULL    Failed.
  */
 struct bucket_counter *
 bucket_counter_alloc(void);
@@ -38,10 +38,10 @@ bucket_counter_alloc(void);
 /**
  * Free bucket_counter_list elements.
  *
- *     @param[in]	bucket_counter_list	A pointer to list of
+ *     @param[in]       bucket_counter_list     A pointer to list of
  *     \e bucket_counter structures.
  *
- *     @retval	void
+ *     @retval  void
  */
 void
 bucket_counter_list_elem_free(struct bucket_counter_list
@@ -50,15 +50,15 @@ bucket_counter_list_elem_free(struct bucket_counter_list
 /**
  * Encode bucket_counter_list.
  *
- *     @param[out]	pbuf_list	A pointer to list of \e pbuf structures.
- *     @param[out]	pbuf	A pointer to \e pbuf structure.
- *     @param[in]	bucket_counter_list	A pointer to list of
+ *     @param[out]      pbuf_list       A pointer to list of \e pbuf structures.
+ *     @param[out]      pbuf    A pointer to \e pbuf structure.
+ *     @param[in]       bucket_counter_list     A pointer to list of
  *     \e bucket_counter structures.
- *     @param[out]	total_length	A pointer to \e size of packet.
+ *     @param[out]      total_length    A pointer to \e size of packet.
  *
- *     @retval	LAGOPUS_RESULT_OK	Succeeded.
- *     @retval	LAGOPUS_RESULT_OUT_OF_RANGE Failed, out of range.
- *     @retval	LAGOPUS_RESULT_ANY_FAILURES Failed.
+ *     @retval  LAGOPUS_RESULT_OK       Succeeded.
+ *     @retval  LAGOPUS_RESULT_OUT_OF_RANGE Failed, out of range.
+ *     @retval  LAGOPUS_RESULT_ANY_FAILURES Failed.
  */
 lagopus_result_t
 ofp_bucket_counter_list_encode(struct pbuf_list *pbuf_list,

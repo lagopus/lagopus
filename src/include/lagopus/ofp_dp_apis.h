@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,9 +16,9 @@
 
 
 /**
- * @file	ofp_dp_apis.h
- * @brief	Agent/Data-Plane APIs
- * @details	Describe APIs between Agent and Data-Plane.
+ * @file        ofp_dp_apis.h
+ * @brief       Agent/Data-Plane APIs
+ * @details     Describe APIs between Agent and Data-Plane.
  */
 #ifndef __LAGOPUS_OFP_DP_APIS_H__
 #define __LAGOPUS_OFP_DP_APIS_H__

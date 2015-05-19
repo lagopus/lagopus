@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,8 +21,8 @@
 
 
 
-#define ONE_SEC		1000LL * 1000LL * 1000LL
-#define REQ_TIMEDOUT	ONE_SEC
+#define ONE_SEC         1000LL * 1000LL * 1000LL
+#define REQ_TIMEDOUT    ONE_SEC
 
 
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -288,13 +288,13 @@ dummy_module_usage(FILE *fd) {
 
 
 
-#define MY_MOD_IDX	LAGOPUS_MODULE_CONSTRUCTOR_INDEX_BASE + 100
-#define MY_MOD_NAME	"dummy"
+#define MY_MOD_IDX      LAGOPUS_MODULE_CONSTRUCTOR_INDEX_BASE + 100
+#define MY_MOD_NAME     "dummy"
 
 
 static pthread_once_t s_once = PTHREAD_ONCE_INIT;
-static void	s_ctors(void) __attr_constructor__(MY_MOD_IDX);
-static void	s_dtors(void) __attr_destructor__(MY_MOD_IDX);
+static void     s_ctors(void) __attr_constructor__(MY_MOD_IDX);
+static void     s_dtors(void) __attr_destructor__(MY_MOD_IDX);
 
 
 static void

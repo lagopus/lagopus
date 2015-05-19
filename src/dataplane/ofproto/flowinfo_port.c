@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +16,8 @@
 
 
 /**
- *	@file	flowinfo_port.c
- *	@brief	Optimized flow database for datapath, for Port
+ *      @file   flowinfo_port.c
+ *      @brief  Optimized flow database for datapath, for Port
  */
 
 #include <stdlib.h>

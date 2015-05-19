@@ -1,4 +1,4 @@
-/*	$NetBSD: wcsdup.c,v 1.3 2008/05/26 13:17:48 haad Exp $	*/
+/*      $NetBSD: wcsdup.c,v 1.3 2008/05/26 13:17:48 haad Exp $  */
 
 /*
  * Copyright (C) 2006 Aleksey Cheusov

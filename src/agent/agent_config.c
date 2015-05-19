@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -78,11 +78,11 @@ agent_initialize_config_tree(void) {
 CALLBACK(show_version_func) {
   ARG_USED();
   show(confsys, "%s version %d.%d.%d%s\n",
-                LAGOPUS_PRODUCT_NAME,
-                LAGOPUS_VERSION_MAJOR,
-                LAGOPUS_VERSION_MINOR,
-                LAGOPUS_VERSION_PATCH,
-                LAGOPUS_VERSION_RELEASE);
+       LAGOPUS_PRODUCT_NAME,
+       LAGOPUS_VERSION_MAJOR,
+       LAGOPUS_VERSION_MINOR,
+       LAGOPUS_VERSION_PATCH,
+       LAGOPUS_VERSION_RELEASE);
   return CONFIG_SUCCESS;
 }
 
@@ -520,6 +520,7 @@ CALLBACK(interface_ethernet_func) {
   if (confsys->type == CONFSYS_MSG_TYPE_SET) {
     nport.ofp_port.port_no = 0; /* unassigned */
     nport.ifindex = portid;
+    nport.type = LAGOPUS_PORT_TYPE_PHYSICAL;
     lagopus_msg_info("interface add : if = %s, port id = %u\n",
                      if_str, nport.ifindex);
     snprintf(nport.ofp_port.name , sizeof(nport.ofp_port.name),

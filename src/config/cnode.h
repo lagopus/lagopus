@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -153,9 +153,9 @@ cnode_set_flag(struct cnode *cnode, int flag);
 /**
  *  Copy same child node from src node to dst node.
  *
- * @param[in]	top	Top node which src and dst node belongs to.
- * @param[in]	src	Source node to be copied.
- * @param[in]	dst	Destination node.
+ * @param[in]   top     Top node which src and dst node belongs to.
+ * @param[in]   src     Source node to be copied.
+ * @param[in]   dst     Destination node.
  */
 void
 cnode_link(struct cnode *top, const char *src, const char *dst);

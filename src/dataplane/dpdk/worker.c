@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +16,8 @@
 
 
 /**
- *	@file	dpdk.c
- *	@brief	Datapath driver use with Intel DPDK
+ *      @file   dpdk.c
+ *      @brief  Datapath driver use with Intel DPDK
  */
 
 /*-
@@ -108,9 +108,6 @@
 #include "pktbuf.h"
 #include "packet.h"
 #include "dpdk/dpdk.h"
-#include "dpdk/rte_hash_crc64.h"
-#include "City.h"
-#include "murmurhash3.h"
 
 #ifndef APP_LCORE_WORKER_FLUSH
 #define APP_LCORE_WORKER_FLUSH       10000
@@ -192,7 +189,11 @@ app_lcore_worker(struct app_lcore_params_worker *lp,
       pkt = (struct lagopus_packet *)
             (m->buf_addr + APP_DEFAULT_MBUF_LOCALDATA_OFFSET);
       APP_WORKER_PREFETCH0(pkt);
+#ifdef RTE_MBUF_HAS_PKT
       port = port_lookup(dpmgr->ports, m->pkt.in_port);
+#else
+      port = port_lookup(dpmgr->ports, m->port);
+#endif /* RTE_MBUF_HAS_PKT */
       if (port == NULL ||
           port->bridge == NULL ||
           (port->ofp_port.config & OFPPC_NO_RECV) != 0) {
@@ -427,9 +428,9 @@ lagopus_send_packet_physical(struct lagopus_packet *pkt, uint32_t portid) {
   }
 
   ret = rte_ring_sp_enqueue_bulk(
-                                 lp->rings_out[portid],
-                                 (void **) lp->mbuf_out[portid].array,
-                                 bsz_wr);
+          lp->rings_out[portid],
+          (void **) lp->mbuf_out[portid].array,
+          bsz_wr);
 
 #if APP_STATS
   lp->rings_out_iters[portid] ++;

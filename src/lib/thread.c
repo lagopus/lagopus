@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@
 
 
 
-#define MAX_CPUS	1024	/* Yeah, we mean it. */
+#define MAX_CPUS        1024    /* Yeah, we mean it. */
 
 
 
@@ -459,8 +459,8 @@ s_pthd_entry_point(void *ptr) {
       /*
        * A BOGUS ALERT:
        *
-       *	OMG, according to clang/scan-build, the thd is
-       *	modified here. How could I live like this?
+       *        OMG, according to clang/scan-build, the thd is
+       *        modified here. How could I live like this?
        */
       ret = thd->m_main_proc(tptr, thd->m_arg);
       is_cleanly_finished = true;
@@ -472,8 +472,8 @@ s_pthd_entry_point(void *ptr) {
       /*
        * A BOGUS ALERT:
        *
-       *	OMG, also according to clang/scan-build, the thd could
-       *	be NULL. How could I live like this?
+       *        OMG, also according to clang/scan-build, the thd could
+       *        be NULL. How could I live like this?
        */
       thd->m_result_code = ret;
     }

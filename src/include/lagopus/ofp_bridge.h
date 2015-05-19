@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,18 +15,18 @@
  */
 
 /**
- * @file	ofp_bridge.h
- * @brief	Agent/Data-Plane connection
- * @details	Describe APIs between Agent and Data-Plane.
+ * @file        ofp_bridge.h
+ * @brief       Agent/Data-Plane connection
+ * @details     Describe APIs between Agent and Data-Plane.
  */
 #ifndef __LAGOPUS_OFP_BRIDGE_H__
 #define __LAGOPUS_OFP_BRIDGE_H__
 
 #include "lagopus/eventq_data.h"
 
-#define DATAQ_SIZE		1000LL
-#define EVENTQ_SIZE		1000LL
-#define EVENT_DATAQ_SIZE	1000LL
+#define DATAQ_SIZE              1000LL
+#define EVENTQ_SIZE             1000LL
+#define EVENT_DATAQ_SIZE        1000LL
 
 #ifdef OFPH_POLL_WRITING
 /* decl edq_buffer */

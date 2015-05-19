@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -50,23 +50,23 @@ typedef void VLAN_HDR;
  */
 static void _add_port_match(struct match_list *match_list, uint8_t field,
                             uint32_t port);
-static void _add_eth_addr_match(struct match_list * restrict match_list,
+static void _add_eth_addr_match(struct match_list *restrict match_list,
                                 uint8_t field,
-                                const uint8_t * restrict addr);
-static void _add_ip_addr_match(struct match_list * restrict match_list,
+                                const uint8_t *restrict addr);
+static void _add_ip_addr_match(struct match_list *restrict match_list,
                                uint8_t field,
-                               const struct addrunion * restrict addr);
-static void _add_ip_addr_w_match(struct match_list * restrict match_list,
+                               const struct addrunion *restrict addr);
+static void _add_ip_addr_w_match(struct match_list *restrict match_list,
                                  uint8_t field,
-                                 const struct addrunion * restrict addr,
-                                 const struct addrunion * restrict mask);
-static void _add_arp_ipv4_match(struct match_list * restrict match_list,
+                                 const struct addrunion *restrict addr,
+                                 const struct addrunion *restrict mask);
+static void _add_arp_ipv4_match(struct match_list *restrict match_list,
                                 uint8_t field,
-                                const struct in_addr * restrict addr);
-static void _add_arp_ipv4_w_match(struct match_list * restrict match_list,
+                                const struct in_addr *restrict addr);
+static void _add_arp_ipv4_w_match(struct match_list *restrict match_list,
                                   uint8_t field,
-                                  const struct in_addr * restrict addr,
-                                  const struct in_addr * restrict mask);
+                                  const struct in_addr *restrict addr,
+                                  const struct in_addr *restrict mask);
 static void _add_l4_port_match(struct match_list *match_list, uint8_t field,
                                uint16_t port);
 static void _add_icmp_type_match(struct match_list *match_list, uint8_t field,
@@ -103,7 +103,8 @@ add_metadata_match(struct match_list *match_list, uint64_t md) {
 }
 
 void
-add_metadata_w_match(struct match_list *match_list, uint64_t md, uint64_t mask) {
+add_metadata_w_match(struct match_list *match_list, uint64_t md,
+                     uint64_t mask) {
   add_match(match_list, 2 * sizeof(md), (OFPXMT_OFB_METADATA << 1) | 1,
             NBO_BYTE(md, 0), NBO_BYTE(md, 1), NBO_BYTE(md, 2), NBO_BYTE(md, 3),
             NBO_BYTE(md, 4), NBO_BYTE(md, 5), NBO_BYTE(md, 6), NBO_BYTE(md, 7),
@@ -119,7 +120,8 @@ add_tunnelid_match(struct match_list *match_list, uint64_t id) {
 }
 
 void
-add_tunnelid_w_match(struct match_list *match_list, uint64_t id, uint64_t mask) {
+add_tunnelid_w_match(struct match_list *match_list, uint64_t id,
+                     uint64_t mask) {
   add_match(match_list, sizeof(id), (OFPXMT_OFB_TUNNEL_ID << 1) | 1,
             NBO_BYTE(id, 0), NBO_BYTE(id, 1), NBO_BYTE(id, 2), NBO_BYTE(id, 3),
             NBO_BYTE(id, 4), NBO_BYTE(id, 5), NBO_BYTE(id, 6), NBO_BYTE(id, 7),
@@ -139,7 +141,8 @@ add_vlan_vid_match(struct match_list *match_list, uint16_t vid) {
 }
 
 void
-add_vlan_vid_w_match(struct match_list *match_list, uint16_t vid, uint16_t mask) {
+add_vlan_vid_w_match(struct match_list *match_list, uint16_t vid,
+                     uint16_t mask) {
   add_match(match_list, sizeof(vid), (OFPXMT_OFB_VLAN_VID << 1) | 1,
             NBO_BYTE(vid, 0), NBO_BYTE(vid, 1),
             NBO_BYTE(mask, 0), NBO_BYTE(mask, 1));
@@ -157,14 +160,16 @@ add_vlan_pcp_match(struct match_list *match_list, uint8_t pcp) {
  */
 
 static void
-_add_eth_addr_match(struct match_list * restrict match_list, uint8_t field, const uint8_t * restrict addr) {
+_add_eth_addr_match(struct match_list *restrict match_list, uint8_t field,
+                    const uint8_t *restrict addr) {
   /* Assume a MAC address in the network byte order. */
   add_match(match_list, OFP_ETH_ALEN, ((uint8_t)(field << 1)) & 0xff,
             addr[0], addr[1], addr[2], addr[3], addr[4], addr[5]);
 }
 
 static void
-_add_eth_addr_w_match(struct match_list * restrict match_list, uint8_t field, const uint8_t * restrict addr, const uint8_t * restrict mask) {
+_add_eth_addr_w_match(struct match_list *restrict match_list, uint8_t field,
+                      const uint8_t *restrict addr, const uint8_t *restrict mask) {
   /* Assume a MAC address in the network byte order. */
   add_match(match_list, OFP_ETH_ALEN, ((uint8_t)((field << 1) | 1)) & 0xff,
             addr[0], addr[1], addr[2], addr[3], addr[4], addr[5],
@@ -172,24 +177,28 @@ _add_eth_addr_w_match(struct match_list * restrict match_list, uint8_t field, co
 }
 
 void
-add_eth_dst_match(struct match_list * restrict match_list, const uint8_t * restrict addr) {
+add_eth_dst_match(struct match_list *restrict match_list,
+                  const uint8_t *restrict addr) {
   _add_eth_addr_match(match_list, OFPXMT_OFB_ETH_DST, addr);
 }
 
 void
-add_eth_dst_w_match(struct match_list * restrict match_list, const uint8_t * restrict addr,
-		    const uint8_t * restrict mask) {
+add_eth_dst_w_match(struct match_list *restrict match_list,
+                    const uint8_t *restrict addr,
+                    const uint8_t *restrict mask) {
   _add_eth_addr_w_match(match_list, OFPXMT_OFB_ETH_DST, addr, mask);
 }
 
 void
-add_eth_src_match(struct match_list * restrict match_list, const uint8_t * restrict addr) {
+add_eth_src_match(struct match_list *restrict match_list,
+                  const uint8_t *restrict addr) {
   _add_eth_addr_match(match_list, OFPXMT_OFB_ETH_SRC, addr);
 }
 
 void
-add_eth_src_w_match(struct match_list * restrict match_list, const uint8_t * restrict addr,
-		    const uint8_t * restrict mask) {
+add_eth_src_w_match(struct match_list *restrict match_list,
+                    const uint8_t *restrict addr,
+                    const uint8_t *restrict mask) {
   _add_eth_addr_w_match(match_list, OFPXMT_OFB_ETH_SRC, addr, mask);
 }
 
@@ -205,8 +214,8 @@ add_eth_type_match(struct match_list *match_list, uint16_t type) {
  */
 
 static void
-_add_ip_addr_match(struct match_list * restrict match_list, uint8_t field,
-		   const struct addrunion * restrict addr) {
+_add_ip_addr_match(struct match_list *restrict match_list, uint8_t field,
+                   const struct addrunion *restrict addr) {
   const char *p;
 
   /*
@@ -214,110 +223,110 @@ _add_ip_addr_match(struct match_list * restrict match_list, uint8_t field,
    * pointers to const!
    */
   switch (addr->family) {
-  case AF_INET:
-    /* Assume the IPv4 address in the network byte order. */
-    p = (const char *)&addr->addr4.s_addr;
-    add_match(match_list, sizeof(addr->addr4.s_addr), (uint8_t)(field << 1),
-	      p[0], p[1], p[2], p[3]);
-    break;
+    case AF_INET:
+      /* Assume the IPv4 address in the network byte order. */
+      p = (const char *)&addr->addr4.s_addr;
+      add_match(match_list, sizeof(addr->addr4.s_addr), (uint8_t)(field << 1),
+                p[0], p[1], p[2], p[3]);
+      break;
 
-  case AF_INET6:
-    /* An IPv6 address is always in the network byte order. */
-    p = (const char *)&addr->addr6.s6_addr;
-    add_match(match_list, sizeof(addr->addr6.s6_addr), (uint8_t)(field << 1),
-	      p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7],
-	      p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15]);
-    break;
+    case AF_INET6:
+      /* An IPv6 address is always in the network byte order. */
+      p = (const char *)&addr->addr6.s6_addr;
+      add_match(match_list, sizeof(addr->addr6.s6_addr), (uint8_t)(field << 1),
+                p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7],
+                p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15]);
+      break;
   }
 }
 
 static void
-_add_ip_addr_w_match(struct match_list * restrict match_list, uint8_t field,
-		     const struct addrunion * restrict addr,
-		     const struct addrunion * restrict mask) {
+_add_ip_addr_w_match(struct match_list *restrict match_list, uint8_t field,
+                     const struct addrunion *restrict addr,
+                     const struct addrunion *restrict mask) {
   const char *p, *q;
   /*
    * XXX inline expanded because the lib functions do not take the
    * pointers to const!
    */
   switch (addr->family) {
-  case AF_INET:
-    /* Assume the IPv4 address in the network byte order. */
-    p = (const char *)&addr->addr4.s_addr;
-    q = (const char *)&mask->addr4.s_addr;
-    add_match(match_list, sizeof(addr->addr4.s_addr), (uint8_t)((field << 1) | 1),
-	      p[0], p[1], p[2], p[3],
-	      q[0], q[1], q[2], q[3]);
-    break;
+    case AF_INET:
+      /* Assume the IPv4 address in the network byte order. */
+      p = (const char *)&addr->addr4.s_addr;
+      q = (const char *)&mask->addr4.s_addr;
+      add_match(match_list, sizeof(addr->addr4.s_addr), (uint8_t)((field << 1) | 1),
+                p[0], p[1], p[2], p[3],
+                q[0], q[1], q[2], q[3]);
+      break;
 
-  case AF_INET6:
-    /* An IPv6 address is always in the network byte order. */
-    p = (const char *)&addr->addr6.s6_addr;
-    q = (const char *)&mask->addr6.s6_addr;
-    add_match(match_list, sizeof(addr->addr6.s6_addr), (uint8_t)((field << 1) | 1),
-	      p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7],
-	      p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15],
-	      q[0], q[1], q[2], q[3], q[4], q[5], q[6], q[7],
-	      q[8], q[9], q[10], q[11], q[12], q[13], q[14], q[15]);
-    break;
+    case AF_INET6:
+      /* An IPv6 address is always in the network byte order. */
+      p = (const char *)&addr->addr6.s6_addr;
+      q = (const char *)&mask->addr6.s6_addr;
+      add_match(match_list, sizeof(addr->addr6.s6_addr), (uint8_t)((field << 1) | 1),
+                p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7],
+                p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15],
+                q[0], q[1], q[2], q[3], q[4], q[5], q[6], q[7],
+                q[8], q[9], q[10], q[11], q[12], q[13], q[14], q[15]);
+      break;
   }
 }
 
 void
-add_ip_src_match(struct match_list * restrict match_list,
-		 const struct addrunion * restrict addr) {
+add_ip_src_match(struct match_list *restrict match_list,
+                 const struct addrunion *restrict addr) {
   switch (addr->family) {
-  case AF_INET:
-    _add_ip_addr_match(match_list, OFPXMT_OFB_IPV4_SRC, addr);
-    break;
+    case AF_INET:
+      _add_ip_addr_match(match_list, OFPXMT_OFB_IPV4_SRC, addr);
+      break;
 
-  case AF_INET6:
-    _add_ip_addr_match(match_list, OFPXMT_OFB_IPV6_SRC, addr);
-    break;
+    case AF_INET6:
+      _add_ip_addr_match(match_list, OFPXMT_OFB_IPV6_SRC, addr);
+      break;
   }
 }
 
 void
-add_ip_src_w_match(struct match_list * restrict match_list,
-		   const struct addrunion * restrict addr,
-		   const struct addrunion * restrict mask) {
+add_ip_src_w_match(struct match_list *restrict match_list,
+                   const struct addrunion *restrict addr,
+                   const struct addrunion *restrict mask) {
   switch (addr->family) {
-  case AF_INET:
-    _add_ip_addr_w_match(match_list, OFPXMT_OFB_IPV4_SRC, addr, mask);
-    break;
+    case AF_INET:
+      _add_ip_addr_w_match(match_list, OFPXMT_OFB_IPV4_SRC, addr, mask);
+      break;
 
-  case AF_INET6:
-    _add_ip_addr_w_match(match_list, OFPXMT_OFB_IPV6_SRC, addr, mask);
-    break;
+    case AF_INET6:
+      _add_ip_addr_w_match(match_list, OFPXMT_OFB_IPV6_SRC, addr, mask);
+      break;
   }
 }
 
 void
-add_ip_dst_match(struct match_list * restrict match_list,
-		 const struct addrunion * restrict addr) {
+add_ip_dst_match(struct match_list *restrict match_list,
+                 const struct addrunion *restrict addr) {
   switch (addr->family) {
-  case AF_INET:
-    _add_ip_addr_match(match_list, OFPXMT_OFB_IPV4_DST, addr);
-    break;
+    case AF_INET:
+      _add_ip_addr_match(match_list, OFPXMT_OFB_IPV4_DST, addr);
+      break;
 
-  case AF_INET6:
-    _add_ip_addr_match(match_list, OFPXMT_OFB_IPV6_DST, addr);
-    break;
+    case AF_INET6:
+      _add_ip_addr_match(match_list, OFPXMT_OFB_IPV6_DST, addr);
+      break;
   }
 }
 
 void
-add_ip_dst_w_match(struct match_list * restrict match_list,
-		   const struct addrunion * restrict addr,
-		   const struct addrunion * restrict mask) {
+add_ip_dst_w_match(struct match_list *restrict match_list,
+                   const struct addrunion *restrict addr,
+                   const struct addrunion *restrict mask) {
   switch (addr->family) {
-  case AF_INET:
-    _add_ip_addr_w_match(match_list, OFPXMT_OFB_IPV4_DST, addr, mask);
-    break;
+    case AF_INET:
+      _add_ip_addr_w_match(match_list, OFPXMT_OFB_IPV4_DST, addr, mask);
+      break;
 
-  case AF_INET6:
-    _add_ip_addr_w_match(match_list, OFPXMT_OFB_IPV6_DST, addr, mask);
-    break;
+    case AF_INET6:
+      _add_ip_addr_w_match(match_list, OFPXMT_OFB_IPV6_DST, addr, mask);
+      break;
   }
 }
 
@@ -342,7 +351,8 @@ add_ip_proto_match(struct match_list *match_list, uint8_t proto) {
 void
 add_ipv6_flowlabel_match(struct match_list *match_list, uint32_t label) {
   add_match(match_list, sizeof(label), OFPXMT_OFB_IPV6_FLABEL << 1,
-            NBO_BYTE(label, 0), NBO_BYTE(label, 1), NBO_BYTE(label, 2), NBO_BYTE(label, 3));
+            NBO_BYTE(label, 0), NBO_BYTE(label, 1), NBO_BYTE(label, 2), NBO_BYTE(label,
+                3));
 }
 
 void
@@ -352,7 +362,8 @@ add_ipv6_exthdr_match(struct match_list *match_list, uint16_t xh) {
 }
 
 void
-add_ipv6_exthdr_w_match(struct match_list *match_list, uint16_t xh, uint16_t mask) {
+add_ipv6_exthdr_w_match(struct match_list *match_list, uint16_t xh,
+                        uint16_t mask) {
   add_match(match_list, sizeof(xh), (OFPXMT_OFB_IPV6_EXTHDR << 1) | 1,
             NBO_BYTE(xh, 0), NBO_BYTE(xh, 1),
             NBO_BYTE(mask, 0), NBO_BYTE(mask, 1));
@@ -370,8 +381,8 @@ add_arp_op_match(struct match_list *match_list, uint16_t op) {
 }
 
 static void
-_add_arp_ipv4_match(struct match_list * restrict match_list, uint8_t field,
-		    const struct in_addr * restrict addr) {
+_add_arp_ipv4_match(struct match_list *restrict match_list, uint8_t field,
+                    const struct in_addr *restrict addr) {
   const char *p;
 
   p = (const char *)&addr->s_addr;
@@ -380,83 +391,83 @@ _add_arp_ipv4_match(struct match_list * restrict match_list, uint8_t field,
 }
 
 static void
-_add_arp_ipv4_w_match(struct match_list * restrict match_list, uint8_t field,
-		      const struct in_addr * restrict addr,
-		      const struct in_addr * restrict mask) {
+_add_arp_ipv4_w_match(struct match_list *restrict match_list, uint8_t field,
+                      const struct in_addr *restrict addr,
+                      const struct in_addr *restrict mask) {
   const char *p, *q;
 
   p = (const char *)&addr->s_addr;
   q = (const char *)&mask->s_addr;
   add_match(match_list, sizeof(struct in_addr), (uint8_t)((field << 1) | 1),
-	    p[0], p[1], p[2], p[3],
-	    q[0], q[1], q[2], q[3]);
+            p[0], p[1], p[2], p[3],
+            q[0], q[1], q[2], q[3]);
 }
 
 void
-add_arp_spa_match(struct match_list * restrict match_list,
-		  const struct in_addr * restrict addr) {
+add_arp_spa_match(struct match_list *restrict match_list,
+                  const struct in_addr *restrict addr) {
   _add_arp_ipv4_match(match_list, OFPXMT_OFB_ARP_SPA, addr);
 }
 
 void
-add_arp_spa_w_match(struct match_list * restrict match_list,
-		    const struct in_addr * restrict addr,
-		    const struct in_addr * restrict mask) {
+add_arp_spa_w_match(struct match_list *restrict match_list,
+                    const struct in_addr *restrict addr,
+                    const struct in_addr *restrict mask) {
   _add_arp_ipv4_w_match(match_list, OFPXMT_OFB_ARP_SPA, addr, mask);
 }
 
 void
-add_arp_tpa_match(struct match_list * restrict match_list,
-		  const struct in_addr * restrict addr) {
+add_arp_tpa_match(struct match_list *restrict match_list,
+                  const struct in_addr *restrict addr) {
   _add_arp_ipv4_match(match_list, OFPXMT_OFB_ARP_TPA, addr);
 }
 
 void
-add_arp_tpa_w_match(struct match_list * restrict match_list,
-		    const struct in_addr * restrict addr,
-		    const struct in_addr * restrict mask) {
+add_arp_tpa_w_match(struct match_list *restrict match_list,
+                    const struct in_addr *restrict addr,
+                    const struct in_addr *restrict mask) {
   _add_arp_ipv4_w_match(match_list, OFPXMT_OFB_ARP_TPA, addr, mask);
 }
 
 static void
-_add_arp_eth_match(struct match_list * restrict match_list, uint8_t field,
-		   const uint8_t * restrict addr) {
+_add_arp_eth_match(struct match_list *restrict match_list, uint8_t field,
+                   const uint8_t *restrict addr) {
   add_match(match_list, OFP_ETH_ALEN, ((uint8_t)(field << 1)),
             addr[0], addr[1], addr[2], addr[3], addr[4], addr[5]);
 }
 
 static void
-_add_arp_eth_w_match(struct match_list * restrict match_list, uint8_t field,
-		     const uint8_t * restrict addr,
-		     const uint8_t * restrict mask) {
+_add_arp_eth_w_match(struct match_list *restrict match_list, uint8_t field,
+                     const uint8_t *restrict addr,
+                     const uint8_t *restrict mask) {
   add_match(match_list, OFP_ETH_ALEN, (uint8_t)((field << 1) | 1),
             addr[0], addr[1], addr[2], addr[3], addr[4], addr[5],
             mask[0], mask[1], mask[2], mask[3], mask[4], mask[5]);
 }
 
 void
-add_arp_sha_match(struct match_list * restrict match_list,
-		  const uint8_t * restrict addr) {
+add_arp_sha_match(struct match_list *restrict match_list,
+                  const uint8_t *restrict addr) {
   _add_arp_eth_match(match_list, OFPXMT_OFB_ARP_SHA, addr);
 }
 
 void
-add_arp_sha_w_match(struct match_list * restrict match_list,
-		    const uint8_t * restrict addr,
-		    const uint8_t * restrict mask) {
+add_arp_sha_w_match(struct match_list *restrict match_list,
+                    const uint8_t *restrict addr,
+                    const uint8_t *restrict mask) {
   _add_arp_eth_w_match(match_list, OFPXMT_OFB_ARP_SHA, addr, mask);
 }
 
 void
-add_arp_tha_match(struct match_list * restrict match_list,
-		  const uint8_t * restrict addr) {
+add_arp_tha_match(struct match_list *restrict match_list,
+                  const uint8_t *restrict addr) {
   _add_arp_eth_match(match_list, OFPXMT_OFB_ARP_THA, addr);
 }
 
 void
-add_arp_tha_w_match(struct match_list * restrict match_list,
-		    const uint8_t * restrict addr,
-		    const uint8_t * restrict mask) {
+add_arp_tha_w_match(struct match_list *restrict match_list,
+                    const uint8_t *restrict addr,
+                    const uint8_t *restrict mask) {
   _add_arp_eth_w_match(match_list, OFPXMT_OFB_ARP_THA, addr, mask);
 }
 
@@ -468,7 +479,8 @@ add_arp_tha_w_match(struct match_list * restrict match_list,
 void
 add_mpls_label_match(struct match_list *match_list, uint32_t label) {
   add_match(match_list, sizeof(label), OFPXMT_OFB_MPLS_LABEL << 1,
-            NBO_BYTE(label, 0), NBO_BYTE(label, 1), NBO_BYTE(label, 2), NBO_BYTE(label, 3));
+            NBO_BYTE(label, 0), NBO_BYTE(label, 1), NBO_BYTE(label, 2), NBO_BYTE(label,
+                3));
 }
 
 void
@@ -495,10 +507,11 @@ add_pbb_isid_match(struct match_list *match_list, uint32_t isid) {
 }
 
 void
-add_pbb_isid_w_match(struct match_list *match_list, uint32_t isid, uint32_t mask) {
+add_pbb_isid_w_match(struct match_list *match_list, uint32_t isid,
+                     uint32_t mask) {
   add_match(match_list, sizeof(isid) - 1, (OFPXMT_OFB_PBB_ISID << 1) | 1,
             NBO_BYTE(isid, 1), NBO_BYTE(isid, 2), NBO_BYTE(isid, 3),
-	    NBO_BYTE(mask, 1), NBO_BYTE(mask, 2), NBO_BYTE(mask, 3));
+            NBO_BYTE(mask, 1), NBO_BYTE(mask, 2), NBO_BYTE(mask, 3));
 }
 
 #ifdef notyet
@@ -515,7 +528,8 @@ add_pbb_uca_match(struct match_list *match_list, uint8_t uca) {
  */
 
 static void
-_add_l4_port_match(struct match_list *match_list, uint8_t field, uint16_t port) {
+_add_l4_port_match(struct match_list *match_list, uint8_t field,
+                   uint16_t port) {
   add_match(match_list, sizeof(port), (uint8_t)(field << 1),
             NBO_BYTE(port, 0), NBO_BYTE(port, 1));
 }
@@ -552,14 +566,14 @@ add_sctp_dst_match(struct match_list *match_list, uint16_t port) {
 
 static void
 _add_icmp_type_match(struct match_list *match_list, uint8_t field,
-		     uint8_t type) {
+                     uint8_t type) {
   add_match(match_list, sizeof(type), (uint8_t)(field << 1),
             type);
 }
 
 static void
 _add_icmp_code_match(struct match_list *match_list, uint8_t field,
-		     uint8_t code) {
+                     uint8_t code) {
   add_match(match_list, sizeof(code), (uint8_t)(field << 1),
             code);
 }
@@ -590,24 +604,24 @@ add_icmpv6_code_match(struct match_list *match_list, uint8_t code) {
  */
 
 void
-add_ipv6_nd_target_match(struct match_list * restrict match_list,
-			 const struct in6_addr * restrict addr) {
+add_ipv6_nd_target_match(struct match_list *restrict match_list,
+                         const struct in6_addr *restrict addr) {
   const char *p;
 
   p = (const char *)&addr->s6_addr;
   add_match(match_list, sizeof(*addr), OFPXMT_OFB_IPV6_ND_TARGET << 1,
-	    p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7],
-	    p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15]);
+            p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7],
+            p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15]);
 }
 
 void
-add_ipv6_nd_sll_match(struct match_list * restrict match_list,
-		      const uint8_t * restrict addr) {
+add_ipv6_nd_sll_match(struct match_list *restrict match_list,
+                      const uint8_t *restrict addr) {
   _add_arp_eth_match(match_list, OFPXMT_OFB_IPV6_ND_SLL, addr);
 }
 
 void
-add_ipv6_nd_tll_match(struct match_list * restrict match_list,
-		      const uint8_t * restrict addr) {
+add_ipv6_nd_tll_match(struct match_list *restrict match_list,
+                      const uint8_t *restrict addr) {
   _add_arp_eth_match(match_list, OFPXMT_OFB_IPV6_ND_TLL, addr);
 }
