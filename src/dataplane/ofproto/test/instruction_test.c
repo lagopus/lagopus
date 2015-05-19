@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,6 @@
 #include "lagopus/port.h"
 #include "lagopus/flowinfo.h"
 #include "lagopus/dataplane.h"
-#include "match.h"
 #include "pktbuf.h"
 #include "packet.h"
 #include "datapath_test_misc.h"
@@ -80,13 +79,13 @@ test_execute_instruction_WRITE_METADATA(void) {
   struct ofp_instruction_write_metadata *ofp_insn;
 
   static const uint8_t md_i[] =
-      { 0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0};
+  { 0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0};
   static const uint8_t md_n[] =
-      { 0x00, 0x00, 0x00, 0x55, 0xaa, 0x00, 0x00, 0x00};
+  { 0x00, 0x00, 0x00, 0x55, 0xaa, 0x00, 0x00, 0x00};
   static const uint8_t md_m[] =
-      { 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00};
+  { 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00};
   static const uint8_t md_r[] =
-      { 0x12, 0x34, 0x00, 0x55, 0xaa, 0x00, 0xde, 0xf0};
+  { 0x12, 0x34, 0x00, 0x55, 0xaa, 0x00, 0xde, 0xf0};
 
   insn = calloc(1, sizeof(struct instruction) +
                 sizeof(struct ofp_instruction_write_metadata) -
@@ -97,15 +96,15 @@ test_execute_instruction_WRITE_METADATA(void) {
   lagopus_set_instruction_function(insn);
   OS_MEMCPY(&pkt.oob_data.metadata, md_i, sizeof(uint64_t));
   ofp_insn->metadata =  /* host byte order */
-      (uint64_t)md_n[0] << 56 | (uint64_t)md_n[1] << 48
-      | (uint64_t)md_n[2] << 40 | (uint64_t)md_n[3] << 32
-      | (uint64_t)md_n[4] << 24 | (uint64_t)md_n[5] << 16
-      | (uint64_t)md_n[6] << 8 | (uint64_t)md_n[7];
+    (uint64_t)md_n[0] << 56 | (uint64_t)md_n[1] << 48
+    | (uint64_t)md_n[2] << 40 | (uint64_t)md_n[3] << 32
+    | (uint64_t)md_n[4] << 24 | (uint64_t)md_n[5] << 16
+    | (uint64_t)md_n[6] << 8 | (uint64_t)md_n[7];
   ofp_insn->metadata_mask =  /* host byte order */
-      (uint64_t)md_m[0] << 56 | (uint64_t)md_m[1] << 48
-      | (uint64_t)md_m[2] << 40 | (uint64_t)md_m[3] << 32
-      | (uint64_t)md_m[4] << 24 | (uint64_t)md_m[5] << 16
-      | (uint64_t)md_m[6] << 8 | (uint64_t)md_m[7];
+    (uint64_t)md_m[0] << 56 | (uint64_t)md_m[1] << 48
+    | (uint64_t)md_m[2] << 40 | (uint64_t)md_m[3] << 32
+    | (uint64_t)md_m[4] << 24 | (uint64_t)md_m[5] << 16
+    | (uint64_t)md_m[6] << 8 | (uint64_t)md_m[7];
   memset(insns, 0, sizeof(insns));
   insns[INSTRUCTION_INDEX_WRITE_METADATA] = insn;
 
@@ -178,6 +177,7 @@ test_execute_instruction_CLEAR_ACTIONS(void) {
   action_push->ethertype = 0x8847;
   lagopus_set_action_function(action);
   TAILQ_INSERT_TAIL(&pkt.actions[2], action, entry);
+  pkt.flags |= PKT_FLAG_HAS_ACTION;
 
   execute_instruction(&pkt, (const struct instruction **)insns);
   TEST_ASSERT_NULL_MESSAGE(TAILQ_FIRST(&pkt.actions[2]),

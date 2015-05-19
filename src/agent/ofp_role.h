@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 
 
 /**
- * @file	ofp_role.h
+ * @file        ofp_role.h
  */
 
 #ifndef __OFP_ROLE_H__
@@ -27,12 +27,12 @@
 /**
  * Update channel's role.
  *
- *     @param[in]	channel	A pointer to \e channel structure.
- *     @param[in]	role_request	A pointer to \e ofp_role_request structure.
- *     @param[in]	dpid	dpid.
+ *     @param[in]       channel A pointer to \e channel structure.
+ *     @param[in]       role_request    A pointer to \e ofp_role_request structure.
+ *     @param[in]       dpid    dpid.
  *
- *     @retval	LAGOPUS_RESULT_OK	Succeeded.
- *     @retval	LAGOPUS_RESULT_ANY_FAILURES Failed.
+ *     @retval  LAGOPUS_RESULT_OK       Succeeded.
+ *     @retval  LAGOPUS_RESULT_ANY_FAILURES Failed.
  */
 lagopus_result_t
 ofp_role_channel_update(struct channel *channel,
@@ -42,13 +42,13 @@ ofp_role_channel_update(struct channel *channel,
 /**
  * Check role for packet_in, flow_removed, port_status.
  *
- *     @param[in]	role_mask	A pointer to \e ofp_async_config structure(role mask).
- *     @param[in]	type	Type (OFPT_{PACKET_IN,FLOW_REMOVED,PORT_STATUS}).
- *     @param[in]	reason	Reason.
- *     @param[in]	role	Type of role.
+ *     @param[in]       role_mask       A pointer to \e ofp_async_config structure(role mask).
+ *     @param[in]       type    Type (OFPT_{PACKET_IN,FLOW_REMOVED,PORT_STATUS}).
+ *     @param[in]       reason  Reason.
+ *     @param[in]       role    Type of role.
  *
- *     @retval	true	Succeeded.
- *     @retval	false	Failed.
+ *     @retval  true    Succeeded.
+ *     @retval  false   Failed.
  */
 bool
 ofp_role_channel_check_mask(struct ofp_async_config *role_mask, uint8_t type,
@@ -57,13 +57,13 @@ ofp_role_channel_check_mask(struct ofp_async_config *role_mask, uint8_t type,
 /**
  * Write packet_in, flow_removed, port_status packet.
  *
- *     @param[in]	pbuf	A pointer to \e pbuf structure.
- *     @param[in]	dpid	dpid.
- *     @param[in]	type	Type (OFPT_{PACKET_IN,FLOW_REMOVED,PORT_STATUS}).
- *     @param[in]	reason	Reason.
+ *     @param[in]       pbuf    A pointer to \e pbuf structure.
+ *     @param[in]       dpid    dpid.
+ *     @param[in]       type    Type (OFPT_{PACKET_IN,FLOW_REMOVED,PORT_STATUS}).
+ *     @param[in]       reason  Reason.
  *
- *     @retval	LAGOPUS_RESULT_OK	Succeeded.
- *     @retval	LAGOPUS_RESULT_ANY_FAILURES Failed.
+ *     @retval  LAGOPUS_RESULT_OK       Succeeded.
+ *     @retval  LAGOPUS_RESULT_ANY_FAILURES Failed.
  */
 lagopus_result_t
 ofp_role_channel_write(struct pbuf *pbuf, uint64_t dpid,
@@ -72,11 +72,11 @@ ofp_role_channel_write(struct pbuf *pbuf, uint64_t dpid,
 /**
  * Check role for request.
  *
- *     @param[in]	channel	A pointer to \e channel structure.
- *     @param[in]	header	A pointer to \e ofp_header structure.
+ *     @param[in]       channel A pointer to \e channel structure.
+ *     @param[in]       header  A pointer to \e ofp_header structure.
  *
- *     @retval	true	Succeeded.
- *     @retval	false	Failed.
+ *     @retval  true    Succeeded.
+ *     @retval  false   Failed.
  */
 bool
 ofp_role_check(struct channel *channel,
@@ -85,12 +85,12 @@ ofp_role_check(struct channel *channel,
 /**
  * Check role for multipart request.
  *
- *     @param[in]	channel	A pointer to \e channel structure.
- *     @param[in]	pbuf	A pointer to \e pbuf structure.
- *     @param[in]	multipart	A pointer to \e ofp_multipart_request structure.
+ *     @param[in]       channel A pointer to \e channel structure.
+ *     @param[in]       pbuf    A pointer to \e pbuf structure.
+ *     @param[in]       multipart       A pointer to \e ofp_multipart_request structure.
  *
- *     @retval	true	Succeeded.
- *     @retval	false	Failed.
+ *     @retval  true    Succeeded.
+ *     @retval  false   Failed.
  */
 bool
 ofp_role_mp_check(struct channel *channel,
@@ -100,12 +100,12 @@ ofp_role_mp_check(struct channel *channel,
 /**
  * Check generation_id.
  *
- *     @param[in]	dpid	dpid.
- *     @param[in]	role	Type of role.
- *     @param[in]	generation_id	generation_id in request.
+ *     @param[in]       dpid    dpid.
+ *     @param[in]       role    Type of role.
+ *     @param[in]       generation_id   generation_id in request.
  *
- *     @retval	true	Succeeded.
- *     @retval	false	Failed.
+ *     @retval  true    Succeeded.
+ *     @retval  false   Failed.
  */
 bool
 ofp_role_generation_id_check(uint64_t dpid,
@@ -115,9 +115,9 @@ ofp_role_generation_id_check(uint64_t dpid,
 /**
  * Set default role mask.
  *
- *     @param[out]	role_mask	role_mask.
+ *     @param[out]      role_mask       role_mask.
  *
- *     @retval	void
+ *     @retval  void
  */
 void
 ofp_role_channel_mask_init(struct ofp_async_config *role_mask);

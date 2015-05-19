@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +16,8 @@
 
 
 /**
- *	@file	dpdk.h
- *	@brief	Parameter, structure and function for datapath w/  Intel DPDK.
+ *      @file   dpdk.h
+ *      @brief  Parameter, structure and function for dataplane w/ DPDK.
  */
 
 /*-
@@ -56,6 +56,8 @@
 #ifndef SRC_DATAPLANE_DPDK_DPDK_H_
 #define SRC_DATAPLANE_DPDK_DPDK_H_
 
+#include <rte_config.h>
+
 /* Logical cores */
 #ifndef APP_MAX_SOCKETS
 #define APP_MAX_SOCKETS 2
@@ -85,11 +87,11 @@
 #endif
 
 #ifndef APP_MAX_NIC_RX_QUEUES_PER_IO_LCORE
-#define APP_MAX_NIC_RX_QUEUES_PER_IO_LCORE 16
+#define APP_MAX_NIC_RX_QUEUES_PER_IO_LCORE 32
 #endif
 
 #ifndef APP_MAX_NIC_TX_PORTS_PER_IO_LCORE
-#define APP_MAX_NIC_TX_PORTS_PER_IO_LCORE 16
+#define APP_MAX_NIC_TX_PORTS_PER_IO_LCORE 32
 #endif
 #if (APP_MAX_NIC_TX_PORTS_PER_IO_LCORE > APP_MAX_NIC_PORTS)
 #error "APP_MAX_NIC_TX_PORTS_PER_IO_LCORE too big"
@@ -265,7 +267,7 @@ enum app_lcore_type {
   e_APP_LCORE_DISABLED = 0,
   e_APP_LCORE_IO,
   e_APP_LCORE_WORKER,
-  e_APP_LCORE_IO_WORKER	/* mixed */
+  e_APP_LCORE_IO_WORKER /* mixed */
 };
 
 struct app_lcore_params_io {
@@ -422,7 +424,7 @@ void app_print_params(void);
 /**
  * Clear flowcache for each worker.
  *
- * @param[in]	wait_flush	Wait for flush if true.
+ * @param[in]   wait_flush      Wait for flush if true.
  */
 void clear_worker_flowcache(bool);
 

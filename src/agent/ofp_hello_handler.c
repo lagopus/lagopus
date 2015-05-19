@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -70,7 +70,7 @@ check_versions(uint8_t bridge_ofp_version,
 /* Hello packet receive. */
 lagopus_result_t
 ofp_hello_handle(struct channel *channel, struct pbuf *pbuf,
-		 struct ofp_error *error) {
+                 struct ofp_error *error) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   uint8_t support_ofp_version = OPENFLOW_VERSION_0_0;
   uint8_t bridge_ofp_version;

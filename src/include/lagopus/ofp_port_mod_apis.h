@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,9 +15,9 @@
  */
 
 /**
- * @file	ofp_port_mod_apis.h
- * @brief	Agent/Data-Plane APIs for ofp_port_mod
- * @details	Describe APIs between Agent and Data-Plane for ofp_port_mod.
+ * @file        ofp_port_mod_apis.h
+ * @brief       Agent/Data-Plane APIs for ofp_port_mod
+ * @details     Describe APIs between Agent and Data-Plane for ofp_port_mod.
  */
 #ifndef __LAGOPUS_OFP_PORT_MOD_APIS_H__
 #define __LAGOPUS_OFP_PORT_MOD_APIS_H__
@@ -31,13 +31,13 @@
  * The port configuration which match \e port_id is updated
  * for \b OFPT_PORT_MOD.
  *
- *     @param[in]	dpid	Datapath id.
- *     @param[in]	port_mod	A pointer to \e port_mod structure.
- *     @param[out]	error	A pointer to \e ofp_error structure.
+ *     @param[in]       dpid    Datapath id.
+ *     @param[in]       port_mod        A pointer to \e port_mod structure.
+ *     @param[out]      error   A pointer to \e ofp_error structure.
  *     If errors occur, set filed values.
  *
- *     @retval	LAGOPUS_RESULT_OK	Succeeded.
- *     @retval	LAGOPUS_RESULT_ANY_FAILURES	Failed.
+ *     @retval  LAGOPUS_RESULT_OK       Succeeded.
+ *     @retval  LAGOPUS_RESULT_ANY_FAILURES     Failed.
  */
 lagopus_result_t
 ofp_port_mod_modify(uint64_t dpid,

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,7 +32,7 @@ typedef struct {
 
   size_t *m_counts;
 } test_stage_record;
-typedef test_stage_record 	*test_stage_t;
+typedef test_stage_record       *test_stage_t;
 
 
 

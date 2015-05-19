@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -43,7 +43,7 @@ test_ofp_meter_band_list_elem_free(void) {
   /* data */
   for (i = 0; i < max_cnt; i++) {
     band = (struct meter_band *)
-      malloc(sizeof(struct meter_band));
+           malloc(sizeof(struct meter_band));
     TAILQ_INSERT_TAIL(&band_list, band, entry);
   }
 

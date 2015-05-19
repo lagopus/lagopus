@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,4 +20,4 @@
 #ifdef perror
 #undef perror
 #endif /* perror */
-#define perror(str)	lagopus_msg_error("%s: %s\n", str, strerror(errno))
+#define perror(str)     lagopus_msg_error("%s: %s\n", str, strerror(errno))

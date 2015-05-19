@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,6 +25,15 @@
 #include <sys/queue.h>
 
 #include "lagopus/flowdb.h"
+
+#undef DEBUG
+#ifdef DEBUG
+#include <stdio.h>
+
+#define DPRINTF(...) printf(__VA_ARGS__)
+#else
+#define DPRINTF(...)
+#endif
 
 #define MAX_TIMEOUT_FLOWS 256
 
@@ -85,6 +94,7 @@ add_flow_timer(struct flow *flow) {
   } else {
     timeout = hard_elapsed;
   }
+  DPRINTF("add timeout %d sec\n", timeout);
   /* XXX flowdb lock */
   flow_timer = find_flow_timer(timeout, &prev, &prev_time);
   if (flow_timer != NULL) {
@@ -102,10 +112,15 @@ add_flow_timer(struct flow *flow) {
     flow_timer->nflow++;
     if (prev == NULL) {
       flow_timer->timeout = timeout;
-      TAILQ_INSERT_TAIL(&flow_timer_list, flow_timer, next);
+      TAILQ_INSERT_HEAD(&flow_timer_list, flow_timer, next);
     } else {
-      flow_timer->timeout = timeout - prev_time;
+      timeout -= prev_time;
+      flow_timer->timeout = timeout;
       TAILQ_INSERT_AFTER(&flow_timer_list, prev, flow_timer, next);
+    }
+    /* re-calculation timeout of entries after inserted entry */
+    if ((flow_timer = TAILQ_NEXT(flow_timer, next)) != NULL) {
+      flow_timer->timeout -= timeout;
     }
   }
   /* XXX flowdb unlock */
@@ -119,6 +134,7 @@ flow_timer_expire(struct flow_timer *flow_timer) {
   int reason;
   int i;
 
+  DPRINTF("expired\n");
   for (i = 0; i < flow_timer->nflow; i++) {
     /* calculate elapsed time */
     flow = flow_timer->flows[i];

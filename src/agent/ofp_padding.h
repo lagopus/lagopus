@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 
 
 /**
- * @file	ofp_padding.h
+ * @file        ofp_padding.h
  */
 
 #ifndef __OFP_PADDIN_H__
@@ -31,13 +31,13 @@
 /**
  * Encode padding.
  *
- *     @param[out]	pbuf_list	A pointer to list of \e pbuf structures.
- *     @param[out]	pbuf	A pointer to \e pbuf structure.
- *     @param[in]	length	Size of packet.
+ *     @param[out]      pbuf_list       A pointer to list of \e pbuf structures.
+ *     @param[out]      pbuf    A pointer to \e pbuf structure.
+ *     @param[in]       length  Size of packet.
  *
- *     @retval	LAGOPUS_RESULT_OK	Succeeded.
- *     @retval	LAGOPUS_RESULT_OUT_OF_RANGE Failed, out of range.
- *     @retval	LAGOPUS_RESULT_ANY_FAILURES Failed.
+ *     @retval  LAGOPUS_RESULT_OK       Succeeded.
+ *     @retval  LAGOPUS_RESULT_OUT_OF_RANGE Failed, out of range.
+ *     @retval  LAGOPUS_RESULT_ANY_FAILURES Failed.
  */
 lagopus_result_t
 ofp_padding_encode(struct pbuf_list *pbuf_list,
@@ -46,12 +46,12 @@ ofp_padding_encode(struct pbuf_list *pbuf_list,
 /**
  * Add padding.
  *
- *     @param[out]	pbuf	A pointer to \e pbuf structure.
- *     @param[in]	length	Size of padding.
+ *     @param[out]      pbuf    A pointer to \e pbuf structure.
+ *     @param[in]       length  Size of padding.
  *
- *     @retval	LAGOPUS_RESULT_OK	Succeeded.
- *     @retval	LAGOPUS_RESULT_OUT_OF_RANGE Failed, out of range.
- *     @retval	LAGOPUS_RESULT_ANY_FAILURES Failed.
+ *     @retval  LAGOPUS_RESULT_OK       Succeeded.
+ *     @retval  LAGOPUS_RESULT_OUT_OF_RANGE Failed, out of range.
+ *     @retval  LAGOPUS_RESULT_ANY_FAILURES Failed.
  */
 lagopus_result_t
 ofp_padding_add(struct pbuf *pbuf,

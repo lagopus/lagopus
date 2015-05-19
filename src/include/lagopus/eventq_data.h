@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,9 +16,9 @@
 
 
 /**
- * @file	eventq_data.h
- * @brief	Event Queue Data.
- * @details	Describe event queue data between Agent and Data-Plane.
+ * @file        eventq_data.h
+ * @brief       Event Queue Data.
+ * @details     Describe event queue data between Agent and Data-Plane.
  */
 
 #ifndef __LAGOPUS_EVENTQ_DATA_H__
@@ -28,10 +28,10 @@
 #include "lagopus_apis.h"
 
 /**
- * @brief	packet_out
- * @details	Packet out structure for event queue.
+ * @brief       packet_out
+ * @details     Packet out structure for event queue.
  *
- * @details	The \e free() of a list element and data is executed
+ * @details     The \e free() of a list element and data is executed
  * by the Data-Plane side.
  */
 struct packet_out {
@@ -45,8 +45,8 @@ struct packet_out {
 };
 
 /**
- * @brief	barrier
- * @details	Barrier Request/Reply structure for event queue.
+ * @brief       barrier
+ * @details     Barrier Request/Reply structure for event queue.
  */
 struct barrier {
   /* OFPT_BARRIER_REQUEST or OFPT_BARRIER_REPLY */
@@ -59,10 +59,10 @@ struct barrier {
 };
 
 /**
- * @brief	packet_in
- * @details	Packet in structure for event queue.
+ * @brief       packet_in
+ * @details     Packet in structure for event queue.
  *
- * @details	The \e free() of a data is executed
+ * @details     The \e free() of a data is executed
  * by the Agent side.
  */
 struct packet_in {
@@ -73,8 +73,8 @@ struct packet_in {
 };
 
 /**
- * @brief	flow_removed
- * @details	Flow Removed structure for event queue.
+ * @brief       flow_removed
+ * @details     Flow Removed structure for event queue.
  */
 struct flow_removed {
   struct ofp_flow_removed ofp_flow_removed;
@@ -82,16 +82,16 @@ struct flow_removed {
 };
 
 /**
- * @brief	port_status
- * @details	Port status structure for event queue.
+ * @brief       port_status
+ * @details     Port status structure for event queue.
  */
 struct port_status {
   struct ofp_port_status ofp_port_status;
 };
 
 /**
- * @brief	error
- * @details	ofp_error status structure for event queue.
+ * @brief       error
+ * @details     ofp_error status structure for event queue.
  */
 struct error {
   struct ofp_error ofp_error;
@@ -100,8 +100,8 @@ struct error {
 };
 
 /**
- * @brief	eventq_data_type
- * @details	Type of event queue data.
+ * @brief       eventq_data_type
+ * @details     Type of event queue data.
  */
 enum eventq_data_type {
   LAGOPUS_EVENTQ_PACKET_OUT,
@@ -114,8 +114,8 @@ enum eventq_data_type {
 };
 
 /**
- * @brief	eventq_data
- * @details	Data structure for event queue.
+ * @brief       eventq_data
+ * @details     Data structure for event queue.
  */
 struct eventq_data {
   union {
@@ -134,17 +134,17 @@ struct eventq_data {
 };
 
 /**
- * @brief	eventq_t
- * @details	Type of event queue.
+ * @brief       eventq_t
+ * @details     Type of event queue.
  */
 typedef LAGOPUS_BOUND_BLOCK_Q_DECL(eventq_t, struct eventq_data *) eventq_t;
 
 /**
  * Free packet_out queue data.
  *
- *     @param[in]	data	A pointer to \e eventq_data structure.
+ *     @param[in]       data    A pointer to \e eventq_data structure.
  *
- *     @retval	void
+ *     @retval  void
  */
 void
 ofp_packet_out_free(struct eventq_data *data);
@@ -152,9 +152,9 @@ ofp_packet_out_free(struct eventq_data *data);
 /**
  * Free packet_in queue data.
  *
- *     @param[in]	data	A pointer to \e eventq_data structure.
+ *     @param[in]       data    A pointer to \e eventq_data structure.
  *
- *     @retval	void
+ *     @retval  void
  */
 void
 ofp_packet_in_free(struct eventq_data *data);
@@ -162,9 +162,9 @@ ofp_packet_in_free(struct eventq_data *data);
 /**
  * Free flow_removed queue data.
  *
- *     @param[in]	data	A pointer to \e eventq_data structure.
+ *     @param[in]       data    A pointer to \e eventq_data structure.
  *
- *     @retval	void
+ *     @retval  void
  */
 void
 ofp_flow_removed_free(struct eventq_data *data);
@@ -172,9 +172,9 @@ ofp_flow_removed_free(struct eventq_data *data);
 /**
  * Free barrier queue data.
  *
- *     @param[in]	data	A pointer to \e eventq_data structure.
+ *     @param[in]       data    A pointer to \e eventq_data structure.
  *
- *     @retval	void
+ *     @retval  void
  */
 void
 ofp_barrier_free(struct eventq_data *data);

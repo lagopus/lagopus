@@ -1,8 +1,8 @@
-/*	$NetBSD: el.c,v 1.72 2013/01/22 20:23:21 christos Exp $	*/
+/*      $NetBSD: el.c,v 1.72 2013/01/22 20:23:21 christos Exp $ */
 
 /*-
  * Copyright (c) 1992, 1993
- *	The Regents of the University of California.  All rights reserved.
+ *      The Regents of the University of California.  All rights reserved.
  *
  * This code is derived from software contributed to Berkeley by
  * Christos Zoulas of Cornell University.
@@ -35,7 +35,7 @@
 #include "config.h"
 #if !defined(lint) && !defined(SCCSID)
 #if 0
-static char sccsid[] = "@(#)el.c	8.2 (Berkeley) 1/3/94";
+static char sccsid[] = "@(#)el.c        8.2 (Berkeley) 1/3/94";
 #else
 __RCSID("$NetBSD: el.c,v 1.72 2013/01/22 20:23:21 christos Exp $");
 #endif
@@ -59,17 +59,17 @@ __RCSID("$NetBSD: el.c,v 1.72 2013/01/22 20:23:21 christos Exp $");
 #include "el.h"
 
 #ifndef HAVE_SECURE_GETENV
-#	ifdef HAVE___SECURE_GETENV
-#		define secure_getenv __secure_getenv
-#		define HAVE_SECURE_GETENV 1
-#	else
-#		ifdef HAVE_ISSETUGID
-#			include <unistd.h>
-#		else
-#			undef issetugid
-#			define issetugid() 1
-#		endif
-#	endif
+#       ifdef HAVE___SECURE_GETENV
+#               define secure_getenv __secure_getenv
+#               define HAVE_SECURE_GETENV 1
+#       else
+#               ifdef HAVE_ISSETUGID
+#                       include <unistd.h>
+#               else
+#                       undef issetugid
+#                       define issetugid() 1
+#               endif
+#       endif
 #endif
 
 #ifndef HAVE_SECURE_GETENV
@@ -84,7 +84,7 @@ char *secure_getenv(char const *name) {
 #endif
 
 /* el_init():
- *	Initialize editline and set default parameters.
+ *      Initialize editline and set default parameters.
  */
 public EditLine *
 el_init(const char *prog, FILE *fin, FILE *fout, FILE *ferr) {
@@ -151,7 +151,7 @@ el_init_fd(const char *prog, FILE *fin, FILE *fout, FILE *ferr,
 
 
 /* el_end():
- *	Clean up.
+ *      Clean up.
  */
 public void
 el_end(EditLine *el) {
@@ -184,18 +184,18 @@ el_end(EditLine *el) {
 
 
 /* el_reset():
- *	Reset the tty and the parser
+ *      Reset the tty and the parser
  */
 public void
 el_reset(EditLine *el) {
 
   tty_cookedmode(el);
-  ch_reset(el, 0);		/* XXX: Do we want that? */
+  ch_reset(el, 0);              /* XXX: Do we want that? */
 }
 
 
 /* el_set():
- *	set the editline parameters
+ *      set the editline parameters
  */
 public int
 FUN(el,set)(EditLine *el, int op, ...) {
@@ -402,7 +402,7 @@ FUN(el,set)(EditLine *el, int op, ...) {
 
 
 /* el_get():
- *	retrieve the editline parameters
+ *      retrieve the editline parameters
  */
 public int
 FUN(el,get)(EditLine *el, int op, ...) {
@@ -514,7 +514,7 @@ FUN(el,get)(EditLine *el, int op, ...) {
 
 
 /* el_line():
- *	Return editing info
+ *      Return editing info
  */
 public const TYPE(LineInfo) *
 FUN(el,line)(EditLine *el) {
@@ -524,7 +524,7 @@ FUN(el,line)(EditLine *el) {
 
 
 /* el_source():
- *	Source a file
+ *      Source a file
  */
 public int
 el_source(EditLine *el, const char *fname) {
@@ -589,7 +589,7 @@ el_source(EditLine *el, const char *fname) {
 
 
 /* el_resize():
- *	Called from program when terminal is resized
+ *      Called from program when terminal is resized
  */
 public void
 el_resize(EditLine *el) {
@@ -610,7 +610,7 @@ el_resize(EditLine *el) {
 
 
 /* el_beep():
- *	Called from the program to beep
+ *      Called from the program to beep
  */
 public void
 el_beep(EditLine *el) {
@@ -620,7 +620,7 @@ el_beep(EditLine *el) {
 
 
 /* el_editmode()
- *	Set the state of EDIT_DISABLED from the `edit' command.
+ *      Set the state of EDIT_DISABLED from the `edit' command.
  */
 protected int
 /*ARGSUSED*/

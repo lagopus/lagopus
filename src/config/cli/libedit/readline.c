@@ -1,4 +1,4 @@
-/*	$NetBSD: readline.c,v 1.108 2013/05/28 00:10:34 christos Exp $	*/
+/*      $NetBSD: readline.c,v 1.108 2013/05/28 00:10:34 christos Exp $  */
 
 /*-
  * Copyright (c) 1997 The NetBSD Foundation, Inc.
@@ -51,7 +51,7 @@ __RCSID("$NetBSD: readline.c,v 1.108 2013/05/28 00:10:34 christos Exp $");
 
 #include "editline/readline.h"
 #include "el.h"
-#include "fcns.h"		/* for EL_NUM_FCNS */
+#include "fcns.h"               /* for EL_NUM_FCNS */
 #include "histedit.h"
 #include "filecomplete.h"
 
@@ -63,7 +63,7 @@ void rl_prep_terminal(int);
 void rl_deprep_terminal(void);
 
 /* for rl_complete() */
-#define TAB		'\r'
+#define TAB             '\r'
 
 /* see comment at the #ifdef for sense of this */
 /* #define GDB_411_HACK */
@@ -98,7 +98,7 @@ KEYMAP_ENTRY_ARRAY emacs_standard_keymap,
 int rl_catch_signals = 0;
 int rl_catch_sigwinch = 0;
 
-int history_base = 1;		/* probably never subject to change */
+int history_base = 1;           /* probably never subject to change */
 int history_length = 0;
 int max_input_history = 0;
 char history_expansion_char = '!';
@@ -169,21 +169,21 @@ static Function *map[256];
 static jmp_buf topbuf;
 
 /* internal functions */
-static unsigned char	 _el_rl_complete(EditLine *, int);
-static unsigned char	 _el_rl_tstp(EditLine *, int);
-static char		*_get_prompt(EditLine *);
-static int		 _getc_function(EditLine *, char *);
-static HIST_ENTRY	*_move_history(int);
-static int		 _history_expand_command(const char *, size_t, size_t,
+static unsigned char     _el_rl_complete(EditLine *, int);
+static unsigned char     _el_rl_tstp(EditLine *, int);
+static char             *_get_prompt(EditLine *);
+static int               _getc_function(EditLine *, char *);
+static HIST_ENTRY       *_move_history(int);
+static int               _history_expand_command(const char *, size_t, size_t,
                                        char **);
-static char		*_rl_compat_sub(const char *, const char *,
+static char             *_rl_compat_sub(const char *, const char *,
                               const char *, int);
-static int		 _rl_event_read_char(EditLine *, char *);
-static void		 _rl_update_pos(void);
+static int               _rl_event_read_char(EditLine *, char *);
+static void              _rl_update_pos(void);
 
 /* Lagopus additions. */
 #ifdef LAGOPUS
-static unsigned char	 _el_rl_describe(EditLine *, int);
+static unsigned char     _el_rl_describe(EditLine *, int);
 void readline_describe(int);
 #endif /* LAGOPUS */
 
@@ -329,7 +329,7 @@ rl_initialize(void) {
     return -1;
   }
 
-  history(h, &ev, H_SETSIZE, INT_MAX);	/* unlimited */
+  history(h, &ev, H_SETSIZE, INT_MAX);  /* unlimited */
   history_length = 0;
   max_input_history = INT_MAX;
   el_set(e, EL_HIST, history, h);
@@ -496,9 +496,9 @@ using_history(void) {
 static char *
 _rl_compat_sub(const char *str, const char *what, const char *with,
                int globally) {
-  const	char	*s;
-  char	*r, *result;
-  size_t	len, with_len, what_len;
+  const char    *s;
+  char  *r, *result;
+  size_t        len, with_len, what_len;
 
   len = strlen(str);
   with_len = strlen(with);
@@ -539,14 +539,14 @@ _rl_compat_sub(const char *str, const char *what, const char *with,
   return result;
 }
 
-static	char	*last_search_pat;	/* last !?pat[?] search pattern */
-static	char	*last_search_match;	/* last !?pat[?] that matched */
+static  char    *last_search_pat;       /* last !?pat[?] search pattern */
+static  char    *last_search_match;     /* last !?pat[?] that matched */
 
 const char *
 get_history_event(const char *cmd, int *cindex, int qchar) {
   int idx, sign, sub, num, begin, ret;
   size_t len;
-  char	*pat;
+  char  *pat;
   const char *rptr;
   HistEvent ev;
 
@@ -725,7 +725,7 @@ _history_expand_command(const char *command, size_t offs, size_t cmdlen,
       aptr[offs] = '\0';
       idx = 1;
     } else {
-      int	qchar;
+      int       qchar;
 
       qchar = (offs > 0 && command[offs - 1] == '"')? '"':0;
       ptr = get_history_event(command + offs, &idx, qchar);
@@ -752,7 +752,7 @@ _history_expand_command(const char *command, size_t offs, size_t cmdlen,
 
   /* Now parse any word designators */
 
-  if (*cmd == '%') {	/* last word matched by ?pat? */
+  if (*cmd == '%') {    /* last word matched by ?pat? */
     tmp = strdup(last_search_match? last_search_match:"");
   } else if (strchr("^*$-0123456789", *cmd)) {
     start = end = -1;
@@ -813,27 +813,27 @@ _history_expand_command(const char *command, size_t offs, size_t cmdlen,
   for (; *cmd; cmd++) {
     if (*cmd == ':') {
       continue;
-    } else if (*cmd == 'h') {		/* remove trailing path */
+    } else if (*cmd == 'h') {           /* remove trailing path */
       if ((aptr = strrchr(tmp, '/')) != NULL) {
         *aptr = '\0';
       }
-    } else if (*cmd == 't') {	/* remove leading path */
+    } else if (*cmd == 't') {   /* remove leading path */
       if ((aptr = strrchr(tmp, '/')) != NULL) {
         aptr = strdup(aptr + 1);
         el_free(tmp);
         tmp = aptr;
       }
-    } else if (*cmd == 'r') {	/* remove trailing suffix */
+    } else if (*cmd == 'r') {   /* remove trailing suffix */
       if ((aptr = strrchr(tmp, '.')) != NULL) {
         *aptr = '\0';
       }
-    } else if (*cmd == 'e') {	/* remove all but suffix */
+    } else if (*cmd == 'e') {   /* remove all but suffix */
       if ((aptr = strrchr(tmp, '.')) != NULL) {
         aptr = strdup(aptr);
         el_free(tmp);
         tmp = aptr;
       }
-    } else if (*cmd == 'p') {	/* print only */
+    } else if (*cmd == 'p') {   /* print only */
       p_on = 1;
     } else if (*cmd == 'g') {
       g_on = 2;
@@ -888,7 +888,7 @@ _history_expand_command(const char *command, size_t offs, size_t cmdlen,
             return -1;
           }
         }
-        cmd++;	/* shift after delim */
+        cmd++;  /* shift after delim */
         if (!*cmd) {
           continue;
         }
@@ -982,22 +982,22 @@ history_expand(char *str, char **output) {
     }
   }
 
-#define ADD_STRING(what, len, fr)					\
-  {								\
-    if (idx + len + 1 > size) {				\
-      char *nresult = el_realloc(result,		\
-                                 (size += len + 1) * sizeof(*nresult));	\
-      if (nresult == NULL) {				\
-        el_free(*output);			\
-        if (/*CONSTCOND*/fr)			\
-          el_free(tmp);			\
-        return 0;				\
-      }						\
-      result = nresult;				\
-    }							\
-    (void)strncpy(&result[idx], what, len);			\
-    idx += len;						\
-    result[idx] = '\0';					\
+#define ADD_STRING(what, len, fr)                                       \
+  {                                                             \
+    if (idx + len + 1 > size) {                         \
+      char *nresult = el_realloc(result,                \
+                                 (size += len + 1) * sizeof(*nresult)); \
+      if (nresult == NULL) {                            \
+        el_free(*output);                       \
+        if (/*CONSTCOND*/fr)                    \
+          el_free(tmp);                 \
+        return 0;                               \
+      }                                         \
+      result = nresult;                         \
+    }                                                   \
+    (void)strncpy(&result[idx], what, len);                     \
+    idx += len;                                         \
+    result[idx] = '\0';                                 \
   }
 
   result = NULL;
@@ -1072,9 +1072,9 @@ history_expand(char *str, char **output) {
     add_history(result);
 #ifdef GDB_411_HACK
     /* gdb 4.11 has been shipped with readline, where */
-    /* history_expand() returned -1 when the line	  */
-    /* should not be executed; in readline 2.1+	  */
-    /* it should return 2 in such a case		  */
+    /* history_expand() returned -1 when the line         */
+    /* should not be executed; in readline 2.1+   */
+    /* it should return 2 in such a case                  */
     ret = -1;
 #endif
   }
@@ -1090,7 +1090,7 @@ history_expand(char *str, char **output) {
 char *
 history_arg_extract(int start, int end, const char *str) {
   size_t  i, len, max;
-  char	**arr, *result = NULL;
+  char  **arr, *result = NULL;
 
   arr = history_tokenize(str);
   if (!arr) {
@@ -1243,7 +1243,7 @@ unstifle_history(void) {
   history(h, &ev, H_SETSIZE, INT_MAX);
   omax = max_input_history;
   max_input_history = INT_MAX;
-  return omax;		/* some value _must_ be returned */
+  return omax;          /* some value _must_ be returned */
 }
 
 
@@ -2195,7 +2195,7 @@ rl_stuff_char(int c) {
 
 static int
 _rl_event_read_char(EditLine *el, char *cp) {
-  int	n;
+  int   n;
   ssize_t num_read = 0;
 
   *cp = '\0';

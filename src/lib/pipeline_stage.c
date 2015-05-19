@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@
 
 
 
-#define DEFAULT_STAGE_ALLOC_SZ	(sizeof(lagopus_pipeline_stage_record))
+#define DEFAULT_STAGE_ALLOC_SZ  (sizeof(lagopus_pipeline_stage_record))
 
 
 
@@ -32,20 +32,20 @@
 static pthread_once_t s_once = PTHREAD_ONCE_INIT;
 static lagopus_hashmap_t s_ps_name_tbl;
 static lagopus_hashmap_t s_ps_obj_tbl;
-static void	s_ctors(void) __attr_constructor__(107);
-static void	s_dtors(void) __attr_destructor__(107);
+static void     s_ctors(void) __attr_constructor__(107);
+static void     s_dtors(void) __attr_destructor__(107);
 
-static inline void	s_lock_stage(lagopus_pipeline_stage_t ps);
-static inline void	s_unlock_stage(lagopus_pipeline_stage_t ps);
-static inline void	s_final_lock_stage(lagopus_pipeline_stage_t ps);
-static inline void	s_final_unlock_stage(lagopus_pipeline_stage_t ps);
-static inline void	s_pause_lock_stage(lagopus_pipeline_stage_t ps);
-static inline void	s_pause_unlock_stage(lagopus_pipeline_stage_t ps);
-static inline void	s_pause_notify_stage(lagopus_pipeline_stage_t ps);
+static inline void      s_lock_stage(lagopus_pipeline_stage_t ps);
+static inline void      s_unlock_stage(lagopus_pipeline_stage_t ps);
+static inline void      s_final_lock_stage(lagopus_pipeline_stage_t ps);
+static inline void      s_final_unlock_stage(lagopus_pipeline_stage_t ps);
+static inline void      s_pause_lock_stage(lagopus_pipeline_stage_t ps);
+static inline void      s_pause_unlock_stage(lagopus_pipeline_stage_t ps);
+static inline void      s_pause_notify_stage(lagopus_pipeline_stage_t ps);
 static inline lagopus_result_t
 s_pause_cond_wait_stage(lagopus_pipeline_stage_t ps,
                         lagopus_chrono_t nsec);
-static inline void	s_resume_notify_stage(lagopus_pipeline_stage_t ps);
+static inline void      s_resume_notify_stage(lagopus_pipeline_stage_t ps);
 static inline lagopus_result_t
 s_resume_cond_wait_stage(lagopus_pipeline_stage_t ps,
                          lagopus_chrono_t nsec);

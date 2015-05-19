@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -119,30 +119,6 @@ meter_table_alloc(void);
  */
 void
 meter_table_free(struct meter_table *meter_table);
-
-/**
- * Read lock meter table.
- *
- * @param[in]   meter_table     Metar table.
- */
-int
-meter_table_rdlock(struct meter_table *meter_table);
-
-/**
- * Write lock meter table.
- *
- * @param[in]   meter_table     Metar table.
- */
-int
-meter_table_wrlock(struct meter_table *meter_table);
-
-/**
- * Unlock meter table.
- *
- * @param[in]   meter_table     Metar table.
- */
-int
-meter_table_unlock(struct meter_table *meter_table);
 
 /**
  * Add meter.

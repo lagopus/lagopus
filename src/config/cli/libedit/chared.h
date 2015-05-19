@@ -1,8 +1,8 @@
-/*	$NetBSD: chared.h,v 1.21 2010/08/28 15:44:59 christos Exp $	*/
+/*      $NetBSD: chared.h,v 1.21 2010/08/28 15:44:59 christos Exp $     */
 
 /*-
  * Copyright (c) 1992, 1993
- *	The Regents of the University of California.  All rights reserved.
+ *      The Regents of the University of California.  All rights reserved.
  *
  * This code is derived from software contributed to Berkeley by
  * Christos Zoulas of Cornell University.
@@ -31,21 +31,21 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	@(#)chared.h	8.1 (Berkeley) 6/4/93
+ *      @(#)chared.h    8.1 (Berkeley) 6/4/93
  */
 
 /*
  * el.chared.h: Character editor interface
  */
 #ifndef _h_el_chared
-#define	_h_el_chared
+#define _h_el_chared
 
 #include <ctype.h>
 #include <string.h>
 
 #include "histedit.h"
 
-#define	EL_MAXMACRO	10
+#define EL_MAXMACRO     10
 
 /*
  * This is an issue of basic "vi" look-and-feel. Defining VI_MOVE works
@@ -57,50 +57,50 @@
  * Probably the best fix is to make all the editing commands aware of
  * this fact.
  */
-#define	VI_MOVE
+#define VI_MOVE
 
 
 typedef struct c_macro_t {
-  int	  level;
-  int	  offset;
-  Char	**macro;
+  int     level;
+  int     offset;
+  Char  **macro;
 } c_macro_t;
 
 /*
  * Undo information for vi - no undo in emacs (yet)
  */
 typedef struct c_undo_t {
-  ssize_t	 len;			/* length of saved line */
-  int	 cursor;		/* position of saved cursor */
-  Char	*buf;			/* full saved text */
+  ssize_t        len;                   /* length of saved line */
+  int    cursor;                /* position of saved cursor */
+  Char  *buf;                   /* full saved text */
 } c_undo_t;
 
 /* redo for vi */
 typedef struct c_redo_t {
-  Char	*buf;			/* redo insert key sequence */
-  Char	*pos;
-  Char	*lim;
-  el_action_t	cmd;		/* command to redo */
-  Char	ch;			/* char that invoked it */
-  int	count;
-  int	action;			/* from cv_action() */
+  Char  *buf;                   /* redo insert key sequence */
+  Char  *pos;
+  Char  *lim;
+  el_action_t   cmd;            /* command to redo */
+  Char  ch;                     /* char that invoked it */
+  int   count;
+  int   action;                 /* from cv_action() */
 } c_redo_t;
 
 /*
  * Current action information for vi
  */
 typedef struct c_vcmd_t {
-  int	 action;
-  Char	*pos;
+  int    action;
+  Char  *pos;
 } c_vcmd_t;
 
 /*
  * Kill buffer for emacs
  */
 typedef struct c_kill_t {
-  Char	*buf;
-  Char	*last;
-  Char	*mark;
+  Char  *buf;
+  Char  *last;
+  Char  *mark;
 } c_kill_t;
 
 typedef void (*el_zfunc_t)(EditLine *, void *);
@@ -110,31 +110,31 @@ typedef void (*el_zfunc_t)(EditLine *, void *);
  * commands from both editors!
  */
 typedef struct el_chared_t {
-  c_undo_t	c_undo;
-  c_kill_t	c_kill;
-  c_redo_t	c_redo;
-  c_vcmd_t	c_vcmd;
-  c_macro_t	c_macro;
-  el_zfunc_t	c_resizefun;
-  void 		*c_resizearg;
+  c_undo_t      c_undo;
+  c_kill_t      c_kill;
+  c_redo_t      c_redo;
+  c_vcmd_t      c_vcmd;
+  c_macro_t     c_macro;
+  el_zfunc_t    c_resizefun;
+  void          *c_resizearg;
 } el_chared_t;
 
 
-#define	STRQQ		"\"\""
+#define STRQQ           "\"\""
 
-#define	isglob(a)	(strchr("*[]?", (a)) != NULL)
+#define isglob(a)       (strchr("*[]?", (a)) != NULL)
 
-#define	NOP		0x00
-#define	DELETE		0x01
-#define	INSERT		0x02
-#define	YANK		0x04
+#define NOP             0x00
+#define DELETE          0x01
+#define INSERT          0x02
+#define YANK            0x04
 
-#define	CHAR_FWD	(+1)
-#define	CHAR_BACK	(-1)
+#define CHAR_FWD        (+1)
+#define CHAR_BACK       (-1)
 
-#define	MODE_INSERT	0
-#define	MODE_REPLACE	1
-#define	MODE_REPLACE_1	2
+#define MODE_INSERT     0
+#define MODE_REPLACE    1
+#define MODE_REPLACE_1  2
 
 #include "common.h"
 #include "vi.h"
@@ -143,29 +143,29 @@ typedef struct el_chared_t {
 #include "fcns.h"
 
 
-protected int	 cv__isword(Int);
-protected int	 cv__isWord(Int);
-protected void	 cv_delfini(EditLine *);
-protected Char	*cv__endword(Char *, Char *, int, int (*)(Int));
-protected int	 ce__isword(Int);
-protected void	 cv_undo(EditLine *);
-protected void	 cv_yank(EditLine *, const Char *, int);
-protected Char	*cv_next_word(EditLine *, Char *, Char *, int, int (*)(Int));
-protected Char	*cv_prev_word(Char *, Char *, int, int (*)(Int));
-protected Char	*c__next_word(Char *, Char *, int, int (*)(Int));
-protected Char	*c__prev_word(Char *, Char *, int, int (*)(Int));
-protected void	 c_insert(EditLine *, int);
-protected void	 c_delbefore(EditLine *, int);
-protected void	 c_delbefore1(EditLine *);
-protected void	 c_delafter(EditLine *, int);
-protected void	 c_delafter1(EditLine *);
-protected int	 c_gets(EditLine *, Char *, const Char *);
-protected int	 c_hpos(EditLine *);
+protected int    cv__isword(Int);
+protected int    cv__isWord(Int);
+protected void   cv_delfini(EditLine *);
+protected Char  *cv__endword(Char *, Char *, int, int (*)(Int));
+protected int    ce__isword(Int);
+protected void   cv_undo(EditLine *);
+protected void   cv_yank(EditLine *, const Char *, int);
+protected Char  *cv_next_word(EditLine *, Char *, Char *, int, int (*)(Int));
+protected Char  *cv_prev_word(Char *, Char *, int, int (*)(Int));
+protected Char  *c__next_word(Char *, Char *, int, int (*)(Int));
+protected Char  *c__prev_word(Char *, Char *, int, int (*)(Int));
+protected void   c_insert(EditLine *, int);
+protected void   c_delbefore(EditLine *, int);
+protected void   c_delbefore1(EditLine *);
+protected void   c_delafter(EditLine *, int);
+protected void   c_delafter1(EditLine *);
+protected int    c_gets(EditLine *, Char *, const Char *);
+protected int    c_hpos(EditLine *);
 
-protected int	 ch_init(EditLine *);
-protected void	 ch_reset(EditLine *, int);
-protected int	 ch_resizefun(EditLine *, el_zfunc_t, void *);
-protected int	 ch_enlargebufs(EditLine *, size_t);
-protected void	 ch_end(EditLine *);
+protected int    ch_init(EditLine *);
+protected void   ch_reset(EditLine *, int);
+protected int    ch_resizefun(EditLine *, el_zfunc_t, void *);
+protected int    ch_enlargebufs(EditLine *, size_t);
+protected void   ch_end(EditLine *);
 
 #endif /* _h_el_chared */

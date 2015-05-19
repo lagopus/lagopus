@@ -274,8 +274,7 @@ symlink-clean::
 	@find ./ -type l | xargs ${RM}
 
 beautify::
-	@find . -type f -name '*.c' -o -name '*.cpp' -o -name '*.h' | \
-	xargs sh $(MKRULESDIR)/beautify
+	@sh $(MKRULESDIR)/beautify --exclude='config/cli/libedit' 'src/*.c' 'src/*.cpp' 'src/*.h'
 
 revert::
 	@git status . | grep modified: | awk '{ print $$NF }' | \

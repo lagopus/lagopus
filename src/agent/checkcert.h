@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@
 
 
 /**
- *	@file	checkcert.h
+ *      @file   checkcert.h
  */
 
 
@@ -47,7 +47,7 @@ agent_check_certificates_finalize(void);
 /**
  * Set the certificate check configuration file.
  *
- *	@param[in]	filename	A file name of the config.
+ *      @param[in]      filename        A file name of the config.
  */
 void
 agent_check_certificates_set_config_file(const char *filename);
@@ -56,14 +56,14 @@ agent_check_certificates_set_config_file(const char *filename);
 /**
  * Check a permission of a connection establishment to a peer by DNs.
  *
- *	@param[in]	issuer_dn	A DN of the issuer.
- *	@param[in]	subject_dn	A DN of the subject.
+ *      @param[in]      issuer_dn       A DN of the issuer.
+ *      @param[in]      subject_dn      A DN of the subject.
  *
- *	@retval	LAGOPUS_RESULT_OK	Succeeded, the permission granted.
- *	@retval	LAGOPUS_RESULT_NOT_ALLOWED	Failed, the permission denied.
- *	@retval LAGOPUS_RESULT_INVALID_ARGS	Failed, invalid argument(s).
- *	@retval LAGOPUS_RESULT_NO_MEMORY	Failed, no memory.
- *	@retval LAGOPUS_RESULT_ANY_FAILURES	Failed.
+ *      @retval LAGOPUS_RESULT_OK       Succeeded, the permission granted.
+ *      @retval LAGOPUS_RESULT_NOT_ALLOWED      Failed, the permission denied.
+ *      @retval LAGOPUS_RESULT_INVALID_ARGS     Failed, invalid argument(s).
+ *      @retval LAGOPUS_RESULT_NO_MEMORY        Failed, no memory.
+ *      @retval LAGOPUS_RESULT_ANY_FAILURES     Failed.
  */
 lagopus_result_t
 agent_check_certificates(const char *issuer_dn, const char *subject_dn);

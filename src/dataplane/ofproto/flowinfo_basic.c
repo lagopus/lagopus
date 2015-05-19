@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -277,7 +277,7 @@ case FIELD_WITH_MASK(field):                                \
       }
       break;
 
-      /* IN_PORT, IN_PHY_PORT, METADATA and METADATA_W as metadata */
+        /* IN_PORT, IN_PHY_PORT, METADATA and METADATA_W as metadata */
       OOB_MAKE_BYTE(OFPXMT_OFB_IN_PORT, oob_data, in_port);
       OOB_MAKE_BYTE(OFPXMT_OFB_IN_PHY_PORT, oob_data, in_phy_port);
       OOB_MAKE_BYTE(OFPXMT_OFB_METADATA, oob_data, metadata);
@@ -341,7 +341,7 @@ case FIELD_WITH_MASK(field):                                \
       MAKE_BYTE(OFPXMT_OFB_PBB_UCA, pbb_hdr, ..., PBB_BASE);
 #endif
 
-      /* TUNNEL_ID and IPV6_EXTHDR as metadata */
+        /* TUNNEL_ID and IPV6_EXTHDR as metadata */
       OOB_MAKE_BYTE(OFPXMT_OFB_TUNNEL_ID, oob_data, tunnel_id);
       OOB_MAKE_BYTE_W(OFPXMT_OFB_TUNNEL_ID, oob_data, tunnel_id);
       OOB_MAKE_BYTE(OFPXMT_OFB_IPV6_EXTHDR, oob_data, ipv6_exthdr);

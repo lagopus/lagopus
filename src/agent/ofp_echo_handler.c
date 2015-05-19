@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@
 #include "openflow13packet.h"
 #include "ofp_apis.h"
 
-#define TRACE_OFPT_ECHO (TRACE_OFPT_ECHO_REQUEST |	\
+#define TRACE_OFPT_ECHO (TRACE_OFPT_ECHO_REQUEST |      \
                          TRACE_OFPT_ECHO_REPLY)
 
 static void
@@ -56,7 +56,7 @@ ofp_echo_reply_create(struct channel *channel,
       ret = pbuf_length_get(req_pbuf, &pbuf_length);
       if (ret == LAGOPUS_RESULT_OK) {
         length = sizeof(struct ofp_header) +
-          (size_t) pbuf_length;
+                 (size_t) pbuf_length;
       } else {
         lagopus_msg_warning("FAILED (%s).\n",
                             lagopus_error_get_string(ret));
@@ -113,7 +113,7 @@ ofp_echo_request_create(struct channel *channel,
 
   if (channel != NULL && pbuf != NULL) {
     /* create reply. */
-    *pbuf = channel_pbuf_list_get_nolock(channel, sizeof(struct ofp_header));
+    *pbuf = channel_pbuf_list_get(channel, sizeof(struct ofp_header));
 
     if (*pbuf != NULL) {
       pbuf_plen_set(*pbuf, sizeof(struct ofp_header));

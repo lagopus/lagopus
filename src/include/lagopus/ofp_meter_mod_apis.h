@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,9 +15,9 @@
  */
 
 /**
- * @file	ofp_meter_mod_apis.h
- * @brief	Agent/Data-Plane APIs for ofp_meter_mod
- * @details	Describe APIs between Agent and Data-Plane for ofp_meter_mod.
+ * @file        ofp_meter_mod_apis.h
+ * @brief       Agent/Data-Plane APIs for ofp_meter_mod
+ * @details     Describe APIs between Agent and Data-Plane for ofp_meter_mod.
  */
 #ifndef __LAGOPUS_OFP_METER_MOD_APIS_H__
 #define __LAGOPUS_OFP_METER_MOD_APIS_H__
@@ -32,16 +32,16 @@
 /**
  * Add entry to a meter table for \b OFPT_METER_MOD(OFPMC_ADD).
  *
- *     @param[in]	dpid	Datapath id.
- *     @param[in]	meter_mod	A pointer to \e meter_mod structure.
- *     @param[in]	band_list	A pointer to list of meter bands.
- *     @param[out]	error	A pointer to \e ofp_error structure.
+ *     @param[in]       dpid    Datapath id.
+ *     @param[in]       meter_mod       A pointer to \e meter_mod structure.
+ *     @param[in]       band_list       A pointer to list of meter bands.
+ *     @param[out]      error   A pointer to \e ofp_error structure.
  *     If errors occur, set filed values.
  *
- *     @retval	LAGOPUS_RESULT_OK	Succeeded.
- *     @retval	LAGOPUS_RESULT_ANY_FAILURES	Failed.
+ *     @retval  LAGOPUS_RESULT_OK       Succeeded.
+ *     @retval  LAGOPUS_RESULT_ANY_FAILURES     Failed.
  *
- *     @details	The \e free() of a list element is executed
+ *     @details The \e free() of a list element is executed
  *     by the Data-Plane side.
  */
 lagopus_result_t
@@ -53,16 +53,16 @@ ofp_meter_mod_add(uint64_t dpid,
  * A meter table which match \e meter_id is updated
  * for \b OFPT_METER_MOD(OFPMC_MODIFY).
  *
- *     @param[in]	dpid	Datapath id.
- *     @param[in]	meter_mod	A pointer to \e meter_mod structure.
- *     @param[in]	band_list	A pointer to list of meter bands.
- *     @param[out]	error	A pointer to \e ofp_error structure.
+ *     @param[in]       dpid    Datapath id.
+ *     @param[in]       meter_mod       A pointer to \e meter_mod structure.
+ *     @param[in]       band_list       A pointer to list of meter bands.
+ *     @param[out]      error   A pointer to \e ofp_error structure.
  *     If errors occur, set filed values.
  *
- *     @retval	LAGOPUS_RESULT_OK	Succeeded.
- *     @retval	LAGOPUS_RESULT_ANY_FAILURES	Failed.
+ *     @retval  LAGOPUS_RESULT_OK       Succeeded.
+ *     @retval  LAGOPUS_RESULT_ANY_FAILURES     Failed.
  *
- *     @details	The \e free() of a list element is executed
+ *     @details The \e free() of a list element is executed
  *     by the Data-Plane side.
  */
 lagopus_result_t
@@ -75,13 +75,13 @@ ofp_meter_mod_modify(uint64_t dpid,
  * A meter table which match \e meter_id is deleted
  * for \b OFPT_METER_MOD(OFPMC_MODIFY).
  *
- *     @param[in]	dpid	Datapath id.
- *     @param[in]	meter_mod	A pointer to \e meter_mod structure.
- *     @param[out]	error	A pointer to \e ofp_error structure.
+ *     @param[in]       dpid    Datapath id.
+ *     @param[in]       meter_mod       A pointer to \e meter_mod structure.
+ *     @param[out]      error   A pointer to \e ofp_error structure.
  *     If errors occur, set filed values.
  *
- *     @retval	LAGOPUS_RESULT_OK	Succeeded.
- *     @retval	LAGOPUS_RESULT_ANY_FAILURES	Failed.
+ *     @retval  LAGOPUS_RESULT_OK       Succeeded.
+ *     @retval  LAGOPUS_RESULT_ANY_FAILURES     Failed.
  */
 lagopus_result_t
 ofp_meter_mod_delete(uint64_t dpid,
@@ -93,16 +93,16 @@ ofp_meter_mod_delete(uint64_t dpid,
  * Add entry(meter_id = (OFPM_CONTROLLER)) to a meter table for
  * \b OFPT_METER_MOD(OFPMC_ADD).
  *
- *     @param[in]	dpid	Datapath id.
- *     @param[in]	meter_mod	A pointer to \e meter_mod structure.
- *     @param[in]	band_list	A pointer to list of meter bands.
- *     @param[out]	error	A pointer to \e ofp_error structure.
+ *     @param[in]       dpid    Datapath id.
+ *     @param[in]       meter_mod       A pointer to \e meter_mod structure.
+ *     @param[in]       band_list       A pointer to list of meter bands.
+ *     @param[out]      error   A pointer to \e ofp_error structure.
  *     If errors occur, set filed values.
  *
- *     @retval	LAGOPUS_RESULT_OK	Succeeded.
- *     @retval	LAGOPUS_RESULT_ANY_FAILURES	Failed.
+ *     @retval  LAGOPUS_RESULT_OK       Succeeded.
+ *     @retval  LAGOPUS_RESULT_ANY_FAILURES     Failed.
  *
- *     @details	The \e free() of a list element is executed
+ *     @details The \e free() of a list element is executed
  *     by the Data-Store side.
  */
 lagopus_result_t
@@ -114,16 +114,16 @@ ofp_meter_mod_add_ctrler(uint64_t dpid,
  * A meter table which match \e meter_id(OFPM_CONTROLLER) is updated
  * for \b OFPT_METER_MOD(OFPMC_MODIFY).
  *
- *     @param[in]	dpid	Datapath id.
- *     @param[in]	meter_mod	A pointer to \e meter_mod structure.
- *     @param[in]	band_list	A pointer to list of meter bands.
- *     @param[out]	error	A pointer to \e ofp_error structure.
+ *     @param[in]       dpid    Datapath id.
+ *     @param[in]       meter_mod       A pointer to \e meter_mod structure.
+ *     @param[in]       band_list       A pointer to list of meter bands.
+ *     @param[out]      error   A pointer to \e ofp_error structure.
  *     If errors occur, set filed values.
  *
- *     @retval	LAGOPUS_RESULT_OK	Succeeded.
- *     @retval	LAGOPUS_RESULT_ANY_FAILURES	Failed.
+ *     @retval  LAGOPUS_RESULT_OK       Succeeded.
+ *     @retval  LAGOPUS_RESULT_ANY_FAILURES     Failed.
  *
- *     @details	The \e free() of a list element is executed
+ *     @details The \e free() of a list element is executed
  *     by the Data-Store side.
  */
 lagopus_result_t
@@ -136,15 +136,15 @@ ofp_meter_mod_modify_ctrler(uint64_t dpid,
  * A meter table which match \e meter_id(OFPM_CONTROLLER) is deleted
  * for \b OFPT_METER_MOD(OFPMC_MODIFY).
  *
- *     @param[in]	dpid	Datapath id.
- *     @param[in]	meter_mod	A pointer to \e meter_mod structure.
- *     @param[out]	error	A pointer to \e ofp_error structure.
+ *     @param[in]       dpid    Datapath id.
+ *     @param[in]       meter_mod       A pointer to \e meter_mod structure.
+ *     @param[out]      error   A pointer to \e ofp_error structure.
  *     If errors occur, set filed values.
  *
- *     @retval	LAGOPUS_RESULT_OK	Succeeded.
- *     @retval	LAGOPUS_RESULT_ANY_FAILURES	Failed.
+ *     @retval  LAGOPUS_RESULT_OK       Succeeded.
+ *     @retval  LAGOPUS_RESULT_ANY_FAILURES     Failed.
  *
- *     @details	The \e free() of a list element is executed
+ *     @details The \e free() of a list element is executed
  *     by the Data-Store side.
  */
 lagopus_result_t

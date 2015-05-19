@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,6 @@
 #include "lagopus/dpmgr.h"
 #include "lagopus/flowdb.h"
 #include "lagopus/port.h"
-#include "match.h"
 #include "pktbuf.h"
 #include "packet.h"
 #include "lagopus/dataplane.h"
@@ -79,11 +78,11 @@ test_flowinfo_mpls_unicast_label_adddel(void) {
  */
 #undef TEST_ASSERT_FLOWINFO_HASLABEL
 #undef TEST_ASSERT_FLOWINFO_NOLABEL
-#define TEST_ASSERT_FLOWINFO_HASLABEL(_fl, _label, _l, _msg)	\
-  do {								\
+#define TEST_ASSERT_FLOWINFO_HASLABEL(_fl, _label, _l, _msg)    \
+  do {                                                          \
   } while (0)
-#define TEST_ASSERT_FLOWINFO_NOLABEL(_fl, _label, _l, _msg)	\
-  do {								\
+#define TEST_ASSERT_FLOWINFO_NOLABEL(_fl, _label, _l, _msg)     \
+  do {                                                          \
   } while (0)
 
 /*

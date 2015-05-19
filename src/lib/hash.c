@@ -53,7 +53,7 @@ terms specified in this license.
  * the hash table to make it larger.
  */
 
-#define REBUILD_MULTIPLIER	3
+#define REBUILD_MULTIPLIER      3
 
 
 /*
@@ -80,41 +80,41 @@ terms specified in this license.
  * Procedure prototypes for static procedures in this file:
  */
 
-static inline unsigned int	HashArray (HashTable *tablePtr,
-                                       const void *key);
-static HashEntry 	*ArrayFind (HashTable *tablePtr,
-                              const void *key);
-static HashEntry 	*ArrayCreate (HashTable *tablePtr,
-                                const void *key, int *newPtr);
-static HashEntry 	*BogusFind (HashTable *tablePtr,
-                              const void *key);
-static HashEntry 	*BogusCreate (HashTable *tablePtr,
-                                const void *key, int *newPtr);
-static inline unsigned int	HashString (const char *string);
-static void		RebuildTable (HashTable *tablePtr);
-static HashEntry 	*StringFind (HashTable *tablePtr,
-                               const void *key);
-static HashEntry 	*StringCreate (HashTable *tablePtr,
-                                 const void *key, int *newPtr);
-static HashEntry 	*OneWordFind (HashTable *tablePtr,
-                                const void *key);
-static HashEntry 	*OneWordCreate (HashTable *tablePtr,
-                                  const void *key, int *newPtr);
+static inline unsigned int      HashArray (HashTable *tablePtr,
+    const void *key);
+static HashEntry        *ArrayFind (HashTable *tablePtr,
+                                    const void *key);
+static HashEntry        *ArrayCreate (HashTable *tablePtr,
+                                      const void *key, int *newPtr);
+static HashEntry        *BogusFind (HashTable *tablePtr,
+                                    const void *key);
+static HashEntry        *BogusCreate (HashTable *tablePtr,
+                                      const void *key, int *newPtr);
+static inline unsigned int      HashString (const char *string);
+static void             RebuildTable (HashTable *tablePtr);
+static HashEntry        *StringFind (HashTable *tablePtr,
+                                     const void *key);
+static HashEntry        *StringCreate (HashTable *tablePtr,
+                                       const void *key, int *newPtr);
+static HashEntry        *OneWordFind (HashTable *tablePtr,
+                                      const void *key);
+static HashEntry        *OneWordCreate (HashTable *tablePtr,
+                                        const void *key, int *newPtr);
 
 /*
  *----------------------------------------------------------------------
  *
  * InitHashTable --
  *
- *	Given storage for a hash table, set up the fields to prepare
- *	the hash table for use.
+ *      Given storage for a hash table, set up the fields to prepare
+ *      the hash table for use.
  *
  * Results:
- *	None.
+ *      None.
  *
  * Side effects:
- *	TablePtr is now ready to be passed to FindHashEntry and
- *	CreateHashEntry.
+ *      TablePtr is now ready to be passed to FindHashEntry and
+ *      CreateHashEntry.
  *
  *----------------------------------------------------------------------
  */
@@ -122,9 +122,9 @@ static HashEntry 	*OneWordCreate (HashTable *tablePtr,
 void
 InitHashTable(HashTable *tablePtr, unsigned int keyLen) {
 #if 0
-  HashTable *tablePtr;	/* Pointer to table record, which is
+  HashTable *tablePtr;  /* Pointer to table record, which is
                                  * supplied by the caller. */
-  int keyLen;			/* Length of keys to use in table:
+  int keyLen;                   /* Length of keys to use in table:
                                  * HASH_STRING_KEYS,
                                  * HASH_ONE_WORD_KEYS, or any other
                                  * integer (in bytes). */
@@ -161,16 +161,16 @@ InitHashTable(HashTable *tablePtr, unsigned int keyLen) {
  *
  * DeleteHashEntry --
  *
- *	Remove a single entry from a hash table.
+ *      Remove a single entry from a hash table.
  *
  * Results:
- *	None.
+ *      None.
  *
  * Side effects:
- *	The entry given by entryPtr is deleted from its table and
- *	should never again be used by the caller.  It is up to the
- *	caller to free the clientData field of the entry, if that
- *	is relevant.
+ *      The entry given by entryPtr is deleted from its table and
+ *      should never again be used by the caller.  It is up to the
+ *      caller to free the clientData field of the entry, if that
+ *      is relevant.
  *
  *----------------------------------------------------------------------
  */
@@ -202,14 +202,14 @@ DeleteHashEntry(HashEntry *entryPtr) {
  *
  * DeleteHashTable --
  *
- *	Free up everything associated with a hash table except for
- *	the record for the table itself.
+ *      Free up everything associated with a hash table except for
+ *      the record for the table itself.
  *
  * Results:
- *	None.
+ *      None.
  *
  * Side effects:
- *	The hash table is no longer useable.
+ *      The hash table is no longer useable.
  *
  *----------------------------------------------------------------------
  */
@@ -254,19 +254,19 @@ DeleteHashTable(HashTable *tablePtr) {
  *
  * FirstHashEntry --
  *
- *	Locate the first entry in a hash table and set up a record
- *	that can be used to step through all the remaining entries
- *	of the table.
+ *      Locate the first entry in a hash table and set up a record
+ *      that can be used to step through all the remaining entries
+ *      of the table.
  *
  * Results:
- *	The return value is a pointer to the first entry in tablePtr,
- *	or NULL if tablePtr has no entries in it.  The memory at
- *	*searchPtr is initialized so that subsequent calls to
- *	NextHashEntry will return all of the entries in the table,
- *	one at a time.
+ *      The return value is a pointer to the first entry in tablePtr,
+ *      or NULL if tablePtr has no entries in it.  The memory at
+ *      *searchPtr is initialized so that subsequent calls to
+ *      NextHashEntry will return all of the entries in the table,
+ *      one at a time.
  *
  * Side effects:
- *	None.
+ *      None.
  *
  *----------------------------------------------------------------------
  */
@@ -274,9 +274,9 @@ DeleteHashTable(HashTable *tablePtr) {
 HashEntry *
 FirstHashEntry(HashTable *tablePtr, HashSearch *searchPtr) {
 #if 0
-  HashTable *tablePtr;		/* Table to search. */
-  HashSearch *searchPtr;		/* Place to store information about
-					 * progress through the table. */
+  HashTable *tablePtr;          /* Table to search. */
+  HashSearch *searchPtr;                /* Place to store information about
+                                         * progress through the table. */
 #endif
   searchPtr->tablePtr = tablePtr;
   searchPtr->nextIndex = 0;
@@ -289,16 +289,16 @@ FirstHashEntry(HashTable *tablePtr, HashSearch *searchPtr) {
  *
  * NextHashEntry --
  *
- *	Once a hash table enumeration has been initiated by calling
- *	FirstHashEntry, this procedure may be called to return
- *	successive elements of the table.
+ *      Once a hash table enumeration has been initiated by calling
+ *      FirstHashEntry, this procedure may be called to return
+ *      successive elements of the table.
  *
  * Results:
- *	The return value is the next entry in the hash table being
- *	enumerated, or NULL if the end of the table is reached.
+ *      The return value is the next entry in the hash table being
+ *      enumerated, or NULL if the end of the table is reached.
  *
  * Side effects:
- *	None.
+ *      None.
  *
  *----------------------------------------------------------------------
  */
@@ -306,7 +306,7 @@ FirstHashEntry(HashTable *tablePtr, HashSearch *searchPtr) {
 HashEntry *
 NextHashEntry(HashSearch *searchPtr) {
 #if 0
-  HashSearch *searchPtr;	/* Place to store information about
+  HashSearch *searchPtr;        /* Place to store information about
                                  * progress through the table. Must
                                  * have been initialized by calling
                                  * FirstHashEntry. */
@@ -331,16 +331,16 @@ NextHashEntry(HashSearch *searchPtr) {
  *
  * HashStats --
  *
- *	Return statistics describing the layout of the hash table
- *	in its hash buckets.
+ *      Return statistics describing the layout of the hash table
+ *      in its hash buckets.
  *
  * Results:
- *	The return value is a malloc-ed string containing information
- *	about tablePtr.  It is the caller's responsibility to free
- *	this string.
+ *      The return value is a malloc-ed string containing information
+ *      about tablePtr.  It is the caller's responsibility to free
+ *      this string.
  *
  * Side effects:
- *	None.
+ *      None.
  *
  *----------------------------------------------------------------------
  */
@@ -410,15 +410,15 @@ HashStats(HashTable *tablePtr) {
  *
  * HashString --
  *
- *	Compute a one-word summary of a text string, which can be
- *	used to generate a hash index.
+ *      Compute a one-word summary of a text string, which can be
+ *      used to generate a hash index.
  *
  * Results:
- *	The return value is a one-word summary of the information in
- *	string.
+ *      The return value is a one-word summary of the information in
+ *      string.
  *
  * Side effects:
- *	None.
+ *      None.
  *
  *----------------------------------------------------------------------
  */
@@ -454,15 +454,15 @@ HashString(const char *s) {
  *
  * StringFind --
  *
- *	Given a hash table with string keys, and a string key, find
- *	the entry with a matching key.
+ *      Given a hash table with string keys, and a string key, find
+ *      the entry with a matching key.
  *
  * Results:
- *	The return value is a token for the matching entry in the
- *	hash table, or NULL if there was no matching entry.
+ *      The return value is a token for the matching entry in the
+ *      hash table, or NULL if there was no matching entry.
  *
  * Side effects:
- *	None.
+ *      None.
  *
  *----------------------------------------------------------------------
  */
@@ -470,8 +470,8 @@ HashString(const char *s) {
 static HashEntry *
 StringFind(HashTable *tablePtr, const void *key) {
 #if 0
-  HashTable *tablePtr;	/* Table in which to lookup entry. */
-  const void *key;		/* Key to use to find matching entry. */
+  HashTable *tablePtr;  /* Table in which to lookup entry. */
+  const void *key;              /* Key to use to find matching entry. */
 #endif
   HashEntry *hPtr;
   unsigned int idx;
@@ -497,18 +497,18 @@ StringFind(HashTable *tablePtr, const void *key) {
  *
  * StringCreate --
  *
- *	Given a hash table with string keys, and a string key, find
- *	the entry with a matching key.  If there is no matching entry,
- *	then create a new entry that does match.
+ *      Given a hash table with string keys, and a string key, find
+ *      the entry with a matching key.  If there is no matching entry,
+ *      then create a new entry that does match.
  *
  * Results:
- *	The return value is a pointer to the matching entry.  If this
- *	is a newly-created entry, then *newPtr will be set to a non-zero
- *	value;  otherwise *newPtr will be set to 0.  If this is a new
- *	entry the value stored in the entry will initially be 0.
+ *      The return value is a pointer to the matching entry.  If this
+ *      is a newly-created entry, then *newPtr will be set to a non-zero
+ *      value;  otherwise *newPtr will be set to 0.  If this is a new
+ *      entry the value stored in the entry will initially be 0.
  *
  * Side effects:
- *	A new entry may be added to the hash table.
+ *      A new entry may be added to the hash table.
  *
  *----------------------------------------------------------------------
  */
@@ -516,11 +516,11 @@ StringFind(HashTable *tablePtr, const void *key) {
 static HashEntry *
 StringCreate(HashTable *tablePtr, const void *vKey, int *newPtr) {
 #if 0
-  HashTable *tablePtr;	/* Table in which to lookup entry. */
-  const void *key;		/* Key to use to find or create matching
-				 * entry. */
-  int *newPtr;		/* Store info here telling whether a new
-				 * entry was created. */
+  HashTable *tablePtr;  /* Table in which to lookup entry. */
+  const void *key;              /* Key to use to find or create matching
+                                 * entry. */
+  int *newPtr;          /* Store info here telling whether a new
+                                 * entry was created. */
 #endif
   const char *key = (const char *)vKey;
   HashEntry *hPtr = NULL;
@@ -580,15 +580,15 @@ StringCreate(HashTable *tablePtr, const void *vKey, int *newPtr) {
  *
  * OneWordFind --
  *
- *	Given a hash table with one-word keys, and a one-word key, find
- *	the entry with a matching key.
+ *      Given a hash table with one-word keys, and a one-word key, find
+ *      the entry with a matching key.
  *
  * Results:
- *	The return value is a token for the matching entry in the
- *	hash table, or NULL if there was no matching entry.
+ *      The return value is a token for the matching entry in the
+ *      hash table, or NULL if there was no matching entry.
  *
  * Side effects:
- *	None.
+ *      None.
  *
  *----------------------------------------------------------------------
  */
@@ -596,8 +596,8 @@ StringCreate(HashTable *tablePtr, const void *vKey, int *newPtr) {
 static HashEntry *
 OneWordFind(HashTable *tablePtr, const void *key) {
 #if 0
-  HashTable *tablePtr;	/* Table in which to lookup entry. */
-  const void *key;		/* Key to use to find matching entry. */
+  HashTable *tablePtr;  /* Table in which to lookup entry. */
+  const void *key;              /* Key to use to find matching entry. */
 #endif
   HashEntry *hPtr;
   unsigned int idx;
@@ -623,18 +623,18 @@ OneWordFind(HashTable *tablePtr, const void *key) {
  *
  * OneWordCreate --
  *
- *	Given a hash table with one-word keys, and a one-word key, find
- *	the entry with a matching key.  If there is no matching entry,
- *	then create a new entry that does match.
+ *      Given a hash table with one-word keys, and a one-word key, find
+ *      the entry with a matching key.  If there is no matching entry,
+ *      then create a new entry that does match.
  *
  * Results:
- *	The return value is a pointer to the matching entry.  If this
- *	is a newly-created entry, then *newPtr will be set to a non-zero
- *	value;  otherwise *newPtr will be set to 0.  If this is a new
- *	entry the value stored in the entry will initially be 0.
+ *      The return value is a pointer to the matching entry.  If this
+ *      is a newly-created entry, then *newPtr will be set to a non-zero
+ *      value;  otherwise *newPtr will be set to 0.  If this is a new
+ *      entry the value stored in the entry will initially be 0.
  *
  * Side effects:
- *	A new entry may be added to the hash table.
+ *      A new entry may be added to the hash table.
  *
  *----------------------------------------------------------------------
  */
@@ -642,11 +642,11 @@ OneWordFind(HashTable *tablePtr, const void *key) {
 static HashEntry *
 OneWordCreate(HashTable *tablePtr, const void *key, int *newPtr) {
 #if 0
-  HashTable *tablePtr;	/* Table in which to lookup entry. */
-  const void *key;		/* Key to use to find or create matching
-				 * entry. */
-  int *newPtr;		/* Store info here telling whether a new
-				 * entry was created. */
+  HashTable *tablePtr;  /* Table in which to lookup entry. */
+  const void *key;              /* Key to use to find or create matching
+                                 * entry. */
+  int *newPtr;          /* Store info here telling whether a new
+                                 * entry was created. */
 #endif
   HashEntry *hPtr;
   unsigned int idx;
@@ -700,15 +700,15 @@ OneWordCreate(HashTable *tablePtr, const void *key, int *newPtr) {
  *
  * HashArray ==
  *
- *	Compute a one-word summary of an arbitrary byte array, which can be
- *	used to generate a hash index.
+ *      Compute a one-word summary of an arbitrary byte array, which can be
+ *      used to generate a hash index.
  *
  * Results:
- *	The return value is a one-word summary of the information in
- *	the given key.
+ *      The return value is a one-word summary of the information in
+ *      the given key.
  *
  * Side effects:
- *	None.
+ *      None.
  *
  *----------------------------------------------------------------------
  */
@@ -736,15 +736,15 @@ HashArray(HashTable *tablePtr, const void *key) {
  *
  * ArrayFind --
  *
- *	Given a hash table with array-of-int keys, and a key, find
- *	the entry with a matching key.
+ *      Given a hash table with array-of-int keys, and a key, find
+ *      the entry with a matching key.
  *
  * Results:
- *	The return value is a token for the matching entry in the
- *	hash table, or NULL if there was no matching entry.
+ *      The return value is a token for the matching entry in the
+ *      hash table, or NULL if there was no matching entry.
  *
  * Side effects:
- *	None.
+ *      None.
  *
  *----------------------------------------------------------------------
  */
@@ -752,8 +752,8 @@ HashArray(HashTable *tablePtr, const void *key) {
 static HashEntry *
 ArrayFind(HashTable *tablePtr, const void *key) {
 #if 0
-  HashTable *tablePtr;	/* Table in which to lookup entry. */
-  const void *key;		/* Key to use to find matching entry. */
+  HashTable *tablePtr;  /* Table in which to lookup entry. */
+  const void *key;              /* Key to use to find matching entry. */
 #endif
   HashEntry *hPtr;
   unsigned int idx = HashArray(tablePtr, key);
@@ -779,18 +779,18 @@ ArrayFind(HashTable *tablePtr, const void *key) {
  *
  * ArrayCreate --
  *
- *	Given a hash table with one-word keys, and a one-word key, find
- *	the entry with a matching key.  If there is no matching entry,
- *	then create a new entry that does match.
+ *      Given a hash table with one-word keys, and a one-word key, find
+ *      the entry with a matching key.  If there is no matching entry,
+ *      then create a new entry that does match.
  *
  * Results:
- *	The return value is a pointer to the matching entry.  If this
- *	is a newly-created entry, then *newPtr will be set to a non-zero
- *	value;  otherwise *newPtr will be set to 0.  If this is a new
- *	entry the value stored in the entry will initially be 0.
+ *      The return value is a pointer to the matching entry.  If this
+ *      is a newly-created entry, then *newPtr will be set to a non-zero
+ *      value;  otherwise *newPtr will be set to 0.  If this is a new
+ *      entry the value stored in the entry will initially be 0.
  *
  * Side effects:
- *	A new entry may be added to the hash table.
+ *      A new entry may be added to the hash table.
  *
  *----------------------------------------------------------------------
  */
@@ -798,11 +798,11 @@ ArrayFind(HashTable *tablePtr, const void *key) {
 static HashEntry *
 ArrayCreate(HashTable *tablePtr, const void *key, int *newPtr) {
 #if 0
-  HashTable *tablePtr;	/* Table in which to lookup entry. */
-  const void *key;		/* Key to use to find or create matching
-				 * entry. */
-  int *newPtr;		/* Store info here telling whether a new
-				 * entry was created. */
+  HashTable *tablePtr;  /* Table in which to lookup entry. */
+  const void *key;              /* Key to use to find or create matching
+                                 * entry. */
+  int *newPtr;          /* Store info here telling whether a new
+                                 * entry was created. */
 #endif
   HashEntry *hPtr = NULL;
   unsigned int idx = HashArray(tablePtr, key);
@@ -857,15 +857,15 @@ ArrayCreate(HashTable *tablePtr, const void *key, int *newPtr) {
  *
  * BogusFind --
  *
- *	This procedure is invoked when an FindHashEntry is called
- *	on a table that has been deleted.
+ *      This procedure is invoked when an FindHashEntry is called
+ *      on a table that has been deleted.
  *
  * Results:
- *	If panic returns (which it shouldn't) this procedure returns
- *	NULL.
+ *      If panic returns (which it shouldn't) this procedure returns
+ *      NULL.
  *
  * Side effects:
- *	Generates a panic.
+ *      Generates a panic.
  *
  *----------------------------------------------------------------------
  */
@@ -874,8 +874,8 @@ ArrayCreate(HashTable *tablePtr, const void *key, int *newPtr) {
 static HashEntry *
 BogusFind(HashTable *tablePtr, const void *key) {
 #if 0
-  HashTable *tablePtr;	/* Table in which to lookup entry. */
-  const void *key;		/* Key to use to find matching entry. */
+  HashTable *tablePtr;  /* Table in which to lookup entry. */
+  const void *key;              /* Key to use to find matching entry. */
 #endif
   (void)tablePtr;
   (void)key;
@@ -889,15 +889,15 @@ BogusFind(HashTable *tablePtr, const void *key) {
  *
  * BogusCreate --
  *
- *	This procedure is invoked when an CreateHashEntry is called
- *	on a table that has been deleted.
+ *      This procedure is invoked when an CreateHashEntry is called
+ *      on a table that has been deleted.
  *
  * Results:
- *	If panic returns (which it shouldn't) this procedure returns
- *	NULL.
+ *      If panic returns (which it shouldn't) this procedure returns
+ *      NULL.
  *
  * Side effects:
- *	Generates a panic.
+ *      Generates a panic.
  *
  *----------------------------------------------------------------------
  */
@@ -906,11 +906,11 @@ BogusFind(HashTable *tablePtr, const void *key) {
 static HashEntry *
 BogusCreate(HashTable *tablePtr, const void *key, int *newPtr) {
 #if 0
-  HashTable *tablePtr;	/* Table in which to lookup entry. */
-  const void *key;		/* Key to use to find or create matching
-				 * entry. */
-  int *newPtr;		/* Store info here telling whether a new
-				 * entry was created. */
+  HashTable *tablePtr;  /* Table in which to lookup entry. */
+  const void *key;              /* Key to use to find or create matching
+                                 * entry. */
+  int *newPtr;          /* Store info here telling whether a new
+                                 * entry was created. */
 #endif
   (void)tablePtr;
   (void)key;
@@ -925,17 +925,17 @@ BogusCreate(HashTable *tablePtr, const void *key, int *newPtr) {
  *
  * RebuildTable --
  *
- *	This procedure is invoked when the ratio of entries to hash
- *	buckets becomes too large.  It creates a new table with a
- *	larger bucket array and moves all of the entries into the
- *	new table.
+ *      This procedure is invoked when the ratio of entries to hash
+ *      buckets becomes too large.  It creates a new table with a
+ *      larger bucket array and moves all of the entries into the
+ *      new table.
  *
  * Results:
- *	None.
+ *      None.
  *
  * Side effects:
- *	Memory gets reallocated and entries get re-hashed to new
- *	buckets.
+ *      Memory gets reallocated and entries get re-hashed to new
+ *      buckets.
  *
  *----------------------------------------------------------------------
  */

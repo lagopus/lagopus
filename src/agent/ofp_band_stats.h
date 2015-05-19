@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 
 
 /**
- * @file	ofp_band_stats.h
+ * @file        ofp_band_stats.h
  */
 
 #ifndef __BAND_STATS_H__
@@ -28,9 +28,9 @@
 /**
  * Alloc band stats.
  *
- *     @retval	*meter_band_stats	Succeeded, A pointer to
+ *     @retval  *meter_band_stats       Succeeded, A pointer to
  *     \e meter_band_stats structure.
- *     @retval	NULL	Failed.
+ *     @retval  NULL    Failed.
  */
 struct meter_band_stats *
 meter_band_stats_alloc(void);
@@ -38,10 +38,10 @@ meter_band_stats_alloc(void);
 /**
  * Free meter_band_stats_list elements.
  *
- *     @param[in]	band_stats_list	A pointer to list of
+ *     @param[in]       band_stats_list A pointer to list of
  *     \e meter_band_stats structures.
  *
- *     @retval	void
+ *     @retval  void
  */
 void
 meter_band_stats_list_elem_free(struct meter_band_stats_list
@@ -50,15 +50,15 @@ meter_band_stats_list_elem_free(struct meter_band_stats_list
 /**
  * Encode ofp_meter_band_stats_list.
  *
- *     @param[out]	pbuf_list	A pointer to list of \e pbuf structures.
- *     @param[out]	pbuf	A pointer to \e pbuf structure.
- *     @param[in]	band_stats_list	A pointer to list of
+ *     @param[out]      pbuf_list       A pointer to list of \e pbuf structures.
+ *     @param[out]      pbuf    A pointer to \e pbuf structure.
+ *     @param[in]       band_stats_list A pointer to list of
  *     \e meter_band_stats structures.
- *     @param[out]	total_length	A pointer to \e size of actions.
+ *     @param[out]      total_length    A pointer to \e size of actions.
  *
- *     @retval	LAGOPUS_RESULT_OK	Succeeded.
- *     @retval	LAGOPUS_RESULT_OUT_OF_RANGE Failed, out of range.
- *     @retval	LAGOPUS_RESULT_ANY_FAILURES Failed.
+ *     @retval  LAGOPUS_RESULT_OK       Succeeded.
+ *     @retval  LAGOPUS_RESULT_OUT_OF_RANGE Failed, out of range.
+ *     @retval  LAGOPUS_RESULT_ANY_FAILURES Failed.
  */
 lagopus_result_t
 ofp_meter_band_stats_list_encode(struct pbuf_list *pbuf_list,

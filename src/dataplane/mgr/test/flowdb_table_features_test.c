@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,92 +28,92 @@
  * Feature checklist entry.
  */
 struct feature_checklist {
-  uint64_t	fc_key;
-  int		fc_checked;
+  uint64_t      fc_key;
+  int           fc_checked;
 };
 
 /* Init a feature checklist. */
-#define INIT_FEATURE_CHECKLIST(_fc, _keys)		\
-  do {							\
-    size_t _s;						\
-    memset((_fc), 0, sizeof(_fc));			\
-    for (_s = 0; _s < ARRAY_LEN(_fc); _s++)		\
-      (_fc)[_s].fc_key = (uint64_t)((_keys)[_s]);	\
+#define INIT_FEATURE_CHECKLIST(_fc, _keys)              \
+  do {                                                  \
+    size_t _s;                                          \
+    memset((_fc), 0, sizeof(_fc));                      \
+    for (_s = 0; _s < ARRAY_LEN(_fc); _s++)             \
+      (_fc)[_s].fc_key = (uint64_t)((_keys)[_s]);       \
   } while (0)
 
 /* Check a feature checklist entry. */
-#define CHECK_FEATURE_CHECKLIST(_fc, _key)				\
-  do {									\
-    size_t _s;								\
-    int _found;								\
-    char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];				\
+#define CHECK_FEATURE_CHECKLIST(_fc, _key)                              \
+  do {                                                                  \
+    size_t _s;                                                          \
+    int _found;                                                         \
+    char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];                             \
     \
-    snprintf(_buf, sizeof(_buf), "key %lu unknown", (uint64_t)_key);	\
-    _found = 0;								\
-    for (_s = 0; _s < ARRAY_LEN(_fc); _s++)				\
-      if ((uint64_t)(_key) == (_fc)[_s].fc_key) {			\
-        (_fc)[_s].fc_checked = 1;					\
-        _found = 1;							\
-      }									\
-    TEST_ASSERT_TRUE_MESSAGE(_found, _buf);				\
+    snprintf(_buf, sizeof(_buf), "key %lu unknown", (uint64_t)_key);    \
+    _found = 0;                                                         \
+    for (_s = 0; _s < ARRAY_LEN(_fc); _s++)                             \
+      if ((uint64_t)(_key) == (_fc)[_s].fc_key) {                       \
+        (_fc)[_s].fc_checked = 1;                                       \
+        _found = 1;                                                     \
+      }                                                                 \
+    TEST_ASSERT_TRUE_MESSAGE(_found, _buf);                             \
   } while (0)
 
 /* Assert a feature checklist. */
-#define TEST_ASSERT_FEATURE_CHECKLIST(_fc)				\
-  do {									\
-    size_t _s;								\
-    char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];				\
+#define TEST_ASSERT_FEATURE_CHECKLIST(_fc)                              \
+  do {                                                                  \
+    size_t _s;                                                          \
+    char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];                             \
     \
-    for (_s = 0; _s < ARRAY_LEN(_fc); _s++) {				\
+    for (_s = 0; _s < ARRAY_LEN(_fc); _s++) {                           \
       snprintf(_buf, sizeof(_buf), "key %lu not found", (_fc)[_s].fc_key); \
-      TEST_ASSERT_TRUE_MESSAGE((_fc)[_s].fc_checked, _buf);		\
-    }									\
+      TEST_ASSERT_TRUE_MESSAGE((_fc)[_s].fc_checked, _buf);             \
+    }                                                                   \
   } while (0)
 
 /* The scenario for a feature check. */
-#define TEST_SCENARIO_FEATURE_CHECK(_pt, _it, _pm, _im, _keys)	\
-  do {								\
-    struct feature_checklist _fc[ARRAY_LEN(_keys) - 1];		\
-    const struct table_features *_f;				\
-    const struct table_property *_p;				\
-    const _it *_i;						\
+#define TEST_SCENARIO_FEATURE_CHECK(_pt, _it, _pm, _im, _keys)  \
+  do {                                                          \
+    struct feature_checklist _fc[ARRAY_LEN(_keys) - 1];         \
+    const struct table_features *_f;                            \
+    const struct table_property *_p;                            \
+    const _it *_i;                                              \
     \
-    INIT_FEATURE_CHECKLIST(_fc, (_keys));			\
+    INIT_FEATURE_CHECKLIST(_fc, (_keys));                       \
     \
-    TAILQ_FOREACH(_f, &features_list, entry) {			\
-      TAILQ_FOREACH(_p, &_f->table_property_list, entry) {	\
-        if ((_pt) != _p->ofp.type)				\
-          continue;						\
-        TAILQ_FOREACH(_i, &_p->_pm, entry) {			\
-          CHECK_FEATURE_CHECKLIST(_fc, _i->_im);		\
-        }							\
-      }								\
-    }								\
+    TAILQ_FOREACH(_f, &features_list, entry) {                  \
+      TAILQ_FOREACH(_p, &_f->table_property_list, entry) {      \
+        if ((_pt) != _p->ofp.type)                              \
+          continue;                                             \
+        TAILQ_FOREACH(_i, &_p->_pm, entry) {                    \
+          CHECK_FEATURE_CHECKLIST(_fc, _i->_im);                \
+        }                                                       \
+      }                                                         \
+    }                                                           \
     \
-    TEST_ASSERT_FEATURE_CHECKLIST(_fc);				\
+    TEST_ASSERT_FEATURE_CHECKLIST(_fc);                         \
   } while (0)
 
 /* The scenario for an empty feature. */
-#define TEST_SCENARIO_FEATURE_EMPTY(_pt, _it, _pm, _im)		\
-  do {								\
-    const struct table_features *_f;				\
-    const struct table_property *_p;				\
-    const _it *_i;						\
-    int _count;							\
+#define TEST_SCENARIO_FEATURE_EMPTY(_pt, _it, _pm, _im)         \
+  do {                                                          \
+    const struct table_features *_f;                            \
+    const struct table_property *_p;                            \
+    const _it *_i;                                              \
+    int _count;                                                 \
     \
-    _count = 0;							\
+    _count = 0;                                                 \
     \
-    TAILQ_FOREACH(_f, &features_list, entry) {			\
-      TAILQ_FOREACH(_p, &_f->table_property_list, entry) {	\
-        if ((_pt) != _p->ofp.type)				\
-          continue;						\
-        TAILQ_FOREACH(_i, &_p->_pm, entry) {			\
-          _count++;						\
-        }							\
-      }								\
-    }								\
+    TAILQ_FOREACH(_f, &features_list, entry) {                  \
+      TAILQ_FOREACH(_p, &_f->table_property_list, entry) {      \
+        if ((_pt) != _p->ofp.type)                              \
+          continue;                                             \
+        TAILQ_FOREACH(_i, &_p->_pm, entry) {                    \
+          _count++;                                             \
+        }                                                       \
+      }                                                         \
+    }                                                           \
     \
-    TEST_ASSERT_EQUAL_INT(_count, 0);				\
+    TEST_ASSERT_EQUAL_INT(_count, 0);                           \
   } while (0)
 
 /*

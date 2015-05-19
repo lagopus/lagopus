@@ -7,16 +7,15 @@ beautify() {
     astyle \
 	--mode=c \
 	--style=java \
-	-xC78 -s2 -m0 \
+	-xC79 -s2 -m0 \
 	-L -S -H \
 	-xL -w -j \
 	-o -O \
 	-k3 \
 	-z2 \
+	-r \
+	-n \
 	${1+"$@"}
-    for i in ${1+"$@"}; do
-	rm -f "${i}".orig
-    done
 }
 
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -194,6 +194,9 @@ struct lagopus_queue {
 TAILQ_HEAD(lagopus_queue_list, lagopus_queue);
 
 enum {
+  /* null ports for test */
+  LAGOPUS_PORT_TYPE_NULL = 0,
+
   /* physical ports */
   LAGOPUS_PORT_TYPE_PHYSICAL,   /* eth* */
   /* logical ports */

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -402,8 +402,8 @@ channel_protocol_get(struct channel *channel,
  *
  *  @retval LAGOPUS_RESULT_OK Succeeded.
  *
- *	@details Call this function for setting a controller tcp port number
- *	with tcp/ssl connection.
+ *      @details Call this function for setting a controller tcp port number
+ *      with tcp/ssl connection.
  */
 lagopus_result_t
 channel_port_set(struct channel *channel, uint16_t port);
@@ -439,8 +439,8 @@ channel_port_get(struct channel *channel, uint16_t *port);
  *
  *  @retval LAGOPUS_RESULT_OK Succeeded.
  *
- *	@details Call this function for setting a local tcp port number
- *	with tcp/ssl connection.
+ *      @details Call this function for setting a local tcp port number
+ *      with tcp/ssl connection.
  *  If setting a local port number, call to bind(2) when session craeted.
  *
  */
@@ -479,8 +479,8 @@ channel_local_port_get(struct channel *channel, uint16_t *port);
  *  @retval LAGOPUS_RESULT_OK Succeeded.
  *  @retval LAGOPUS_RESULT_BUSY Fail, a channel session is alive.
  *
- *	@details Call this function for setting a local address
- *	with tcp/ssl connection.
+ *      @details Call this function for setting a local address
+ *      with tcp/ssl connection.
  *  If setting a local address, call to bind(2) when session craeted.
  *
  */

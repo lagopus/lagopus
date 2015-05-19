@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 
 
 /**
- * @file	ofp_group_desc_handler.h
+ * @file        ofp_group_desc_handler.h
  */
 
 #ifndef __OFP_GROUP_DESC_HANDLER_H__
@@ -27,15 +27,15 @@
 /**
  * ofp_group_desc_request handler.
  *
- *     @param[in]	channel	A pointer to \e channel structure.
- *     @param[in]	pbuf	A pointer to \e pbuf structure.
- *     @param[in]	xid_header	A pointer to \e ofp_header structure in request.
- *     @param[out]	error	A pointer to \e ofp_error structure.
+ *     @param[in]       channel A pointer to \e channel structure.
+ *     @param[in]       pbuf    A pointer to \e pbuf structure.
+ *     @param[in]       xid_header      A pointer to \e ofp_header structure in request.
+ *     @param[out]      error   A pointer to \e ofp_error structure.
  *     If errors occur, set filed values.
  *
- *     @retval	LAGOPUS_RESULT_OK	Succeeded.
- *     @retval	LAGOPUS_RESULT_OFP_ERROR Failed, ofp_error.
- *     @retval	LAGOPUS_RESULT_ANY_FAILURES Failed.
+ *     @retval  LAGOPUS_RESULT_OK       Succeeded.
+ *     @retval  LAGOPUS_RESULT_OFP_ERROR Failed, ofp_error.
+ *     @retval  LAGOPUS_RESULT_ANY_FAILURES Failed.
  */
 lagopus_result_t
 ofp_group_desc_request_handle(struct channel *channel, struct pbuf *pbuf,
@@ -45,10 +45,10 @@ ofp_group_desc_request_handle(struct channel *channel, struct pbuf *pbuf,
 /**
  * Free group_desc_list elements.
  *
- *     @param[in]	group_desc_list	A pointer to list of
+ *     @param[in]       group_desc_list A pointer to list of
  *     \e group_desc_list structures.
  *
- *     @retval	void
+ *     @retval  void
  */
 void
 group_desc_list_elem_free(struct group_desc_list *group_desc_list);
@@ -57,14 +57,14 @@ group_desc_list_elem_free(struct group_desc_list *group_desc_list);
 /**
  * Create ofp_group_desc_reply.
  *
- *     @param[in]	channel	A pointer to \e channel structure.
- *     @param[out]	pbuf_list	A pointer to list of \e pbuf structures.
- *     @param[in]	group_desc_list	A pointer to list of
+ *     @param[in]       channel A pointer to \e channel structure.
+ *     @param[out]      pbuf_list       A pointer to list of \e pbuf structures.
+ *     @param[in]       group_desc_list A pointer to list of
  *     \e group_desc_list structures.
- *     @param[in]	xid_header	A pointer to \e ofp_header structure.
+ *     @param[in]       xid_header      A pointer to \e ofp_header structure.
  *
- *     @retval	LAGOPUS_RESULT_OK	Succeeded.
- *     @retval	LAGOPUS_RESULT_ANY_FAILURES Failed.
+ *     @retval  LAGOPUS_RESULT_OK       Succeeded.
+ *     @retval  LAGOPUS_RESULT_ANY_FAILURES Failed.
  */
 lagopus_result_t
 ofp_group_desc_reply_create(struct channel *channel,

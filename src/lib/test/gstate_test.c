@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@ typedef struct null_thread_record {
   lagopus_thread_record m_thd;
   shutdown_grace_level_t m_gl;
 } null_thread_record;
-typedef null_thread_record 	*null_thread_t;
+typedef null_thread_record      *null_thread_t;
 
 
 

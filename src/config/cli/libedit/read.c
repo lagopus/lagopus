@@ -1,8 +1,8 @@
-/*	$NetBSD: read.c,v 1.70 2013/05/27 23:55:55 christos Exp $	*/
+/*      $NetBSD: read.c,v 1.70 2013/05/27 23:55:55 christos Exp $       */
 
 /*-
  * Copyright (c) 1992, 1993
- *	The Regents of the University of California.  All rights reserved.
+ *      The Regents of the University of California.  All rights reserved.
  *
  * This code is derived from software contributed to Berkeley by
  * Christos Zoulas of Cornell University.
@@ -35,7 +35,7 @@
 #include "config.h"
 #if !defined(lint) && !defined(SCCSID)
 #if 0
-static char sccsid[] = "@(#)read.c	8.1 (Berkeley) 6/4/93";
+static char sccsid[] = "@(#)read.c      8.1 (Berkeley) 6/4/93";
 #else
 __RCSID("$NetBSD: read.c,v 1.70 2013/05/27 23:55:55 christos Exp $");
 #endif
@@ -43,7 +43,7 @@ __RCSID("$NetBSD: read.c,v 1.70 2013/05/27 23:55:55 christos Exp $");
 
 /*
  * read.c: Clean this junk up! This is horrible code.
- *	   Terminal read functions
+ *         Terminal read functions
  */
 #include <errno.h>
 #include <fcntl.h>
@@ -52,16 +52,16 @@ __RCSID("$NetBSD: read.c,v 1.70 2013/05/27 23:55:55 christos Exp $");
 #include <limits.h>
 #include "el.h"
 
-#define OKCMD	-1	/* must be -1! */
+#define OKCMD   -1      /* must be -1! */
 
-private int	read__fixio(int, int);
-private int	read_preread(EditLine *);
-private int	read_char(EditLine *, Char *);
-private int	read_getcmd(EditLine *, el_action_t *, Char *);
-private void	read_pop(c_macro_t *);
+private int     read__fixio(int, int);
+private int     read_preread(EditLine *);
+private int     read_char(EditLine *, Char *);
+private int     read_getcmd(EditLine *, el_action_t *, Char *);
+private void    read_pop(c_macro_t *);
 
 /* read_init():
- *	Initialize the read stuff
+ *      Initialize the read stuff
  */
 protected int
 read_init(EditLine *el) {
@@ -72,8 +72,8 @@ read_init(EditLine *el) {
 
 
 /* el_read_setfn():
- *	Set the read char function to the one provided.
- *	If it is set to EL_BUILTIN_GETCFN, then reset to the builtin one.
+ *      Set the read char function to the one provided.
+ *      If it is set to EL_BUILTIN_GETCFN, then reset to the builtin one.
  */
 protected int
 el_read_setfn(EditLine *el, el_rfunc_t rc) {
@@ -83,8 +83,8 @@ el_read_setfn(EditLine *el, el_rfunc_t rc) {
 
 
 /* el_read_getfn():
- *	return the current read char function, or EL_BUILTIN_GETCFN
- *	if it is the default one
+ *      return the current read char function, or EL_BUILTIN_GETCFN
+ *      if it is the default one
  */
 protected el_rfunc_t
 el_read_getfn(EditLine *el) {
@@ -121,14 +121,14 @@ read_debug(EditLine *el) {
 
 
 /* read__fixio():
- *	Try to recover from a read error
+ *      Try to recover from a read error
  */
 /* ARGSUSED */
 private int
 read__fixio(int fd __attribute__((__unused__)), int e) {
 
   switch (e) {
-    case -1:		/* Make sure that the code is reachable */
+    case -1:            /* Make sure that the code is reachable */
 
 #ifdef EWOULDBLOCK
     case EWOULDBLOCK:
@@ -185,7 +185,7 @@ read__fixio(int fd __attribute__((__unused__)), int e) {
 
 
 /* read_preread():
- *	Try to read the stuff in the input queue;
+ *      Try to read the stuff in the input queue;
  */
 private int
 read_preread(EditLine *el) {
@@ -217,7 +217,7 @@ read_preread(EditLine *el) {
 
 
 /* el_push():
- *	Push a macro
+ *      Push a macro
  */
 public void
 FUN(el,push)(EditLine *el, const Char *str) {
@@ -236,8 +236,8 @@ FUN(el,push)(EditLine *el, const Char *str) {
 
 
 /* read_getcmd():
- *	Get next command from the input stream, return OKCMD on success.
- *	Character values > 255 are not looked up in the map, but inserted.
+ *      Get next command from the input stream, return OKCMD on success.
+ *      Character values > 255 are not looked up in the map, but inserted.
  */
 private int
 read_getcmd(EditLine *el, el_action_t *cmdnum, Char *ch) {
@@ -248,10 +248,10 @@ read_getcmd(EditLine *el, el_action_t *cmdnum, Char *ch) {
   do {
     if ((num = FUN(el,getc)(el, ch)) != 1) {/* if EOF or error */
       el->el_errno = num == 0 ? 0 : errno;
-      return 0;	/* not OKCMD */
+      return 0; /* not OKCMD */
     }
 
-#ifdef	KANJI
+#ifdef  KANJI
     if ((*ch & 0200)) {
       el->el_state.metanext = 0;
       cmd = CcViMap[' '];
@@ -299,17 +299,17 @@ read_getcmd(EditLine *el, el_action_t *cmdnum, Char *ch) {
 
 #ifdef WIDECHAR
 /* utf8_islead():
- *	Test whether a byte is a leading byte of a UTF-8 sequence.
+ *      Test whether a byte is a leading byte of a UTF-8 sequence.
  */
 private int
 utf8_islead(int c) {
-  return c < 0x80 ||	       /* single byte char */
+  return c < 0x80 ||           /* single byte char */
          (c >= 0xc2 && c <= 0xf4); /* start of multibyte sequence */
 }
 #endif
 
 /* read_char():
- *	Read a character from the tty.
+ *      Read a character from the tty.
  */
 private int
 read_char(EditLine *el, Char *cp) {
@@ -381,7 +381,7 @@ again:
 }
 
 /* read_pop():
- *	Pop a macro from the stack
+ *      Pop a macro from the stack
  */
 private void
 read_pop(c_macro_t *ma) {
@@ -396,7 +396,7 @@ read_pop(c_macro_t *ma) {
 }
 
 /* el_getc():
- *	Read a character
+ *      Read a character
  */
 public int
 FUN(el,getc)(EditLine *el, Char *cp) {
@@ -470,9 +470,9 @@ read_prepare(EditLine *el) {
   /* This is relatively cheap, and things go terribly wrong if
      we have the wrong size. */
   el_resize(el);
-  re_clear_display(el);	/* reset the display stuff */
+  re_clear_display(el); /* reset the display stuff */
   ch_reset(el, 0);
-  re_refresh(el);		/* print the prompt */
+  re_refresh(el);               /* print the prompt */
 
   if (el->el_flags & UNBUFFERED) {
     terminal__flush(el);
@@ -493,7 +493,7 @@ public const Char *
 FUN(el,gets)(EditLine *el, int *nread) {
   int retval;
   el_action_t cmdnum = 0;
-  int num;		/* how many chars we have read at NL */
+  int num;              /* how many chars we have read at NL */
   Char ch, *cp;
   int crlf = 0;
   int nrb;
@@ -599,7 +599,7 @@ FUN(el,gets)(EditLine *el, int *nread) {
 
   for (num = OKCMD; num == OKCMD;) {
     /* while still editing this
-    					 * line */
+                                         * line */
 #ifdef DEBUG_EDIT
     read_debug(el);
 #endif /* DEBUG_EDIT */
@@ -619,12 +619,12 @@ FUN(el,gets)(EditLine *el, int *nread) {
       break;
     }
     if ((unsigned int)cmdnum >= (unsigned int)
-        el->el_map.nfunc) {	/* BUG CHECK command */
+        el->el_map.nfunc) {     /* BUG CHECK command */
 #ifdef DEBUG_EDIT
       (void) fprintf(el->el_errfile,
                      "ERROR: illegal command from key 0%o\r\n", ch);
 #endif /* DEBUG_EDIT */
-      continue;	/* try again */
+      continue; /* try again */
     }
     /* now do the real command */
 #ifdef DEBUG_READ
@@ -685,14 +685,14 @@ FUN(el,gets)(EditLine *el, int *nread) {
         terminal_beep(el);
         break;
 
-      case CC_NORM:	/* normal char */
+      case CC_NORM:     /* normal char */
         break;
 
-      case CC_ARGHACK:	/* Suggested by Rich Salz */
+      case CC_ARGHACK:  /* Suggested by Rich Salz */
         /* <rsalz@pineapple.bbn.com> */
-        continue;	/* keep going... */
+        continue;       /* keep going... */
 
-      case CC_EOF:	/* end of file typed */
+      case CC_EOF:      /* end of file typed */
         if ((el->el_flags & UNBUFFERED) == 0) {
           num = 0;
         } else if (num == -1) {
@@ -702,23 +702,23 @@ FUN(el,gets)(EditLine *el, int *nread) {
         }
         break;
 
-      case CC_NEWLINE:	/* normal end of line */
+      case CC_NEWLINE:  /* normal end of line */
         num = (int)(el->el_line.lastchar - el->el_line.buffer);
         break;
 
-      case CC_FATAL:	/* fatal error, reset to known state */
+      case CC_FATAL:    /* fatal error, reset to known state */
 #ifdef DEBUG_READ
         (void) fprintf(el->el_errfile,
                        "*** editor fatal ERROR ***\r\n\n");
 #endif /* DEBUG_READ */
         /* put (real) cursor in a known place */
-        re_clear_display(el);	/* reset the display stuff */
-        ch_reset(el, 1);	/* reset the input pointers */
+        re_clear_display(el);   /* reset the display stuff */
+        ch_reset(el, 1);        /* reset the input pointers */
         re_refresh(el); /* print the prompt again */
         break;
 
       case CC_ERROR:
-      default:	/* functions we don't know about */
+      default:  /* functions we don't know about */
 #ifdef DEBUG_READ
         (void) fprintf(el->el_errfile,
                        "*** editor ERROR ***\r\n\n");
@@ -735,7 +735,7 @@ FUN(el,gets)(EditLine *el, int *nread) {
     }
   }
 
-  terminal__flush(el);		/* flush any buffered output */
+  terminal__flush(el);          /* flush any buffered output */
   /* make sure the tty is set up correctly */
   if ((el->el_flags & UNBUFFERED) == 0) {
     read_finish(el);

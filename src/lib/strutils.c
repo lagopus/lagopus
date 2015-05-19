@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -433,13 +433,13 @@ s_parse_bigint(const char *str, MP_INT *valptr) {
   /*
    * str := str2 | str8 | str10 | str16
    * str2 :=
-   *	[[:space:]]*[\-\+][0\\]b[[:space:]]*[01]+[[:space:]]*([kKmMgGtTpP]+[i]*)*
+   *    [[:space:]]*[\-\+][0\\]b[[:space:]]*[01]+[[:space:]]*([kKmMgGtTpP]+[i]*)*
    * str8 :=
-   *	[[:space:]]*[\-\+][\\]0[[:space:]]*[0-7]+[[:space:]]*([kKmMgGtTpP]+[i]*)*
+   *    [[:space:]]*[\-\+][\\]0[[:space:]]*[0-7]+[[:space:]]*([kKmMgGtTpP]+[i]*)*
    * str10 :=
-   *	[[:space:]]*[\-\+][[:space:]]*[0-9]+[[:space:]]*([kKmMgGtTpP]+[i]*)*
+   *    [[:space:]]*[\-\+][[:space:]]*[0-9]+[[:space:]]*([kKmMgGtTpP]+[i]*)*
    * str16 :=
-   *	[[:space:]]*[\-\+][0\\]x[[:space:]]*[0-9a-fA-F]+[[:space:]]*([kKmMgGtTpP]+[i]*)*
+   *    [[:space:]]*[\-\+][0\\]x[[:space:]]*[0-9a-fA-F]+[[:space:]]*([kKmMgGtTpP]+[i]*)*
    */
 
   bool ret = false;

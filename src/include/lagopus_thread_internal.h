@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,7 +37,7 @@ typedef struct lagopus_thread_record {
 #endif /* HAVE_PTHREAD_SETAFFINITY_NP */
   void *m_arg;
 
-  char m_name[16];	/* max 16 characters. */
+  char m_name[16];      /* max 16 characters. */
 
   pid_t m_creator_pid;
 
