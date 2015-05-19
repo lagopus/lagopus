@@ -18093,7 +18093,8 @@ fi
 $as_echo "unity is available." >&6; }
   else
     HAVE_UNITY=
-    as_fn_error $? "Unity is not available. developer's build requires Unity." "$LINENO" 5
+    as_fn_error $? "Unity is not available. developer's build requires Unity. Please check https://github.com/lagopus/lagopus/blob/master/docs/how-to-write-tests-in-lagopus.md." "$LINENO" 5
+
   fi
 
   # Extract the first word of "gcovr", so it can be a program name with args.
