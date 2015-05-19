@@ -484,7 +484,8 @@ if test "X${developer}" != "Xno"; then
     AC_MSG_RESULT([unity is available.])
   else
     HAVE_UNITY=
-    AC_MSG_ERROR([Unity is not available. developer's build requires Unity.])
+    AC_MSG_ERROR([Unity is not available. developer's build requires Unity. Please check https://github.com/lagopus/lagopus/blob/master/docs/how-to-write-tests-in-lagopus.md.])
+
   fi
 
   AC_CHECK_PROG([HAVE_GCOVR], [gcovr], [yes],)
