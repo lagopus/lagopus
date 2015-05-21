@@ -953,6 +953,7 @@ app_init_nics(void) {
   uint8_t port, queue;
   int ret;
   uint32_t n_rx_queues, n_tx_queues;
+  struct rte_eth_dev_info dev_info;
 
 #ifndef RTE_VERSION_NUM
   /* Init driver */
@@ -991,6 +992,15 @@ app_init_nics(void) {
       rte_panic("Cannot init NIC port %u (%s)\n",
                 (unsigned) port, strerror(-ret));
     }
+
+    rte_eth_dev_info_get(port, &dev_info);
+    if (strcmp(dev_info.driver_name, "rte_virtio_pmd") == 0) {
+      /* Virtio does not support hw offload */
+      tx_conf.txq_flags = ETH_TXQ_FLAGS_NOOFFLOADS;
+    } else {
+      tx_conf.txq_flags = 0;
+    }
+
     rte_eth_promiscuous_enable(port);
 
     /* Init RX queues */
