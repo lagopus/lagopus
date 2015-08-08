@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 #include "lagopus_config.h"
 
 #ifdef HAVE_SYS_QUEUE_H

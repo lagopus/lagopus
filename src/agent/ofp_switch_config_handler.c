@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 #include <stdbool.h>
 #include <stdint.h>
 #include "lagopus_apis.h"
@@ -45,8 +44,8 @@ switch_set_config_trace(struct ofp_switch_config *switch_config) {
 /* Set Config packet receive. */
 static lagopus_result_t
 ofp_switch_config_flag_validate(uint16_t flags) {
-  return ((flags > OFPC_INVALID_TTL_TO_CONTROLLER) ?
-          LAGOPUS_RESULT_INVALID_ARGS : LAGOPUS_RESULT_OK);
+  return ((flags > OFPC_INVALID_TTL_TO_CONTROLLER) ? LAGOPUS_RESULT_INVALID_ARGS
+          : LAGOPUS_RESULT_OK);
 }
 
 lagopus_result_t

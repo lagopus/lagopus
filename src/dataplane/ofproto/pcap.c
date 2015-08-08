@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 /**
  *      @file   pcap.c
  *      @brief  Packet capture routines
@@ -70,7 +69,7 @@ pcap_thread(void *arg) {
     if (rv == LAGOPUS_RESULT_OK) {
       /* output file */
       DPRINT("lagopus_bbq_get success. m=%p\n", mbuf);
-      /* timestamp should be set by datapath? */
+      /* timestamp should be set by dataplane? */
       gettimeofday(&pkthdr.ts, NULL);
       pkthdr.caplen = (uint32_t)OS_M_PKTLEN(mbuf);
       pkthdr.len = (uint32_t)OS_M_PKTLEN(mbuf);

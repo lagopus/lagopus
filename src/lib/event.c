@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 #include "lagopus_apis.h"
 
 #include <sys/types.h>
@@ -375,7 +374,7 @@ static struct timeval *
 event_timer_wait(struct event_manager *em, struct timeval *timer_val,
                  struct timeval *timer_now) {
   struct timeval timer_min;
-  struct timeval timer_default = {1, 0}; /* default 1 sec wait */
+  struct timeval timer_default = {0, 1 * 100 * 1000}; /* default 100 msec wait */
   struct timeval *timer_wait;
   struct event *event;
   int i;
@@ -400,10 +399,14 @@ event_timer_wait(struct event_manager *em, struct timeval *timer_val,
       timer_min.tv_usec = 10;
     }
 
-    *timer_val = timer_min;
+    if (timeval_cmp(timer_min, timer_default) > 0) {
+      *timer_val = timer_default;
+    } else {
+      *timer_val = timer_min;
+    }
+
     return timer_val;
   }
-
   *timer_val = timer_default;
   return timer_val;
 }

@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 #ifndef __DATAPLANE_TEST_MISC_H__
 #define __DATAPLANE_TEST_MISC_H__
 

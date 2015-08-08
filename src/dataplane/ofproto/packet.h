@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 /**
  *      @file   packet.h
  *      @brief  Packet structure definition
@@ -24,11 +23,15 @@
 #define SRC_DATAPLANE_OFPROTO_PACKET_H_
 
 #ifdef HAVE_DPDK
+#include "rte_ether.h"
 #define ether_header ether_hdr
 #define ether_dhost  d_addr.addr_bytes
 #define ether_shost  s_addr.addr_bytes
 #ifndef __NET_ETHERNET_H
 #define __NET_ETHERNET_H /* hmm, conflict ethernet.h with rte_ether.h */
+#endif
+#ifndef _NET_ETHERNET_H_
+#define _NET_ETHERNET_H_ /* hmm, conflict ethernet.h with rte_ether.h */
 #endif
 #else
 #include <net/ethernet.h>
@@ -36,6 +39,7 @@
 
 #define __FAVOR_BSD
 #include <netinet/if_ether.h>
+#include <netinet/in.h>
 #include <netinet/ip.h>
 #include <netinet/ip_icmp.h>
 #include <netinet/tcp.h>
@@ -163,11 +167,15 @@ struct lagopus_packet {
   };
 
   uint16_t ether_type;
+  /*
+   * access pointer placeholder, like skb
+   */
   struct oob_data oob_data;
   struct vlanhdr *vlan;
   union {
     uint8_t *base[MAX_BASE];
     struct {
+      struct oob_data *oob;
       union {
         struct ether_header *eth;
         uint8_t *l2_hdr;
@@ -196,6 +204,9 @@ struct lagopus_packet {
         struct icmp6_hdr *icmp6;
         struct nd_neighbor_solicit *nd_ns;
       };
+      uint16_t *v6ext;
+      struct in6_addr *v6src;
+      struct in6_addr *v6dst;
       uint8_t *nd_sll;
       uint8_t *nd_tll;
     };
@@ -205,10 +216,8 @@ struct lagopus_packet {
   uint8_t table_id;
   struct flow *flow;
   struct action_list actions[LAGOPUS_ACTION_SET_ORDER_MAX];
-  /*
-   * access pointer placeholder, like skb
-   */
 
+  uint32_t queue_id;
   uint32_t flags;
 
   void *cache;

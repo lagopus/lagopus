@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 #ifndef __LAGOPUS_CONFIG_H__
 #define __LAGOPUS_CONFIG_H__
 
@@ -59,6 +58,7 @@
 #undef HAVE_CURSES_H
 #undef HAVE_NCURSES_H
 #undef HAVE_ASSERT_H
+#undef HAVE_POLL_H
 
 #undef HAVE_EXPAT_H
 #undef HAVE_GMP_H

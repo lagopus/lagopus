@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 #include "unity.h"
 #include "lagopus_apis.h"
 #include "lagopus_pipeline_stage.h"
@@ -158,10 +157,11 @@ pipeline_throw(const lagopus_pipeline_stage_t *sptr,
 
 static lagopus_result_t
 pipeline_sched(const lagopus_pipeline_stage_t *sptr,
-               void *buf, size_t n) {
+               void *buf, size_t n, void *hint) {
   (void)sptr;
   (void)buf;
   (void)n;
+  (void)hint;
 
   lagopus_msg_debug(1, "called.\n");
   called_func_count(PIPELINE_FUNC_SCHED);
@@ -1223,7 +1223,7 @@ test_lagopus_pipeline_stage_submit_normal(void) {
                               pipeline_freeup);
 
   /* call func (normal). */
-  ret = lagopus_pipeline_stage_submit(&stage, NULL, 0LL);
+  ret = lagopus_pipeline_stage_submit(&stage, NULL, 0LL, NULL);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, ret,
                             "lagopus_pipeline_stage_submit(normal) error.");
   TEST_ASSERT_COUNTER(true, counter,
@@ -1241,10 +1241,10 @@ test_lagopus_pipeline_stage_submit_null(void) {
   void *evbuf = NULL;
 
   /* call func (null). */
-  ret = lagopus_pipeline_stage_submit(NULL, evbuf, sizeof(evbuf));
+  ret = lagopus_pipeline_stage_submit(NULL, evbuf, sizeof(evbuf), NULL);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS, ret,
                             "lagopus_pipeline_stage_submit(null) error.");
-  ret = lagopus_pipeline_stage_submit(&stage, evbuf, sizeof(evbuf));
+  ret = lagopus_pipeline_stage_submit(&stage, evbuf, sizeof(evbuf), NULL);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS, ret,
                             "lagopus_pipeline_stage_submit(null) error.");
 }

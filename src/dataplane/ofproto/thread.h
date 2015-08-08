@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 /**
  *      @file   thread.h
  *      @brief  Dataplane common thread routines.

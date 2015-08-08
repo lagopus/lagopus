@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 #include "unity.h"
 #include "../ofp_apis.h"
 #include "handler_test_utils.h"
@@ -132,8 +131,7 @@ test_ofp_flow_handle_error_length1(void) {
           ofp_multipart_request_handle,
           "04 12 00 40 00 00 00 10 00 01 00 00",
           &expected_error);
-  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OFP_ERROR, ret,
-                            "invalid-body error");
+  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OFP_ERROR, ret, "invalid-body error");
 }
 
 void
@@ -146,8 +144,7 @@ test_ofp_flow_handle_error_length2(void) {
           ofp_multipart_request_handle,
           "04 12 00 40 00 00 00 10 00 01 00 00 00 00 00 00",
           &expected_error);
-  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OFP_ERROR, ret,
-                            "invalid-body error");
+  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OFP_ERROR, ret, "invalid-body error");
 }
 
 void
@@ -161,8 +158,7 @@ test_ofp_flow_handle_error_length3(void) {
           "04 12 00 40 00 00 00 10 00 01 00 00 00 00 00 00 "
           "01",
           &expected_error);
-  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OFP_ERROR, ret,
-                            "invalid-body error");
+  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OFP_ERROR, ret, "invalid-body error");
 }
 
 void
@@ -176,8 +172,7 @@ test_ofp_flow_handle_error_length4(void) {
           "04 12 00 40 00 00 00 10 00 01 00 00 00 00 00 00 "
           "01 00 00 00",
           &expected_error);
-  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OFP_ERROR, ret,
-                            "invalid-body error");
+  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OFP_ERROR, ret, "invalid-body error");
 }
 
 void
@@ -191,8 +186,7 @@ test_ofp_flow_handle_error_length5(void) {
           "04 12 00 40 00 00 00 10 00 01 00 00 00 00 00 00 "
           "01 00 00 00 00 00 00 02",
           &expected_error);
-  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OFP_ERROR, ret,
-                            "invalid-body error");
+  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OFP_ERROR, ret, "invalid-body error");
 }
 
 void
@@ -206,8 +200,7 @@ test_ofp_flow_handle_error_length6(void) {
           "04 12 00 40 00 00 00 10 00 01 00 00 00 00 00 00 "
           "01 00 00 00 00 00 00 02 00 00 00 03",
           &expected_error);
-  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OFP_ERROR, ret,
-                            "invalid-body error");
+  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OFP_ERROR, ret, "invalid-body error");
 }
 
 void
@@ -221,8 +214,7 @@ test_ofp_flow_handle_error_length7(void) {
           "04 12 00 40 00 00 00 10 00 01 00 00 00 00 00 00 "
           "01 00 00 00 00 00 00 02 00 00 00 03 00 00 00 00",
           &expected_error);
-  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OFP_ERROR, ret,
-                            "invalid-body error");
+  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OFP_ERROR, ret, "invalid-body error");
 }
 
 void
@@ -237,8 +229,7 @@ test_ofp_flow_handle_error_length8(void) {
           "01 00 00 00 00 00 00 02 00 00 00 03 00 00 00 00 "
           "00 00 00 00 00 00 00 04",
           &expected_error);
-  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OFP_ERROR, ret,
-                            "invalid-body error");
+  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OFP_ERROR, ret, "invalid-body error");
 }
 
 void
@@ -253,8 +244,7 @@ test_ofp_flow_handle_error_length9(void) {
           "01 00 00 00 00 00 00 02 00 00 00 03 00 00 00 00 "
           "00 00 00 00 00 00 00 04 00 00 00 00 00 00 00 05",
           &expected_error);
-  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OFP_ERROR, ret,
-                            "invalid-body error");
+  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OFP_ERROR, ret, "invalid-body error");
 }
 
 void
@@ -270,8 +260,7 @@ test_ofp_flow_handle_error_length10(void) {
           "00 00 00 00 00 00 00 04 00 00 00 00 00 00 00 05 "
           "00 01",
           &expected_error);
-  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OFP_ERROR, ret,
-                            "invalid-body error");
+  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OFP_ERROR, ret, "invalid-body error");
 }
 
 void
@@ -287,8 +276,7 @@ test_ofp_flow_handle_error_length11(void) {
           "00 00 00 00 00 00 00 04 00 00 00 00 00 00 00 05 "
           "00 01 00 0c",
           &expected_error);
-  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OFP_ERROR, ret,
-                            "invalid-body error");
+  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OFP_ERROR, ret, "invalid-body error");
 }
 
 void
@@ -304,8 +292,7 @@ test_ofp_flow_handle_error_length12(void) {
           "00 00 00 00 00 00 00 04 00 00 00 00 00 00 00 05 "
           "00 01 00 0c 80 00",
           &expected_error);
-  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OFP_ERROR, ret,
-                            "invalid-body error");
+  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OFP_ERROR, ret, "invalid-body error");
 }
 
 void
@@ -321,8 +308,7 @@ test_ofp_flow_handle_error_length13(void) {
           "00 00 00 00 00 00 00 04 00 00 00 00 00 00 00 05 "
           "00 01 00 0c 80 00 00",
           &expected_error);
-  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OFP_ERROR, ret,
-                            "invalid-body error");
+  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OFP_ERROR, ret, "invalid-body error");
 }
 
 void
@@ -338,8 +324,7 @@ test_ofp_flow_handle_error_length14(void) {
           "00 00 00 00 00 00 00 04 00 00 00 00 00 00 00 05 "
           "00 01 00 0c 80 00 00 04",
           &expected_error);
-  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OFP_ERROR, ret,
-                            "invalid-body error");
+  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OFP_ERROR, ret, "invalid-body error");
 }
 
 void
@@ -355,8 +340,7 @@ test_ofp_flow_handle_error_length15(void) {
           "00 00 00 00 00 00 00 04 00 00 00 00 00 00 00 05 "
           "00 01 00 0c 80 00 00 04 00 00 00 10",
           &expected_error);
-  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OFP_ERROR, ret,
-                            "invalid-body error");
+  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OFP_ERROR, ret, "invalid-body error");
 }
 
 void
@@ -373,8 +357,7 @@ test_ofp_flow_handle_error_length16(void) {
           "00 01 00 0c 80 00 00 04 00 00 00 10 00 00 00 00 "
           "ff ff ff ff ff ff ff ff",
           &expected_error);
-  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OFP_ERROR, ret,
-                            "invalid-body error");
+  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OFP_ERROR, ret, "invalid-body error");
 }
 
 

@@ -14,12 +14,11 @@
  * limitations under the License.
  */
 
-
 #ifndef __PIPLELINE_WORKER_C__
 #define __PIPLELINE_WORKER_C__
 
 
-
+
 
 
 /*
@@ -34,27 +33,27 @@ typedef struct lagopus_pipeline_worker_record {
   lagopus_thread_record m_thd;  /* must be placed at the head. */
   lagopus_pipeline_stage_t *m_sptr;
   /* ref. to the parent container. */
-  size_t m_idx;                 /* A worker index in the m_sptr */
+  size_t m_idx;			/* A worker index in the m_sptr */
   worker_main_proc_t m_proc;
   bool m_is_started;
 
-  uint8_t m_buf[0];             /* A buffer for the batch, must be >=
+  uint8_t m_buf[0];		/* A buffer for the batch, must be >=
                                  * (*m_sptr)->m_batch_buffer_size (in
                                  * bytes) and placed at the tail of
                                  * the record. */
 } lagopus_pipeline_worker_record;
 
 
+
 
 
-
-static inline void      s_worker_pause(lagopus_pipeline_worker_t w,
-                                       lagopus_pipeline_stage_t ps);
-static inline void      s_worker_maintenance(lagopus_pipeline_worker_t w,
+static inline void	s_worker_pause(lagopus_pipeline_worker_t w,
+                                   lagopus_pipeline_stage_t ps);
+static inline void	s_worker_maintenance(lagopus_pipeline_worker_t w,
     lagopus_pipeline_stage_t ps);
 
 
-
+
 
 
 #define WORKER_LOOP(OPS)                                                \
@@ -95,12 +94,12 @@ static inline void      s_worker_maintenance(lagopus_pipeline_worker_t w,
 /*
  * The st indicates how the main loop iterates:
  *
- *      st <  0:        ... stop iteration immediately.
- *      st == 0:        ... If the graceful shutdown is requested,
- *                          stop iterateion.
- *      st >  0:        ... If the immediate shutdown is requested,
- *                          stop iterateion. Otherwise conrinues the
- *                          iteration.
+ *	st <  0:	... stop iteration immediately.
+ *	st == 0:	... If the graceful shutdown is requested,
+ *			    stop iterateion.
+ *	st >  0:	... If the immediate shutdown is requested,
+ *			    stop iterateion. Otherwise conrinues the
+ *			    iteration.
  */
 
 
@@ -236,8 +235,19 @@ s_worker_main(const lagopus_thread_t *tptr, void *arg) {
         ret = global_state_wait_for(GLOBAL_STATE_STARTED, &s, &l, -1LL);
         if (ret == LAGOPUS_RESULT_OK) {
           if (s == GLOBAL_STATE_STARTED) {
+            lagopus_pipeline_stage_t *sptr = w->m_sptr;
+
             w->m_is_started = true;
             lagopus_msg_debug(10, "gala opening.\n");
+
+            if (sptr != NULL && (*sptr) != NULL &&
+                (*sptr)->m_post_start_proc != NULL) {
+              lagopus_msg_debug(10, "call the post-start for " PFSZ(d) ".\n",
+                                w->m_idx);
+              ((*sptr)->m_post_start_proc)(sptr, w->m_idx,
+                                           (*sptr)->m_post_start_arg);
+            }
+
             /*
              * Do the main loop.
              */
@@ -407,7 +417,7 @@ s_worker_set_cpu_affinity(lagopus_pipeline_worker_t *wptr, int cpu) {
 #endif /* LAGOPUS_OS_LINUX */
 
 
-
+
 
 
 static inline void
@@ -514,7 +524,7 @@ s_worker_maintenance(lagopus_pipeline_worker_t w,
 }
 
 
-
+
 
 
 #endif /* __PIPLELINE_WORKER_C__ */

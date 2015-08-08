@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 /**
  *      @file   flowdb.c
  *      @brief  Flow Database.
@@ -28,13 +27,12 @@
 #include <pthread.h>
 
 #include "openflow.h"
-#include "lagopus/dpmgr.h"
+#include "lagopus/dp_apis.h"
 #include "lagopus/flowdb.h"
 #include "lagopus/group.h"
 #include "lagopus/port.h"
 #include "lagopus/flowinfo.h"
 #include "lagopus/ethertype.h"
-#include "lagopus/ptree.h"
 #include "lagopus/ofp_dp_apis.h"
 #include "lagopus/ofcache.h"
 
@@ -42,6 +40,8 @@
 #include "../agent/ofp_action.h"
 #include "../agent/ofp_match.h"
 #include "../agent/openflow13packet.h"
+
+#define MBTREE_TIMEOUT 2
 
 #define MPLS_LABEL_BITLEN    20
 #define PUT_TIMEOUT 100LL * 1000LL * 1000LL
@@ -53,7 +53,7 @@
 #define SET_FLAG(V, F)          (V) = (V) | (F)
 #define FIELD_TYPE_BIT(T)       ((uint64_t)1 << T)
 
-#define GET_OXM_FIELD(ofpat)                                            \
+#define GET_OXM_FIELD(ofpat) \
   ((((const struct ofp_action_set_field *)(ofpat))->field[2] >> 1) & 0x7f)
 
 static lagopus_result_t
@@ -193,7 +193,6 @@ flow_alloc(struct ofp_flow_mod *flow_mod,
   lagopus_result_t ret;
   size_t i;
 
-  ret = LAGOPUS_RESULT_OK;
   i = 1;
   TAILQ_FOREACH(match, match_list, entry) {
     i++;
@@ -240,13 +239,8 @@ table_alloc(uint8_t table_id) {
   }
 
   table->table_id = table_id;
-  for (i = 0; i < MAX_FLOWS; i++) {
-    table->flows[i].nflow = 0;
-    table->flows[i].flows = NULL;
-    if (i == MPLS_FLOWS || i == MPLSMC_FLOWS) {
-      table->flows[i].mpls_tree = ptree_init(MPLS_LABEL_BITLEN);
-    }
-  }
+  table->flow_list.nflow = 0;
+  table->flow_list.flows = NULL;
 
   return table;
 }
@@ -265,12 +259,13 @@ table_free(struct table *table) {
   struct flow_list *flow_list;
   int nflow, i, j;
 
-  for (i = 0; i < MAX_FLOWS; i++) {
-    flow_list = &table->flows[i];
-    nflow = flow_list->nflow;
-    for (j = 0; j < nflow; j++) {
-      flow_free(flow_list->flows[j]);
-    }
+  flow_list = &table->flow_list;
+#ifdef USE_MBTREE
+  cleanup_mbtree(flow_list);
+#endif /* USE_MBTREE */
+  nflow = flow_list->nflow;
+  for (j = 0; j < nflow; j++) {
+    flow_free(flow_list->flows[j]);
   }
   free(table);
 }
@@ -310,9 +305,6 @@ flowdb_alloc(uint8_t initial_table_size) {
 
   /* Set table size. */
   flowdb->table_size = FLOWDB_TABLE_SIZE_MAX;
-
-  /* Initialize read write lock. */
-  flowdb_lock_init(NULL);
 
   return flowdb;
 }
@@ -355,40 +347,6 @@ flowdb_switch_mode_set(struct flowdb *flowdb, enum switch_mode switch_mode) {
   return LAGOPUS_RESULT_OK;
 }
 
-/* Return flow type from match's ether type. */
-static int
-flow_match_ether_type(struct match *match) {
-  int flow_type;
-
-  switch (OXM_DECODE_GETL(match->oxm_value)) {
-    case ETHERTYPE_ARP:
-      flow_type = ARP_FLOWS;
-      break;
-    case ETHERTYPE_VLAN:
-      flow_type = VLAN_FLOWS;
-      break;
-    case ETHERTYPE_IP:
-      flow_type = IPV4_FLOWS;
-      break;
-    case ETHERTYPE_IPV6:
-      flow_type = IPV6_FLOWS;
-      break;
-    case ETHERTYPE_MPLS:
-      flow_type = MPLS_FLOWS;
-      break;
-    case ETHERTYPE_MPLS_MCAST:
-      flow_type = MPLSMC_FLOWS;
-      break;
-    case ETHERTYPE_PBB:
-      flow_type = PBB_FLOWS;
-      break;
-    default:
-      flow_type = MISC_FLOWS;
-      break;
-  }
-  return flow_type;
-}
-
 /**
  * Pre-requisite condition check.  The match list must be sorted by
  * match field type. When duplicated match entry is found or
@@ -399,14 +357,12 @@ flow_pre_requisite_check(struct flow *flow,
                          struct match_list *match_list,
                          struct ofp_error *error) {
   struct match *match;
-  int flow_type;
   int field_type;
   //uint64_t field_bits;
 
 #define CHECK_FIELD_BIT(mask, bit)   CHECK_FLAG((mask), FIELD_TYPE_BIT((bit)))
 
   /* Set default flow type to misc. */
-  flow_type = MISC_FLOWS;
   flow->field_bits = 0;
 
   /* Iterate match entry. */
@@ -444,7 +400,6 @@ flow_pre_requisite_check(struct flow *flow,
         break;
       case OFPXMT_OFB_ETH_TYPE:
         /* Determine flow type based upon ether type. */
-        flow_type = flow_match_ether_type(match);
         break;
       case OFPXMT_OFB_VLAN_VID:
         /* No prerequisite. */
@@ -455,7 +410,7 @@ flow_pre_requisite_check(struct flow *flow,
           goto bad_out;
         }
         break;
-      /* Check pre-requisites  */
+        /* Check pre-requisites  */
       case OFPXMT_OFB_IP_DSCP:
       case OFPXMT_OFB_IP_ECN:
       case OFPXMT_OFB_IP_PROTO:
@@ -527,7 +482,6 @@ flow_pre_requisite_check(struct flow *flow,
         break;
     }
   }
-  flow->flow_type = (uint8_t)flow_type;
   return LAGOPUS_RESULT_OK;
 
 bad_out:
@@ -698,12 +652,7 @@ flow_remove_with_reason(struct flow *flow,
                         struct bridge *bridge,
                         uint8_t reason,
                         struct ofp_error *error) {
-  struct table *table;
-  struct group_table *group_table;
-  struct meter_table *meter_table;
-  struct flow_list *flow_list;
   lagopus_result_t ret;
-  int type, i;
 
   (void) error;
 
@@ -739,29 +688,27 @@ flow_remove_with_reason_nolock(struct flow *flow,
   meter_table = bridge->meter_table;
   table = table_get(bridge->flowdb, flow->table_id);
 
-  for (type = 0; type < MAX_FLOWS; type++) {
-    flow_list = &table->flows[type];
-    for (i = 0; i < flow_list->nflow; i++) {
-      if (flow == flow_list->flows[i]) {
-        /* call flowinfo cleanup. */
-        if (lagopus_del_flow_hook != NULL) {
-          lagopus_del_flow_hook(flow, table);
-        }
-        flow_del_from_group(group_table, flow);
-        flow_del_from_meter(meter_table, flow);
-        if ((flow->flags & OFPFF_SEND_FLOW_REM) != 0) {
-          /* send OFPT_FLOW_REMOVED message */
-          ret = send_flow_removed(bridge->dpid, flow, reason);
-        }
-        flow_free(flow);
-        flow_list->nflow--;
-        if (i < flow_list->nflow) {
-          memmove(&flow_list->flows[i], &flow_list->flows[i + 1],
-                  sizeof(struct flow *) *
-                  (unsigned int)(flow_list->nflow - i));
-        }
-        goto out;
+  flow_list = &table->flow_list;
+  for (i = 0; i < flow_list->nflow; i++) {
+    if (flow == flow_list->flows[i]) {
+      /* call flowinfo cleanup. */
+      if (lagopus_del_flow_hook != NULL) {
+        lagopus_del_flow_hook(flow, table);
       }
+      flow_del_from_group(group_table, flow);
+      flow_del_from_meter(meter_table, flow);
+      if ((flow->flags & OFPFF_SEND_FLOW_REM) != 0) {
+        /* send OFPT_FLOW_REMOVED message */
+        ret = send_flow_removed(bridge->dpid, flow, reason);
+      }
+      flow_free(flow);
+      flow_list->nflow--;
+      if (i < flow_list->nflow) {
+        memmove(&flow_list->flows[i], &flow_list->flows[i + 1],
+                sizeof(struct flow *) *
+                (unsigned int)(flow_list->nflow - i));
+      }
+      goto out;
     }
   }
 out:
@@ -923,7 +870,7 @@ flow_action_examination(struct flow *flow,
   return action_output;
 }
 
-/* Examine apply-action for datapath. */
+/* Examine apply-action for dataplane. */
 static void
 flow_instruction_examination(struct flow *flow) {
   struct instruction *instruction;
@@ -956,7 +903,7 @@ flow_instruction_examination(struct flow *flow) {
   }
 }
 
-static lagopus_result_t
+lagopus_result_t
 flow_add_sub(struct flow *flow, struct flow_list *flows) {
   lagopus_result_t ret;
   int i, st, ed, off;
@@ -1006,7 +953,6 @@ flowdb_flow_add(struct bridge *bridge,
   struct flow *flow;
   struct flow *identical_flow;
   lagopus_result_t ret = LAGOPUS_RESULT_OK;
-  int flow_type;
 
   /* OFPIT_ALL is invalid for add. */
   if (flow_mod->table_id == OFPTT_ALL) {
@@ -1044,12 +990,10 @@ flowdb_flow_add(struct bridge *bridge,
   }
 
   /* Overlapping flow check. */
-  flow_type = flow->flow_type;
-
   if (lagopus_find_flow_hook != NULL) {
     identical_flow = lagopus_find_flow_hook(flow, table);
   } else {
-    identical_flow = flow_exist_sub(flow, &table->flows[flow_type]);
+    identical_flow = flow_exist_sub(flow, &table->flow_list);
   }
   if (identical_flow != NULL) {
     /* Check if overlapped entry exist.  see 6.4 Flow Table Modification
@@ -1093,25 +1037,13 @@ flowdb_flow_add(struct bridge *bridge,
     if (ret != LAGOPUS_RESULT_OK) {
       goto out;
     }
+    flow = identical_flow;
   } else {
     ret = flow_action_check(bridge, flow, error);
     if (ret != LAGOPUS_RESULT_OK) {
       goto out;
     }
-    switch (flow_type) {
-      case ARP_FLOWS:
-      case VLAN_FLOWS:
-      case IPV4_FLOWS:
-      case IPV6_FLOWS:
-      case MPLS_FLOWS:
-      case MPLSMC_FLOWS:
-      case PBB_FLOWS:
-      case MISC_FLOWS:
-        ret = flow_add_sub(flow, &table->flows[flow_type]);
-        break;
-      default:
-        break;
-    }
+    ret = flow_add_sub(flow, &table->flow_list);
     if (ret != LAGOPUS_RESULT_OK) {
       goto out;
     }
@@ -1121,9 +1053,15 @@ flowdb_flow_add(struct bridge *bridge,
     if (flow->idle_timeout > 0 || flow->hard_timeout > 0) {
       add_flow_timer(flow);
     }
+#ifdef USE_MBTREE
+    if (table->flow_list.mbtree_timer != NULL) {
+      *table->flow_list.mbtree_timer = NULL;
+    }
+    add_mbtree_timer(&table->flow_list, MBTREE_TIMEOUT);
+#endif /* USE_MBTREE */
   }
 
-  /* Examine apply-action for datapath. */
+  /* Examine apply-action for dataplane. */
   flow_instruction_examination(flow);
 
   /* Clear flow cache */
@@ -1236,7 +1174,6 @@ flow_modify_sub(struct bridge *bridge,
           goto out;
         }
         flow_instruction_examination(flow);
-        continue;
       }
     }
     instruction_list_entry_free(instruction_list);
@@ -1474,50 +1411,59 @@ flow_del_sub(struct bridge *bridge,
       }
     }
     flow_free(flow);
+#ifdef USE_MBTREE
+    if (flow_list->mbtree_timer != NULL) {
+      *flow_list->mbtree_timer = NULL;
+    }
+    add_mbtree_timer(flow_list, MBTREE_TIMEOUT);
+#endif /* USE_MBTREE */
   } else {
     int type;
 
     /*
      * not strict. delete all flows if matched by match_list and cookie.
      */
-    for (type = 0; type < MAX_FLOWS; type++) {
-      flow_list = &table->flows[type];
-      for (i = 0; i < flow_list->nflow; i++) {
-        flow = flow_list->flows[i];
-        /* filtering by cookie */
-        if (flow_mod->cookie != 0) {
-          if ((flow->cookie & flow_mod->cookie_mask) != flow_mod->cookie) {
-            continue;
-          }
-        }
-        if (flow_mod->out_port != OFPP_ANY) {
-          if (find_action_output(flow, flow_mod->out_port) != true) {
-            continue;
-          }
-        }
-        if (flow_mod->out_group != OFPG_ANY) {
-          if (find_action_group(flow, flow_mod->out_group) != true) {
-            continue;
-          }
-        }
-        /* filtering by output port and group are not supported yet */
-        if (match_compare(&flow->match_list, match_list) == true) {
-          if (lagopus_del_flow_hook != NULL) {
-            lagopus_del_flow_hook(flow, table);
-          }
-          flow_del_from_group(group_table, flow);
-          flow_del_from_meter(meter_table, flow_list->flows[i]);
-          if ((flow->flags & OFPFF_SEND_FLOW_REM) != 0) {
-            /* send OFPT_FLOW_REMOVED message */
-            ret = send_flow_removed(bridge->dpid, flow, OFPRR_DELETE);
-          }
-          flow_free(flow);
-          flow_list->nflow--;
-          memmove(&flow_list->flows[i], &flow_list->flows[i + 1],
-                  sizeof(struct flow *) * (unsigned int)(flow_list->nflow - i));
-          i--;
+    flow_list = &table->flow_list;
+    for (i = 0; i < flow_list->nflow; i++) {
+      flow = flow_list->flows[i];
+      /* filtering by cookie */
+      if (flow_mod->cookie != 0) {
+        if ((flow->cookie & flow_mod->cookie_mask) != flow_mod->cookie) {
           continue;
         }
+      }
+      if (flow_mod->out_port != OFPP_ANY) {
+        if (find_action_output(flow, flow_mod->out_port) != true) {
+          continue;
+        }
+      }
+      if (flow_mod->out_group != OFPG_ANY) {
+        if (find_action_group(flow, flow_mod->out_group) != true) {
+          continue;
+        }
+      }
+      /* filtering by output port and group are not supported yet */
+      if (match_compare(&flow->match_list, match_list) == true) {
+        if (lagopus_del_flow_hook != NULL) {
+          lagopus_del_flow_hook(flow, table);
+        }
+        flow_del_from_group(group_table, flow);
+        flow_del_from_meter(meter_table, flow_list->flows[i]);
+        if ((flow->flags & OFPFF_SEND_FLOW_REM) != 0) {
+          /* send OFPT_FLOW_REMOVED message */
+          ret = send_flow_removed(bridge->dpid, flow, OFPRR_DELETE);
+        }
+        flow_free(flow);
+        flow_list->nflow--;
+        memmove(&flow_list->flows[i], &flow_list->flows[i + 1],
+                sizeof(struct flow *) * (unsigned int)(flow_list->nflow - i));
+        i--;
+#ifdef USE_MBTREE
+        if (flow_list->mbtree_timer != NULL) {
+          *flow_list->mbtree_timer = NULL;
+        }
+        add_mbtree_timer(flow_list, MBTREE_TIMEOUT);
+#endif /* USE_MBTREE */
       }
     }
   }
@@ -1533,23 +1479,10 @@ table_flow_modify(struct bridge *bridge, struct table *table,
                   struct instruction_list *instruction_list,
                   struct ofp_error *error,
                   int strict) {
-  switch (flow->flow_type) {
-    case ARP_FLOWS:
-    case VLAN_FLOWS:
-    case IPV4_FLOWS:
-    case IPV6_FLOWS:
-    case MPLS_FLOWS:
-    case MPLSMC_FLOWS:
-    case PBB_FLOWS:
-    case MISC_FLOWS:
-      flow_modify_sub(bridge, flow_mod,
-                      &table->flows[flow->flow_type],
-                      match_list, instruction_list,
-                      error, strict);
-      break;
-    default:
-      break;
-  }
+  flow_modify_sub(bridge, flow_mod,
+                  &table->flow_list,
+                  match_list, instruction_list,
+                  error, strict);
   return LAGOPUS_RESULT_OK;
 }
 
@@ -1560,22 +1493,9 @@ table_flow_delete(struct bridge *bridge,
                   struct match_list *match_list,
                   int strict,
                   struct ofp_error *error) {
-  switch (flow->flow_type) {
-    case ARP_FLOWS:
-    case VLAN_FLOWS:
-    case IPV4_FLOWS:
-    case IPV6_FLOWS:
-    case MPLS_FLOWS:
-    case MPLSMC_FLOWS:
-    case PBB_FLOWS:
-    case MISC_FLOWS:
-      flow_del_sub(bridge, table, flow_mod,
-                   &table->flows[flow->flow_type], match_list,
-                   strict, error);
-      break;
-    default:
-      break;
-  }
+  flow_del_sub(bridge, table, flow_mod,
+               &table->flow_list, match_list,
+               strict, error);
 }
 
 
@@ -1701,7 +1621,7 @@ out:
   return result;
 }
 
-static void
+static lagopus_result_t
 table_flow_stats(struct table *table,
                  int table_id,
                  struct ofp_flow_stats_request *request,
@@ -1712,64 +1632,68 @@ table_flow_stats(struct table *table,
   struct flow_list *flow_list;
   struct flow *flow;
   int type, i;
+  lagopus_result_t rv;
 
-  for (type = 0; type < MAX_FLOWS; type++) {
-    flow_list = &table->flows[type];
-    for (i = 0; i < flow_list->nflow; i++) {
-      flow = flow_list->flows[i];
-      if (request->cookie != 0) {
-        if ((flow->cookie & request->cookie_mask) != request->cookie) {
-          continue;
-        }
-      }
-      if (match_compare(&flow->match_list, match_list) == true) {
-        /* make flow stats. */
-        flow_stats = calloc(1, sizeof(struct flow_stats));
-        if (flow_stats == NULL) {
-        }
-        flow_stats->ofp.table_id = (uint8_t)table_id;
-#define COPY_STATS(member) flow_stats->ofp.member = flow->member
-        COPY_STATS(idle_timeout);
-        COPY_STATS(hard_timeout);
-        flow_stats->ofp.priority = (uint16_t)flow->priority;
-        COPY_STATS(flags);
-        COPY_STATS(cookie);
-        if ((flow->flags & OFPFF_NO_PKT_COUNTS) == 0) {
-          COPY_STATS(packet_count);
-        } else {
-          flow_stats->ofp.packet_count =  0xffffffffffffffff;
-        }
-        if ((flow->flags & OFPFF_NO_BYT_COUNTS) == 0) {
-          COPY_STATS(byte_count);
-        } else {
-          flow_stats->ofp.byte_count = 0xffffffffffffffff;
-        }
-#undef COPY_STATS
+  rv = LAGOPUS_RESULT_OK;
 
-        clock_gettime(CLOCK_MONOTONIC, &ts);
-        flow_stats->ofp.duration_sec =
-          (uint32_t)(ts.tv_sec - flow->create_time.tv_sec);
-        if (ts.tv_nsec < flow->create_time.tv_nsec) {
-          flow_stats->ofp.duration_sec--;
-          flow_stats->ofp.duration_nsec = 1 * 1000 * 1000 * 1000;
-        } else {
-          flow_stats->ofp.duration_nsec = 0;
-        }
-        flow_stats->ofp.duration_nsec += (uint32_t)ts.tv_nsec;
-        flow_stats->ofp.duration_nsec -= (uint32_t)flow->create_time.tv_nsec;
-
-        /* copy lists. */
-        TAILQ_INIT(&flow_stats->match_list);
-        copy_match_list(&flow_stats->match_list, &flow->match_list);
-        TAILQ_INIT(&flow_stats->instruction_list);
-        copy_instruction_list(&flow_stats->instruction_list,
-                              &flow->instruction_list);
-
-        /* and link to list. */
-        TAILQ_INSERT_TAIL(flow_stats_list, flow_stats, entry);
+  flow_list = &table->flow_list;
+  for (i = 0; i < flow_list->nflow; i++) {
+    flow = flow_list->flows[i];
+    if (request->cookie != 0) {
+      if ((flow->cookie & request->cookie_mask) != request->cookie) {
+        continue;
       }
     }
+    if (match_compare(&flow->match_list, match_list) == true) {
+      /* make flow stats. */
+      flow_stats = calloc(1, sizeof(struct flow_stats));
+      if (flow_stats == NULL) {
+        goto out;
+      }
+      flow_stats->ofp.table_id = (uint8_t)table_id;
+#define COPY_STATS(member) flow_stats->ofp.member = flow->member
+      COPY_STATS(idle_timeout);
+      COPY_STATS(hard_timeout);
+      flow_stats->ofp.priority = (uint16_t)flow->priority;
+      COPY_STATS(flags);
+      COPY_STATS(cookie);
+      if ((flow->flags & OFPFF_NO_PKT_COUNTS) == 0) {
+        COPY_STATS(packet_count);
+      } else {
+        flow_stats->ofp.packet_count =  0xffffffffffffffff;
+      }
+      if ((flow->flags & OFPFF_NO_BYT_COUNTS) == 0) {
+        COPY_STATS(byte_count);
+      } else {
+        flow_stats->ofp.byte_count = 0xffffffffffffffff;
+      }
+#undef COPY_STATS
+
+      clock_gettime(CLOCK_MONOTONIC, &ts);
+      flow_stats->ofp.duration_sec =
+        (uint32_t)(ts.tv_sec - flow->create_time.tv_sec);
+      if (ts.tv_nsec < flow->create_time.tv_nsec) {
+        flow_stats->ofp.duration_sec--;
+        flow_stats->ofp.duration_nsec = 1 * 1000 * 1000 * 1000;
+      } else {
+        flow_stats->ofp.duration_nsec = 0;
+      }
+      flow_stats->ofp.duration_nsec += (uint32_t)ts.tv_nsec;
+      flow_stats->ofp.duration_nsec -= (uint32_t)flow->create_time.tv_nsec;
+
+      /* copy lists. */
+      TAILQ_INIT(&flow_stats->match_list);
+      copy_match_list(&flow_stats->match_list, &flow->match_list);
+      TAILQ_INIT(&flow_stats->instruction_list);
+      copy_instruction_list(&flow_stats->instruction_list,
+                            &flow->instruction_list);
+
+      /* and link to list. */
+      TAILQ_INSERT_TAIL(flow_stats_list, flow_stats, entry);
+    }
   }
+out:
+  return rv;
 }
 
 lagopus_result_t
@@ -1779,9 +1703,9 @@ flowdb_flow_stats(struct flowdb *flowdb,
                   struct flow_stats_list *flow_stats_list,
                   struct ofp_error *error) {
   struct table *table;
-  lagopus_result_t result;
+  lagopus_result_t rv;
 
-  result = LAGOPUS_RESULT_OK;
+  rv = LAGOPUS_RESULT_OK;
 
   /* Write lock the flowdb. */
   flowdb_wrlock(flowdb);
@@ -1792,7 +1716,10 @@ flowdb_flow_stats(struct flowdb *flowdb,
     for (i = 0; i < flowdb->table_size; i++) {
       table = flowdb->tables[i];
       if (table != NULL) {
-        table_flow_stats(table, i, request, match_list, flow_stats_list);
+        rv = table_flow_stats(table, i, request, match_list, flow_stats_list);
+        if (rv != LAGOPUS_RESULT_OK) {
+          goto out;
+        }
       }
     }
   } else {
@@ -1800,17 +1727,17 @@ flowdb_flow_stats(struct flowdb *flowdb,
     table = table_get(flowdb, request->table_id);
     if (table == NULL) {
       ofp_error_set(error, OFPET_BAD_REQUEST, OFPBRC_BAD_TABLE_ID);
-      result = LAGOPUS_RESULT_OFP_ERROR;
+      rv = LAGOPUS_RESULT_OFP_ERROR;
       goto out;
     }
-    table_flow_stats(table, request->table_id, request,
-                     match_list, flow_stats_list);
+    rv = table_flow_stats(table, request->table_id, request,
+                         match_list, flow_stats_list);
   }
 
   /* Unlock the flowdb and return result. */
 out:
   flowdb_wrunlock(flowdb);
-  return result;
+  return rv;
 }
 
 static void
@@ -1823,20 +1750,18 @@ table_flow_counts(struct table *table,
   struct flow *flow;
   int type, i;
 
-  for (type = 0; type < MAX_FLOWS; type++) {
-    flow_list = &table->flows[type];
-    for (i = 0; i < flow_list->nflow; i++) {
-      flow = flow_list->flows[i];
-      if (request->cookie != 0) {
-        if ((flow->cookie & request->cookie_mask) != request->cookie) {
-          continue;
-        }
+  flow_list = &table->flow_list;
+  for (i = 0; i < flow_list->nflow; i++) {
+    flow = flow_list->flows[i];
+    if (request->cookie != 0) {
+      if ((flow->cookie & request->cookie_mask) != request->cookie) {
+        continue;
       }
-      if (match_compare(&flow->match_list, match_list) == true) {
-        reply->packet_count += flow->packet_count;
-        reply->byte_count += flow->byte_count;
-        reply->flow_count++;
-      }
+    }
+    if (match_compare(&flow->match_list, match_list) == true) {
+      reply->packet_count += flow->packet_count;
+      reply->byte_count += flow->byte_count;
+      reply->flow_count++;
     }
   }
 }
@@ -1906,10 +1831,7 @@ flowdb_table_stats(struct flowdb *flowdb,
       return LAGOPUS_RESULT_NO_MEMORY;
     }
     stats->ofp.table_id = (uint8_t)table_id;
-    stats->ofp.active_count = 0;
-    for (i = 0; i < MAX_FLOWS; i++) {
-      stats->ofp.active_count += (uint32_t)table->flows[i].nflow;
-    }
+    stats->ofp.active_count = (uint32_t)table->flow_list.nflow;
     stats->ofp.lookup_count = table->lookup_count;
     stats->ofp.matched_count = table->matched_count;
     TAILQ_INSERT_TAIL(list, stats, entry);
@@ -2689,7 +2611,7 @@ flow_dump(struct flow *flow, FILE *fp) {
 
 void
 flowdb_dump(struct flowdb *flowdb, FILE *fp) {
-  int i, j, k;
+  int i, j;
   struct table *table;
   struct flow_list *flow_list;
 
@@ -2700,11 +2622,9 @@ flowdb_dump(struct flowdb *flowdb, FILE *fp) {
     if (table != NULL) {
       fprintf(fp, "table %d\n", i);
 
-      for (j = 0; j < MAX_FLOWS; j++) {
-        flow_list = &table->flows[j];
-        for (k = 0; k < flow_list->nflow; k++) {
-          flow_dump(flow_list->flows[k], fp);
-        }
+      flow_list = &table->flow_list;
+      for (j = 0; j < flow_list->nflow; j++) {
+        flow_dump(flow_list->flows[j], fp);
       }
     }
   }
@@ -2733,12 +2653,10 @@ ofp_flow_mod_check_add(uint64_t dpid,
                        struct match_list *match_list,
                        struct instruction_list *instruction_list,
                        struct ofp_error *error) {
-  struct dpmgr *dpmgr;
   struct bridge *bridge;
   lagopus_result_t ret;
 
-  dpmgr = dpmgr_get_instance();
-  bridge = bridge_lookup_by_dpid(&dpmgr->bridge_list, dpid);
+  bridge = dp_bridge_lookup_by_dpid(dpid);
   if (bridge == NULL) {
     return LAGOPUS_RESULT_NOT_FOUND;
   }
@@ -2756,12 +2674,10 @@ ofp_flow_mod_modify(uint64_t dpid,
                     struct match_list *match_list,
                     struct instruction_list *instruction_list,
                     struct ofp_error *error) {
-  struct dpmgr *dpmgr;
   struct bridge *bridge;
   lagopus_result_t ret;
 
-  dpmgr = dpmgr_get_instance();
-  bridge = bridge_lookup_by_dpid(&dpmgr->bridge_list, dpid);
+  bridge = dp_bridge_lookup_by_dpid(dpid);
   if (bridge == NULL) {
     return LAGOPUS_RESULT_NOT_FOUND;
   }
@@ -2785,12 +2701,10 @@ ofp_flow_mod_delete(uint64_t dpid,
                     struct ofp_flow_mod *flow_mod,
                     struct match_list *match_list,
                     struct ofp_error *error) {
-  struct dpmgr *dpmgr;
   struct bridge *bridge;
   lagopus_result_t ret;
 
-  dpmgr = dpmgr_get_instance();
-  bridge = bridge_lookup_by_dpid(&dpmgr->bridge_list, dpid);
+  bridge = dp_bridge_lookup_by_dpid(dpid);
   if (bridge == NULL) {
     return LAGOPUS_RESULT_NOT_FOUND;
   }
@@ -2816,11 +2730,9 @@ ofp_flow_stats_get(uint64_t dpid,
                    struct match_list *match_list,
                    struct flow_stats_list *flow_stats_list,
                    struct ofp_error *error) {
-  struct dpmgr *dpmgr;
   struct bridge *bridge;
 
-  dpmgr = dpmgr_get_instance();
-  bridge = bridge_lookup_by_dpid(&dpmgr->bridge_list, dpid);
+  bridge = dp_bridge_lookup_by_dpid(dpid);
   if (bridge == NULL) {
     return LAGOPUS_RESULT_NOT_FOUND;
   }
@@ -2836,11 +2748,9 @@ lagopus_result_t
 ofp_table_stats_get(uint64_t dpid,
                     struct table_stats_list *table_stats_list,
                     struct ofp_error *error) {
-  struct dpmgr *dpmgr;
   struct bridge *bridge;
 
-  dpmgr = dpmgr_get_instance();
-  bridge = bridge_lookup_by_dpid(&dpmgr->bridge_list, dpid);
+  bridge = dp_bridge_lookup_by_dpid(dpid);
   if (bridge == NULL) {
     return LAGOPUS_RESULT_NOT_FOUND;
   }
@@ -2859,11 +2769,9 @@ ofp_aggregate_stats_reply_get(uint64_t dpid,
                               struct match_list *match_list,
                               struct ofp_aggregate_stats_reply *aggre_reply,
                               struct ofp_error *error) {
-  struct dpmgr *dpmgr;
   struct bridge *bridge;
 
-  dpmgr = dpmgr_get_instance();
-  bridge = bridge_lookup_by_dpid(&dpmgr->bridge_list, dpid);
+  bridge = dp_bridge_lookup_by_dpid(dpid);
   if (bridge == NULL) {
     return LAGOPUS_RESULT_NOT_FOUND;
   }
@@ -2882,11 +2790,9 @@ lagopus_result_t
 ofp_table_features_get(uint64_t dpid,
                        struct table_features_list *table_features_list,
                        struct ofp_error *error) {
-  struct dpmgr *dpmgr;
   struct bridge *bridge;
 
-  dpmgr = dpmgr_get_instance();
-  bridge = bridge_lookup_by_dpid(&dpmgr->bridge_list, dpid);
+  bridge = dp_bridge_lookup_by_dpid(dpid);
   if (bridge == NULL) {
     return LAGOPUS_RESULT_NOT_FOUND;
   }

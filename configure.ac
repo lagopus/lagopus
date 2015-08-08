@@ -9,7 +9,7 @@ AC_SUBST(TOPDIR)
 AC_CONFIG_AUX_DIR(./mk)
 AC_CONFIG_MACRO_DIR(./mk)
 
-m4_include(mk/ax_python.m4)
+AC_CONFIG_HEADER([src/include/lagopus_config.h])
 
 if test "${prefix}" = "NONE"; then
     prefix=/usr/local
@@ -17,6 +17,9 @@ fi
 if test "${exec_prefix}" = "NONE"; then
     exec_prefix='${prefix}'
 fi
+
+PREFIX=${prefix}
+AC_SUBST(PREFIX)
 
 SHELL=`which bash` > /dev/null 2>&1
 if test $? -ne 0 -o -z "${SHELL}"; then
@@ -40,12 +43,10 @@ AC_PROG_CXX
 AC_PROG_YACC
 AC_PROG_LEX
 if test "x$LEX" != xflex -a "x$LEX" != xlex; then
-    AC_MSG_ERROR([flex/lex must be installed.])
+   AC_MSG_ERROR([flex/lex must be installed.])
 fi
 AC_PROG_AWK
 AC_TYPE_SIGNAL
-PYTHON_BIN=python2.7
-AX_PYTHON
 
 RM="rm -f"
 AC_SUBST(RM)
@@ -62,27 +63,132 @@ AC_SUBST(READLINK)
 BASENAME="basename"
 AC_SUBST(BASENAME)
 
-oLIBS=${LIBS}
-LIBS=''
-# Check curses library for libedit of CLI.
-AC_CHECK_LIB(tinfo, tgetent,,
-  [AC_CHECK_LIB(terminfo, tgetent,,
-    [AC_CHECK_LIB(termcap, tgetent,,
-      [AC_CHECK_LIB(termlib, tgetent,,
-        [AC_CHECK_LIB(curses, tgetent,,
-          [AC_CHECK_LIB(ncurses, tgetent,,
-            [AC_MSG_ERROR([libcurses or libncurses are required!])]
-          )]
-        )]
-      )]
-    )]
-  )]
-)
-READLINE_LIBS=${LIBS}
-AC_SUBST(READLINE_LIBS)
-LIBS=${oLIBS}
+# Assume 32 bit for cross compilation.
+AC_CHECK_SIZEOF(short int, 2)
+AC_CHECK_SIZEOF(int, 4)
+AC_CHECK_SIZEOF(long int, 4)
+AC_CHECK_SIZEOF(long long, 8)
+AC_CHECK_SIZEOF(int64_t, 8)
+AC_CHECK_SIZEOF(size_t, 4)
+AC_CHECK_SIZEOF(void *, 4)
+AC_CHECK_SIZEOF(pthread_t, 4)
 
-AC_CHECK_FUNCS([strlcpy strlcat vis unvis])
+# sysdeps.
+
+eval `echo ${target} | awk -F- '{ printf "tagCPU=%s; tagOS=%s;\n", $1, $3 }'`
+
+changequote(<<, >>)dnl
+CPU=`echo ${tagCPU} | tr '[A-Z]' '[a-z]'`
+OS=`echo ${tagOS} | tr '[A-Z]' '[a-z]'`
+changequote([, ])dnl
+unset tagOS tagCPU
+
+case $CPU in
+    i*86)
+        CPU=i386;;
+esac
+
+OS_CPPFLAGS='-D_REENTRANT'
+OS_LDFLAGS=''
+OS_LIBS=''
+OS_CFLAGS=''
+if test -z "${MAKE}"; then
+	MAKE=make
+fi
+
+case $OS in
+    sunos*)
+        OS=sunos;;
+    solaris*)
+        OS=solaris;;
+    freebsd*)
+	MAKE=gmake
+	OS_CPPFLAGS="${OS_CPPFLAGS} -I/usr/local/include"
+	OS_LDFLAGS="${OS_LDFLAGS} -L/usr/local/lib"
+	CPPFLAGS="${CPPFLAGS} ${OS_CPPFLAGS}"
+	LDFLAGS="${LDFLAGS} ${OS_LDFLAGS}"
+	OS_LIBS="-lpthread -lexecinfo"
+	OS=freebsd;;
+    linux*)
+	OS_CPPFLAGS="${OS_CPPFLAGS} -D_GNU_SOURCE -D_POSIX_SOURCE"
+	OS_LIBS="-lrt -lpthread -ldl"
+	OS=linux;;
+    netbsd*)
+        MAKE=gmake
+        OS_CPPFLAGS="${OS_CPPFLAGS} -I/usr/pkg/include"
+    	OS_LDFLAGS="-L/usr/pkg/lib"
+	OS_LIBS="-lpthread"
+	OS=netbsd;;
+esac
+
+AC_SUBST(MAKE)
+AC_SUBST(OS_CPPFLAGS)
+AC_SUBST(OS_CFLAGS)
+AC_SUBST(OS_LDFLAGS)
+AC_SUBST(OS_LIBS)
+
+changequote(<<, >>)dnl
+CPUDEF=LAGOPUS_CPU_`echo $CPU | tr '[a-z]' '[A-Z]'`
+OSDEF=LAGOPUS_OS_`echo $OS | tr '[a-z]' '[A-Z]'`
+changequote([, ])dnl
+AC_SUBST(CPUDEF)
+AC_SUBST(OSDEF)
+
+MKRULESDIR=${TOPDIR}/mk
+AC_SUBST(MKRULESDIR)
+
+AC_SUBST(CPPFLAGS)
+AC_SUBST(CFLAGS)
+AC_SUBST(LDFLAGS)
+AC_SUBST(TARGET_ARCH)
+
+RUBY=ruby
+NKF=nkf
+UNITY_SRC_DIR=
+
+AC_ARG_ENABLE([developer],
+	[AC_HELP_STRING([--enable-developer],
+	 [enable build for developers, like unit tests [default is no]])]
+	 ,[developer="$withval"], [developer=no])
+
+if test "X${developer}" != "Xno"; then
+  AC_CHECK_PROG([HAVE_NKF], [nkf], [yes], [])
+
+  AC_CHECK_PROG([HAVE_RUBY], [ruby], [yes], [no])
+
+  if test "X${HAVE_RUBY}" != "Xyes"; then
+    AC_MSG_ERROR([developer's build requires ruby.])
+  fi
+
+  AC_CHECK_PROG([HAVE_JQ], [jq], [yes], [no])
+
+  if test "X${HAVE_JQ}" != "Xyes"; then
+    AC_MSG_ERROR([developer's build requires jq (Command-line JSON processor).])
+  fi
+
+  ./mk/unitycheck.sh ${CC}
+  if test $? -eq 0 ; then
+    HAVE_UNITY=yes
+    UNITY_SRC_DIR=unity/src
+    AC_MSG_RESULT([unity is available.])
+  else
+    HAVE_UNITY=
+    AC_MSG_ERROR([Unity is not available. developer's build requires Unity. Please check https://github.com/lagopus/lagopus/blob/master/docs/how-to-write-tests-in-lagopus.md.])
+  fi
+
+  AC_CHECK_PROG([HAVE_GCOVR], [gcovr], [yes],)
+  if test "X${HAVE_GCOVR}" != "Xyes"; then
+    AC_MSG_ERROR([taking coverage requires gcovr..])
+  fi
+fi
+
+AC_SUBST(HAVE_RUBY)
+AC_SUBST(HAVE_UNITY)
+AC_SUBST(UNITY_SRC_DIR)
+AC_SUBST(HAVE_NKF)
+AC_SUBST(HAVE_GCOVR)
+
+# headers/macros
 
 oLIBS=${LIBS}
 LIBS=''
@@ -91,27 +197,6 @@ AC_CHECK_LIB(pcap, pcap_create,, [AC_MSG_ERROR([libpcap is required!])])
 PCAP_LIBS=${LIBS}
 AC_SUBST(PCAP_LIBS)
 LIBS=${oLIBS}
-
-oLIBS=${LIBS}
-LIBS=''
-AC_CHECK_HEADER(expat.h, [AC_DEFINE(HAVE_EXPAT_H)], [AC_MSG_ERROR([expat.h is required!])])
-AC_CHECK_LIB(expat, XML_ParserCreate,, [AC_MSG_ERROR([libexpat is required!])])
-EXPAT_LIBS=${LIBS}
-AC_SUBST(EXPAT_LIBS)
-LIBS=${oLIBS}
-
-#check ssl library
-oLIBS=${LIBS}
-LIBS=''
-AC_CHECK_HEADER(openssl/ssl.h,, [AC_MSG_ERROR([openssl/ssl.h is required!])])
-AC_CHECK_LIB(ssl, SSL_new,, [AC_MSG_ERROR([libssl is required!])])
-SSL_LIBS=${LIBS}
-AC_SUBST(SSL_LIBS)
-LIBS=${oLIBS}
-
-# headers/macros
-
-AC_CONFIG_HEADER([src/include/lagopus_config.h])
 
 AC_C_BIGENDIAN
 
@@ -133,7 +218,7 @@ AC_CHECK_HEADER(stdarg.h, [AC_DEFINE(HAVE_STDARG_H)])
 AC_CHECK_HEADER(dirent.h, [AC_DEFINE(HAVE_DIRENT_H)])
 AC_CHECK_HEADER(time.h, [AC_DEFINE(HAVE_TIME_H)])
 AC_CHECK_HEADER(sys/time.h, [AC_DEFINE(HAVE_SYS_TIME_H)])
-AC_CHECK_HEADER(sys/termios.h, [AC_DEFINE(HAVE_SYS_TERMIOS_H)])
+AC_CHECK_HEADER(termios.h, [AC_DEFINE(HAVE_TERMIOS_H)])
 AC_CHECK_HEADER(sys/stat.h, [AC_DEFINE(HAVE_SYS_STAT_H)])
 AC_CHECK_HEADER(fcntl.h, [AC_DEFINE(HAVE_FCNTL_H)])
 AC_CHECK_HEADER(errno.h, [AC_DEFINE(HAVE_ERRNO_H)])
@@ -157,9 +242,83 @@ AC_CHECK_HEADER(termcap.h, [AC_DEFINE(HAVE_TERMCAP_H)])
 AC_CHECK_HEADER(curses.h, [AC_DEFINE(HAVE_CURSES_H)])
 AC_CHECK_HEADER(ncurses.h, [AC_DEFINE(HAVE_NCURSES_H)])
 AC_CHECK_HEADER(assert.h, [AC_DEFINE(HAVE_ASSERT_H)])
+AC_CHECK_HEADER(poll.h, [AC_DEFINE(HAVE_POLL_H)])
+AC_CHECK_HEADER(sys/socket.h, [AC_DEFINE(HAVE_SYS_SOCKET_H)])
 
+AC_CHECK_FUNCS([strlcpy strlcat])
+AC_CHECK_FUNC(strtold, [AC_DEFINE(HAVE_STRTOLD)])
+
+
+# snmp configuration
+
+SNMP_DIR=
+SNMP_CPPFLAGS=
+DEP_SNMP_HANDLER_LIB=
+NETSNMP_AGENT_LIBS=
+
+AC_ARG_ENABLE([snmp],
+	[AC_HELP_STRING([--enable-snmp],
+	 [build with snmp feature [default is no]])]
+	 ,[snmp="$enableval"], [snmp=no])
+
+if test "X${snmp}" != "Xno"; then
+
+   SNMP_DIR=src/snmp
+   SNMP_CPPFLAGS=-DENABLE_SNMP_MODULE
+
+   oLIBS=${LIBS}
+   LIBS=''
+   AC_CHECK_HEADERS([net-snmp/net-snmp-config.h\
+                     net-snmp/net-snmp-includes.h\
+                     net-snmp/agent/net-snmp-agent-includes.h\
+                     net-snmp/library/snmp_logging.h],
+                    [],
+                    [AC_MSG_ERROR([netsnmp library headers must be installed])],
+                    [[#ifndef NET_SNMP_CONFIG_H
+#include <net-snmp/net-snmp-config.h>
+# ifndef NET_SNMP_INCLUDES_H
+#include <net-snmp/net-snmp-includes.h>
+#  ifndef NET_SNMP_AGENT_INCLUDES_H
+#include <net-snmp/agent/net-snmp-agent-includes.h>
+#  endif
+# endif
+#endif
+]])
+
+    AC_CHECK_LIB(netsnmp, init_snmp, [], [AC_MSG_ERROR([libnetsnmp is required!])], [])
+    AC_CHECK_LIB(netsnmpmibs, init_snmp_mib, [],
+      [AC_CHECK_LIB(netsnmpmibs, init_snmp_mib_5_5, [],
+        [AC_MSG_ERROR([libnetsnmpmibs is required!])], [-lnetsnmp])])
+    AC_CHECK_LIB(netsnmphelpers, netsnmp_init_helpers, [],
+      [AC_CHECK_LIB(netsnmpagent, netsnmp_init_helpers, [],
+        [AC_MSG_ERROR([libnetsnmphelpers or libnetsnmpagent is required!])], [-lnetsnmpmibs -lnetsnmp])])
+    AC_CHECK_LIB(netsnmpagent, init_agent, [], [AC_MSG_ERROR([libnetsnmpagent is required!])], [-lnetsnmphelpers -lnetsnmpmibs -lnetsnmp])
+    NETSNMP_AGENT_LIBS=${LIBS}
+    LIBS=${oLIBS}
+
+    DEP_SNMP_HANDLER_LIB='$(DEP_SNMP_HANDLER_LIB)'
+fi
+
+AC_SUBST(SNMP_DIR)
+AC_SUBST(SNMP_CPPFLAGS)
+AC_SUBST(NETSNMP_AGENT_LIBS)
+AC_SUBST(DEP_SNMP_HANDLER_LIB)
+
+# end net-snmp configuration
+
+# check ssl library
+AC_CHECK_HEADER(openssl/ssl.h,, [AC_MSG_ERROR([openssl/ssl.h is required!])])
+oLIBS=${LIBS}
+SSL_LIBS=''
+LIBS=''
+AC_CHECK_LIB(ssl, SSL_new,, [AC_MSG_ERROR([libssl is required!])])
+AC_CHECK_LIB(crypto, X509_new,, [AC_MSG_ERROR([libcrypto is required!])])
+SSL_LIBS="${LIBS}"
+AC_SUBST(SSL_LIBS)
+LIBS=${oLIBS}
+
+# check for gmp.
 AC_CHECK_HEADER(gmp.h, [AC_DEFINE(HAVE_GMP_H)], [AC_MSG_ERROR([The GNU MP must be installed.])])
-
 resultOK=0
 GMP_LIBS=''
 oLIBS=${LIBS}
@@ -188,15 +347,27 @@ else
 fi
 AC_SUBST(GMP_LIBS)
 
+AC_ARG_ENABLE([jumbo-frame],
+	[AC_HELP_STRING([--enable-jumbo-frame],
+	 [enable jumbo frame [default is no]])]
+	 ,[jumbo_frame="$enableval"], [jumbo_frame=no])
+
+if test "X${jumbo_frame}" != "Xno"; then
+   FRAME_CPPFLAGS=-DMAX_PACKET_SZ=16384
+else
+   FRAME_CPPFLAGS=-DMAX_PACKET_SZ=2048
+fi
+AC_SUBST(FRAME_CPPFLAGS)
+
 AC_ARG_WITH(dpdk-dir,
             [AC_HELP_STRING([--with-dpdk-dir=PATH],
-	                    [speficy top directory of extracted DPDK])],
+	                    [specify top directory of extracted DPDK])],
             [],
             [with_dpdk_dir=""])
 if test "x$with_dpdk_dir" != "x"; then
   RTE_SDK=$with_dpdk_dir
   RTE_TARGET=build
-  AC_CHECK_HEADER(${RTE_SDK}/${RTE_TARGET}/include/rte_config.h, [],
+  AC_CHECK_HEADER(${RTE_SDK}/${RTE_TARGET}/include/rte_common.h, [],
     [RTE_ARCH=`uname -p`
      if test "x$RTE_ARCH" = "xunknown"; then
         RTE_ARCH=`uname -m`
@@ -213,42 +384,50 @@ if test "x$with_dpdk_dir" != "x"; then
      ;;
      esac
      RTE_TARGET=${RTE_ARCH}-native-${RTE_OS}-${CC}
-     AC_CHECK_HEADER(${RTE_SDK}/${RTE_TARGET}/include/rte_config.h, [],
+     AC_CHECK_HEADER(${RTE_SDK}/${RTE_TARGET}/include/rte_common.h, [],
        [RTE_TARGET=${RTE_ARCH}-default-${RTE_OS}-${CC}
-       	AC_CHECK_HEADER(${RTE_SDK}/${RTE_TARGET}/include/rte_config.h, [],
+        AC_CHECK_HEADER(${RTE_SDK}/${RTE_TARGET}/include/rte_common.h, [],
           [AC_MSG_ERROR([DPDK must be installed.])])])])
   RTE_LIBS=-L$RTE_SDK/$RTE_TARGET/lib
   RTE_LIBS="$RTE_LIBS -Xlinker --whole-archive"
   AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_distributor.a,
-                RTE_LIBS="$RTE_LIBS -lrte_distributor",)
-  RTE_LIBS="$RTE_LIBS -lrte_kni"
+                RTE_LIBS="$RTE_LIBS -Xlinker -lrte_distributor",)
+  AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_reorder.a,
+                RTE_LIBS="$RTE_LIBS -Xlinker -lrte_reorder",)
+  AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_kni.a,
+                RTE_LIBS="$RTE_LIBS -Xlinker -lrte_kni",)
   AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_ivshmem.a,
-                RTE_LIBS="$RTE_LIBS -lrte_ivshmem",)
+                RTE_LIBS="$RTE_LIBS -Xlinker -lrte_ivshmem",)
   AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_pipeline.a,
-                RTE_LIBS="$RTE_LIBS -lrte_pipeline",)
+                RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pipeline",)
   AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_table.a,
-                RTE_LIBS="$RTE_LIBS -lrte_table",)
+                RTE_LIBS="$RTE_LIBS -Xlinker -lrte_table",)
   AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_port.a,
-                RTE_LIBS="$RTE_LIBS -lrte_port",)
-  RTE_LIBS="$RTE_LIBS -lrte_timer"
+                RTE_LIBS="$RTE_LIBS -Xlinker -lrte_port",)
+  AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_timer.a,
+                RTE_LIBS="$RTE_LIBS -Xlinker -lrte_timer",)
+  AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_jobstats.a,
+                RTE_LIBS="$RTE_LIBS -Xlinker -lrte_jobstats",)
   AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_hash.a,
-                RTE_LIBS="$RTE_LIBS -lrte_hash",)
+                RTE_LIBS="$RTE_LIBS -Xlinker -lrte_hash",)
   AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_lpm.a,
-                RTE_LIBS="$RTE_LIBS -lrte_lpm",)
+                RTE_LIBS="$RTE_LIBS -Xlinker -lrte_lpm",)
   AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_power.a,
-                RTE_LIBS="$RTE_LIBS -lrte_power",)
+                RTE_LIBS="$RTE_LIBS -Xlinker -lrte_power",)
   AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_acl.a,
-                RTE_LIBS="$RTE_LIBS -lrte_acl",)
-  RTE_LIBS="$RTE_LIBS -lrte_meter"
+                RTE_LIBS="$RTE_LIBS -Xlinker -lrte_acl",)
+  AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_meter.a,
+                RTE_LIBS="$RTE_LIBS -Xlinker -lrte_meter",)
   AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_sched.a,
-                RTE_LIBS="$RTE_LIBS -lrte_sched -lm -lrt",)
+                RTE_LIBS="$RTE_LIBS -Xlinker -lrte_sched -lm -lrt",)
+  AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_vhost.a,
+                RTE_LIBS="$RTE_LIBS -Xlinker -lrte_vhost",)
   RTE_LIBS="$RTE_LIBS -Xlinker --start-group"
   AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_kvargs.a,
-                RTE_LIBS="$RTE_LIBS -lrte_kvargs",)
-  RTE_LIBS="$RTE_LIBS -lrte_mbuf"
+                RTE_LIBS="$RTE_LIBS -Xlinker -lrte_kvargs",)
+  RTE_LIBS="$RTE_LIBS -Xlinker -lrte_mbuf"
   AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_ip_frag.a,
-                RTE_LIBS="$RTE_LIBS -lrte_ip_frag",)
-  RTE_LIBS="$RTE_LIBS -lethdev -lrte_malloc -lrte_mempool"
+                RTE_LIBS="$RTE_LIBS -Xlinker -lrte_ip_frag",)
   RTE_LIBS="$RTE_LIBS -lrte_ring -lrte_eal"
   AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_cmdline.a,
                 RTE_LIBS="$RTE_LIBS -lrte_cmdline",)
@@ -266,17 +445,28 @@ if test "x$with_dpdk_dir" != "x"; then
                 RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_vmxnet3_uio",)
   AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_virtio_uio.a,
                 RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_virtio_uio",)
+  AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_enic.a,
+                RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_enic",)
   AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_i40e.a,
                 RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_i40e",)
+  AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_fm10k.a,
+                RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_fm10k",)
   AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_ixgbe.a,
                 RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_ixgbe",)
   AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_e1000.a,
                 RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_e1000",)
+  AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_mlx4.a,
+                RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_mlx4",)
   AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_ring.a,
                 RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_ring",)
   AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_pcap.a,
                 RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_pcap",)
+  AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_af_packet.a,
+                RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_af_packet",)
+  AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_null.a,
+                RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_null",)
   RTE_LIBS="$RTE_LIBS -Xlinker --end-group -Xlinker --no-whole-archive"
+  RTE_LIBS="$RTE_LIBS -lethdev -lrte_malloc -lrte_mempool"
   CPPFLAGS_BKUP="$CPPFLAGS"
   CPPFLAGS="$CPPFLAGS -I$RTE_SDK/$RTE_TARGET/include"
   AC_CHECK_MEMBER([struct rte_mbuf.pkt],
@@ -296,14 +486,15 @@ AC_SUBST(RTE_TARGET)
 AC_SUBST(RTE_LIBS)
 AC_SUBST(RTE_MBUF_HAS_PKT)
 
-AC_ARG_ENABLE([flowcache],
-              [AC_HELP_STRING([--enable-flowcache],
-                              [build with flowcache feature [default is no]])],
-              [flowcache="$withval"], [flowcache=no])
+AC_ARG_ENABLE([mbtree],
+	[AC_HELP_STRING([--enable-mbtree],
+         [use multiple branch tree lookup [default is no]])],
+	 [mbtree="$enableval"], [mbtree="no"])
 
-if test "X${flowcache}" != "Xno"; then
-   FLOWCACHE_FLAGS="-DFLOWCACHE"
-   AC_SUBST(FLOWCACHE_FLAGS)
+MBTREE_FLAGS=''
+if test "X${mbtree}" != "Xno"; then
+   MBTREE_FLAGS="-DUSE_MBTREE"
+   AC_SUBST(MBTREE_FLAGS)
 fi
 
 SSE42_CPPFLAGS=''
@@ -315,18 +506,6 @@ if test "X${sse42}" != "Xno"; then
   SSE42_CPPFLAGS="-msse4.2"
 fi
 AC_SUBST(SSE42_CPPFLAGS)
-
-AC_CHECK_FUNC(strtold, [AC_DEFINE(HAVE_STRTOLD)])
-
-# Assume 32 bit for cross compilation.
-AC_CHECK_SIZEOF(short int, 2)
-AC_CHECK_SIZEOF(int, 4)
-AC_CHECK_SIZEOF(long int, 4)
-AC_CHECK_SIZEOF(long long, 8)
-AC_CHECK_SIZEOF(int64_t, 8)
-AC_CHECK_SIZEOF(size_t, 4)
-AC_CHECK_SIZEOF(void *, 4)
-AC_CHECK_SIZEOF(pthread_t, 4)
 
 # size_t printf() designator.
 oCFLAGS=${CFLAGS}
@@ -393,113 +572,6 @@ AC_RUN_IFELSE(
 CFLAGS=${oCFLAGS}
 LDFLAGS="${oLDFLAGS} ${LIBS}"
 
-
-# sysdeps.
-
-eval `echo ${target} | awk -F- '{ printf "tagCPU=%s; tagOS=%s;\n", $1, $3 }'`
-
-changequote(<<, >>)dnl
-CPU=`echo ${tagCPU} | tr '[A-Z]' '[a-z]'`
-OS=`echo ${tagOS} | tr '[A-Z]' '[a-z]'`
-changequote([, ])dnl
-unset tagOS tagCPU
-
-case $CPU in
-    i*86)
-        CPU=i386;;
-esac
-
-OS_CPPFLAGS='-D_REENTRANT'
-OS_LDFLAGS=''
-OS_LIBS=''
-OS_CFLAGS=''
-if test -z "${MAKE}"; then
-	MAKE=make
-fi
-
-case $OS in
-    sunos*)
-        OS=sunos;;
-    solaris*)
-        OS=solaris;;
-    freebsd*)
-	OS=freebsd;;
-    linux*)
-	OS_CPPFLAGS="${OS_CPPFLAGS} -D_GNU_SOURCE -D_POSIX_SOURCE"
-	OS_LIBS="-lrt -lpthread -ldl"
-	OS=linux;;
-    netbsd*)
-        MAKE=gmake
-        OS_CPPFLAGS="${OS_CPPFLAGS} -I/usr/pkg/include"
-    	OS_LDFLAGS="-L/usr/pkg/lib"
-	OS_LIBS="-lpthread"
-	OS=netbsd;;
-esac
-
-AC_SUBST(MAKE)
-AC_SUBST(OS_CPPFLAGS)
-AC_SUBST(OS_CFLAGS)
-AC_SUBST(OS_LDFLAGS)
-AC_SUBST(OS_LIBS)
-
-changequote(<<, >>)dnl
-CPUDEF=LAGOPUS_CPU_`echo $CPU | tr '[a-z]' '[A-Z]'`
-OSDEF=LAGOPUS_OS_`echo $OS | tr '[a-z]' '[A-Z]'`
-changequote([, ])dnl
-AC_SUBST(CPUDEF)
-AC_SUBST(OSDEF)
-
-MKRULESDIR=${TOPDIR}/mk
-AC_SUBST(MKRULESDIR)
-
-CPPFLAGS=''
-CFLAGS=''
-AC_SUBST(CPPFLAGS)
-AC_SUBST(CFLAGS)
-AC_SUBST(LDFLAGS)
-AC_SUBST(TARGET_ARCH)
-
-RUBY=ruby
-NKF=nkf
-UNITY_SRC_DIR=
-
-AC_ARG_ENABLE([developer],
-	[AC_HELP_STRING([--enable-developer],
-	 [enable build for developers, like unit tests [default is no]])]
-	 ,[developer="$withval"], [developer=no])
-
-if test "X${developer}" != "Xno"; then
-  AC_CHECK_PROG([HAVE_NKF], [nkf], [yes], [])
-
-  AC_CHECK_PROG([HAVE_RUBY], [ruby], [yes], [no])
-
-  if test "X${HAVE_RUBY}" != "Xyes"; then
-    AC_MSG_ERROR([developer's build requires ruby.])
-  fi
-
-  ./mk/unitycheck.sh ${CC}
-  if test $? -eq 0 ; then
-    HAVE_UNITY=yes
-    UNITY_SRC_DIR=unity/src
-    AC_MSG_RESULT([unity is available.])
-  else
-    HAVE_UNITY=
-    AC_MSG_ERROR([Unity is not available. developer's build requires Unity. Please check https://github.com/lagopus/lagopus/blob/master/docs/how-to-write-tests-in-lagopus.md.])
-
-  fi
-
-  AC_CHECK_PROG([HAVE_GCOVR], [gcovr], [yes],)
-  if test "X${HAVE_GCOVR}" != "Xyes"; then
-    AC_MSG_ERROR([taking coverage requires gcovr..])
-  fi
-fi
-
-AC_SUBST(HAVE_RUBY)
-AC_SUBST(HAVE_UNITY)
-AC_SUBST(UNITY_SRC_DIR)
-AC_SUBST(HAVE_NKF)
-AC_SUBST(HAVE_GCOVR)
-
 # packaging
 PKG_CONFFILE="mk/pkg_param.conf"
 if test -f "${PKG_CONFFILE}"; then
@@ -541,18 +613,21 @@ AC_CONFIG_FILES(
 	src/lib/check/Makefile
 	src/agent/Makefile
 	src/agent/test/Makefile
-	src/agent/check/Makefile
 	src/cmds/Makefile
+	src/config/lagosh/Makefile
+	src/config/lagosh/lagosh.py
 	src/dataplane/Makefile
 	src/dataplane/dpdk/test/Makefile
 	src/dataplane/ofproto/test/Makefile
 	src/dataplane/ofproto/test/lib/Makefile
 	src/dataplane/mgr/test/Makefile
+	src/datastore/Makefile
+	src/datastore/test/Makefile
+	src/datastore/check/Makefile
+	src/snmp/Makefile
+	src/snmp/test/Makefile
 	tools/Makefile
 	tools/unity/src/Makefile
-	src/config/Makefile
-	src/config/cli/Makefile
-	src/config/cli/libedit/Makefile
 	debian/Makefile
 	debian/control
 	debian/copyright

@@ -14,11 +14,10 @@
  * limitations under the License.
  */
 
-
 #include "lagopus_apis.h"
 
 
-
+
 
 
 static volatile bool s_do_stop = false;
@@ -79,9 +78,10 @@ s_throw(const lagopus_pipeline_stage_t *sptr,
 
 static lagopus_result_t
 s_sched(const lagopus_pipeline_stage_t *sptr,
-        void *buf, size_t n) {
+        void *buf, size_t n, void *hint) {
   (void)sptr;
   (void)buf;
+  (void)hint;
 
   return (lagopus_result_t)n;
 }
@@ -117,7 +117,15 @@ s_freeup(const lagopus_pipeline_stage_t *sptr) {
 }
 
 
+static void
+s_post_start(const lagopus_pipeline_stage_t *sptr, size_t idx, void *arg) {
+  (void)sptr;
 
+  lagopus_msg_debug(1, "called for " PFSZ(u) " with %p.\n", idx, arg);
+}
+
+
+
 
 
 int

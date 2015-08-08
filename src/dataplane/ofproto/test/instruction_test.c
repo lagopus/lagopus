@@ -16,7 +16,6 @@
 
 #include "unity.h"
 
-#include "lagopus/dpmgr.h"
 #include "lagopus/flowdb.h"
 #include "lagopus/ethertype.h"
 #include "lagopus/port.h"
@@ -33,15 +32,14 @@ static struct lagopus_packet pkt;
 
 void
 setUp(void) {
-  my_dpmgr = dpmgr_alloc();
-  TEST_ASSERT_NOT_NULL_MESSAGE(my_dpmgr, "allocation error.");
+  TEST_ASSERT_EQUAL(dp_api_init(), LAGOPUS_RESULT_OK);
   lagopus_set_in_port(&pkt, &port);
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt.in_port, "port assign error.");
 }
 
 void
 tearDown(void) {
-  dpmgr_free(my_dpmgr);
+  dp_api_fini();
 }
 
 void

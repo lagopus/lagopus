@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 /**
  *      @file   comm.c
  *      @brief  Dataplane communicator thread functions.
@@ -29,17 +28,18 @@
 
 #include "lagopus_apis.h"
 #include "lagopus/ofp_handler.h"
-#include "lagopus/dpmgr.h"
 #include "lagopus/flowdb.h"
 #include "lagopus/bridge.h"
 #include "lagopus/port.h"
 #include "lagopus/dataplane.h"
 #include "lagopus/ofcache.h"
+#include "lagopus/ofp_bridge.h"
 #include "lagopus/ofp_bridgeq_mgr.h"
 
 #include "pktbuf.h"
 #include "packet.h"
 #include "thread.h"
+#include "mbtree.h"
 
 #include "City.h"
 #include "murmurhash3.h"
@@ -53,20 +53,12 @@ rte_atomic32_t dpdk_stop;
 #define MUXER_TIMEOUT 100LL * 1000LL * 1000LL
 #define PUT_TIMEOUT 100LL * 1000LL * 1000LL
 
-#ifdef DP_MUXER_MAX_SIZE
-#define MUXER_FAIRNESS(q_size)                                  \
-  q_size = (q_size <= DP_MUXER_MAX_SIZE) ? q_size : DP_MUXER_MAX_SIZE
-#else
-#define MUXER_FAIRNESS(q_size)
-#endif  /* DP_MUXER_MAX_SIZE */
-
 static lagopus_qmuxer_poll_t *polls = NULL;
 static lagopus_qmuxer_t muxer = NULL;
 
 /* process event_dataq. */
 static inline lagopus_result_t
-process_event_dataq_entry(struct dpmgr *dpmgr,
-                          struct flowcache *cache,
+process_event_dataq_entry(struct flowcache *cache,
                           struct ofp_bridge *ofp_bridge,
                           struct eventq_data *data) {
   lagopus_result_t rv = LAGOPUS_RESULT_OK;
@@ -81,7 +73,7 @@ process_event_dataq_entry(struct dpmgr *dpmgr,
 
   flowdb_check_update(NULL);
   flowdb_rdlock(NULL);
-  bridge = bridge_lookup_by_dpid(&dpmgr->bridge_list, ofp_bridge->dpid);
+  bridge = dp_bridge_lookup_by_dpid(ofp_bridge->dpid);
   if (bridge != NULL) {
     struct eventq_data *reply;
     struct lagopus_packet *pkt;
@@ -89,10 +81,6 @@ process_event_dataq_entry(struct dpmgr *dpmgr,
     uint64_t dpid = bridge->dpid;
     struct pbuf *pbuf;
     uint16_t data_len;
-#ifdef HAVE_DPDK
-    char *p;
-    uint32_t hlen;
-#endif /* HAVE_DPDK */
 
     switch (data->type) {
       case LAGOPUS_EVENTQ_PACKET_OUT:
@@ -151,6 +139,25 @@ process_event_dataq_entry(struct dpmgr *dpmgr,
         break;
 
       case LAGOPUS_EVENTQ_BARRIER_REQUEST:
+#ifdef USE_MBTREE
+        /* rebuild branch tree. */
+        {
+          struct flowdb *flowdb;
+          struct table *table;
+          int i;
+
+          flowdb = bridge->flowdb;
+          if (flowdb->tables != NULL) {
+            for (i = 0; i < flowdb->table_size; i++) {
+              table = flowdb->tables[i];
+              if (table != NULL) {
+                cleanup_mbtree(&table->flow_list);
+                build_mbtree(&table->flow_list);
+              }
+            }
+          }
+        }
+#endif /* USE_MBTREE */
         /* flush pending requests from OFC, and reply. */
         if (cache != NULL) {
           /* clear my own cache */
@@ -183,50 +190,69 @@ done:
 
 /* read event_dataq */
 static inline lagopus_result_t
-event_dataq_dequeue(struct dpmgr *dpmgr,
-                    struct flowcache *cache,
+event_dataq_dequeue(struct flowcache *cache,
                     struct ofp_bridge *ofp_bridge,
                     lagopus_qmuxer_poll_t poll) {
-  int i;
   lagopus_result_t rv = LAGOPUS_RESULT_ANY_FAILURES;
-  struct eventq_data *get = NULL;
+  struct eventq_data **gets = NULL;
   lagopus_result_t q_size = lagopus_bbq_size(&(ofp_bridge->event_dataq));
+  uint16_t max_batches;
+  size_t get_num;
+  size_t i;
 
-  lagopus_msg_debug(10, "called. dpid: %lu, q_size: %lu\n",
-                    ofp_bridge->dpid, q_size);
+  rv = ofp_bridge_event_dataq_max_batches_get(ofp_bridge,
+       &max_batches);
+  if (rv != LAGOPUS_RESULT_OK) {
+    lagopus_perror(rv);
+    goto done;
+  }
+
+  lagopus_msg_debug(10,
+                    "called. dpid: %lu, q_size: %lu, max_batches: %"PRIu16"\n",
+                    ofp_bridge->dpid, q_size, max_batches);
 
   if (q_size > 0) {
-    MUXER_FAIRNESS(q_size);
-    for (i = 0; i < q_size; i++) {
-      rv = lagopus_bbq_get(&(ofp_bridge->event_dataq), &get,
-                           struct eventq_data *, -1LL);
-      if (rv != LAGOPUS_RESULT_OK) {
+    gets = (struct eventq_data **)
+           malloc(sizeof(struct eventq_data *) * max_batches);
+    if (gets != NULL) {
+      rv = lagopus_bbq_get_n(&(ofp_bridge->event_dataq), gets,
+                             max_batches, 0LL,
+                             struct eventq_data *, 0LL, &get_num);
+      if (rv < LAGOPUS_RESULT_OK) {
         lagopus_perror(rv);
         rv = lagopus_qmuxer_poll_set_queue(&poll, NULL);
         if (rv != LAGOPUS_RESULT_OK) {
           lagopus_perror(rv);
           goto done;
         }
-      }
-      rv = process_event_dataq_entry(dpmgr, cache, ofp_bridge, get);
-      if (get != NULL && get->free != NULL) {
-        get->free(get);
       } else {
-        free(get);
+        rv = LAGOPUS_RESULT_OK;
       }
+
+      for (i = 0; i < get_num; i++) {
+        rv = process_event_dataq_entry(cache, ofp_bridge, gets[i]);
+        if (gets[i] != NULL && gets[i]->free != NULL) {
+          gets[i]->free(gets[i]);
+        } else {
+          free(gets[i]);
+        }
+      }
+    } else {
+      rv = LAGOPUS_RESULT_NO_MEMORY;
     }
   } else if (q_size == 0) {
     rv = LAGOPUS_RESULT_OK;
   }
 
 done:
+  free(gets);
+
   return rv;
 }
 
 /* read each queues. */
 static inline lagopus_result_t
-dequeue(struct dpmgr *dpmgr,
-        struct flowcache *cache,
+dequeue(struct flowcache *cache,
         struct ofp_bridgeq *brqs) {
   lagopus_result_t rv = LAGOPUS_RESULT_ANY_FAILURES;
   struct ofp_bridge *bridge;
@@ -235,7 +261,7 @@ dequeue(struct dpmgr *dpmgr,
   if (brqs != NULL) {
     bridge = ofp_bridgeq_mgr_bridge_get(brqs);
     poll = ofp_bridgeq_mgr_event_dataq_dp_poll_get(brqs);
-    rv = event_dataq_dequeue(dpmgr, cache, bridge, poll);
+    rv = event_dataq_dequeue(cache, bridge, poll);
     if (rv != LAGOPUS_RESULT_OK) {
       lagopus_perror(rv);
       goto done;
@@ -252,8 +278,7 @@ done:
 lagopus_result_t
 comm_thread_loop(const lagopus_thread_t *t, void *arg) {
   lagopus_result_t rv = LAGOPUS_RESULT_ANY_FAILURES;
-  struct datapath_arg *dparg;
-  struct dpmgr *dpmgr;
+  struct dataplane_arg *dparg;
   struct flowcache *cache;
   struct ofp_bridgeq *bridgeqs[MAX_BRIDGES];
   global_state_t cur_state;
@@ -277,7 +302,6 @@ comm_thread_loop(const lagopus_thread_t *t, void *arg) {
   }
 
   dparg = arg;
-  dpmgr = dparg->dpmgr;
   running = dparg->running;
 
 #ifdef HAVE_DPDK
@@ -336,11 +360,6 @@ comm_thread_loop(const lagopus_thread_t *t, void *arg) {
       }
       n_need_watch++;
     }
-    if (n_valid_polls == 0) {
-      lagopus_msg_error("there are no valid queues.\n");
-      rv = LAGOPUS_RESULT_NOT_OPERATIONAL;
-      goto done;
-    }
 
     /* Wait for an event. */
     rv = lagopus_qmuxer_poll(&muxer,
@@ -350,7 +369,7 @@ comm_thread_loop(const lagopus_thread_t *t, void *arg) {
       /* read event_dataq */
       if (n_polls > 0) {
         for (i = 0; i < n_bridgeqs; i++) {
-          rv = dequeue(dpmgr, cache, bridgeqs[i]);
+          rv = dequeue(cache, bridgeqs[i]);
           if (rv != LAGOPUS_RESULT_OK) {
             lagopus_perror(rv);
             goto done;
@@ -361,7 +380,7 @@ comm_thread_loop(const lagopus_thread_t *t, void *arg) {
     } else if (rv == LAGOPUS_RESULT_TIMEDOUT) {
       lagopus_msg_debug(100, "Timedout. continue.\n");
       rv = LAGOPUS_RESULT_OK;
-    } else {
+    } else if (rv != LAGOPUS_RESULT_OK) {
       lagopus_perror(rv);
     }
 
@@ -395,12 +414,11 @@ dpcomm_initialize(int argc,
                   void *extarg,
                   lagopus_thread_t **thdptr) {
   lagopus_result_t rv = LAGOPUS_RESULT_ANY_FAILURES;
-  static struct datapath_arg commarg;
+  static struct dataplane_arg commarg;
 
   (void) argc;
   (void) argv;
 
-  commarg.dpmgr = extarg;
   commarg.threadptr = &comm_thread;
   commarg.running = &comm_run;
   *thdptr = &comm_thread;
@@ -417,6 +435,7 @@ dpcomm_initialize(int argc,
   if (rv != LAGOPUS_RESULT_OK) {
     lagopus_perror(rv);
     free(polls);
+    polls = NULL;
     return rv;
   }
 
@@ -434,9 +453,11 @@ void
 dpcomm_finalize(void) {
   if (polls != NULL) {
     free(polls);
+    polls = NULL;
   }
   if (muxer != NULL) {
     lagopus_qmuxer_destroy(&muxer);
+    muxer = NULL;
   }
 
   dp_thread_finalize(&comm_thread);

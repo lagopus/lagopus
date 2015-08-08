@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 #include <sys/queue.h>
 #include "unity.h"
 #include "lagopus_apis.h"

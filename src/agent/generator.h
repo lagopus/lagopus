@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 /* Encode/decode code generator. */
 
 #include <stdint.h>

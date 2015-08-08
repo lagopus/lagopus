@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 #include <sys/queue.h>
 #include "unity.h"
 #include "unity.h"
@@ -326,7 +325,7 @@ test_ofp_table_features_request_handle_normal_pattern0(void) {
   ret = check_packet_parse_expect_error(ofp_multipart_request_handle_wrap,
                                         "04 12 00 80 00 00 00 10 "
                                         "00 0c 00 00 00 00 00 00 "
-                                        "00 52"                    // uint16_t length;
+                                        "00 70"                    // uint16_t length;
                                         "01 "                      // uint8_t table_id;
                                         "00 00 00 00 00 "          // uint8_t pad[5];
                                         "66 00 00 00 00 00 00 00 " // char name[32];
@@ -370,9 +369,9 @@ test_ofp_table_features_request_handle_normal_pattern1(void) {
 
   ofp_error_set(&expected_error, OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
   ret = check_packet_parse_expect_error(ofp_multipart_request_handle_wrap,
-                                        "04 12 00 50 00 00 00 10 "
+                                        "04 12 00 38 00 00 00 10 "
                                         "00 0c 00 00 00 00 00 00 "
-                                        "00 52"                    // uint16_t length;
+                                        "00 40"                    // uint16_t length;
                                         "01 "                      // uint8_t table_id;
                                         "00 00 00 00 00 "          // uint8_t pad[5];
                                         "66 00 00 00 00 00 00 00 " // char name[32];
@@ -383,6 +382,87 @@ test_ofp_table_features_request_handle_normal_pattern1(void) {
                                         "00 00 00 00 00 00 00 03 " // uint64_t metadata_write;
                                         "00 00 00 04 "             // uint32_t config;
                                         "00 00 00 00",           // uint32_t max_entries;
+                                        &expected_error);
+  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OFP_ERROR, ret,
+                            "table_features_request set error");
+}
+
+void
+test_ofp_table_features_request_handle_normal_pattern2(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  struct ofp_error expected_error;
+
+  ofp_error_set(&expected_error, OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+  ret = check_packet_parse_expect_error(ofp_multipart_request_handle_wrap,
+                                        // struct ofp_multipart_request
+                                        "04 12 01 00 00 00 00 10 "
+                                        "00 0c 00 00 00 00 00 00 "
+                                        // ofp_table_features[0]
+                                        "00 78"                      // uint16_t length;
+                                        "01 "                        // uint8_t table_id;
+                                        "00 00 00 00 00 "            // uint8_t pad[5];
+                                        "61 62 63 00 00 00 00 00 "   // char name[32];
+                                        "00 00 00 00 00 00 00 00 "   // char name[32];
+                                        "00 00 00 00 00 00 00 00 "   // char name[32];
+                                        "00 00 00 00 00 00 00 00 "   // char name[32];
+                                        "00 00 00 00 00 00 00 02 "   // uint64_t metadata_match;
+                                        "00 00 00 00 00 00 00 03 "   // uint64_t metadata_write;
+                                        "00 00 00 04 "               // uint32_t config;
+                                        "00 00 00 05 "               // uint32_t max_entries;
+                                        // struct ofp_table_feature_prop_next_tables
+                                        "00 02 "         // uint16_t type
+                                        "00 06 "         // uint16_t length
+                                        "01 02 "         // uint8_t next_table_ids
+                                        "00 00 "         // 64 bit padding
+                                        // struct ofp_table_feature_prop_instructions
+                                        "00 00 "         // uint16_t type
+                                        "00 0c "         // uint16_t length
+                                        "00 03 00 04"    // struct ofp_instruction[0]
+                                        "00 01 00 04"    // struct ofp_instruction[1]
+                                        "00 00 00 00"    // padding
+                                        // struct ofp_table_feature_prop_actions
+                                        "00 04 "         // uint16_t type
+                                        "00 1c "         // uint16_t length
+                                        "00 00 00 08"    // struct ofp_action_header[0]
+                                        "00 00 00 00"
+                                        "00 16 00 08"    // struct ofp_action_header[1]
+                                        "00 00 00 00"
+                                        "00 19 00 08"    // struct ofp_action_header[2]
+                                        "00 00 00 00"
+                                        "00 00 00 00"    // padding
+                                        // ofp_table_features[1]
+                                        "00 78"                      // uint16_t length;
+                                        "01 "                        // uint8_t table_id;
+                                        "00 00 00 00 00 "            // uint8_t pad[5];
+                                        "61 62 63 00 00 00 00 00 "   // char name[32];
+                                        "00 00 00 00 00 00 00 00 "   // char name[32];
+                                        "00 00 00 00 00 00 00 00 "   // char name[32];
+                                        "00 00 00 00 00 00 00 00 "   // char name[32];
+                                        "00 00 00 00 00 00 00 02 "   // uint64_t metadata_match;
+                                        "00 00 00 00 00 00 00 03 "   // uint64_t metadata_write;
+                                        "00 00 00 04 "               // uint32_t config;
+                                        "00 00 00 05 "               // uint32_t max_entries;
+                                        // struct ofp_table_feature_prop_next_tables
+                                        "00 02 "         // uint16_t type
+                                        "00 06 "         // uint16_t length
+                                        "01 02 "         // uint8_t next_table_ids
+                                        "00 00 "         // 64 bit padding
+                                        // struct ofp_table_feature_prop_instructions
+                                        "00 00 "         // uint16_t type
+                                        "00 0c "         // uint16_t length
+                                        "00 03 00 04"    // struct ofp_instruction[0]
+                                        "00 01 00 04"    // struct ofp_instruction[1]
+                                        "00 00 00 00"    // padding
+                                        // struct ofp_table_feature_prop_actions
+                                        "00 04 "         // uint16_t type
+                                        "00 1c "         // uint16_t length
+                                        "00 00 00 08"    // struct ofp_action_header[0]
+                                        "00 00 00 00"
+                                        "00 16 00 08"    // struct ofp_action_header[1]
+                                        "00 00 00 00"
+                                        "00 19 00 08"    // struct ofp_action_header[2]
+                                        "00 00 00 00"
+                                        "00 00 00 00",   // padding
                                         &expected_error);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OFP_ERROR, ret,
                             "table_features_request set error");

@@ -14,10 +14,9 @@
  * limitations under the License.
  */
 
-
 /**
  *      @file   flowinfo_ipv4.c
- *      @brief  Optimized flow database for datapath, for IPv4
+ *      @brief  Optimized flow database for dataplane, for IPv4
  */
 
 #include <stdlib.h>

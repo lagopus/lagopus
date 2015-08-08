@@ -1,0 +1,38 @@
+use:
+  - lagopus
+
+setup:
+  - cmds:
+      - cmd_type: shell
+        cmd: "{{ shell_dir }}/dummy_eth_up.sh lago_eth 101"
+        result: "0"
+
+teardown:
+  - cmds:
+      - cmd_type: shell
+        cmd: "{{ shell_dir }}/dummy_eth_down.sh lago_eth 101"
+        result: "0"
+
+testcases:
+  - testcase: set interface in port, repetition 100 times
+    test:
+      - repetition_count: 101
+        cmds:
+          - cmd_type: ds
+            cmd: >-
+              interface interface{{ index }} create -type ethernet-rawsock
+              -device lago_eth{{ index }} -port-number {{ index }}
+            result: '{"ret": "OK"}'
+      - cmds:
+          - cmd_type: ds
+            cmd: port port01 create -interface interface0
+            result: '{"ret": "OK"}'
+      - repetition_count: 100
+        cmds:
+          - cmd_type: ds
+            cmd: port port01 config -interface interface{{ index + 1 }}
+            result: '{"ret": "OK"}'
+      - cmds:
+          - cmd_type: ds
+            cmd: destroy-all-obj
+            result: '{"ret": "OK"}'

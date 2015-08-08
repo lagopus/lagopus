@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 #include "unity.h"
 
 #include <netinet/ip_icmp.h>

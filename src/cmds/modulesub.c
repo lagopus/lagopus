@@ -14,78 +14,20 @@
  * limitations under the License.
  */
 
-
 #include "lagopus_apis.h"
-#include "lagopus/dpmgr.h"
 #include "lagopus/flowdb.h"
 #include "lagopus/meter.h"
 #include "lagopus/dataplane.h"
 #include "lagopus/ofp_handler.h"
 #ifdef ENABLE_SNMP_MODULE
-# include "lagopus/snmpmgr.h"
+#include "lagopus/snmpmgr.h"
 #endif /* ENABLE_SNMP_MODULE */
 #include "agent.h"
-#include "confsys.h"
+#include "lagopus/datastore.h"
 
 
 
 
-
-static struct dpmgr *s_dpmptr = NULL;
-
-
-
-
-
-static inline char **
-s_dup_argv(int argc, const char *const argv[]) {
-  char **ret = (char **)malloc(sizeof(char *) * (size_t)(argc + 1));
-  if (ret != NULL) {
-    int i;
-
-    (void)memset((void *)ret, 0, sizeof(char *) * (size_t)(argc + 1));
-
-    for (i = 0; i < argc; i++) {
-      ret[i] = strdup(argv[i]);
-      if (ret[i] == NULL) {
-        int j;
-        for (j = 0; j < i; j++) {
-          free((void *)ret[j]);
-        }
-        free((void *)ret);
-        return ret;
-      }
-    }
-  }
-  return ret;
-}
-
-
-static inline void
-s_free_argv(char **argv) {
-  if (argv != NULL) {
-    char **org = argv;
-    while (*argv != NULL) {
-      free((void *)*argv);
-      argv++;
-    }
-    free((void *)org);
-  }
-}
-
-
-
-
-
-static lagopus_result_t
-config_handle_initialize_wrap(int argc, const char *const argv[],
-                              void *extarg, lagopus_thread_t **retptr) {
-  (void)extarg;
-  (void)argc;
-  (void)argv;
-
-  return config_handle_initialize(NULL, retptr);
-}
 
 static lagopus_result_t
 agent_initialize_wrap(int argc, const char *const argv[],
@@ -94,21 +36,13 @@ agent_initialize_wrap(int argc, const char *const argv[],
   (void)argc;
   (void)argv;
 
-  if (s_dpmptr != NULL) {
-    return agent_initialize((void *)s_dpmptr, retptr);
-  } else {
-    return LAGOPUS_RESULT_NO_MEMORY;
-  }
+  return agent_initialize(NULL, retptr);
 }
 
 
 static inline void
 agent_finalize_wrap(void) {
   agent_finalize();
-  if (s_dpmptr != NULL) {
-    dpmgr_free(s_dpmptr);
-    s_dpmptr = NULL;
-  }
 }
 
 static lagopus_result_t
@@ -128,6 +62,7 @@ ofp_handler_finalize_wrap(void) {
   ofp_handler_finalize();
 }
 
+
 #ifdef ENABLE_SNMP_MODULE
 static lagopus_result_t
 snmpmgr_initialize_wrap(int argc, const char *const argv[],
@@ -144,12 +79,12 @@ snmpmgr_initialize_wrap(int argc, const char *const argv[],
 
 
 
-#define CTOR_IDX        LAGOPUS_MODULE_CONSTRUCTOR_INDEX_BASE + 1
+#define CTOR_IDX	LAGOPUS_MODULE_CONSTRUCTOR_INDEX_BASE + 3
 
 
 static pthread_once_t s_once = PTHREAD_ONCE_INIT;
-static void     s_ctors(void) __attr_constructor__(CTOR_IDX);
-static void     s_dtors(void) __attr_destructor__(CTOR_IDX);
+static void	s_ctors(void) __attr_constructor__(CTOR_IDX);
+static void	s_dtors(void) __attr_destructor__(CTOR_IDX);
 
 
 static void
@@ -157,37 +92,33 @@ s_once_proc(void) {
   lagopus_result_t r;
   const char *name;
 
-  if ((s_dpmptr = dpmgr_alloc()) == NULL) {
-    lagopus_exit_fatal("can't allocate a datapath managr.\n");
-  }
-
-  name = "config_handle";
+  name = "datastore";
   if ((r = lagopus_module_register(name,
-                                   config_handle_initialize_wrap, NULL,
-                                   config_handle_start,
-                                   config_handle_shutdown,
-                                   config_handle_stop,
-                                   config_handle_finalize,
+                                   datastore_initialize, NULL,
+                                   datastore_start,
+                                   datastore_shutdown,
+                                   datastore_stop,
+                                   datastore_finalize,
                                    NULL)) != LAGOPUS_RESULT_OK) {
     lagopus_perror(r);
     lagopus_exit_fatal("can't register the \"%s\" module.\n", name);
   }
 
-  name = "datapath";
+  name = "dataplane";
   if ((r = lagopus_module_register(name,
-                                   datapath_initialize, s_dpmptr,
-                                   datapath_start,
-                                   datapath_shutdown,
-                                   datapath_stop,
-                                   datapath_finalize,
-                                   datapath_usage)) != LAGOPUS_RESULT_OK) {
+                                   dataplane_initialize, NULL,
+                                   dataplane_start,
+                                   dataplane_shutdown,
+                                   dataplane_stop,
+                                   dataplane_finalize,
+                                   dataplane_usage)) != LAGOPUS_RESULT_OK) {
     lagopus_perror(r);
     lagopus_exit_fatal("can't register the \"%s\" module.\n", name);
   }
 
   name = "dp_comm";
   if ((r = lagopus_module_register(name,
-                                   dpcomm_initialize, s_dpmptr,
+                                   dpcomm_initialize, NULL,
                                    dpcomm_start,
                                    dpcomm_shutdown,
                                    dpcomm_stop,
@@ -234,6 +165,18 @@ s_once_proc(void) {
     lagopus_exit_fatal("can't register the \"%s\" module.\n", name);
   }
 #endif /* ENABLE_SNMP_MODULE */
+
+  name = "load_conf";
+  if ((r = lagopus_module_register(name,
+                                   load_conf_initialize, NULL,
+                                   load_conf_start,
+                                   load_conf_shutdown,
+                                   NULL,
+                                   load_conf_finalize,
+                                   NULL)) != LAGOPUS_RESULT_OK) {
+    lagopus_perror(r);
+    lagopus_exit_fatal("can't register the \"%s\" module.\n", name);
+  }
 }
 
 
@@ -253,9 +196,6 @@ s_ctors(void) {
 
 static inline void
 s_final(void) {
-  if (s_dpmptr != NULL) {
-    dpmgr_free(s_dpmptr);
-  }
 }
 
 

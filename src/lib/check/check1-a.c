@@ -14,11 +14,10 @@
  * limitations under the License.
  */
 
-
 #include "lagopus_apis.h"
 
 
-#
+#
 
 
 /*
@@ -30,7 +29,7 @@ typedef struct {
 } aPair;
 
 
-
+
 
 
 static inline aPair *
@@ -94,7 +93,7 @@ llrand(uint64_t *vPtr) {
 }
 
 
-
+
 
 
 int

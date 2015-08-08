@@ -14,12 +14,11 @@
  * limitations under the License.
  */
 
-
 #ifndef __LAGOPUS_HEAPCHECK_H__
 #define __LAGOPUS_HEAPCHECK_H__
 
 
-
+
 
 
 void
@@ -34,7 +33,7 @@ lagopus_heapcheck_is_mallocd(const void *addr);
 #endif
 
 
-
+
 
 
 #endif /* __LAGOPUS_HEAPCHECK_H__ */

@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 #ifndef __CHANNEL_H__
 #define __CHANNEL_H__
 
@@ -31,7 +30,6 @@
 
 struct ofp_header;
 struct event_manager;
-struct dpmgr;
 struct channel;
 struct channel_list;
 enum channel_event;
@@ -187,7 +185,7 @@ channel_version_set_nolock(struct channel *channel, uint8_t version);
  *  @retval Session pointer.
  *
  */
-struct session *
+lagopus_session_t
 channel_session_get(struct channel *channel);
 
 /**
@@ -198,7 +196,7 @@ channel_session_get(struct channel *channel);
  *
  */
 void
-channel_session_set(struct channel *channel, struct session *session);
+channel_session_set(struct channel *channel, lagopus_session_t session);
 
 /**
  * Return role in channel.
@@ -220,6 +218,18 @@ channel_role_get(struct channel *channel);
  */
 void
 channel_role_set(struct channel *channel, uint32_t role);
+
+/**
+ * Set datapath id into channel.
+ *
+ *  @param[in] channel  A channel pointer.
+ *  @param[in] Datapath ID.
+ *
+ *  @retval LAGOPUS_RESULT_OK Succeeded.
+ *
+ */
+lagopus_result_t
+channel_dpid_set(struct channel *channel, uint64_t dpid);
 
 /**
  * Return datapath id in channel.
@@ -391,8 +401,7 @@ channel_protocol_unset(struct channel *channel);
  *
  */
 lagopus_result_t
-channel_protocol_get(struct channel *channel,
-                     enum channel_protocol *protocol);
+channel_protocol_get(struct channel *channel, enum channel_protocol *protocol);
 
 /**
  * Set a remote port number into a channel.
@@ -402,8 +411,8 @@ channel_protocol_get(struct channel *channel,
  *
  *  @retval LAGOPUS_RESULT_OK Succeeded.
  *
- *      @details Call this function for setting a controller tcp port number
- *      with tcp/ssl connection.
+ *	@details Call this function for setting a controller tcp port number
+ *	with tcp/ssl connection.
  */
 lagopus_result_t
 channel_port_set(struct channel *channel, uint16_t port);
@@ -439,8 +448,8 @@ channel_port_get(struct channel *channel, uint16_t *port);
  *
  *  @retval LAGOPUS_RESULT_OK Succeeded.
  *
- *      @details Call this function for setting a local tcp port number
- *      with tcp/ssl connection.
+ *	@details Call this function for setting a local tcp port number
+ *	with tcp/ssl connection.
  *  If setting a local port number, call to bind(2) when session craeted.
  *
  */
@@ -477,10 +486,10 @@ channel_local_port_get(struct channel *channel, uint16_t *port);
  *  @param[in]  addrunion  A local address.
  *
  *  @retval LAGOPUS_RESULT_OK Succeeded.
- *  @retval LAGOPUS_RESULT_BUSY Fail, a channel session is alive.
+ *  @retval LAGOPUS_RESULT_BUSY Failed, a channel session is alive.
  *
- *      @details Call this function for setting a local address
- *      with tcp/ssl connection.
+ *	@details Call this function for setting a local address
+ *	with tcp/ssl connection.
  *  If setting a local address, call to bind(2) when session craeted.
  *
  */
@@ -493,7 +502,7 @@ channel_local_addr_set(struct channel *channel, struct addrunion *addrunion);
  *  @param[in]  channel  A channel pointer.
  *
  *  @retval LAGOPUS_RESULT_OK Succeeded.
- *  @retval LAGOPUS_RESULT_BUSY Fail, a channel session is alive.
+ *  @retval LAGOPUS_RESULT_BUSY Failed, a channel session is alive.
  *
  */
 lagopus_result_t
@@ -512,19 +521,6 @@ lagopus_result_t
 channel_local_addr_get(struct channel *channel, struct addrunion *addrunion);
 
 /**
- * Return ofp_switch_features.
- *
- *  @param[in]  channel    A channel pointer.
- *  @param[out] features   A ofp_switch_features.
- *
- *  @retval LAGOPUS_RESULT_OK Succeeded.
- *
- */
-lagopus_result_t
-channel_features_get(struct channel *channel,
-                     struct ofp_switch_features *features);
-
-/**
  * Put a part of multipart message into multipart list.
  *
  *  @param[in]  channel    A channel pointer.
@@ -533,8 +529,8 @@ channel_features_get(struct channel *channel,
  *  @param[in]  mtype      A multi part type.
  *
  *  @retval LAGOPUS_RESULT_OK Succeeded.
- *  @retval LAGOPUS_RESULT_OFP_ERROR Faild, received xid has already used.
- *  @retval LAGOPUS_RESULT_NO_MEMORY Faild, no memory or number of different
+ *  @retval LAGOPUS_RESULT_OFP_ERROR Failed, received xid has already used.
+ *  @retval LAGOPUS_RESULT_NO_MEMORY Failed, no memory or number of different
  *  multipart messages is over CHANNEL_SIMULTANEOUS_MULTIPART_MAX(default 16).
  *
  */
@@ -552,8 +548,8 @@ channel_multipart_put(struct channel *channel, struct pbuf *pbuf,
  *  @param[in]  mtype      A multi part type.
  *
  *  @retval LAGOPUS_RESULT_OK Succeeded.
- *  @retval LAGOPUS_RESULT_NOT_FOUND Faild, not found multipart messages.
- *  @retval LAGOPUS_RESULT_NO_MEMORY Faild, no memory.
+ *  @retval LAGOPUS_RESULT_NOT_FOUND Failed, not found multipart messages.
+ *  @retval LAGOPUS_RESULT_NO_MEMORY Failed, no memory.
  *
  */
 lagopus_result_t
@@ -620,7 +616,7 @@ channel_refs_put(struct channel *channel);
  * Allocate a channel_list object.
  *
  *  @retval !NULL Succeeded A channel list object.
- *  @retval NULL  Fail, no memory.
+ *  @retval NULL  Failed, no memory.
  *
  *  @details Channel list is used for putting together same dpid channels.
  *
@@ -655,6 +651,19 @@ channel_list_insert(struct channel_list *channel_list,
                     struct channel *channel);
 
 /**
+ * Delete a channel from channel list.
+ *
+ *  @param[in]  channel_list  A channel list pointer.
+ *  @param[in]  channel       A channel pointer.
+ *
+ *  @retval LAGOPUS_RESULT_OK Succeeded.
+ *
+ */
+lagopus_result_t
+channel_list_delete(struct channel_list *channel_list,
+                    struct channel *channel);
+
+/**
  * Iterate all channels in a channel list to call callback function.
  *
  *  @param[in]  channel_list  A channel list pointer.
@@ -681,6 +690,18 @@ channel_list_iterate(struct channel_list *channel_list,
  */
 bool
 channel_is_alive(struct channel *channel);
+
+/**
+ * Return a session is alive or not in channel.
+ *
+ *  @param[in] channel  A channel pointer.
+ *
+ *  @retval TRUE  Alive.
+ *  @retval FALSE Dead.
+ *
+ */
+bool
+channel_session_is_alive(struct channel *channel);
 
 /**
  * Return channel role mask.
@@ -829,5 +850,26 @@ channel_disable(struct channel *channel);
  */
 void
 channel_hello_received_set(struct channel *channel);
+
+/**
+ * Set auxiliary connection type into channel.
+ *
+ *  @param[in] channel  A channel pointer.
+ *  @param[in] is_auxiliary   Auxiliary connection or not.
+ *
+ */
+lagopus_result_t
+channel_auxiliary_set(struct channel *channel, bool is_auxiliary);
+
+/**
+ * Return auxiliary connectin or not.
+ *
+ *  @param[in] channel  A channel pointer.
+ *
+ *  @retval Auxiliary connectin or not.
+ *
+ */
+lagopus_result_t
+channel_auxiliary_get(struct channel *channel, bool *is_auxiliary);
 
 #endif /*__CHANNEL_H__ */

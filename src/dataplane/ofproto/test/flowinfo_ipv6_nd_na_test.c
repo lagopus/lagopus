@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 #include "unity.h"
 
 #include <netinet/icmp6.h>
@@ -34,9 +33,9 @@
 #include "flowinfo_test.h"
 
 
-#define FLOW_ADD_IPV6_ND_UT_PREREQUISITE(_fl)   \
+#define FLOW_ADD_IPV6_ND_UT_PREREQUISITE(_fl)	\
   FLOW_ADD_IPV6_ND_NA_PREREQUISITE((_fl))
-#define TEST_ASSERT_FLOW_MATCH_IPV6_ND_UT_PREREQUISITE(_fl)     \
+#define TEST_ASSERT_FLOW_MATCH_IPV6_ND_UT_PREREQUISITE(_fl)	\
   TEST_ASSERT_FLOW_MATCH_IPV6_ND_NA_PREREQUISITE((_fl))
 
 

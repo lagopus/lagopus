@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 #include "unity.h"
 
 #include "lagopus/dpmgr.h"
@@ -31,19 +30,19 @@
 #include "datapath_test_match_macros.h"
 #include "flowinfo_test.h"
 
-#define FLOW_ADD_UT_PREREQUISITE(_x)            \
+#define FLOW_ADD_UT_PREREQUISITE(_x)		\
   FLOW_ADD_IPV6_ICMPV6_PREREQUISITE(_x)
-#define TEST_ASSERT_FLOW_MATCH_UT_PREREQUISITE(_x)      \
+#define	TEST_ASSERT_FLOW_MATCH_UT_PREREQUISITE(_x)	\
   TEST_ASSERT_FLOW_MATCH_IPV6_ICMPV6_PREREQUISITE(_x)
-#define ETHERTYPE_UT    ETHERTYPE_IPV6
-#define IPPROTO_UT      IPPROTO_ICMPV6
+#define	ETHERTYPE_UT	ETHERTYPE_IPV6
+#define	IPPROTO_UT	IPPROTO_ICMPV6
 
 #include "flowinfo_l4_test.c"
 
 
 /* Test ICMPV6 type and code. */
-#define TEST_ICMPV6_TYPE(_s)    ((uint8_t)((_s) + 1))
-#define TEST_ICMPV6_CODE(_s)    ((uint8_t)((_s) + 1))
+#define TEST_ICMPV6_TYPE(_s)	((uint8_t)((_s) + 1))
+#define TEST_ICMPV6_CODE(_s)	((uint8_t)((_s) + 1))
 
 
 /*

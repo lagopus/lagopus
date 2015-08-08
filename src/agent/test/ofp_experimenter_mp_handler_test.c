@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 #include "unity.h"
 #include "handler_test_utils.h"
 #include "../ofp_apis.h"

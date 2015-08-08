@@ -16,7 +16,7 @@
 
 /**
  *      @file   csum.h
- *      @brief  IP/TCP/UDP Checksum calcuration for datapath
+ *      @brief  IP/TCP/UDP Checksum calcuration for dataplane
  */
 
 /*-

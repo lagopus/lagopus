@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 #include "unity.h"
 #include "lagopus_apis.h"
 #include "lagopus/pbuf.h"
@@ -78,8 +77,7 @@ test_ofp_action_output_trace_over_max_len(void) {
   memset(ofp.pad, 0 ,sizeof(ofp.pad));
 
   /* Call func. */
-  ret = ofp_action_output_trace(&ofp, sizeof(ofp), str,
-                                TEST_TRACE_MAX_SIZE - 1);
+  ret = ofp_action_output_trace(&ofp, sizeof(ofp), str, TEST_TRACE_MAX_SIZE - 1);
 
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OUT_OF_RANGE, ret,
                             "ofp_action_output_trace(over max len) error.");
@@ -99,15 +97,13 @@ test_ofp_action_output_trace_bad_packet_size(void) {
   memset(ofp.pad, 0 ,sizeof(ofp.pad));
 
   /* Call func. */
-  ret = ofp_action_output_trace(&ofp, sizeof(ofp) + 1, str,
-                                TEST_TRACE_MAX_SIZE);
+  ret = ofp_action_output_trace(&ofp, sizeof(ofp) + 1, str, TEST_TRACE_MAX_SIZE);
 
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OUT_OF_RANGE, ret,
                             "ofp_action_output_trace(bad_packet_size) error.");
 
   /* Call func. */
-  ret = ofp_action_output_trace(&ofp, sizeof(ofp) - 1, str,
-                                TEST_TRACE_MAX_SIZE);
+  ret = ofp_action_output_trace(&ofp, sizeof(ofp) - 1, str, TEST_TRACE_MAX_SIZE);
 
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OUT_OF_RANGE, ret,
                             "ofp_action_output_trace(bad_packet_size) error.");

@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 /**
  *      @file   queue.c
  *      @brief  OpenFlow Queue management.

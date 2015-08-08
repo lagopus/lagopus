@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-
 #include "unity.h"
 #include "event.h"
 #include "string.h"
 #include "lagopus_apis.h"
+#include "lagopus_session.h"
 #include "lagopus/pbuf.h"
-#include "lagopus/session.h"
-#include "lagopus/dpmgr.h"
+#include "lagopus/dp_apis.h"
 #include "lagopus/port.h"
+#include "lagopus/dp_apis.h"
 #include "lagopus/ofp_bridgeq_mgr.h"
 #include "../channel.h"
 #include "../channel_mgr.h"
@@ -44,6 +44,10 @@
       TEST_FAIL_MESSAGE("invalid usage of TEST_ASSERT_EQUAL_OFP_ERROR");    \
     }                                                                       \
   }
+
+static const char *bridge_name = "test_bridge01";
+static const char *port_name = "test_port01";
+static const char *interface_name = "test_if01";
 
 lagopus_result_t
 ofp_header_decode_sneak_test(struct pbuf *pbuf,
@@ -140,42 +144,76 @@ create_packet(const char in_data[], struct pbuf **pbuf) {
 
 
 static ssize_t
-s_write_tcp(struct session *s, void *buf, size_t n) {
+s_write_tcp(lagopus_session_t s, void *buf, size_t n) {
   (void) s;
   (void) buf;
   return (ssize_t) n;
 }
 
-static struct dpmgr *s_dpmgr = NULL;
-static struct bridge *s_bridge = NULL;
 static uint32_t s_xid = 0x10;
+static volatile bool s_is_init = false;
 static struct event_manager *s_event_manager = NULL;
+datastore_interface_info_t s_interface_info;
+datastore_bridge_info_t s_bridge_info;
+datastore_bridge_queue_info_t s_queue_info = {1000LL, 1000LL, 1000LL,
+                                              1000LL, 1000LL, 1000LL};
 
 struct channel *
 create_data_channel(void) {
   static uint8_t cnt;
   char buf[256];
   struct channel *channel;
-  struct session *session;
+  lagopus_session_t session;
   struct addrunion addr;
-  struct port port;
   uint64_t dpid = 0xabc;
-  uint8_t port_hw_addr[OFP_ETH_ALEN] = {0xff, 0xff, 0xff,
-                                        0xff, 0xff, 0xff
-                                       };
 
-  if (s_dpmgr == NULL) {
-    s_dpmgr = dpmgr_alloc();
-    dpmgr_bridge_add(s_dpmgr, "br0", dpid);
-    dpmgr_controller_add(s_dpmgr, "br0", "127.0.0.1");
-    port.ofp_port.port_no = 0;
-    memcpy(port.ofp_port.hw_addr, port_hw_addr, OFP_ETH_ALEN);
-    port.ifindex = 0;
-    dpmgr_port_add(s_dpmgr, &port);
-    dpmgr_bridge_port_add(s_dpmgr, "br0", 0, 0);
-  }
-  if (s_bridge == NULL) {
-    s_bridge = dpmgr_bridge_lookup(s_dpmgr, "br0");
+  if (s_is_init == false) {
+    s_is_init = true;
+
+    /* init dataplane. */
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, dp_api_init());
+
+    /* interface. */
+    s_interface_info.type = DATASTORE_INTERFACE_TYPE_ETHERNET_RAWSOCK;
+    s_interface_info.eth_rawsock.port_number = 0;
+    s_interface_info.eth_dpdk_phy.device = strdup("eth0");
+    if (s_interface_info.eth_dpdk_phy.device == NULL) {
+      TEST_FAIL_MESSAGE("device is NULL.");
+    }
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK,
+                      dp_interface_create(interface_name));
+    dp_interface_info_set(interface_name, &s_interface_info);
+
+    /* port. */
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK,
+                      dp_port_create(port_name));
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK,
+                      dp_port_interface_set(port_name, interface_name));
+
+    /* bridge. */
+    ofp_bridgeq_mgr_initialize(NULL);
+    s_bridge_info.dpid = dpid;
+    s_bridge_info.fail_mode = DATASTORE_BRIDGE_FAIL_MODE_SECURE;
+    s_bridge_info.max_buffered_packets = UINT32_MAX;
+    s_bridge_info.max_ports = UINT16_MAX;
+    s_bridge_info.max_tables = UINT8_MAX;
+    s_bridge_info.max_flows = UINT32_MAX;
+    s_bridge_info.capabilities = UINT64_MAX;
+    s_bridge_info.action_types = UINT64_MAX;
+    s_bridge_info.instruction_types = UINT64_MAX;
+    s_bridge_info.reserved_port_types = UINT64_MAX;
+    s_bridge_info.group_types = UINT64_MAX;
+    s_bridge_info.group_capabilities = UINT64_MAX;
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK,
+                      dp_bridge_create(bridge_name, &s_bridge_info));
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK,
+                      dp_bridge_port_set(bridge_name, port_name, 0));
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK,
+                      ofp_bridgeq_mgr_bridge_register(
+                          dpid,
+                          bridge_name,
+                          &s_bridge_info,
+                          &s_queue_info));
   }
   if (s_event_manager == NULL) {
     s_event_manager = event_manager_alloc();
@@ -184,8 +222,8 @@ create_data_channel(void) {
 
   snprintf(buf, sizeof(buf), "127.0.0.%u", cnt++);//XXX
   addrunion_ipv4_set(&addr, buf);
-  channel_mgr_channel_add(s_bridge, dpid, &addr);
-  channel_mgr_channel_lookup(s_bridge, &addr, &channel);
+  channel_mgr_channel_add(bridge_name, dpid, &addr);
+  channel_mgr_channel_lookup(bridge_name, &addr, &channel);
 
 
   session = channel_session_get(channel);
@@ -214,15 +252,21 @@ static void
 s_destroy_static_data(void) {
   channel_mgr_finalize();
 
-  if (s_bridge != NULL) {
-    bridge_free(s_bridge);
-    s_bridge = NULL;
+  if (s_is_init == true) {
+    s_is_init = false;
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK,
+                      dp_bridge_destroy(bridge_name));
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK,
+                      ofp_bridgeq_mgr_clear());
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK,
+                      dp_port_destroy(port_name));
+    free((void *)s_interface_info.eth_dpdk_phy.device);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK,
+                      dp_interface_destroy(interface_name));
   }
-  if (s_dpmgr != NULL) {
-    port_delete(s_dpmgr->ports, 0);
-    dpmgr_free(s_dpmgr);
-    s_dpmgr = NULL;
-  }
+
+  dp_api_fini();
+
   if (s_event_manager != NULL) {
     event_manager_free(s_event_manager);
     s_event_manager = NULL;
@@ -453,6 +497,7 @@ check_packet_parse_with_dequeue_expect_error(ofp_handler_proc_t handler_proc,
   struct pbuf *pbuf;
   struct ofp_error error;
   struct ofp_bridgeq *bridgeq;
+
   if (get == NULL) {
     return LAGOPUS_RESULT_INVALID_ARGS;
   }
@@ -460,22 +505,17 @@ check_packet_parse_with_dequeue_expect_error(ofp_handler_proc_t handler_proc,
   if (s_start_ofp_handler() == false) {
     goto done;
   }
-  /* register ofp_bridge */
-  res = ofp_bridgeq_mgr_bridge_register(channel_dpid_get(channel));
+
+  /* get ofp_bridge */
+  res = ofp_bridgeq_mgr_bridge_lookup(channel_dpid_get(channel), &bridgeq);
   if (res == LAGOPUS_RESULT_OK) {
-    res = ofp_bridgeq_mgr_bridge_lookup(channel_dpid_get(channel), &bridgeq);
-    if (res == LAGOPUS_RESULT_OK) {
-      ofpb = ofp_bridgeq_mgr_bridge_get(bridgeq);
-      ofp_bridgeq_mgr_bridgeq_free(bridgeq);
-    } else {
-      TEST_FAIL_MESSAGE("handler_test_utils.c: "
-                        "ofp_bridgeq_mgr_bridge_get error.");
-    }
+    ofpb = ofp_bridgeq_mgr_bridge_get(bridgeq);
+    ofp_bridgeq_mgr_bridgeq_free(bridgeq);
   } else {
-    lagopus_perror(res);
-    TEST_FAIL_MESSAGE("handler_test_utils.c: register error.");
-    goto done;
+    TEST_FAIL_MESSAGE("handler_test_utils.c: "
+                      "ofp_bridgeq_mgr_bridge_get error.");
   }
+
   /* create packet */
   create_packet(packet, &pbuf);
   /* parse header */

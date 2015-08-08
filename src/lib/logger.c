@@ -14,17 +14,16 @@
  * limitations under the License.
  */
 
-
 #include "lagopus_apis.h"
 
 
-
+
 
 
 static pthread_mutex_t s_log_lock = PTHREAD_MUTEX_INITIALIZER;
 static FILE *s_log_fd = NULL;
 static lagopus_log_destination_t s_log_dst = LAGOPUS_LOG_EMIT_TO_UNKNOWN;
-static char *s_log_arg = NULL;
+static char s_log_arg[PATH_MAX];
 static bool s_do_multi_process = false;
 static bool s_do_date = false;
 static uint16_t s_dbg_level = 0;
@@ -90,7 +89,7 @@ static const char *const s_trace_strs[] = {
 static size_t s_n_trace_strs = sizeof(s_trace_strs) / sizeof(char *);
 
 
-
+
 
 
 static void
@@ -99,7 +98,7 @@ s_child_at_fork(void) {
 }
 
 
-
+
 
 
 static inline void
@@ -110,7 +109,7 @@ s_lock_fd(FILE *fd, bool cmd) {
     fl.l_type = (cmd == true) ? F_WRLCK : F_UNLCK;
     fl.l_start = 0;
     fl.l_whence = SEEK_SET;
-    fl.l_len = 0;       /* Entire lock. */
+    fl.l_len = 0;	/* Entire lock. */
     fl.l_pid = 0;
 
     (void)fcntl(fileno(fd), F_SETLKW, &fl);
@@ -151,8 +150,7 @@ s_log_final(void) {
   } else if (s_log_dst == LAGOPUS_LOG_EMIT_TO_SYSLOG) {
     closelog();
   }
-  free((void *)s_log_arg);
-  s_log_arg = NULL;
+  s_log_dst = LAGOPUS_LOG_EMIT_TO_UNKNOWN;
 }
 
 
@@ -172,6 +170,20 @@ s_is_file(const char *file) {
   }
 
   return ret;
+}
+
+
+static inline void
+s_set_arg(const char *arg) {
+  if (IS_VALID_STRING(arg) == true && arg != s_log_arg) {
+    (void)snprintf(s_log_arg, sizeof(s_log_arg), "%s", arg);
+  }
+}
+
+
+static inline void
+s_reset_arg(void) {
+  (void)memset((void *)s_log_arg, 0, sizeof(s_log_arg));
 }
 
 
@@ -197,7 +209,8 @@ s_log_init(lagopus_log_destination_t dst,
     if (IS_VALID_STRING(arg) == true &&
         dst == LAGOPUS_LOG_EMIT_TO_FILE &&
         s_is_file(arg) == true) {
-      ofd = open(arg, O_RDWR | O_CREAT | O_APPEND, 0600);
+      s_set_arg(arg);
+      ofd = open(s_log_arg, O_RDWR | O_CREAT | O_APPEND, 0600);
       if (ofd >= 0) {
         s_log_fd = fdopen(ofd, "a+");
         if (s_log_fd != NULL) {
@@ -205,7 +218,7 @@ s_log_init(lagopus_log_destination_t dst,
         }
       }
     } else {
-      s_log_fd = NULL;  /* use stderr. */
+      s_log_fd = NULL;	/* use stderr. */
       ret = true;
     }
   } else if (dst == LAGOPUS_LOG_EMIT_TO_SYSLOG) {
@@ -213,7 +226,13 @@ s_log_init(lagopus_log_destination_t dst,
 
       s_log_final();
 
-      openlog(arg, 0, LOG_USER);
+      /*
+       * Note that the syslog(3) uses the first argument of openlog(3)
+       * STATICALLY. So DON'T pass any heap addresses to openlog(3). I
+       * never knew that until this moment, BTW.
+       */
+      s_set_arg(arg);
+      openlog(s_log_arg, 0, LOG_USER);
 
       ret = true;
     }
@@ -221,11 +240,11 @@ s_log_init(lagopus_log_destination_t dst,
 
   if (ret == true) {
     s_log_dst = dst;
-    free((void *)s_log_arg);
-    s_log_arg = (IS_VALID_STRING(arg) == true) ? strdup(arg) : NULL;
     s_do_multi_process = multi_process;
     s_do_date = emit_date;
     s_dbg_level = debug_level;
+  } else {
+    s_reset_arg();
   }
 
   return ret;
@@ -234,12 +253,10 @@ s_log_init(lagopus_log_destination_t dst,
 
 static inline bool
 s_log_reinit(void) {
-  char *arg =
-    (IS_VALID_STRING(s_log_arg) == true) ? strdup(s_log_arg) : NULL;
+  const char *arg =
+    (IS_VALID_STRING(s_log_arg) == true) ? s_log_arg : NULL;
   bool ret = s_log_init(s_log_dst, arg,
                         s_do_multi_process, s_do_date, s_dbg_level);
-
-  free((void *)arg);
 
   return ret;
 }
@@ -344,7 +361,7 @@ s_do_log(lagopus_log_level_t l, const char *msg) {
 }
 
 
-
+
 
 
 void
@@ -569,29 +586,32 @@ lagopus_log_check_trace_flags(uint64_t flags) {
 
 
 lagopus_log_destination_t
-lagopus_log_get_destination(void) {
+lagopus_log_get_destination(const char **arg) {
   lagopus_log_destination_t ret = LAGOPUS_LOG_EMIT_TO_UNKNOWN;
 
   (void)pthread_mutex_lock(&s_log_lock);
   ret = s_log_dst;
+  if (arg != NULL) {
+    *arg = s_log_arg;
+  }
   (void)pthread_mutex_unlock(&s_log_lock);
 
   return ret;
 }
 
 
-
+
 
 
 static pthread_once_t s_once = PTHREAD_ONCE_INIT;
 
-static void s_ctors(void) __attr_constructor__(103);
-static void s_dtors(void) __attr_destructor__(103);
+static void s_ctors(void) __attr_constructor__(104);
+static void s_dtors(void) __attr_destructor__(104);
 
 
-typedef bool    (*path_verify_func_t)(const char *path,
-                                      char *buf,
-                                      size_t buflen);
+typedef bool	(*path_verify_func_t)(const char *path,
+                                    char *buf,
+                                    size_t buflen);
 
 
 static inline bool

@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 #include "unity.h"
 #include "lagopus_apis.h"
 #include "lagopus/ofp_handler.h"
@@ -87,9 +86,16 @@ static struct ofp_bridge *
 s_register_bridge(uint64_t dpid, lagopus_result_t required) {
   struct ofp_bridge *ofpb = NULL;
   struct ofp_bridgeq *bridgeq;
+  const char *bridge_name = "test_bridge01";
+  datastore_bridge_info_t info = {0};
+  datastore_bridge_queue_info_t q_info =
+      {1000LL, 1000LL, 1000LL, 1000LL, 1000LL, 1000LL};
   lagopus_result_t res = LAGOPUS_RESULT_ANY_FAILURES;
 
-  res = ofp_bridgeq_mgr_bridge_register(dpid);
+  res = ofp_bridgeq_mgr_bridge_register(dpid,
+                                        bridge_name,
+                                        &info,
+                                        &q_info);
   if (res == LAGOPUS_RESULT_OK) {
     res = ofp_bridgeq_mgr_bridge_lookup(dpid, &bridgeq);
     ofpb = ofp_bridgeq_mgr_bridge_get(bridgeq);
@@ -425,6 +431,9 @@ test_put_channelq_packet_out(void) {
   channel_refs_get(channel);
 
   /* register bridge */
+
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK,
+                    ofp_bridgeq_mgr_clear());
   ofpb = s_register_bridge(channel_dpid_get(channel), LAGOPUS_RESULT_OK);
 
   /* create cdata */

@@ -14,11 +14,10 @@
  * limitations under the License.
  */
 
-
 #include "lagopus_apis.h"
 
 
-
+
 
 
 #define skip_spaces(s)                                  \
@@ -34,7 +33,7 @@
   }
 
 
-
+
 
 
 static pthread_once_t s_once = PTHREAD_ONCE_INIT;
@@ -63,11 +62,11 @@ static MP_INT s_mult[8];
 static MP_INT s_mult_i[8];
 static lagopus_hashmap_t s_mult_tbl;
 
-static void s_ctors(void) __attr_constructor__(102);
-static void s_dtors(void) __attr_destructor__(102);
+static void s_ctors(void) __attr_constructor__(103);
+static void s_dtors(void) __attr_destructor__(103);
 
 
-
+
 
 
 static void
@@ -258,7 +257,7 @@ s_dtors(void) {
 }
 
 
-
+
 
 
 static inline const MP_INT *
@@ -433,13 +432,13 @@ s_parse_bigint(const char *str, MP_INT *valptr) {
   /*
    * str := str2 | str8 | str10 | str16
    * str2 :=
-   *    [[:space:]]*[\-\+][0\\]b[[:space:]]*[01]+[[:space:]]*([kKmMgGtTpP]+[i]*)*
+   *	[[:space:]]*[\-\+][0\\]b[[:space:]]*[01]+[[:space:]]*([kKmMgGtTpP]+[i]*)*
    * str8 :=
-   *    [[:space:]]*[\-\+][\\]0[[:space:]]*[0-7]+[[:space:]]*([kKmMgGtTpP]+[i]*)*
+   *	[[:space:]]*[\-\+][\\]0[[:space:]]*[0-7]+[[:space:]]*([kKmMgGtTpP]+[i]*)*
    * str10 :=
-   *    [[:space:]]*[\-\+][[:space:]]*[0-9]+[[:space:]]*([kKmMgGtTpP]+[i]*)*
+   *	[[:space:]]*[\-\+][[:space:]]*[0-9]+[[:space:]]*([kKmMgGtTpP]+[i]*)*
    * str16 :=
-   *    [[:space:]]*[\-\+][0\\]x[[:space:]]*[0-9a-fA-F]+[[:space:]]*([kKmMgGtTpP]+[i]*)*
+   *	[[:space:]]*[\-\+][0\\]x[[:space:]]*[0-9a-fA-F]+[[:space:]]*([kKmMgGtTpP]+[i]*)*
    */
 
   bool ret = false;
@@ -553,7 +552,7 @@ s_parse_bigint_in_range(const char *str, MP_INT *valptr,
 }
 
 
-
+
 
 
 #ifdef LAGOPUS_ARCH_32_BITS
@@ -711,7 +710,7 @@ lagopus_str_parse_uint64(const char *buf, uint64_t *val) {
 }
 
 
-
+
 
 
 lagopus_result_t
@@ -838,7 +837,7 @@ lagopus_str_parse_uint32(const char *buf, uint32_t *val) {
 }
 
 
-
+
 
 
 lagopus_result_t
@@ -965,7 +964,7 @@ lagopus_str_parse_uint16(const char *buf, uint16_t *val) {
 }
 
 
-
+
 
 
 lagopus_result_t
@@ -1094,7 +1093,7 @@ lagopus_str_parse_bool(const char *buf, bool *val) {
 }
 
 
-
+
 
 
 lagopus_result_t
@@ -1331,6 +1330,88 @@ lagopus_str_unescape(const char *org, const char *escaped,
     } else {
       ret = LAGOPUS_RESULT_INVALID_ARGS;
     }
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  return ret;
+}
+
+
+lagopus_result_t
+lagopus_str_escape(const char *in_str, const char *escape_chars,
+                   bool *is_escaped, char **out_str) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  size_t len = 0;
+  size_t escapes_len = 0;
+  char *in_str_cpy = NULL;
+  char *cp = NULL;
+  char *str = NULL;
+
+  if (IS_VALID_STRING(in_str) == true &&
+      IS_VALID_STRING(escape_chars) == true &&
+      out_str != NULL && *out_str == NULL) {
+    in_str_cpy = strdup(in_str);
+
+    if (in_str_cpy != NULL) {
+      cp = in_str_cpy;
+      while (*cp != '\0') {
+        if (strchr(escape_chars, (int) *cp) == NULL) {
+          len++;
+        } else {
+          escapes_len += 2;
+        }
+        cp++;
+      }
+      if (escapes_len == 0) {
+        /* not include escape characters. */
+        *out_str = strdup(in_str_cpy);
+        if (*out_str != NULL) {
+          if (is_escaped != NULL) {
+            *is_escaped = false;
+          }
+          ret = LAGOPUS_RESULT_OK;
+        } else {
+          ret = LAGOPUS_RESULT_NO_MEMORY;
+        }
+      } else {
+        *out_str = (char *) malloc(sizeof(char) *
+                                   (len + escapes_len + 1));
+        if (*out_str != NULL) {
+          str = *out_str;
+          cp = in_str_cpy;
+          while (*cp != '\0') {
+            if (strchr(escape_chars, (int) *cp) == NULL) {
+              *str = *cp;
+              str++;
+            } else {
+              *str = '\\';
+              str++;
+              *str = *cp;
+              str++;
+            }
+            cp++;
+          }
+          (*out_str)[len + escapes_len] = '\0';
+
+          if (is_escaped != NULL) {
+            *is_escaped = true;
+          }
+          ret = LAGOPUS_RESULT_OK;
+        } else {
+          ret = LAGOPUS_RESULT_NO_MEMORY;
+        }
+      }
+    } else {
+      ret = LAGOPUS_RESULT_NO_MEMORY;
+    }
+
+    /* free. */
+    if (ret != LAGOPUS_RESULT_OK) {
+      free(*out_str);
+      *out_str = NULL;
+    }
+    free(in_str_cpy);
   } else {
     ret = LAGOPUS_RESULT_INVALID_ARGS;
   }

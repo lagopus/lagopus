@@ -14,10 +14,9 @@
  * limitations under the License.
  */
 
-
 /**
  *      @file   flowinfo_ipv4_dst.c
- *      @brief  Optimized flow database for datapath, for ipv4_dst
+ *      @brief  Optimized flow database for dataplane, for ipv4_dst
  */
 
 #include <stdlib.h>
@@ -88,7 +87,7 @@ new_flowinfo_ipv4_dst_mask(void) {
   if (self != NULL) {
     self->nflow = 0;
     self->nnext = 0;
-    self->next = malloc(0);
+    self->next = malloc(1);
     self->misc = new_flowinfo_ipv4();
     self->add_func = add_flow_ipv4_dst_mask;
     self->del_func = del_flow_ipv4_dst_mask;

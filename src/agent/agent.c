@@ -14,27 +14,21 @@
  * limitations under the License.
  */
 
-
 /* OpenFlow agent. */
 
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "lagopus/dpmgr.h"
+#include "lagopus_apis.h"
 #include "lagopus/port.h"
-#include "lagopus/session_tls.h"
 
 #include "agent.h"
-#include "agent_config.h"
 #include "channel.h"
 #include "channel_mgr.h"
-#include "confsys.h"
-#include "checkcert.h"
 
 static bool running = false;
 static bool is_gone = false;
 static struct event_manager *em;
-struct dpmgr *dpmgr;
 struct channel *channel = NULL;
 static lagopus_thread_t agent_thread = NULL;
 static lagopus_mutex_t lock = NULL;
@@ -75,19 +69,6 @@ initialize_internal(void) {
   /* Initialize channel manager. */
   channel_mgr_initialize((void *) em);
 
-  /* initialize config tree related to agent module */
-  agent_initialize_config_tree();
-
-  /* Initialize aget check cert. */
-  agent_check_certificates_initialize();
-
-  /* Set trust point check function. */
-  session_tls_certcheck_set(agent_check_certificates);
-
-  /* Install callback. */
-  config_install_callback();
-  agent_install_callback();
-
   /* Create lagopus_mutex_create.  */
   ret = lagopus_mutex_create(&lock);
   if (ret != LAGOPUS_RESULT_OK) {
@@ -97,9 +78,10 @@ initialize_internal(void) {
 
 lagopus_result_t
 agent_initialize(void *arg, lagopus_thread_t **thdptr) {
-  if (agent_thread == NULL || dpmgr == NULL) {
-    dpmgr = (struct dpmgr *)arg;
-    lagopus_msg_info("agent_initiaize dpmgr=%p\n", dpmgr);
+  (void) arg;
+
+  if (agent_thread == NULL) {
+    lagopus_msg_info("agent_initiaize.\n");
     pthread_once(&initialized, initialize_internal);
   } else {
     if (thdptr != NULL) {
@@ -125,8 +107,6 @@ agent_finalize(void) {
     lagopus_perror(ret);
     return;
   }
-
-  agent_check_certificates_finalize();
 
   channel_free(channel);
   channel = NULL;

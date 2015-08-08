@@ -14,10 +14,9 @@
  * limitations under the License.
  */
 
-
 /**
- *      @file   datapath.h
- *      @brief  Datapath APIs
+ *      @file   dataplane.h
+ *      @brief  Dataplane APIs
  */
 
 #ifndef SRC_INCLUDE_LAGOPUS_DATAPLANE_H_
@@ -33,8 +32,10 @@
 #include "lagopus_thread.h"
 #include "lagopus_gstate.h"
 #include "lagopus/ethertype.h"
-
+#include "lagopus/flowdb.h"
+#include "lagopus/flowinfo.h"
 #include "lagopus/port.h"
+#include "lagopus/interface.h"
 
 #define LAGOPUS_DATAPLANE_VERSION "0.9"
 
@@ -59,9 +60,11 @@
       printf(" %02x", p_[i_]);                  \
     }                                           \
   } while (0)
+#define DPRINT_FLOW(flow) flow_dump(flow, stdout)
 #else
 #define DP_PRINT(...)
 #define DP_PRINT_HEXDUMP(ptr, len)
+#define DPRINT_FLOW(flow)
 #endif
 
 struct flow;
@@ -72,13 +75,19 @@ struct port;
 struct bucket_list;
 struct bucket;
 
-struct datapath_arg {
+struct dataplane_arg {
   lagopus_thread_t *threadptr;
   struct dpmgr *dpmgr;
   int argc;
   char **argv;
   bool *running;
 };
+
+int
+dpdk_send_packet_physical(struct lagopus_packet *pkt, uint32_t portid);
+int
+rawsock_send_packet_physical(struct lagopus_packet *pkt, uint32_t portid);
+
 
 /* Inline functions. */
 /**
@@ -324,6 +333,39 @@ out:
   return rv;
 }
 
+/**
+ * find flow entry matching packet from the table.
+ *
+ * @param[in]   pkt     packet.
+ * @param[in]   table   flow table related with the bridge.
+ *
+ * @retval      NULL    flow is not found.
+ * @retval      !=NULL  matched flow.
+ */
+static inline struct flow *
+lagopus_find_flow(struct lagopus_packet *pkt, struct table *table) {
+  struct flowinfo *flowinfo;
+  struct flow *flow;
+  int32_t prio;
+
+  prio = -1;
+
+  flowinfo = table->userdata;
+  if (flowinfo != NULL) {
+    flow = flowinfo->match_func(flowinfo, pkt, &prio);
+  } else {
+    flow = NULL;
+  }
+
+  if (flow != NULL) {
+    DP_PRINT("MATCHED\n");
+    DPRINT_FLOW(flow);
+  } else {
+    DP_PRINT("NOT MATCHED\n");
+  }
+  return flow;
+}
+
 /* Prototypes. */
 
 /**
@@ -333,6 +375,15 @@ out:
  *              ==NULL  failed to allocate.
  */
 struct lagopus_packet *alloc_lagopus_packet(void);
+
+/**
+ * Free data structure associated with the packet.
+ *
+ * @param[in]   pkt     Packet.
+ *
+ * decrement refcnt and free pkt->mbuf if refcnt is zero.
+ */
+void lagopus_packet_free(struct lagopus_packet *);
 
 /**
  * Prepare received packet information.
@@ -364,10 +415,14 @@ void lagopus_forward_packet_to_port(struct lagopus_packet *, uint32_t);
  *
  * @param[in]   pkt     packet.
  *
+ * @retval      LAGOPUS_RESULT_OK              Should be freed packet buffer.
+ * @retval      LAGOPUS_RESULT_NO_MORE_ACTION  Don't free packet buffer.
+ * @retval      LAGOPUS_RESULT_STOP            Allow stop pipeline.
+ *
  * lookup flow table from bridge related with ingress port of packet.
  * flow table id is in the packet.
  */
-void lagopus_match_and_action(struct lagopus_packet *);
+lagopus_result_t lagopus_match_and_action(struct lagopus_packet *);
 
 /**
  * Execute experimenter instruction.
@@ -434,7 +489,35 @@ execute_action(struct lagopus_packet *pkt,
  * @param[in]   port    physical port number (ifindex).
  *
  */
-int lagopus_send_packet_physical(struct lagopus_packet *, uint32_t);
+static inline int
+lagopus_send_packet_physical(struct lagopus_packet *pkt,
+                             struct interface *ifp) {
+  if (ifp == NULL) {
+    return LAGOPUS_RESULT_OK;
+  }
+  switch (ifp->info.type) {
+    case DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_PHY:
+    case DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_PCAP:
+#ifdef HAVE_DPDK
+      return dpdk_send_packet_physical(pkt, ifp->info.eth.port_number);
+#else
+      break;
+#endif
+    case DATASTORE_INTERFACE_TYPE_ETHERNET_RAWSOCK:
+      return rawsock_send_packet_physical(pkt,
+                                          ifp->info.eth_rawsock.port_number);
+
+    case DATASTORE_INTERFACE_TYPE_UNKNOWN:
+    case DATASTORE_INTERFACE_TYPE_VXLAN:
+      /* TODO */
+      lagopus_packet_free(pkt);
+      return LAGOPUS_RESULT_OK;
+    default:
+      break;
+  }
+
+  return LAGOPUS_RESULT_INVALID_ARGS;
+}
 
 /**
  * Send packet to kernel normal path related with physical port.
@@ -464,15 +547,6 @@ bool lagopus_is_port_enabled(const struct port *);
  * @retval      false   don't used by lagopus vswitch.
  */
 bool lagopus_is_portid_enabled(int);
-
-/**
- * Free data structure associated with the packet.
- *
- * @param[in]   pkt     Packet.
- *
- * decrement refcnt and free pkt->mbuf if refcnt is zero.
- */
-void lagopus_packet_free(struct lagopus_packet *);
 
 
 /**
@@ -517,16 +591,6 @@ lagopus_result_t
 lagopus_configure_physical_port(struct port *);
 
 /**
- * Change physical port state.
- *
- * @param[in]   port    physical port.
- *
- * @retval      LAGOPUS_RESULT_OK       success.
- */
-lagopus_result_t
-lagopus_change_physical_port(struct port *);
-
-/**
  * Unconfigure physical port.
  *
  * @param[in]   port    physical port.
@@ -537,17 +601,7 @@ lagopus_result_t
 lagopus_unconfigure_physical_port(struct port *);
 
 /**
- * find flow entry matching packet from the table.
- *
- * @param[in]   pkt     packet.
- * @param[in]   table   flow table related with the bridge.
- *
- * @retval      NULL    flow is not found.
- * @retval      !=NULL  matched flow.
- */
-struct flow *lagopus_find_flow(struct lagopus_packet *, struct table *);
-
-/**
+ * Set switch configuration.
  */
 lagopus_result_t
 lagopus_set_switch_config(struct bridge *bridge,
@@ -555,6 +609,7 @@ lagopus_set_switch_config(struct bridge *bridge,
                           struct ofp_error *error);
 
 /**
+ * Get switch configuration.
  */
 lagopus_result_t
 lagopus_get_switch_config(struct bridge *bridge,
@@ -562,7 +617,7 @@ lagopus_get_switch_config(struct bridge *bridge,
                           struct ofp_error *error);
 
 /**
- * initialize datapath.  e.g. setup Intel DPDK.
+ * initialize dataplane.  e.g. setup Intel DPDK.
  *
  * @param[in]   argc                    argc from command line
  * @param[in]   argv                    argv from commend line
@@ -574,44 +629,44 @@ lagopus_get_switch_config(struct bridge *bridge,
  * as soon as possible in the application's main() function.
  */
 lagopus_result_t
-lagopus_datapath_init(int argc, const char *argv[]);
+lagopus_dataplane_init(int argc, const char * const argv[]);
 
 /**
  */
 lagopus_result_t
-datapath_initialize(int argc, const char *const argv[],
-                    void *extarg, lagopus_thread_t **thdptr);
+dataplane_initialize(int argc, const char *const argv[],
+                     void *extarg, lagopus_thread_t **thdptr);
 
 /**
  */
-void datapath_finalize(void);
+void dataplane_finalize(void);
 
 /**
- * datapath main loop function.
+ * dataplane main loop function.
  */
 lagopus_result_t
-datapath_thread_loop(const lagopus_thread_t *, void *);
+dataplane_thread_loop(const lagopus_thread_t *, void *);
 
 /**
- * datapath start function.
+ * dataplane start function.
  *
- * @retval      LAGOPUS_RESULT_OK       datapath main thread is created.
- * @retval      !=LAGOPUS_RESULT_OK     datapath main thread is not created.
+ * @retval      LAGOPUS_RESULT_OK       dataplane main thread is created.
+ * @retval      !=LAGOPUS_RESULT_OK     dataplane main thread is not created.
  *
  * Intel DPDK version note:
  * This function is to be executed on the MASTER lcore only.
  */
-lagopus_result_t datapath_start(void);
+lagopus_result_t dataplane_start(void);
 
 /**
- * datapath shutdown function.
+ * dataplane shutdown function.
  */
-lagopus_result_t datapath_shutdown(shutdown_grace_level_t);
+lagopus_result_t dataplane_shutdown(shutdown_grace_level_t);
 
 /**
- * datapath stop function.
+ * dataplane stop function.
  */
-lagopus_result_t datapath_stop(void);
+lagopus_result_t dataplane_stop(void);
 
 /**
  * Dataplane communicator thread
@@ -647,7 +702,7 @@ lagopus_result_t
 dpcomm_stop(void);
 
 /**
- * datapath communicator loop function.
+ * dataplane communicator loop function.
  */
 lagopus_result_t
 comm_thread_loop(const lagopus_thread_t *, void *);
@@ -684,27 +739,30 @@ struct lagopus_packet *copy_packet(struct lagopus_packet *);
  * @param[in]   pkt             Packet.
  */
 static inline void
-lagopus_receive_packet(struct port *port, struct lagopus_packet *pkt) {
+lagopus_receive_packet(struct lagopus_packet *pkt) {
+
 #ifdef PACKET_CAPTURE
   /* capture received packet */
   if (port->pcap_queue != NULL) {
-    lagopus_pcap_enqueue(port, pkt);
+    lagopus_pcap_enqueue(pkt->in_port, pkt);
   }
-#else
-  (void) port;
 #endif /* PACKET_CAPTURE */
   lagopus_match_and_action(pkt);
 }
 
 /**
  */
-void copy_datapath_info(char *buf, int len);
+void copy_dataplane_info(char *buf, int len);
+
+/**
+ */
+lagopus_result_t rawsocket_thread_loop(const lagopus_thread_t *t, void *arg);
 
 /**
  * Print usage.
  *
  * @param[in]   fp      Output file pointer.
  */
-void datapath_usage(FILE *fp);
+void dataplane_usage(FILE *fp);
 
 #endif /* SRC_INCLUDE_LAGOPUS_DATAPLANE_H_ */

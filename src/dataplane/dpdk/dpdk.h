@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 /**
  *      @file   dpdk.h
  *      @brief  Parameter, structure and function for dataplane w/ DPDK.
@@ -112,7 +111,7 @@
 /* Mempools */
 #ifndef APP_DEFAULT_MBUF_SIZE
 #define APP_DEFAULT_MBUF_SIZE                                   \
-  (2048 +                                                       \
+  (MAX_PACKET_SZ +                                              \
    sizeof(struct rte_mbuf) +                                    \
    sizeof(struct lagopus_packet) +                              \
    RTE_PKTMBUF_HEADROOM)
@@ -256,6 +255,10 @@
 #define FIFONESS_PORT 1
 #define FIFONESS_NONE 2
 
+#define NIC_RX_QUEUE_UNCONFIGURED 0
+#define NIC_RX_QUEUE_ENABLED      1
+#define NIC_RX_QUEUE_CONFIGURED   2
+
 struct flowcache;
 
 struct app_mbuf_array {
@@ -277,6 +280,7 @@ struct app_lcore_params_io {
     struct {
       uint8_t port;
       uint8_t queue;
+      uint8_t enabled;
     } nic_queues[APP_MAX_NIC_RX_QUEUES_PER_IO_LCORE];
     uint32_t n_nic_queues;
 

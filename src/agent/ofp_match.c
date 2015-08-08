@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 #include <stdbool.h>
 #include <stdint.h>
 #include "lagopus/ofp_dp_apis.h"
@@ -246,13 +245,13 @@ ofp_match_parse(struct channel *channel, struct pbuf *pbuf,
       ret = LAGOPUS_RESULT_OFP_ERROR;
       ofp_error_set(error, OFPET_BAD_MATCH, OFPBMC_BAD_LEN);
     }
+
+    /* free. */
+    if (ret != LAGOPUS_RESULT_OK) {
+      ofp_match_list_elem_free(match_list);
+    }
   } else {
     ret = LAGOPUS_RESULT_INVALID_ARGS;
-  }
-
-  /* free. */
-  if (ret != LAGOPUS_RESULT_OK) {
-    ofp_match_list_elem_free(match_list);
   }
 
   return ret;

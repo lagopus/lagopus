@@ -14,13 +14,12 @@
  * limitations under the License.
  */
 
-
 #include "lagopus_apis.h"
 #include "qmuxer_types.h"
 #include "qmuxer_internal.h"
 
 
-
+
 
 
 static inline lagopus_result_t
@@ -54,7 +53,7 @@ s_poll_destroy(lagopus_qmuxer_poll_t mp) {
 }
 
 
-
+
 
 
 lagopus_result_t

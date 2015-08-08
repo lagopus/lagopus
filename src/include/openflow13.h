@@ -1016,8 +1016,8 @@ struct ofp_packet_in {
   uint64_t cookie;
   /* without ofp_match for encode. */
   // struct ofp_match match;
-  // uint8_t pad[2];
-  // uint8_t data[0];
+  //uint8_t pad[2];
+  //uint8_t data[0];
 };
 
 struct ofp_flow_removed {
@@ -1234,7 +1234,7 @@ struct ofp_tlv {
   uint16_t type;
   uint16_t length;
   /* without ofp_match for encode. */
-  // uint8_t value[0];
+  //uint8_t value[0];
 };
 
 struct ofp_experimenter_multipart_header {

@@ -14,14 +14,12 @@
  * limitations under the License.
  */
 
-
 #include <stdbool.h>
 #include <stdint.h>
 #include "lagopus_apis.h"
 #include "lagopus_thread_internal.h"
-#include "lagopus/dpmgr.h"
+#include "lagopus_session.h"
 #include "lagopus/eventq_data.h"
-#include "lagopus/session.h"
 #include "lagopus/pbuf.h"
 #include "lagopus/ofp_dp_apis.h"
 #include "channel.h"
@@ -73,6 +71,8 @@ typedef struct ofp_handler_record *ofp_handler_t;
 static ofp_handler_t s_ofp_handler = NULL;
 static pthread_once_t s_initialized = PTHREAD_ONCE_INIT;
 static volatile bool s_is_started = false;
+static volatile uint16_t channelq_size = CHANNELQ_SIZE;
+static volatile uint16_t channelq_max_batches = CHANNELQ_SIZE;
 
 /*
  * prototype
@@ -117,13 +117,13 @@ s_channel_freeup_proc(void **val);
 /* dequeue(or enqueue) each queues */
 static inline lagopus_result_t
 s_channelq_dequeue(channelq_t *q_ptr,
-                   lagopus_qmuxer_poll_t poll);
+                   lagopus_qmuxer_poll_t qpoll);
 static inline lagopus_result_t
 s_eventq_dequeue(struct ofp_bridge *ofp_bridge,
-                 lagopus_qmuxer_poll_t poll);
+                 lagopus_qmuxer_poll_t qpoll);
 static inline lagopus_result_t
 s_dataq_dequeue(struct ofp_bridge *ofp_bridge,
-                lagopus_qmuxer_poll_t poll);
+                lagopus_qmuxer_poll_t qpoll);
 #ifdef OFPH_POLL_WRITING
 static inline lagopus_result_t
 s_event_dataq_enqueue(struct ofp_bridge *ofp_bridge,
@@ -135,7 +135,7 @@ s_get_status(void);
 static inline void
 s_set_status(enum ofp_handler_running_status set);
 
-
+
 
 /*
  * public functions
@@ -360,6 +360,64 @@ ofp_handler_event_dataq_data_get(uint64_t dpid,
   }
 
   return ret;
+}
+
+void
+ofp_handler_channelq_size_set(uint16_t val) {
+  mbar();
+  channelq_size = val;
+  lagopus_msg_info("set channelq_size: %"PRIu16".\n", val);
+}
+
+void
+ofp_handler_channelq_max_batches_set(uint16_t val) {
+  mbar();
+  channelq_max_batches = val;
+  lagopus_msg_info("set channelq_max_batches: %"PRIu16".\n", val);
+}
+
+uint16_t
+ofp_handler_channelq_size_get(void) {
+  return channelq_size;
+}
+
+uint16_t
+ofp_handler_channelq_max_batches_get(void) {
+  return channelq_max_batches;
+}
+
+lagopus_result_t
+ofp_handler_channelq_stats_get(uint16_t *val) {
+  lagopus_result_t res = LAGOPUS_RESULT_ANY_FAILURES;
+  bool is_valid = false;
+
+  if (val != NULL) {
+    if (s_ofp_handler != NULL) {
+      res = lagopus_thread_is_valid((const lagopus_thread_t *)&s_ofp_handler,
+                                    &is_valid);
+      if (res == LAGOPUS_RESULT_OK) {
+        if (is_valid == true) {
+          res = lagopus_bbq_size(&(s_ofp_handler->m_channelq));
+          if (res >= LAGOPUS_RESULT_OK) {
+            *val = (uint16_t) res;
+            res = LAGOPUS_RESULT_OK;
+          }
+        } else {
+          lagopus_msg_error("ofp-handler thread is invalid.\n");
+          res = LAGOPUS_RESULT_INVALID_OBJECT;
+        }
+      } else {
+        lagopus_perror(res);
+      }
+    } else {
+      lagopus_msg_error("ofp-handler thread is NULL.\n");
+      res = LAGOPUS_RESULT_INVALID_OBJECT;
+    }
+  } else {
+    res = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  return res;
 }
 
 /*
@@ -780,25 +838,25 @@ static lagopus_result_t
 s_dequeue(struct ofp_bridgeq *brqs) {
   lagopus_result_t res = LAGOPUS_RESULT_ANY_FAILURES;
   struct ofp_bridge *bridge;
-  lagopus_qmuxer_poll_t poll;
+  lagopus_qmuxer_poll_t qpoll;
 
   if (brqs != NULL) {
     bridge = ofp_bridgeq_mgr_bridge_get(brqs);
-    poll = ofp_bridgeq_mgr_eventq_poll_get(brqs);
-    res = s_eventq_dequeue(bridge, poll);
+    qpoll = ofp_bridgeq_mgr_eventq_poll_get(brqs);
+    res = s_eventq_dequeue(bridge, qpoll);
     if (res != LAGOPUS_RESULT_OK) {
       lagopus_perror(res);
       goto done;
     }
-    poll = ofp_bridgeq_mgr_dataq_poll_get(brqs);
-    res = s_dataq_dequeue(bridge, poll);
+    qpoll = ofp_bridgeq_mgr_dataq_poll_get(brqs);
+    res = s_dataq_dequeue(bridge, qpoll);
     if (res != LAGOPUS_RESULT_OK) {
       lagopus_perror(res);
       goto done;
     }
 #ifdef OFPH_POLL_WRITING
     poll = ofp_bridgeq_mgr_event_dataq_poll_get(brqs);
-    res = s_event_dataq_enqueue(bridge, poll);
+    res = s_event_dataq_enqueue(bridge, qpoll);
     if (res != LAGOPUS_RESULT_OK) {
       lagopus_perror(res);
       goto done;
@@ -910,7 +968,7 @@ s_ofph_thread_main(const lagopus_thread_t *selfptr,
     }
     /* Wait for an event. */
     res = lagopus_qmuxer_poll(&(thd->muxer),
-                              (lagopus_qmuxer_poll_t *const)(thd->m_polls),
+                              (lagopus_qmuxer_poll_t * const)(thd->m_polls),
                               (size_t)n_need_watch, MUXER_TIMEOUT);
     if (s_get_status() == OFPH_SHUTDOWN_RIGHT_NOW) {
       res = LAGOPUS_RESULT_NOT_OPERATIONAL;
@@ -1018,120 +1076,185 @@ s_channel_freeup_proc(void **val) {
 /* read channelq */
 static inline lagopus_result_t
 s_channelq_dequeue(channelq_t *q_ptr,
-                   lagopus_qmuxer_poll_t poll) {
-  int i;
+                   lagopus_qmuxer_poll_t qpoll) {
   lagopus_result_t res = LAGOPUS_RESULT_ANY_FAILURES;
-  struct channelq_data *get = NULL;
+  struct channelq_data **gets = NULL;
   lagopus_result_t q_size = lagopus_bbq_size(q_ptr);
+  uint16_t max_batches = channelq_max_batches;
+  size_t get_num;
+  size_t i;
 
-  lagopus_msg_debug(10, "called. q_size: %lu\n", q_size);
+  lagopus_msg_debug(10,
+                    "called. q_size: %lu, max_batches: %"PRIu16"\n",
+                    q_size, max_batches);
   if (q_size > 0) {
-    MUXER_FAIRNESS(q_size);
-    for (i = 0; i < q_size; i++) {
-      lagopus_mutex_enter_critical(&(s_ofp_handler->m_status_lock));
-      {
-        res = lagopus_bbq_get(q_ptr, &get, struct channelq_data *, -1LL);
+    int cstate;
+
+    gets = (struct channelq_data **)
+        malloc(sizeof(struct channelq_data *) * max_batches);
+    if (gets != NULL) {
+      res = lagopus_bbq_get_n(q_ptr, gets,
+                              (size_t) channelq_max_batches, 0LL,
+                              struct channelq_data *, 0LL, &get_num);
+      if (res < LAGOPUS_RESULT_OK) {
+        lagopus_perror(res);
+        res = lagopus_qmuxer_poll_set_queue(&qpoll, NULL);
         if (res != LAGOPUS_RESULT_OK) {
           lagopus_perror(res);
-          res = lagopus_qmuxer_poll_set_queue(&poll, NULL);
-          if (res != LAGOPUS_RESULT_OK) {
-            lagopus_perror(res);
-            goto done;
-          }
+          goto done;
         }
-        s_process_channelq_entry(get);
-        channelq_data_destroy(get);
+      } else {
+        res = LAGOPUS_RESULT_OK;
       }
-      lagopus_mutex_leave_critical(&(s_ofp_handler->m_status_lock));
+
+      for (i = 0; i < get_num; i++) {
+        lagopus_mutex_enter_critical(&(s_ofp_handler->m_status_lock), &cstate);
+        {
+          s_process_channelq_entry(gets[i]);
+        channelq_data_destroy(gets[i]);
+        }
+        lagopus_mutex_leave_critical(&(s_ofp_handler->m_status_lock), cstate);
+      }
+    } else {
+      res = LAGOPUS_RESULT_NO_MEMORY;
     }
   } else if (q_size == 0) {
     res = LAGOPUS_RESULT_OK;
   }
+
 done:
+  free(gets);
+
   return res;
 }
 
 /* read eventq */
 static inline lagopus_result_t
 s_eventq_dequeue(struct ofp_bridge *ofp_bridge,
-                 lagopus_qmuxer_poll_t poll) {
-  int i;
+                 lagopus_qmuxer_poll_t qpoll) {
   lagopus_result_t res = LAGOPUS_RESULT_ANY_FAILURES;
-  struct eventq_data *get = NULL;
+  struct eventq_data **gets = NULL;
   lagopus_result_t q_size = lagopus_bbq_size(&(ofp_bridge->eventq));
+  uint16_t max_batches;
+  size_t get_num;
+  size_t i;
 
-  lagopus_msg_debug(10, "called. dpid: %lu, q_size: %lu\n",
-                    ofp_bridge->dpid, q_size);
+  res = ofp_bridge_eventq_max_batches_get(ofp_bridge,
+                                          &max_batches);
+  if (res != LAGOPUS_RESULT_OK) {
+    lagopus_perror(res);
+    goto done;
+  }
+
+  lagopus_msg_debug(10,
+                    "called. dpid: %lu, q_size: %lu, max_batches: %"PRIu16"\n",
+                    ofp_bridge->dpid, q_size, max_batches);
   if (q_size > 0) {
-    MUXER_FAIRNESS(q_size);
-    for (i = 0; i < q_size; i++) {
-      lagopus_mutex_enter_critical(&(s_ofp_handler->m_status_lock));
-      {
-        res = lagopus_bbq_get(&(ofp_bridge->eventq), &get,
-                              struct eventq_data *, -1LL);
+    int cstate;
+
+    gets = (struct eventq_data **)
+        malloc(sizeof(struct eventq_data *) * max_batches);
+    if (gets != NULL) {
+      res = lagopus_bbq_get_n(&(ofp_bridge->eventq), gets,
+                              (size_t) max_batches, 0LL,
+                              struct eventq_data *, 0LL, &get_num);
+      if (res < LAGOPUS_RESULT_OK) {
+        lagopus_perror(res);
+        res = lagopus_qmuxer_poll_set_queue(&qpoll, NULL);
         if (res != LAGOPUS_RESULT_OK) {
           lagopus_perror(res);
-          res = lagopus_qmuxer_poll_set_queue(&poll, NULL);
-          if (res != LAGOPUS_RESULT_OK) {
-            lagopus_perror(res);
-            goto done;
+          goto done;
+        }
+      } else {
+        res = LAGOPUS_RESULT_OK;
+      }
+
+      for (i = 0; i < get_num; i++) {
+        lagopus_mutex_enter_critical(&(s_ofp_handler->m_status_lock), &cstate);
+        {
+          res = s_process_eventq_entry(ofp_bridge, gets[i]);
+          if (gets[i] != NULL && gets[i]->free != NULL) {
+            gets[i]->free(gets[i]);
+          } else {
+            free(gets[i]);
           }
         }
-        res = s_process_eventq_entry(ofp_bridge, get);
-        if (get != NULL && get->free != NULL) {
-          get->free(get);
-        } else {
-          free(get);
-        }
+        lagopus_mutex_leave_critical(&(s_ofp_handler->m_status_lock), cstate);
       }
-      lagopus_mutex_leave_critical(&(s_ofp_handler->m_status_lock));
+    } else {
+      res = LAGOPUS_RESULT_NO_MEMORY;
     }
   } else if (q_size == 0) {
     res = LAGOPUS_RESULT_OK;
   }
 done:
+  free(gets);
+
   return res;
 }
 
 /* read dataq */
 static inline lagopus_result_t
 s_dataq_dequeue(struct ofp_bridge *ofp_bridge,
-                lagopus_qmuxer_poll_t poll) {
-  int i;
+                lagopus_qmuxer_poll_t qpoll) {
   lagopus_result_t res = LAGOPUS_RESULT_ANY_FAILURES;
-  struct eventq_data *get = NULL;
+  struct eventq_data **gets = NULL;
   lagopus_result_t q_size = lagopus_bbq_size(&(ofp_bridge->dataq));
+  uint16_t max_batches;
+  size_t get_num;
+  size_t i;
 
-  lagopus_msg_debug(10, "called. dpid: %lu, q_size: %lu\n",
-                    ofp_bridge->dpid, q_size);
+  res = ofp_bridge_dataq_max_batches_get(ofp_bridge,
+                                          &max_batches);
+  if (res != LAGOPUS_RESULT_OK) {
+    lagopus_perror(res);
+    goto done;
+  }
+
+  lagopus_msg_debug(10,
+                    "called. dpid: %lu, q_size: %lu, max_batches: %"PRIu16"\n",
+                    ofp_bridge->dpid, q_size, max_batches);
   if (q_size > 0) {
-    MUXER_FAIRNESS(q_size);
-    for (i = 0; i < q_size; i++) {
-      lagopus_mutex_enter_critical(&(s_ofp_handler->m_status_lock));
-      {
-        res = lagopus_bbq_get(&(ofp_bridge->dataq), &get,
-                              struct eventq_data *, -1LL);
+    int cstate;
+
+    gets = (struct eventq_data **)
+        malloc(sizeof(struct eventq_data *) * max_batches);
+    if (gets != NULL) {
+      res = lagopus_bbq_get_n(&(ofp_bridge->dataq), gets,
+                              (size_t) max_batches, 0LL,
+                              struct eventq_data *, 0LL, &get_num);
+      if (res < LAGOPUS_RESULT_OK) {
+        lagopus_perror(res);
+        res = lagopus_qmuxer_poll_set_queue(&qpoll, NULL);
         if (res != LAGOPUS_RESULT_OK) {
           lagopus_perror(res);
-          res = lagopus_qmuxer_poll_set_queue(&poll, NULL);
-          if (res != LAGOPUS_RESULT_OK) {
-            lagopus_perror(res);
-            goto done;
+          goto done;
+        }
+      } else {
+        res = LAGOPUS_RESULT_OK;
+      }
+
+      for (i = 0; i < get_num; i++) {
+        lagopus_mutex_enter_critical(&(s_ofp_handler->m_status_lock), &cstate);
+        {
+          res = s_process_dataq_entry(ofp_bridge, gets[i]);
+          if (gets[i] != NULL && gets[i]->free != NULL) {
+            gets[i]->free(gets[i]);
+          } else {
+            free(gets[i]);
           }
         }
-        res = s_process_dataq_entry(ofp_bridge, get);
-        if (get != NULL && get->free != NULL) {
-          get->free(get);
-        } else {
-          free(get);
-        }
+        lagopus_mutex_leave_critical(&(s_ofp_handler->m_status_lock), cstate);
       }
-      lagopus_mutex_leave_critical(&(s_ofp_handler->m_status_lock));
+    } else {
+      res = LAGOPUS_RESULT_NO_MEMORY;
     }
   } else if (q_size == 0) {
     res = LAGOPUS_RESULT_OK;
   }
 done:
+  free(gets);
+
   return res;
 }
 
@@ -1139,7 +1262,7 @@ done:
 #ifdef OFPH_POLL_WRITING
 static inline lagopus_result_t
 s_event_dataq_enqueue(struct ofp_bridge *ofp_bridge,
-                      lagopus_qmuxer_poll_t poll) {
+                      lagopus_qmuxer_poll_t qpoll) {
   int i;
   lagopus_result_t res = LAGOPUS_RESULT_ANY_FAILURES;
   lagopus_result_t q_size
@@ -1148,9 +1271,10 @@ s_event_dataq_enqueue(struct ofp_bridge *ofp_bridge,
   lagopus_msg_debug(10, "called. dpid: %lu, q_size: %lu\n",
                     ofp_bridge->dpid, q_size);
   if (q_size > 0) {
+    int cstate;
     MUXER_FAIRNESS(q_size);
     for (i = 0; i < q_size; i++) {
-      lagopus_mutex_enter_critical(&(s_ofp_handler->m_status_lock));
+      lagopus_mutex_enter_critical(&(s_ofp_handler->m_status_lock), &cstate);
       {
         struct edq_buffer_entry *qe
           = STAILQ_FIRST(&(ofp_bridge->edq_buffer));
@@ -1160,7 +1284,7 @@ s_event_dataq_enqueue(struct ofp_bridge *ofp_bridge,
                                 struct eventq_data *, PUT_TIMEOUT);
           if (res != LAGOPUS_RESULT_OK) {
             lagopus_perror(res);
-            res = lagopus_qmuxer_poll_set_queue(&poll, NULL);
+            res = lagopus_qmuxer_poll_set_queue(&qpoll, NULL);
             if (res != LAGOPUS_RESULT_OK) {
               lagopus_perror(res);
               goto done;
@@ -1170,7 +1294,7 @@ s_event_dataq_enqueue(struct ofp_bridge *ofp_bridge,
           free(qe);
         }
       }
-      lagopus_mutex_leave_critical(&(s_ofp_handler->m_status_lock));
+      lagopus_mutex_leave_critical(&(s_ofp_handler->m_status_lock), cstate);
     }
     res = LAGOPUS_RESULT_OK;
   } else if (q_size == 0) {
@@ -1190,6 +1314,8 @@ s_destroy_for_recreate(void) {
     s_ofp_handler->m_polls[0] = NULL;
     s_ofp_handler->m_n_polls = 0;
   }
+  /* clear bridgeq hashmap */
+  (void) ofp_bridgeq_mgr_clear();
 }
 
 static inline lagopus_result_t
@@ -1199,7 +1325,7 @@ s_recreate(void) {
   if (s_validate_ofp_handler() == true) {
     /* Create channelq */
     res = lagopus_bbq_create(&(s_ofp_handler->m_channelq), struct channel *,
-                             CHANNELQ_SIZE, s_channel_freeup_proc);
+                             channelq_size, s_channel_freeup_proc);
     if (res != LAGOPUS_RESULT_OK) {
       lagopus_perror(res);
       goto done;
@@ -1213,13 +1339,6 @@ s_recreate(void) {
       goto done;
     }
     s_ofp_handler->m_n_polls++;
-
-    /* clear bridgeq hashmap */
-    res = ofp_bridgeq_mgr_clear();
-    if (res != LAGOPUS_RESULT_OK) {
-      lagopus_perror(res);
-      goto done;
-    }
   } else {
     res = LAGOPUS_RESULT_INVALID_ARGS;
   }
@@ -1248,6 +1367,7 @@ s_set_status(enum ofp_handler_running_status set) {
   lagopus_mutex_unlock(&(s_ofp_handler->m_status_lock));
 }
 
+#if 0
 /* constructor, destructor */
 #define OFP_HANDLER_IDX LAGOPUS_MODULE_CONSTRUCTOR_INDEX_BASE + 10
 
@@ -1263,3 +1383,5 @@ static void s_ofp_handler_dtors(void) {
   lagopus_msg_debug(1, "called.\n");
   /* TODO : final. */
 }
+#endif
+

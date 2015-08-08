@@ -14,248 +14,425 @@
  * limitations under the License.
  */
 
-
 #include "unity.h"
 #include "lagopus_apis.h"
-#include "lagopus/session.h"
-#include "lagopus/session_internal.h"
-#include "lagopus/session_tls.h"
+#include "lagopus_session.h"
+#include "lagopus_session_tls.h"
+#include "../session_internal.h"
+#include <sys/stat.h>
 
 int s4 = -1, s6 = -1;
 void
 setUp(void) {
-  struct sockaddr_storage so = {0,0,{0}};
-  struct sockaddr_in *sin = (struct sockaddr_in *)&so;
-  struct sockaddr_in6 *sin6;
-
-  if (s4 != -1) {
-    return;
-  }
-
-  sin->sin_family = AF_INET;
-  sin->sin_port = htons(10022);
-  sin->sin_addr.s_addr = INADDR_ANY;
-
-  s4 = socket(AF_INET, SOCK_STREAM, 0);
-  if (s4 < 0) {
-    perror("socket");
-    exit(1);
-  }
-
-  if (bind(s4, (struct sockaddr *) sin, sizeof(*sin)) < 0) {
-    perror("bind");
-    exit(1);
-  }
-
-  if (listen(s4, 5) < 0) {
-    perror("listen");
-    exit(1);
-  }
-
-  sin6 = (struct sockaddr_in6 *)&so;
-  sin6->sin6_family = AF_INET6;
-  sin6->sin6_port = htons(10023);
-  sin6->sin6_addr = in6addr_any;
-
-  s6 = socket(AF_INET6, SOCK_STREAM, 0);
-  if (s6 < 0) {
-    perror("socket");
-    exit(1);
-  }
-
-  if (bind(s6, (struct sockaddr *) sin6, sizeof(*sin6)) < 0) {
-    perror("bind");
-    exit(1);
-  }
-
-  if (listen(s6, 5) < 0) {
-    perror("listen");
-    exit(1);
-  }
-
 }
+
 void
 tearDown(void) {
 }
 
 void
 test_session_create_and_close(void) {
-  struct session *ses;
+  lagopus_session_t ses;
 
-  ses = session_create(SESSION_TCP);
+  ses = session_create(SESSION_TCP|SESSION_ACTIVE);
   TEST_ASSERT_NOT_NULL(ses);
   session_destroy(ses);
+}
+
+void
+test_session_create_and_fail(void) {
+  lagopus_session_t ses;
+
+  ses = session_create(SESSION_ACTIVE|SESSION_TLS);
+  TEST_ASSERT_NULL(ses);
+  ses = session_create(SESSION_TCP|SESSION_TLS);
+  TEST_ASSERT_NULL(ses);
+  ses = session_create(SESSION_TLS|SESSION_PASSIVE);
+  TEST_ASSERT_NULL(ses);
 }
 
 void
 test_session_tcp(void) {
   ssize_t ret;
-  int sock;
-  socklen_t size;
   char cbuf[256] = {0};
   char sbuf[256] = {0};
-  struct sockaddr_in sin;
-  struct session *ses;
-  struct addrunion dst;
+  bool b;
+  lagopus_session_t sesc, sess, sesa, sesp[3];
+  struct addrunion dst, src;
 
-  ses = session_create(SESSION_TCP);
-  TEST_ASSERT_NOT_NULL(ses);
+  sess = session_create(SESSION_TCP|SESSION_PASSIVE);
+  TEST_ASSERT_NOT_NULL(sess);
+
+  addrunion_ipv4_set(&src, "0.0.0.0");
+  ret = session_bind(sess, &src, 10022);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
+
+  sesc = session_create(SESSION_TCP|SESSION_ACTIVE);
+  TEST_ASSERT_NOT_NULL(sesc);
 
   addrunion_ipv4_set(&dst, "127.0.0.1");
-  ret = session_connect(ses, &dst, 10022, NULL, 0);
+  ret = session_connect(sesc, &dst, 10022, NULL, 0);
   if (ret == 0 || errno == EINPROGRESS)  {
     TEST_ASSERT(true);
   } else {
     TEST_ASSERT(false);
   }
 
-  size = sizeof(sin);
-  sock = accept(s4, (struct sockaddr *)&sin, &size);
-  if (sock < 0) {
-    perror("accept");
-    close(sock);
-  }
-  TEST_ASSERT_NOT_EQUAL(-1, sock);
-  TEST_ASSERT_TRUE(session_is_alive(ses));
+  session_write_event_set(sesc);
+  session_read_event_set(sess);
+  sesp[0] = sesc;
+  sesp[1] = sess;
+  ret = session_poll(sesp, 2, 1);
+  TEST_ASSERT_EQUAL(2, ret);
+
+  ret = session_is_writable(sesc, &b);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
+  TEST_ASSERT_TRUE(b);
+
+  ret = session_is_readable(sess, &b);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
+  TEST_ASSERT_TRUE(b);
+
+  ret = session_accept(sess, &sesa);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
+  TEST_ASSERT_NOT_NULL(sesa);
+
+  TEST_ASSERT_TRUE(session_is_alive(sess));
+  TEST_ASSERT_TRUE(session_is_alive(sesc));
+  TEST_ASSERT_TRUE(session_is_alive(sesa));
+
+  session_write_event_set(sesc);
+  session_read_event_set(sess);
+  session_read_event_set(sesa);
+  sesp[0] = sesc;
+  sesp[1] = sess;
+  sesp[2] = sesa;
+  ret = session_poll(sesp, 3, 1);
+  TEST_ASSERT_EQUAL(1, ret);
+
+  ret = session_is_writable(sesc, &b);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
+  TEST_ASSERT_TRUE(b);
+
+  ret = session_is_readable(sess, &b);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
+  TEST_ASSERT_FALSE(b);
+
+  ret = session_is_readable(sesa, &b);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
+  TEST_ASSERT_FALSE(b);
 
   snprintf(cbuf, sizeof(cbuf), "hogehoge\n");
-  ret = session_write(ses, cbuf, strlen(cbuf));
+  ret = session_write(sesc, cbuf, strlen(cbuf));
   TEST_ASSERT_EQUAL(ret, strlen(cbuf));
-  ret = read(sock, sbuf, sizeof(sbuf));
-  TEST_ASSERT_EQUAL(ret, strlen(sbuf));
 
-  ret = write(sock, sbuf, strlen(sbuf));
+  session_read_event_set(sesa);
+  sesp[0] = sesa;
+  ret = session_poll(sesp, 1, 1);
+  TEST_ASSERT_EQUAL(1, ret);
+
+  ret = session_is_readable(sesa, &b);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
+  TEST_ASSERT_TRUE(b);
+
+  ret = session_read(sesa, sbuf, sizeof(sbuf));
   TEST_ASSERT_EQUAL(ret, strlen(sbuf));
-  ret = session_read(ses, cbuf, sizeof(cbuf));
+  ret = session_write(sesa, sbuf, strlen(sbuf));
+  TEST_ASSERT_EQUAL(ret, strlen(sbuf));
+  ret = session_read(sesc, cbuf, sizeof(cbuf));
   TEST_ASSERT_EQUAL(ret, strlen(cbuf));
-  session_close(ses);
-  TEST_ASSERT_FALSE(session_is_alive(ses));
 
-  session_destroy(ses);
-  ses = NULL;
-  TEST_ASSERT_FALSE(session_is_alive(ses));
-  close(sock);
+  session_close(sesc);
+  TEST_ASSERT_FALSE(session_is_alive(sesc));
+
+  session_close(sesa);
+  TEST_ASSERT_FALSE(session_is_alive(sesa));
+
+  session_close(sess);
+  TEST_ASSERT_FALSE(session_is_alive(sesa));
+
+  session_write_event_set(sesc);
+  session_read_event_set(sess);
+  session_read_event_set(sesa);
+  sesp[0] = sesc;
+  sesp[1] = sess;
+  sesp[2] = sesa;
+  ret = session_poll(sesp, 3, 1);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_TIMEDOUT, ret);
+
+  ret = session_is_writable(sesc, &b);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
+  TEST_ASSERT_FALSE(b);
+
+  ret = session_is_readable(sess, &b);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
+  TEST_ASSERT_FALSE(b);
+
+  ret = session_is_readable(sesa, &b);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
+  TEST_ASSERT_FALSE(b);
+
+  session_destroy(sesc);
+  session_destroy(sesa);
+  session_destroy(sess);
 }
 
 void
 test_session_tcp6(void) {
   ssize_t ret;
-  int sock;
-  socklen_t size;
   char cbuf[256] = {0};
   char sbuf[256] = {0};
-  struct sockaddr_in6 sin;
-  struct session *ses;
-  struct addrunion dst;
+  lagopus_session_t sesc, sess, sesa;
+  struct addrunion dst, src;
 
-  ses = session_create(SESSION_TCP6);
-  TEST_ASSERT_NOT_NULL(ses);
+  sess = session_create(SESSION_TCP6|SESSION_PASSIVE);
+  TEST_ASSERT_NOT_NULL(sess);
+
+  addrunion_ipv6_set(&src, "::0");
+  ret = session_bind(sess, &src, 10023);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
+
+  sesc = session_create(SESSION_TCP6|SESSION_ACTIVE);
+  TEST_ASSERT_NOT_NULL(sesc);
 
   addrunion_ipv6_set(&dst, "::1");
-  ret = session_connect(ses, &dst, 10023, NULL, 0);
+  ret = session_connect(sesc, &dst, 10023, NULL, 0);
   if (ret == 0 || errno == EINPROGRESS)  {
     TEST_ASSERT(true);
   } else {
     TEST_ASSERT(false);
   }
 
-  size = sizeof(sin);
-  sock = accept(s6, (struct sockaddr *)&sin, &size);
-  if (sock < 0) {
-    perror("accept");
-    close(sock);
-  }
-  TEST_ASSERT_NOT_EQUAL(-1, sock);
+  ret = session_accept(sess, &sesa);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
+  TEST_ASSERT_NOT_NULL(sesa);
+
+  TEST_ASSERT_TRUE(session_is_alive(sess));
+  TEST_ASSERT_TRUE(session_is_alive(sesc));
+  TEST_ASSERT_TRUE(session_is_alive(sesa));
 
   snprintf(cbuf, sizeof(cbuf), "hogehoge\n");
-  ret = session_write(ses, cbuf, strlen(cbuf));
+  ret = session_write(sesc, cbuf, strlen(cbuf));
   TEST_ASSERT_EQUAL(ret, strlen(cbuf));
-  ret = read(sock, sbuf, sizeof(sbuf));
+  ret = session_read(sesa, sbuf, sizeof(sbuf));
   TEST_ASSERT_EQUAL(ret, strlen(sbuf));
 
-  ret = write(sock, sbuf, strlen(sbuf));
+  ret = session_write(sesa, sbuf, strlen(sbuf));
   TEST_ASSERT_EQUAL(ret, strlen(sbuf));
-  ret = session_read(ses, cbuf, sizeof(cbuf));
+  ret = session_read(sesc, cbuf, sizeof(cbuf));
   TEST_ASSERT_EQUAL(ret, strlen(cbuf));
 
-  session_destroy(ses);
-  close(sock);
+  session_destroy(sesc);
+  session_destroy(sesa);
+  session_destroy(sess);
 }
 
-static lagopus_result_t
-hoge(const char *a, const char *b) {
-  (void) a; (void) b;
-  return LAGOPUS_RESULT_OK;
-}
-
+/*
+ * Cannot do unit-tests for initialization of session_tls
+ * so that lagopus_session_tls is not included in this file.
+ *
 void
 test_session_tls_set_get(void) {
-  const char *s = "hogehoge";
+  const char *s1 = CONFDIR;
+  const char *s2 = CONFDIR "/TEST_SESSION_TLS_FILE1";
+  FILE *fp = NULL;
+  fp = fopen(s2, "w");
+  if (fp != NULL) {
+    fclose(fp);
+  }
+
   char *a = NULL;
-  session_tls_initialize(hoge);
-  session_tls_ca_dir_get(&a);
-  session_tls_ca_dir_set(NULL);
-  session_tls_ca_dir_set(s);
-  session_tls_ca_dir_get(&a);
-  TEST_ASSERT_EQUAL_STRING(s, a);
+  lagopus_session_tls_get_ca_dir(&a);
+  lagopus_session_tls_set_ca_dir(NULL);
+  lagopus_session_tls_set_ca_dir(s1);
+  lagopus_session_tls_get_ca_dir(&a);
+  TEST_ASSERT_EQUAL_STRING(s1, a);
 
   free(a); a = NULL;
-  session_tls_cert_get(&a);
-  session_tls_cert_set(NULL);
-  session_tls_cert_set(s);
-  session_tls_cert_get(&a);
-  TEST_ASSERT_EQUAL_STRING(s, a);
+  lagopus_session_tls_get_client_cert(&a);
+  lagopus_session_tls_set_client_cert(NULL);
+  lagopus_session_tls_set_client_cert(s2);
+  lagopus_session_tls_get_client_cert(&a);
+  TEST_ASSERT_EQUAL_STRING(s2, a);
 
   free(a); a = NULL;
-  session_tls_key_get(&a);
-  session_tls_key_set(NULL);
-  session_tls_key_set(s);
-  session_tls_key_get(&a);
-  TEST_ASSERT_EQUAL_STRING(s, a);
+  lagopus_session_tls_get_server_cert(&a);
+  lagopus_session_tls_set_server_cert(NULL);
+  lagopus_session_tls_set_server_cert(s2);
+  lagopus_session_tls_get_server_cert(&a);
+  TEST_ASSERT_EQUAL_STRING(s2, a);
+
+  free(a); a = NULL;
+  lagopus_session_tls_get_client_key(&a);
+  lagopus_session_tls_set_client_key(NULL);
+  lagopus_session_tls_set_client_key(s2);
+  lagopus_session_tls_get_client_key(&a);
+  TEST_ASSERT_EQUAL_STRING(s2, a);
+
+  free(a); a = NULL;
+  lagopus_session_tls_get_server_key(&a);
+  lagopus_session_tls_set_server_key(NULL);
+  lagopus_session_tls_set_server_key(s2);
+  lagopus_session_tls_get_server_key(&a);
+  TEST_ASSERT_EQUAL_STRING(s2, a);
+
+  free(a); a = NULL;
+  lagopus_session_tls_get_point_conf(&a);
+  lagopus_session_tls_set_trust_point_conf(NULL);
+  lagopus_session_tls_set_trust_point_conf(s2);
+  lagopus_session_tls_get_point_conf(&a);
+  TEST_ASSERT_EQUAL_STRING(s2, a);
+
+  free(a);
+  unlink(s2);
 }
+*/
 
 
 void
 test_session_tls(void) {
-#if 0
-  ssize_t ret;
-  lagopus_result_t res;
-  int sock;
-  socklen_t size;
+#if 0 /* this test code is not work, use openssl s_server/s_client commands for tls session tests. */
+  lagopus_result_t ret;
   char cbuf[256] = {0};
   char sbuf[256] = {0};
-  struct sockaddr_in sin;
-#endif
-  struct session *ses;
+  lagopus_session_t sesc, sess, sesa;
   struct addrunion src, dst;
 
-  addrunion_ipv4_set(&src, "0.0.0.0");
-  addrunion_ipv4_set(&dst, "127.0.0.1");
-  ses = session_create(SESSION_TLS);
-  TEST_ASSERT_NOT_NULL(ses);
+  session_tls_set_ca_dir("ca");
+  session_tls_set_server_cert("./server1.pem");
+  session_tls_set_server_key("./server1_key_nopass.pem");
+  session_tls_set_client_key("./client1_key_nopass.pem");
 
-#if 0
-  ret = session_connect(ses, &dst, 10022, &src, 0);
+  sess = session_create(SESSION_TCP|SESSION_PASSIVE|SESSION_TLS);
+  TEST_ASSERT_NOT_NULL(sess);
+  addrunion_ipv4_set(&src, "0.0.0.0");
+  ret = session_bind(sess, &src, 10024);
+
+  addrunion_ipv4_set(&dst, "127.0.0.1");
+  sesc = session_create(SESSION_TCP|SESSION_TLS|SESSION_ACTIVE);
+  TEST_ASSERT_NOT_NULL(sesc);
+
+  ret = session_connect(sesc, &dst, 10024, &dst, 0);
   if (ret == 0 || errno == EINPROGRESS)  {
     TEST_ASSERT(true);
   } else {
     TEST_ASSERT(false);
   }
 
-  size = sizeof(sin);
-  sock = accept(s4, (struct sockaddr *)&sin, &size);
-  if (sock < 0) {
-    perror("accept");
-    close(sock);
-  }
-  TEST_ASSERT_NOT_EQUAL(-1, sock);
-  TEST_ASSERT_TRUE(session_is_alive(ses));
+  ret = session_accept(sess, &sesa);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
+  TEST_ASSERT_NOT_NULL(sesa);
 
-  res = session_connect_check(ses);
-  TEST_ASSERT_EQUAL(res, LAGOPUS_RESULT_EINPROGRESS);
+  TEST_ASSERT_TRUE(session_is_alive(sess));
+  TEST_ASSERT_TRUE(session_is_alive(sesa));
 
-  session_destroy(ses);
-  ses = NULL;
-  TEST_ASSERT_FALSE(session_is_alive(ses));
+  ret = session_read(sesa, sbuf, sizeof(sbuf));
+  TEST_ASSERT_EQUAL(ret, strlen(sbuf));
+
+  ret = session_write(sesa, sbuf, strlen(sbuf));
+  TEST_ASSERT_EQUAL(ret, strlen(sbuf));
+
+  TEST_ASSERT_TRUE(session_is_alive(sesc));
+
+  snprintf(cbuf, sizeof(cbuf), "hogehoge\n");
+  ret = session_write(sesc, cbuf, strlen(cbuf));
+  TEST_ASSERT_EQUAL(ret, strlen(cbuf));
+  ret = session_read(sesa, sbuf, sizeof(sbuf));
+  TEST_ASSERT_EQUAL(ret, strlen(sbuf));
+
+  ret = session_write(sesa, sbuf, strlen(sbuf));
+  TEST_ASSERT_EQUAL(ret, strlen(sbuf));
+  ret = session_read(sesc, cbuf, sizeof(cbuf));
+  TEST_ASSERT_EQUAL(ret, strlen(cbuf));
+
+  session_destroy(sesc);
+  session_destroy(sesa);
+  session_destroy(sess);
 #endif
+}
+
+void
+test_session_fgets(void) {
+  ssize_t ret;
+  char *c;
+#if 0
+  char cbuf[256] = {0};
+#endif
+  char sbuf[256] = {0};
+  lagopus_session_t sesc, sess, sesa, sesp[1];
+  struct addrunion dst, src;
+
+  sess = session_create(SESSION_TCP|SESSION_PASSIVE);
+  TEST_ASSERT_NOT_NULL(sess);
+
+  addrunion_ipv4_set(&src, "0.0.0.0");
+  ret = session_bind(sess, &src, 10022);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
+
+  sesc = session_create(SESSION_TCP|SESSION_ACTIVE);
+  TEST_ASSERT_NOT_NULL(sesc);
+
+  addrunion_ipv4_set(&dst, "127.0.0.1");
+  ret = session_connect(sesc, &dst, 10022, NULL, 0);
+  if (ret == 0 || errno == EINPROGRESS)  {
+    TEST_ASSERT(true);
+  } else {
+    TEST_ASSERT(false);
+  }
+
+  ret = session_accept(sess, &sesa);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
+  TEST_ASSERT_NOT_NULL(sesa);
+
+  TEST_ASSERT_TRUE(session_is_alive(sess));
+  TEST_ASSERT_TRUE(session_is_alive(sesc));
+  TEST_ASSERT_TRUE(session_is_alive(sesa));
+
+  ret = session_printf(sesc, "%s", "hogehoge\n\nhoge");
+  TEST_ASSERT_EQUAL(ret, strlen("hogehoge\n\nhoge"));
+
+  session_read_event_set(sesa);
+  sesp[0] = sesa;
+  ret = session_poll(sesp, 1, 1);
+  TEST_ASSERT_EQUAL(ret, 1);
+
+  c = session_fgets(sbuf, 5, sesa);
+  fprintf(stderr, "1.%s\n", sbuf);
+  TEST_ASSERT_NOT_NULL(c);
+  TEST_ASSERT_EQUAL(0, strncmp(sbuf, "hoge", 5));
+
+  c = session_fgets(sbuf, 10, sesa);
+  fprintf(stderr, "2.%s\n", sbuf);
+  TEST_ASSERT_NOT_NULL(c);
+  TEST_ASSERT_EQUAL(0, strncmp(sbuf, "hoge\n", 5));
+
+  c = session_fgets(sbuf, 10, sesa);
+  fprintf(stderr, "3.%s\n", sbuf);
+  TEST_ASSERT_NOT_NULL(c);
+  TEST_ASSERT_EQUAL(0, strncmp(sbuf, "\n", 1));
+
+  c = session_fgets(sbuf, 5, sesa);
+  fprintf(stderr, "4.%s\n", sbuf);
+  TEST_ASSERT_NOT_NULL(c);
+  TEST_ASSERT_EQUAL(0, strncmp(sbuf, "hoge", 5));
+
+#if 0
+  do {
+    fprintf(stderr, "out:%s", sbuf);
+    fgets(cbuf, sizeof(cbuf), stdin);
+    fprintf(stderr, "in :%s", cbuf);
+    session_write(sesc, cbuf, strlen(cbuf));
+  } while (session_fgets(sbuf, sizeof(sbuf), sesa) != NULL);
+#endif
+
+  session_close(sesc);
+  TEST_ASSERT_FALSE(session_is_alive(sesc));
+  session_close(sesa);
+  TEST_ASSERT_FALSE(session_is_alive(sesa));
+  session_close(sess);
+  TEST_ASSERT_FALSE(session_is_alive(sesa));
+
+  session_destroy(sesc);
+  session_destroy(sesa);
+  session_destroy(sess);
 }

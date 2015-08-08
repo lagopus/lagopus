@@ -13,11 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 /**
- * @file        ofp_table_mod_apis.h
- * @brief       Agent/Data-Plane APIs for ofp_table_mod
- * @details     Describe APIs between Agent and Data-Plane for ofp_table_mod.
+ * @file	ofp_table_mod_apis.h
+ * @brief	Agent/Data-Plane APIs for ofp_table_mod
+ * @details	Describe APIs between Agent and Data-Plane for ofp_table_mod.
  */
 #ifndef __LAGOPUS_OFP_TABLE_MOD_APIS_H__
 #define __LAGOPUS_OFP_TABLE_MOD_APIS_H__
@@ -31,13 +30,13 @@
 /**
  * The table configuration which match \e table_id is updated for \b OFP_TABLE_MOD.
  *
- *     @param[in]       dpid    Datapath id.
- *     @param[in]       table_mod       A pointer to \e ofp_table_mod structure.
- *     @param[out]      error   A pointer to \e ofp_error structure.
+ *     @param[in]	dpid	Datapath id.
+ *     @param[in]	table_mod	A pointer to \e ofp_table_mod structure.
+ *     @param[out]	error	A pointer to \e ofp_error structure.
  *     If errors occur, set filed values.
  *
- *     @retval  LAGOPUS_RESULT_OK       Succeeded.
- *     @retval  LAGOPUS_RESULT_ANY_FAILURES     Failed.
+ *     @retval	LAGOPUS_RESULT_OK	Succeeded.
+ *     @retval	LAGOPUS_RESULT_ANY_FAILURES	Failed.
  */
 lagopus_result_t
 ofp_table_mod_set(uint64_t dpid,

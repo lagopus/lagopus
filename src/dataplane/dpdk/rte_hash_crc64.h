@@ -59,7 +59,7 @@ extern "C" {
  *   64bit calculated hash value.
  */
 static inline uint64_t
-lagopus_hash_crc64(const void *data, uint32_t data_len, uint32_t init_val) {
+lagopus_hash_crc64(const char *data, size_t data_len, uint64_t init_val) {
   uint32_t cksum;
   unsigned i;
   uint32_t temp = 0, hash2 = 0;
@@ -67,16 +67,16 @@ lagopus_hash_crc64(const void *data, uint32_t data_len, uint32_t init_val) {
 
   cksum = (data_len << 19) | (data_len >> 13);
   for (i = 0; i < data_len / 4; i++) {
-    init_val = rte_hash_crc_4byte(*--p32, init_val);
+    init_val = rte_hash_crc_4byte(*--p32, (uint32_t)init_val);
   }
 
   switch (3 - (data_len & 0x03)) {
     case 0:
       temp |= *((const uint8_t *)p32 + 2) << 16;
-    /* Fallthrough */
+      /* Fallthrough */
     case 1:
       temp |= *((const uint8_t *)p32 + 1) << 8;
-    /* Fallthrough */
+      /* Fallthrough */
     case 2:
       temp |= *((const uint8_t *)p32);
       init_val = rte_hash_crc_4byte(temp, init_val);

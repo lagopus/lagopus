@@ -14,10 +14,9 @@
  * limitations under the License.
  */
 
-
 /**
  *      @file   flowinfo_port.c
- *      @brief  Optimized flow database for datapath, for Port
+ *      @brief  Optimized flow database for dataplane, for Port
  */
 
 #include <stdlib.h>

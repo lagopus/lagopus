@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 /* OpenFlow packet encoder/decoder generator. */
 
 #include <stdio.h>
@@ -167,7 +166,6 @@ output_top(const char *hname) {
     " * limitations under the License.\n"
     " */\n";
 
-
   len = strlen(hname);
   if (len >= sizeof(buf)) {
     len = sizeof(buf) - 1;
@@ -182,7 +180,6 @@ output_top(const char *hname) {
       buf[i] = '_';
     }
   }
-
   fprintf(fp_header, "%s", licence);
   fprintf(fp_header, "\n");
   fprintf(fp_header, "/**\n");
@@ -787,8 +784,7 @@ exp_generate_doxygen_trace_function(struct exp_list *elist, FILE *fp) {
   fprintf(fp, " *     @param[in]\tmax_len\tMax length.\n");
   fprintf(fp, " *\n");
   fprintf(fp, " *     @retval\tLAGOPUS_RESULT_OK\tSucceeded.\n");
-  fprintf(fp,
-          " *     @retval\tLAGOPUS_RESULT_OUT_OF_RANGE\tOver max length.\n");
+  fprintf(fp, " *     @retval\tLAGOPUS_RESULT_OUT_OF_RANGE\tOver max length.\n");
   fprintf(fp, " *     @retval\tLAGOPUS_RESULT_ANY_FAILURES\tFailed.\n");
   fprintf(fp, " */\n");
 }
@@ -857,8 +853,7 @@ exp_generate_trace(struct exp_list *elist) {
       /* Do not generate nested structure trace. */
     } else {
       /* Array debug. */
-      fprintf(fp_source, "      if (ARRAY_NOT_EMPTY(%d)) {\n",
-              exp->decl.array_size);
+      fprintf(fp_source, "      if (ARRAY_NOT_EMPTY(%d)) {\n", exp->decl.array_size);
       fprintf(fp_source, "        TRACE_STR_ADD(n, str, max_len, \" %s: \");\n",
               exp->decl.name);
       fprintf(fp_source, "        for (int i = 0; i < %d; i++) {\n",

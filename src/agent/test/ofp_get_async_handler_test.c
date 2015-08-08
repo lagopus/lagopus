@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 #include "unity.h"
 #include "../ofp_get_async_handler.h"
 #include "lagopus/ofp_dp_apis.h"
@@ -171,8 +170,7 @@ test_ofp_get_async_request_handle_invalid_argument(void) {
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS, ret,
                             "NULL checking is requred.");
 
-  ret = ofp_get_async_request_handle(channel, NULL, &xid_header,
-                                     &ignored_error);
+  ret = ofp_get_async_request_handle(channel, NULL, &xid_header, &ignored_error);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS, ret,
                             "NULL checking is requred.");
 

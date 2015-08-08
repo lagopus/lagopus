@@ -14,18 +14,17 @@
  * limitations under the License.
  */
 
-
 #include "lagopus_apis.h"
 
 
+
 
 
-
-#define ONE_SEC         1000LL * 1000LL * 1000LL
-#define REQ_TIMEDOUT    ONE_SEC
-
+#define ONE_SEC		1000LL * 1000LL * 1000LL
+#define REQ_TIMEDOUT	ONE_SEC
 
 
+
 
 
 static volatile bool s_got_term_sig = false;

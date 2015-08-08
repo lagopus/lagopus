@@ -1,0 +1,126 @@
+use:
+  - lagopus
+  - ryu
+
+setup:
+  - cmds:
+      - cmd_type: shell
+        cmd: "{{ shell_dir }}/dummy_eth_up.sh lago_eth 1"
+        result: "0"
+
+teardown:
+  - cmds:
+      - cmd_type: shell
+        cmd: "{{ shell_dir }}/dummy_eth_down.sh lago_eth 1"
+        result: "0"
+
+testcases:
+  - testcase: show, repetition 100 times
+    test:
+      - cmds:
+          - cmd_type: ds
+            cmd: channel channel01 create -dst-addr 127.0.0.1 -protocol tcp
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: >-
+              controller controller01 create -channel channel01
+              -role equal -connection-type main
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: >-
+              interface interface01 create -type ethernet-rawsock
+              -device lago_eth0 -port-number 1
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: port port01 create -interface interface01
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: >-
+              bridge bridge01 create -controller controller01
+              -port port01 1 -dpid 0x1
+            result: '{"ret": "OK"}'
+      - repetition_count: 100
+        cmds:
+          - cmd_type: ds
+            cmd: interface
+            result: >-
+              {"ret":"OK",
+              "data":[{"name":":interface01",
+              "type":"ethernet-rawsock",
+              "port-number":1,
+              "device":"lago_eth0",
+              "mtu":1500,
+              "ip-addr":"127.0.0.1",
+              "is-used":true,
+              "is-enabled":false}]}
+          - cmd_type: ds
+            cmd: port
+            result: >-
+              {"ret":"OK",
+              "data":[{"name":":port01",
+              "port-number":1,
+              "interface":":interface01",
+              "policer":"",
+              "queues": [],
+              "is-used":true,
+              "is-enabled":false}]}
+          - cmd_type: ds
+            cmd: channel
+            result: >-
+              {"ret":"OK",
+              "data":[{"name":":channel01",
+              "dst-addr":"127.0.0.1",
+              "dst-port":6633,
+              "local-addr":"0.0.0.0",
+              "local-port":0,
+              "protocol":"tcp",
+              "is-used":true,
+              "is-enabled":false}]}
+          - cmd_type: ds
+            cmd: controller
+            result: >-
+              {"ret":"OK",
+              "data":[{"name":":controller01",
+              "channel":":channel01",
+              "role":"equal",
+              "connection-type":"main",
+              "is-used":true,
+              "is-enabled":false}]}
+          - cmd_type: ds
+            cmd: bridge
+            result: >-
+              {"ret":"OK",
+              "data":[{"name":":bridge01",
+              "controllers":[":controller01"],
+              "ports":{":port01":1},
+              "l2-bridge":"",
+              "dpid":1,
+              "fail-mode":"secure",
+              "flow-statistics":true,
+              "group-statistics":true,
+              "port-statistics":true,
+              "queue-statistics":true,
+              "table-statistics":true,
+              "reassemble-ip-fragments":false,
+              "max-buffered-packets":65535,
+              "max-ports":255,
+              "max-tables":255,
+              "max-flows":4294967295,
+              "packet-inq-size":1000,
+              "packet-inq-max-batches":1000,
+              "up-streamq-size":1000,
+              "up-streamq-max-batches":1000,
+              "down-streamq-size":1000,
+              "down-streamq-max-batches":1000,
+              "block-looping-ports":false,
+              "action-types":["copy-ttl-out","copy-ttl-in","set-mpls-ttl","dec-mpls-ttl","push-vlan","pop-vlan","push-mpls","pop-mpls","set-queue","group","set-nw-ttl","dec-nw-ttl","set-field"],
+              "instruction-types":["apply-actions","clear-actions","write-actions","write-metadata","goto-table"],
+              "reserved-port-types":["all","controller","table","inport","any","normal","flood"],
+              "group-types":["all","select","indirect","fast-failover"],
+              "group-capabilities":["select-weight","select-liveness","chaining","chaining-check"],
+              "is-used":false,
+              "is-enabled":false}]}
+      - cmds:
+          - cmd_type: ds
+            cmd: destroy-all-obj
+            result: '{"ret": "OK"}'

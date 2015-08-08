@@ -7,15 +7,16 @@ TOPDIR		= @TOPDIR@
 top_builddir	?= $(TOPDIR)
 MKRULESDIR	= @MKRULESDIR@
 
-PREFIX		= @prefix@
 prefix		= @prefix@
-SYSCONFDIR	= @sysconfdir@
 sysconfdir	= @sysconfdir@
 
 ifneq ($(DESTDIR),)
-prefix		= $(DESTDIR)/$(PREFIX)
-sysconfdir	= $(DESTDIR)/$(SYSCONFDIR)
+prefix		:= $(DESTDIR)/$(prefix)
+sysconfdir	:= $(DESTDIR)/$(sysconfdir)
 endif
+
+PREFIX		=	$(prefix)
+SYSCONFDIR	=	$(sysconfdir)
 
 DEST_EXEDIR	= $(prefix)/bin
 DEST_SBIN_EXEDIR	= $(prefix)/sbin
@@ -52,15 +53,25 @@ INSTALL_DATA	= @INSTALL_DATA@
 INSTALL_SCRIPT	= @INSTALL_SCRIPT@
 INSTALL_PROGRAM	= @INSTALL_PROGRAM@
 
+NETSNMP_AGENT_LIBS	= @NETSNMP_AGENT_LIBS@
 
 BUILD_SRCDIR	= $(TOPDIR)/src
 BUILD_INCDIR	= $(BUILD_SRCDIR)/include
 BUILD_LIBDIR	= $(BUILD_SRCDIR)/lib
 BUILD_AGENTDIR	= $(BUILD_SRCDIR)/agent
+BUILD_DATASTOREDIR = $(BUILD_SRCDIR)/datastore
 BUILD_DATAPLANEDIR = $(BUILD_SRCDIR)/dataplane
 BUILD_DATAPLANETESTLIBDIR = $(BUILD_SRCDIR)/dataplane/ofproto/test/lib
-BUILD_CONFIGDIR	= $(BUILD_SRCDIR)/config
-BUILD_EDITDIR	= $(BUILD_SRCDIR)/config/cli/libedit
+BUILD_SNMPDIR	= $(BUILD_SRCDIR)/snmp
+
+# Obsolete/Depricated modules:
+#---------------------------------------------------------------------
+#BUILD_CONFIGDIR	= $(BUILD_SRCDIR)/config
+#BUILD_ETHOAMDIR	= $(BUILD_SRCDIR)/ethoam
+#BUILD_EDITDIR	= $(BUILD_SRCDIR)/config/cli/libedit
+#BUILD_OFCONFDIR	= $(BUILD_SRCDIR)/config/of_config
+#BUILD_OVSDBDIR	= $(BUILD_SRCDIR)/config/ovsdb
+#---------------------------------------------------------------------
 
 SITECONF_MK	?=	$(shell ls $(MKRULESDIR)/siteconf.mk 2>/dev/null)
 ifdef SITECONF_MK
@@ -74,20 +85,39 @@ DEP_LAGOPUS_UTIL_LIB	= $(BUILD_LIBDIR)/$(LAGOPUS_UTIL_LIB)
 LAGOPUS_AGENT_LIB		= liblagopus_agent.la
 DEP_LAGOPUS_AGENT_LIB	= $(BUILD_AGENTDIR)/$(LAGOPUS_AGENT_LIB)
 
+LAGOPUS_DATASTORE_LIB		= liblagopus_datastore.la
+DEP_LAGOPUS_DATASTORE_LIB	= $(BUILD_DATASTOREDIR)/$(LAGOPUS_DATASTORE_LIB)
+
 LAGOPUS_DATAPLANE_LIB		= liblagopus_dataplane.la
 DEP_LAGOPUS_DATAPLANE_LIB	= $(BUILD_DATAPLANEDIR)/$(LAGOPUS_DATAPLANE_LIB)
 
 LAGOPUS_DATAPLANE_TEST_LIB	= liblagopus_dataplane_test.la
 DEP_LAGOPUS_DATAPLANE_TEST_LIB	= $(BUILD_DATAPLANETESTLIBDIR)/$(LAGOPUS_DATAPLANE_TEST_LIB)
 
-LAGOPUS_CONFIG_LIB		= liblagopus_config.la
-DEP_LAGOPUS_CONFIG_LIB	= $(BUILD_CONFIGDIR)/$(LAGOPUS_CONFIG_LIB)
+SNMP_HANDLER_LIB		= liblagopus_snmp_handler.la
+DEP_SNMP_HANDLER_LIB	= $(BUILD_SNMPDIR)/$(SNMP_HANDLER_LIB)
 
-LAGOPUS_EDIT_LIB		= liblagopus_edit.la
-DEP_LAGOPUS_EDIT_LIB	= $(BUILD_EDITDIR)/$(LAGOPUS_EDIT_LIB)
+# Obsolete/Depricated modules:
+#---------------------------------------------------------------------
+#LAGOPUS_ETHOAM_LIB		= liblagopus_ethoam.la
+#DEP_LAGOPUS_ETHOAM_LIB	= $(BUILD_ETHOAMDIR)/$(LAGOPUS_ETHOAM_LIB)
 
-CPPFLAGS	+= @OS_CPPFLAGS@ @FLOWCACHE_FLAGS@ \
-	-I$(BUILD_INCDIR) -DCONFDIR='"$(CONFDIR)"'
+#LAGOPUS_CONFIG_LIB		= liblagopus_config.la
+#DEP_LAGOPUS_CONFIG_LIB	= $(BUILD_CONFIGDIR)/$(LAGOPUS_CONFIG_LIB)
+
+#LAGOPUS_EDIT_LIB		= liblagopus_edit.la
+#DEP_LAGOPUS_EDIT_LIB	= $(BUILD_EDITDIR)/$(LAGOPUS_EDIT_LIB)
+
+#LAGOPUS_OFCONF_LIB		= liblagopus_ofconf.la
+#DEP_LAGOPUS_OFCONF_LIB	= $(BUILD_OFCONFDIR)/$(LAGOPUS_OFCONF_LIB)
+
+#LAGOPUS_OVSDB_LIB		= liblagopus_ovsdb.la
+#DEP_LAGOPUS_OVSDB_LIB	= $(BUILD_OVSDBDIR)/$(LAGOPUS_OVSDB_LIB)
+#---------------------------------------------------------------------
+
+CPPFLAGS	+= @OS_CPPFLAGS@ @MBTREE_FLAGS@ @SNMP_CPPFLAGS@
+CPPFLAGS	+= @FRAME_CPPFLAGS@
+CPPFLAGS	+= -I$(BUILD_INCDIR) -DCONFDIR='"$(CONFDIR)"'
 ifneq ($(RTE_SDK),)
 # so far, hardcoded to use dpdk version.
 CPPFLAGS += -DHAVE_DPDK -I$(RTE_SDK)/$(RTE_TARGET)/include @SSE42_CPPFLAGS@

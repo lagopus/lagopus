@@ -14,12 +14,11 @@
  * limitations under the License.
  */
 
-
 #ifndef __LAGOPUS_CBUFFER_H__
 #define __LAGOPUS_CBUFFER_H__
 
 
-
+
 
 
 /**
@@ -27,11 +26,11 @@
  */
 
 
-
+
 
 
 #ifndef __LAGOPUS_CBUFFER_T_DEFINED__
-typedef struct lagopus_cbuffer_record   *lagopus_cbuffer_t;
+typedef struct lagopus_cbuffer_record 	*lagopus_cbuffer_t;
 #endif /* ! __LAGOPUS_CBUFFER_T_DEFINED__ */
 
 
@@ -39,10 +38,10 @@ typedef struct lagopus_cbuffer_record   *lagopus_cbuffer_t;
  * @details The signature of value free up functions called when
  * destroying a circular buffer.
  */
-typedef void    (*lagopus_cbuffer_value_freeup_proc_t)(void **valptr);
+typedef void	(*lagopus_cbuffer_value_freeup_proc_t)(void **valptr);
 
 
-
+
 
 
 lagopus_result_t
@@ -53,10 +52,10 @@ lagopus_cbuffer_create_with_size(lagopus_cbuffer_t *cbptr,
 /**
  * Create a circular buffer.
  *
- *     @param[in,out]   cbptr   A pointer to a circular buffer to be created.
- *     @param[in]       type    Type of the element.
- *     @param[in]       maxelems        # of maximum elements.
- *     @param[in]       proc    A value free up function (\b NULL allowed).
+ *     @param[in,out]	cbptr	A pointer to a circular buffer to be created.
+ *     @param[in]	type	Type of the element.
+ *     @param[in]	maxelems	# of maximum elements.
+ *     @param[in]	proc	A value free up function (\b NULL allowed).
  *
  *     @retval LAGOPUS_RESULT_OK               Succeeded.
  *     @retval LAGOPUS_RESULT_NO_MEMORY        Failed, no memory.
@@ -69,8 +68,8 @@ lagopus_cbuffer_create_with_size(lagopus_cbuffer_t *cbptr,
 /**
  * Shutdown a circular buffer.
  *
- *    @param[in]        cbptr   A pointer to a circular buffer to be shutdown.
- *    @param[in]        free_values     If \b true, all the values remaining
+ *    @param[in]	cbptr	A pointer to a circular buffer to be shutdown.
+ *    @param[in]	free_values	If \b true, all the values remaining
  *    in the buffer are freed if the value free up function given by
  *    the calling of the lagopus_cbuffer_create() is not \b NULL.
  */
@@ -106,7 +105,7 @@ lagopus_cbuffer_destroy(lagopus_cbuffer_t *cbptr,
  *
  *     @retval LAGOPUS_RESULT_OK                Succeeded.
  *     @retval LAGOPUS_RESULT_NOT_OPERATIONAL   Failed, not operational.
- *     @retval LAGOPUS_RESULT_INVALID_ARGS      Failed, invalid argument(s).
+ *     @retval LAGOPUS_RESULT_INVALID_ARGS	Failed, invalid argument(s).
  *     @retval LAGOPUS_RESULT_ANY_FAILURES      Failed.
  */
 lagopus_result_t
@@ -117,21 +116,21 @@ lagopus_cbuffer_clear(lagopus_cbuffer_t *cbptr,
 /**
  * Wake up all the waiters in a circular buffer.
  *
- *     @param[in]  cbptr        A pointer to a circular buffer.
- *     @param[in]  nsec         Wait time (nanosec).
+ *     @param[in]  cbptr	A pointer to a circular buffer.
+ *     @param[in]  nsec		Wait time (nanosec).
  *
  *     @retval LAGOPUS_RESULT_OK                Succeeded.
  *     @retval LAGOPUS_RESULT_NOT_OPERATIONAL   Failed, not operational.
  *     @retval LAGOPUS_RESULT_POSIX_API_ERROR   Failed, posix API error.
  *     @retval LAGOPUS_RESULT_TIMEDOUT          Failed, timedout.
- *     @retval LAGOPUS_RESULT_INVALID_ARGS      Failed, invalid argument(s).
+ *     @retval LAGOPUS_RESULT_INVALID_ARGS	Failed, invalid argument(s).
  *     @retval LAGOPUS_RESULT_ANY_FAILURES      Failed.
  */
 lagopus_result_t
 lagopus_cbuffer_wakeup(lagopus_cbuffer_t *cbptr, lagopus_chrono_t nsec);
 
 
-
+
 
 
 lagopus_result_t
@@ -152,7 +151,7 @@ lagopus_cbuffer_put_with_size(lagopus_cbuffer_t *cbptr,
  *     @retval LAGOPUS_RESULT_POSIX_API_ERROR   Failed, posix API error.
  *     @retval LAGOPUS_RESULT_TIMEDOUT          Failed, timedout.
  *     @retval LAGOPUS_RESULT_WAKEUP_REQUESTED  Failed, timedout.
- *     @retval LAGOPUS_RESULT_INVALID_ARGS      Failed, invalid argument(s).
+ *     @retval LAGOPUS_RESULT_INVALID_ARGS	Failed, invalid argument(s).
  *     @retval LAGOPUS_RESULT_ANY_FAILURES      Failed.
  */
 #define lagopus_cbuffer_put(cbptr, valptr, type, nsec)                  \
@@ -182,7 +181,7 @@ lagopus_cbuffer_put_n_with_size(lagopus_cbuffer_t *cbptr,
  *     @retval LAGOPUS_RESULT_POSIX_API_ERROR   Failed, posix API error.
  *     @retval LAGOPUS_RESULT_TIMEDOUT          Failed, timedout.
  *     @retval LAGOPUS_RESULT_WAKEUP_REQUESTED  Failed, timedout.
- *     @retval LAGOPUS_RESULT_INVALID_ARGS      Failed, invalid argument(s).
+ *     @retval LAGOPUS_RESULT_INVALID_ARGS	Failed, invalid argument(s).
  *     @retval LAGOPUS_RESULT_ANY_FAILURES      Failed.
  *
  *     @details If the \b nsec is less than zero, it blocks until all the
@@ -233,7 +232,7 @@ lagopus_cbuffer_get_with_size(lagopus_cbuffer_t *cbptr,
  *     @retval LAGOPUS_RESULT_POSIX_API_ERROR   Failed, posix API error.
  *     @retval LAGOPUS_RESULT_TIMEDOUT          Failed, timedout.
  *     @retval LAGOPUS_RESULT_WAKEUP_REQUESTED  Failed, timedout.
- *     @retval LAGOPUS_RESULT_INVALID_ARGS      Failed, invalid argument(s).
+ *     @retval LAGOPUS_RESULT_INVALID_ARGS	Failed, invalid argument(s).
  *     @retval LAGOPUS_RESULT_ANY_FAILURES      Failed.
  */
 #define lagopus_cbuffer_get(cbptr, valptr, type, nsec)                  \
@@ -265,7 +264,7 @@ lagopus_cbuffer_get_n_with_size(lagopus_cbuffer_t *cbptr,
  *     @retval LAGOPUS_RESULT_POSIX_API_ERROR   Failed, posix API error.
  *     @retval LAGOPUS_RESULT_TIMEDOUT          Failed, timedout.
  *     @retval LAGOPUS_RESULT_WAKEUP_REQUESTED  Failed, timedout.
- *     @retval LAGOPUS_RESULT_INVALID_ARGS      Failed, invalid argument(s).
+ *     @retval LAGOPUS_RESULT_INVALID_ARGS	Failed, invalid argument(s).
  *     @retval LAGOPUS_RESULT_ANY_FAILURES      Failed.
  *
  *     @details If the \b nsec is less than zero, it blocks until all the
@@ -321,7 +320,7 @@ lagopus_cbuffer_peek_with_size(lagopus_cbuffer_t *cbptr,
  *     @retval LAGOPUS_RESULT_POSIX_API_ERROR   Failed, posix API error.
  *     @retval LAGOPUS_RESULT_TIMEDOUT          Failed, timedout.
  *     @retval LAGOPUS_RESULT_WAKEUP_REQUESTED  Failed, timedout.
- *     @retval LAGOPUS_RESULT_INVALID_ARGS      Failed, invalid argument(s).
+ *     @retval LAGOPUS_RESULT_INVALID_ARGS	Failed, invalid argument(s).
  *     @retval LAGOPUS_RESULT_ANY_FAILURES      Failed.
  */
 #define lagopus_cbuffer_peek(cbptr, valptr, type, nsec)                \
@@ -352,7 +351,7 @@ lagopus_cbuffer_peek_n_with_size(lagopus_cbuffer_t *cbptr,
  *     @retval LAGOPUS_RESULT_POSIX_API_ERROR   Failed, posix API error.
  *     @retval LAGOPUS_RESULT_TIMEDOUT          Failed, timedout.
  *     @retval LAGOPUS_RESULT_WAKEUP_REQUESTED  Failed, timedout.
- *     @retval LAGOPUS_RESULT_INVALID_ARGS      Failed, invalid argument(s).
+ *     @retval LAGOPUS_RESULT_INVALID_ARGS	Failed, invalid argument(s).
  *     @retval LAGOPUS_RESULT_ANY_FAILURES      Failed.
  *
  *     @details If the \b nsec is less than zero, it blocks until all the
@@ -389,17 +388,17 @@ lagopus_cbuffer_peek_n_with_size((cbptr), (void **)(valptr),          \
                                  sizeof(type), (nsec), (n_actual_peek))
 
 
-
+
 
 
 /**
  * Get a # of elements in a circular buffer.
- *      @param[in]   cbptr    A pointer to a circular buffer
+ *	@param[in]   cbptr    A pointer to a circular buffer
  *
- *      @retval >=0     A # of elements in the circular buffer.
- *      @retval LAGOPUS_RESULT_INVALID_ARGS     Failed, invalid argument(s).
- *      @retval LAGOPUS_RESULT_NOT_OPERATIONAL  Failed, not operational.
- *      @retval LAGOPUS_RESULT_ANY_FAILURES     Failed.
+ *	@retval	>=0	A # of elements in the circular buffer.
+ *	@retval LAGOPUS_RESULT_INVALID_ARGS	Failed, invalid argument(s).
+ *	@retval LAGOPUS_RESULT_NOT_OPERATIONAL	Failed, not operational.
+ *	@retval LAGOPUS_RESULT_ANY_FAILURES	Failed.
  */
 lagopus_result_t
 lagopus_cbuffer_size(lagopus_cbuffer_t *cbptr);
@@ -407,12 +406,12 @@ lagopus_cbuffer_size(lagopus_cbuffer_t *cbptr);
 
 /**
  * Get the remaining capacity of a circular buffer.
- *      @param[in]   cbptr    A pointer to a circular buffer
+ *	@param[in]   cbptr    A pointer to a circular buffer
  *
- *      @retval >=0     The remaining capacity of the circular buffer.
- *      @retval LAGOPUS_RESULT_INVALID_ARGS     Failed, invalid argument(s).
- *      @retval LAGOPUS_RESULT_NOT_OPERATIONAL  Failed, not operational.
- *      @retval LAGOPUS_RESULT_ANY_FAILURES     Failed.
+ *	@retval	>=0	The remaining capacity of the circular buffer.
+ *	@retval LAGOPUS_RESULT_INVALID_ARGS	Failed, invalid argument(s).
+ *	@retval LAGOPUS_RESULT_NOT_OPERATIONAL	Failed, not operational.
+ *	@retval LAGOPUS_RESULT_ANY_FAILURES	Failed.
  */
 lagopus_result_t
 lagopus_cbuffer_remaining_capacity(lagopus_cbuffer_t *cbptr);
@@ -420,18 +419,18 @@ lagopus_cbuffer_remaining_capacity(lagopus_cbuffer_t *cbptr);
 
 /**
  * Get the maximum capacity of a circular buffer.
- *      @param[in]   cbptr    A pointer to a circular buffer
+ *	@param[in]   cbptr    A pointer to a circular buffer
  *
- *      @retval >=0     The maximum capacity of the circular buffer.
- *      @retval LAGOPUS_RESULT_INVALID_ARGS     Failed, invalid argument(s).
- *      @retval LAGOPUS_RESULT_NOT_OPERATIONAL  Failed, not operational.
- *      @retval LAGOPUS_RESULT_ANY_FAILURES     Failed.
+ *	@retval	>=0	The maximum capacity of the circular buffer.
+ *	@retval LAGOPUS_RESULT_INVALID_ARGS	Failed, invalid argument(s).
+ *	@retval LAGOPUS_RESULT_NOT_OPERATIONAL	Failed, not operational.
+ *	@retval LAGOPUS_RESULT_ANY_FAILURES	Failed.
  */
 lagopus_result_t
 lagopus_cbuffer_max_capacity(lagopus_cbuffer_t *cbptr);
 
 
-
+
 
 
 /**
@@ -440,10 +439,10 @@ lagopus_cbuffer_max_capacity(lagopus_cbuffer_t *cbptr);
  *    @param[in]   cbptr    A pointer to a circular buffer.
  *    @param[out]  retptr   A pointer to a result.
  *
- *      @retval LAGOPUS_RESULT_OK               Succeeded.
- *      @retval LAGOPUS_RESULT_INVALID_ARGS     Failed, invalid argument(s).
- *      @retval LAGOPUS_RESULT_NOT_OPERATIONAL  Failed, not operational.
- *      @retval LAGOPUS_RESULT_ANY_FAILURES     Failed.
+ *	@retval	LAGOPUS_RESULT_OK		Succeeded.
+ *	@retval LAGOPUS_RESULT_INVALID_ARGS	Failed, invalid argument(s).
+ *	@retval LAGOPUS_RESULT_NOT_OPERATIONAL	Failed, not operational.
+ *	@retval LAGOPUS_RESULT_ANY_FAILURES	Failed.
  */
 lagopus_result_t
 lagopus_cbuffer_is_full(lagopus_cbuffer_t *cbptr, bool *retptr);
@@ -455,10 +454,10 @@ lagopus_cbuffer_is_full(lagopus_cbuffer_t *cbptr, bool *retptr);
  *    @param[in]   cbptr    A pointer to a circular buffer
  *    @param[out]  retptr   A pointer to a result.
  *
- *      @retval LAGOPUS_RESULT_OK               Succeeded.
- *      @retval LAGOPUS_RESULT_INVALID_ARGS     Failed, invalid argument(s).
- *      @retval LAGOPUS_RESULT_NOT_OPERATIONAL  Failed, not operational.
- *      @retval LAGOPUS_RESULT_ANY_FAILURES     Failed.
+ *	@retval	LAGOPUS_RESULT_OK		Succeeded.
+ *	@retval LAGOPUS_RESULT_INVALID_ARGS	Failed, invalid argument(s).
+ *	@retval LAGOPUS_RESULT_NOT_OPERATIONAL	Failed, not operational.
+ *	@retval LAGOPUS_RESULT_ANY_FAILURES	Failed.
  */
 lagopus_result_t
 lagopus_cbuffer_is_empty(lagopus_cbuffer_t *cbptr, bool *retptr);
@@ -470,9 +469,9 @@ lagopus_cbuffer_is_empty(lagopus_cbuffer_t *cbptr, bool *retptr);
  *    @param[in]   cbptr    A pointer to a circular buffer
  *    @param[out]  retptr   A pointer to a result.
  *
- *      @retval LAGOPUS_RESULT_OK               Succeeded.
- *      @retval LAGOPUS_RESULT_INVALID_ARGS     Failed, invalid argument(s).
- *      @retval LAGOPUS_RESULT_ANY_FAILURES     Failed.
+ *	@retval	LAGOPUS_RESULT_OK		Succeeded.
+ *	@retval LAGOPUS_RESULT_INVALID_ARGS	Failed, invalid argument(s).
+ *	@retval LAGOPUS_RESULT_ANY_FAILURES	Failed.
  */
 lagopus_result_t
 lagopus_cbuffer_is_operational(lagopus_cbuffer_t *cbptr, bool *retptr);
@@ -481,13 +480,13 @@ lagopus_cbuffer_is_operational(lagopus_cbuffer_t *cbptr, bool *retptr);
 /**
  * Cleanup an internal state of a circular buffer after thread
  * cancellation.
- *      @param[in]      cbptr   A pointer to a circular buffer
+ *	@param[in]	cbptr	A pointer to a circular buffer
  */
 void
 lagopus_cbuffer_cancel_janitor(lagopus_cbuffer_t *cbptr);
 
 
-
+
 
 
 #endif  /* ! __LAGOPUS_CBUFFER_H__ */

@@ -81,6 +81,14 @@ If Ubuntu version is 13.04 or higher, you can use apt-get.
 $ sudo apt-get install gcovr
 ```
 
+### Install jq
+
+Install jq (Command-line JSON processor).
+
+```
+$ sudo apt-get install jq
+```
+
 Test Your Code
 ---------------
 

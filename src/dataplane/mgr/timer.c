@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 /**
  *      @file   timer.c
  *      @brief  Routines for removing flow triggerd by timeout.
@@ -25,6 +24,7 @@
 #include <sys/queue.h>
 
 #include "lagopus/flowdb.h"
+#include "mbtree.h"
 
 #undef DEBUG
 #ifdef DEBUG
@@ -35,52 +35,63 @@
 #define DPRINTF(...)
 #endif
 
-#define MAX_TIMEOUT_FLOWS 256
+#define MAX_TIMEOUT_ENTRIES 256
 
-struct flow_timer {
-  TAILQ_ENTRY(flow_timer) next;
-  time_t timeout;
-  int nflow;
-  struct flow *flows[MAX_TIMEOUT_FLOWS];
+enum {
+  FLOW_TIMER,
+  MBTREE_TIMER
 };
 
-TAILQ_HEAD(flow_timer_list, flow_timer) flow_timer_list;
+struct dp_timer {
+  TAILQ_ENTRY(dp_timer) next;
+  time_t timeout;
+  int type;
+  void (*expire_func)(struct dp_timer *);
+  int nentries;
+  void *timer_entry[MAX_TIMEOUT_ENTRIES];
+};
+
+TAILQ_HEAD(dp_timer_list, dp_timer) dp_timer_list;
 
 void
-init_flow_timer(void) {
-  TAILQ_INIT(&flow_timer_list);
+init_dp_timer(void) {
+  TAILQ_INIT(&dp_timer_list);
   (void)get_current_time();
 }
 
-static struct flow_timer *
-find_flow_timer(time_t timeout,
-                struct flow_timer **prev,
-                time_t *prev_timep) {
-  struct flow_timer *flow_timer;
+static struct dp_timer *
+find_dp_timer(time_t timeout,
+              int type,
+              struct dp_timer **prev,
+              time_t *prev_timep) {
+  struct dp_timer *dp_timer;
   time_t prev_time;
 
   *prev = NULL;
   prev_time = 0;
-  TAILQ_FOREACH(flow_timer, &flow_timer_list, next) {
-    if (prev_time + flow_timer->timeout > timeout) {
-      flow_timer = NULL;
+  TAILQ_FOREACH(dp_timer, &dp_timer_list, next) {
+    if (dp_timer->type != type) {
+      continue;
+    }
+    if (prev_time + dp_timer->timeout > timeout) {
+      dp_timer = NULL;
       break;
     }
-    if (prev_time + flow_timer->timeout == timeout &&
-        flow_timer->nflow < MAX_TIMEOUT_FLOWS) {
+    if (prev_time + dp_timer->timeout == timeout &&
+        dp_timer->nentries < MAX_TIMEOUT_ENTRIES) {
       /* found. */
       break;
     }
-    *prev = flow_timer;
-    prev_time += flow_timer->timeout;
+    *prev = dp_timer;
+    prev_time += dp_timer->timeout;
   }
   *prev_timep = prev_time;
-  return flow_timer;
+  return dp_timer;
 }
 
 lagopus_result_t
 add_flow_timer(struct flow *flow) {
-  struct flow_timer *flow_timer, *prev;
+  struct dp_timer *dp_timer, *prev;
   time_t timeout, idle_elapsed, hard_elapsed, prev_time;
 
   idle_elapsed =
@@ -96,48 +107,93 @@ add_flow_timer(struct flow *flow) {
   }
   DPRINTF("add timeout %d sec\n", timeout);
   /* XXX flowdb lock */
-  flow_timer = find_flow_timer(timeout, &prev, &prev_time);
-  if (flow_timer != NULL) {
-    flow_timer->flows[flow_timer->nflow] = flow;
-    flow->flow_timer = &flow_timer->flows[flow_timer->nflow];
-    flow_timer->nflow++;
+  dp_timer = find_dp_timer(timeout, FLOW_TIMER, &prev, &prev_time);
+  if (dp_timer != NULL) {
+    dp_timer->timer_entry[dp_timer->nentries] = flow;
+    flow->flow_timer = &dp_timer->timer_entry[dp_timer->nentries];
+    dp_timer->nentries++;
   } else {
-    flow_timer = calloc(1, sizeof(struct flow_timer));
-    if (flow_timer == NULL) {
+    dp_timer = calloc(1, sizeof(struct dp_timer));
+    if (dp_timer == NULL) {
       /* XXX flowdb unlock */
       return LAGOPUS_RESULT_NO_MEMORY;
     }
-    flow_timer->flows[flow_timer->nflow] = flow;
-    flow->flow_timer = &flow_timer->flows[flow_timer->nflow];
-    flow_timer->nflow++;
+    dp_timer->type = FLOW_TIMER;
+    dp_timer->timer_entry[dp_timer->nentries] = flow;
+    flow->flow_timer = &dp_timer->timer_entry[dp_timer->nentries];
+    dp_timer->nentries++;
     if (prev == NULL) {
-      flow_timer->timeout = timeout;
-      TAILQ_INSERT_HEAD(&flow_timer_list, flow_timer, next);
+      dp_timer->timeout = timeout;
+      TAILQ_INSERT_HEAD(&dp_timer_list, dp_timer, next);
     } else {
       timeout -= prev_time;
-      flow_timer->timeout = timeout;
-      TAILQ_INSERT_AFTER(&flow_timer_list, prev, flow_timer, next);
+      dp_timer->timeout = timeout;
+      TAILQ_INSERT_AFTER(&dp_timer_list, prev, dp_timer, next);
     }
     /* re-calculation timeout of entries after inserted entry */
-    if ((flow_timer = TAILQ_NEXT(flow_timer, next)) != NULL) {
-      flow_timer->timeout -= timeout;
+    if ((dp_timer = TAILQ_NEXT(dp_timer, next)) != NULL) {
+      dp_timer->timeout -= timeout;
     }
   }
   /* XXX flowdb unlock */
   return LAGOPUS_RESULT_OK;
 }
 
+lagopus_result_t
+add_mbtree_timer(struct flow_list *flow_list, time_t timeout) {
+  struct dp_timer *dp_timer, *prev;
+  time_t prev_time;
+
+  dp_timer = find_dp_timer(timeout, MBTREE_TIMER, &prev, &prev_time);
+  if (dp_timer != NULL) {
+    int i;
+
+    for (i = 0; i < MAX_TIMEOUT_ENTRIES; i++) {
+      if (dp_timer->timer_entry[i] == NULL) {
+        break;
+      }
+    }
+    dp_timer->timer_entry[i] = flow_list;
+    flow_list->mbtree_timer = &dp_timer->timer_entry[i];
+    if (i == dp_timer->nentries) {
+      dp_timer->nentries++;
+    }
+  } else {
+    dp_timer = calloc(1, sizeof(struct dp_timer));
+    if (dp_timer == NULL) {
+      /* XXX flowdb unlock */
+      return LAGOPUS_RESULT_NO_MEMORY;
+    }
+    dp_timer->type = MBTREE_TIMER;
+    dp_timer->timer_entry[0] = flow_list;
+    flow_list->mbtree_timer = &dp_timer->timer_entry[0];
+    dp_timer->nentries++;
+    if (prev == NULL) {
+      dp_timer->timeout = timeout;
+      TAILQ_INSERT_HEAD(&dp_timer_list, dp_timer, next);
+    } else {
+      timeout -= prev_time;
+      dp_timer->timeout = timeout;
+      TAILQ_INSERT_AFTER(&dp_timer_list, prev, dp_timer, next);
+    }
+    /* re-calculation timeout of entries after inserted entry */
+    if ((dp_timer = TAILQ_NEXT(dp_timer, next)) != NULL) {
+      dp_timer->timeout -= timeout;
+    }
+  }
+}
+
 static void
-flow_timer_expire(struct flow_timer *flow_timer) {
+flow_timer_expire(struct dp_timer *dp_timer) {
   struct flow *flow;
   struct ofp_error error;
   int reason;
   int i;
 
   DPRINTF("expired\n");
-  for (i = 0; i < flow_timer->nflow; i++) {
+  for (i = 0; i < dp_timer->nentries; i++) {
     /* calculate elapsed time */
-    flow = flow_timer->flows[i];
+    flow = dp_timer->timer_entry[i];
     if (flow == NULL) {
       continue;
     }
@@ -162,9 +218,43 @@ flow_timer_expire(struct flow_timer *flow_timer) {
   }
 }
 
+static void
+mbtree_timer_expire(struct dp_timer *dp_timer) {
+  struct flow_list *flow_list;
+  int i;
+
+  DPRINTF("expired\n");
+  for (i = 0; i < dp_timer->nentries; i++) {
+    /* calculate elapsed time */
+    flow_list = dp_timer->timer_entry[i];
+    if (flow_list == NULL) {
+      continue;
+    }
+    system("date");
+    printf("cleanup and build start\n");
+    cleanup_mbtree(flow_list);
+    build_mbtree(flow_list);
+    system("date");
+    printf("cleanup and build end\n");
+  }
+}
+
+static void
+dp_timer_expire(struct dp_timer *dp_timer) {
+  switch (dp_timer->type) {
+    case FLOW_TIMER:
+      flow_timer_expire(dp_timer);
+      break;
+    case MBTREE_TIMER:
+      mbtree_timer_expire(dp_timer);
+    default:
+      break;
+  }
+}
+
 lagopus_result_t
-flow_timer_loop(const lagopus_thread_t *t, void *arg) {
-  struct flow_timer *flow_timer;
+dp_timer_loop(const lagopus_thread_t *t, void *arg) {
+  struct dp_timer *dp_timer;
   lagopus_result_t rv;
   global_state_t cur_state;
   shutdown_grace_level_t cur_grace;
@@ -182,31 +272,29 @@ flow_timer_loop(const lagopus_thread_t *t, void *arg) {
 
   for (;;) {
     /* XXX flowdb lock */
-    flow_timer = TAILQ_FIRST(&flow_timer_list);
-    if (flow_timer == NULL) {
+    dp_timer = TAILQ_FIRST(&dp_timer_list);
+    if (dp_timer == NULL) {
       sleep(1);
       continue;
     }
     /* XXX flowdb unlock */
     do {
-      time_t timeout;
       unsigned int elapsed;
 
-      timeout = flow_timer->timeout;
-      while (timeout > 0) {
+      while (dp_timer->timeout > 0) {
         elapsed = sleep(1);
         (void)get_current_time();
         if (elapsed == 0) {
-          timeout--;
+          dp_timer->timeout--;
         }
       }
       /* XXX flowdb lock */
-      flow_timer_expire(flow_timer);
-      TAILQ_REMOVE(&flow_timer_list, flow_timer, next);
-      free(flow_timer);
-      flow_timer = TAILQ_FIRST(&flow_timer_list);
+      dp_timer_expire(dp_timer);
+      TAILQ_REMOVE(&dp_timer_list, dp_timer, next);
+      free(dp_timer);
+      dp_timer = TAILQ_FIRST(&dp_timer_list);
       /* XXX flowdb unlock */
-    } while (flow_timer != NULL);
+    } while (dp_timer != NULL);
     pthread_yield();
   }
 

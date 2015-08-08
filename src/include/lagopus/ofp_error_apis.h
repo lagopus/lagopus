@@ -13,11 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 /**
- * @file        ofp_error_apis.h
- * @brief       Agent/Data-Plane APIs for ofp_error.
- * @details     Describe APIs between Agent and Data-Plane for ofp_error.
+ * @file	ofp_error_apis.h
+ * @brief	Agent/Data-Plane APIs for ofp_error.
+ * @details	Describe APIs between Agent and Data-Plane for ofp_error.
  */
 #ifndef __LAGOPUS_OFP_ERROR_APIS_H__
 #define __LAGOPUS_OFP_ERROR_APIS_H__
@@ -30,9 +29,9 @@
 /**
  * Set ofp_error.
  *
- *     @param[out]      error   A pointer to \e ofp_error structure.
- *     @param[in]       type    Type of error.
- *     @param[in]       code    Code of error.
+ *     @param[out]	error	A pointer to \e ofp_error structure.
+ *     @param[in]	type	Type of error.
+ *     @param[in]	code	Code of error.
  */
 #define ofp_error_set(__error, __type, __code) {        \
     char __ebuf[ERROR_MAX_SIZE];                        \
@@ -47,9 +46,9 @@
 /**
  * Set ofp_error values.
  *
- *     @param[out]      error   A pointer to \e ofp_error structure.
- *     @param[in]       type    Type of error.
- *     @param[in]       code    Code of error.
+ *     @param[out]	error	A pointer to \e ofp_error structure.
+ *     @param[in]	type	Type of error.
+ *     @param[in]	code	Code of error.
  */
 void
 ofp_error_val_set(struct ofp_error *error, uint16_t type, uint16_t code);
@@ -57,12 +56,12 @@ ofp_error_val_set(struct ofp_error *error, uint16_t type, uint16_t code);
 /**
  * Get error(\e ofp_error) string.
  *
- *     @param[in]       type    Type of error.
- *     @param[in]       code    Code of error.
- *     @param[out]      string  A pointer to error string.
- *     @param[in]       max_len Maximum size of error string.
+ *     @param[in]	type	Type of error.
+ *     @param[in]	code	Code of error.
+ *     @param[out]	string	A pointer to error string.
+ *     @param[in]	max_len	Maximum size of error string.
  *
- *     @retval  void
+ *     @retval	void
  */
 void
 ofp_error_str_get(uint16_t type, uint16_t code,

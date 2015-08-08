@@ -1,0 +1,41 @@
+use:
+  - lagopus
+  - ryu
+
+setup:
+  - cmds:
+      - cmd_type: shell
+        cmd: "{{ shell_dir }}/dummy_eth_up.sh lago_eth 1"
+        result: "0"
+
+teardown:
+  - cmds:
+      - cmd_type: shell
+        cmd: "{{ shell_dir }}/dummy_eth_down.sh lago_eth 1"
+        result: "0"
+
+testcases:
+  - testcase: set/unset port in bridge, repetition 100 times
+    test:
+      - cmds:
+          - cmd_type: ds
+            cmd: channel channel01 create -dst-addr 127.0.0.1 -protocol tcp
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: >-
+              controller controller01 create -channel channel01
+              -role equal -connection-type main
+            result: '{"ret": "OK"}'
+      - repetition_count: 100
+        cmds:
+          - cmd_type: ds
+            cmd: >-
+              controller controller01 create -channel channel01
+              -role equal -connection-type main
+            result: >-
+              {"ret":"ALREADY_EXISTS",
+              "data":"name = :controller01"}
+      - cmds:
+          - cmd_type: ds
+            cmd: destroy-all-obj
+            result: '{"ret": "OK"}'

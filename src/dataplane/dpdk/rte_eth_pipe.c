@@ -33,8 +33,8 @@
 
 /*
  * Usage:
- *  --vdev eth_pipe0,socket=N --vdev eth_pipe1,socket=N
- *  N: numa node (0 or 1)
+ *  --vdev eth_pipe0[,socket=N] --vdev eth_pipe1[,socket=N]
+ *  N: numa node (0 or 1) default:0
  *  single --vdev creates twa virtual ports and connected via ring.
  */
 
@@ -216,6 +216,10 @@ eth_stats_reset(struct rte_eth_dev *dev) {
   }
 }
 
+static int
+eth_set_mtu(struct rte_eth_dev *dev __rte_unused,
+            int mtu __rte_unused) { return 0; }
+
 static void
 eth_queue_release(void *q __rte_unused) { ; }
 static int
@@ -234,6 +238,7 @@ static struct eth_dev_ops ops = {
   .link_update = eth_link_update,
   .stats_get = eth_stats_get,
   .stats_reset = eth_stats_reset,
+  .mtu_set = eth_set_mtu,
 };
 
 static int
@@ -407,22 +412,24 @@ parse_kvlist (const char *key __rte_unused, const char *value, void *data) {
   ret = -EINVAL;
 
   if (!value) {
-    RTE_LOG(WARNING, PMD,
-            "command line paramter is empty for pipe pmd!\n");
-    goto out;
-  }
+    /*
+     * default: socket 0
+     */
+    printf("default: node 0\n");
+    node = 0;
+  } else {
+    /*
+     * Need to do some sanity checking here
+     */
 
-  /*
-   * Need to do some sanity checking here
-   */
+    errno = 0;
+    node = strtol(value, &end, 10);
 
-  errno = 0;
-  node = strtol(value, &end, 10);
-
-  if ((errno != 0) || (*end != '\0')) {
-    RTE_LOG(WARNING, PMD,
-            "node value %s is unparseable as a number\n", value);
-    goto out;
+    if ((errno != 0) || (*end != '\0')) {
+      RTE_LOG(WARNING, PMD,
+              "node value %s is unparseable as a number\n", value);
+      goto out;
+    }
   }
   info->list[info->count].node = node;
   info->list[info->count].action = DEV_CREATE;
@@ -456,16 +463,20 @@ rte_pmd_pipe_devinit(const char *name, const char *params) {
     ret = rte_kvargs_count(kvlist, ETH_PIPE_SOCKET_ARG);
     info = rte_zmalloc("struct vport_list",
                        sizeof(struct vport_list) +
-                       (sizeof(struct vport_pair) * ret * 2), 0);
+                       (sizeof(struct vport_pair) * 2), 0);
     if (!info) {
       goto out;
     }
 
-    info->total = ret * 2;
+    info->total = 2;
     info->list = (struct vport_pair *)(info + 1);
 
-    ret = rte_kvargs_process(kvlist, ETH_PIPE_SOCKET_ARG,
-                             parse_kvlist, info);
+    if (ret != 0) {
+      ret = rte_kvargs_process(kvlist, ETH_PIPE_SOCKET_ARG,
+                               parse_kvlist, info);
+    } else {
+      ret = parse_kvlist(NULL, NULL, info);
+    }
 
     if (ret < 0) {
       goto out_free;

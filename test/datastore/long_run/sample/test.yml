@@ -1,0 +1,38 @@
+use:
+  - lagopus
+
+setup:
+  - repetition_count: 2
+    cmds:
+      - cmd_type: ds
+        cmd: channel channel{{index}} create -dst-addr 127.0.0.1 -protocol tcp
+        result: '{"ret": "OK"}'
+
+teardown:
+  - repetition_count: 2
+    cmds:
+      - cmd_type: ds
+        cmd: channel channel{{index}} destroy
+        result: '{"ret": "OK"}'
+
+testcases:
+  - testcase: controller create-destroy
+    test:
+      - repetition_count: 2
+        cmds:
+          - cmd_type: ds
+            cmd: controller controller{{index}} create -channel channel{{index}} -role equal -connection-type main
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: controller controller{{index}}
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":":controller{{index}}",
+              "channel":":channel{{index}}",
+              "role":"equal",
+              "connection-type":"main",
+              "is-used":false,
+              "is-enabled":false}]}
+          - cmd_type: ds
+            cmd: controller controller{{index}} destroy
+            result: '{"ret": "OK"}'

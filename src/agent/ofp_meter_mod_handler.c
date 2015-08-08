@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 #include <stdbool.h>
 #include <stdint.h>
 #include "lagopus_apis.h"
@@ -54,8 +53,9 @@ meter_mod_add(uint64_t dpid,
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
 
   if (meter_mod->meter_id == OFPM_CONTROLLER) {
-    ret = ofp_meter_mod_add_ctrler(dpid, meter_mod,
-                                   band_list, error);
+    lagopus_msg_warning("bad meter id (OFPM_CONTROLLER).\n");
+    ofp_error_set(error, OFPET_METER_MOD_FAILED, OFPMMFC_UNKNOWN_METER);
+    ret = LAGOPUS_RESULT_OFP_ERROR;
   } else {
     ret = ofp_meter_mod_add(dpid, meter_mod,
                             band_list, error);
@@ -72,8 +72,9 @@ meter_mod_modify(uint64_t dpid,
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
 
   if (meter_mod->meter_id == OFPM_CONTROLLER) {
-    ret = ofp_meter_mod_modify_ctrler(dpid, meter_mod,
-                                      band_list, error);
+    lagopus_msg_warning("bad meter id (OFPM_CONTROLLER).\n");
+    ofp_error_set(error, OFPET_METER_MOD_FAILED, OFPMMFC_UNKNOWN_METER);
+    ret = LAGOPUS_RESULT_OFP_ERROR;
   } else {
     ret = ofp_meter_mod_modify(dpid, meter_mod,
                                band_list, error);
@@ -90,8 +91,9 @@ meter_mod_delete(uint64_t dpid,
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
 
   if (meter_mod->meter_id == OFPM_CONTROLLER) {
-    ret = ofp_meter_mod_delete_ctrler(dpid, meter_mod,
-                                      error);
+    lagopus_msg_warning("bad meter id (OFPM_CONTROLLER).\n");
+    ofp_error_set(error, OFPET_METER_MOD_FAILED, OFPMMFC_UNKNOWN_METER);
+    ret = LAGOPUS_RESULT_OFP_ERROR;
   } else {
     ret = ofp_meter_mod_delete(dpid, meter_mod,
                                error);

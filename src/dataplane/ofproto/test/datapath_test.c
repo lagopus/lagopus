@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 #include "unity.h"
 
 #include "lagopus/dpmgr.h"
@@ -23,6 +22,8 @@
 #include "lagopus/port.h"
 #include "lagopus/flowinfo.h"
 #include "lagopus/dataplane.h"
+#include "lagopus/dp_apis.h"
+#include "lagopus/datastore/bridge.h"
 #include "pktbuf.h"
 #include "packet.h"
 #include "datapath_test_misc.h"
@@ -30,10 +31,33 @@
 
 void
 setUp(void) {
+  datastore_bridge_info_t info;
+  TEST_ASSERT_EQUAL(dp_api_init(), LAGOPUS_RESULT_OK);
+
+  /* setup bridge and port */
+  memset(&info, 0, sizeof(info));
+  info.fail_mode = DATASTORE_BRIDGE_FAIL_MODE_SECURE;
+  TEST_ASSERT_EQUAL(dp_bridge_create("br0", &info), LAGOPUS_RESULT_OK);
+  TEST_ASSERT_EQUAL(dp_port_create("port0"), LAGOPUS_RESULT_OK);
+  TEST_ASSERT_EQUAL(dp_port_create("port1"), LAGOPUS_RESULT_OK);
+  TEST_ASSERT_EQUAL(dp_interface_create("if0"), LAGOPUS_RESULT_OK);
+  TEST_ASSERT_EQUAL(dp_interface_create("if1"), LAGOPUS_RESULT_OK);
+  TEST_ASSERT_EQUAL(dp_port_interface_set("port0", "if0"), LAGOPUS_RESULT_OK);
+  TEST_ASSERT_EQUAL(dp_port_interface_set("port1", "if1"), LAGOPUS_RESULT_OK);
+  TEST_ASSERT_EQUAL(dp_bridge_port_set("br0", "port0", 1), LAGOPUS_RESULT_OK);
+  TEST_ASSERT_EQUAL(dp_bridge_port_set("br0", "port1", 2), LAGOPUS_RESULT_OK);
 }
 
 void
 tearDown(void) {
+  TEST_ASSERT_EQUAL(dp_port_interface_unset("port0"), LAGOPUS_RESULT_OK);
+  TEST_ASSERT_EQUAL(dp_port_interface_unset("port1"), LAGOPUS_RESULT_OK);
+  TEST_ASSERT_EQUAL(dp_bridge_port_unset("br0", "port0"), LAGOPUS_RESULT_OK);
+  TEST_ASSERT_EQUAL(dp_bridge_port_unset("br0", "port1"), LAGOPUS_RESULT_OK);
+  dp_port_destroy("port0");
+  dp_port_destroy("port1");
+  dp_bridge_destroy("br0");
+  dp_api_fini();
 }
 
 void
@@ -49,30 +73,12 @@ test_lagopus_set_in_port(void) {
 void
 test_lagopus_receive_packet(void) {
   struct lagopus_packet pkt;
-  struct dpmgr *my_dpmgr;
-  struct port nport, *port;
   struct bridge *bridge;
+  struct port *port;
   OS_MBUF *m;
   lagopus_result_t rv;
 
-  my_dpmgr = dpmgr_alloc();
-  TEST_ASSERT_NOT_NULL_MESSAGE(my_dpmgr, "alloc error");
-  rv = dpmgr_bridge_add(my_dpmgr, "br0", 0);
-  TEST_ASSERT_EQUAL_MESSAGE(rv, LAGOPUS_RESULT_OK, "bridge add error\n");
-
-  nport.type = LAGOPUS_PORT_TYPE_NULL; /* for test */
-  nport.ifindex = 0;
-  nport.ofp_port.hw_addr[0] = 1;
-  dpmgr_port_add(my_dpmgr, &nport);
-  nport.ifindex = 1;
-  dpmgr_port_add(my_dpmgr, &nport);
-
-  rv = dpmgr_bridge_port_add(my_dpmgr, "br0", 0, 1);
-  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
-  rv = dpmgr_bridge_port_add(my_dpmgr, "br0", 1, 2);
-  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
-
-  bridge = dpmgr_bridge_lookup(my_dpmgr, "br0");
+  bridge = dp_bridge_lookup("br0");
   TEST_ASSERT_NOT_NULL(bridge);
 
   /* prepare packet */
@@ -97,45 +103,25 @@ test_lagopus_receive_packet(void) {
   TEST_ASSERT_EQUAL(pkt.in_port->bridge, bridge);
 
   lagopus_packet_init(&pkt, m);
-  lagopus_receive_packet(port, &pkt);
+  lagopus_receive_packet(&pkt);
   TEST_ASSERT_NOT_EQUAL_MESSAGE(pkt.in_port, NULL,
                                 "port error.");
   TEST_ASSERT_EQUAL_MESSAGE(m->refcnt, 1,
                             "m->refcnt error.");
-  dpmgr_free(my_dpmgr);
 }
 
 void
 test_action_OUTPUT(void) {
   struct action_list action_list;
-  struct dpmgr *my_dpmgr;
   struct bridge *bridge;
   struct port *port;
   struct action *action;
   struct ofp_action_output *action_set;
-  struct port nport;
   struct lagopus_packet pkt;
   OS_MBUF *m;
 
-  /* setup bridge and port */
-  my_dpmgr = dpmgr_alloc();
-  dpmgr_bridge_add(my_dpmgr, "br0", 0);
-  nport.type = LAGOPUS_PORT_TYPE_NULL; /* for test */
-  nport.ofp_port.port_no = 1;
-  nport.ifindex = 0;
-  nport.ofp_port.hw_addr[0] = 1;
-  dpmgr_port_add(my_dpmgr, &nport);
-  port = port_lookup(my_dpmgr->ports, 0);
-  TEST_ASSERT_NOT_NULL(port);
-  port->ofp_port.hw_addr[0] = 0xff;
-  nport.ofp_port.port_no = 2;
-  nport.ifindex = 1;
-  dpmgr_port_add(my_dpmgr, &nport);
-  port = port_lookup(my_dpmgr->ports, 1);
-  TEST_ASSERT_NOT_NULL(port);
-  port->ofp_port.hw_addr[0] = 0xff;
-  dpmgr_bridge_port_add(my_dpmgr, "br0", 0, 1);
-  dpmgr_bridge_port_add(my_dpmgr, "br0", 1, 2);
+  bridge = dp_bridge_lookup("br0");
+  TEST_ASSERT_NOT_NULL(bridge);
 
   TAILQ_INIT(&action_list);
   action = calloc(1, sizeof(*action) + 64);
@@ -150,8 +136,6 @@ test_action_OUTPUT(void) {
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
 
-  bridge = dpmgr_bridge_lookup(my_dpmgr, "br0");
-  TEST_ASSERT_NOT_NULL(bridge);
   lagopus_set_in_port(&pkt, port_lookup(bridge->ports, 1));
   TEST_ASSERT_NOT_NULL(pkt.in_port);
   lagopus_packet_init(&pkt, m);
@@ -211,36 +195,20 @@ test_action_OUTPUT(void) {
   TEST_ASSERT_EQUAL_MESSAGE(m->refcnt, 1,
                             "OUTPUT refcnt error.");
   free(m);
-  dpmgr_free(my_dpmgr);
 }
 
 void
 test_lagopus_match_and_action(void) {
   struct action_list action_list;
-  struct dpmgr *my_dpmgr;
   struct bridge *bridge;
   struct table *table;
   struct action *action;
   struct ofp_action_output *action_set;
-  struct port nport, *port;
+  struct port *port;
   struct lagopus_packet pkt;
   OS_MBUF *m;
 
-  /* setup bridge and port */
-  my_dpmgr = dpmgr_alloc();
-  dpmgr_bridge_add(my_dpmgr, "br0", 0);
-
-  nport.type = LAGOPUS_PORT_TYPE_NULL; /* for test */
-  nport.ifindex = 0;
-  nport.ofp_port.hw_addr[0] = 1;
-  dpmgr_port_add(my_dpmgr, &nport);
-  nport.ifindex = 1;
-  dpmgr_port_add(my_dpmgr, &nport);
-
-  dpmgr_bridge_port_add(my_dpmgr, "br0", 0, 1);
-  dpmgr_bridge_port_add(my_dpmgr, "br0", 1, 2);
-
-  bridge = dpmgr_bridge_lookup(my_dpmgr, "br0");
+  bridge = dp_bridge_lookup("br0");
   TEST_ASSERT_NOT_NULL(bridge);
 
   flowdb_switch_mode_set(bridge->flowdb, SWITCH_MODE_OPENFLOW);
@@ -265,10 +233,10 @@ test_lagopus_match_and_action(void) {
   TEST_ASSERT_EQUAL(pkt.in_port, port);
   TEST_ASSERT_EQUAL(pkt.in_port->bridge, bridge);
   pkt.table_id = 0;
+  pkt.cache = NULL;
   lagopus_packet_init(&pkt, m);
   lagopus_match_and_action(&pkt);
   TEST_ASSERT_EQUAL_MESSAGE(m->refcnt, 1,
                             "match_and_action refcnt error.");
   free(m);
-  dpmgr_free(my_dpmgr);
 }

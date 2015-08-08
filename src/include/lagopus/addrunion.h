@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 
-
 #ifndef __LAGOPUS_ADDRINFO_H__
 #define __LAGOPUS_ADDRINFO_H__
 
+#include <sys/socket.h>
 #include <arpa/inet.h>
+#include <netinet/in.h>
 
 struct addrunion {
   /* AF_INET or AF_INET6. */
@@ -30,10 +31,10 @@ struct addrunion {
   };
 };
 
-void
+int
 addrunion_ipv4_set(struct addrunion *addrunion, const char *str);
 
-void
+int
 addrunion_ipv6_set(struct addrunion *addrunion, const char *str);
 
 const char *

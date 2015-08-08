@@ -14,21 +14,20 @@
  * limitations under the License.
  */
 
-
 #ifndef __LAGOPUS_PIPELINE_STAGE_INTERNAL_H__
 #define __LAGOPUS_PIPELINE_STAGE_INTERNAL_H__
 
 
-
+
 
 
 #include "lagopus_pipeline_stage_funcs.h"
 
 
+
 
 
-
-typedef struct lagopus_pipeline_worker_record   *lagopus_pipeline_worker_t;
+typedef struct lagopus_pipeline_worker_record 	*lagopus_pipeline_worker_t;
 
 
 typedef enum {
@@ -64,7 +63,7 @@ typedef struct lagopus_pipeline_stage_record {
 
   size_t m_event_size;
   size_t m_max_batch;
-  size_t m_batch_buffer_size;   /* == m_event_size * m_max_batch (in bytes.) */
+  size_t m_batch_buffer_size;	/* == m_event_size * m_max_batch (in bytes.) */
 
   bool m_is_heap_allocd;
 
@@ -88,10 +87,13 @@ typedef struct lagopus_pipeline_stage_record {
 
   lagopus_pipeline_stage_maintenance_proc_t m_maint_proc;
   void *m_maint_arg;
+
+  lagopus_pipeline_stage_post_start_proc_t m_post_start_proc;
+  void *m_post_start_arg;
 } lagopus_pipeline_stage_record;
 
 
-
+
 
 
 #endif /* __LAGOPUS_PIPELINE_STAGE_INTERNAL_H__ */

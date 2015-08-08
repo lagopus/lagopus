@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 /* netlink interface to the kernel. */
 
 #include <string.h>

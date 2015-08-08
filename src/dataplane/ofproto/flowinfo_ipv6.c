@@ -14,10 +14,9 @@
  * limitations under the License.
  */
 
-
 /**
  *      @file   flowinfo_ipv6.c
- *      @brief  Optimized flow database for datapath, for IPv6
+ *      @brief  Optimized flow database for dataplane, for IPv6
  */
 
 #include <stdlib.h>

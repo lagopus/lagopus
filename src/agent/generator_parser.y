@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 /* OpenFlow encoder/decoder generation parser */
 %{
 #include <stdio.h>

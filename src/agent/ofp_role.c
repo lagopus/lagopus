@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 #include <sys/queue.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -198,8 +197,8 @@ ofp_role_write(struct channel *channel, void *val) {
       v->ret = LAGOPUS_RESULT_OK;
     }
   } else {
-    lagopus_msg_debug(1, "Channel is not alive, drop asynchronous message(%s)\n",
-                      ofp_type_str(v->type));
+    lagopus_msg_info("Channel is not alive, drop asynchronous message(%s)\n",
+                     ofp_type_str(v->type));
     /* Not send packet. */
     v->ret = LAGOPUS_RESULT_OK;
   }
@@ -220,9 +219,19 @@ ofp_role_channel_write(struct pbuf *pbuf, uint64_t dpid,
     v.pbuf = pbuf;
     v.ret = LAGOPUS_RESULT_ANY_FAILURES;
 
-    channel_mgr_dpid_iterate(dpid, ofp_role_write, (void *) &v);
+    ret = channel_mgr_dpid_iterate(dpid, ofp_role_write, (void *) &v);
 
-    ret = v.ret;
+    if (ret != LAGOPUS_RESULT_OK) {
+      if (ret == LAGOPUS_RESULT_NOT_OPERATIONAL ||
+          ret == LAGOPUS_RESULT_NOT_FOUND) {
+        lagopus_msg_info("Channel is not alive, drop asynchronous message(%s)\n",
+                         ofp_type_str(v.type));
+        /* Not send packet. */
+        ret = LAGOPUS_RESULT_OK;
+      } else {
+        ret = v.ret;
+      }
+    }
   } else {
     ret = LAGOPUS_RESULT_INVALID_ARGS;
   }

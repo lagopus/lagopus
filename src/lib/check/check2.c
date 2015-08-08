@@ -14,16 +14,15 @@
  * limitations under the License.
  */
 
-
 #include "lagopus_apis.h"
 #include "lagopus_thread_internal.h"
 
 
-#
+#
 
 
 typedef struct {
-  lagopus_thread_record m_thd;  /* must be on the head. */
+  lagopus_thread_record m_thd;	/* must be on the head. */
 
   lagopus_mutex_t m_lock;
 
@@ -35,13 +34,13 @@ typedef struct {
 typedef test_thread_record *test_thread_t;
 
 
-
+
 
 
 static bool s_is_deleted = false;
 
 
-
+
 
 
 static void
@@ -149,7 +148,7 @@ s_initialize(test_thread_t tt, size_t n) {
 }
 
 
-
+
 
 
 static inline bool
@@ -190,7 +189,7 @@ test_thread_request_stop(test_thread_t tt) {
 }
 
 
-
+
 
 
 int

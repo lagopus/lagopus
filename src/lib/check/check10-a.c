@@ -14,11 +14,10 @@
  * limitations under the License.
  */
 
-
 #include "lagopus_apis.h"
 
 
-
+
 
 
 static volatile bool s_do_stop = false;
@@ -27,7 +26,7 @@ static lagopus_rwlock_t s_lock = NULL;
 static volatile uint64_t s_sum = 0LL;
 
 
-
+
 
 
 static inline void
@@ -58,7 +57,7 @@ s_set(uint64_t v) {
 }
 
 
-
+
 
 
 static void
@@ -119,9 +118,10 @@ s_throw(const lagopus_pipeline_stage_t *sptr,
 
 static lagopus_result_t
 s_sched(const lagopus_pipeline_stage_t *sptr,
-        void *buf, size_t n) {
+        void *buf, size_t n, void *hint) {
   (void)sptr;
   (void)buf;
+  (void)hint;
 
   return (lagopus_result_t)n;
 }
@@ -162,7 +162,7 @@ s_freeup(const lagopus_pipeline_stage_t *sptr) {
 }
 
 
-
+
 
 
 int

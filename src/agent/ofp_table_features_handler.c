@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 #include <stdbool.h>
 #include <stdint.h>
 #include "lagopus_apis.h"
@@ -400,16 +399,23 @@ s_ofp_action_header_parse(struct pbuf *pbuf,
 
 static lagopus_result_t
 s_table_property_parse(struct pbuf *pbuf,
-                       struct table_property_list *table_property_list,
+                       struct table_features *table_features,
                        struct ofp_error *error) {
   lagopus_result_t ret = LAGOPUS_RESULT_OK;
   struct table_property *table_property = NULL;
+  uint8_t *property_list_head = NULL;
+  uint8_t *property_list_end = NULL;
+
+  property_list_head = pbuf_getp_get(pbuf);
+  property_list_end = property_list_head + (table_features->ofp.length -
+                      sizeof(struct ofp_table_features));
 
   do {
     /* Allocate a new table_property. */
     table_property = s_table_property_alloc();
     if (table_property != NULL) {
-      TAILQ_INSERT_TAIL(table_property_list, table_property, entry);
+      TAILQ_INSERT_TAIL(&table_features->table_property_list, table_property, entry);
+
       /* decode prop header. */
       ret = ofp_table_feature_prop_header_decode(pbuf,
             &table_property->ofp);
@@ -517,7 +523,15 @@ s_table_property_parse(struct pbuf *pbuf,
       ret = LAGOPUS_RESULT_NO_MEMORY;
       break;
     }
-  } while (ret == LAGOPUS_RESULT_OK && pbuf_plen_get(pbuf) > 0);
+  } while (ret == LAGOPUS_RESULT_OK && pbuf_getp_get(pbuf) < property_list_end);
+
+  /* check length. */
+  if (ret == LAGOPUS_RESULT_OK &&
+      pbuf_getp_get(pbuf) != property_list_end) {
+    ofp_error_set(error, OFPET_TABLE_FEATURES_FAILED, OFPTFFC_BAD_LEN);
+    ret = LAGOPUS_RESULT_OFP_ERROR;
+  }
+
   return ret;
 }
 
@@ -561,29 +575,21 @@ table_features_list_elem_free(struct table_features_list
 
 static lagopus_result_t
 s_parse_table_property_list(struct pbuf *pbuf,
-                            struct table_property_list *table_property_list,
+                            struct table_features *table_features,
                             struct ofp_error *error) {
   lagopus_result_t res = LAGOPUS_RESULT_OK;
-  if (TAILQ_EMPTY(table_property_list) == true && pbuf_plen_get(pbuf) == 0) {
+  if (TAILQ_EMPTY(&table_features->table_property_list) == true &&
+      pbuf_plen_get(pbuf) == 0) {
     res = LAGOPUS_RESULT_OK;    /* table_property_list is empty */
   } else {
-    /* decode table_featuress. */
-    while (pbuf_plen_get(pbuf) > 0) {
-      // table_property
-      res = s_table_property_parse(pbuf, table_property_list, error);
-      if (res != LAGOPUS_RESULT_OK) {
-        lagopus_msg_warning("FAILED : s_table_property_parse (%s).\n",
-                            lagopus_error_get_string(res));
-        break;
-      }
-    }
-    /* check plen. */
-    if (res == LAGOPUS_RESULT_OK && pbuf_plen_get(pbuf) != 0) {
-      lagopus_msg_warning("packet decode failed. (size over).\n");
-      ofp_error_set(error, OFPET_TABLE_FEATURES_FAILED, OFPTFFC_BAD_LEN);
-      res = LAGOPUS_RESULT_OFP_ERROR;
+    // table_property
+    res = s_table_property_parse(pbuf, table_features, error);
+    if (res != LAGOPUS_RESULT_OK) {
+      lagopus_msg_warning("FAILED : s_table_property_parse (%s).\n",
+                          lagopus_error_get_string(res));
     }
   }
+
   return res;
 }
 
@@ -876,47 +882,60 @@ ofp_table_features_request_handle(struct channel *channel,
         TAILQ_INSERT_TAIL(&table_features_list,
                           table_features,
                           entry);
-        /* Decode table_features */
-        res = ofp_table_features_decode(pbuf, &table_features->ofp);
-        if (res != LAGOPUS_RESULT_OK) {
-          lagopus_msg_warning("FAILED ofp_table_features_decode (%s)\n",
-                              lagopus_error_get_string(res));
-          ofp_error_set(error, OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
-          res = LAGOPUS_RESULT_OFP_ERROR;
-        } else {
-          res = s_parse_table_property_list(pbuf,
-                                            &table_features->table_property_list,
-                                            error);
-          if (res == LAGOPUS_RESULT_OK) {
-            res = ofp_table_features_set(dpid,
-                                         &table_features_list,
-                                         error);
+        while (pbuf_plen_get(pbuf) > 0) {
+          /* Decode table_features */
+          res = ofp_table_features_decode(pbuf, &table_features->ofp);
+          if (res != LAGOPUS_RESULT_OK) {
+            lagopus_msg_warning("FAILED ofp_table_features_decode (%s)\n",
+                                lagopus_error_get_string(res));
+            ofp_error_set(error, OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+            res = LAGOPUS_RESULT_OFP_ERROR;
+          } else {
+            res = s_parse_table_property_list(pbuf,
+                                              table_features,
+                                              error);
             if (res == LAGOPUS_RESULT_OK) {
-              res = ofp_table_features_reply_create(channel,
-                                                    &pbuf_list,
-                                                    &table_features_list,
-                                                    xid_header);
+              res = ofp_table_features_set(dpid,
+                                           &table_features_list,
+                                           error);
               if (res == LAGOPUS_RESULT_OK) {
-                /* send reply */
-                res = channel_send_packet_list(channel, pbuf_list);
-                if (res != LAGOPUS_RESULT_OK) {
-                  lagopus_msg_warning("Socket write error (%s).\n",
+                res = ofp_table_features_reply_create(channel,
+                                                      &pbuf_list,
+                                                      &table_features_list,
+                                                      xid_header);
+                if (res == LAGOPUS_RESULT_OK) {
+                  /* send reply */
+                  res = channel_send_packet_list(channel, pbuf_list);
+                  if (res != LAGOPUS_RESULT_OK) {
+                    lagopus_msg_warning("Socket write error (%s).\n",
+                                        lagopus_error_get_string(res));
+                  }
+                } else {
+                  lagopus_msg_warning("reply creation failed, (%s).\n",
                                       lagopus_error_get_string(res));
                 }
-              } else {
-                lagopus_msg_warning("reply creation failed, (%s).\n",
-                                    lagopus_error_get_string(res));
-              }
 
-              /* free. */
-              if (pbuf_list != NULL) {
-                pbuf_list_free(pbuf_list);
+                /* free. */
+                if (pbuf_list != NULL) {
+                  pbuf_list_free(pbuf_list);
+                }
               }
+            } else {
+              lagopus_msg_warning("FAILED ofp_table_features_get (%s).\n",
+                                  lagopus_error_get_string(res));
             }
-          } else {
-            lagopus_msg_warning("FAILED ofp_table_features_get (%s).\n",
-                                lagopus_error_get_string(res));
           }
+
+          if (res != LAGOPUS_RESULT_OK) {
+            break;
+          }
+        }
+
+        /* check plen. */
+        if (res == LAGOPUS_RESULT_OK && pbuf_plen_get(pbuf) != 0) {
+          lagopus_msg_warning("packet decode failed. (size over).\n");
+          ofp_error_set(error, OFPET_TABLE_FEATURES_FAILED, OFPTFFC_BAD_LEN);
+          res = LAGOPUS_RESULT_OFP_ERROR;
         }
       }
     }

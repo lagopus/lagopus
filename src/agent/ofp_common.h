@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-
 /**
- * @file        ofp_common.h
+ * @file	ofp_common.h
  */
 
 #ifndef __OFP_COMMON_H__

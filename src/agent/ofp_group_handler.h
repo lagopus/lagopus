@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-
 /**
- * @file        ofp_group_handler.h
+ * @file	ofp_group_handler.h
  */
 
 #ifndef __OFP_GROUP_HANDLER_H__
@@ -27,15 +26,15 @@
 /**
  * ofp_group_stats_request handler.
  *
- *     @param[in]       channel A pointer to \e channel structure.
- *     @param[in]       pbuf    A pointer to \e pbuf structure.
- *     @param[in]       xid_header      A pointer to \e ofp_header structure in request.
- *     @param[out]      error   A pointer to \e ofp_error structure.
+ *     @param[in]	channel	A pointer to \e channel structure.
+ *     @param[in]	pbuf	A pointer to \e pbuf structure.
+ *     @param[in]	xid_header	A pointer to \e ofp_header structure in request.
+ *     @param[out]	error	A pointer to \e ofp_error structure.
  *     If errors occur, set filed values.
  *
- *     @retval  LAGOPUS_RESULT_OK       Succeeded.
- *     @retval  LAGOPUS_RESULT_OFP_ERROR Failed, ofp_error.
- *     @retval  LAGOPUS_RESULT_ANY_FAILURES Failed.
+ *     @retval	LAGOPUS_RESULT_OK	Succeeded.
+ *     @retval	LAGOPUS_RESULT_OFP_ERROR Failed, ofp_error.
+ *     @retval	LAGOPUS_RESULT_ANY_FAILURES Failed.
  */
 lagopus_result_t
 ofp_group_stats_request_handle(struct channel *channel, struct pbuf *pbuf,
@@ -45,9 +44,9 @@ ofp_group_stats_request_handle(struct channel *channel, struct pbuf *pbuf,
 /**
  * Free group_stats_list elements.
  *
- *     @param[in]       group_stats_lis A pointer to list of \e group_stats structures.
+ *     @param[in]	group_stats_lis	A pointer to list of \e group_stats structures.
  *
- *     @retval  void
+ *     @retval	void
  */
 void
 group_stats_list_elem_free(struct group_stats_list *group_stats_list);
@@ -56,13 +55,13 @@ group_stats_list_elem_free(struct group_stats_list *group_stats_list);
 /**
  * Create ofp_group_stats_reply.
  *
- *     @param[in]       channel A pointer to \e channel structure.
- *     @param[out]      pbuf_list       A pointer to list of \e pbuf structures.
- *     @param[in]       group_stats_lis A pointer to list of \e group_stats structures.
- *     @param[in]       xid_header      A pointer to \e ofp_header structure.
+ *     @param[in]	channel	A pointer to \e channel structure.
+ *     @param[out]	pbuf_list	A pointer to list of \e pbuf structures.
+ *     @param[in]	group_stats_lis	A pointer to list of \e group_stats structures.
+ *     @param[in]	xid_header	A pointer to \e ofp_header structure.
  *
- *     @retval  LAGOPUS_RESULT_OK       Succeeded.
- *     @retval  LAGOPUS_RESULT_ANY_FAILURES Failed.
+ *     @retval	LAGOPUS_RESULT_OK	Succeeded.
+ *     @retval	LAGOPUS_RESULT_ANY_FAILURES Failed.
  */
 lagopus_result_t
 ofp_group_stats_reply_create(struct channel *channel,

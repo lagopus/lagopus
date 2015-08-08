@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 /**
  * @file        dpmgr.h
  * @brief       Datapath manager.
@@ -25,216 +24,6 @@
 
 #include "lagopus_apis.h"
 #include "bridge.h"
-
-struct vector;
-struct port;
-
-/**
- * Datapath manager object.
- * All ports and all bridges are managed by single manager object.
- */
-struct dpmgr {
-  struct vector *ports;                 /*< Physical ports. */
-  struct bridge_list bridge_list;       /*< Bridges. */
-};
-
-/**
- * Generate datapath id value.
- *
- * @retval      64bit randomized value used for datapath id.
- */
-uint64_t
-dpmgr_dpid_generate(void);
-
-/**
- * Allocate datapath manager object.
- *
- * @retval      !=NULL  datapath manager object.
- * @retval      ==NULL  Memory exhausted.
- */
-struct dpmgr *
-dpmgr_alloc(void);
-
-/**
- * Free datapath manager object, includes all port and bridge objects.
- *
- * @param[in]   dpmgr   datapath manager object.
- */
-void
-dpmgr_free(struct dpmgr *dmpgr);
-
-/**
- * Get allocated dpmgr instance.
- *
- * @retval      !=NULL  dpmgr instance.
- * @retval      ==NULL  dpmgr is not allocated.
- */
-struct dpmgr *dpmgr_get_instance(void);
-
-/**
- * Create and register port to datapath manager.
- *
- * @param[in]   dpgmr           Datapath manager.
- * @param[in]   port_param      Parameters of the port.
- *
- * @retval      LAGOPUS_RESULT_OK       Succeeded.
- * @retval      !=LAGOPUS_RESULT_OK     failed.
- */
-lagopus_result_t
-dpmgr_port_add(struct dpmgr *dpmgr, const struct port *port_param);
-
-/**
- * Unregister port from datapath manager and delete port.
- *
- * @param[in]   dpgmr           Datapath manager.
- * @param[in]   port_ifindex    Physical port index.
- *
- */
-lagopus_result_t
-dpmgr_port_delete(struct dpmgr *dpmgr, uint32_t port_ifindex);
-
-/**
- * Create and register bridge (a.k.a. OpenFlow Switch.)
- *
- * @param[in]   dpmgr           Datapath manager.
- * @param[in]   bridge_name     Bridge name.
- * @param[in]   dpid            Datapath id associated with the bridge.
- *
- * @retval      LAGOPUS_RESULT_OK               Succeeded.
- * @retval      LAGOPUS_RESULT_ALREADY_EXISTS   Already exist same name bridge.
- * @retval      LAGOPUS_RESULT_NO_MEMORY        Memory exhausted.
- */
-lagopus_result_t
-dpmgr_bridge_add(struct dpmgr *dpmgr, const char *bridge_name, uint64_t dpid);
-
-/**
- * Delete bridge.
- *
- * @param[in]   dpmgr           Datapath manager.
- * @param[in]   bridge_name     Bridge name.
- *
- * @retval      LAGOPUS_RESULT_OK               Succeeded.
- * @retval      LAGOPUS_RESULT_NOT_FOUND        Bridge is not exist.
- */
-lagopus_result_t
-dpmgr_bridge_delete(struct dpmgr *dpmgr, const char *bridge_name);
-
-/**
- * Lookup bridge.
- *
- * @param[in]   dpmgr           Datapath manager.
- * @param[in]   bridge_name     Bridge name.
- *
- * @retval      !=NULL          Bridge object.
- * @retval      ==NULL          Bridge asscoated with name is not exist.
- */
-struct bridge *
-dpmgr_bridge_lookup(struct dpmgr *dpmgr, const char *bridge_name);
-
-/**
- * Lookup bridge by controller address.
- *
- * @param[in]   dpmgr           Datapath manager.
- * @param[in]   address         Controller address.
- *
- * @retval      !=NULL          Bridge object.
- * @retval      ==NULL          Bridge asscoated with name is not exist.
- */
-struct bridge *
-dpmgr_bridge_lookup_by_controller_address(struct dpmgr *dpmgr,
-    const char *controller_address);
-/**
- * Lookup bridge dpid.
- *
- * @param[in]   dpmgr           Datapath manager.
- * @param[in]   bridge_name     Bridge name.
- * @param[out]  dpidp           Placeholder of datapath id.
- *
- * @retval      LAGOPUS_RESULT_OK               Success.
- * @retval      LAGOPUS_RESULT_NOT_FOUND        Bridge is not found.
- */
-lagopus_result_t
-dpmgr_bridge_dpid_lookup(struct dpmgr *dpmgr,
-                         const char *bridge_name,
-                         uint64_t *dpidp);
-
-/**
- * Set/update bridge dpid.
- *
- * @param[in]   dpmgr           Datapath manager.
- * @param[in]   bridge_name     Bridge name.
- * @param[in]   dpid            Datapath id.
- *
- * @retval      LAGOPUS_RESULT_OK               Success.
- * @retval      LAGOPUS_RESULT_NOT_FOUND        Bridge is not found.
- */
-lagopus_result_t
-dpmgr_bridge_dpid_set(struct dpmgr *dpmgr,
-                      const char *bridge_name,
-                      uint64_t dpid);
-
-/**
- * Assign port to specified bridge.
- *
- * @param[in]   dpmgr           Datapath manager.
- * @param[in]   bridge_name     Bridge name.
- * @param[in]   portid          Physical ifindex.
- * @param[in]   port_no         Assigned OpenFlow port number.
- *
- * @retval      LAGOPUS_RESULT_OK               Succeeded.
- * @retval      LAGOPUS_RESULT_ALREADY_EXISTS   Port is alrady assinged.
- * @retval      LAGOPUS_RESULT_NOT_FOUND        Bridge or port is not exist.
- */
-lagopus_result_t
-dpmgr_bridge_port_add(struct dpmgr *dpmgr, const char *bridge_name,
-                      uint32_t portid, uint32_t port_no);
-
-/**
- * Resign port to specified bridge.
- *
- * @param[in]   dpmgr           Datapath manager.
- * @param[in]   bridge_name     Bridge name.
- * @param[in]   port_ifindex    Physical port index.
- *
- * @retval      LAGOPUS_RESULT_OK               Succeeded.
- * @retval      LAGOPUS_RESULT_NOT_FOUND        Bridge or port is not exist.
- */
-lagopus_result_t
-dpmgr_bridge_port_delete(struct dpmgr *dpmgr, const char *bridge_name,
-                         uint32_t port_ifindex);
-
-/**
- * Add controller address to the bridge.
- *
- * @param[in]   dpmgr                   Datapath manager.
- * @param[in]   bridge_name             Bridge name.
- * @param[in]   controller_addresss     Controller address string.
- *
- * @retval      LAGOPUS_RESULT_OK       Success.
- * @retval      LAGOPUS_RESULT_NOT_FOUND Bridge is not exist.
- */
-lagopus_result_t
-dpmgr_controller_add(struct dpmgr *dpmgr, const char *bridge_name,
-                     const char *controller_address);
-
-/**
- * Delete controller address to the bridge.
- *
- * @param[in]   dpmgr                   Datapath manager.
- * @param[in]   bridge_name             Bridge name.
- * @param[in]   controller_addresss     Controller address string.
- *
- * @retval      LAGOPUS_RESULT_OK       Success.
- * @retval      LAGOPUS_RESULT_NOT_FOUND Bridge is not exist.
- */
-lagopus_result_t
-dpmgr_controller_delete(struct dpmgr *dpmgr, const char *bridge_name,
-                        const char *controller_address);
-
-/**
- */
-lagopus_result_t
-dpmgr_controller_dpid_find(struct dpmgr *, const char *, uint64_t *);
 
 /**
  * Get current switch mode (openflow, secure or standalone).
@@ -247,7 +36,7 @@ dpmgr_controller_dpid_find(struct dpmgr *, const char *, uint64_t *);
  * @retval      LAGOPUS_RESULT_ANY_FAILURES     Failed.
  */
 lagopus_result_t
-dpmgr_switch_mode_get(uint64_t dpid, enum switch_mode *switch_mode);
+dpmgr_switch_mode_get(uint64_t dpid, enum switch_mode *switch_mode) __attribute__ ((deprecated));
 
 /**
  * Set switch mode (openflow, secure or standalone).
@@ -260,7 +49,7 @@ dpmgr_switch_mode_get(uint64_t dpid, enum switch_mode *switch_mode);
  * @retval      LAGOPUS_RESULT_ANY_FAILURES     Failed.
  */
 lagopus_result_t
-dpmgr_switch_mode_set(uint64_t dpid, enum switch_mode switch_mode);
+dpmgr_switch_mode_set(uint64_t dpid, enum switch_mode switch_mode) __attribute__ ((deprecated));
 
 /**
  * Get OpenFlow switch fail mode.
@@ -274,7 +63,7 @@ dpmgr_switch_mode_set(uint64_t dpid, enum switch_mode switch_mode);
  */
 lagopus_result_t
 dpmgr_bridge_fail_mode_get(uint64_t dpid,
-                           enum fail_mode *fail_mode);
+                           enum fail_mode *fail_mode) __attribute__ ((deprecated));
 
 /**
  * Get primary OpenFlow version.
@@ -287,7 +76,7 @@ dpmgr_bridge_fail_mode_get(uint64_t dpid,
  * @retval      LAGOPUS_RESULT_ANY_FAILURES     Failed.
  */
 lagopus_result_t
-dpmgr_bridge_ofp_version_get(uint64_t dpid, uint8_t *version);
+dpmgr_bridge_ofp_version_get(uint64_t dpid, uint8_t *version) __attribute__ ((deprecated));
 
 /**
  * Set primary OpenFlow version.
@@ -301,7 +90,7 @@ dpmgr_bridge_ofp_version_get(uint64_t dpid, uint8_t *version);
  * @retval      LAGOPUS_RESULT_ANY_FAILURES     Failed.
  */
 lagopus_result_t
-dpmgr_bridge_ofp_version_set(uint64_t dpid, uint8_t version);
+dpmgr_bridge_ofp_version_set(uint64_t dpid, uint8_t version) __attribute__ ((deprecated));
 
 /**
  * Get supported OpenFlow version bitmap.
@@ -315,7 +104,7 @@ dpmgr_bridge_ofp_version_set(uint64_t dpid, uint8_t version);
  */
 lagopus_result_t
 dpmgr_bridge_ofp_version_bitmap_get(uint64_t dpid,
-                                    uint32_t *version_bitmap);
+                                    uint32_t *version_bitmap) __attribute__ ((deprecated));
 
 /**
  * Set supported OpenFlow version bitmap.
@@ -329,7 +118,7 @@ dpmgr_bridge_ofp_version_bitmap_get(uint64_t dpid,
  * @retval      LAGOPUS_RESULT_ANY_FAILURES     Failed.
  */
 lagopus_result_t
-dpmgr_bridge_ofp_version_bitmap_set(uint64_t dpid, uint8_t version);
+dpmgr_bridge_ofp_version_bitmap_set(uint64_t dpid, uint8_t version) __attribute__ ((deprecated));
 
 /**
  * Get OpenFlow switch features.
@@ -343,6 +132,6 @@ dpmgr_bridge_ofp_version_bitmap_set(uint64_t dpid, uint8_t version);
  */
 lagopus_result_t
 dpmgr_bridge_ofp_features_get(uint64_t dpid,
-                              struct ofp_switch_features *features);
+                              struct ofp_switch_features *features) __attribute__ ((deprecated));
 
 #endif /* SRC_INCLUDE_LAGOPUS_DPMGR_H_ */

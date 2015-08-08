@@ -14,21 +14,24 @@
  * limitations under the License.
  */
 
-
 #ifndef __LAGOPUS_SIGNAL_H__
 #define __LAGOPUS_SIGNAL_H__
 
 
-
+
 
 
 /**
- *      @file lagopus_signal.h
+ *	@file lagopus_signal.h
  */
 
 
+
 
 
+#ifdef __FreeBSD__
+#define sighandler_t sig_t
+#endif /* __FreeBSD__ */
 
 /**
  * A MT-Safe signal(2).
@@ -41,10 +44,10 @@ lagopus_signal(int signum, sighandler_t new, sighandler_t *oldptr);
  * Fallback the signal handling mechanism to the good-old-school
  * semantics.
  */
-void    lagopus_signal_old_school_semantics(void);
+void	lagopus_signal_old_school_semantics(void);
 
 
-
+
 
 
 #endif /* ! __LAGOPUS_SIGNAL_H__ */

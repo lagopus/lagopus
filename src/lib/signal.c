@@ -14,24 +14,23 @@
  * limitations under the License.
  */
 
-
 #include "lagopus_apis.h"
 #include "lagopus_thread_internal.h"
 
 
-
+
 
 
 #ifndef NSIG
 #ifdef _NSIG
 #define NSIG _NSIG
 #else
-#define NSIG    64      /* Super wild guess. */
+#define NSIG	64	/* Super wild guess. */
 #endif /* _NSIG */
 #endif /* ! NSIG */
 
 
-
+
 
 
 typedef struct signal_thread_record {
@@ -41,14 +40,14 @@ typedef struct signal_thread_record {
   sigset_t m_sigset;
   bool m_do_loop;
 } signal_thread_record;
-typedef signal_thread_record    *signal_thread_t;
+typedef signal_thread_record 	*signal_thread_t;
 
 
+
 
 
-
-static void s_ctors(void) __attr_constructor__(105);
-static void s_dtors(void) __attr_destructor__(105);
+static void s_ctors(void) __attr_constructor__(107);
+static void s_dtors(void) __attr_destructor__(107);
 static void s_child_at_fork(void);
 
 static pthread_once_t s_once_init = PTHREAD_ONCE_INIT;
@@ -63,7 +62,7 @@ static signal_thread_t s_sigthd = &s_sigthd_rec;
 static sigset_t org_proc_sigset;
 
 
-
+
 
 
 static inline void
@@ -117,7 +116,7 @@ s_unblock_all_signals(void) {
 }
 
 
-
+
 
 
 static inline void
@@ -170,7 +169,7 @@ s_stop(signal_thread_t st) {
 }
 
 
-
+
 
 
 static lagopus_result_t
@@ -309,7 +308,7 @@ s_create(signal_thread_t *stptr, sigset_t *ssptr, sighandler_t *procs) {
 }
 
 
-
+
 
 
 static inline void
@@ -455,7 +454,7 @@ s_dtors(void) {
 }
 
 
-
+
 
 
 lagopus_result_t

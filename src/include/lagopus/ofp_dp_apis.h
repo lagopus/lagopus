@@ -14,11 +14,10 @@
  * limitations under the License.
  */
 
-
 /**
- * @file        ofp_dp_apis.h
- * @brief       Agent/Data-Plane APIs
- * @details     Describe APIs between Agent and Data-Plane.
+ * @file	ofp_dp_apis.h
+ * @brief	Agent/Data-Plane APIs
+ * @details	Describe APIs between Agent and Data-Plane.
  */
 #ifndef __LAGOPUS_OFP_DP_APIS_H__
 #define __LAGOPUS_OFP_DP_APIS_H__

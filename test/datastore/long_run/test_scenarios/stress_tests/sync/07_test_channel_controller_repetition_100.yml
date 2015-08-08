@@ -1,0 +1,27 @@
+use:
+  - lagopus
+  - ryu
+
+testcases:
+  - testcase: set channel in controller, repetition 100 times
+    test:
+      - repetition_count: 101
+        cmds:
+          - cmd_type: ds
+            cmd: channel channel{{ index }} create -dst-addr 127.0.0.{{ index }} -protocol tcp
+            result: '{"ret": "OK"}'
+      - cmds:
+          - cmd_type: ds
+            cmd: >-
+              controller controller01 create -channel channel0
+              -role equal -connection-type main
+            result: '{"ret": "OK"}'
+      - repetition_count: 100
+        cmds:
+          - cmd_type: ds
+            cmd: controller controller01 config -channel channel{{ index + 1 }}
+            result: '{"ret": "OK"}'
+      - cmds:
+          - cmd_type: ds
+            cmd: destroy-all-obj
+            result: '{"ret": "OK"}'

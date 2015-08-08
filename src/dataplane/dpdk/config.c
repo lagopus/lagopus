@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 /*-
  *   BSD LICENSE
  *
@@ -88,8 +87,8 @@
 #include <rte_tcp.h>
 #include <rte_string_fns.h>
 
-#include "undef.h"
 #include "lagopus_apis.h"
+#include "lagopus/dataplane.h"
 #include "lagopus/ofcache.h"
 
 #include "dpdk.h"
@@ -114,6 +113,7 @@ static const char usage[] =
   "           performance  Don't use HT core (default)                            \n"
   "           balance      Use HT core                                            \n"
   "           minimum      Use only 2 core                                        \n"
+  "    --show-core-config : Print core assignment configuration and exit          \n"
   "    --no-cache : Don't use flow cache                                          \n"
   "    --kvstype TYPE: Select key-value store type for flow cache                 \n"
   "           hashmap_nolock  Use hashmap without rwlock (default)                \n"
@@ -153,7 +153,7 @@ static const char usage[] =
   "           F = I/O TX lcore write burst size to NIC TX (default value is %u)   \n";
 
 void
-datapath_usage(FILE *fp) {
+dataplane_usage(FILE *fp) {
   fprintf(fp, usage,
           APP_DEFAULT_NIC_RX_RING_SIZE,
           APP_DEFAULT_RING_RX_SIZE,
@@ -272,10 +272,10 @@ parse_arg_rx(const char *arg) {
           (queue >= APP_MAX_RX_QUEUES_PER_NIC_PORT)) {
         return -3;
       }
-      if (app.nic_rx_queue_mask[port][queue] != 0) {
+      if (app.nic_rx_queue_mask[port][queue] != NIC_RX_QUEUE_UNCONFIGURED) {
         return -4;
       }
-      app.nic_rx_queue_mask[port][queue] = 1;
+      app.nic_rx_queue_mask[port][queue] = NIC_RX_QUEUE_ENABLED;
 
       /* Check and assign (port, queue) to I/O lcore */
       if (rte_lcore_is_enabled(lcore) == 0) {
@@ -462,7 +462,6 @@ app_check_every_rx_port_is_tx_enabled(void) {
       return -1;
     }
   }
-
   return 0;
 }
 
@@ -623,6 +622,41 @@ parse_arg_fifoness(const char *arg) {
 
 static unsigned lcores[RTE_MAX_LCORE];
 
+static int
+assign_rx_lcore(uint8_t portid, uint8_t n) {
+  struct app_lcore_params *lp;
+
+  app.nic_rx_queue_mask[portid][0] = NIC_RX_QUEUE_ENABLED;
+  lp = &app.lcore_params[lcores[n]];
+  if (lp->type == e_APP_LCORE_WORKER) {
+    lagopus_msg_error("lcore %d (%dth lcore): already assinged as worker\n",
+                      lcores[n], n);
+    return -5;
+  }
+  lp->type = e_APP_LCORE_IO;
+  lp->io.rx.nic_queues[lp->io.rx.n_nic_queues].port = portid;
+  lp->io.rx.nic_queues[lp->io.rx.n_nic_queues].queue = 0;
+  lp->io.rx.n_nic_queues++;
+  return 0;
+}
+
+static int
+assign_tx_lcore(uint8_t portid, uint8_t n) {
+  struct app_lcore_params *lp;
+
+  app.nic_tx_port_mask[portid] = 1;
+  lp = &app.lcore_params[lcores[n]];
+  if (lp->type == e_APP_LCORE_WORKER) {
+    lagopus_msg_error("lcore %d (%dth lcore): already assinged as worker\n",
+                      lcores[n], n);
+    return -5;
+  }
+  lp->type = e_APP_LCORE_IO;
+  lp->io.tx.nic_ports[lp->io.tx.n_nic_ports] = portid;
+  lp->io.tx.n_nic_ports++;
+  return 0;
+}
+
 /* Parse the argument given in the command line of the application */
 int
 app_parse_args(int argc, const char *argv[]) {
@@ -643,6 +677,7 @@ app_parse_args(int argc, const char *argv[]) {
     {"hashtype", 1, 0, 0},
 #endif /* __SSE4_2__ */
     {"fifoness", 1, 0, 0},
+    {"show-core-config", 0, 0, 0},
     {NULL, 0, 0, 0}
   };
   uint32_t arg_p = 0;
@@ -658,7 +693,8 @@ app_parse_args(int argc, const char *argv[]) {
   unsigned lcore, htcore, lcore_count, i, wk_lcore_count = 0;
   unsigned rx_lcore_start, tx_lcore_start, wk_lcore_start;
   int rx_lcore_inc, tx_lcore_inc, wk_lcore_inc;
-  uint8_t portid, port_count;
+  uint8_t portid, port_count, count, n;
+  bool show_core_assign = false;
 
   argvopt = (char **)argv;
 
@@ -667,30 +703,36 @@ app_parse_args(int argc, const char *argv[]) {
     switch (opt) {
       case 'p':
         if (optarg[0] == '\0') {
+          printf("Require value for -p argument\n");
           return -1;
         }
-        portmask = (uint64_t)strtoul(optarg, &end, 16);
+        portmask = (uint64_t)strtoull(optarg, &end, 16);
         if (end == NULL || *end != '\0') {
+          printf("Non-numerical value for -p argument\n");
           return -1;
         }
         if (portmask == 0) {
+          printf("Incorrect value for -p argument\n");
           return -1;
         }
         arg_p = 1;
         break;
       case 'w':
         if (optarg[0] == '\0') {
+          printf("Require value for -w argument\n");
           return -1;
         }
         wk_lcore_count = (unsigned)strtoul(optarg, &end, 10);
         if (end == NULL || *end != '\0') {
+          printf("Non-numerical value for -w argument\n");
           return -1;
         }
         if (wk_lcore_count == 0) {
+          printf("Incorrect value for -w argument\n");
           return -1;
         }
         break;
-      /* long options */
+        /* long options */
       case 0:
         if (!strcmp(lgopts[option_index].name, "rx")) {
           arg_rx = 1;
@@ -763,9 +805,13 @@ app_parse_args(int argc, const char *argv[]) {
             return -1;
           }
         }
+        if (!strcmp(lgopts[option_index].name, "show-core-config")) {
+          show_core_assign = true;
+        }
         break;
 
       default:
+        printf("Incorrect option\n");
         return -1;
     }
   }
@@ -776,13 +822,13 @@ app_parse_args(int argc, const char *argv[]) {
                        "Not all mandatory arguments are present\n");
   }
 
+  port_count = 0;
   if (arg_p != 0) {
     /**
      * Assign lcore for each thread automatically.
      */
-    port_count = 0;
     for (i = 0; i < 32; i++) {
-      if ((portmask & (uint64_t)(1 << i)) != 0) {
+      if ((portmask & (uint64_t)(1ULL << i)) != 0) {
         port_count++;
       }
     }
@@ -831,7 +877,17 @@ app_parse_args(int argc, const char *argv[]) {
   if (app.core_assign == CORE_ASSIGN_MINIMUM) {
     lcore_count = 1;
   }
-  if (port_count * 4 <= lcore_count) {
+  if (lcore_count == 1) {
+    /*
+     * I/O and worker shares single lcore.
+     */
+    rx_lcore_start = 0;
+    tx_lcore_start = 0;
+    wk_lcore_start = 0;
+    rx_lcore_inc = 0;
+    tx_lcore_inc = 0;
+    wk_lcore_inc = 0;
+  } else if (port_count * 4 <= lcore_count) {
     /*
      * each ports rx has own lcore.
      * each ports tx has own lcore.
@@ -854,6 +910,28 @@ app_parse_args(int argc, const char *argv[]) {
     rx_lcore_inc = 1;
     tx_lcore_inc = 1;
     wk_lcore_inc = 1;
+  } else if (port_count <= lcore_count) {
+    /*
+     * odd ports and even ports (rx/tx) shared lcore.
+     * all other lcores are assigned as worker.
+     */
+    rx_lcore_start = 0;
+    tx_lcore_start = 0;
+    wk_lcore_start = rx_lcore_start + (port_count + 1) / 2;
+    rx_lcore_inc = 2;
+    tx_lcore_inc = 2;
+    wk_lcore_inc = 1;
+  } else if (port_count <= lcore_count * 2) {
+    /*
+     * four ports (rx/tx) shared lcore.
+     * all other lcores are assigned as worker.
+     */
+    rx_lcore_start = 0;
+    tx_lcore_start = 0;
+    wk_lcore_start = rx_lcore_start + (port_count + 3) / 4;
+    rx_lcore_inc = 4;
+    tx_lcore_inc = 4;
+    wk_lcore_inc = 1;
   } else if (lcore_count >= 4) {
     /*
      * rx for all ports has own lcore.
@@ -866,7 +944,7 @@ app_parse_args(int argc, const char *argv[]) {
     rx_lcore_inc = 0;
     tx_lcore_inc = 0;
     wk_lcore_inc = 1;
-  } else if (lcore_count >= 2) {
+  } else {
     /*
      * I/O has own lcore.
      * all other lcores are assigned as worker.
@@ -877,63 +955,47 @@ app_parse_args(int argc, const char *argv[]) {
     rx_lcore_inc = 0;
     tx_lcore_inc = 0;
     wk_lcore_inc = 1;
-  } else {
-    /*
-     * I/O and worker shares single lcore.
-     */
-    rx_lcore_start = 0;
-    tx_lcore_start = 0;
-    wk_lcore_start = 0;
-    rx_lcore_inc = 0;
-    tx_lcore_inc = 0;
-    wk_lcore_inc = 0;
   }
   /* assign core automatically */
   if (arg_rx == 0) {
     lcore = rx_lcore_start;
+    count = rx_lcore_inc;
     for (portid = 0; portid < RTE_MAX_ETHPORTS; portid++) {
-      if ((portmask & (uint64_t)(1 << portid)) == 0) {
+      if ((portmask & (uint64_t)(1ULL << portid)) == 0) {
         continue;
       }
-      app.nic_rx_queue_mask[portid][0] = 1;
-      lp = &app.lcore_params[lcores[lcore]];
-      if (lp->type == e_APP_LCORE_WORKER) {
+      if (assign_rx_lcore(portid, lcore) != 0) {
         return -5;
       }
-      lp->type = e_APP_LCORE_IO;
-      lp->io.rx.nic_queues[lp->io.rx.n_nic_queues].port = portid;
-      lp->io.rx.nic_queues[lp->io.rx.n_nic_queues].queue = 0;
-      lp->io.rx.n_nic_queues++;
-      if (rx_lcore_inc) {
+      if (--count == 0) {
         lcore++;
+        count = rx_lcore_inc;
       }
     }
   }
   if (arg_tx == 0) {
     lcore = tx_lcore_start;
+    count = tx_lcore_inc;
     for (portid = 0; portid < RTE_MAX_ETHPORTS; portid++) {
-      if ((portmask & (uint64_t)(1 << portid)) == 0) {
+      if ((portmask & (uint64_t)(1ULL << portid)) == 0) {
         continue;
       }
-      app.nic_tx_port_mask[portid] = 1;
-      lp = &app.lcore_params[lcores[lcore]];
-      if (lp->type == e_APP_LCORE_WORKER) {
+      if (assign_tx_lcore(portid, lcore) != 0) {
         return -5;
       }
-      lp->type = e_APP_LCORE_IO;
-      lp->io.tx.nic_ports[lp->io.tx.n_nic_ports] = portid;
-      lp->io.tx.n_nic_ports++;
-      if (tx_lcore_inc) {
+      if (--count == 0) {
         lcore++;
+        count = tx_lcore_inc;
       }
     }
   }
   if (arg_w == 0) {
-    lcore = wk_lcore_start;
     if (wk_lcore_count == 0) {
-      wk_lcore_count = lcore_count;
+      wk_lcore_count = lcore_count - wk_lcore_start;
     }
-    for (lcore = wk_lcore_start; lcore < wk_lcore_count; lcore++) {
+    for (lcore = wk_lcore_start;
+         lcore < wk_lcore_start + wk_lcore_count;
+         lcore++) {
       lp = &app.lcore_params[lcores[lcore]];
       if (lp->type == e_APP_LCORE_IO) {
         /* core is shared by I/O and worker. */
@@ -941,7 +1003,7 @@ app_parse_args(int argc, const char *argv[]) {
       } else {
         lp->type = e_APP_LCORE_WORKER;
       }
-      if (!wk_lcore_inc) {
+      if (wk_lcore_inc != 1) {
         break;
       }
     }
@@ -966,8 +1028,38 @@ app_parse_args(int argc, const char *argv[]) {
 
   /* Check cross-consistency of arguments */
   if (app_check_every_rx_port_is_tx_enabled() < 0) {
-    printf("At least one RX port is not enabled for TX.\n");
+    lagopus_msg_error("At least one RX port is not enabled for TX.\n");
     return -2;
+  }
+
+  if (show_core_assign == true) {
+    printf("core assign:\n");
+    for (lcore = 0; lcore < RTE_MAX_LCORE; lcore++) {
+      if (lcore_config[lcore].detected != true) {
+        continue;
+      }
+      lp = &app.lcore_params[lcore];
+      printf("  lcore %d:\n", lcore);
+      if (lp->type == e_APP_LCORE_IO) {
+        printf("    type: I/O\n");
+      } else if (lp->type == e_APP_LCORE_WORKER) {
+        printf("    type: WORKER\n");
+      } else if (lp->type == e_APP_LCORE_IO_WORKER) {
+        printf("    type: I/O WORKER\n");
+      } else {
+        printf("    type: not used\n");
+      }
+      for (n = 0; n < lp->io.rx.n_nic_queues; n++) {
+        printf("    RX port %d (queue %d)\n",
+               lp->io.rx.nic_queues[n].port,
+               lp->io.rx.nic_queues[n].queue);
+      }
+      for (n = 0; n < lp->io.tx.n_nic_ports; n++) {
+        printf("    TX port %d\n",
+               lp->io.tx.nic_ports[n]);
+      }
+    }
+    exit(0);
   }
 
   if (optind >= 0) {
@@ -987,7 +1079,7 @@ app_get_nic_rx_queues_per_port(uint8_t port) {
   }
   count = 0;
   for (i = 0; i < APP_MAX_RX_QUEUES_PER_NIC_PORT; i ++) {
-    if (app.nic_rx_queue_mask[port][i] == 1) {
+    if (app.nic_rx_queue_mask[port][i] == NIC_RX_QUEUE_ENABLED) {
       count ++;
     }
   }
@@ -1106,7 +1198,7 @@ app_print_params(void) {
 
     printf(  "  port %u (", port);
     for (queue = 0; queue < APP_MAX_RX_QUEUES_PER_NIC_PORT; queue ++) {
-      if (app.nic_rx_queue_mask[port][queue] == 1) {
+      if (app.nic_rx_queue_mask[port][queue] == NIC_RX_QUEUE_ENABLED) {
         printf("queue %u", queue);
       }
     }

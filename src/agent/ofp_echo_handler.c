@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 #include <stdbool.h>
 #include <stdint.h>
 #include "lagopus_apis.h"
@@ -23,7 +22,7 @@
 #include "openflow13packet.h"
 #include "ofp_apis.h"
 
-#define TRACE_OFPT_ECHO (TRACE_OFPT_ECHO_REQUEST |      \
+#define TRACE_OFPT_ECHO (TRACE_OFPT_ECHO_REQUEST | \
                          TRACE_OFPT_ECHO_REPLY)
 
 static void

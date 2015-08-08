@@ -14,15 +14,16 @@
  * limitations under the License.
  */
 
-
 #include <sys/queue.h>
 #include "unity.h"
 #include "lagopus_apis.h"
 #include "lagopus/pbuf.h"
-#include "lagopus/dpmgr.h"
 #include "lagopus/flowdb.h"
 #include "lagopus/group.h"
 #include "lagopus/vector.h"
+#include "lagopus/bridge.h"
+#include "lagopus/datastore/bridge.h"
+#include "lagopus/dp_apis.h"
 #include "openflow13.h"
 #include "ofp_action.h"
 #include "ofp_match.h"
@@ -30,25 +31,27 @@
 
 void
 setUp(void) {
+  datastore_bridge_info_t info;
+
+  TEST_ASSERT_EQUAL(dp_api_init(), LAGOPUS_RESULT_OK);
+  memset(&info, 0, sizeof(info));
+  info.fail_mode = DATASTORE_BRIDGE_FAIL_MODE_SECURE;
+  TEST_ASSERT_EQUAL(dp_bridge_create("br0", &info), LAGOPUS_RESULT_OK);
 }
 
 void
 tearDown(void) {
+  dp_bridge_destroy("br0");
+  dp_api_fini();
 }
 
 void
 test_group_table_alloc(void) {
-  struct dpmgr *dpmgr;
   struct bridge *bridge;
   struct group_table *group_table;
   lagopus_result_t rv;
 
-  dpmgr = dpmgr_alloc();
-  TEST_ASSERT_NOT_NULL_MESSAGE(dpmgr, "dpmgr alloc error.");
-  rv = dpmgr_bridge_add(dpmgr, "br0", 0);
-  TEST_ASSERT_EQUAL_MESSAGE(rv, LAGOPUS_RESULT_OK,
-                            "bridge add error");
-  bridge = dpmgr_bridge_lookup(dpmgr, "br0");
+  bridge = dp_bridge_lookup("br0");
   TEST_ASSERT_NOT_NULL_MESSAGE(bridge, "bridge alloc error.");
   group_table = group_table_alloc(bridge);
   TEST_ASSERT_NOT_NULL_MESSAGE(group_table, "alloc error");
@@ -56,7 +59,6 @@ test_group_table_alloc(void) {
 
 void
 test_group_table_add(void) {
-  struct dpmgr *dpmgr;
   struct bridge *bridge;
   struct group_table *group_table;
   struct group *group;
@@ -67,12 +69,7 @@ test_group_table_add(void) {
   struct ofp_error error;
   lagopus_result_t ret;
 
-  dpmgr = dpmgr_alloc();
-  TEST_ASSERT_NOT_NULL_MESSAGE(dpmgr, "dpmgr alloc error.");
-  ret = dpmgr_bridge_add(dpmgr, "br0", 0);
-  TEST_ASSERT_EQUAL_MESSAGE(ret, LAGOPUS_RESULT_OK,
-                            "bridge add error");
-  bridge = dpmgr_bridge_lookup(dpmgr, "br0");
+  bridge = dp_bridge_lookup("br0");
   group_table = group_table_alloc(bridge);
   TEST_ASSERT_NOT_NULL_MESSAGE(bridge, "group_table alloc error.");
   bridge->group_table = group_table;
@@ -156,7 +153,6 @@ test_group_table_add(void) {
 
 void
 test_group_table_lookup(void) {
-  struct dpmgr *dpmgr;
   struct bridge *bridge;
   struct group_table *group_table;
   struct group *group, *gl;
@@ -165,12 +161,7 @@ test_group_table_lookup(void) {
   struct ofp_error error;
   lagopus_result_t ret;
 
-  dpmgr = dpmgr_alloc();
-  TEST_ASSERT_NOT_NULL_MESSAGE(dpmgr, "dpmgr alloc error.");
-  ret = dpmgr_bridge_add(dpmgr, "br0", 0);
-  TEST_ASSERT_EQUAL_MESSAGE(ret, LAGOPUS_RESULT_OK,
-                            "bridge add error");
-  bridge = dpmgr_bridge_lookup(dpmgr, "br0");
+  bridge = dp_bridge_lookup("br0");
   TEST_ASSERT_NOT_NULL_MESSAGE(bridge, "bridge alloc error.");
   TAILQ_INIT(&bucket_list);
   group_table = group_table_alloc(bridge);
@@ -191,7 +182,6 @@ test_group_table_lookup(void) {
 
 void
 test_group_desc(void) {
-  struct dpmgr *dpmgr;
   struct bridge *bridge;
   struct group_table *group_table;
   struct group *group;
@@ -202,12 +192,7 @@ test_group_desc(void) {
   struct ofp_error error;
   lagopus_result_t ret;
 
-  dpmgr = dpmgr_alloc();
-  TEST_ASSERT_NOT_NULL_MESSAGE(dpmgr, "dpmgr alloc error.");
-  ret = dpmgr_bridge_add(dpmgr, "br0", 0);
-  TEST_ASSERT_EQUAL_MESSAGE(ret, LAGOPUS_RESULT_OK,
-                            "bridge add error");
-  bridge = dpmgr_bridge_lookup(dpmgr, "br0");
+  bridge = dp_bridge_lookup("br0");
   TEST_ASSERT_NOT_NULL_MESSAGE(bridge, "bridge alloc error.");
   TAILQ_INIT(&bucket_list);
   group_table = group_table_alloc(bridge);
@@ -248,7 +233,6 @@ test_group_desc(void) {
 
 void
 test_group_stats(void) {
-  struct dpmgr *dpmgr;
   struct bridge *bridge;
   struct group_table *group_table;
   struct group *group;
@@ -265,12 +249,7 @@ test_group_stats(void) {
   struct action *action;
   lagopus_result_t ret;
 
-  dpmgr = dpmgr_alloc();
-  TEST_ASSERT_NOT_NULL_MESSAGE(dpmgr, "dpmgr alloc error.");
-  ret = dpmgr_bridge_add(dpmgr, "br0", 0);
-  TEST_ASSERT_EQUAL_MESSAGE(ret, LAGOPUS_RESULT_OK,
-                            "bridge add error");
-  bridge = dpmgr_bridge_lookup(dpmgr, "br0");
+  bridge = dp_bridge_lookup("br0");
   TEST_ASSERT_NOT_NULL_MESSAGE(bridge, "bridge alloc error.");
   TAILQ_INIT(&bucket_list);
   group_table = group_table_alloc(bridge);

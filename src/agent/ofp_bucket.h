@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-
 /**
- * @file        ofp_bucket.h
+ * @file	ofp_bucket.h
  */
 
 #ifndef __BUCKET_H__
@@ -28,8 +27,8 @@
 /**
  * Alloc bucket.
  *
- *     @retval  *bucket Succeeded, A pointer to \e bucket structure.
- *     @retval  NULL    Failed.
+ *     @retval	*bucket	Succeeded, A pointer to \e bucket structure.
+ *     @retval	NULL	Failed.
  */
 struct bucket *
 bucket_alloc(void);
@@ -37,10 +36,10 @@ bucket_alloc(void);
 /**
  * Trace bucket_list.
  *
- *     @param[in]       flag    Trace flags. Or'd value of TRACE_OFPT_*.
- *     @param[in]       bucket_list     A pointer to list of \e bucket structures.
+ *     @param[in]	flag	Trace flags. Or'd value of TRACE_OFPT_*.
+ *     @param[in]	bucket_list	A pointer to list of \e bucket structures.
  *
- *     @retval  void
+ *     @retval	void
  */
 void
 ofp_bucket_list_trace(uint32_t flags,
@@ -49,10 +48,10 @@ ofp_bucket_list_trace(uint32_t flags,
 /**
  * Free meter_band_stats_list elements.
  *
- *     @param[in]       band_stats_list A pointer to list of
+ *     @param[in]	band_stats_list	A pointer to list of
  *     \e meter_band_stats structures.
  *
- *     @retval  void
+ *     @retval	void
  */
 void
 ofp_bucket_list_free(struct bucket_list *bucket_list);
@@ -60,14 +59,14 @@ ofp_bucket_list_free(struct bucket_list *bucket_list);
 /**
  * Parse bucket.
  *
- *     @param[in]       pbuf    A pointer to \e pbuf structure.
- *     @param[out]      bucket_list     A pointer to list of \e bucket structures.
- *     @param[out]      error   A pointer to \e ofp_error structure.
+ *     @param[in]	pbuf	A pointer to \e pbuf structure.
+ *     @param[out]	bucket_list	A pointer to list of \e bucket structures.
+ *     @param[out]	error	A pointer to \e ofp_error structure.
  *     If errors occur, set filed values.
  *
- *     @retval  LAGOPUS_RESULT_OK       Succeeded.
- *     @retval  LAGOPUS_RESULT_OFP_ERROR Failed, ofp_error.
- *     @retval  LAGOPUS_RESULT_ANY_FAILURES Failed.
+ *     @retval	LAGOPUS_RESULT_OK	Succeeded.
+ *     @retval	LAGOPUS_RESULT_OFP_ERROR Failed, ofp_error.
+ *     @retval	LAGOPUS_RESULT_ANY_FAILURES Failed.
  */
 lagopus_result_t
 ofp_bucket_parse(struct pbuf *pbuf,
@@ -77,14 +76,14 @@ ofp_bucket_parse(struct pbuf *pbuf,
 /**
  * Encode bucket_list.
  *
- *     @param[out]      pbuf_list       A pointer to list of \e pbuf structures.
- *     @param[out]      pbuf    A pointer to \e pbuf structure.
- *     @param[in]       bucket_list     A pointer to list of \e bucket structures.
- *     @param[out]      total_length    A pointer to \e size of packet.
+ *     @param[out]	pbuf_list	A pointer to list of \e pbuf structures.
+ *     @param[out]	pbuf	A pointer to \e pbuf structure.
+ *     @param[in]	bucket_list	A pointer to list of \e bucket structures.
+ *     @param[out]	total_length	A pointer to \e size of packet.
  *
- *     @retval  LAGOPUS_RESULT_OK       Succeeded.
- *     @retval  LAGOPUS_RESULT_OUT_OF_RANGE Failed, out of range.
- *     @retval  LAGOPUS_RESULT_ANY_FAILURES Failed.
+ *     @retval	LAGOPUS_RESULT_OK	Succeeded.
+ *     @retval	LAGOPUS_RESULT_OUT_OF_RANGE Failed, out of range.
+ *     @retval	LAGOPUS_RESULT_ANY_FAILURES Failed.
  */
 lagopus_result_t
 ofp_bucket_list_encode(struct pbuf_list *pbuf_list,

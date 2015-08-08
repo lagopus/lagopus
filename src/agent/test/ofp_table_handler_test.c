@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 #include "unity.h"
 #include "../ofp_apis.h"
 #include "handler_test_utils.h"
@@ -117,8 +116,7 @@ test_ofp_table_stats_handle_error_length0(void) {
                                         "04 12 00 08 00 00 00 10 "
                                         "00 03 00 00 00 00 00",
                                         &expected_error);
-  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OFP_ERROR, ret,
-                            "invalid-body error");
+  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OFP_ERROR, ret, "invalid-body error");
 }
 
 void
@@ -133,8 +131,7 @@ test_ofp_table_stats_handle_error_length1(void) {
                                         "00 03 00 00 00 00 00 00 "
                                         "00",
                                         &expected_error);
-  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OFP_ERROR, ret,
-                            "invalid-body error");
+  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OFP_ERROR, ret, "invalid-body error");
 }
 
 void

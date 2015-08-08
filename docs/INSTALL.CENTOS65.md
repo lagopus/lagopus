@@ -7,26 +7,11 @@ Install required development tools and libraries:
 
 	% sudo yum install unzip patch gcc kernel-devel python-devel \
 	byacc expat-devel gmp-devel openssl-devel libpcap-devel flex \
-	readline-devel pciutils
+	pciutils
 
 Intel DPDK setup
 ------------------------------
-CentOS 6.5 needs a patch work for Intel DPDK 1.6.0.
-
-1. Download Intel DPDK 1.6.0 and unzip archive
-	$ wget https://downloads.sourceforge.net/project/lagopus/Intel-DPDK/DPDK-1.6.0-18.zip
-	$ unzip DPDK-1.6.0-18.zip
-
-Or
-
-	$ git clone git://dpdk.org/dpdk
-	$ cd dpdk
-	$ git checkout origin/intel
-
-2. Code patch
-
-	$ cd DPDK-1.6.0-18 or cd dpdk
-	$ patch -p1 < "<path to lagopus>/contrib/dpdk/dpdk-1.6.0-centos-6.5.patch"
+Please refer "QUICKSTART.md".
 
 Lagopus setup
 ------------------------------

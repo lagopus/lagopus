@@ -1,0 +1,25 @@
+use:
+  - lagopus
+
+setup:
+  - cmds:
+      - cmd_type: shell
+        cmd: "{{shell_dir}}/dummy_eth_up.sh lago_eth 2"
+        result: '0'
+
+teardown:
+  - cmds:
+      - cmd_type: shell
+        cmd: "{{shell_dir}}/dummy_eth_down.sh lago_eth 2"
+        result: '0'
+
+testcases:
+  - testcase: controller create-destroy
+    test:
+      - repetition_count: 2
+        cmds:
+          - cmd_type: ds
+            cmd: >-
+              interface interface{{index}} create -type ethernet-rawsock
+              -device lago_eth{{index}} -port-number {{index}}
+            result: '{"ret": "OK"}'

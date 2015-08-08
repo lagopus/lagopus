@@ -14,12 +14,11 @@
  * limitations under the License.
  */
 
-
 #ifndef __LAGOPUS_THREAD_INTERNAL_H__
 #define __LAGOPUS_THREAD_INTERNAL_H__
 
 
-
+
 
 
 typedef struct lagopus_thread_record {
@@ -37,7 +36,7 @@ typedef struct lagopus_thread_record {
 #endif /* HAVE_PTHREAD_SETAFFINITY_NP */
   void *m_arg;
 
-  char m_name[16];      /* max 16 characters. */
+  char m_name[16];	/* max 16 characters. */
 
   pid_t m_creator_pid;
 
@@ -64,7 +63,7 @@ typedef struct lagopus_thread_record {
 } lagopus_thread_record;
 
 
-
+
 
 
 #endif /* ! __LAGOPUS_THREAD_INTERNAL_H__ */

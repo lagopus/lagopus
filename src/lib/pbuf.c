@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-
 #include "lagopus_apis.h"
-#include "lagopus/session.h"
+#include "lagopus_session.h"
 #include "lagopus/pbuf.h"
 #include "openflow.h"
 
@@ -120,7 +119,7 @@ pbuf_read_size(struct pbuf *pbuf, int sock, size_t read_size) {
 
 /* Session_read packet into pbuf. */
 ssize_t
-pbuf_session_read(struct pbuf *pbuf, struct session *session) {
+pbuf_session_read(struct pbuf *pbuf, lagopus_session_t session) {
   ssize_t nbytes;
   size_t read_size;
 
@@ -439,7 +438,7 @@ pbuf_info_load(struct pbuf *pbuf, pbuf_info_t *pbuf_info) {
   }
 }
 
-
+
 /* Allocate pbuf list. */
 struct pbuf_list *
 pbuf_list_alloc(void) {
@@ -541,7 +540,7 @@ pbuf_list_write(struct pbuf_list *pbuf_list, int sock) {
 
 ssize_t
 pbuf_list_session_write(struct pbuf_list *pbuf_list,
-                        struct session *session) {
+                        lagopus_session_t session) {
   ssize_t nbytes;
   size_t write_size;
   struct pbuf *pbuf = TAILQ_FIRST(&pbuf_list->tailq);

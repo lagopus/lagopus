@@ -14,35 +14,44 @@
  * limitations under the License.
  */
 
-
 #ifndef __LAGOPUS_LOCK_H__
 #define __LAGOPUS_LOCK_H__
 
 
-
+
 
 
 /**
- *      @file   lagopus_lock.h
+ *	@file	lagopus_lock.h
  */
 
 
+
 
 
-
-typedef struct lagopus_mutex_record     *lagopus_mutex_t;
-typedef struct lagopus_rwlock_record    *lagopus_rwlock_t;
-
-typedef struct lagopus_cond_record      *lagopus_cond_t;
-
-typedef struct lagopus_barrier_record   *lagopus_barrier_t;
+typedef enum {
+  LAGOPUS_MUTEX_TYPE_UNKNOWN = 0,
+  LAGOPUS_MUTEX_TYPE_DEFAULT,
+  LAGOPUS_MUTEX_TYPE_RECURSIVE
+} lagopus_mutex_type_t;
 
 
+typedef struct lagopus_mutex_record 	*lagopus_mutex_t;
+typedef struct lagopus_rwlock_record 	*lagopus_rwlock_t;
 
+typedef struct lagopus_cond_record 	*lagopus_cond_t;
+
+typedef struct lagopus_barrier_record 	*lagopus_barrier_t;
+
+
+
 
 
 lagopus_result_t
 lagopus_mutex_create(lagopus_mutex_t *mtxptr);
+
+lagopus_result_t
+lagopus_mutex_create_recursive(lagopus_mutex_t *mtxptr);
 
 void
 lagopus_mutex_destroy(lagopus_mutex_t *mtxptr);
@@ -50,6 +59,8 @@ lagopus_mutex_destroy(lagopus_mutex_t *mtxptr);
 lagopus_result_t
 lagopus_mutex_reinitialize(lagopus_mutex_t *mtxptr);
 
+lagopus_result_t
+lagopus_mutex_get_type(lagopus_mutex_t *mtxptr, lagopus_mutex_type_t *tptr);
 
 lagopus_result_t
 lagopus_mutex_lock(lagopus_mutex_t *mtxptr);
@@ -66,13 +77,13 @@ lagopus_mutex_unlock(lagopus_mutex_t *mtxptr);
 
 
 lagopus_result_t
-lagopus_mutex_enter_critical(lagopus_mutex_t *mtxptr);
+lagopus_mutex_enter_critical(lagopus_mutex_t *mtxptr, int *ostateptr);
 
 lagopus_result_t
-lagopus_mutex_leave_critical(lagopus_mutex_t *mtxptr);
+lagopus_mutex_leave_critical(lagopus_mutex_t *mtxptr, int ostate);
 
 
-
+
 
 
 lagopus_result_t
@@ -110,16 +121,16 @@ lagopus_rwlock_unlock(lagopus_rwlock_t *rwlptr);
 
 
 lagopus_result_t
-lagopus_rwlock_reader_enter_critical(lagopus_rwlock_t *rwlptr);
+lagopus_rwlock_reader_enter_critical(lagopus_rwlock_t *rwlptr, int *ostateptr);
 
 lagopus_result_t
-lagopus_rwlock_writer_enter_critical(lagopus_rwlock_t *rwlptr);
+lagopus_rwlock_writer_enter_critical(lagopus_rwlock_t *rwlptr, int *ostateptr);
 
 lagopus_result_t
-lagopus_rwlock_leave_critical(lagopus_rwlock_t *rwlptr);
+lagopus_rwlock_leave_critical(lagopus_rwlock_t *rwlptr, int ostate);
 
 
-
+
 
 
 lagopus_result_t
@@ -138,7 +149,7 @@ lagopus_cond_notify(lagopus_cond_t *cndptr,
                     bool for_all);
 
 
-
+
 
 
 lagopus_result_t

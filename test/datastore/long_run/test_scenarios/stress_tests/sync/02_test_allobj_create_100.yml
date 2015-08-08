@@ -1,0 +1,82 @@
+use:
+  - lagopus
+  - ryu
+
+setup:
+  - cmds:
+      - cmd_type: shell
+        cmd: "{{ shell_dir }}/dummy_eth_up.sh lago_eth 100"
+        result: "0"
+
+teardown:
+  - cmds:
+      - cmd_type: shell
+        cmd: "{{ shell_dir }}/dummy_eth_down.sh lago_eth 100"
+        result: "0"
+
+testcases:
+  - testcase: all obj create/enable/disable/destroy, 100 bridges
+    test:
+      - repetition_count: 100
+        cmds:
+          - cmd_type: ds
+            cmd: >-
+              channel channel{{ index }} create -dst-addr 127.0.0.{{ index + 1 }}
+              -protocol tcp
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: >-
+              controller controller{{ index }} create -channel channel{{ index }}
+              -role equal -connection-type main
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: >-
+              interface interface{{ index }} create -type ethernet-rawsock
+              -device lago_eth{{ index }} -port-number {{ index + 1 }}
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: port port{{ index }} create -interface interface{{ index }}
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: >-
+              bridge bridge{{ index }} create -controller controller{{ index }}
+              -port port{{ index }} {{ index + 1 }} -dpid 0x{{ index + 1 }}
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: bridge bridge{{ index }} enable
+            result: '{"ret": "OK"}'
+          - cmd_type: shell
+            cmd: sleep 1  # wait connect ryu.
+            result: "0"
+      - repetition_count: 100
+        cmds:
+          - cmd_type: ds
+            cmd: bridge bridge{{ index }} disable
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: bridge bridge{{ index }} destroy
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: port port{{ index }} disable
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: port port{{ index }} destroy
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: interface interface{{ index }} disable
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: interface interface{{ index }} destroy
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: controller controller{{ index }} disable
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: controller controller{{ index }} destroy
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: channel channel{{ index }} disable
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: channel channel{{ index }} destroy
+            result: '{"ret": "OK"}'

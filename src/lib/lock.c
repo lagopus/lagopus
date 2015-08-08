@@ -18,20 +18,19 @@
 #include "lagopus_apis.h"
 
 
-
+
 
 
 struct lagopus_mutex_record {
   pthread_mutex_t m_mtx;
   pid_t m_creator_pid;
-  int m_prev_cancel_state;
+  lagopus_mutex_type_t m_type;
 };
 
 
 struct lagopus_rwlock_record {
   pthread_rwlock_t m_rwl;
   pid_t m_creator_pid;
-  int m_prev_cancel_state;
 };
 
 
@@ -50,18 +49,77 @@ struct lagopus_barrier_record {
 typedef int (*notify_proc_t)(pthread_cond_t *cnd);
 
 
+
 
 
+static pthread_once_t s_once = PTHREAD_ONCE_INIT;
 
-static notify_proc_t notify_single = pthread_cond_signal;
-static notify_proc_t notify_all = pthread_cond_broadcast;
+static notify_proc_t s_notify_single_proc = pthread_cond_signal;
+static notify_proc_t s_notify_all_proc = pthread_cond_broadcast;
+
+static pthread_mutexattr_t s_recur_attr;
 
 
+
 
 
+static void s_ctors(void) __attr_constructor__(102);
+static void s_dtors(void) __attr_destructor__(102);
 
-lagopus_result_t
-lagopus_mutex_create(lagopus_mutex_t *mtxptr) {
+
+
+
+
+static void
+s_once_proc(void) {
+
+#ifdef LAGOPUS_OS_LINUX
+#define RECURSIVE_MUTEX_ATTR PTHREAD_MUTEX_RECURSIVE_NP
+#else
+#define RECURSIVE_MUTEX_ATTR PTHREAD_MUTEX_RECURSIVE
+#endif /* LAGOPUS_OS_LINUX */
+
+  (void)pthread_mutexattr_init(&s_recur_attr);
+  if (pthread_mutexattr_settype(&s_recur_attr, RECURSIVE_MUTEX_ATTR) != 0) {
+    lagopus_exit_fatal("can't initialize a recursive mutex attribute.\n");
+  }
+#undef RECURSIVE_MUTEX_ATTR
+}
+
+
+static inline void
+s_init(void) {
+  (void)pthread_once(&s_once, s_once_proc);
+}
+
+
+static void
+s_ctors(void) {
+  s_init();
+
+  lagopus_msg_debug(10, "The mutex/lock APIs are initialized.\n");
+}
+
+
+static inline void
+s_final(void) {
+  (void)pthread_mutexattr_destroy(&s_recur_attr);
+}
+
+
+static void
+s_dtors(void) {
+  s_final();
+
+  lagopus_msg_debug(10, "The mutex/lock APIs are finalized.\n");
+}
+
+
+
+
+
+static inline lagopus_result_t
+s_create(lagopus_mutex_t *mtxptr, lagopus_mutex_type_t type) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   lagopus_mutex_t mtx = NULL;
 
@@ -70,10 +128,28 @@ lagopus_mutex_create(lagopus_mutex_t *mtxptr) {
     mtx = (lagopus_mutex_t)malloc(sizeof(*mtx));
     if (mtx != NULL) {
       int st;
+      pthread_mutexattr_t *attr = NULL;
+
+      switch (type) {
+        case LAGOPUS_MUTEX_TYPE_DEFAULT: {
+          break;
+        }
+        case LAGOPUS_MUTEX_TYPE_RECURSIVE: {
+          attr = &s_recur_attr;
+          break;
+        }
+        default: {
+          lagopus_exit_fatal("Invalid lagopus mutex type (%d).\n",
+                             (int)type);
+          /* not reached. */
+          break;
+        }
+      }
+
       errno = 0;
-      if ((st = pthread_mutex_init(&(mtx->m_mtx), NULL)) == 0) {
+      if ((st = pthread_mutex_init(&(mtx->m_mtx), attr)) == 0) {
+        mtx->m_type = type;
         mtx->m_creator_pid = getpid();
-        mtx->m_prev_cancel_state = -INT_MAX;
         *mtxptr = mtx;
         ret = LAGOPUS_RESULT_OK;
       } else {
@@ -91,6 +167,21 @@ lagopus_mutex_create(lagopus_mutex_t *mtxptr) {
   }
 
   return ret;
+}
+
+
+
+
+
+lagopus_result_t
+lagopus_mutex_create(lagopus_mutex_t *mtxptr) {
+  return s_create(mtxptr, LAGOPUS_MUTEX_TYPE_DEFAULT);
+}
+
+
+lagopus_result_t
+lagopus_mutex_create_recursive(lagopus_mutex_t *mtxptr) {
+  return s_create(mtxptr, LAGOPUS_MUTEX_TYPE_RECURSIVE);
 }
 
 
@@ -114,15 +205,46 @@ lagopus_mutex_reinitialize(lagopus_mutex_t *mtxptr) {
   if (mtxptr != NULL &&
       *mtxptr != NULL) {
     int st;
+    pthread_mutexattr_t *attr = NULL;
+
+    switch ((*mtxptr)->m_type) {
+      case LAGOPUS_MUTEX_TYPE_DEFAULT: {
+        break;
+      }
+      case LAGOPUS_MUTEX_TYPE_RECURSIVE: {
+        attr = &s_recur_attr;
+        break;
+      }
+      default: {
+        lagopus_exit_fatal("Invalid lagopus mutex type (%d).\n",
+                           (*mtxptr)->m_type);
+        /* not reached. */
+        break;
+      }
+    }
 
     errno = 0;
-    if ((st = pthread_mutex_init(&((*mtxptr)->m_mtx), NULL)) == 0) {
-      (*mtxptr)->m_prev_cancel_state = -INT_MAX;
+    if ((st = pthread_mutex_init(&((*mtxptr)->m_mtx), attr)) == 0) {
       ret = LAGOPUS_RESULT_OK;
     } else {
       errno = st;
       ret = LAGOPUS_RESULT_POSIX_API_ERROR;
     }
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  return ret;
+}
+
+
+lagopus_result_t
+lagopus_mutex_get_type(lagopus_mutex_t *mtxptr, lagopus_mutex_type_t *tptr) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+
+  if (mtxptr != NULL && *mtxptr != NULL && tptr != NULL) {
+    *tptr = (*mtxptr)->m_type;
+    ret = LAGOPUS_RESULT_OK;
   } else {
     ret = LAGOPUS_RESULT_INVALID_ARGS;
   }
@@ -139,7 +261,6 @@ lagopus_mutex_lock(lagopus_mutex_t *mtxptr) {
       *mtxptr != NULL) {
     int st;
     if ((st = pthread_mutex_lock(&((*mtxptr)->m_mtx))) == 0) {
-      (*mtxptr)->m_prev_cancel_state = -INT_MAX;
       ret = LAGOPUS_RESULT_OK;
     } else {
       errno = st;
@@ -161,7 +282,6 @@ lagopus_mutex_trylock(lagopus_mutex_t *mtxptr) {
       *mtxptr != NULL) {
     int st;
     if ((st = pthread_mutex_trylock(&((*mtxptr)->m_mtx))) == 0) {
-      (*mtxptr)->m_prev_cancel_state = -INT_MAX;
       ret = LAGOPUS_RESULT_OK;
     } else {
       errno = st;
@@ -190,7 +310,6 @@ lagopus_mutex_timedlock(lagopus_mutex_t *mtxptr,
 
     if (nsec < 0) {
       if ((st = pthread_mutex_lock(&((*mtxptr)->m_mtx))) == 0) {
-        (*mtxptr)->m_prev_cancel_state = -INT_MAX;
         ret = LAGOPUS_RESULT_OK;
       } else {
         errno = st;
@@ -206,7 +325,6 @@ lagopus_mutex_timedlock(lagopus_mutex_t *mtxptr,
 
       if ((st = pthread_mutex_timedlock(&((*mtxptr)->m_mtx),
                                         &ts)) == 0) {
-        (*mtxptr)->m_prev_cancel_state = -INT_MAX;
         ret = LAGOPUS_RESULT_OK;
       } else {
         errno = st;
@@ -236,19 +354,11 @@ lagopus_mutex_unlock(lagopus_mutex_t *mtxptr) {
     /*
      * The caller must have this mutex locked.
      */
-    if ((*mtxptr)->m_prev_cancel_state == -INT_MAX) {
-      if ((st = pthread_mutex_unlock(&((*mtxptr)->m_mtx))) == 0) {
-        ret = LAGOPUS_RESULT_OK;
-      } else {
-        errno = st;
-        ret = LAGOPUS_RESULT_POSIX_API_ERROR;
-      }
+    if ((st = pthread_mutex_unlock(&((*mtxptr)->m_mtx))) == 0) {
+      ret = LAGOPUS_RESULT_OK;
     } else {
-      /*
-       * Someone (including the caller itself) locked the mutex with
-       * lagopus_mutex_enter_critical() API.
-       */
-      ret = LAGOPUS_RESULT_CRITICAL_REGION_NOT_CLOSED;
+      errno = st;
+      ret = LAGOPUS_RESULT_POSIX_API_ERROR;
     }
   } else {
     ret = LAGOPUS_RESULT_INVALID_ARGS;
@@ -259,18 +369,16 @@ lagopus_mutex_unlock(lagopus_mutex_t *mtxptr) {
 
 
 lagopus_result_t
-lagopus_mutex_enter_critical(lagopus_mutex_t *mtxptr) {
+lagopus_mutex_enter_critical(lagopus_mutex_t *mtxptr, int *ostateptr) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
 
-  if (mtxptr != NULL &&
-      *mtxptr != NULL) {
+  if (mtxptr != NULL && *mtxptr != NULL &&
+      ostateptr != NULL) {
     int st;
-    int oldstate;
 
     if ((st = pthread_setcancelstate(PTHREAD_CANCEL_DISABLE,
-                                     &oldstate)) == 0) {
+                                     ostateptr)) == 0) {
       if ((st = pthread_mutex_lock(&((*mtxptr)->m_mtx))) == 0) {
-        (*mtxptr)->m_prev_cancel_state = oldstate;
         ret = LAGOPUS_RESULT_OK;
       } else {
         errno = st;
@@ -289,37 +397,30 @@ lagopus_mutex_enter_critical(lagopus_mutex_t *mtxptr) {
 
 
 lagopus_result_t
-lagopus_mutex_leave_critical(lagopus_mutex_t *mtxptr) {
+lagopus_mutex_leave_critical(lagopus_mutex_t *mtxptr, int ostate) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
 
-  if (mtxptr != NULL &&
-      *mtxptr != NULL) {
+  if (mtxptr != NULL && *mtxptr != NULL &&
+      (ostate == PTHREAD_CANCEL_ENABLE ||
+       ostate == PTHREAD_CANCEL_DISABLE)) {
     int st;
-    int oldstate;
 
     /*
      * The caller must have this mutex locked.
      */
-    oldstate = (*mtxptr)->m_prev_cancel_state;
-    if (oldstate == PTHREAD_CANCEL_ENABLE ||
-        oldstate == PTHREAD_CANCEL_DISABLE) {
-      /*
-       * This mutex is locked via lagopus_mutex_enter_critical().
-       */
-      if ((st = pthread_mutex_unlock(&((*mtxptr)->m_mtx))) == 0) {
-        if ((st = pthread_setcancelstate(oldstate, NULL)) == 0) {
+    if ((st = pthread_mutex_unlock(&((*mtxptr)->m_mtx))) == 0) {
+      if ((st = pthread_setcancelstate(ostate, NULL)) == 0) {
           ret = LAGOPUS_RESULT_OK;
-          pthread_testcancel();
-        } else {
-          errno = st;
-          ret = LAGOPUS_RESULT_POSIX_API_ERROR;
-        }
+          if (ostate == PTHREAD_CANCEL_ENABLE) {
+            pthread_testcancel();
+          }
       } else {
         errno = st;
         ret = LAGOPUS_RESULT_POSIX_API_ERROR;
       }
     } else {
-      ret = LAGOPUS_RESULT_CRITICAL_REGION_NOT_OPENED;
+      errno = st;
+      ret = LAGOPUS_RESULT_POSIX_API_ERROR;
     }
   } else {
     ret = LAGOPUS_RESULT_INVALID_ARGS;
@@ -329,7 +430,7 @@ lagopus_mutex_leave_critical(lagopus_mutex_t *mtxptr) {
 }
 
 
-
+
 
 
 lagopus_result_t
@@ -345,7 +446,6 @@ lagopus_rwlock_create(lagopus_rwlock_t *rwlptr) {
       errno = 0;
       if ((st = pthread_rwlock_init(&(rwl->m_rwl), NULL)) == 0) {
         rwl->m_creator_pid = getpid();
-        rwl->m_prev_cancel_state = -INT_MAX;
         *rwlptr = rwl;
         ret = LAGOPUS_RESULT_OK;
       } else {
@@ -389,7 +489,6 @@ lagopus_rwlock_reinitialize(lagopus_rwlock_t *rwlptr) {
 
     errno = 0;
     if ((st = pthread_rwlock_init(&((*rwlptr)->m_rwl), NULL)) == 0) {
-      (*rwlptr)->m_prev_cancel_state = -INT_MAX;
       ret = LAGOPUS_RESULT_OK;
     } else {
       errno = st;
@@ -411,7 +510,6 @@ lagopus_rwlock_reader_lock(lagopus_rwlock_t *rwlptr) {
       *rwlptr != NULL) {
     int st;
     if ((st = pthread_rwlock_rdlock(&((*rwlptr)->m_rwl))) == 0) {
-      (*rwlptr)->m_prev_cancel_state = -INT_MAX;
       ret = LAGOPUS_RESULT_OK;
     } else {
       errno = st;
@@ -433,7 +531,6 @@ lagopus_rwlock_reader_trylock(lagopus_rwlock_t *rwlptr) {
       *rwlptr != NULL) {
     int st;
     if ((st = pthread_rwlock_tryrdlock(&((*rwlptr)->m_rwl))) == 0) {
-      (*rwlptr)->m_prev_cancel_state = -INT_MAX;
       ret = LAGOPUS_RESULT_OK;
     } else {
       errno = st;
@@ -462,7 +559,6 @@ lagopus_rwlock_reader_timedlock(lagopus_rwlock_t *rwlptr,
 
     if (nsec < 0) {
       if ((st = pthread_rwlock_rdlock(&((*rwlptr)->m_rwl))) == 0) {
-        (*rwlptr)->m_prev_cancel_state = -INT_MAX;
         ret = LAGOPUS_RESULT_OK;
       } else {
         errno = st;
@@ -478,7 +574,6 @@ lagopus_rwlock_reader_timedlock(lagopus_rwlock_t *rwlptr,
 
       if ((st = pthread_rwlock_timedrdlock(&((*rwlptr)->m_rwl),
                                            &ts)) == 0) {
-        (*rwlptr)->m_prev_cancel_state = -INT_MAX;
         ret = LAGOPUS_RESULT_OK;
       } else {
         errno = st;
@@ -505,7 +600,6 @@ lagopus_rwlock_writer_lock(lagopus_rwlock_t *rwlptr) {
       *rwlptr != NULL) {
     int st;
     if ((st = pthread_rwlock_wrlock(&((*rwlptr)->m_rwl))) == 0) {
-      (*rwlptr)->m_prev_cancel_state = -INT_MAX;
       ret = LAGOPUS_RESULT_OK;
     } else {
       errno = st;
@@ -527,7 +621,6 @@ lagopus_rwlock_writer_trylock(lagopus_rwlock_t *rwlptr) {
       *rwlptr != NULL) {
     int st;
     if ((st = pthread_rwlock_trywrlock(&((*rwlptr)->m_rwl))) == 0) {
-      (*rwlptr)->m_prev_cancel_state = -INT_MAX;
       ret = LAGOPUS_RESULT_OK;
     } else {
       errno = st;
@@ -556,7 +649,6 @@ lagopus_rwlock_writer_timedlock(lagopus_rwlock_t *rwlptr,
 
     if (nsec < 0) {
       if ((st = pthread_rwlock_wrlock(&((*rwlptr)->m_rwl))) == 0) {
-        (*rwlptr)->m_prev_cancel_state = -INT_MAX;
         ret = LAGOPUS_RESULT_OK;
       } else {
         errno = st;
@@ -572,7 +664,6 @@ lagopus_rwlock_writer_timedlock(lagopus_rwlock_t *rwlptr,
 
       if ((st = pthread_rwlock_timedwrlock(&((*rwlptr)->m_rwl),
                                            &ts)) == 0) {
-        (*rwlptr)->m_prev_cancel_state = -INT_MAX;
         ret = LAGOPUS_RESULT_OK;
       } else {
         errno = st;
@@ -602,19 +693,11 @@ lagopus_rwlock_unlock(lagopus_rwlock_t *rwlptr) {
     /*
      * The caller must have this rwlock locked.
      */
-    if ((*rwlptr)->m_prev_cancel_state == -INT_MAX) {
-      if ((st = pthread_rwlock_unlock(&((*rwlptr)->m_rwl))) == 0) {
-        ret = LAGOPUS_RESULT_OK;
-      } else {
-        errno = st;
-        ret = LAGOPUS_RESULT_POSIX_API_ERROR;
-      }
+    if ((st = pthread_rwlock_unlock(&((*rwlptr)->m_rwl))) == 0) {
+      ret = LAGOPUS_RESULT_OK;
     } else {
-      /*
-       * Someone (including the caller itself) locked the rwlock with
-       * lagopus_rwlock_enter_critical() API.
-       */
-      ret = LAGOPUS_RESULT_CRITICAL_REGION_NOT_CLOSED;
+      errno = st;
+      ret = LAGOPUS_RESULT_POSIX_API_ERROR;
     }
   } else {
     ret = LAGOPUS_RESULT_INVALID_ARGS;
@@ -625,18 +708,17 @@ lagopus_rwlock_unlock(lagopus_rwlock_t *rwlptr) {
 
 
 lagopus_result_t
-lagopus_rwlock_reader_enter_critical(lagopus_rwlock_t *rwlptr) {
+lagopus_rwlock_reader_enter_critical(lagopus_rwlock_t *rwlptr,
+                                     int *ostateptr) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
 
-  if (rwlptr != NULL &&
-      *rwlptr != NULL) {
+  if (rwlptr != NULL && *rwlptr != NULL &&
+      ostateptr != NULL) {
     int st;
-    int oldstate;
 
     if ((st = pthread_setcancelstate(PTHREAD_CANCEL_DISABLE,
-                                     &oldstate)) == 0) {
+                                     ostateptr)) == 0) {
       if ((st = pthread_rwlock_rdlock(&((*rwlptr)->m_rwl))) == 0) {
-        (*rwlptr)->m_prev_cancel_state = oldstate;
         ret = LAGOPUS_RESULT_OK;
       } else {
         errno = st;
@@ -655,18 +737,17 @@ lagopus_rwlock_reader_enter_critical(lagopus_rwlock_t *rwlptr) {
 
 
 lagopus_result_t
-lagopus_rwlock_writer_enter_critical(lagopus_rwlock_t *rwlptr) {
+lagopus_rwlock_writer_enter_critical(lagopus_rwlock_t *rwlptr,
+                                     int *ostateptr) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
 
-  if (rwlptr != NULL &&
-      *rwlptr != NULL) {
+  if (rwlptr != NULL && *rwlptr != NULL &&
+      ostateptr != NULL) {
     int st;
-    int oldstate;
 
     if ((st = pthread_setcancelstate(PTHREAD_CANCEL_DISABLE,
-                                     &oldstate)) == 0) {
+                                     ostateptr)) == 0) {
       if ((st = pthread_rwlock_wrlock(&((*rwlptr)->m_rwl))) == 0) {
-        (*rwlptr)->m_prev_cancel_state = oldstate;
         ret = LAGOPUS_RESULT_OK;
       } else {
         errno = st;
@@ -685,37 +766,30 @@ lagopus_rwlock_writer_enter_critical(lagopus_rwlock_t *rwlptr) {
 
 
 lagopus_result_t
-lagopus_rwlock_leave_critical(lagopus_rwlock_t *rwlptr) {
+lagopus_rwlock_leave_critical(lagopus_rwlock_t *rwlptr, int ostate) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
 
-  if (rwlptr != NULL &&
-      *rwlptr != NULL) {
+  if (rwlptr != NULL && *rwlptr != NULL &&
+      (ostate == PTHREAD_CANCEL_ENABLE ||
+       ostate == PTHREAD_CANCEL_DISABLE)) {
     int st;
-    int oldstate;
 
     /*
      * The caller must have this rwlock locked.
      */
-    oldstate = (*rwlptr)->m_prev_cancel_state;
-    if (oldstate == PTHREAD_CANCEL_ENABLE ||
-        oldstate == PTHREAD_CANCEL_DISABLE) {
-      /*
-       * This rwlock is locked via lagopus_rwlock_enter_critical().
-       */
-      if ((st = pthread_rwlock_unlock(&((*rwlptr)->m_rwl))) == 0) {
-        if ((st = pthread_setcancelstate(oldstate, NULL)) == 0) {
-          ret = LAGOPUS_RESULT_OK;
+    if ((st = pthread_rwlock_unlock(&((*rwlptr)->m_rwl))) == 0) {
+      if ((st = pthread_setcancelstate(ostate, NULL)) == 0) {
+        ret = LAGOPUS_RESULT_OK;
+        if (ostate == PTHREAD_CANCEL_ENABLE) {
           pthread_testcancel();
-        } else {
-          errno = st;
-          ret = LAGOPUS_RESULT_POSIX_API_ERROR;
         }
       } else {
         errno = st;
         ret = LAGOPUS_RESULT_POSIX_API_ERROR;
       }
     } else {
-      ret = LAGOPUS_RESULT_CRITICAL_REGION_NOT_OPENED;
+      errno = st;
+      ret = LAGOPUS_RESULT_POSIX_API_ERROR;
     }
   } else {
     ret = LAGOPUS_RESULT_INVALID_ARGS;
@@ -725,7 +799,7 @@ lagopus_rwlock_leave_critical(lagopus_rwlock_t *rwlptr) {
 }
 
 
-
+
 
 
 lagopus_result_t
@@ -783,7 +857,8 @@ lagopus_cond_wait(lagopus_cond_t *cndptr,
   if (mtxptr != NULL &&
       *mtxptr != NULL &&
       cndptr != NULL &&
-      *cndptr != NULL) {
+      *cndptr != NULL &&
+      (*mtxptr)->m_type != LAGOPUS_MUTEX_TYPE_RECURSIVE) {
     int st;
 
     errno = 0;
@@ -837,7 +912,7 @@ lagopus_cond_notify(lagopus_cond_t *cndptr,
     int st;
 
     errno = 0;
-    if ((st = ((for_all == true) ? notify_all : notify_single)(
+    if ((st = ((for_all == true) ? s_notify_all_proc : s_notify_single_proc)(
                 &((*cndptr)->m_cond))) == 0) {
       ret = LAGOPUS_RESULT_OK;
     } else {
@@ -852,7 +927,7 @@ lagopus_cond_notify(lagopus_cond_t *cndptr,
 }
 
 
-
+
 
 
 lagopus_result_t

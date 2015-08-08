@@ -1,0 +1,26 @@
+use:
+  - lagopus
+
+mode: async
+
+setup:
+  - cmds:
+      - cmd_type: ds
+        cmd: channel channel01 create -dst-addr 127.0.0.1 -protocol tcp
+
+teardown:
+  - cmds:
+      - cmd_type: ds
+        cmd: destroy-all-obj
+
+testcases:
+  - testcase: create/destory controller, one day
+    test:
+      - repetition_time: 1440 # minutes
+        cmds:
+          - cmd_type: ds
+            cmd: >-
+              controller controller01 create -channel channel01
+              -role equal -connection-type main
+          - cmd_type: ds
+            cmd: controller controller01 destroy

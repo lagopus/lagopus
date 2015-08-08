@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 #ifndef SRC_INCLUDE_LAGOPUS_VERSION_H_
 #define SRC_INCLUDE_LAGOPUS_VERSION_H_
 
@@ -27,8 +26,8 @@
 #define LAGOPUS_PRODUCT_NAME "Lagopus"
 
 #define LAGOPUS_VERSION_MAJOR 0
-#define LAGOPUS_VERSION_MINOR 1
-#define LAGOPUS_VERSION_PATCH 1
+#define LAGOPUS_VERSION_MINOR 2
+#define LAGOPUS_VERSION_PATCH 0
 #define LAGOPUS_VERSION_RELEASE "-dev"
 
 #endif /* SRC_INCLUDE_LAGOPUS_VERSION_H_ */

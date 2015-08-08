@@ -14,10 +14,9 @@
  * limitations under the License.
  */
 
-
 /**
  *      @file   datapath.c
- *      @brief  Datapath APIs except for match
+ *      @brief  Dataplane APIs except for match
  */
 
 #include "lagopus_config.h"
@@ -26,12 +25,14 @@
 #include <stdbool.h>
 #include <sys/types.h>
 #include <sys/queue.h>
+#include <netinet/in.h>
+#include <netinet/ip.h>
 #include <netinet/ip_icmp.h>
+#include <netinet/ip6.h>
 #include <netinet/icmp6.h>
 
 #include <openflow.h>
 
-#include "lagopus/dpmgr.h"
 #include "lagopus/ofp_handler.h"
 #include "lagopus/ethertype.h"
 #include "lagopus/flowdb.h"
@@ -41,8 +42,10 @@
 #include "lagopus/group.h"
 #include "lagopus/meter.h"
 #include "lagopus/dataplane.h"
+#include "lagopus/flowinfo.h"
 #include "lagopus/ofcache.h"
 #include "lagopus/ofp_dp_apis.h"
+#include "lagopus/dp_apis.h"
 #include "../agent/ofp_match.h"
 #include "pktbuf.h"
 #include "packet.h"
@@ -50,6 +53,7 @@
 #include "pcap.h"
 #include "City.h"
 #include "murmurhash3.h"
+#include "mbtree.h"
 
 #ifdef HAVE_DPDK
 #ifdef __SSE4_2__
@@ -58,6 +62,17 @@
 #endif /* __SSE4_2__ */
 #include "dpdk/dpdk.h"
 #endif /* HAVE_DPDK */
+
+#undef DEBUG
+#ifdef DEBUG
+#include <stdio.h>
+
+#define DPRINT(...) printf(__VA_ARGS__)
+#define DPRINT_FLOW(flow) flow_dump(flow, stdout)
+#else
+#define DPRINT(...)
+#define DPRINT_FLOW(flow)
+#endif
 
 #if 1
 #define STATIC
@@ -68,11 +83,11 @@
 #define OFPIEH_AFTER_AH (OFPIEH_ESP|OFPIEH_DEST|OFPIEH_UNREP)
 #define OFPIEH_AFTER_ESP (OFPIEH_DEST||OFPIEH_UNREP)
 
-#define GET_OXM_FIELD(ofpat)                                            \
+#define GET_OXM_FIELD(ofpat) \
   ((((const struct ofp_action_set_field *)(ofpat))->field[2] >> 1) & 0x7f)
 
-#define NEED_COPY_ETH_ADDR(flags)                       \
-  ((flags & (SET_FIELD_ETH_DST|SET_FIELD_ETH_SRC)) !=   \
+#define NEED_COPY_ETH_ADDR(flags)                     \
+  ((flags & (SET_FIELD_ETH_DST|SET_FIELD_ETH_SRC)) != \
    (SET_FIELD_ETH_DST|SET_FIELD_ETH_SRC))
 
 #define PUT_TIMEOUT 1LL * 1000LL
@@ -127,37 +142,6 @@ lagopus_result_t execute_group_action(struct lagopus_packet *, uint32_t);
 STATIC int
 apply_meter(struct lagopus_packet *, struct meter_table *, uint32_t);
 
-lagopus_result_t
-lagopus_set_switch_config(struct bridge *bridge,
-                          struct ofp_switch_config *config,
-                          struct ofp_error *error) {
-  /* Reassemble fragmented packet is not supported */
-  if ((config->flags & OFPC_FRAG_REASM) != 0) {
-    ofp_error_set(error, OFPET_SWITCH_CONFIG_FAILED, OFPSCFC_BAD_FLAGS);
-    return LAGOPUS_RESULT_OFP_ERROR;
-  }
-  if (config->miss_send_len < 64) {
-    ofp_error_set(error, OFPET_SWITCH_CONFIG_FAILED, OFPSCFC_BAD_LEN);
-    return LAGOPUS_RESULT_OFP_ERROR;
-  }
-  bridge->switch_config = *config;
-
-  return LAGOPUS_RESULT_OK;
-}
-
-lagopus_result_t
-lagopus_get_switch_config(struct bridge *bridge,
-                          struct ofp_switch_config *config,
-                          struct ofp_error *error) {
-  (void)error;
-
-  if (bridge == NULL || config == NULL) {
-    return LAGOPUS_RESULT_INVALID_ARGS;
-  }
-  *config = bridge->switch_config;
-
-  return LAGOPUS_RESULT_OK;
-}
 
 #ifdef HAVE_DPDK
 #ifdef __SSE4_2__
@@ -336,6 +320,7 @@ classify_packet_ipv6(struct lagopus_packet *pkt) {
   /* scan packet */
   DP_PRINT("IPv6 packet\n");
   ipv6_hdr = pkt->ipv6;
+  pkt->oob_data.ipv6_exthdr = 0;
   /*
    * finding protocol, parse IPv6 extension header.
    * 0: Hop-by-Hop Options Header
@@ -348,6 +333,9 @@ classify_packet_ipv6(struct lagopus_packet *pkt) {
    * and prepare for ipv6 extention header pseudo match.
    */
   proto = &IPV6_PROTO(ipv6_hdr);
+  pkt->v6ext = &pkt->oob_data.ipv6_exthdr;
+  pkt->v6src = IPV6_SRC(ipv6_hdr);
+  pkt->v6dst = IPV6_DST(ipv6_hdr);
   next_hdr = pkt->l3_hdr + sizeof(IPV6_HDR);
   pktlen = OS_M_PKTLEN(pkt->mbuf) - (uint32_t)(pkt->l3_hdr - pkt->l2_hdr);
   for (;;) {
@@ -441,7 +429,6 @@ classify_packet_ipv6(struct lagopus_packet *pkt) {
         }
         pkt->oob_data.ipv6_exthdr |= OFPIEH_NONEXT;
         proto = next_hdr;
-        pktlen -= 2;
         next_hdr += 2;
         goto next;
 
@@ -471,11 +458,11 @@ classify_packet_l2(struct lagopus_packet *pkt) {
 
   /* reset */
   pkt->oob_data.vlan_tci = 0;
-  pkt->oob_data.ipv6_exthdr = 0;
   pkt->vlan = NULL;
   pkt->pbb = NULL;
   pkt->mpls = NULL;
   pkt->proto = NULL;
+  pkt->base[OOB_BASE] = &pkt->oob_data;
 
   m = pkt->mbuf;
   pktlen = (ssize_t)OS_M_PKTLEN(m);
@@ -530,6 +517,7 @@ classify_packet_l2(struct lagopus_packet *pkt) {
   }
 
   pkt->ether_type = ether_type;
+  pkt->oob_data.ether_type = htons(ether_type);
 
   switch (ether_type) {
     case ETHERTYPE_MPLS:
@@ -582,7 +570,6 @@ re_classify_packet(struct lagopus_packet *pkt) {
 /* Setup packet information. */
 void
 lagopus_packet_init(struct lagopus_packet *pkt, void *m) {
-  int i;
 
   /* initialize OpenFlow related members */
   pkt->table_id = 0;
@@ -939,16 +926,20 @@ execute_action_set_field(struct lagopus_packet *pkt,
       DP_PRINT("set_field ipv6_nd_sll: %02x:%02x:%02x:%02x:%02x:%02x\n",
                oxm_value[0], oxm_value[1], oxm_value[2],
                oxm_value[3], oxm_value[4], oxm_value[5]);
-      OS_MEMCPY(&pkt->nd_sll[2], oxm_value, ETHER_ADDR_LEN);
-      lagopus_update_icmpv6_checksum(pkt);
+      if (pkt->nd_sll != NULL) {
+        OS_MEMCPY(&pkt->nd_sll[2], oxm_value, ETHER_ADDR_LEN);
+        lagopus_update_icmpv6_checksum(pkt);
+      }
       break;
 
     case OFPXMT_OFB_IPV6_ND_TLL:
       DP_PRINT("set_field ipv6_nd_dll: %02x:%02x:%02x:%02x:%02x:%02x\n",
                oxm_value[0], oxm_value[1], oxm_value[2],
                oxm_value[3], oxm_value[4], oxm_value[5]);
-      OS_MEMCPY(&pkt->nd_tll[2], oxm_value, ETHER_ADDR_LEN);
-      lagopus_update_icmpv6_checksum(pkt);
+      if (pkt->nd_tll != NULL) {
+        OS_MEMCPY(&pkt->nd_tll[2], oxm_value, ETHER_ADDR_LEN);
+        lagopus_update_icmpv6_checksum(pkt);
+      }
       break;
 
     case OFPXMT_OFB_MPLS_LABEL:
@@ -1397,7 +1388,7 @@ send_packet_in(struct lagopus_packet *pkt,
   port_match->oxm_class = OFPXMC_OPENFLOW_BASIC;
   TAILQ_INSERT_TAIL(&data->packet_in.match_list, port_match, entry);
 
-  /* IN_PHY_PORT for physical port is ommited. */
+  /* IN_PHY_PORT for physical port is omitted. */
 
   /* METADATA */
   if (pkt->oob_data.metadata != 0) {
@@ -1412,7 +1403,7 @@ send_packet_in(struct lagopus_packet *pkt,
     free(metadata_match);
   }
 
-  /* TUNNEL_ID for physical port is ommited. */
+  /* TUNNEL_ID for physical port is omitted. */
 
   DP_PRINT("%s: put packet to dataq\n", __func__);
   rv = ofp_handler_dataq_data_put(pkt->in_port->bridge->dpid,
@@ -1427,7 +1418,6 @@ send_packet_in(struct lagopus_packet *pkt,
 void
 lagopus_forward_packet_to_port(struct lagopus_packet *pkt,
                                uint32_t out_port) {
-  struct bridge *bridge;
   struct port *port;
   uint32_t in_port;
   struct vector *v;
@@ -1466,7 +1456,7 @@ lagopus_forward_packet_to_port(struct lagopus_packet *pkt,
       /* XXX not implemented yet */
       /* if no mac address learning, OFPP_FLOOD is identical to OFPP_ALL. */
       DP_PRINT("OFPP_FLOOD as ");
-    /*FALLTHROUGH*/
+      /*FALLTHROUGH*/
 
     case OFPP_ALL:
       /* required: send packet to all physical ports except in_port. */
@@ -1475,7 +1465,9 @@ lagopus_forward_packet_to_port(struct lagopus_packet *pkt,
       v = pkt->in_port->bridge->ports;
       for (id = 0; id < v->allocated; id++) {
         port = v->index[id];
-        if (port == NULL || lagopus_is_port_enabled(port) != true) {
+        if (port == NULL ||
+            (port->ofp_port.config & OFPPC_PORT_DOWN) != 0 ||
+            port->interface == NULL) {
           continue;
         }
 
@@ -1498,7 +1490,7 @@ lagopus_forward_packet_to_port(struct lagopus_packet *pkt,
 #endif /* PACKET_CAPTURE */
         /* send packet */
         OS_M_ADDREF(pkt->mbuf);
-        lagopus_send_packet_physical(pkt, port->ifindex);
+        lagopus_send_packet_physical(pkt, port->interface);
       }
       lagopus_packet_free(pkt);
       break;
@@ -1525,7 +1517,7 @@ lagopus_forward_packet_to_port(struct lagopus_packet *pkt,
       /* required: send packet to ingress port. */
       DP_PRINT("OFPP_IN_PORT as ");
       out_port = in_port;
-    /*FALLTHROUGH*/
+      /*FALLTHROUGH*/
     default:
       v = pkt->in_port->bridge->ports;
       port = port_lookup(v, out_port);
@@ -1538,7 +1530,7 @@ lagopus_forward_packet_to_port(struct lagopus_packet *pkt,
 #endif /* PACKET_CAPTURE */
         /* so far, we support only physical port. */
         DP_PRINT("Forwarding packet to port %d\n", port->ifindex);
-        lagopus_send_packet_physical(pkt, port->ifindex);
+        lagopus_send_packet_physical(pkt, port->interface);
       } else {
         lagopus_packet_free(pkt);
       }
@@ -1595,6 +1587,8 @@ execute_action_output(struct lagopus_packet *pkt,
       } else {
         rv = LAGOPUS_RESULT_OK;
       }
+    } else {
+      rv = LAGOPUS_RESULT_OK;
     }
   }
   return rv;
@@ -1759,7 +1753,7 @@ execute_action_push_vlan(struct lagopus_packet *pkt,
   }
   ETHER_TYPE(new_hdr) =
     OS_HTONS(((struct ofp_action_push *)&action->ofpat)->ethertype);
-  vlan_hdr = MTOD_OFS(m, sizeof(ETHER_HDR), VLAN_HDR *);
+  vlan_hdr = (VLAN_HDR *)&new_hdr[1];
   VLAN_TCI(vlan_hdr) = vlan_tci;
   /* re-classify packet. */
   pkt->eth = new_hdr;
@@ -1869,11 +1863,9 @@ execute_action_pop_mpls(struct lagopus_packet *pkt,
    * see 7.2.5 Action Structures (page 61).
    */
   new_hdr = MTOD_OFS(m, sizeof(struct mpls_hdr), ETHER_HDR *);
-  if (NEED_COPY_ETH_ADDR(action->flags)) {
-    memmove(new_hdr, pkt->eth, ETHER_ADDR_LEN * 2);
-  }
+  memmove(new_hdr, pkt->eth, pkt->base[MPLS_BASE] - pkt->base[ETH_BASE] - 2);
   pkt->ether_type = ((struct ofp_action_pop_mpls *)&action->ofpat)->ethertype;
-  ETHER_TYPE(new_hdr) = OS_HTONS(pkt->ether_type);
+  *(((uint16_t *)&pkt->mpls[1]) - 1) = OS_HTONS(pkt->ether_type);
   OS_M_ADJ(m, sizeof(struct mpls_hdr));
   pkt->mpls = NULL;
   if (pkt->ether_type != ETHERTYPE_IP &&
@@ -1887,13 +1879,16 @@ execute_action_pop_mpls(struct lagopus_packet *pkt,
 }
 
 static lagopus_result_t
-execute_action_set_queue(__UNUSED struct lagopus_packet *pkt,
-                         __UNUSED struct action *action) {
+execute_action_set_queue(struct lagopus_packet *pkt,
+                         struct action *action) {
+  struct ofp_action_set_queue *actq;
   DP_PRINT("action set_queue\n");
 
   /* optional */
   /* send packets to given queue on port. */
   /* XXX not implemented yet */
+  actq = (struct ofp_action_set_queue *)&action->ofpat;
+  pkt->queue_id = actq->queue_id;
   return LAGOPUS_RESULT_OK;
 }
 
@@ -2139,9 +2134,7 @@ execute_instruction_goto_table(struct lagopus_packet *pkt,
    * the controller or the agent.
    */
   if (pkt->table_id < goto_table->table_id) {
-    pkt->table_id = goto_table->table_id;
-    lagopus_match_and_action(pkt);
-    return LAGOPUS_RESULT_NO_MORE_ACTION;
+    return goto_table->table_id;
   } else {
     /* Stop pipeline, don't backward go to table. */
   }
@@ -2274,10 +2267,11 @@ lagopus_set_in_port(struct lagopus_packet *pkt, struct port *port) {
 /*
  * process received packet.
  */
-void
+lagopus_result_t
 lagopus_match_and_action(struct lagopus_packet *pkt) {
   struct flowdb *flowdb;
-  struct flow *flow, **flowp;
+  struct flow *flow;
+  const struct flow **flowp;
   struct table *table;
   const struct cache_entry *cache_entry;
   lagopus_result_t rv;
@@ -2323,30 +2317,47 @@ lagopus_match_and_action(struct lagopus_packet *pkt) {
       }
     }
   } else {
-    /* Get table from tabile_id. */
-    table = table_lookup(flowdb, pkt->table_id);
-    if (table == NULL) {
-      /* table not found.  finish action. */
-      lagopus_packet_free(pkt);
-      return;
-    }
+    for (;;) {
+      /* Get table from tabile_id. */
+      table = table_lookup(flowdb, pkt->table_id);
+      if (table == NULL) {
+        /* table not found.  finish action. */
+        lagopus_packet_free(pkt);
+        return LAGOPUS_RESULT_STOP;
+      }
 
-    flow = lagopus_find_flow(pkt, table);
-    if (likely(flow != NULL)) {
-      DP_PRINT("MATCHED\n");
-      /* execute_instruction is able to call this function recursively. */
-      pkt->flow = flow;
-      pkt->matched_flow[pkt->nmatched++] = flow;
-      rv = execute_instruction(pkt, (const struct instruction **)flow->instruction);
-    } else {
-      DP_PRINT("NOT MATCHED\n");
-      /*
-       * the behavior on a table miss depends on the table configuration.
-       * 5.4 Table-miss says,
-       * by default packets unmached are dropped (discarded).
-       * A switch configuration, for example using the OpenFlow Configuration
-       * Protocol, may override this default and specify another behaviour.
-       */
+      table->lookup_count++;
+#ifdef USE_MBTREE
+      flow = find_mbtree(pkt, &table->flow_list);
+#else
+      flow = lagopus_find_flow(pkt, table);
+#endif
+      if (likely(flow != NULL)) {
+        DP_PRINT("MATCHED\n");
+        /* execute_instruction is able to call this function recursively. */
+        pkt->flow = flow;
+        pkt->matched_flow[pkt->nmatched++] = flow;
+        rv = execute_instruction(pkt,
+                                 (const struct instruction **)flow->instruction);
+      } else {
+        DP_PRINT("NOT MATCHED\n");
+        /*
+         * the behavior on a table miss depends on the table configuration.
+         * 5.4 Table-miss says,
+         * by default packets unmached are dropped (discarded).
+         * A switch configuration, for example using the OpenFlow Configuration
+         * Protocol, may override this default and specify another behaviour.
+         */
+        rv = LAGOPUS_RESULT_STOP;
+      }
+      if (rv < LAGOPUS_RESULT_OK) {
+        break;
+      }
+      if (rv == pkt->table_id) {
+        rv = LAGOPUS_RESULT_OK;
+        break;
+      }
+      pkt->table_id = rv;
     }
   }
   /*
@@ -2384,16 +2395,24 @@ lagopus_result_t
 ofp_switch_config_set(uint64_t dpid,
                       struct ofp_switch_config *switch_config,
                       struct ofp_error *error) {
-  struct dpmgr *dpmgr;
   struct bridge *bridge;
 
-  dpmgr = dpmgr_get_instance();
-  bridge = bridge_lookup_by_dpid(&dpmgr->bridge_list, dpid);
+  bridge = dp_bridge_lookup_by_dpid(dpid);
   if (bridge == NULL) {
     return LAGOPUS_RESULT_NOT_FOUND;
   }
+  /* Reassemble fragmented packet is not supported */
+  if ((switch_config->flags & OFPC_FRAG_REASM) != 0) {
+    ofp_error_set(error, OFPET_SWITCH_CONFIG_FAILED, OFPSCFC_BAD_FLAGS);
+    return LAGOPUS_RESULT_OFP_ERROR;
+  }
+  if (switch_config->miss_send_len < 64) {
+    ofp_error_set(error, OFPET_SWITCH_CONFIG_FAILED, OFPSCFC_BAD_LEN);
+    return LAGOPUS_RESULT_OFP_ERROR;
+  }
+  bridge->switch_config = *switch_config;
 
-  return lagopus_set_switch_config(bridge, switch_config, error);
+  return LAGOPUS_RESULT_OK;
 }
 
 /*
@@ -2403,14 +2422,19 @@ lagopus_result_t
 ofp_switch_config_get(uint64_t dpid,
                       struct ofp_switch_config *switch_config,
                       struct ofp_error *error) {
-  struct dpmgr *dpmgr;
   struct bridge *bridge;
 
-  dpmgr = dpmgr_get_instance();
-  bridge = bridge_lookup_by_dpid(&dpmgr->bridge_list, dpid);
+  (void) error;
+
+  bridge = dp_bridge_lookup_by_dpid(dpid);
   if (bridge == NULL) {
     return LAGOPUS_RESULT_NOT_FOUND;
   }
 
-  return lagopus_get_switch_config(bridge, switch_config, error);
+  if (bridge == NULL || switch_config == NULL) {
+    return LAGOPUS_RESULT_INVALID_ARGS;
+  }
+  *switch_config = bridge->switch_config;
+
+  return LAGOPUS_RESULT_OK;
 }

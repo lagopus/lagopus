@@ -14,15 +14,14 @@
  * limitations under the License.
  */
 
-
 #include "unity.h"
 #include "lagopus_apis.h"
-#include "lagopus/session.h"
+#include "lagopus_session.h"
 #include "event.h"
 #include "../channel.h"
 
 ssize_t
-write_tcp(struct session *s, void *buf, size_t n) {
+write_tcp(lagopus_session_t s, void *buf, size_t n) {
   (void) s;
   (void) buf;
   return (ssize_t) n;
@@ -33,14 +32,14 @@ s_create_data_channel(void) {
   uint64_t dpid = 0x01;
   struct channel *channel;
   struct event_manager *em;
-  struct session *session;
+  lagopus_session_t session;
   struct addrunion addr  = {0,{{0}}};
 
   em = event_manager_alloc();
   addrunion_ipv4_set(&addr, "127.0.0.1");
   channel = channel_alloc(&addr, em, dpid);
 
-  session = session_create(SESSION_TCP);
+  session = session_create(SESSION_TCP|SESSION_ACTIVE);
   session_write_set(session, write_tcp);
 
   channel_version_set(channel, 0x04);
@@ -82,12 +81,12 @@ test_channel_version_get_set(void) {
 void
 test_channel_session_get_set(void) {
   struct channel *channel;
-  struct session *session;
-  struct session *ret_session;
+  lagopus_session_t session;
+  lagopus_session_t ret_session;
 
   channel = s_create_data_channel();
 
-  session = session_create(SESSION_TCP);
+  session = session_create(SESSION_TCP|SESSION_ACTIVE);
   TEST_ASSERT_NOT_EQUAL_MESSAGE(session, channel_session_get(channel),
                                 "session error.");
   session_destroy(channel_session_get(channel));
@@ -152,8 +151,7 @@ test_channel_alloc_default_value(void) {
   addrunion_ipv4_set(&addr1, "127.0.0.1");
 
   ret = channel_port_get(channel, &port);
-  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, ret,
-                            "channel_port_get() error.");
+  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, ret, "channel_port_get() error.");
   TEST_ASSERT_EQUAL_MESSAGE(6633, port, "channel_port_get() port error");
 
   ret = channel_local_port_get(channel, &port);
@@ -299,6 +297,49 @@ test_channel_local_addr_get_set_unset(void) {
   addrunion_ipv4_set(&addr, "0.0.0.0");
   TEST_ASSERT_EQUAL_MEMORY_MESSAGE(&addr, &addr1, sizeof(addr),
                                    "channel_local_addr_get() addr  error");
+
+  session_destroy(channel_session_get(channel));
+  free(channel);
+}
+
+void
+test_channel_dpid_get_set(void) {
+  uint64_t dpid;
+  lagopus_result_t ret;
+  struct channel *channel;
+
+  channel = s_create_data_channel();
+
+  /* Call func. */
+  ret = channel_dpid_set(channel, 0xbeef);
+  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, ret,
+                            "channel_dpid_set() error.");
+  dpid = channel_dpid_get(channel);
+
+  TEST_ASSERT_EQUAL_MESSAGE(dpid, 0xbeef,
+                            "dpid error.");
+
+  session_destroy(channel_session_get(channel));
+  free(channel);
+}
+
+void
+test_channel_auxiliary_get_set(void) {
+  bool is_auxiliary;
+  lagopus_result_t ret;
+  struct channel *channel;
+
+  channel = s_create_data_channel();
+
+  /* Call func. */
+  ret = channel_auxiliary_set(channel, true);
+  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, ret,
+                            "channel_auxiliary_set() error.");
+  ret = channel_auxiliary_get(channel, &is_auxiliary);
+  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, ret,
+                            "channel_auxiliary_get() error.");
+  TEST_ASSERT_EQUAL_MESSAGE(is_auxiliary, true,
+                            "auxiliary error.");
 
   session_destroy(channel_session_get(channel));
   free(channel);

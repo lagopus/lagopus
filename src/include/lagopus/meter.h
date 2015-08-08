@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 /**
  * @file        meter.h
  * @brief       OpenFlow meter.

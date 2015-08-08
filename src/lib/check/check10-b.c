@@ -1,25 +1,8 @@
-/*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
-
 #include "lagopus_apis.h"
 #include "lagopus_pipeline_stage_internal.h"
 
 
-
+
 
 
 typedef struct {
@@ -28,7 +11,7 @@ typedef struct {
   lagopus_hashmap_t *s_tblptr[2];
   lagopus_bbq_t *s_qptr;
 } test_stage_record;
-typedef test_stage_record       *test_stage_t;
+typedef test_stage_record 	*test_stage_t;
 
 
 typedef struct {
@@ -36,10 +19,10 @@ typedef struct {
   lagopus_chrono_t s_begin_time;
   lagopus_chrono_t s_end_time;
 } test_event_record;
-typedef test_event_record       *test_event_t;
+typedef test_event_record 	*test_event_t;
 
 
-
+
 
 
 static void
@@ -139,7 +122,7 @@ s_freeup(const lagopus_pipeline_stage_t *sptr) {
 }
 
 
-
+
 
 
 int

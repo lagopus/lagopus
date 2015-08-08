@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 /**
  *      @file   pcap.h
  *      @brief  Packet capture APIs
@@ -45,7 +44,7 @@ lagopus_pcap_init(struct port *port, const char *fname);
  * @param[in]   port    port structure which have capture queue.
  * @param[in]   m       packet data.
  *
- * It should be called from datapath (main thread).
+ * It should be called from dataplane (main thread).
  */
 void
 lagopus_pcap_enqueue(struct port *port, struct lagopus_packet *);

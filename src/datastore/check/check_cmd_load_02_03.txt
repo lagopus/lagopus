@@ -1,0 +1,7 @@
+interface eth0 create -type ethernet-rawsock -port-number 0
+interface eth1 create -type ethernet-rawsock -port-number 1
+port port01 create -interface eth0
+port port02 create -interface eth1
+bridge bridge01 create -controller controller01 -port port01 1 -port port02 2 -dpid 0x1
+bridge
+

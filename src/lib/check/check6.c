@@ -14,15 +14,14 @@
  * limitations under the License.
  */
 
-
 #include "lagopus_apis.h"
 #include "lagopus_thread_internal.h"
 
 
+
 
 
-
-#define NTHDS   8
+#define NTHDS	8
 
 
 static lagopus_bbq_t s_q = NULL;

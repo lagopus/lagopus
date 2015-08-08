@@ -1,0 +1,3 @@
+channel channel01 create -dst-addr 127.0.0.1 -dst-port 12345 -protocol tcp
+controller controller01 create -channel channel01 -role equal -connection-type main
+

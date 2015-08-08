@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 #ifndef __VECTOR_H__
 #define __VECTOR_H__
 
@@ -48,7 +47,7 @@ int
 vector_set_index(struct vector *v, vindex_t i, void *val);
 
 void
-vector_wrapper_only_free(struct vector *v);
+vector_wrapper_only_free (struct vector *v);
 
 void *
 vector_first(struct vector *v);

@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 #include "unity.h"
 #include "lagopus_apis.h"
 
@@ -30,8 +29,7 @@ typedef LAGOPUS_BOUND_BLOCK_Q_DECL(bbq, entry *) bbq;
 typedef LAGOPUS_BOUND_BLOCK_Q_DECL(uint16_bbq, uint16_t) uint16_bbq;
 typedef LAGOPUS_BOUND_BLOCK_Q_DECL(uint32_bbq, uint32_t) uint32_bbq;
 typedef LAGOPUS_BOUND_BLOCK_Q_DECL(uint64_bbq, uint64_t) uint64_bbq;
-typedef LAGOPUS_BOUND_BLOCK_Q_DECL(longdouble_bbq,
-                                   long double) longdouble_bbq;
+typedef LAGOPUS_BOUND_BLOCK_Q_DECL(longdouble_bbq, long double) longdouble_bbq;
 typedef LAGOPUS_BOUND_BLOCK_Q_DECL(char_bbq, char) char_bbq;
 
 
@@ -87,7 +85,7 @@ tearDown(void) {
   lagopus_bbq_destroy(&bbQ, false);
 }
 
-
+
 
 void
 test_bbq_creation(void) {
@@ -139,8 +137,7 @@ test_bbq_put_get_invalid_argument(void) {
                             "get - NULL val_ptr");
 
   ret = lagopus_bbq_peek(NULL, &get, entry *, TIMED_WAIT);
-  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS, ret,
-                            "peek - NULL bbq");
+  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS, ret, "peek - NULL bbq");
   ret = lagopus_bbq_peek(&bbQ, NULL, entry *, TIMED_WAIT);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS, ret,
                             "peek - NULL val_ptr");
@@ -172,8 +169,7 @@ test_bbq_put_get_ptr(void) {
       ret = s_get(&bbQ, &get);
       TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, ret, "get entry");
       TEST_ASSERT_EQUAL_MESSAGE(&(entries[i]), get, "get entry - check ptr");
-      TEST_ASSERT_EQUAL_MESSAGE(entries[i].num, get->num,
-                                "get entry - check value");
+      TEST_ASSERT_EQUAL_MESSAGE(entries[i].num, get->num, "get entry - check value");
     }
   }
 }
