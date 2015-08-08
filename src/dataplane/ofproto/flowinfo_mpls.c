@@ -14,10 +14,9 @@
  * limitations under the License.
  */
 
-
 /**
  *      @file   flowinfo_mpls.c
- *      @brief  Optimized flow database for datapath, for MPLS
+ *      @brief  Optimized flow database for dataplane, for MPLS
  */
 
 #include <stdlib.h>

@@ -14,11 +14,10 @@
  * limitations under the License.
  */
 
-
 #include "lagopus_apis.h"
 
 
-
+
 
 
 static pthread_once_t s_once = PTHREAD_ONCE_INIT;
@@ -28,11 +27,11 @@ static lagopus_cond_t s_cond = NULL;
 static global_state_t s_gs = GLOBAL_STATE_UNKNOWN;
 static shutdown_grace_level_t s_gl = SHUTDOWN_UNKNOWN;
 
-static void s_ctors(void) __attr_constructor__(106);
-static void s_dtors(void) __attr_destructor__(106);
+static void s_ctors(void) __attr_constructor__(108);
+static void s_dtors(void) __attr_destructor__(108);
 
 
-
+
 
 
 static void
@@ -93,7 +92,7 @@ s_dtors(void) {
 }
 
 
-
+
 
 
 static inline void
@@ -117,7 +116,7 @@ s_is_valid_state(global_state_t s) {
 }
 
 
-
+
 
 
 lagopus_result_t

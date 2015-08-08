@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 #include <stdbool.h>
 #include <stdint.h>
 #include "lagopus_apis.h"
@@ -28,6 +27,9 @@
 #include "ofp_header_handler.h"
 #include "ofp_padding.h"
 #include "ofp_oxm.h"
+
+#define OXM_LENGTH_INDEX 3
+#define OXM_VALUE_INDEX 4
 
 struct action *
 action_alloc(uint16_t size) {
@@ -345,7 +347,7 @@ ofp_action_set_field_parse(struct action *action,
                            struct ofp_error *error) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   struct ofp_action_set_field *action_set_field;
-  uint8_t *val;
+  uint8_t *oxm_value;
 
   /* Set pointer to the action payload. */
   action_set_field = (struct ofp_action_set_field *)&action->ofpat;
@@ -355,7 +357,8 @@ ofp_action_set_field_parse(struct action *action,
 
   if (ret == LAGOPUS_RESULT_OK) {
     /* Decode remaining OXM payload. */
-    val = action_set_field->field + sizeof(struct ofp_tlv);
+    /* oxm value. */
+    oxm_value = &action_set_field->field[OXM_VALUE_INDEX];
     ret = ofp_action_set_field_check(pbuf,
                                      action_set_field,
                                      error);
@@ -364,8 +367,8 @@ ofp_action_set_field_parse(struct action *action,
       ret = pbuf_plen_check(pbuf, action_set_field->len -
                             sizeof(struct ofp_action_set_field));
       if (ret == LAGOPUS_RESULT_OK) {
-        DECODE_GET(val, (size_t)(action_set_field->len -
-                                 sizeof(struct ofp_action_set_field)));
+        DECODE_GET(oxm_value, (size_t)(action_set_field->len -
+                                       sizeof(struct ofp_action_set_field)));
         ret = LAGOPUS_RESULT_OK;
       } else {
         lagopus_msg_warning("bad set field length.\n");
@@ -583,30 +586,29 @@ ofp_set_field_encode_list(struct pbuf_list *pbuf_list, struct pbuf **pbuf,
   return ret;
 }
 
-#define OXM_LENGTH_FIELD 3
-
 static lagopus_result_t
 ofp_action_list_set_field_encode(struct pbuf_list *pbuf_list,
                                  struct pbuf **pbuf,
                                  struct ofp_action_set_field *act_set_field) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   uint8_t *set_field_head;
-  uint8_t *val;
+  uint8_t *oxm_value;
   uint8_t oxm_len;
 
   /* set_field head pointer. */
   set_field_head = pbuf_putp_get(*pbuf);
 
   /* action length. */
-  oxm_len = act_set_field->field[OXM_LENGTH_FIELD];
+  oxm_len = act_set_field->field[OXM_LENGTH_INDEX];
   act_set_field->len = (uint16_t) (sizeof(struct ofp_action_set_field) +
                                    oxm_len);
+  /* oxm value. */
+  oxm_value = &act_set_field->field[OXM_VALUE_INDEX];
 
   ret = ofp_action_set_field_encode_list(pbuf_list, pbuf, act_set_field);
   if (ret == LAGOPUS_RESULT_OK) {
     /* Encode remaining OXM payload. */
-    val = act_set_field->field + sizeof(act_set_field->field);
-    ret = ofp_set_field_encode_list(pbuf_list, pbuf, val,
+    ret = ofp_set_field_encode_list(pbuf_list, pbuf, oxm_value,
                                     (uint16_t) (act_set_field->len -
                                         sizeof(struct ofp_action_set_field)));
     if (ret == LAGOPUS_RESULT_OK) {

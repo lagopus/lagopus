@@ -1,31 +1,14 @@
-/*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
-
 #include "lagopus_apis.h"
 #include "qmuxer_internal.h"
 
 
+
 
 
-
-#define N_EMPTY_ROOM    1LL
-
+#define N_EMPTY_ROOM	1LL
 
 
+
 
 
 typedef struct lagopus_cbuffer_record {
@@ -56,7 +39,7 @@ typedef struct lagopus_cbuffer_record {
 } lagopus_cbuffer_record;
 
 
-
+
 
 
 static inline void
@@ -664,7 +647,7 @@ s_get_n(lagopus_cbuffer_t *cbptr,
 }
 
 
-
+
 
 
 lagopus_result_t
@@ -801,11 +784,12 @@ lagopus_cbuffer_wakeup(lagopus_cbuffer_t *cbptr, lagopus_chrono_t nsec) {
     {
 
       if ((*cbptr)->m_is_operational == true) {
-        if ((*cbptr)->m_is_awakened == false) {
+        if ((*cbptr)->m_is_awakened == false &&
+	    (*cbptr)->m_n_waiters > 0) {
           /*
            * Wake all the waiters up.
            */
-          (*cbptr)->m_is_awakened == true;
+          (*cbptr)->m_is_awakened = true;
           (void)lagopus_cond_notify(&((*cbptr)->m_cond_get), true);
           (void)lagopus_cond_notify(&((*cbptr)->m_cond_put), true);
 
@@ -845,7 +829,7 @@ lagopus_cbuffer_wakeup(lagopus_cbuffer_t *cbptr, lagopus_chrono_t nsec) {
 }
 
 
-
+
 
 
 lagopus_result_t
@@ -917,7 +901,7 @@ lagopus_cbuffer_peek_n_with_size(lagopus_cbuffer_t *cbptr,
 }
 
 
-
+
 
 
 lagopus_result_t
@@ -1147,3 +1131,4 @@ cbuffer_setup_for_qmuxer(lagopus_cbuffer_t cb,
 
   return ret;
 }
+

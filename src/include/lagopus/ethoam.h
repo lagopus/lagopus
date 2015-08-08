@@ -19,12 +19,11 @@
  * limitations under the License.
  */
 
-
 #ifndef SRC_LAGOPUS_ETHOAM_H_
 #define SRC_LAGOPUS_ETHOAM_H_
 
-// #include <stdio.h>
-// #include <Python.h>
+//#include <stdio.h>
+//#include <Python.h>
 
 #include "lagopus_apis.h"
 #include "lagopus_gstate.h"

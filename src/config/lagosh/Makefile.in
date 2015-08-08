@@ -1,0 +1,14 @@
+TOPDIR		= @TOPDIR@
+MKRULESDIR	= @MKRULESDIR@
+
+SRC		= lagosh.py
+TARGET		= lagosh
+INSTALLDIR	= $(DEST_SBIN_EXEDIR)
+
+install::	$(SRC)
+	-$(MKDIR) $(INSTALLDIR) > /dev/null 2>&1
+	$(LTINSTALL_EXE) -m 0555 $(SRC) $(INSTALLDIR)/$(TARGET)
+
+include $(MKRULESDIR)/vars.mk
+include $(MKRULESDIR)/rules.mk
+include .depend

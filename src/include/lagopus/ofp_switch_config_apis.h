@@ -13,11 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 /**
- * @file        ofp_switch_config_apis.h
- * @brief       Agent/Data-Plane APIs for ofp_switch_config
- * @details     Describe APIs between Agent and Data-Plane for ofp_switch_config.
+ * @file	ofp_switch_config_apis.h
+ * @brief	Agent/Data-Plane APIs for ofp_switch_config
+ * @details	Describe APIs between Agent and Data-Plane for ofp_switch_config.
  */
 #ifndef __LAGOPUS_OFP_SWITCH_CONFIG_APIS_H__
 #define __LAGOPUS_OFP_SWITCH_CONFIG_APIS_H__
@@ -31,13 +30,13 @@
 /**
  * Update the switch configuration for \b OFPT_SET_CONFIG.
  *
- *     @param[in]       dpid    Datapath id.
- *     @param[in]       switch_config   A pointer to \e ofp_switch_config structure.
- *     @param[out]      error   A pointer to \e ofp_error structure.
+ *     @param[in]	dpid	Datapath id.
+ *     @param[in]	switch_config	A pointer to \e ofp_switch_config structure.
+ *     @param[out]	error	A pointer to \e ofp_error structure.
  *     If errors occur, set filed values.
  *
- *     @retval  LAGOPUS_RESULT_OK       Succeeded.
- *     @retval  LAGOPUS_RESULT_ANY_FAILURES     Failed.
+ *     @retval	LAGOPUS_RESULT_OK	Succeeded.
+ *     @retval	LAGOPUS_RESULT_ANY_FAILURES	Failed.
  */
 lagopus_result_t
 ofp_switch_config_set(uint64_t dpid,
@@ -47,13 +46,13 @@ ofp_switch_config_set(uint64_t dpid,
 /**
  * Get switch configuration.
  *
- *     @param[in]       dpid    Datapath id.
- *     @param[out]      switch_config   A pointer to \e ofp_switch_config structure.
- *     @param[out]      error   A pointer to \e ofp_error structure.
+ *     @param[in]	dpid	Datapath id.
+ *     @param[out]	switch_config	A pointer to \e ofp_switch_config structure.
+ *     @param[out]	error	A pointer to \e ofp_error structure.
  *     If errors occur, set filed values.
  *
- *     @retval  LAGOPUS_RESULT_OK       Succeeded.
- *     @retval  LAGOPUS_RESULT_ANY_FAILURES     Failed.
+ *     @retval	LAGOPUS_RESULT_OK	Succeeded.
+ *     @retval	LAGOPUS_RESULT_ANY_FAILURES	Failed.
  */
 lagopus_result_t
 ofp_switch_config_get(uint64_t dpid,

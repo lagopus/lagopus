@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 #include "unity.h"
 #include "lagopus_apis.h"
 #include "lagopus_thread_internal.h"
@@ -163,15 +162,16 @@ s_thread_main(const lagopus_thread_t *selfptr, void *arg) {
   int i = 0;
   (void)arg;
   if (selfptr != NULL) {
+    int cstate;
     test_thread_t tt = (test_thread_t)*selfptr;
     if (tt != NULL && tt->m_proc != NULL && tt-> m_qptr != NULL) {
       for (i = 0; i < tt->m_loop_times; i++) {
         lagopus_msg_debug(30, "loop-%d start\n", i);
-        lagopus_mutex_enter_critical(&tt->m_lock);
+        lagopus_mutex_enter_critical(&tt->m_lock, &cstate);
         {
           ret = tt->m_proc(tt->m_qptr);
         }
-        lagopus_mutex_leave_critical(&tt->m_lock);
+        lagopus_mutex_leave_critical(&tt->m_lock, cstate);
         switch (ret) {
           case LAGOPUS_RESULT_OK:
           case LAGOPUS_RESULT_TIMEDOUT:

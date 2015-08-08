@@ -14,10 +14,9 @@
  * limitations under the License.
  */
 
-
 /**
  *      @file   flowinfo_basic.c
- *      @brief  Optimized flow database for datapath, linear search
+ *      @brief  Optimized flow database for dataplane, linear search
  */
 
 #include <inttypes.h>
@@ -30,6 +29,7 @@
 #endif /* HAVE_DPDK */
 
 #define __FAVOR_BSD
+#include <netinet/in.h>
 #include <netinet/ip.h>
 #include <netinet/ip_icmp.h>
 #include <netinet/tcp.h>
@@ -46,7 +46,6 @@
 #include "lagopus/ptree.h"
 #include "pktbuf.h"
 #include "packet.h"
-#include "match.h"
 
 #include "lagopus/flowinfo.h"
 
@@ -86,27 +85,15 @@ STATIC bool
 match_basic(const struct lagopus_packet *pkt, struct flow *flow) {
   struct byteoff_match *match;
   uint8_t *base;
-  uint64_t bits;
-  int off, i;
+  uint32_t bits;
+  int off, i, max;
 
-  match = &flow->oob_match;
-  base = (uint8_t *)&pkt->oob_data;
-  if (match->bits != 0) {
-    for (off = 0, bits = match->bits; bits != 0; off += 4, bits >>= 4) {
-      if ((bits & 0x0f) != 0) {
-        uint32_t b, m, c;
-
-        memcpy(&b, &base[off], sizeof(uint32_t));
-        memcpy(&m, &match->masks[off], sizeof(uint32_t));
-        memcpy(&c, &match->bytes[off], sizeof(uint32_t));
-        if ((b & m) != c) {
-          DPRINT("oob_data not matched (off=%d)\n", off);
-          return false;
-        }
-      }
-    }
+  if (unlikely(pkt->ether_type == ETHERTYPE_IPV6)) {
+    max = MAX_BASE;
+  } else {
+    max = V6EXT_BASE;
   }
-  for (i = 0; i < MAX_BASE; i++) {
+  for (i = 0; i < max; i++) {
     match = &flow->byteoff_match[i];
     if (match->bits == 0) {
       continue;
@@ -126,6 +113,7 @@ match_basic(const struct lagopus_packet *pkt, struct flow *flow) {
         memcpy(&m, &match->masks[off], sizeof(uint32_t));
         memcpy(&c, &match->bytes[off], sizeof(uint32_t));
         if ((b & m) != c) {
+          DPRINT("pkt 0x%04x, mask 0x%04x, flow 0x%04x\n", b, m, c);
           DPRINT("byteoff not matched (index=%d, off=%d)\n", i, off);
           return false;
         }
@@ -153,7 +141,7 @@ new_flowinfo_basic(void) {
 
   self = calloc(1, sizeof(struct flowinfo));
   if (self != NULL) {
-    self->flows = malloc(0);
+    self->flows = malloc(1);
     self->add_func = add_flow_basic;
     self->del_func = del_flow_basic;
     self->match_func = match_flow_basic;
@@ -169,56 +157,25 @@ destroy_flowinfo_basic(struct flowinfo *self) {
   free(self);
 }
 
-/* analyze flow entry and make byte offset match. */
-void
-flow_make_match(struct flow *flow) {
-  struct byteoff_match *byteoff, *oob_byteoff;
-  struct match *match;
-  uint16_t l3_ether_type = 0;
-
-  byteoff = flow->byteoff_match;
-  oob_byteoff = &flow->oob_match;
-
 #define BYTEBITS(bytes, off) ((uint64_t)((1 << (bytes)) - 1) << off)
 #define BYTEPTR(base, off) (&byteoff[base].bytes[off])
 #define MASKPTR(base, off) (&byteoff[base].masks[off])
 
-#define OOB_BYTEPTR(off) (&oob_byteoff->bytes[off])
-#define OOB_MASKPTR(off) (&oob_byteoff->masks[off])
-
-
 #define MAKE_BYTEOFF(field, off, base)                                \
-case FIELD(field):                                                  \
+  case FIELD(field):                                                  \
   byteoff[base].bits |= BYTEBITS(match->oxm_length, off);           \
   memcpy(BYTEPTR(base, off), match->oxm_value, match->oxm_length);  \
   memset(MASKPTR(base, off), 0xff, match->oxm_length);              \
   break;
 
 #define MAKE_BYTEOFF_W(field, off, base)                        \
-case FIELD_WITH_MASK(field):                                  \
+  case FIELD_WITH_MASK(field):                                  \
   {                                                           \
-    int len = match->oxm_length >> 1;                         \
+    size_t len = match->oxm_length >> 1;                      \
     byteoff[base].bits |= BYTEBITS(len, off);                 \
     memcpy(BYTEPTR(base, off), match->oxm_value, len);        \
     memcpy(MASKPTR(base, off), match->oxm_value + len, len);  \
   }                                                           \
-  break;
-
-#define OOB_MAKE_BYTEOFF(field, off)                               \
-case FIELD(field):                                               \
-  oob_byteoff->bits |= BYTEBITS(match->oxm_length, off);         \
-  memcpy(OOB_BYTEPTR(off), match->oxm_value, match->oxm_length); \
-  memset(OOB_MASKPTR(off), 0xff, match->oxm_length);             \
-  break;
-
-#define OOB_MAKE_BYTEOFF_W(field, off)                        \
-case FIELD_WITH_MASK(field):                                \
-  {                                                         \
-    int len = match->oxm_length >> 1;                       \
-    oob_byteoff->bits |= BYTEBITS(len, off);                \
-    memcpy(OOB_BYTEPTR(off), match->oxm_value, len);        \
-    memcpy(OOB_MASKPTR(off), match->oxm_value + len, len);  \
-  }                                                         \
   break;
 
 #define MAKE_BYTE(field, type, member, base)                    \
@@ -227,15 +184,18 @@ case FIELD_WITH_MASK(field):                                \
 #define MAKE_BYTE_W(field, type, member, base)                  \
   MAKE_BYTEOFF_W(field, offsetof(struct type, member), base)
 
-#define OOB_MAKE_BYTE(field, type, member)                      \
-  OOB_MAKE_BYTEOFF(field, offsetof(struct type, member))
+/* analyze flow entry and make byte offset match. */
+void
+flow_make_match(struct flow *flow) {
+  struct byteoff_match *byteoff;
+  struct match *match;
+  uint16_t l3_ether_type = 0;
 
-#define OOB_MAKE_BYTE_W(field, type, member)                    \
-  OOB_MAKE_BYTEOFF_W(field, offsetof(struct type, member))
+  byteoff = flow->byteoff_match;
 
   TAILQ_FOREACH(match, &flow->match_list, entry) {
     switch (match->oxm_field) {
-      /* VLAN_VID, VLAN_VID_W, VLAN_PCP and ETH_TYPE as metadata */
+        /* VLAN_VID, VLAN_VID_W, VLAN_PCP and ETH_TYPE as metadata */
       case FIELD(OFPXMT_OFB_ETH_TYPE):
         memcpy(&l3_ether_type, match->oxm_value, match->oxm_length);
         l3_ether_type = ntohs(l3_ether_type);
@@ -244,44 +204,44 @@ case FIELD_WITH_MASK(field):                                \
       case FIELD(OFPXMT_OFB_VLAN_VID): {
         uint8_t val8[2];
         int off = offsetof(struct oob_data, vlan_tci);
-        oob_byteoff->bits |= BYTEBITS(2, off);
+        byteoff[OOB_BASE].bits |= BYTEBITS(2, off);
         memcpy(val8, match->oxm_value, 2);
-        OOB_BYTEPTR(off)[0] &= 0xe0;
-        OOB_BYTEPTR(off)[0] |= val8[0] | 0x10;
-        OOB_BYTEPTR(off)[1] = val8[1];
-        OOB_MASKPTR(off)[0] |= 0x1f;
-        OOB_MASKPTR(off)[1] = 0xff;
+        BYTEPTR(OOB_BASE, off)[0] &= 0xe0;
+        BYTEPTR(OOB_BASE, off)[0] |= val8[0] | 0x10;
+        BYTEPTR(OOB_BASE, off)[1] = val8[1];
+        MASKPTR(OOB_BASE, off)[0] |= 0x1f;
+        MASKPTR(OOB_BASE, off)[1] = 0xff;
       }
       break;
 
       case FIELD_WITH_MASK(OFPXMT_OFB_VLAN_VID): {
         uint8_t val8[4];
         int off = offsetof(struct oob_data, vlan_tci);
-        oob_byteoff->bits |= BYTEBITS(2, off);
+        byteoff[OOB_BASE].bits |= BYTEBITS(2, off);
         memcpy(val8, match->oxm_value, 4);
-        OOB_BYTEPTR(off)[0] &= 0xe0;
-        OOB_BYTEPTR(off)[0] |= val8[0] | (0x10 & val8[2]);
-        OOB_BYTEPTR(off)[1] = val8[1];
-        OOB_MASKPTR(off)[0] &= 0xe0;
-        OOB_MASKPTR(off)[0] |= val8[2];
-        OOB_MASKPTR(off)[1] = val8[3];
+        BYTEPTR(OOB_BASE, off)[0] &= 0xe0;
+        BYTEPTR(OOB_BASE, off)[0] |= val8[0] | (0x10 & val8[2]);
+        BYTEPTR(OOB_BASE, off)[1] = val8[1];
+        MASKPTR(OOB_BASE, off)[0] &= 0xe0;
+        MASKPTR(OOB_BASE, off)[0] |= val8[2];
+        MASKPTR(OOB_BASE, off)[1] = val8[3];
       }
       break;
 
       case FIELD(OFPXMT_OFB_VLAN_PCP): {
         int off = offsetof(struct oob_data, vlan_tci);
-        oob_byteoff->bits |= BYTEBITS(1, off);
-        OOB_BYTEPTR(off)[0] &= 0x1f;
-        OOB_BYTEPTR(off)[0] |= (uint8_t)(match->oxm_value[0] << 5);
-        OOB_MASKPTR(off)[0] |= 0xe0;
+        byteoff[OOB_BASE].bits |= BYTEBITS(1, off);
+        BYTEPTR(OOB_BASE, off)[0] &= 0x1f;
+        BYTEPTR(OOB_BASE, off)[0] |= (uint8_t)(match->oxm_value[0] << 5);
+        MASKPTR(OOB_BASE, off)[0] |= 0xe0;
       }
       break;
 
-        /* IN_PORT, IN_PHY_PORT, METADATA and METADATA_W as metadata */
-      OOB_MAKE_BYTE(OFPXMT_OFB_IN_PORT, oob_data, in_port);
-      OOB_MAKE_BYTE(OFPXMT_OFB_IN_PHY_PORT, oob_data, in_phy_port);
-      OOB_MAKE_BYTE(OFPXMT_OFB_METADATA, oob_data, metadata);
-      OOB_MAKE_BYTE_W(OFPXMT_OFB_METADATA, oob_data, metadata);
+      /* IN_PORT, IN_PHY_PORT, METADATA and METADATA_W as metadata */
+      MAKE_BYTE(OFPXMT_OFB_IN_PORT, oob_data, in_port, OOB_BASE);
+      MAKE_BYTE(OFPXMT_OFB_IN_PHY_PORT, oob_data, in_phy_port, OOB_BASE);
+      MAKE_BYTE(OFPXMT_OFB_METADATA, oob_data, metadata, OOB_BASE);
+      MAKE_BYTE_W(OFPXMT_OFB_METADATA, oob_data, metadata, OOB_BASE);
 
       MAKE_BYTE(OFPXMT_OFB_ETH_DST, ether_header, ether_dhost, ETH_BASE);
       MAKE_BYTE_W(OFPXMT_OFB_ETH_DST, ether_header, ether_dhost, ETH_BASE);
@@ -305,10 +265,10 @@ case FIELD_WITH_MASK(field):                                \
       MAKE_BYTE(OFPXMT_OFB_ARP_TPA, ether_arp, arp_tpa, L3_BASE);
       MAKE_BYTE_W(OFPXMT_OFB_ARP_TPA, ether_arp, arp_tpa, L3_BASE);
 
-      MAKE_BYTE(OFPXMT_OFB_IPV6_SRC, ip6_hdr, ip6_src, L3_BASE);
-      MAKE_BYTE_W(OFPXMT_OFB_IPV6_SRC, ip6_hdr, ip6_src, L3_BASE);
-      MAKE_BYTE(OFPXMT_OFB_IPV6_DST, ip6_hdr, ip6_dst, L3_BASE);
-      MAKE_BYTE_W(OFPXMT_OFB_IPV6_DST, ip6_hdr, ip6_dst, L3_BASE);
+      MAKE_BYTEOFF(OFPXMT_OFB_IPV6_SRC, 0, V6SRC_BASE);
+      MAKE_BYTEOFF_W(OFPXMT_OFB_IPV6_SRC, 0, V6SRC_BASE);
+      MAKE_BYTEOFF(OFPXMT_OFB_IPV6_DST, 0, V6DST_BASE);
+      MAKE_BYTEOFF_W(OFPXMT_OFB_IPV6_DST, 0, V6DST_BASE);
 
       MAKE_BYTE(OFPXMT_OFB_TCP_SRC, tcphdr, th_sport, L4_BASE);
       MAKE_BYTE(OFPXMT_OFB_TCP_DST, tcphdr, th_dport, L4_BASE);
@@ -341,11 +301,11 @@ case FIELD_WITH_MASK(field):                                \
       MAKE_BYTE(OFPXMT_OFB_PBB_UCA, pbb_hdr, ..., PBB_BASE);
 #endif
 
-        /* TUNNEL_ID and IPV6_EXTHDR as metadata */
-      OOB_MAKE_BYTE(OFPXMT_OFB_TUNNEL_ID, oob_data, tunnel_id);
-      OOB_MAKE_BYTE_W(OFPXMT_OFB_TUNNEL_ID, oob_data, tunnel_id);
-      OOB_MAKE_BYTE(OFPXMT_OFB_IPV6_EXTHDR, oob_data, ipv6_exthdr);
-      OOB_MAKE_BYTE_W(OFPXMT_OFB_IPV6_EXTHDR, oob_data, ipv6_exthdr);
+      /* TUNNEL_ID and IPV6_EXTHDR as metadata */
+      MAKE_BYTE(OFPXMT_OFB_TUNNEL_ID, oob_data, tunnel_id, OOB_BASE);
+      MAKE_BYTE_W(OFPXMT_OFB_TUNNEL_ID, oob_data, tunnel_id, OOB_BASE);
+      MAKE_BYTEOFF(OFPXMT_OFB_IPV6_EXTHDR, 0, V6EXT_BASE);
+      MAKE_BYTEOFF_W(OFPXMT_OFB_IPV6_EXTHDR, 0, V6EXT_BASE);
 
       case FIELD(OFPXMT_OFB_IP_DSCP):
         /* 6bit */

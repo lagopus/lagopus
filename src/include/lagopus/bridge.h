@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 /**
  * @file        bridge.h
  * @brief       "Bridge" as OpenFlow logical switch APIs.
@@ -48,6 +47,9 @@ enum fail_mode {
   FAIL_STANDALONE_MODE = 1
 };
 
+struct dp_bridge_iter;
+typedef struct dp_bridge_iter *dp_bridge_iter_t;
+
 /* Bridge list. */
 TAILQ_HEAD(bridge_list, bridge);
 
@@ -63,6 +65,9 @@ struct bridge {
 
   /* Lost connection behavior. */
   enum fail_mode fail_mode;
+
+  /* Running status. */
+  bool running;
 
   /* Wire protocol version. */
   uint8_t version;
@@ -90,36 +95,18 @@ struct bridge {
 
   /* Switch config. */
   struct ofp_switch_config switch_config;
-
-  /* Controller address. */
-  const char *controller_address;
 };
 
 /**
- * Create and add bridge.
+ * Allocate bridge object.
  *
- * @param[in]   bridge_list     Bridge list.
- * @param[in]   name            Bridge name.
- * @param[in]   dpid            Datapath id associated with the bridge.
+ * @param[in]  bridge   Name of bridge.
  *
- * @retval      LAGOPUS_RESULT_OK               Succeeded.
- * @retval      LAGOPUS_RESULT_ALREADY_EXISTS   Already exist same name bridge.
- * @retval      LAGOPUS_RESULT_NO_MEMORY        Memory exhausted.
+ * @retval      !=NULL  Bridge object.
+ * @retval      ==NULL  Memory exhausted.
  */
-lagopus_result_t
-bridge_add(struct bridge_list *bridge_list, const char *name, uint64_t dpid);
-
-/**
- * Delete bridge.
- *
- * @param[in]   bridge_list     Bridge list.
- * @param[in]   name            Bridge name.
- *
- * @retval      LAGOPUS_RESULT_OK               Succeeded.
- * @retval      LAGOPUS_RESULT_NOT_FOUND        Bridge is not exist.
- */
-lagopus_result_t
-bridge_delete(struct bridge_list *bridge_list, const char *name);
+struct bridge *
+bridge_alloc(const char *name);
 
 /**
  * Free bridge object.
@@ -129,70 +116,21 @@ bridge_delete(struct bridge_list *bridge_list, const char *name);
 void
 bridge_free(struct bridge *bridge);
 
-/**
- * Lookup bridge.
- *
- * @param[in]   bridge_list     Bridge list.
- * @param[in]   name            Bridge name.
- *
- * @retval      !=NULL          Bridge object.
- * @retval      ==NULL          Bridge is not exist.
- */
-struct bridge *
-bridge_lookup(struct bridge_list *bridge_list, const char *name);
-
-/**
- * Lookup bridge by datapath id.
- *
- * @param[in]   bridge_list     Bridge list.
- * @param[in]   dpid            Datapath id.
- *
- * @retval      !=NULL          Bridge object.
- * @retval      ==NULL          Bridge is not exist.
- */
-struct bridge *
-bridge_lookup_by_dpid(struct bridge_list *bridge_list, uint64_t dpid);
-
-/**
- * Lookup bridge by datapath id.
- *
- * @param[in]   bridge_list     Bridge list.
- * @param[in]   name            Controller address string.
- *
- * @retval      !=NULL          Bridge object.
- * @retval      ==NULL          Bridge is not exist.
- */
-struct bridge *
-bridge_lookup_by_controller_address(struct bridge_list *bridge_list,
-                                    const char *name);
-
-/**
- * Add port to the bridge.
- *
- * @param[in]   bridge_list     Bridge list.
- * @param[in]   name            Bridge name.
- * @param[in]   port            Port.
- *
- * @retval      LAGOPUS_RESULT_OK               Succeeded.
- * @retval      LAGOPUS_RESULT_NOT_FOUND        Bridge is not exist.
- */
 lagopus_result_t
-bridge_port_add(struct bridge_list *bridge_list, const char *name,
-                struct port *port);
-
-/**
- * Delete port to the bridge.
- *
- * @param[in]   bridge_list     Bridge list.
- * @param[in]   name            Bridge name.
- * @param[in]   port_no         OpenFlow Port number.
- *
- * @retval      LAGOPUS_RESULT_OK               Succeeded.
- * @retval      LAGOPUS_RESULT_NOT_FOUND        Bridge is not exist.
- */
+dp_bridge_table_id_iter_create(const char *name, dp_bridge_iter_t *iterp);
 lagopus_result_t
-bridge_port_delete(struct bridge_list *bridge_list, const char *name,
-                   uint32_t port_no);
+dp_bridge_table_id_iter_get(dp_bridge_iter_t iter, uint8_t *idp);
+void
+dp_bridge_table_id_iter_destroy(dp_bridge_iter_t iter);
+
+lagopus_result_t
+dp_bridge_flow_iter_create(const char *name, uint8_t table_id,
+                           dp_bridge_iter_t *iterp);
+lagopus_result_t
+dp_bridge_flow_iter_get(dp_bridge_iter_t iter, struct flow **flowp);
+void
+dp_bridge_flow_iter_destroy(dp_bridge_iter_t iter);
+
 
 /**
  * Get OpenFlow switch fail mode.
@@ -203,7 +141,7 @@ bridge_port_delete(struct bridge_list *bridge_list, const char *name,
  * @retval LAGOPUS_RESULT_OK            Succeeded.
  */
 lagopus_result_t
-bridge_fail_mode_get(struct bridge *bridge, enum fail_mode *fail_mode);
+bridge_fail_mode_get(struct bridge *bridge, enum fail_mode *fail_mode) __attribute__ ((deprecated));
 
 /**
  * Get OpenFlow switch fail mode.
@@ -215,7 +153,7 @@ bridge_fail_mode_get(struct bridge *bridge, enum fail_mode *fail_mode);
  * @retval LAGOPUS_RESULT_INVALID_ARGS  fail_mode value is wrong.
  */
 lagopus_result_t
-bridge_fail_mode_set(struct bridge *bridge, enum fail_mode fail_mode);
+bridge_fail_mode_set(struct bridge *bridge, enum fail_mode fail_mode) __attribute__ ((deprecated));
 
 /**
  * Get OpenFlow switch features.
@@ -227,7 +165,7 @@ bridge_fail_mode_set(struct bridge *bridge, enum fail_mode fail_mode);
  */
 lagopus_result_t
 bridge_ofp_features_get(struct bridge *bridge,
-                        struct ofp_switch_features *features);
+                        struct ofp_switch_features *features) __attribute__ ((deprecated));
 
 /**
  * Get primary OpenFlow version.
@@ -238,7 +176,7 @@ bridge_ofp_features_get(struct bridge *bridge,
  * @retval LAGOPUS_RESULT_OK            Succeeded.
  */
 lagopus_result_t
-bridge_ofp_version_get(struct bridge *bridge, uint8_t *version);
+bridge_ofp_version_get(struct bridge *bridge, uint8_t *version) __attribute__ ((deprecated));
 
 /**
  * Set primary OpenFlow version.
@@ -250,7 +188,7 @@ bridge_ofp_version_get(struct bridge *bridge, uint8_t *version);
  * @retval LAGOPUS_RESULT_INVALID_ARGS  Version number is wrong.
  */
 lagopus_result_t
-bridge_ofp_version_set(struct bridge *bridge, uint8_t version);
+bridge_ofp_version_set(struct bridge *bridge, uint8_t version) __attribute__ ((deprecated));
 
 /**
  * Get supported OpenFlow version bitmap.
@@ -261,8 +199,7 @@ bridge_ofp_version_set(struct bridge *bridge, uint8_t version);
  * @retval LAGOPUS_RESULT_OK            Succeeded.
  */
 lagopus_result_t
-bridge_ofp_version_bitmap_get(struct bridge *bridge,
-                              uint32_t *version_bitmap);
+bridge_ofp_version_bitmap_get(struct bridge *bridge, uint32_t *version_bitmap) __attribute__ ((deprecated));
 
 /**
  * Set supported OpenFlow version bitmap.
@@ -274,7 +211,7 @@ bridge_ofp_version_bitmap_get(struct bridge *bridge,
  * @retval LAGOPUS_RESULT_INVALID_ARGS  Version number is wrong.
  */
 lagopus_result_t
-bridge_ofp_version_bitmap_set(struct bridge *bridge, uint8_t version);
+bridge_ofp_version_bitmap_set(struct bridge *bridge, uint8_t version) __attribute__ ((deprecated));
 
 /**
  * Get supported OpenFlow version bitmap.
@@ -286,7 +223,7 @@ bridge_ofp_version_bitmap_set(struct bridge *bridge, uint8_t version);
  * @retval LAGOPUS_RESULT_INVALID_ARGS  Version number is wrong.
  */
 lagopus_result_t
-bridge_ofp_version_bitmap_unset(struct bridge *bridge, uint8_t version);
+bridge_ofp_version_bitmap_unset(struct bridge *bridge, uint8_t version) __attribute__ ((deprecated));
 
 /**
  * Get switch features.
@@ -299,43 +236,7 @@ bridge_ofp_version_bitmap_unset(struct bridge *bridge, uint8_t version);
  */
 lagopus_result_t
 bridge_ofp_features_get(struct bridge *bridge,
-                        struct ofp_switch_features *features);
-
-/**
- * Get bridge name.
- *
- * @param[in]   bridge                  Bridge.
- *
- * @retval      Bridge name.
- */
-const char *
-bridge_name_get(struct bridge *bridge);
-
-/**
- * Add controller address to the bridge.
- *
- * @param[in]   bridge                  Bridge.
- * @param[in]   controller_addresss     Controller address string.
- *
- * @retval      LAGOPUS_RESULT_OK       Success.
- * @retval      LAGOPUS_RESULT_NOT_FOUND Bridge is not exist.
- */
-lagopus_result_t
-bridge_controller_add(struct bridge *bridge,
-                      const char *controller_str);
-
-/**
- * Delete controller address to the bridge.
- *
- * @param[in]   bridge                  Bridge.
- * @param[in]   controller_addresss     Controller address string.
- *
- * @retval      LAGOPUS_RESULT_OK       Success.
- * @retval      LAGOPUS_RESULT_NOT_FOUND Bridge is not exist.
- */
-lagopus_result_t
-bridge_controller_delete(struct bridge *bridge,
-                         const char *controller_str);
+                        struct ofp_switch_features *features) __attribute__ ((deprecated));
 
 /**
  * Get datapath id owned by bridge.
@@ -344,7 +245,9 @@ bridge_controller_delete(struct bridge *bridge,
  *
  * @retval      Datapath id.
  */
-uint64_t
-bridge_dpid(struct bridge *bridge);
+static inline uint64_t
+bridge_dpid(struct bridge *bridge) {
+  return bridge->dpid;
+}
 
 #endif /* SRC_INCLUDE_LAGOPUS_BRIDGE_H_ */

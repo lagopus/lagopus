@@ -1,0 +1,13 @@
+use:
+  - lagopus
+mode: async
+
+testcases:
+  - testcase: channel create-destroy (10000 times)
+    test:
+      - repetition_count: 10000
+        cmds:
+          - cmd_type: ds
+            cmd: channel channel{{index}} create -dst-addr 127.0.0.1 -protocol tcp
+          - cmd_type: ds
+            cmd: channel channel{{index}} destroy

@@ -1,2 +1,0 @@
-confsys_client: confsys_client.c
-	gcc -o confsys_client confsys_client.c

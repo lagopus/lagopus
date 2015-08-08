@@ -14,10 +14,9 @@
  * limitations under the License.
  */
 
-
 /**
  *      @file   flowinfo_ether.c
- *      @brief  Optimized flow database for datapath, for ethernet
+ *      @brief  Optimized flow database for dataplane, for ethernet
  */
 
 #include <stdlib.h>
@@ -172,7 +171,7 @@ match_flow_eth_type(struct flowinfo *self, struct lagopus_packet *pkt,
     flow = flowinfo->match_func(flowinfo, pkt, pri);
   }
   if (pkt->mpls != NULL) {
-    flowinfo = self->next[OS_NTOHS(pkt->eth->ether_type)];
+    flowinfo = self->next[OS_NTOHS(*(((uint16_t *)pkt->mpls) - 1))];
     if (flowinfo != NULL) {
       alt_flow = flowinfo->match_func(flowinfo, pkt, pri);
       if (alt_flow != NULL) {

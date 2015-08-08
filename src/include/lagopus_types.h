@@ -14,20 +14,19 @@
  * limitations under the License.
  */
 
-
 #ifndef __LAGOPUS_TYPES_H__
 #define __LAGOPUS_TYPES_H__
 
 
-
+
 
 
 /**
- *      @file   lagopus_types.h
+ *	@file	lagopus_types.h
  */
 
 
-
+
 
 
 /**
@@ -41,10 +40,10 @@ typedef int64_t lagopus_result_t;
  * acquired by \b clock_gettime(). For arithmetic operations, the sign
  * extension is needed.
  */
-typedef int64_t lagopus_chrono_t;
+typedef	int64_t	lagopus_chrono_t;
 
 
-
+
 
 
 #endif /* ! __LAGOPUS_TYPES_H__ */

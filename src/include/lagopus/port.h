@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 /**
  *      @file   port.h
  */
@@ -25,6 +24,9 @@
 struct port_stats_list;
 struct port_desc_list;
 struct port_stats;
+
+struct bridge;
+struct interface;
 
 /**
  * Port structure.
@@ -44,6 +46,12 @@ struct port {
 
   /* Parent bridge. */
   struct bridge *bridge;
+
+  /* Related interface. */
+  struct interface *interface;
+
+  /* Related active queue hashtable. */
+  lagopus_hashmap_t queueinfo_hashmap;
 
   /* Packet queue for capture */
   lagopus_bbq_t pcap_queue;
@@ -96,6 +104,12 @@ ports_alloc(void);
 void
 ports_free(struct vector *v);
 
+struct port *
+port_alloc(void);
+
+void
+port_free(struct port *);
+
 /**
  * Lookup port.
  *
@@ -109,6 +123,17 @@ struct port *
 port_lookup(struct vector *v, uint32_t port_no);
 
 /**
+ * get port structure by OpenFlow flow number.
+ *
+ * @param[in]   vector owned by dpmgr
+ * @param[in]   port_no OpenFlow Port number.
+ * @retval      !=NULL  lagopus port object
+ *              ==NULL  lagopus port is not configured
+ */
+struct port *
+port_lookup_number(struct vector *v, uint32_t port_no);
+
+/**
  * Create and register port object.
  *
  * @param[in]   v               Port database.
@@ -119,7 +144,7 @@ port_lookup(struct vector *v, uint32_t port_no);
  * @retval      LAGOPUS_RESULT_NO_MEMORY        Memory exhausted.
  */
 lagopus_result_t
-port_add(struct vector *v, const struct port *port_param);
+port_add(struct vector *v, const struct port *port_param) __attribute__ ((deprecated));
 
 /**
  * Delete port.
@@ -131,7 +156,7 @@ port_add(struct vector *v, const struct port *port_param);
  * @retval      LAGOPUS_RESULT_NOT_FOUND        Port is not exist.
  */
 lagopus_result_t
-port_delete(struct vector *v, uint32_t port_no);
+port_delete(struct vector *v, uint32_t port_no) __attribute__ ((deprecated));
 
 /**
  * Count number of ports.
@@ -141,7 +166,7 @@ port_delete(struct vector *v, uint32_t port_no);
  * @retval      Number of ports.
  */
 unsigned int
-num_ports(struct vector *v);
+num_ports(struct vector *v) __attribute__ ((deprecated));
 
 /**
  * get port statistics.

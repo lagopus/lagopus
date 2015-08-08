@@ -14,50 +14,49 @@
  * limitations under the License.
  */
 
-
 #include "lagopus_apis.h"
 #include "lagopus_thread_internal.h"
 #include "lagopus_pipeline_stage_internal.h"
 
 
+
 
 
-
-#define DEFAULT_STAGE_ALLOC_SZ  (sizeof(lagopus_pipeline_stage_record))
-
+#define DEFAULT_STAGE_ALLOC_SZ	(sizeof(lagopus_pipeline_stage_record))
 
 
+
 
 
 static pthread_once_t s_once = PTHREAD_ONCE_INIT;
 static lagopus_hashmap_t s_ps_name_tbl;
 static lagopus_hashmap_t s_ps_obj_tbl;
-static void     s_ctors(void) __attr_constructor__(107);
-static void     s_dtors(void) __attr_destructor__(107);
+static void	s_ctors(void) __attr_constructor__(109);
+static void	s_dtors(void) __attr_destructor__(109);
 
-static inline void      s_lock_stage(lagopus_pipeline_stage_t ps);
-static inline void      s_unlock_stage(lagopus_pipeline_stage_t ps);
-static inline void      s_final_lock_stage(lagopus_pipeline_stage_t ps);
-static inline void      s_final_unlock_stage(lagopus_pipeline_stage_t ps);
-static inline void      s_pause_lock_stage(lagopus_pipeline_stage_t ps);
-static inline void      s_pause_unlock_stage(lagopus_pipeline_stage_t ps);
-static inline void      s_pause_notify_stage(lagopus_pipeline_stage_t ps);
+static inline void	s_lock_stage(lagopus_pipeline_stage_t ps);
+static inline void	s_unlock_stage(lagopus_pipeline_stage_t ps);
+static inline void	s_final_lock_stage(lagopus_pipeline_stage_t ps);
+static inline void	s_final_unlock_stage(lagopus_pipeline_stage_t ps);
+static inline void	s_pause_lock_stage(lagopus_pipeline_stage_t ps);
+static inline void	s_pause_unlock_stage(lagopus_pipeline_stage_t ps);
+static inline void	s_pause_notify_stage(lagopus_pipeline_stage_t ps);
 static inline lagopus_result_t
 s_pause_cond_wait_stage(lagopus_pipeline_stage_t ps,
                         lagopus_chrono_t nsec);
-static inline void      s_resume_notify_stage(lagopus_pipeline_stage_t ps);
+static inline void	s_resume_notify_stage(lagopus_pipeline_stage_t ps);
 static inline lagopus_result_t
 s_resume_cond_wait_stage(lagopus_pipeline_stage_t ps,
                          lagopus_chrono_t nsec);
 
 
-
+
 
 
 #include "pipeline_worker.c"
 
 
-
+
 
 
 static void
@@ -116,7 +115,7 @@ s_dtors(void) {
 }
 
 
-
+
 
 
 static inline lagopus_result_t
@@ -176,7 +175,7 @@ s_find_stage(const char *name) {
 }
 
 
-
+
 
 
 static inline void
@@ -293,7 +292,7 @@ s_resume_cond_wait_stage(lagopus_pipeline_stage_t ps, lagopus_chrono_t nsec) {
 }
 
 
-
+
 
 
 static inline void
@@ -539,6 +538,12 @@ s_init_stage(lagopus_pipeline_stage_t *sptr,
 
             ps->m_pause_requested = false;
 
+            ps->m_maint_proc = NULL;
+            ps->m_maint_arg = NULL;
+
+            ps->m_post_start_proc = NULL;
+            ps->m_post_start_arg = NULL;
+
             /*
              * finally.
              */
@@ -570,7 +575,7 @@ s_init_stage(lagopus_pipeline_stage_t *sptr,
 }
 
 
-
+
 
 
 lagopus_result_t
@@ -671,7 +676,7 @@ lagopus_pipeline_stage_destroy(lagopus_pipeline_stage_t *sptr) {
 }
 
 
-
+
 
 
 lagopus_result_t
@@ -730,6 +735,9 @@ lagopus_pipeline_stage_start(const lagopus_pipeline_stage_t *sptr) {
             ps->m_status == STAGE_STATE_SETUP ||
             ps->m_status == STAGE_STATE_FINALIZED) {
           size_t i;
+
+          ps->m_maint_proc = NULL;
+          ps->m_maint_arg = NULL;
 
           ps->m_n_canceled_workers = 0LL;
           ps->m_n_shutdown_workers = 0LL;
@@ -952,23 +960,24 @@ lagopus_pipeline_stage_set_worker_cpu_affinity(
 #endif /* LAGOPUS_OS_LINUX */
 
 
-
+
 
 
 lagopus_result_t
 lagopus_pipeline_stage_submit(const lagopus_pipeline_stage_t *sptr,
                               void *evbuf,
-                              size_t n_evs) {
+                              size_t n_evs,
+                              void *hint) {
   if (sptr != NULL && *sptr != NULL) {
     if ((*sptr)->m_sched_proc != NULL) {
-      return ((*sptr)->m_sched_proc)(sptr, evbuf, n_evs);
+      return ((*sptr)->m_sched_proc)(sptr, evbuf, n_evs, hint);
     }
   }
   return LAGOPUS_RESULT_INVALID_ARGS;
 }
 
 
-
+
 
 
 lagopus_result_t
@@ -1096,7 +1105,7 @@ lagopus_pipeline_stage_resume(const lagopus_pipeline_stage_t *sptr) {
 }
 
 
-
+
 
 
 lagopus_result_t
@@ -1194,7 +1203,7 @@ lagopus_pipeline_stage_schedule_maintenance(
 }
 
 
-
+
 
 
 lagopus_result_t
@@ -1216,3 +1225,35 @@ lagopus_pipeline_stage_find(const char *name,
 }
 
 
+
+
+
+lagopus_result_t
+lagopus_pipeline_stage_set_post_start_hook(
+  lagopus_pipeline_stage_t *sptr,
+  lagopus_pipeline_stage_post_start_proc_t func,
+  void *arg) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+
+  if (sptr != NULL && *sptr != NULL) {
+    lagopus_pipeline_stage_t ps = *sptr;
+
+    if (s_is_stage(ps) == true) {
+
+      s_lock_stage(ps);
+      {
+        ps->m_post_start_proc = func;
+        ps->m_post_start_arg = arg;
+        ret = LAGOPUS_RESULT_OK;
+      }
+      s_unlock_stage(ps);
+
+    } else {
+      ret = LAGOPUS_RESULT_INVALID_OBJECT;
+    }
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  return ret;
+}

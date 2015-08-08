@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 #ifndef SRC_INCLUDE_LAGOPUS_OFCACHE_H_
 #define SRC_INCLUDE_LAGOPUS_OFCACHE_H_
 

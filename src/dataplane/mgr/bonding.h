@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 #ifndef SRC_DATAPLANE_MGR_BONDING_H_
 #define SRC_DATAPLANE_MGR_BONDING_H_
 

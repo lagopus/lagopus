@@ -14,13 +14,14 @@
  * limitations under the License.
  */
 
-
 #ifndef __CHANNEL_MGR_H__
 #define __CHANNEL_MGR_H__
 
 /**
  * @file        channel_mgr.h
  */
+
+struct channel_list;
 
 /**
  * Initialize a channel manager.
@@ -42,55 +43,55 @@ void channel_mgr_finalize(void);
 /**
  * Put a tcp channel created with a controller address into channel hash.
  *
- *  @param[in] bridge  A bridge pointer.
+ *  @param[in] bridge_name  A bridge name.
  *  @param[in] dpid    Datapath ID.
  *  @param[in] addr    A controller address.
  *
  *  @retval LAGOPUS_RESULT_OK Succeeded.
  */
 lagopus_result_t
-channel_mgr_channel_add(struct bridge *bridge, uint64_t dpid,
+channel_mgr_channel_add(const char *bridge_name, uint64_t dpid,
                         struct addrunion *addr);
 
 
 /**
  * Put a tls channel created with a controller address into channel hash.
  *
- *  @param[in] bridge  A bridge pointer.
+ *  @param[in] bridge_name  A bridge name.
  *  @param[in] dpid    Datapath ID.
  *  @param[in] addr    A controller address.
  *
  *  @retval LAGOPUS_RESULT_OK Succeeded.
  */
 lagopus_result_t
-channel_mgr_channel_tls_add(struct bridge *bridge, uint64_t dpid,
+channel_mgr_channel_tls_add(const char *bridge_name, uint64_t dpid,
                             struct addrunion *addr);
 
 
 /**
  * Look up a channel that has this bridge and controller address.
  *
- *  @param[in] bridge  A bridge pointer.
+ *  @param[in] bridge_name  A bridge name.
  *  @param[in] addr    A controller address.
  *  @param[out] channel  A channel.
  *
  *  @retval LAGOPUS_RESULT_OK Succeeded.
  */
 lagopus_result_t
-channel_mgr_channel_lookup(struct bridge *bridge, struct addrunion *addr,
+channel_mgr_channel_lookup(const char *bridge_name, struct addrunion *addr,
                            struct channel **channel);
 
 
 /**
  * Remove a channel that has this bridge and controller address from channel hash.
  *
- *  @param[in] bridge  A bridge pointer.
+ *  @param[in] bridge_name  A bridge name.
  *  @param[in] addr    A controller address.
  *
  *  @retval LAGOPUS_RESULT_OK Succeeded.
  */
 lagopus_result_t
-channel_mgr_channel_delete(struct bridge *bridge, struct addrunion *addr);
+channel_mgr_channel_delete(const char *bridge_name, struct addrunion *addr);
 
 
 /**
@@ -173,5 +174,69 @@ channel_mgr_generation_id_set(uint64_t dpid, uint64_t gen);
 lagopus_result_t
 channel_mgr_channel_lookup_by_channel_id(uint64_t dpid,
     uint64_t channel_id, struct channel **channel);
+
+/**
+ * Look up a channel that has this channel name.
+ *
+ *  @param[in]  channel_name Channel name.
+ *  @param[out] channel    A channel.
+ *
+ *  @retval LAGOPUS_RESULT_OK Succeeded.
+ *  @retval LAGOPUS_RESULT_NOT_FOUND Fail. channel not found.
+ *
+ */
+lagopus_result_t
+channel_mgr_channel_lookup_by_name(const char *channel_name,
+                                   struct channel **chan);
+
+lagopus_result_t
+channel_mgr_channel_create(const char *channel_name,
+                           lagopus_ip_address_t *dst_addr,
+                           uint16_t dst_port, lagopus_ip_address_t *src_addr, uint16_t src_port,
+                           datastore_channel_protocol_t protocol);
+lagopus_result_t
+channel_mgr_channel_destroy(const char *channel_name);
+
+lagopus_result_t
+channel_mgr_channel_start(const char *channel_name);
+
+lagopus_result_t
+channel_mgr_channel_stop(const char *channel_name);
+
+lagopus_result_t
+channel_mgr_controller_set(const char *channel_name,
+                           datastore_controller_role_t role,
+                           datastore_controller_connection_type_t type);
+
+lagopus_result_t
+channel_mgr_channel_dpid_set(const char *channel_name, uint64_t dpid);
+
+lagopus_result_t
+channel_mgr_channel_dpid_get(const char *channel_name, uint64_t *dpid);
+
+lagopus_result_t
+channel_mgr_channel_dpid_unset(const char *channel_name);
+
+lagopus_result_t
+channel_mgr_channel_local_addr_get(const char *channel_name,
+                                   lagopus_ip_address_t **local_addr);
+
+lagopus_result_t
+channel_mgr_channel_local_port_get(const char *channel_name,
+                                   uint16_t *local_port);
+
+lagopus_result_t
+channel_mgr_channel_connection_status_get(const char *channel_name,
+    datastore_channel_status_t *status);
+
+lagopus_result_t
+channel_mgr_channel_role_get(const char *channel_name,
+                             datastore_controller_role_t *role);
+
+lagopus_result_t
+channel_mgr_ofp_version_get(const char *channel_name, uint8_t *version);
+
+lagopus_result_t
+channel_mgr_channel_is_alive(const char *channel_name, bool *b);
 
 #endif /* __CHANNEL_MGR_H__ */

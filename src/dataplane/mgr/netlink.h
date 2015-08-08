@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 #ifndef SRC_DATAPLANE_MGR_NETLINK_H_
 #define SRC_DATAPLANE_MGR_NETLINK_H_
 

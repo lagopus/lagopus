@@ -14,12 +14,11 @@
  * limitations under the License.
  */
 
-
 #ifndef __QMUXER_INTERNAL_H__
 #define __QMUXER_INTERNAL_H__
 
 
-
+
 
 
 #define NEED_WAIT_READABLE(type) \
@@ -33,7 +32,7 @@
     (int)t <= (int)LAGOPUS_QMUXER_POLL_BOTH) ? true : false)
 
 
-
+
 
 
 void
@@ -49,7 +48,7 @@ cbuffer_setup_for_qmuxer(lagopus_cbuffer_t cb,
                          bool is_pre);
 
 
-
+
 
 
 #endif /* ! __QMUXER_INTERNAL_H__ */

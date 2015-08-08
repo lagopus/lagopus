@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 #include "unity.h"
 #include "../ofp_features_handler.h"
 #include "handler_test_utils.h"
@@ -75,8 +74,8 @@ test_ofp_features_reply_create(void) {
   ret = check_packet_create(s_ofp_features_reply_create_wrap,
                             "04 06 00 20 00 00 00 10"
                             "00 00 00 00 00 00 0a bc"
-                            "00 00 ff ff ff 00 00 00"
-                            "00 00 00 4f 00 00 00 00");
+                            "ff ff ff ff ff 00 00 00"
+                            "00 00 01 6f 00 00 00 00");
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, ret,
                             "ofp_features_reply_create(normal) error.");
 }

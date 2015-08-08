@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 #include "lagopus_apis.h"
 #include "unity.h"
 
@@ -182,8 +181,7 @@ s_check_create(lagopus_thread_t *thd_ptr, lagopus_result_t require_ret) {
 
 static inline bool
 s_check_create_long(lagopus_thread_t *thd_ptr, lagopus_result_t require_ret) {
-  return s_check_create_common(thd_ptr, require_ret, main_proc_long,
-                               "create_l");
+  return s_check_create_common(thd_ptr, require_ret, main_proc_long, "create_l");
 }
 
 static inline bool

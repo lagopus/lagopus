@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 #include "unity.h"
 #include "lagopus_apis.h"
 
@@ -47,8 +46,7 @@ s_put(bbq *bbQptr, entry *put, lagopus_chrono_t timed_wait, double *rettime) {
 }
 
 static lagopus_result_t
-s_get(bbq *bbQptr, entry **get, lagopus_chrono_t timed_wait,
-      double *rettime) {
+s_get(bbq *bbQptr, entry **get, lagopus_chrono_t timed_wait, double *rettime) {
   struct timespec start, end;
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   get_time_stamp(&start);

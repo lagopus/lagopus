@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 #include "unity.h"
 #include "../channel.h"
 #include "../ofp_switch_config_handler.h"

@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 #include <stdbool.h>
 #include <stdint.h>
 #include "lagopus_apis.h"
@@ -219,8 +218,7 @@ ofp_queue_get_config_reply_create(struct channel *channel,
 
 /* Get_Config Request packet receive. */
 lagopus_result_t
-ofp_queue_get_config_request_handle(struct channel *channel,
-                                    struct pbuf *pbuf,
+ofp_queue_get_config_request_handle(struct channel *channel, struct pbuf *pbuf,
                                     struct ofp_header *xid_header,
                                     struct ofp_error *error) {
   lagopus_result_t res = LAGOPUS_RESULT_ANY_FAILURES;

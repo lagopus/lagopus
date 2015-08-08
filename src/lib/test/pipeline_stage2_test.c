@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 #include "unity.h"
 #include "lagopus_apis.h"
 #include "lagopus_pipeline_stage.h"
@@ -169,9 +168,10 @@ pipeline_throw(const lagopus_pipeline_stage_t *sptr,
 
 static lagopus_result_t
 pipeline_sched(const lagopus_pipeline_stage_t *sptr,
-               void *buf, size_t n) {
+               void *buf, size_t n, void *hint) {
   (void)sptr;
   (void)buf;
+  (void)hint;
 
   lagopus_msg_debug(1, "called.\n");
   called_func_count(PIPELINE_FUNC_SCHED, NULL);

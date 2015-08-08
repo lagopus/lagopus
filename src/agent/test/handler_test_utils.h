@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 #ifndef __OFP_HANDLER_TEST_UTIL_H__
 #define __OFP_HANDLER_TEST_UTIL_H__
 
@@ -26,7 +25,7 @@
 
 /* define procs */
 typedef lagopus_result_t \
-(*ofp_handler_proc_t)(struct channel *channel, struct pbuf *pbuf, \
+(*ofp_handler_proc_t)(struct channel *channel, struct pbuf *pbuf,\
                       struct ofp_header *xid_header, struct ofp_error *error);
 
 typedef lagopus_result_t \

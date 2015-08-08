@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 #include <sys/queue.h>
 #include "unity.h"
 #include "../ofp_packet_out_handler.h"
@@ -91,15 +90,13 @@ test_ofp_packet_out_handle_normal_pattern_no_actions(void) {
   header = &(packet_out->header);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_EVENTQ_PACKET_OUT,
                             eventq_data->type, "type error.");
-  TEST_ASSERT_EQUAL_MESSAGE(0x04,       header->version,
-                            "version error.");
+  TEST_ASSERT_EQUAL_MESSAGE(0x04,       header->version,       "version error.");
   TEST_ASSERT_EQUAL_MESSAGE(OFPT_PACKET_OUT, header->type,     "type error.");
   TEST_ASSERT_EQUAL_MESSAGE(0x0018,     header->length,        "length error.");
   TEST_ASSERT_EQUAL_MESSAGE(0x00000010, header->xid,           "xid error.");
   TEST_ASSERT_EQUAL_MESSAGE(0xffffffff, packet_out->buffer_id,
                             "buffer_id error.");
-  TEST_ASSERT_EQUAL_MESSAGE(0x0000000e, packet_out->in_port,
-                            "in_port error.");
+  TEST_ASSERT_EQUAL_MESSAGE(0x0000000e, packet_out->in_port,   "in_port error.");
   TEST_ASSERT_EQUAL_MESSAGE(0x0000, packet_out->actions_len,
                             "actions_len error.");
   TEST_ASSERT_EQUAL_MESSAGE(0x00, eventq_data->packet_out.channel_id,
@@ -145,16 +142,14 @@ test_ofp_packet_out_handle_normal_pattern_no_data(void) {
   header = &(packet_out->header);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_EVENTQ_PACKET_OUT,
                             eventq_data->type, "type error.");
-  TEST_ASSERT_EQUAL_MESSAGE(0x04,       header->version,
-                            "version error.");
+  TEST_ASSERT_EQUAL_MESSAGE(0x04,       header->version,       "version error.");
   TEST_ASSERT_EQUAL_MESSAGE(OFPT_PACKET_OUT, header->type,     "type error.");
   TEST_ASSERT_EQUAL_MESSAGE(0x0038,     header->length,        "length error.");
   TEST_ASSERT_EQUAL_MESSAGE(0x00000010, header->xid,           "xid error.");
   /* check packet_out */
   TEST_ASSERT_EQUAL_MESSAGE(0xffffffff, packet_out->buffer_id,
                             "buffer_id error.");
-  TEST_ASSERT_EQUAL_MESSAGE(0x0000000e, packet_out->in_port,
-                            "in_port error.");
+  TEST_ASSERT_EQUAL_MESSAGE(0x0000000e, packet_out->in_port,   "in_port error.");
   TEST_ASSERT_EQUAL_MESSAGE(0x0020, packet_out->actions_len,
                             "actions_len error.");
   TEST_ASSERT_EQUAL_MESSAGE(0x00, eventq_data->packet_out.channel_id,
@@ -236,16 +231,14 @@ test_ofp_packet_out_handle_normal_pattern(void) {
   header = &(packet_out->header);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_EVENTQ_PACKET_OUT,
                             eventq_data->type, "type error.");
-  TEST_ASSERT_EQUAL_MESSAGE(0x04,       header->version,
-                            "version error.");
+  TEST_ASSERT_EQUAL_MESSAGE(0x04,       header->version,       "version error.");
   TEST_ASSERT_EQUAL_MESSAGE(OFPT_PACKET_OUT, header->type,     "type error.");
   TEST_ASSERT_EQUAL_MESSAGE(0x003c,     header->length,        "length error.");
   TEST_ASSERT_EQUAL_MESSAGE(0x00000010, header->xid,           "xid error.");
   /* check packet_out */
   TEST_ASSERT_EQUAL_MESSAGE(0xffffffff, packet_out->buffer_id,
                             "buffer_id error.");
-  TEST_ASSERT_EQUAL_MESSAGE(0x0000000e, packet_out->in_port,
-                            "in_port error.");
+  TEST_ASSERT_EQUAL_MESSAGE(0x0000000e, packet_out->in_port,   "in_port error.");
   TEST_ASSERT_EQUAL_MESSAGE(0x0020, packet_out->actions_len,
                             "actions_len error.");
   /* check action_list */
@@ -331,16 +324,14 @@ test_ofp_packet_out_handle_normal_buffer_id(void) {
   header = &(packet_out->header);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_EVENTQ_PACKET_OUT,
                             eventq_data->type, "type error.");
-  TEST_ASSERT_EQUAL_MESSAGE(0x04,       header->version,
-                            "version error.");
+  TEST_ASSERT_EQUAL_MESSAGE(0x04,       header->version,       "version error.");
   TEST_ASSERT_EQUAL_MESSAGE(OFPT_PACKET_OUT, header->type,     "type error.");
   TEST_ASSERT_EQUAL_MESSAGE(0x0038,     header->length,        "length error.");
   TEST_ASSERT_EQUAL_MESSAGE(0x00000010, header->xid,           "xid error.");
   /* check packet_out */
   TEST_ASSERT_EQUAL_MESSAGE(0x00000001, packet_out->buffer_id,
                             "buffer_id error.");
-  TEST_ASSERT_EQUAL_MESSAGE(0x0000000e, packet_out->in_port,
-                            "in_port error.");
+  TEST_ASSERT_EQUAL_MESSAGE(0x0000000e, packet_out->in_port,   "in_port error.");
   TEST_ASSERT_EQUAL_MESSAGE(0x0020, packet_out->actions_len,
                             "actions_len error.");
   /* check action_list */

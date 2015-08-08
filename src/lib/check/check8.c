@@ -14,11 +14,10 @@
  * limitations under the License.
  */
 
-
 #include "lagopus_apis.h"
 
 
-#
+#
 
 
 static void
@@ -51,7 +50,7 @@ s_signal_quit(int sig) {
 }
 
 
-
+
 
 
 int

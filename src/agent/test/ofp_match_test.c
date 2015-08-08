@@ -14,14 +14,13 @@
  * limitations under the License.
  */
 
-
 #include <sys/queue.h>
 #include "unity.h"
 #include "event.h"
 #include "lagopus_apis.h"
+#include "lagopus_session.h"
 #include "lagopus/pbuf.h"
 #include "lagopus/flowdb.h"
-#include "lagopus/session.h"
 #include "lagopus/ofp_dp_apis.h"
 #include "openflow13.h"
 #include "handler_test_utils.h"

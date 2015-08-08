@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 /* Forward declaration. */
 struct event;
 struct event_manager;

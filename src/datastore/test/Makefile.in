@@ -1,0 +1,44 @@
+TOPDIR		= @TOPDIR@
+MKRULESDIR	= @MKRULESDIR@
+
+TESTS = datastore_common_test port_test interface_test \
+	channel_test controller_test bridge_test \
+	conv_json_test conv_json_result_test interface_cmd_test \
+	port_cmd_test channel_cmd_test controller_cmd_test \
+	cmd_common_test bridge_cmd_test log_cmd_test tls_cmd_test \
+	snmp_cmd_test load_cmd_test save_cmd_test flow_cmd_test \
+	flow_cmd_dump_test atomic_cmd_test shutdown_cmd_test \
+	l2_bridge_test l2_bridge_cmd_test meter_cmd_test \
+	group_cmd_test affinition_cmd_test queue_test queue_cmd_test \
+	policer_test policer_action_test policer_action_cmd_test \
+	policer_cmd_test agent_cmd_test
+
+SRCS = datastore_common_test.c port_test.c interface_test.c \
+	channel_test.c controller_test.c bridge_test.c \
+	conv_json_test.c conv_json_result_test.c interface_cmd_test.c \
+	port_cmd_test.c channel_cmd_test.c controller_cmd_test.c \
+	cmd_common_test.c bridge_cmd_test.c log_cmd_test.c tls_cmd_test.c \
+	snmp_cmd_test.c load_cmd_test.c save_cmd_test.c flow_cmd_test.c \
+	flow_cmd_dump_test.c atomic_cmd_test.c shutdown_cmd_test.c \
+	l2_bridge_test.c l2_bridge_cmd_test.c meter_cmd_test.c \
+	group_cmd_test.c affinition_cmd_test.c queue_test.c queue_cmd_test.c \
+	policer_test.c policer_action_test.c policer_action_cmd_test.c \
+	policer_cmd_test.c agent_cmd_test.c
+
+DEP_LIBS+=$(DEP_LAGOPUS_UTIL_LIB)
+
+TEST_DEPS	= \
+	$(DEP_LAGOPUS_AGENT_LIB) \
+	$(DEP_LAGOPUS_DATAPLANE_LIB) \
+	$(DEP_LAGOPUS_DATASTORE_LIB) \
+	$(DEP_LAGOPUS_UTIL_LIB) \
+	$(DEP_LAGOPUS_CONFIG_LIB)
+
+CPPFLAGS	+= -D__UNIT_TESTING__
+
+include $(MKRULESDIR)/vars.mk
+include $(MKRULESDIR)/rules.mk
+include .depend
+
+clean::
+	$(RM) testlog_file*

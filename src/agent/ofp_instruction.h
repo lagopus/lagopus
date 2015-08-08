@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-
 /**
- * @file        ofp_instruction.h
+ * @file	ofp_instruction.h
  */
 
 #ifndef __INSTRUCTION_H__
@@ -28,9 +27,9 @@
 /**
  * Alloc instruction.
  *
- *     @retval  *instruction    Succeeded,
+ *     @retval	*instruction	Succeeded,
  *     A pointer to \e instruction structure.
- *     @retval  NULL    Failed.
+ *     @retval	NULL	Failed.
  */
 struct instruction *
 instruction_alloc(void);
@@ -38,11 +37,11 @@ instruction_alloc(void);
 /**
  * Trace instruction_list.
  *
- *     @param[in]       flag    Trace flags. Or'd value of TRACE_OFPT_*.
- *     @param[in]       instruction_list        A pointer to list of
+ *     @param[in]	flag	Trace flags. Or'd value of TRACE_OFPT_*.
+ *     @param[in]	instruction_list	A pointer to list of
  *     \e instruction structures.
  *
- *     @retval  void
+ *     @retval	void
  */
 void
 ofp_instruction_list_trace(uint32_t flags,
@@ -51,15 +50,15 @@ ofp_instruction_list_trace(uint32_t flags,
 /**
  * Parse instruction.
  *
- *     @param[in]       pbuf    A pointer to \e pbuf structure.
- *     @param[out]      instruction_list        A pointer to list of
+ *     @param[in]	pbuf	A pointer to \e pbuf structure.
+ *     @param[out]	instruction_list	A pointer to list of
  *     \e instruction structures.
- *     @param[out]      error   A pointer to \e ofp_error structure.
+ *     @param[out]	error	A pointer to \e ofp_error structure.
  *     If errors occur, set filed values.
  *
- *     @retval  LAGOPUS_RESULT_OK       Succeeded.
- *     @retval  LAGOPUS_RESULT_OFP_ERROR Failed, ofp_error.
- *     @retval  LAGOPUS_RESULT_ANY_FAILURES Failed.
+ *     @retval	LAGOPUS_RESULT_OK	Succeeded.
+ *     @retval	LAGOPUS_RESULT_OFP_ERROR Failed, ofp_error.
+ *     @retval	LAGOPUS_RESULT_ANY_FAILURES Failed.
  */
 lagopus_result_t
 ofp_instruction_parse(struct pbuf *pbuf,
@@ -69,15 +68,15 @@ ofp_instruction_parse(struct pbuf *pbuf,
 /**
  * Encode instruction_list.
  *
- *     @param[out]      pbuf_list       A pointer to list of \e pbuf structures.
- *     @param[out]      pbuf    A pointer to \e pbuf structure.
- *     @param[in]       instruction_list        A pointer to list of
+ *     @param[out]	pbuf_list	A pointer to list of \e pbuf structures.
+ *     @param[out]	pbuf	A pointer to \e pbuf structure.
+ *     @param[in]	instruction_list	A pointer to list of
  *     \e instruction structures.
- *     @param[out]      total_length    A pointer to \e size of packet.
+ *     @param[out]	total_length	A pointer to \e size of packet.
  *
- *     @retval  LAGOPUS_RESULT_OK       Succeeded.
- *     @retval  LAGOPUS_RESULT_OUT_OF_RANGE Failed, out of range.
- *     @retval  LAGOPUS_RESULT_ANY_FAILURES Failed.
+ *     @retval	LAGOPUS_RESULT_OK	Succeeded.
+ *     @retval	LAGOPUS_RESULT_OUT_OF_RANGE Failed, out of range.
+ *     @retval	LAGOPUS_RESULT_ANY_FAILURES Failed.
  */
 lagopus_result_t
 ofp_instruction_list_encode(struct pbuf_list *pbuf_list,
@@ -88,15 +87,15 @@ ofp_instruction_list_encode(struct pbuf_list *pbuf_list,
 /**
  * Parse instruction header for ofp_table_feature.
  *
- *     @param[in]       pbuf    A pointer to \e pbuf structure
- *     @param[out]      instruction_list        A pointer to list of
+ *     @param[in]	pbuf	A pointer to \e pbuf structure
+ *     @param[out]	instruction_list	A pointer to list of
  *     \e instruction structures.
- *     @param[out]      error   A pointer to \e ofp_error structure.
+ *     @param[out]	error	A pointer to \e ofp_error structure.
  *     If errors occur, set filed values.
  *
- *     @retval  LAGOPUS_RESULT_OK       Succeeded.
- *     @retval  LAGOPUS_RESULT_OFP_ERROR Failed, ofp_error.
- *     @retval  LAGOPUS_RESULT_ANY_FAILURES Failed.
+ *     @retval	LAGOPUS_RESULT_OK	Succeeded.
+ *     @retval	LAGOPUS_RESULT_OFP_ERROR Failed, ofp_error.
+ *     @retval	LAGOPUS_RESULT_ANY_FAILURES Failed.
  */
 lagopus_result_t
 ofp_instruction_header_parse(struct pbuf *pbuf,
@@ -106,15 +105,15 @@ ofp_instruction_header_parse(struct pbuf *pbuf,
 /**
  * Encode instruction_list (header) for ofp_table_feature.
  *
- *     @param[out]      pbuf_list       A pointer to list of \e pbuf structures.
- *     @param[out]      pbuf    A pointer to \e pbuf structure.
- *     @param[in]       instruction_list        A pointer to list of
+ *     @param[out]	pbuf_list	A pointer to list of \e pbuf structures.
+ *     @param[out]	pbuf	A pointer to \e pbuf structure.
+ *     @param[in]	instruction_list	A pointer to list of
  *     \e instruction structures.
- *     @param[out]      total_length    A pointer to \e size of packet.
+ *     @param[out]	total_length	A pointer to \e size of packet.
  *
- *     @retval  LAGOPUS_RESULT_OK       Succeeded.
- *     @retval  LAGOPUS_RESULT_OUT_OF_RANGE Failed, out of range.
- *     @retval  LAGOPUS_RESULT_ANY_FAILURES Failed.
+ *     @retval	LAGOPUS_RESULT_OK	Succeeded.
+ *     @retval	LAGOPUS_RESULT_OUT_OF_RANGE Failed, out of range.
+ *     @retval	LAGOPUS_RESULT_ANY_FAILURES Failed.
  */
 lagopus_result_t
 ofp_instruction_header_list_encode(struct pbuf_list *pbuf_list,

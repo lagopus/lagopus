@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 #include "lagopus/ofp_bridge.h"
 #include "lagopus_apis.h"
 #include "lagopus/eventq_data.h"
@@ -40,10 +39,15 @@ s_eventq_freeup_proc(void **val) {
  */
 lagopus_result_t
 ofp_bridge_create(struct ofp_bridge **retptr,
-                  uint64_t dpid) {
+                  uint64_t dpid,
+                  const char *name,
+                  datastore_bridge_info_t *info,
+                  datastore_bridge_queue_info_t *q_info) {
   lagopus_result_t res = LAGOPUS_RESULT_ANY_FAILURES;
   struct ofp_bridge *ofpb;
-  if (retptr != NULL) {
+
+  if (retptr != NULL && name != NULL &&
+      info != NULL && q_info != NULL) {
     if (*retptr == NULL) {
       ofpb = (struct ofp_bridge *)malloc(sizeof(struct ofp_bridge));
       if (ofpb == NULL) {
@@ -53,22 +57,37 @@ ofp_bridge_create(struct ofp_bridge **retptr,
     } else {
       ofpb = *retptr;
     }
+    ofpb->dataq = NULL;
+    ofpb->eventq = NULL;
+    ofpb->event_dataq = NULL;
+
+    ofpb->name = strdup(name);
+    if (ofpb->name == NULL) {
+      res = LAGOPUS_RESULT_NO_MEMORY;
+      lagopus_perror(res);
+      ofp_bridge_destroy(ofpb);
+      goto done;
+    }
+
     /*
      * create eventq, dataq, event_dataq
      */
     if ((res = lagopus_bbq_create(&(ofpb->dataq), struct eventq_data *,
-                                  DATAQ_SIZE, s_eventq_freeup_proc))
+                                  q_info->packet_inq_size,
+                                  s_eventq_freeup_proc))
         != LAGOPUS_RESULT_OK) {
       lagopus_perror(res);
       ofp_bridge_destroy(ofpb);
     } else if ((res = lagopus_bbq_create(&(ofpb->eventq), struct eventq_data *,
-                                         EVENTQ_SIZE, s_eventq_freeup_proc))
+                                         q_info->up_streamq_size,
+                                         s_eventq_freeup_proc))
                != LAGOPUS_RESULT_OK) {
       lagopus_perror(res);
       ofp_bridge_destroy(ofpb);
     } else if ((res = lagopus_bbq_create(&(ofpb->event_dataq),
                                          struct eventq_data *,
-                                         EVENT_DATAQ_SIZE, s_eventq_freeup_proc))
+                                         q_info->down_streamq_size,
+                                         s_eventq_freeup_proc))
                != LAGOPUS_RESULT_OK) {
       lagopus_perror(res);
       ofp_bridge_destroy(ofpb);
@@ -78,6 +97,11 @@ ofp_bridge_create(struct ofp_bridge **retptr,
       STAILQ_INIT(&(ofpb->edq_buffer));
 #endif  /* OFPH_POLL_WRITING */
       ofpb->dpid = dpid;
+      ofpb->info = *info;
+      ofpb->dataq_max_batches = q_info->packet_inq_max_batches;
+      ofpb->eventq_max_batches = q_info->up_streamq_max_batches;
+      ofpb->event_dataq_max_batches = q_info->down_streamq_max_batches;
+
       *retptr = ofpb;
       res = LAGOPUS_RESULT_OK;
     }
@@ -115,6 +139,198 @@ ofp_bridge_destroy(struct ofp_bridge *ptr) {
     lagopus_bbq_destroy(&(ptr->dataq), true);
     lagopus_bbq_destroy(&(ptr->eventq), true);
     lagopus_bbq_destroy(&(ptr->event_dataq), true);
+    free((void *) ptr->name);
     free(ptr);
   }
+}
+
+lagopus_result_t
+ofp_bridge_dataq_max_batches_set(struct ofp_bridge *ptr,
+                                 uint16_t val) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+
+  if (ptr != NULL) {
+    if (ptr->dataq_max_batches != val) {
+      mbar();
+      ptr->dataq_max_batches = val;
+      lagopus_msg_info("set dataq_max_batches: %"PRIu16".\n", val);
+    }
+    ret = LAGOPUS_RESULT_OK;
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  return ret;
+}
+
+lagopus_result_t
+ofp_bridge_eventq_max_batches_set(struct ofp_bridge *ptr,
+                                  uint16_t val) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+
+  if (ptr != NULL) {
+    if (ptr->eventq_max_batches != val) {
+      mbar();
+      ptr->eventq_max_batches = val;
+      lagopus_msg_info("set eventq_max_batches: %"PRIu16".\n", val);
+    }
+    ret = LAGOPUS_RESULT_OK;
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  return ret;
+}
+
+lagopus_result_t
+ofp_bridge_event_dataq_max_batches_set(struct ofp_bridge *ptr,
+                                       uint16_t val) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+
+  if (ptr != NULL) {
+    if (ptr->event_dataq_max_batches != val) {
+      mbar();
+      lagopus_msg_info("set event_dataq_max_batches: %"PRIu16".\n", val);
+      ptr->event_dataq_max_batches = val;
+    }
+    ret = LAGOPUS_RESULT_OK;
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  return ret;
+}
+
+lagopus_result_t
+ofp_bridge_dataq_max_batches_get(struct ofp_bridge *ptr,
+                                 uint16_t *val) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+
+  if (ptr != NULL && val != NULL) {
+    *val = ptr->dataq_max_batches;
+    ret = LAGOPUS_RESULT_OK;
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  return ret;
+}
+
+lagopus_result_t
+ofp_bridge_eventq_max_batches_get(struct ofp_bridge *ptr,
+                                  uint16_t *val) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+
+  if (ptr != NULL && val != NULL) {
+    *val = ptr->eventq_max_batches;
+    ret = LAGOPUS_RESULT_OK;
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  return ret;
+}
+
+lagopus_result_t
+ofp_bridge_event_dataq_max_batches_get(struct ofp_bridge *ptr,
+                                       uint16_t *val) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+
+  if (ptr != NULL && val != NULL) {
+    *val = ptr->event_dataq_max_batches;
+    ret = LAGOPUS_RESULT_OK;
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  return ret;
+}
+
+lagopus_result_t
+ofp_bridge_dataq_stats_get(struct ofp_bridge *ptr,
+                           uint16_t *val) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+
+  if (ptr != NULL && val != NULL) {
+    ret = lagopus_bbq_size(&ptr->dataq);
+    if (ret >= LAGOPUS_RESULT_OK) {
+      *val = (uint16_t) ret;
+      ret = LAGOPUS_RESULT_OK;
+    }
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  return ret;
+}
+
+lagopus_result_t
+ofp_bridge_eventq_stats_get(struct ofp_bridge *ptr,
+                            uint16_t *val) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+
+  if (ptr != NULL && val != NULL) {
+    ret = lagopus_bbq_size(&ptr->eventq);
+    if (ret >= LAGOPUS_RESULT_OK) {
+      *val = (uint16_t) ret;
+      ret = LAGOPUS_RESULT_OK;
+    }
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  return ret;
+}
+
+lagopus_result_t
+ofp_bridge_event_dataq_stats_get(struct ofp_bridge *ptr,
+                                 uint16_t *val) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+
+  if (ptr != NULL && val != NULL) {
+    ret = lagopus_bbq_size(&ptr->event_dataq);
+    if (ret >= LAGOPUS_RESULT_OK) {
+      *val = (uint16_t) ret;
+      ret = LAGOPUS_RESULT_OK;
+    }
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  return ret;
+}
+
+lagopus_result_t
+ofp_bridge_name_get(struct ofp_bridge *ptr,
+                    char **name) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+
+  if (ptr != NULL && name != NULL) {
+    *name = strdup(ptr->name);
+    if (*name == NULL) {
+      ret = LAGOPUS_RESULT_NO_MEMORY;
+      goto done;
+    }
+    ret = LAGOPUS_RESULT_OK;
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+done:
+  return ret;
+}
+
+lagopus_result_t
+ofp_bridge_info_get(struct ofp_bridge *ptr,
+                    datastore_bridge_info_t *info) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+
+  if (ptr != NULL && info != NULL) {
+    *info = ptr->info;
+    ret = LAGOPUS_RESULT_OK;
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  return ret;
 }

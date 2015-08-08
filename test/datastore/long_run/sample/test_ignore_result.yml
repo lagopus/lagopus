@@ -1,0 +1,26 @@
+use:
+  - lagopus
+
+testcases:
+  - testcase: ignore result
+    test:
+      - cmds:
+          - cmd_type: shell
+            cmd: "ls"
+            result: "0"
+          - cmd_type: shell
+            cmd: "hogehoge"
+            # ignore_result
+            # result: "127"
+          - cmd_type: ds
+            cmd: channel channel01 create -dst-addr 127.0.0.1 -protocol tcp
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: channel channel01 create -dst-addr 127.0.0.1 -protocol tcp
+            # ignore result
+            # result: >-
+            #  {"ret":"ALREADY_EXISTS",
+            #  "data":"name = :channel01"
+          - cmd_type: ds
+            cmd: channel channel01 destroy
+            result: '{"ret": "OK"}'

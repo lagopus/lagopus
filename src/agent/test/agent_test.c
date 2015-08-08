@@ -14,28 +14,13 @@
  * limitations under the License.
  */
 
-
 #include "unity.h"
 #include "lagopus_apis.h"
-#include "lagopus/dpmgr.h"
 #include "lagopus_gstate.h"
 #include "../agent.h"
-#include "confsys.h"
-
-struct dpmgr *dpmgr = NULL;
 
 void
 setUp(void) {
-  if (dpmgr != NULL) {
-    return;
-  }
-
-  /* Datapath manager alloc. */
-  dpmgr = dpmgr_alloc();
-  if (dpmgr == NULL) {
-    fprintf(stderr, "Datapath manager allocation failed\n");
-    exit(-1);
-  }
   (void)global_state_set(GLOBAL_STATE_STARTED);
 }
 
@@ -44,23 +29,10 @@ tearDown(void) {
 }
 
 void
-test_init_confsys(void) {
-  lagopus_thread_t *cserver;
-  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
-
-  /* Init Confsys (Singleton).  */
-  ret = config_handle_initialize(NULL, &cserver);
-  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
-
-  ret = config_handle_initialize(NULL, &cserver);
-  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_ALREADY_EXISTS, ret);
-}
-
-void
 test_agent_start_shutdown(void) {
   lagopus_thread_t *t;
   lagopus_result_t ret;
-  ret = agent_initialize((void *)dpmgr, &t);
+  ret = agent_initialize(NULL, &t);
   TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
   ret = agent_start();
   TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
@@ -73,19 +45,10 @@ void
 test_agent_start_stop(void) {
   lagopus_thread_t *t;
   lagopus_result_t ret;
-  ret = agent_initialize((void *)dpmgr, &t);
+  ret = agent_initialize(NULL, &t);
   TEST_ASSERT_EQUAL(LAGOPUS_RESULT_ALREADY_EXISTS, ret);
   ret = agent_start();
   TEST_ASSERT_EQUAL(LAGOPUS_RESULT_ALREADY_EXISTS, ret);
   ret = agent_stop();
   TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
-}
-
-void
-test_free_confsys(void) {
-  lagopus_result_t ret;
-
-  ret = config_handle_shutdown(SHUTDOWN_GRACEFULLY);
-  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
-  config_handle_finalize();
 }

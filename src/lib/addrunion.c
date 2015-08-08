@@ -14,19 +14,18 @@
  * limitations under the License.
  */
 
-
 #include "lagopus/addrunion.h"
 
-void
+int
 addrunion_ipv4_set(struct addrunion *addrunion, const char *str) {
   addrunion->family = AF_INET;
-  inet_pton(AF_INET, str, &addrunion->addr4);
+  return inet_pton(AF_INET, str, &addrunion->addr4);
 }
 
-void
+int
 addrunion_ipv6_set(struct addrunion *addrunion, const char *str) {
   addrunion->family = AF_INET6;
-  inet_pton(AF_INET6, str, &addrunion->addr6);
+  return inet_pton(AF_INET6, str, &addrunion->addr6);
 }
 
 const char *

@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-
 /**
- * @file        ofp_flow_removed_handler.h
+ * @file	ofp_flow_removed_handler.h
  */
 
 #ifndef __OFP_FLOW_REMOVED_HANDLER_H__
@@ -28,11 +27,11 @@
 /**
  * ofp_flow_removed handler.
  *
- *     @param[in]       channel A pointer to \e flow_removed structure.
- *     @param[in]       dpid    dpid.
+ *     @param[in]	channel	A pointer to \e flow_removed structure.
+ *     @param[in]	dpid	dpid.
  *
- *     @retval  LAGOPUS_RESULT_OK       Succeeded.
- *     @retval  LAGOPUS_RESULT_ANY_FAILURES Failed.
+ *     @retval	LAGOPUS_RESULT_OK	Succeeded.
+ *     @retval	LAGOPUS_RESULT_ANY_FAILURES Failed.
  */
 lagopus_result_t
 ofp_flow_removed_handle(struct flow_removed *flow_removed,
@@ -42,11 +41,11 @@ ofp_flow_removed_handle(struct flow_removed *flow_removed,
 /**
  * Create ofp_flow_removed.
  *
- *     @param[in]       reply   A pointer to \e flow_removed structure.
- *     @param[out]      pbuf    A pointer to \e pbuf structure.
+ *     @param[in]	reply	A pointer to \e flow_removed structure.
+ *     @param[out]	pbuf	A pointer to \e pbuf structure.
  *
- *     @retval  LAGOPUS_RESULT_OK       Succeeded.
- *     @retval  LAGOPUS_RESULT_ANY_FAILURES Failed.
+ *     @retval	LAGOPUS_RESULT_OK	Succeeded.
+ *     @retval	LAGOPUS_RESULT_ANY_FAILURES Failed.
  */
 lagopus_result_t
 ofp_flow_removed_create(struct flow_removed *flow_removed,

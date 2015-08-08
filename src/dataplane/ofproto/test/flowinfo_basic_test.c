@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 #include "unity.h"
 
 #include "lagopus/dpmgr.h"
@@ -35,14 +34,14 @@ FLOWINFO_TEST_DECLARE_DATA;
 
 
 /* Compute a port number. */
-#define TEST_PORT(_i)   ((uint32_t)((_i) + 1))
-#define TEST_PHYPORT(_i)        ((uint32_t)((_i) + 1))
+#define TEST_PORT(_i)	((uint32_t)((_i) + 1))
+#define TEST_PHYPORT(_i)	((uint32_t)((_i) + 1))
 
 /* Compute a metadata. */
-#define TEST_METADATA(_i)       ((uint64_t)((_i) + md))
+#define TEST_METADATA(_i)	((uint64_t)((_i) + md))
 
 /* Compute a tunnel ID. */
-#define TEST_TUNNELID(_i)       ((uint64_t)((_i) + tunnelid))
+#define TEST_TUNNELID(_i)	((uint64_t)((_i) + tunnelid))
 
 
 /* Test metadata. */
@@ -62,51 +61,51 @@ static const uint64_t tunnelidmask = 0xffffffff00000000UL;
  *
  * The test flows must not have any matches.
  */
-#define TEST_ASSERT_OBJECTS()                                           \
-  do {                                                                  \
-    size_t _s, _c;                                                      \
-    TEST_ASSERT_NOT_NULL(flowinfo);                                     \
-    for (_s = 0; _s < ARRAY_LEN(test_flow); _s++) {                     \
-      TEST_ASSERT_NOT_NULL(test_flow[_s]);                              \
-      _c = 0;                                                           \
+#define TEST_ASSERT_OBJECTS()						\
+  do {									\
+    size_t _s, _c;							\
+    TEST_ASSERT_NOT_NULL(flowinfo);					\
+    for (_s = 0; _s < ARRAY_LEN(test_flow); _s++) {			\
+      TEST_ASSERT_NOT_NULL(test_flow[_s]);				\
+      _c = 0;								\
       TAILQ_COUNT(_c, struct match, &test_flow[_s]->match_list, entry); \
-      TEST_ASSERT_EQUAL_INT(0, _c);                                     \
-    }                                                                   \
+      TEST_ASSERT_EQUAL_INT(0, _c);					\
+    }									\
   } while (0)
 
 /* Positively assert flow addition. */
-#define TEST_ASSERT_FLOWINFO_ADDFLOW_OK(_fl, _bi, _ei, _flnum, _msg)    \
-  do {                                                                  \
-    size_t _s;                                                          \
-    for (_s = (_bi); _s < (_ei); _s++)                                  \
-      TEST_ASSERT_FLOWINFO_ADD_OK((_fl), test_flow[_s], (_msg));        \
-    TEST_ASSERT_FLOWINFO_FLOW_NUM((_fl), (_flnum), (_msg));             \
+#define TEST_ASSERT_FLOWINFO_ADDFLOW_OK(_fl, _bi, _ei, _flnum, _msg)	\
+  do {									\
+    size_t _s;								\
+    for (_s = (_bi); _s < (_ei); _s++)					\
+      TEST_ASSERT_FLOWINFO_ADD_OK((_fl), test_flow[_s], (_msg));	\
+    TEST_ASSERT_FLOWINFO_FLOW_NUM((_fl), (_flnum), (_msg));		\
   } while (0)
 
 /* Positively assert flow deletion. */
-#define TEST_ASSERT_FLOWINFO_DELFLOW_OK(_fl, _bi, _ei, _flnum, _msg)    \
-  do {                                                                  \
-    size_t _s;                                                          \
-    for (_s = (_bi); _s < (_ei); _s++)                                  \
-      TEST_ASSERT_FLOWINFO_DEL_OK((_fl), test_flow[_s], (_msg));        \
-    TEST_ASSERT_FLOWINFO_FLOW_NUM((_fl), (_flnum), (_msg));             \
+#define TEST_ASSERT_FLOWINFO_DELFLOW_OK(_fl, _bi, _ei, _flnum, _msg)	\
+  do {									\
+    size_t _s;								\
+    for (_s = (_bi); _s < (_ei); _s++)					\
+      TEST_ASSERT_FLOWINFO_DEL_OK((_fl), test_flow[_s], (_msg));	\
+    TEST_ASSERT_FLOWINFO_FLOW_NUM((_fl), (_flnum), (_msg));		\
   } while (0)
 
 /* Negatively assert flow deletion. */
-#define TEST_ASSERT_FLOWINFO_DELFLOW_NG(_fl, _bi, _ei, _flnum, _msg)    \
-  do {                                                                  \
-    size_t _s;                                                          \
-    for (_s = (_bi); _s < (_ei); _s++)                                  \
-      TEST_ASSERT_FLOWINFO_DEL_NG((_fl), test_flow[_s], (_msg));        \
-    TEST_ASSERT_FLOWINFO_FLOW_NUM((_fl), (_flnum), (_msg));             \
+#define TEST_ASSERT_FLOWINFO_DELFLOW_NG(_fl, _bi, _ei, _flnum, _msg)	\
+  do {									\
+    size_t _s;								\
+    for (_s = (_bi); _s < (_ei); _s++)					\
+      TEST_ASSERT_FLOWINFO_DEL_NG((_fl), test_flow[_s], (_msg));	\
+    TEST_ASSERT_FLOWINFO_FLOW_NUM((_fl), (_flnum), (_msg));		\
   } while (0)
 
 /* Assert flow numbers. */
-#define TEST_ASSERT_FLOWINFO_FLOW_NUM(_fl, _flnum, _msg)                \
-  do {                                                                  \
-    TEST_ASSERT_FLOWINFO_NFLOW((_fl), (_flnum), (_msg));                \
-    TEST_ASSERT_FLOWINFO_NFLOW((_fl)->misc, (_flnum), (_msg));          \
-    TEST_ASSERT_FLOWINFO_NFLOW((_fl)->misc->misc, (_flnum), (_msg));    \
+#define TEST_ASSERT_FLOWINFO_FLOW_NUM(_fl, _flnum, _msg)		\
+  do {									\
+    TEST_ASSERT_FLOWINFO_NFLOW((_fl), (_flnum), (_msg));		\
+    TEST_ASSERT_FLOWINFO_NFLOW((_fl)->misc, (_flnum), (_msg));		\
+    TEST_ASSERT_FLOWINFO_NFLOW((_fl)->misc->misc, (_flnum), (_msg));	\
   } while (0)
 
 

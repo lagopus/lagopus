@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-
 /**
- * @file        ofp_meter_features_handler.h
+ * @file	ofp_meter_features_handler.h
  */
 
 #ifndef __OFP_METER_FEATURES_HANDLER_H__
@@ -29,15 +28,15 @@
 /**
  * ofp_meter_features_request handler.
  *
- *     @param[in]       channel A pointer to \e channel structure.
- *     @param[in]       pbuf    A pointer to \e pbuf structure.
- *     @param[in]       xid_header      A pointer to \e ofp_header structure in request.
- *     @param[out]      error   A pointer to \e ofp_error structure.
+ *     @param[in]	channel	A pointer to \e channel structure.
+ *     @param[in]	pbuf	A pointer to \e pbuf structure.
+ *     @param[in]	xid_header	A pointer to \e ofp_header structure in request.
+ *     @param[out]	error	A pointer to \e ofp_error structure.
  *     If errors occur, set filed values.
  *
- *     @retval  LAGOPUS_RESULT_OK       Succeeded.
- *     @retval  LAGOPUS_RESULT_OFP_ERROR Failed, ofp_error.
- *     @retval  LAGOPUS_RESULT_ANY_FAILURES Failed.
+ *     @retval	LAGOPUS_RESULT_OK	Succeeded.
+ *     @retval	LAGOPUS_RESULT_OFP_ERROR Failed, ofp_error.
+ *     @retval	LAGOPUS_RESULT_ANY_FAILURES Failed.
  */
 lagopus_result_t
 ofp_meter_features_request_handle(struct channel *channel,
@@ -49,13 +48,13 @@ ofp_meter_features_request_handle(struct channel *channel,
 /**
  * Create ofp_meter_features_reply.
  *
- *     @param[in]       channel A pointer to \e channel structure.
- *     @param[out]      pbuf_list       A pointer to list of \e pbuf structures.
- *     @param[in]       ofp_features    A pointer to \e ofp_meter_features structure.
- *     @param[in]       xid_header      A pointer to \e ofp_header structure.
+ *     @param[in]	channel	A pointer to \e channel structure.
+ *     @param[out]	pbuf_list	A pointer to list of \e pbuf structures.
+ *     @param[in]	ofp_features	A pointer to \e ofp_meter_features structure.
+ *     @param[in]	xid_header	A pointer to \e ofp_header structure.
  *
- *     @retval  LAGOPUS_RESULT_OK       Succeeded.
- *     @retval  LAGOPUS_RESULT_ANY_FAILURES Failed.
+ *     @retval	LAGOPUS_RESULT_OK	Succeeded.
+ *     @retval	LAGOPUS_RESULT_ANY_FAILURES Failed.
  */
 lagopus_result_t
 ofp_meter_features_reply_create(struct channel *channel,

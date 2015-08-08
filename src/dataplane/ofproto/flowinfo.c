@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 /**
  *      @file   flowinfo.c
  *      @brief  Flow database optimized for speed.

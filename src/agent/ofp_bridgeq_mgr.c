@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 #include "lagopus/ofp_bridge.h"
 #include "lagopus_apis.h"
 #include "lagopus/eventq_data.h"
@@ -74,7 +73,7 @@ static void
 bridgeq_freeup_proc(void *val) {
   if (val != NULL) {
     struct ofp_bridgeq *bridgeq = (struct ofp_bridgeq *)val;
-    ofp_bridgeq_free(bridgeq, true);
+    ofp_bridgeq_free(bridgeq, false);
   }
 }
 
@@ -137,9 +136,9 @@ ofp_bridgeq_free(struct ofp_bridgeq *bridgeq,
       bridgeq->refs--;
       bridgeq_unlock(bridgeq);
     } else {
-      lagopus_msg_debug(500, "bridgeq(dpid = %"PRIu64") is free.\n",
-                        bridgeq->ofp_bridge->dpid);
       if (bridgeq->ofp_bridge != NULL) {
+        lagopus_msg_debug(500, "bridgeq(dpid = %"PRIu64") is free.\n",
+                          bridgeq->ofp_bridge->dpid);
         ofp_bridge_destroy(bridgeq->ofp_bridge);
         bridgeq->ofp_bridge = NULL;
       }
@@ -287,7 +286,10 @@ bridge_unregister(uint64_t dpid, bool force) {
 }
 
 lagopus_result_t
-ofp_bridgeq_mgr_bridge_register(uint64_t dpid) {
+ofp_bridgeq_mgr_bridge_register(uint64_t dpid,
+                                const char *name,
+                                datastore_bridge_info_t *info,
+                                datastore_bridge_queue_info_t *q_info) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   struct ofp_bridge *ofp_bridge = NULL;
   struct ofp_bridgeq *bridgeq;
@@ -303,7 +305,8 @@ ofp_bridgeq_mgr_bridge_register(uint64_t dpid) {
       if ((bridgeq = (struct ofp_bridgeq *)malloc(sizeof(struct ofp_bridgeq)))
           == NULL) {
         ret = LAGOPUS_RESULT_NO_MEMORY;
-      } else if ((ret = ofp_bridge_create(&ofp_bridge, dpid))
+      } else if ((ret = ofp_bridge_create(&ofp_bridge, dpid,
+                                          name, info, q_info))
                  != LAGOPUS_RESULT_OK) {
         lagopus_perror(ret);
         free(bridgeq);
@@ -598,4 +601,188 @@ ofp_bridgeq_mgr_poll_reset(lagopus_qmuxer_poll_t *polls,
   if (polls != NULL) {
     memset(polls, 0, sizeof(lagopus_qmuxer_poll_t) * size);
   }
+}
+
+lagopus_result_t
+ofp_bridgeq_mgr_dataq_max_batches_set(uint64_t dpid,
+                                      uint16_t val) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  struct ofp_bridgeq *bridgeq = NULL;
+
+  if (bridgeq_table != NULL) {
+    ret = lagopus_hashmap_find(&bridgeq_table,
+                               (void *)dpid, (void **)&bridgeq);
+    if (ret == LAGOPUS_RESULT_OK) {
+      bridgeq_lock(bridgeq);
+      if ((ret = ofp_bridge_dataq_max_batches_set(
+              bridgeq->ofp_bridge, val)) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+      }
+      bridgeq_unlock(bridgeq);
+    }
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_OBJECT;
+    lagopus_msg_warning("bridgeq_table is NULL.\n");
+  }
+
+  return ret;
+}
+
+lagopus_result_t
+ofp_bridgeq_mgr_eventq_max_batches_set(uint64_t dpid,
+                                       uint16_t val) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  struct ofp_bridgeq *bridgeq = NULL;
+
+  if (bridgeq_table != NULL) {
+    ret = lagopus_hashmap_find(&bridgeq_table,
+                               (void *)dpid, (void **)&bridgeq);
+    if (ret == LAGOPUS_RESULT_OK) {
+      bridgeq_lock(bridgeq);
+      if ((ret = ofp_bridge_eventq_max_batches_set(
+              bridgeq->ofp_bridge, val)) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+      }
+      bridgeq_unlock(bridgeq);
+    }
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_OBJECT;
+    lagopus_msg_warning("bridgeq_table is NULL.\n");
+  }
+
+  return ret;
+}
+
+lagopus_result_t
+ofp_bridgeq_mgr_event_dataq_max_batches_set(uint64_t dpid,
+                                            uint16_t val) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  struct ofp_bridgeq *bridgeq = NULL;
+
+  if (bridgeq_table != NULL) {
+    ret = lagopus_hashmap_find(&bridgeq_table,
+                               (void *)dpid, (void **)&bridgeq);
+    if (ret == LAGOPUS_RESULT_OK) {
+      bridgeq_lock(bridgeq);
+      if ((ret = ofp_bridge_event_dataq_max_batches_set(
+              bridgeq->ofp_bridge, val)) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+      }
+      bridgeq_unlock(bridgeq);
+    }
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_OBJECT;
+    lagopus_msg_warning("bridgeq_table is NULL.\n");
+  }
+
+  return ret;
+}
+
+lagopus_result_t
+ofp_bridgeq_mgr_stats_get(uint64_t dpid,
+                          datastore_bridge_stats_t *stats) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  struct ofp_bridgeq *bridgeq = NULL;
+  uint16_t dataq_stats = 0;
+  uint16_t eventq_stats = 0;
+  uint16_t event_dataq_stats = 0;
+
+  if (bridgeq_table != NULL) {
+    ret = lagopus_hashmap_find(&bridgeq_table,
+                               (void *)dpid, (void **)&bridgeq);
+    if (ret == LAGOPUS_RESULT_OK) {
+      bridgeq_lock(bridgeq);
+
+      if ((ret = ofp_bridge_dataq_stats_get(
+              bridgeq->ofp_bridge, &dataq_stats)) != LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+      if ((ret = ofp_bridge_eventq_stats_get(
+              bridgeq->ofp_bridge, &eventq_stats)) != LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+      if ((ret = ofp_bridge_event_dataq_stats_get(
+              bridgeq->ofp_bridge, &event_dataq_stats)) != LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+
+      stats->packet_inq_entries = dataq_stats;
+      stats->up_streamq_entries = eventq_stats;
+      stats->down_streamq_entries = event_dataq_stats;
+
+      bridgeq_unlock(bridgeq);
+    }
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_OBJECT;
+    lagopus_msg_warning("bridgeq_table is NULL.\n");
+  }
+
+done:
+  return ret;
+}
+
+lagopus_result_t
+ofp_bridgeq_mgr_name_get(uint64_t dpid,
+                         char **name) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  struct ofp_bridgeq *bridgeq = NULL;
+
+  if (bridgeq_table != NULL) {
+    ret = lagopus_hashmap_find(&bridgeq_table,
+                               (void *)dpid, (void **)&bridgeq);
+    if (ret == LAGOPUS_RESULT_OK) {
+      bridgeq_lock(bridgeq);
+
+      if ((ret = ofp_bridge_name_get(bridgeq->ofp_bridge,
+                                     name)) != LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+
+      bridgeq_unlock(bridgeq);
+    } else {
+      *name = NULL;
+    }
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_OBJECT;
+    lagopus_msg_warning("bridgeq_table is NULL.\n");
+  }
+
+done:
+  return ret;
+}
+
+lagopus_result_t
+ofp_bridgeq_mgr_info_get(uint64_t dpid,
+                         datastore_bridge_info_t *info) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  struct ofp_bridgeq *bridgeq = NULL;
+
+  if (bridgeq_table != NULL) {
+    ret = lagopus_hashmap_find(&bridgeq_table,
+                               (void *)dpid, (void **)&bridgeq);
+    if (ret == LAGOPUS_RESULT_OK) {
+      bridgeq_lock(bridgeq);
+
+      if ((ret = ofp_bridge_info_get(bridgeq->ofp_bridge,
+                                     info)) != LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+
+      bridgeq_unlock(bridgeq);
+    }
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_OBJECT;
+    lagopus_msg_warning("bridgeq_table is NULL.\n");
+  }
+
+done:
+  return ret;
 }

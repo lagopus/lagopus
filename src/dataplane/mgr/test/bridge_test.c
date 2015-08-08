@@ -14,40 +14,84 @@
  * limitations under the License.
  */
 
-
 #include <sys/queue.h>
 #include "unity.h"
 #include "lagopus_apis.h"
 #include "lagopus/pbuf.h"
+#include "lagopus/datastore/bridge.h"
 #include "lagopus/bridge.h"
-#include "lagopus/dpmgr.h"
+#include "lagopus/dp_apis.h"
 #include "openflow13.h"
 #include "ofp_band.h"
 
-static struct dpmgr *dpmgr;
 static struct bridge *bridge;
 static const char bridge_name[] = "br0";
 static const uint64_t dpid = 12345678;
 
 void
 setUp(void) {
-  TEST_ASSERT_NULL(dpmgr);
+  datastore_bridge_info_t info;
+
+  memset(&info, 0, sizeof(info));
+  info.dpid = dpid;
+  info.fail_mode = DATASTORE_BRIDGE_FAIL_MODE_SECURE;
   TEST_ASSERT_NULL(bridge);
-  TEST_ASSERT_NOT_NULL(dpmgr = dpmgr_alloc());
-  TEST_ASSERT_TRUE(LAGOPUS_RESULT_OK == dpmgr_bridge_add(dpmgr, bridge_name,
-                   dpid));
-  TEST_ASSERT_NOT_NULL(bridge = dpmgr_bridge_lookup(dpmgr, bridge_name));
+  TEST_ASSERT_EQUAL(dp_api_init(), LAGOPUS_RESULT_OK);
+  TEST_ASSERT_EQUAL(dp_bridge_create(bridge_name, &info), LAGOPUS_RESULT_OK);
+  bridge = dp_bridge_lookup(bridge_name);
+  TEST_ASSERT_NOT_NULL(bridge);
 }
 
 void
 tearDown(void) {
-  TEST_ASSERT_NOT_NULL(dpmgr);
   TEST_ASSERT_NOT_NULL(bridge);
-  TEST_ASSERT_TRUE(LAGOPUS_RESULT_OK == dpmgr_bridge_delete(dpmgr,
-                   bridge_name));
-  dpmgr_free(dpmgr);
+  TEST_ASSERT_EQUAL(dp_bridge_destroy(bridge_name), LAGOPUS_RESULT_OK);
+  dp_api_fini();
   bridge = NULL;
-  dpmgr = NULL;
+}
+
+void
+test_bridge_table_id_iter(void) {
+  dp_bridge_iter_t iter;
+  uint8_t ids[] = { 0, 5, 10 };
+  uint8_t id;
+  int i;
+  lagopus_result_t rv;
+
+  iter = NULL;
+  TEST_ASSERT_EQUAL(dp_bridge_table_id_iter_create(bridge_name, &iter),
+                    LAGOPUS_RESULT_OK);
+  TEST_ASSERT_NOT_NULL(iter);
+  for (i = 0; i < sizeof(ids) / sizeof(ids[0]); i++) {
+    TEST_ASSERT_NOT_NULL(table_get(bridge->flowdb, ids[i]));
+  }
+  i = 0;
+  while ((rv = dp_bridge_table_id_iter_get(iter, &id)) == LAGOPUS_RESULT_OK) {
+    TEST_ASSERT_NOT_EQUAL(i, sizeof(ids) / sizeof(ids[0]));
+    TEST_ASSERT_EQUAL(id, ids[i]);
+    i++;
+  }
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_EOF);
+  dp_bridge_table_id_iter_destroy(iter);
+}
+
+void
+test_dp_bridge_flow_iter(void) {
+  dp_bridge_iter_t iter;
+  struct flow *flow;
+  lagopus_result_t rv;
+
+  iter = NULL;
+  TEST_ASSERT_EQUAL(dp_bridge_flow_iter_create(bridge_name, 0, &iter),
+                    LAGOPUS_RESULT_OK);
+  TEST_ASSERT_NOT_NULL(iter);
+  flow = NULL;
+  while ((rv = dp_bridge_flow_iter_get(iter, &flow)) == LAGOPUS_RESULT_OK) {
+    TEST_ASSERT_NOT_NULL(flow);
+    flow = NULL;
+  }
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_EOF);
+  dp_bridge_flow_iter_destroy(iter);
 }
 
 void

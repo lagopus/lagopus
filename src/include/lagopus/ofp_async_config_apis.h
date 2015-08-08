@@ -13,11 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 /**
- * @file        ofp_async_config_apis.h
- * @brief       Agent/Data-Plane APIs for ofp_async_config
- * @details     Describe APIs between Agent and Data-Plane for ofp_async_config.
+ * @file	ofp_async_config_apis.h
+ * @brief	Agent/Data-Plane APIs for ofp_async_config
+ * @details	Describe APIs between Agent and Data-Plane for ofp_async_config.
  */
 #ifndef __LAGOPUS_OFP_ASYNC_CONFIG_APIS_H__
 #define __LAGOPUS_OFP_ASYNC_CONFIG_APIS_H__
@@ -31,15 +30,15 @@
 /**
  * Set async configuration for \b OFPT_SET_ASYNC.
  *
- *     @param[in]       dpid    Datapath id.
- *     @param[in]       async_config    A pointer to ofp_async_config structure.
- *     @param[out]      error   A pointer to \e ofp_error structure.
+ *     @param[in]	dpid	Datapath id.
+ *     @param[in]	async_config	A pointer to ofp_async_config structure.
+ *     @param[out]	error	A pointer to \e ofp_error structure.
  *     If errors occur, set filed values.
  *
- *     @retval  LAGOPUS_RESULT_OK       Succeeded.
- *     @retval  LAGOPUS_RESULT_ANY_FAILURES     Failed.
+ *     @retval	LAGOPUS_RESULT_OK	Succeeded.
+ *     @retval	LAGOPUS_RESULT_ANY_FAILURES	Failed.
  *
- *     @details The \e free() of a list element is executed
+ *     @details	The \e free() of a list element is executed
  *     by the Data-Plane side.
  */
 lagopus_result_t
@@ -50,15 +49,15 @@ ofp_async_config_set(uint64_t dpid,
 /**
  * Get async configuration for \b OFPT_GET_ASYNC_REQUEST/REPLY.
  *
- *     @param[in]       dpid    Datapath id.
- *     @param[out]      async_config    A pointer to ofp_async_config structure.
- *     @param[out]      error   A pointer to \e ofp_error structure.
+ *     @param[in]	dpid	Datapath id.
+ *     @param[out]	async_config	A pointer to ofp_async_config structure.
+ *     @param[out]	error	A pointer to \e ofp_error structure.
  *     If errors occur, set filed values.
  *
- *     @retval  LAGOPUS_RESULT_OK       Succeeded.
- *     @retval  LAGOPUS_RESULT_ANY_FAILURES     Failed.
+ *     @retval	LAGOPUS_RESULT_OK	Succeeded.
+ *     @retval	LAGOPUS_RESULT_ANY_FAILURES	Failed.
  *
- *     @details The \e free() of a list element is executed
+ *     @details	The \e free() of a list element is executed
  *     by the Agent side.
  */
 lagopus_result_t

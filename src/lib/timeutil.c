@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 /* Time utility functions. */
 #include "lagopus_config.h"
 

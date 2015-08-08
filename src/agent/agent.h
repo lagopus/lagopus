@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 /* OpenFlow agent. */
 lagopus_result_t agent_initialize(void *arg, lagopus_thread_t **thdptr);
 void agent_finalize(void);

@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 /**
  *      @file   dpdk_io.c
  *      @brief  Datapath I/O driver use with Intel DPDK
@@ -95,16 +94,21 @@
 #include "City.h"
 #endif /* __SSE4_2__ */
 #include <rte_string_fns.h>
+#ifdef __linux__
 #include <rte_kni.h>
+#endif /* __linux__ */
 
 #include "lagopus/ethertype.h"
 #include "lagopus/flowdb.h"
 #include "lagopus/meter.h"
-#include "lagopus/dpmgr.h"
 #include "lagopus/port.h"
 #include "lagopus_gstate.h"
 #include "lagopus/ofp_dp_apis.h"
+#include "lagopus/dp_apis.h"
 #include "lagopus/vector.h"
+
+#include "lagopus/datastore/interface.h"
+#include "lagopus/interface.h"
 
 #include "lagopus/dataplane.h"
 #include "pktbuf.h"
@@ -152,22 +156,24 @@
 /* optimized tx write threshold for igb only. */
 #define APP_IGB_NIC_TX_WTHRESH  16
 
-/* Max size of a single packet */
-#define MAX_PACKET_SZ           2048
-
+#ifdef __linux__
 /* Total octets in ethernet header */
 #define KNI_ENET_HEADER_SIZE    14
 
 /* Total octets in the FCS */
 #define KNI_ENET_FCS_SIZE       4
 
+static struct rte_kni *lagopus_kni[RTE_MAX_ETHPORTS];
+
+static int kni_change_mtu(uint8_t port_id, unsigned new_mtu);
+static int kni_config_network_interface(uint8_t port_id, uint8_t if_up);
+#endif /* __linux__ */
+
 /* ethernet addresses of ports */
 static struct ether_addr lagopus_ports_eth_addr[RTE_MAX_ETHPORTS];
 
 /* mask of enabled ports */
 static unsigned long lagopus_port_mask = 0;
-
-static struct rte_kni *lagopus_kni[RTE_MAX_ETHPORTS];
 
 static const struct rte_eth_conf port_conf = {
   .rxmode = {
@@ -177,7 +183,12 @@ static const struct rte_eth_conf port_conf = {
     .hw_vlan_filter = 0, /**< VLAN filtering disabled */
     .hw_vlan_strip  = 0, /**< VLAN strip disabled */
     .hw_vlan_extend = 0, /**< Extended VLAN disabled */
+#if MAX_PACKET_SZ > 2048
+    .jumbo_frame    = 1, /**< Jumbo Frame Support enabled */
+    .max_rx_pkt_len = 9000, /**< Max RX packet length */
+#else
     .jumbo_frame    = 0, /**< Jumbo Frame Support disabled */
+#endif /* MAX_PACKET_SZ */
     .hw_strip_crc   = 0, /**< CRC stripped by hardware */
   },
   .rx_adv_conf = {
@@ -191,6 +202,7 @@ static const struct rte_eth_conf port_conf = {
   },
 };
 
+#if !defined(RTE_VERSION_NUM) || RTE_VERSION < RTE_VERSION_NUM(1, 8, 0, 0)
 static const struct rte_eth_rxconf rx_conf = {
   .rx_thresh = {
     .pthresh = APP_DEFAULT_NIC_RX_PTHRESH,
@@ -201,7 +213,6 @@ static const struct rte_eth_rxconf rx_conf = {
   .rx_drop_en = APP_DEFAULT_NIC_RX_DROP_EN,
 };
 
-#if !defined(RTE_VERSION_NUM) || RTE_VERSION < RTE_VERSION_NUM(1, 8, 0, 0)
 static struct rte_eth_txconf tx_conf = {
   .tx_thresh = {
     .pthresh = APP_DEFAULT_NIC_TX_PTHRESH,
@@ -222,8 +233,45 @@ struct lagopus_port_statistics {
 } __rte_cache_aligned;
 struct lagopus_port_statistics port_statistics[RTE_MAX_ETHPORTS];
 
-static int kni_change_mtu(uint8_t port_id, unsigned new_mtu);
-static int kni_config_network_interface(uint8_t port_id, uint8_t if_up);
+static struct port_stats *port_stats(struct port *port);
+
+static struct vector *ifp_vector;
+
+static void
+dpdk_interface_set_index(struct interface *ifp) {
+  if (ifp_vector == NULL) {
+    ifp_vector = vector_alloc();
+  }
+  vector_set_index(ifp_vector, ifp->info.eth_dpdk_phy.port_number, ifp);
+}
+
+static void
+dpdk_interface_unset_index(struct interface *ifp) {
+  if (ifp_vector == NULL) {
+    return;
+  }
+  vector_set_index(ifp_vector, ifp->info.eth_dpdk_phy.port_number, NULL);
+}
+
+static inline struct interface *
+dpdk_interface_lookup(uint8_t portid) {
+  if (ifp_vector == NULL || portid >= ifp_vector->allocated) {
+    return NULL;
+  }
+  return (struct interface *)ifp_vector->index[portid];
+}
+
+static inline int
+dpdk_interface_queue_id_to_index(struct interface *ifp, uint32_t queue_id) {
+  int i;
+
+  for (i = 0; i < ifp->ifqueue.nqueue; i++) {
+    if (ifp->ifqueue.queues[i]->id == queue_id) {
+      return i;
+    }
+  }
+  return 0;
+}
 
 /**
  * Put mbuf (bsz packets) into worker queue.
@@ -251,7 +299,7 @@ app_lcore_io_rx_buffer_to_send (
                                   (void **) lp->rx.mbuf_out[worker].array,
                                   bsz);
 
-  if (unlikely(ret < bsz)) {
+  if (unlikely(ret < (int)bsz)) {
     uint32_t k;
     for (k = (uint32_t)ret; k < bsz; k++) {
       struct rte_mbuf *m = lp->rx.mbuf_out[worker].array[k];
@@ -292,12 +340,15 @@ app_lcore_io_rx(
   uint32_t i, fifoness;
 
   fifoness = app.fifoness;
-  for (i = 0; i < lp->rx.n_nic_queues; i ++) {
-    uint8_t port = lp->rx.nic_queues[i].port;
+  for (i = 0; i < lp->rx.n_nic_queues; i++) {
+    uint8_t portid = lp->rx.nic_queues[i].port;
     uint8_t queue = lp->rx.nic_queues[i].queue;
     uint32_t n_mbufs, j;
 
-    n_mbufs = rte_eth_rx_burst(port,
+    if (unlikely(lp->rx.nic_queues[i].enabled != true)) {
+      continue;
+    }
+    n_mbufs = rte_eth_rx_burst(portid,
                                queue,
                                lp->rx.mbuf_in.array,
                                (uint16_t) bsz_rd);
@@ -312,11 +363,11 @@ app_lcore_io_rx(
       struct rte_eth_stats stats;
       unsigned lcore = rte_lcore_id();
 
-      rte_eth_stats_get(port, &stats);
+      rte_eth_stats_get(portid, &stats);
 
       printf("I/O RX %u in (NIC port %u): NIC drop ratio = %.2f avg burst size = %.2f\n",
              lcore,
-             (unsigned) port,
+             (unsigned) portid,
              (double) stats.ierrors / (double) (stats.ierrors + stats.ipackets),
              ((double) lp->rx.nic_queues_count[i]) / ((double)
                  lp->rx.nic_queues_iters[i]));
@@ -359,18 +410,18 @@ app_lcore_io_rx(
         case FIFONESS_FLOW:
 #ifdef __SSE4_2__
           worker_0 = rte_hash_crc(rte_pktmbuf_mtod(mbuf_0_0, void *),
-                                  sizeof(ETHER_HDR) + 2, port) % n_workers;
+                                  sizeof(ETHER_HDR) + 2, portid) % n_workers;
           worker_1 = rte_hash_crc(rte_pktmbuf_mtod(mbuf_0_1, void *),
-                                  sizeof(ETHER_HDR) + 2, port) % n_workers;
+                                  sizeof(ETHER_HDR) + 2, portid) % n_workers;
 #else
           worker_0 = CityHash64WithSeed(rte_pktmbuf_mtod(mbuf_0_0, void *),
-                                        sizeof(ETHER_HDR) + 2, port) % n_workers;
+                                        sizeof(ETHER_HDR) + 2, portid) % n_workers;
           worker_1 = CityHash64WithSeed(rte_pktmbuf_mtod(mbuf_0_1, void *),
-                                        sizeof(ETHER_HDR) + 2, port) % n_workers;
+                                        sizeof(ETHER_HDR) + 2, portid) % n_workers;
 #endif /* __SSE4_2__ */
           break;
         case FIFONESS_PORT:
-          worker_0 = worker_1 = port % n_workers;
+          worker_0 = worker_1 = portid % n_workers;
           break;
         case FIFONESS_NONE:
         default:
@@ -400,14 +451,14 @@ app_lcore_io_rx(
         case FIFONESS_FLOW:
 #ifdef __SSE4_2__
           worker = rte_hash_crc(rte_pktmbuf_mtod(mbuf, void *),
-                                sizeof(ETHER_HDR) + 2, port) % n_workers;
+                                sizeof(ETHER_HDR) + 2, portid) % n_workers;
 #else
           worker = CityHash64WithSeed(rte_pktmbuf_mtod(mbuf, void *),
-                                      sizeof(ETHER_HDR) + 2, port) % n_workers;
+                                      sizeof(ETHER_HDR) + 2, portid) % n_workers;
 #endif /* __SSE4_2__ */
           break;
         case FIFONESS_PORT:
-          worker = port % n_workers;
+          worker = portid % n_workers;
           break;
         case FIFONESS_NONE:
         default:
@@ -467,6 +518,7 @@ app_lcore_io_tx(struct app_lcore_params_io *lp,
     for (i = 0; i < lp->tx.n_nic_ports; i ++) {
       uint8_t port = lp->tx.nic_ports[i];
       struct rte_ring *ring = lp->tx.rings[port][worker];
+      struct interface *ifp;
       uint32_t n_mbufs, n_pkts;
       int ret;
 
@@ -501,6 +553,31 @@ app_lcore_io_tx(struct app_lcore_params_io *lp,
         lp->tx.mbuf_out[port].n_mbufs = n_mbufs;
         lp->tx.mbuf_out_flush[port] = 1;
         continue;
+      }
+      ifp = dpdk_interface_lookup(port);
+      if (ifp != NULL && ifp->sched_port != NULL) {
+        struct lagopus_packet *pkt;
+        struct rte_mbuf *m;
+        int qidx, color;
+
+        for (i = 0; i < n_mbufs; i++) {
+          m = lp->tx.mbuf_out[port].array[i];
+          pkt = (struct lagopus_packet *)
+                (m->buf_addr + APP_DEFAULT_MBUF_LOCALDATA_OFFSET);
+          if (unlikely(pkt->queue_id != 0)) {
+            qidx = dpdk_interface_queue_id_to_index(ifp, pkt->queue_id);
+            color = rte_meter_trtcm_color_blind_check(&ifp->ifqueue.meters[qidx],
+                    rte_rdtsc(),
+                    OS_M_PKTLEN(m));
+            rte_sched_port_pkt_write(m, 0, 0, 0, qidx, color);
+          }
+        }
+        n_mbufs = rte_sched_port_enqueue(ifp->sched_port,
+                                         lp->tx.mbuf_out[port].array,
+                                         n_mbufs);
+        n_mbufs = rte_sched_port_dequeue(ifp->sched_port,
+                                         lp->tx.mbuf_out[port].array,
+                                         n_mbufs);
       }
       DPRINTF("send %d pkts\n", n_mbufs);
       n_pkts = rte_eth_tx_burst(port,
@@ -538,6 +615,7 @@ app_lcore_io_tx(struct app_lcore_params_io *lp,
   }
 }
 
+#ifdef __linux__
 static inline void
 app_lcore_io_tx_kni(struct app_lcore_params_io *lp, uint32_t bsz) {
   struct rte_mbuf *pkts_burst[bsz];
@@ -566,10 +644,10 @@ app_lcore_io_tx_kni(struct app_lcore_params_io *lp, uint32_t bsz) {
     }
   }
 }
+#endif /* __linux__ */
 
 static inline void
 app_lcore_io_tx_flush(struct app_lcore_params_io *lp, void *arg) {
-  struct dpmgr *dpmgr = arg;
   uint8_t portid, i;
 
   for (i = 0; i < lp->tx.n_nic_ports; i++) {
@@ -577,8 +655,10 @@ app_lcore_io_tx_flush(struct app_lcore_params_io *lp, void *arg) {
     struct port *port;
 
     portid = lp->tx.nic_ports[i];
+#ifdef __linux__
     rte_kni_handle_request(lagopus_kni[portid]);
-    port = port_lookup(dpmgr->ports, portid);
+#endif /* __linux__ */
+    port = dp_port_lookup(portid);
     if (port != NULL) {
       update_port_link_status(port);
     }
@@ -638,7 +718,9 @@ app_lcore_io(struct app_lcore_params_io *lp, uint32_t n_workers) {
 
   app_lcore_io_rx(lp, n_workers, bsz_rx_rd, bsz_rx_wr);
   app_lcore_io_tx(lp, n_workers, bsz_tx_rd, bsz_tx_wr);
+#ifdef __linux__
   app_lcore_io_tx_kni(lp, bsz_tx_wr);
+#endif /* __linux__ */
 }
 
 void
@@ -677,7 +759,9 @@ app_lcore_main_loop_io(void *arg) {
         i = 0;
       }
       app_lcore_io_tx(lp, n_workers, bsz_tx_rd, bsz_tx_wr);
+#ifdef __linux__
       app_lcore_io_tx_kni(lp, bsz_tx_wr);
+#endif /* __linux__ */
       i++;
     }
   } else {
@@ -692,7 +776,9 @@ app_lcore_main_loop_io(void *arg) {
       }
       app_lcore_io_rx(lp, n_workers, bsz_rx_rd, bsz_rx_wr);
       app_lcore_io_tx(lp, n_workers, bsz_tx_rd, bsz_tx_wr);
+#ifdef __linux__
       app_lcore_io_tx_kni(lp, bsz_tx_wr);
+#endif /* __linux__ */
       i++;
     }
   }
@@ -700,40 +786,6 @@ app_lcore_main_loop_io(void *arg) {
   if (likely(lp->tx.n_nic_ports > 0)) {
     app_lcore_io_tx_cleanup(lp);
   }
-}
-/* Check the link status of all ports in up to 9s, and print them finally */
-static uint16_t
-check_port_link_status(uint8_t portid) {
-#define CHECK_INTERVAL 100 /* 100ms */
-#define MAX_CHECK_TIME 100 /* 10s (100 * 100ms) in total */
-  uint8_t count;
-  struct rte_eth_link link;
-
-  printf("\nChecking link status");
-  fflush(stdout);
-  for (count = 0; count <= MAX_CHECK_TIME; count++) {
-    memset(&link, 0, sizeof(link));
-    rte_eth_link_get_nowait(portid, &link);
-    /* print link status if flag set */
-    /* delay and retry */
-    if (link.link_status != 0) {
-      break;
-    }
-    printf(".");
-    fflush(stdout);
-    rte_delay_ms(CHECK_INTERVAL);
-  }
-  if (link.link_status) {
-    printf("Port %d Link Up - speed %u Mbps - %s\n",
-           (uint8_t)portid,
-           (unsigned)link.link_speed,
-           (link.link_duplex == ETH_LINK_FULL_DUPLEX) ?
-           ("full-duplex") : ("half-duplex\n"));
-  } else {
-    printf("Port %d Link Down\n",
-           (uint8_t)portid);
-  }
-  return link.link_speed;
 }
 
 void
@@ -748,7 +800,7 @@ app_init_mbuf_pools(void) {
     }
 
     snprintf(name, sizeof(name), "mbuf_pool_%u", socket);
-    lagopus_msg_debug("Creating the mbuf pool for socket %u ...\n", socket);
+    lagopus_dprint("Creating the mbuf pool for socket %u ...\n", socket);
     app.pools[socket] = rte_mempool_create(
                           name,
                           APP_DEFAULT_MEMPOOL_BUFFERS,
@@ -802,7 +854,7 @@ app_init_rings_rx(void) {
         continue;
       }
 
-      lagopus_msg_debug(
+      lagopus_dprint(
         "Creating ring to connect I/O "
         "lcore %u (socket %u) with worker lcore %u ...\n",
         lcore,
@@ -894,14 +946,14 @@ app_init_rings_tx(void) {
       lp_io = &app.lcore_params[lcore_io].io;
       socket_io = rte_lcore_to_socket_id(lcore_io);
 
-      lagopus_msg_debug("Creating ring to connect "
-                        "worker lcore %u with "
-                        "TX port %u (through I/O lcore %u)"
-                        " (socket %u) ...\n",
-                        lcore,
-                        port,
-                        (unsigned)lcore_io,
-                        (unsigned)socket_io);
+      lagopus_dprint("Creating ring to connect "
+                     "worker lcore %u with "
+                     "TX port %u (through I/O lcore %u)"
+                     " (socket %u) ...\n",
+                     lcore,
+                     port,
+                     (unsigned)lcore_io,
+                     (unsigned)socket_io);
       snprintf(name, sizeof(name),
                "app_ring_tx_s%u_w%u_p%u",
                socket_io, lcore, port);
@@ -945,15 +997,154 @@ app_init_rings_tx(void) {
   }
 }
 
-void
-app_init_nics(void) {
-  struct rte_eth_dev_info devinfo;
+lagopus_result_t
+dpdk_configure_interface(struct interface *ifp) {
   unsigned socket;
   uint32_t lcore;
-  uint8_t port, queue;
+  uint8_t queue;
   int ret;
   uint32_t n_rx_queues, n_tx_queues;
+  uint8_t portid;
+  struct rte_mempool *pool;
 
+  portid = ifp->info.eth.port_number;
+
+  n_rx_queues = app_get_nic_rx_queues_per_port(portid);
+  n_tx_queues = app.nic_tx_port_mask[portid];
+
+  if ((n_rx_queues == 0) && (n_tx_queues == 0)) {
+    return LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  if (ifp->info.eth_dpdk_phy.mtu < 64 ||
+      ifp->info.eth_dpdk_phy.mtu > MAX_PACKET_SZ) {
+    return LAGOPUS_RESULT_OUT_OF_RANGE;
+  }
+
+  rte_eth_dev_info_get(portid, &ifp->devinfo);
+
+  /* Init port */
+  printf("Initializing NIC port %u ...\n", (unsigned) portid);
+
+  ret = rte_eth_dev_configure(portid,
+                              (uint8_t) n_rx_queues,
+                              (uint8_t) n_tx_queues,
+                              &port_conf);
+  if (ret < 0) {
+    rte_panic("Cannot init NIC port %u (%s)\n",
+              (unsigned) portid, strerror(-ret));
+  }
+  ret = rte_eth_dev_set_mtu(portid, ifp->info.eth_dpdk_phy.mtu);
+  if (ret < 0) {
+    rte_panic("Cannot set MTU(%d) for port %d (%d)\n",
+              ifp->info.eth_dpdk_phy.mtu,
+              portid,
+              ret);
+  }
+  rte_eth_promiscuous_enable(portid);
+
+  /* Init RX queues */
+  for (queue = 0; queue < APP_MAX_RX_QUEUES_PER_NIC_PORT; queue ++) {
+    struct app_lcore_params_io *lp;
+    uint8_t i;
+
+    if (app.nic_rx_queue_mask[portid][queue] == NIC_RX_QUEUE_UNCONFIGURED) {
+      continue;
+    }
+    app_get_lcore_for_nic_rx(portid, queue, &lcore);
+    lp = &app.lcore_params[lcore].io;
+    socket = rte_lcore_to_socket_id(lcore);
+    pool = app.lcore_params[lcore].pool;
+
+    printf("Initializing NIC port %u RX queue %u ...\n",
+           (unsigned) portid,
+           (unsigned) queue);
+    ret = rte_eth_rx_queue_setup(portid,
+                                 queue,
+                                 (uint16_t) app.nic_rx_ring_size,
+                                 socket,
+#if defined(RTE_VERSION_NUM) && RTE_VERSION >= RTE_VERSION_NUM(1, 8, 0, 0)
+                                 &ifp->devinfo.default_rxconf,
+#else
+                                 &rx_conf,
+#endif /* RTE_VERSION_NUM */
+                                 pool);
+    if (ret < 0) {
+      rte_panic("Cannot init RX queue %u for port %u (%d)\n",
+                (unsigned) queue,
+                (unsigned) portid,
+                ret);
+    }
+    for (i = 0; i < lp->rx.n_nic_queues; i++) {
+      if (lp->rx.nic_queues[i].port != portid ||
+          lp->rx.nic_queues[i].queue != queue) {
+        continue;
+      }
+      lp->rx.nic_queues[i].enabled = true;
+      break;
+    }
+  }
+
+  /* Init TX queues */
+  if (app.nic_tx_port_mask[portid] == 1) {
+    app_get_lcore_for_nic_tx(portid, &lcore);
+    socket = rte_lcore_to_socket_id(lcore);
+    printf("Initializing NIC port %u TX queue 0 ...\n",
+           (unsigned) portid);
+    ret = rte_eth_tx_queue_setup(portid,
+                                 0,
+                                 (uint16_t) app.nic_tx_ring_size,
+                                 socket,
+#if defined(RTE_VERSION_NUM) && RTE_VERSION >= RTE_VERSION_NUM(1, 8, 0, 0)
+                                 &ifp->devinfo.default_txconf
+#else
+                                 &tx_conf
+#endif /* RTE_VERSION_NUM */
+                                );
+    if (ret < 0) {
+      rte_panic("Cannot init TX queue 0 for port %d (%d)\n",
+                portid,
+                ret);
+    }
+  }
+
+  ifp->stats = port_stats;
+  dpdk_interface_set_index(ifp);
+
+  return LAGOPUS_RESULT_OK;
+}
+
+lagopus_result_t
+dpdk_unconfigure_interface(struct interface *ifp) {
+  uint8_t portid, queue;
+
+  portid = ifp->info.eth.port_number;
+  dpdk_stop_interface(portid);
+  for (queue = 0; queue < APP_MAX_RX_QUEUES_PER_NIC_PORT; queue ++) {
+    struct app_lcore_params_io *lp;
+    uint32_t lcore;
+    uint8_t i;
+
+    if (app.nic_rx_queue_mask[portid][queue] == NIC_RX_QUEUE_UNCONFIGURED) {
+      continue;
+    }
+    app_get_lcore_for_nic_rx(portid, queue, &lcore);
+    lp = &app.lcore_params[lcore].io;
+    for (i = 0; i < lp->rx.n_nic_queues; i++) {
+      if (lp->rx.nic_queues[i].port != portid ||
+          lp->rx.nic_queues[i].queue != queue) {
+        continue;
+      }
+      lp->rx.nic_queues[i].enabled = false;
+      break;
+    }
+  }
+  dpdk_interface_unset_index(ifp);
+  return LAGOPUS_RESULT_OK;
+}
+
+void
+app_init_nics(void) {
 #ifndef RTE_VERSION_NUM
   /* Init driver */
   printf("Initializing the PMD driver ...\n");
@@ -964,96 +1155,10 @@ app_init_nics(void) {
   if (rte_eal_pci_probe() < 0) {
     rte_panic("Cannot probe PCI\n");
   }
-#endif /* RTE_VERSION */
-
-  /* Init NIC ports and queues, then start the ports */
-  for (port = 0; port < APP_MAX_NIC_PORTS; port ++) {
-    struct rte_mempool *pool;
-
-    n_rx_queues = app_get_nic_rx_queues_per_port(port);
-    n_tx_queues = app.nic_tx_port_mask[port];
-
-    if ((n_rx_queues == 0) && (n_tx_queues == 0)) {
-      continue;
-    }
-
-    memset(&devinfo, 0, sizeof(devinfo));
-    rte_eth_dev_info_get((uint8_t)port, &devinfo);
-
-    /* Init port */
-    printf("Initializing NIC port %u ...\n", (unsigned) port);
-    ret = rte_eth_dev_configure(
-            port,
-            (uint8_t) n_rx_queues,
-            (uint8_t) n_tx_queues,
-            &port_conf);
-    if (ret < 0) {
-      rte_panic("Cannot init NIC port %u (%s)\n",
-                (unsigned) port, strerror(-ret));
-    }
-    rte_eth_promiscuous_enable(port);
-
-    /* Init RX queues */
-    for (queue = 0; queue < APP_MAX_RX_QUEUES_PER_NIC_PORT; queue ++) {
-      if (app.nic_rx_queue_mask[port][queue] == 0) {
-        continue;
-      }
-
-      app_get_lcore_for_nic_rx(port, queue, &lcore);
-      socket = rte_lcore_to_socket_id(lcore);
-      pool = app.lcore_params[lcore].pool;
-
-      printf("Initializing NIC port %u RX queue %u ...\n",
-             (unsigned) port,
-             (unsigned) queue);
-      ret = rte_eth_rx_queue_setup(
-              port,
-              queue,
-              (uint16_t) app.nic_rx_ring_size,
-              socket,
-              &rx_conf,
-              pool);
-      if (ret < 0) {
-        rte_panic("Cannot init RX queue %u for port %u (%d)\n",
-                  (unsigned) queue,
-                  (unsigned) port,
-                  ret);
-      }
-    }
-
-    /* Init TX queues */
-    if (app.nic_tx_port_mask[port] == 1) {
-      app_get_lcore_for_nic_tx(port, &lcore);
-      socket = rte_lcore_to_socket_id(lcore);
-      printf("Initializing NIC port %u TX queue 0 ...\n",
-             (unsigned) port);
-      ret = rte_eth_tx_queue_setup(
-              port,
-              0,
-              (uint16_t) app.nic_tx_ring_size,
-              socket,
-#if defined(RTE_VERSION_NUM) && RTE_VERSION >= RTE_VERSION_NUM(1, 8, 0, 0)
-              &devinfo.default_txconf
-#else
-              &tx_conf
 #endif /* RTE_VERSION_NUM */
-            );
-      if (ret < 0) {
-        rte_panic("Cannot init TX queue 0 for port %d (%d)\n",
-                  port,
-                  ret);
-      }
-    }
-
-    /* Start port */
-    ret = rte_eth_dev_start(port);
-    if (ret < 0) {
-      rte_panic("Cannot start port %d (%d)\n", port, ret);
-    }
-    check_port_link_status(port);
-  }
 }
 
+#ifdef __linux__
 void
 app_init_kni(void) {
   uint8_t portid;
@@ -1100,6 +1205,7 @@ app_init_kni(void) {
     memset(&port_statistics, 0, sizeof(port_statistics));
   }
 }
+#endif /* __linux__ */
 
 /* --------------------------Lagopus code start ----------------------------- */
 static struct port_stats *
@@ -1188,8 +1294,6 @@ update_port_link_status(struct port *port) {
   if (link.link_status == 0) {
     if (port->ofp_port.state != OFPPS_LINK_DOWN) {
       lagopus_msg_info("Physical Port %d: link down\n", port->ifindex);
-      rte_eth_dev_stop((uint8_t)port->ifindex);
-      rte_eth_dev_start((uint8_t)port->ifindex);
       changed = true;
     }
     port->ofp_port.state = OFPPS_LINK_DOWN;
@@ -1211,51 +1315,55 @@ update_port_link_status(struct port *port) {
 }
 
 lagopus_result_t
-lagopus_configure_physical_port(struct port *port) {
-  struct rte_eth_dev_info devinfo;
-
-  /* DPDK engine */
-  if (app_get_nic_rx_queues_per_port((uint8_t)port->ifindex) == 0) {
-    /* Do not configured by DPDK, nothing to do. */
-    return LAGOPUS_RESULT_INVALID_ARGS;
-  }
-  lagopus_port_mask |= (unsigned long)(1 << port->ifindex);
-  port->stats = port_stats;
-  rte_eth_macaddr_get((uint8_t)port->ifindex,
-                      (struct ether_addr *)port->ofp_port.hw_addr);
-  memset(&devinfo, 0, sizeof(devinfo));
-  rte_eth_dev_info_get((uint8_t)port->ifindex, &devinfo);
-  if (devinfo.pci_dev != NULL) {
-    port->eth.pci_addr.domain = devinfo.pci_dev->addr.domain;
-    port->eth.pci_addr.bus = devinfo.pci_dev->addr.bus;
-    port->eth.pci_addr.devid = devinfo.pci_dev->addr.devid;
-    port->eth.pci_addr.function = devinfo.pci_dev->addr.function;
-    port->eth.pci_id.vendor_id = devinfo.pci_dev->id.vendor_id;
-    port->eth.pci_id.device_id = devinfo.pci_dev->id.device_id;
-  }
-  rte_eth_dev_start((uint8_t)port->ifindex);
-
+dpdk_start_interface(uint8_t portid) {
+  rte_eth_dev_start(portid);
   return LAGOPUS_RESULT_OK;
 }
 
 lagopus_result_t
-lagopus_unconfigure_physical_port(struct port *port) {
-  /* DPDK engine */
-  lagopus_port_mask &= (unsigned long)~(1 << port->ifindex);
-  rte_eth_dev_stop((uint8_t)port->ifindex);
+dpdk_stop_interface(uint8_t portid) {
+  rte_eth_dev_stop(portid);
   return LAGOPUS_RESULT_OK;
 }
 
 lagopus_result_t
-lagopus_change_physical_port(struct port *port) {
+dpdk_get_hwaddr(uint8_t portid, uint8_t *hw_addr) {
+  rte_eth_macaddr_get(portid,
+                      (struct ether_addr *)hw_addr);
+  return LAGOPUS_RESULT_OK;
+}
+
+lagopus_result_t
+dpdk_get_stats(uint8_t portid, datastore_interface_stats_t *stats) {
+  struct rte_eth_stats rte_stats;
+
+  rte_eth_stats_get(portid, &rte_stats);
+  stats->rx_packets = rte_stats.ipackets;
+  stats->rx_bytes = rte_stats.ibytes;
+  stats->tx_packets = rte_stats.opackets;
+  stats->tx_bytes = rte_stats.obytes;
+  stats->rx_errors = rte_stats.ierrors;
+  stats->tx_dropped = 0;
+  stats->tx_errors = rte_stats.oerrors;
+  return LAGOPUS_RESULT_OK;
+}
+
+lagopus_result_t
+dpdk_clear_stats(uint8_t portid) {
+  rte_eth_stats_reset(portid);
+  return LAGOPUS_RESULT_OK;
+}
+
+lagopus_result_t
+dpdk_change_config(uint8_t portid, uint32_t advertised, uint32_t config) {
   struct rte_eth_conf conf;
   uint16_t link_speed, link_duplex;
   lagopus_result_t rv;
 
-  if (port->ofp_port.advertised != 0) {
+  if (advertised != 0) {
     /* Change link speed setup and reconfigure port. */
     memcpy(&conf, &port_conf, sizeof(conf));
-    switch ((port->ofp_port.advertised & 0x0000207f)) {
+    switch ((advertised & 0x0000207f)) {
       case OFPPF_10MB_HD:
         link_speed = ETH_LINK_SPEED_10;
         link_duplex = ETH_LINK_HALF_DUPLEX;
@@ -1307,31 +1415,30 @@ lagopus_change_physical_port(struct port *port) {
       default:
         /* invalid advertise. */
         lagopus_msg_error("Invalid advertisement 0x%x for port %d\n",
-                          port->ofp_port.advertised,
-                          port->ifindex);
+                          advertised,
+                          portid);
         return LAGOPUS_RESULT_INVALID_ARGS;
     }
   }
 
   /* Down physical port. */
-  rte_eth_dev_stop((uint8_t)port->ifindex);
+  rte_eth_dev_stop(portid);
 
-  if (port->ofp_port.advertised != 0) {
+  if (advertised != 0) {
     conf.link_speed = link_speed;
     conf.link_duplex = link_duplex;
-    rv = rte_eth_dev_configure((uint8_t)port->ifindex, 1, 1, &conf);
+    rv = rte_eth_dev_configure(portid, 1, 1, &conf);
     if (rv < 0) {
       lagopus_msg_error("Fail to reconfigure port %d (%s)\n",
-                        port->ifindex, strerror(-(int)rv));
+                        portid, strerror(-(int)rv));
       return LAGOPUS_RESULT_ANY_FAILURES;
     }
   }
-
-  if ((port->ofp_port.config & OFPPC_PORT_DOWN) == 0) {
+  if ((config & OFPPC_PORT_DOWN) == 0) {
     /* Up physical port. */
-    rte_eth_dev_start((uint8_t)port->ifindex);
+    rte_eth_dev_start(portid);
   }
-  send_port_status(port, OFPPR_MODIFY);
+
   return LAGOPUS_RESULT_OK;
 }
 
@@ -1355,6 +1462,7 @@ lagopus_packet_free(struct lagopus_packet *pkt) {
 
 int
 lagopus_send_packet_normal(struct lagopus_packet *pkt, uint32_t portid) {
+#ifdef __linux__
   struct rte_kni *kni;
 
   /* So far, output only one pakcet. */
@@ -1362,12 +1470,14 @@ lagopus_send_packet_normal(struct lagopus_packet *pkt, uint32_t portid) {
   if (kni != NULL) {
     rte_kni_tx_burst(kni, &pkt->mbuf, 1);
   }
+#endif /* __linux__ */
 
   return 0;
 }
 
 /* --------------------------Lagopus code end---------------------------- */
 
+#ifdef __linux__
 /* Callback for request of changing MTU */
 static int
 kni_change_mtu(uint8_t port_id, unsigned new_mtu) {
@@ -1437,3 +1547,4 @@ kni_config_network_interface(uint8_t port_id, uint8_t if_up) {
 
   return ret;
 }
+#endif /* __linux__ */

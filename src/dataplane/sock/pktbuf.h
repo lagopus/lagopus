@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 #ifndef SRC_DATAPLANE_SOCK_PKTBUF_H_
 #define SRC_DATAPLANE_SOCK_PKTBUF_H_
 
@@ -33,18 +32,18 @@
 /* match only */
 struct sock_buf {
   size_t len;
-  unsigned char dat[2000];
+  unsigned char dat[MAX_PACKET_SZ];
   unsigned char *data;
   int refcnt;
 };
 
 #define OS_MBUF           struct sock_buf
 #define OS_M_PKTLEN(m)    ((m)->len)
-#define OS_M_PREPEND(m, n) ((m)->data -= (n), (m)->len += (n), (m)->data)
-#define OS_M_APPEND(m, n)  ((m)->len += (n), (m)->data)
-#define OS_M_ADJ(m, n)     ((m)->data += (n), (m)->len -= (n))
+#define OS_M_PREPEND(m,n) ((m)->data -= (n), (m)->len += (n), (m)->data)
+#define OS_M_APPEND(m,n)  ((m)->len += (n), (m)->data)
+#define OS_M_ADJ(m,n)     ((m)->data += (n), (m)->len -= (n))
 #define OS_M_FREE(m)      sock_m_free(m)
-#define OS_MTOD(m, type)   ((type)(m)->data)
+#define OS_MTOD(m,type)   ((type)(m)->data)
 #define OS_M_ADDREF(m)    ((m)->refcnt++)
 #define OS_NTOHS ntohs
 #define OS_NTOHL ntohl

@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 /**
  * @file        group.h
  * @brief       OpenFlow Group.
@@ -24,6 +23,9 @@
 #define SRC_INCLUDE_LAGOPUS_GROUP_H_
 
 #include "ofp_dp_apis.h"
+
+struct group_stats_list;
+struct group_desc_list;
 
 struct group {
   /* Group id. */

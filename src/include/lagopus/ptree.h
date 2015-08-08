@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 #ifndef __PTREE_H__
 #define __PTREE_H__
 
@@ -52,12 +51,12 @@ struct ptree_node {
   uint32_t key_len;
 
   /* Key begins here. */
-  uint8_t key[1];
+  uint8_t key [1];
 };
 
 #define PTREE_KEY_MIN_LEN       1
-#define PTREE_NODE_KEY(n)       (& (n)->key[0])
-#define PTREE_LOOP(T, V, N)                                                   \
+#define PTREE_NODE_KEY(n)       (& (n)->key [0])
+#define PTREE_LOOP(T,V,N)                                                     \
   if (T)                                                                      \
     for ((N) = ptree_top ((T)); (N); (N) = ptree_next ((N)))                  \
       if (((V) = (N)->info) != NULL)
@@ -82,7 +81,6 @@ void ptree_unlock_node(struct ptree_node *node);
 void ptree_free(struct ptree *tree);
 int ptree_has_info(struct ptree *tree);
 void ptree_key_copy(struct ptree_node *node, uint8_t *key, uint32_t key_len);
-bool ptree_key_match(uint8_t *np, uint32_t n_len, uint8_t *pp,
-                     uint32_t p_len);
+bool ptree_key_match(uint8_t *np, uint32_t n_len, uint8_t *pp, uint32_t p_len);
 
 #endif /* __PTREE_H__ */

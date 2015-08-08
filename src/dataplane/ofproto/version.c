@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 /**
  *      @file   version.c
  *      @brief  version information API.
@@ -39,8 +38,8 @@
 #include "lagopus/dataplane.h"
 
 void
-copy_datapath_info(char *buf, int len) {
-  snprintf(buf, (size_t)len, "Lagopus datapath %s (%s%s) %s flowcache",
+copy_dataplane_info(char *buf, int len) {
+  snprintf(buf, (size_t)len, "Lagopus dataplane %s (%s%s) %s flowcache",
            LAGOPUS_DATAPLANE_VERSION,
 #ifdef HAVE_DPDK
            "DPDK ", rte_version(),

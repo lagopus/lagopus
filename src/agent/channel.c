@@ -34,7 +34,7 @@
 #include "lagopus/ofp_handler.h"
 #include "lagopus/meter.h"
 #include "lagopus/bridge.h"
-#include "lagopus/session.h"
+#include "lagopus_session.h"
 #include "ofp_apis.h"
 #include "ofp_instruction.h"
 #include "ofp_role.h"
@@ -60,6 +60,18 @@ enum channel_event {
   CHANNEL_EVENT_MAX         = 8
 };
 
+const char *channel_event_str[] = {
+  "Channel_Start",
+  "Channel_Stop",
+  "Channel_Expired",
+  "TCP_Connection_Open",
+  "TCP_Connection_Closed",
+  "TCP_Connection_Failed",
+  "OpenFlow_Hello_Received",
+  "OpenFlow_Message_Received",
+  "CHANNEL_EVENT_MAX",
+};
+
 /* Channel status. */
 enum channel_status {
   Idle               = 0,
@@ -68,6 +80,15 @@ enum channel_status {
   Established        = 3,
   Disable            = 4,
   CHANNEL_STATUS_MAX = 5
+};
+
+const char *channel_status_str[] = {
+  "Idle",
+  "Connect",
+  "HelloSent",
+  "Established",
+  "Disable",
+  "CHANNEL_STATUS_MAX",
 };
 
 struct multipart {
@@ -100,7 +121,7 @@ struct channel {
   uint16_t port;
   uint16_t local_port;
   enum channel_protocol protocol;
-  struct session *session;
+  lagopus_session_t session;
 
   /* Channel status and event. */
   enum channel_status status;
@@ -127,6 +148,7 @@ struct channel {
 
   uint64_t channel_id;
   uint8_t  auxiliary_id;
+  bool is_auxiliary;
 
   /* channel lock */
   lagopus_mutex_t lock;
@@ -135,7 +157,8 @@ struct channel {
   int refs;
 
   /* channel set with same dpid */
-  LIST_ENTRY(channel) dp_entry;
+#define IS_USED_DPID_ENTRY(a) ((a)->dpid_entry.le_prev != NULL)
+  LIST_ENTRY(channel) dpid_entry;
 
   struct ofp_async_config role_mask;
 };
@@ -425,8 +448,22 @@ channel_send_packet_by_event(struct channel *channel, struct pbuf *pbuf) {
 
 static void
 channel_send_packet_nolock(struct channel *channel, struct pbuf *pbuf) {
+  ssize_t nbytes;
+
   pbuf_list_add(channel->out, pbuf);
-  channel_write_nolock(channel);
+
+  /* Write packet to the socket. */
+  nbytes = pbuf_list_session_write(channel->out, channel->session);
+
+  /* Write error. */
+  if (nbytes < 0) {
+    /* EAGAIN is not an error.  Simply ignore it. */
+    if (errno == EAGAIN) {
+      return;
+    }
+    lagopus_msg_warning("FAILED : write packet.\n");
+    return;
+  }
 }
 
 void
@@ -443,7 +480,7 @@ channel_send_packet_list(struct channel *channel,
   lagopus_result_t res = LAGOPUS_RESULT_ANY_FAILURES;
   struct pbuf *pbuf = NULL;
 
-  if (channel != NULL || pbuf_list != NULL) {
+  if (channel != NULL && pbuf_list != NULL) {
     channel_lock(channel);
     while ((pbuf = TAILQ_FIRST(&pbuf_list->tailq)) != NULL) {
       TAILQ_REMOVE(&pbuf_list->tailq, pbuf, entry);
@@ -471,6 +508,9 @@ channel_timer(struct event *event) {
 /* Update channel timer according to channel status. */
 static void
 channel_update(struct channel *channel, enum channel_status next) {
+  lagopus_msg_debug(10, "%p: %s -> %s\n", channel,
+                    channel_status_str[channel->status], channel_status_str[next]);
+
   if (channel->status != next) {
     channel->status = next;
   }
@@ -540,7 +580,8 @@ channel_start(struct channel *channel) {
 
 static int
 channel_stop(struct channel *channel) {
-  lagopus_msg_info("channel_stop() is called\n");
+  lagopus_msg_debug(10, "channel_stop(%p) is called, refs:%d\n",
+                    channel, channel->refs);
 
   if (session_is_alive(channel->session)) {
     lagopus_msg_info("closing the socket %d\n",
@@ -571,6 +612,10 @@ channel_stop(struct channel *channel) {
     /* TODO: close all auxiliary connections if existed */
   }
 
+  if (channel->refs > 1) {
+    channel->refs--;
+  }
+
   event_cancel(&channel->read_ev);
   event_cancel(&channel->write_ev);
   event_cancel(&channel->start_timer);
@@ -593,9 +638,13 @@ channel_do_expire(struct event *event) {
 
 static int
 channel_expire(struct channel *channel) {
+  lagopus_msg_debug(10, "channel_expire(%p) is called\n", channel);
+
   if (channel->refs == 1 || channel->refs == 0) {
     channel_stop(channel);
     channel->refs = 0;
+    lagopus_msg_debug(10, "channel_expire(%p) refs:%d\n",
+                      channel, channel->refs);
   } else {
     /* fake channel event for rescheduling do_expire. */
     channel->event = Channel_Start;
@@ -701,8 +750,8 @@ struct {
   },
   {
     /* Connect */
-    {channel_connect_check,   Connect},      /* Channel_Start */
-    {channel_stop,            Idle},           /* Channel_Stop */
+    {channel_connect_check,   Connect},	     /* Channel_Start */
+    {channel_stop,            Idle},	       /* Channel_Stop */
     {channel_expire,          Disable},      /* Channel_Expired */
     {channel_connect_success, HelloSent},    /* TCP_Connection_Open */
     {channel_stop,            Idle},         /* TCP_Connection_Closed */
@@ -751,6 +800,8 @@ channel_event_nolock(struct channel *channel, enum channel_event cevent) {
   int ret;
   enum channel_status next;
 
+  lagopus_msg_debug(10, "%p: %s -> %s\n",
+                    channel, channel_event_str[channel->event], channel_event_str[cevent]);
   /* Valication. */
   if (channel->status >= CHANNEL_STATUS_MAX) {
     lagopus_msg_fatal("Invalid channel status\n");
@@ -795,16 +846,20 @@ session_set(struct channel *channel) {
 
   switch (channel->protocol) {
     case PROTOCOL_TCP:
-      channel->session = session_create(SESSION_TCP);
+      channel->session =
+        session_create(SESSION_TCP|SESSION_ACTIVE);
       break;
     case PROTOCOL_TLS:
-      channel->session = session_create(SESSION_TLS);
+      channel->session =
+        session_create(SESSION_TLS|SESSION_TCP|SESSION_ACTIVE);
       break;
     case PROTOCOL_TCP6:
-      channel->session = session_create(SESSION_TCP6);
+      channel->session =
+        session_create(SESSION_TCP6|SESSION_ACTIVE);
       break;
     case PROTOCOL_TLS6:
-      channel->session = session_create(SESSION_TLS6);
+      channel->session =
+        session_create(SESSION_TLS|SESSION_TCP6|SESSION_ACTIVE);
       break;
     default:
       lagopus_msg_warning("unknown protocol %d\n", channel->protocol);
@@ -826,8 +881,7 @@ multipart_init(struct multipart *m) {
 /* Channel allocation. */
 static struct channel *
 channel_alloc_internal(struct addrunion *controller,
-                       struct event_manager *em,
-                       uint64_t dpid) {
+                       struct event_manager *em) {
   int i;
   lagopus_result_t ret;
   struct channel *channel;
@@ -837,9 +891,6 @@ channel_alloc_internal(struct addrunion *controller,
   if (channel == NULL) {
     return NULL;
   }
-
-  /* Set dpid. */
-  channel->dpid = dpid;
 
   /* Initial socket. */
   channel->controller = *controller;
@@ -906,7 +957,7 @@ channel_alloc_internal(struct addrunion *controller,
   }
 
   channel->refs = 0;
-  channel->dp_entry.le_prev = NULL;
+  channel->dpid_entry.le_prev = NULL;
 
   ofp_role_channel_mask_init(&channel->role_mask);
 
@@ -919,7 +970,18 @@ channel_alloc_internal(struct addrunion *controller,
 struct channel *
 channel_alloc(struct addrunion *controller, struct event_manager *em,
               uint64_t dpid) {
-  return channel_alloc_internal(controller, em, dpid);
+  lagopus_result_t ret;
+  struct channel *channel;
+
+  channel = channel_alloc_internal(controller, em);
+  if (channel != NULL) {
+    ret = channel_dpid_set(channel, dpid);
+    if (ret != LAGOPUS_RESULT_OK) {
+      ret = channel_free(channel);
+    }
+    assert(ret == LAGOPUS_RESULT_OK);
+  }
+  return channel;
 }
 
 struct channel *
@@ -930,9 +992,10 @@ channel_alloc_ip4addr(const char *ipaddr, const char *port,
 
   addrunion_ipv4_set(&addr, ipaddr);
 
-  channel = channel_alloc_internal(&addr, em, dpid);
+  channel = channel_alloc_internal(&addr, em);
   if (channel != NULL) {
     channel->port = (uint16_t) atoi(port);
+    channel_dpid_set(channel, dpid);
   }
 
   return channel;
@@ -973,17 +1036,19 @@ channel_refs_put(struct channel *channel) {
 /* Free channel. */
 lagopus_result_t
 channel_free(struct channel *channel) {
+  lagopus_msg_debug(10, "channel_free(%p)\n", channel);
   if (channel != NULL) {
     int i;
     lagopus_result_t ret = LAGOPUS_RESULT_OK;
 
     if (channel->lock != NULL) {
-      lagopus_mutex_lock(&channel->lock);
+      channel_lock(channel);
     }
 
-    if (channel->refs > 0) {
+    if (channel->refs > 0 || channel->status != Disable) {
       ret = LAGOPUS_RESULT_BUSY;
       channel_unlock(channel);
+      lagopus_msg_debug(10, "%p: refs: %d, return busy\n", channel, channel->refs);
       goto done;
     }
 
@@ -1004,12 +1069,14 @@ channel_free(struct channel *channel) {
       multipart_free(&channel->multipart[i]);
     }
 
-    if (channel->dp_entry.le_prev != NULL) {
-      LIST_REMOVE(channel, dp_entry);
+    if (IS_USED_DPID_ENTRY(channel)) {
+      LIST_REMOVE(channel, dpid_entry);
     }
     channel_unlock(channel);
 
     lagopus_mutex_destroy(&channel->lock);
+    lagopus_msg_debug(10, "%p: refs: %d, real freed\n",
+                      channel, channel->refs);
     free(channel);
 
   done:
@@ -1050,9 +1117,9 @@ channel_version_set(struct channel *channel, uint8_t version) {
   channel_unlock(channel);
 }
 
-struct session *
+lagopus_session_t
 channel_session_get(struct channel *channel) {
-  struct session *s;
+  lagopus_session_t s;
 
   channel_lock(channel);
   s = channel->session;
@@ -1062,7 +1129,7 @@ channel_session_get(struct channel *channel) {
 }
 
 void
-channel_session_set(struct channel *channel, struct session *session) {
+channel_session_set(struct channel *channel, lagopus_session_t session) {
   channel->session = session;
 }
 
@@ -1086,12 +1153,28 @@ channel_role_get(struct channel *channel) {
 
 void
 channel_role_set(struct channel *channel, uint32_t role) {
+  channel_lock(channel);
   channel->role = role;
+  channel_unlock(channel);
 }
 
 uint64_t
 channel_dpid_get_nolock(struct channel *channel) {
   return channel->dpid;
+}
+
+lagopus_result_t
+channel_dpid_set(struct channel *channel, uint64_t dpid) {
+  lagopus_result_t ret = LAGOPUS_RESULT_BUSY;
+
+  channel_lock(channel);
+  if (session_is_alive(channel->session) == false) {
+    channel->dpid = dpid;
+    ret = LAGOPUS_RESULT_OK;
+  }
+  channel_unlock(channel);
+
+  return ret;
 }
 
 uint64_t
@@ -1125,11 +1208,13 @@ channel_id_set(struct channel *channel, uint64_t channel_id) {
 
 void
 channel_lock(struct channel *channel) {
+  lagopus_msg_debug(10, "locked(%p)\n", channel);
   lagopus_mutex_lock(&channel->lock);
 }
 
 void
 channel_unlock(struct channel *channel) {
+  lagopus_msg_debug(10, "unlocked(%p)\n", channel);
   lagopus_mutex_unlock(&channel->lock);
 }
 
@@ -1324,12 +1409,6 @@ channel_local_addr_get(struct channel *channel, struct addrunion *addrunion) {
   return LAGOPUS_RESULT_OK;
 }
 
-lagopus_result_t
-channel_features_get(struct channel *channel,
-                     struct ofp_switch_features *features) {
-  return dpmgr_bridge_ofp_features_get(channel->dpid, features);
-}
-
 int
 channel_multipart_used_count_get(struct channel *channel) {
   int i, cnt = 0;
@@ -1349,7 +1428,7 @@ channel_multipart_put(struct channel *channel, struct pbuf *pbuf,
                       struct ofp_header *xid_header, uint16_t mtype) {
   int i;
   struct multipart *m = NULL;
-  lagopus_result_t ret;
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
 
   channel_lock(channel);
   for (i = 0; i < CHANNEL_SIMULTANEOUS_MULTIPART_MAX; i++) {
@@ -1405,7 +1484,6 @@ channel_multipart_get(struct channel *channel, struct pbuf **pbuf,
     if (channel->multipart[i].ofp_header.xid == xid_header->xid
         && channel->multipart[i].multipart_type == mtype) {
       /* found */
-      ret = LAGOPUS_RESULT_OK;
       break;
     }
   }
@@ -1449,6 +1527,27 @@ channel_multipart_get(struct channel *channel, struct pbuf **pbuf,
 uint8_t
 channel_auxiliary_id_get(struct channel *channel) {
   return channel->auxiliary_id;
+}
+
+lagopus_result_t
+channel_auxiliary_set(struct channel *channel, bool is_auxiliary) {
+  lagopus_result_t ret = LAGOPUS_RESULT_BUSY;
+
+  channel_lock(channel);
+  if (session_is_alive(channel->session) == false) {
+    channel->is_auxiliary = is_auxiliary;
+    ret = LAGOPUS_RESULT_OK;
+  }
+  channel_unlock(channel);
+
+  return ret;
+}
+
+lagopus_result_t
+channel_auxiliary_get(struct channel *channel, bool *is_auxiliary) {
+  *is_auxiliary = channel->is_auxiliary;
+
+  return LAGOPUS_RESULT_OK;
 }
 
 struct channel_list *
@@ -1499,7 +1598,21 @@ channel_list_insert(struct channel_list *channel_list,
   }
 
   lagopus_mutex_lock(&channel_list->lock);
-  LIST_INSERT_HEAD(&channel_list->channel_h, channel, dp_entry);
+  LIST_INSERT_HEAD(&channel_list->channel_h, channel, dpid_entry);
+  lagopus_mutex_unlock(&channel_list->lock);
+
+  return LAGOPUS_RESULT_OK;
+}
+
+lagopus_result_t
+channel_list_delete(struct channel_list *channel_list,
+                    struct channel *channel) {
+  if (channel_list == NULL || channel == NULL) {
+    return LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  lagopus_mutex_lock(&channel_list->lock);
+  LIST_REMOVE(channel, dpid_entry);
   lagopus_mutex_unlock(&channel_list->lock);
 
   return LAGOPUS_RESULT_OK;
@@ -1508,7 +1621,7 @@ channel_list_insert(struct channel_list *channel_list,
 lagopus_result_t
 channel_list_iterate(struct channel_list *channel_list,
                      lagopus_result_t (*func)(struct channel *channel, void *val), void *val) {
-  lagopus_result_t ret;
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   struct channel *channel;
 
   if (channel_list == NULL || func == NULL) {
@@ -1516,11 +1629,15 @@ channel_list_iterate(struct channel_list *channel_list,
   }
 
   lagopus_mutex_lock(&channel_list->lock);
-  LIST_FOREACH(channel, &channel_list->channel_h, dp_entry) {
-    ret = func(channel, val);
-    if (ret != LAGOPUS_RESULT_OK) {
-      break;
+  if (LIST_EMPTY(&channel_list->channel_h) == false) {
+    LIST_FOREACH(channel, &channel_list->channel_h, dpid_entry) {
+      ret = func(channel, val);
+      if (ret != LAGOPUS_RESULT_OK) {
+        break;
+      }
     }
+  } else {
+    ret = LAGOPUS_RESULT_NOT_OPERATIONAL;
   }
   lagopus_mutex_unlock(&channel_list->lock);
 
@@ -1548,6 +1665,15 @@ channel_is_alive(struct channel *channel) {
     return false;
   }
 
+  if (session_is_alive(channel->session) == false) {
+    return false;
+  }
+
+  return true;
+}
+
+bool
+channel_session_is_alive(struct channel *channel) {
   if (session_is_alive(channel->session) == false) {
     return false;
   }

@@ -14,12 +14,13 @@
  * limitations under the License.
  */
 
-
 #include "unity.h"
 
 #include "lagopus/dpmgr.h"
 #include "lagopus/flowdb.h"
 #include "lagopus/ofp_dp_apis.h"
+#include "lagopus/dp_apis.h"
+#include "lagopus/datastore/bridge.h"
 #include "datapath_test_misc.h"
 #include "datapath_test_misc_macros.h"
 
@@ -28,98 +29,97 @@
  * Feature checklist entry.
  */
 struct feature_checklist {
-  uint64_t      fc_key;
-  int           fc_checked;
+  uint64_t	fc_key;
+  int		fc_checked;
 };
 
 /* Init a feature checklist. */
-#define INIT_FEATURE_CHECKLIST(_fc, _keys)              \
-  do {                                                  \
-    size_t _s;                                          \
-    memset((_fc), 0, sizeof(_fc));                      \
-    for (_s = 0; _s < ARRAY_LEN(_fc); _s++)             \
-      (_fc)[_s].fc_key = (uint64_t)((_keys)[_s]);       \
+#define INIT_FEATURE_CHECKLIST(_fc, _keys)		\
+  do {							\
+    size_t _s;						\
+    memset((_fc), 0, sizeof(_fc));			\
+    for (_s = 0; _s < ARRAY_LEN(_fc); _s++)		\
+      (_fc)[_s].fc_key = (uint64_t)((_keys)[_s]);	\
   } while (0)
 
 /* Check a feature checklist entry. */
-#define CHECK_FEATURE_CHECKLIST(_fc, _key)                              \
-  do {                                                                  \
-    size_t _s;                                                          \
-    int _found;                                                         \
-    char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];                             \
+#define CHECK_FEATURE_CHECKLIST(_fc, _key)				\
+  do {									\
+    size_t _s;								\
+    int _found;								\
+    char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];				\
     \
-    snprintf(_buf, sizeof(_buf), "key %lu unknown", (uint64_t)_key);    \
-    _found = 0;                                                         \
-    for (_s = 0; _s < ARRAY_LEN(_fc); _s++)                             \
-      if ((uint64_t)(_key) == (_fc)[_s].fc_key) {                       \
-        (_fc)[_s].fc_checked = 1;                                       \
-        _found = 1;                                                     \
-      }                                                                 \
-    TEST_ASSERT_TRUE_MESSAGE(_found, _buf);                             \
+    snprintf(_buf, sizeof(_buf), "key %lu unknown", (uint64_t)_key);	\
+    _found = 0;								\
+    for (_s = 0; _s < ARRAY_LEN(_fc); _s++)				\
+      if ((uint64_t)(_key) == (_fc)[_s].fc_key) {			\
+        (_fc)[_s].fc_checked = 1;					\
+        _found = 1;							\
+      }									\
+    TEST_ASSERT_TRUE_MESSAGE(_found, _buf);				\
   } while (0)
 
 /* Assert a feature checklist. */
-#define TEST_ASSERT_FEATURE_CHECKLIST(_fc)                              \
-  do {                                                                  \
-    size_t _s;                                                          \
-    char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];                             \
+#define TEST_ASSERT_FEATURE_CHECKLIST(_fc)				\
+  do {									\
+    size_t _s;								\
+    char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];				\
     \
-    for (_s = 0; _s < ARRAY_LEN(_fc); _s++) {                           \
+    for (_s = 0; _s < ARRAY_LEN(_fc); _s++) {				\
       snprintf(_buf, sizeof(_buf), "key %lu not found", (_fc)[_s].fc_key); \
-      TEST_ASSERT_TRUE_MESSAGE((_fc)[_s].fc_checked, _buf);             \
-    }                                                                   \
+      TEST_ASSERT_TRUE_MESSAGE((_fc)[_s].fc_checked, _buf);		\
+    }									\
   } while (0)
 
 /* The scenario for a feature check. */
-#define TEST_SCENARIO_FEATURE_CHECK(_pt, _it, _pm, _im, _keys)  \
-  do {                                                          \
-    struct feature_checklist _fc[ARRAY_LEN(_keys) - 1];         \
-    const struct table_features *_f;                            \
-    const struct table_property *_p;                            \
-    const _it *_i;                                              \
+#define TEST_SCENARIO_FEATURE_CHECK(_pt, _it, _pm, _im, _keys)	\
+  do {								\
+    struct feature_checklist _fc[ARRAY_LEN(_keys) - 1];		\
+    const struct table_features *_f;				\
+    const struct table_property *_p;				\
+    const _it *_i;						\
     \
-    INIT_FEATURE_CHECKLIST(_fc, (_keys));                       \
+    INIT_FEATURE_CHECKLIST(_fc, (_keys));			\
     \
-    TAILQ_FOREACH(_f, &features_list, entry) {                  \
-      TAILQ_FOREACH(_p, &_f->table_property_list, entry) {      \
-        if ((_pt) != _p->ofp.type)                              \
-          continue;                                             \
-        TAILQ_FOREACH(_i, &_p->_pm, entry) {                    \
-          CHECK_FEATURE_CHECKLIST(_fc, _i->_im);                \
-        }                                                       \
-      }                                                         \
-    }                                                           \
+    TAILQ_FOREACH(_f, &features_list, entry) {			\
+      TAILQ_FOREACH(_p, &_f->table_property_list, entry) {	\
+        if ((_pt) != _p->ofp.type)				\
+          continue;						\
+        TAILQ_FOREACH(_i, &_p->_pm, entry) {			\
+          CHECK_FEATURE_CHECKLIST(_fc, _i->_im);		\
+        }							\
+      }								\
+    }								\
     \
-    TEST_ASSERT_FEATURE_CHECKLIST(_fc);                         \
+    TEST_ASSERT_FEATURE_CHECKLIST(_fc);				\
   } while (0)
 
 /* The scenario for an empty feature. */
-#define TEST_SCENARIO_FEATURE_EMPTY(_pt, _it, _pm, _im)         \
-  do {                                                          \
-    const struct table_features *_f;                            \
-    const struct table_property *_p;                            \
-    const _it *_i;                                              \
-    int _count;                                                 \
+#define TEST_SCENARIO_FEATURE_EMPTY(_pt, _it, _pm, _im)		\
+  do {								\
+    const struct table_features *_f;				\
+    const struct table_property *_p;				\
+    const _it *_i;						\
+    int _count;							\
     \
-    _count = 0;                                                 \
+    _count = 0;							\
     \
-    TAILQ_FOREACH(_f, &features_list, entry) {                  \
-      TAILQ_FOREACH(_p, &_f->table_property_list, entry) {      \
-        if ((_pt) != _p->ofp.type)                              \
-          continue;                                             \
-        TAILQ_FOREACH(_i, &_p->_pm, entry) {                    \
-          _count++;                                             \
-        }                                                       \
-      }                                                         \
-    }                                                           \
+    TAILQ_FOREACH(_f, &features_list, entry) {			\
+      TAILQ_FOREACH(_p, &_f->table_property_list, entry) {	\
+        if ((_pt) != _p->ofp.type)				\
+          continue;						\
+        TAILQ_FOREACH(_i, &_p->_pm, entry) {			\
+          _count++;						\
+        }							\
+      }								\
+    }								\
     \
-    TEST_ASSERT_EQUAL_INT(_count, 0);                           \
+    TEST_ASSERT_EQUAL_INT(_count, 0);				\
   } while (0)
 
 /*
  * Global variables.
  */
-static struct dpmgr *dpmgr;
 static struct bridge *bridge;
 static struct flowdb *flowdb;
 static struct table_features_list features_list;
@@ -129,16 +129,17 @@ static const uint64_t dpid = 12345678;
 
 void
 setUp(void) {
+  datastore_bridge_info_t info;
   struct ofp_error err;
 
-  TEST_ASSERT_NULL(dpmgr);
   TEST_ASSERT_NULL(bridge);
   TEST_ASSERT_NULL(flowdb);
 
-  TEST_ASSERT_NOT_NULL(dpmgr = dpmgr_alloc());
-  TEST_ASSERT_TRUE(LAGOPUS_RESULT_OK == dpmgr_bridge_add(dpmgr, bridge_name,
-                   dpid));
-  TEST_ASSERT_NOT_NULL(bridge = dpmgr_bridge_lookup(dpmgr, bridge_name));
+  memset(&info, 0, sizeof(info));
+  info.fail_mode = DATASTORE_BRIDGE_FAIL_MODE_SECURE;
+  TEST_ASSERT_EQUAL(dp_api_init(), LAGOPUS_RESULT_OK);
+  TEST_ASSERT_TRUE(LAGOPUS_RESULT_OK == dp_bridge_create(bridge_name, &info));
+  TEST_ASSERT_NOT_NULL(bridge = dp_bridge_lookup(bridge_name));
   TEST_ASSERT_NOT_NULL(flowdb = bridge->flowdb);
 
   TAILQ_INIT(&features_list);
@@ -155,7 +156,6 @@ tearDown(void) {
   struct oxm_id *o;
   struct experimenter_data *e;
 
-  TEST_ASSERT_NOT_NULL(dpmgr);
   TEST_ASSERT_NOT_NULL(bridge);
   TEST_ASSERT_NOT_NULL(flowdb);
 
@@ -196,13 +196,10 @@ tearDown(void) {
   }
   TAILQ_INIT(&features_list);
 
-  TEST_ASSERT_TRUE(LAGOPUS_RESULT_OK == dpmgr_bridge_delete(dpmgr,
-                   bridge_name));
-  dpmgr_free(dpmgr);
+  TEST_ASSERT_TRUE(LAGOPUS_RESULT_OK == dp_bridge_destroy(bridge_name));
 
   flowdb = NULL;
   bridge = NULL;
-  dpmgr = NULL;
 }
 
 
@@ -404,14 +401,14 @@ static const uint32_t set_field_oxm_ids[] = {
 
 void
 test_flowdb_table_features_write_setfield(void) {
-  TEST_SCENARIO_FEATURE_CHECK(OFPTFPT_WRITE_SETFIELD, struct oxm_id,
-                              oxm_id_list, ofp.id, set_field_oxm_ids);
+  TEST_SCENARIO_FEATURE_CHECK(OFPTFPT_WRITE_SETFIELD, struct oxm_id, oxm_id_list,
+                              ofp.id, set_field_oxm_ids);
 }
 
 void
 test_flowdb_table_features_apply_setfield(void) {
-  TEST_SCENARIO_FEATURE_CHECK(OFPTFPT_APPLY_SETFIELD, struct oxm_id,
-                              oxm_id_list, ofp.id, set_field_oxm_ids);
+  TEST_SCENARIO_FEATURE_CHECK(OFPTFPT_APPLY_SETFIELD, struct oxm_id, oxm_id_list,
+                              ofp.id, set_field_oxm_ids);
 }
 
 /* XXX experimenter is not supported yet. */

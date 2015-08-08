@@ -14,10 +14,9 @@
  * limitations under the License.
  */
 
-
 /**
  *      @file   flowinfo_vlan.c
- *      @brief  Optimized flow database for datapath, for VLAN
+ *      @brief  Optimized flow database for dataplane, for VLAN
  */
 
 #include <stdlib.h>

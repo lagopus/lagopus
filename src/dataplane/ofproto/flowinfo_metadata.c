@@ -14,10 +14,9 @@
  * limitations under the License.
  */
 
-
 /**
  *      @file   flowinfo_metadata.c
- *      @brief  Optimized flow database for datapath, for metadata
+ *      @brief  Optimized flow database for dataplane, for metadata
  */
 
 #include <stdlib.h>
@@ -88,7 +87,7 @@ new_flowinfo_metadata_mask(void) {
   if (self != NULL) {
     self->nflow = 0;
     self->nnext = 0;
-    self->next = malloc(0);
+    self->next = malloc(1);
     self->misc = new_flowinfo_eth_type();
     self->add_func = add_flow_metadata_mask;
     self->del_func = del_flow_metadata_mask;

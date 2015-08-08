@@ -9,59 +9,79 @@ You should install Intel DPDK before Lagopus vswitch compilation.
 
 Install necessary packages
 
+```
 	$ sudo apt-get install make coreutils gcc binutils
+```
 
 Install kernel headers
 
+```
 	$ sudo apt-get install linux-headers-`uname -r`
+```
 
 Get Intel DPDK 1.8.0 and extract Intel DPDK zip file
 
+```
 	$ wget http://dpdk.org/browse/dpdk/snapshot/dpdk-1.8.0.zip
 	$ unzip dpdk-1.8.0.zip
+```
 
 Compile
 
+```
 	$ export RTE_SDK=<Absolute Path of Intel DPDK>
 	$ export RTE_TARGET="x86_64-native-linuxapp-gcc"
 	$ make config T=${RTE_TARGET}
-	$ make install T=${RTE_TARGET}
+	$ make
+```
 
 ### Lagopus vswitch installation
 
 Install necessary packages
 
-	$ sudo apt-get install build-essential libexpat-dev libgmp-dev libncurses-dev \
-	  libssl-dev libpcap-dev byacc flex libreadline-dev \
+```
+	$ sudo apt-get install build-essential libexpat-dev libgmp-dev \
+	  libssl-dev libpcap-dev byacc flex \
 	  python-dev python-pastedeploy python-paste python-twisted
+```
 
 Compile vswitch
 
 In configure phase, you must speicify Intel DPDK option with abosolute path in which you installed
 
+```
 	$ cd lagopus
 	$ ./configure --with-dpdk-dir=${RTE_SDK}
 	$ make
+```
 
 Install lagopus package
 
-	$ make install
+```
+	$ sudo make install
+```
 
 ### Install Ryu, an OpenFlow 1.3 controller (Optional)
 
 Install necessary packages
 
+```
 	$ sudo apt-get install python-setuptools python-pip python-dev \
 	libxml2-dev libxslt-dev
+```
 
 Using pip command is the easiest option:
 
+```
 	$ pip install ryu
+```
 
 Or install from the source code if you prefer:
 
+```
 	$ git clone git://github.com/osrg/ryu.git
 	$ cd ryu; python ./setup.py install
+```
 
 Environmental Setup
 --------------------------
@@ -72,9 +92,11 @@ The kernel modules built are available in the build/kmod directory.
 
 Loading the kernel module
 
+```
 	$ sudo modprobe uio
-	$ sudo insmod ${RTE_SDK}/${RTE_TARGET}/kmod/igb_uio.ko
-	$ sudo insmod ${RTE_SDK}/${RTE_TARGET}/kmod/rte_kni.ko
+	$ sudo insmod ${RTE_SDK}/build/kmod/igb_uio.ko
+	$ sudo insmod ${RTE_SDK}/build/kmod/rte_kni.ko
+```
 
 
 Make hugepages available to DPDK.
@@ -82,25 +104,32 @@ You can setup hugepage with two ways:
 
 1. Manual confguration (Hugepage size: 2MB)
 
-		$ sudo sh -c "echo 256 >  /sys/devices/system/node/node0/hugepages/hugepages-2048kB/nr_hugepages"
-		$ sudo mkdir -p /mnt/huge
-		$ sudo mount -t hugetlbfs nodev /mnt/huge
+```
+	$ sudo sh -c "echo 256 >  /sys/devices/system/node/node0/hugepages/hugepages-2048kB/nr_hugepages"
+	$ sudo mkdir -p /mnt/huge
+	$ sudo mount -t hugetlbfs nodev /mnt/huge
+```
 
 2. Script configuration
 
-	Add hugepages option of the linux kernel to reserve 1024 pages of 2 MB.
+Add hugepages option of the linux kernel to reserve 1024 pages of 2 MB.
 
-		hugepages=1024
+```
+	hugepages=1024
+```
 
-	Add the following line to /etc/fstab so that mount point can be made permanent across reboots
+Add the following line to /etc/fstab so that mount point can be made permanent across reboots
 
-		nodev /mnt/huge hugetlbfs defaults 0 0
+```
+	nodev /mnt/huge hugetlbfs defaults 0 0
+```
 
 
 Check PCI ID to enable DPDK on 2nd, 3rd, and 4th NIC.
 
 If NIC used for management (ex: ssh) was selected, you will lose connection.
 
+```
 	$ sudo ${RTE_SDK}/tools/dpdk_nic_bind.py --status
 
 	Network devices using IGB_UIO driver
@@ -118,10 +147,12 @@ If NIC used for management (ex: ssh) was selected, you will lose connection.
 	Other network devices
 	=====================
 	<none>
+```
 
 Unbound NICs from ixgbe driver.
 
-	$ sudo ${RTE_SDK}/tools/dpdk_nic_bind.py -b igb_uio 0000:02:02.0 0000:02:03.0 0000:02:04.0
+```
+	$ sudo ${RTE_SDK}/tools/dpdk_nic_bind.py --bind=igb_uio 0000:02:02.0 0000:02:03.0 0000:02:04.0
 
 Check the current status of NICs whehter the 2nd, 3rd and 4th interface is registerd with igb_uio driver
 
@@ -140,41 +171,78 @@ Check the current status of NICs whehter the 2nd, 3rd and 4th interface is regis
 	Other network devices
 	=====================
 	<none>
+```
 
 ### Setup Lagopus configuration file
-Sample Lagopus configuration is "lagopus/samples/lagopus.conf".
+Sample Lagopus configuration (DSL format) is "lagopus/samples/lagopus.conf".
 
 NOTE: *lagopus.conf* file must be located at the same directory of the executable of lagopus vswitch or
 the following directory.
 
-     % sudo cp lagopus/samples/lagopus.conf /etc/lagopus/
-     % sudo vi /etc/lagopus/lagopus.conf
+```
+     % sudo cp lagopus/samples/lagopus.conf /usr/local/etc/lagopus/
+     % sudo vi /usr/local/etc/lagopus/lagopus.conf
+```
+
+Usually, edit and commit configuration via "lagosh" interactive shell.
+
+```
+    % lagosh
+    Lagosh> configure
+    Configure# edit
+    (Input configuration by invoked text editor such as vi.)
+    Configure# commit
+    Configure# save
+```
 
 * Example:
   * Use DPDK port 0, 1, and 2 for Lagopus vswitch
-	* NOTE: the ethX notation is not same of ethX which Linux kernel
-      manages
   * OpenFlow controller is "127.0.0.1"
 
 
 ```
 interface {
-    ethernet {
-        eth0;
-        eth1;
-        eth2;
-    }
+  interface01 {
+    type ethernet-dpdk-phy;
+    port-number 0;
+  }
+  interface02 {
+    type ethernet-dpdk-phy;
+    port-number 1;
+  }
+  interface03 {
+    type ethernet-dpdk-phy;
+    port-number 2;
+  }
 }
-bridge-domains {
-    br0 {
-        port {
-            eth0;
-            eth1;
-            eth2;
-        }
-        controller {
-            127.0.0.1;
-        }
+port {
+  port01 {
+    interface interface01;
+  }
+  port02 {
+    interface interface02;
+  }
+  port03 {
+    interface interface03;
+  }
+}
+channel {
+  channel01 {
+    dst-addr 127.0.0.1;
+  }
+}
+controller {
+  controller01 {
+    channel channel01;
+  }
+}
+bridge {
+    bridge0 {
+        dpid 1;
+        port port01 1;
+        port port02 2;
+        port port03 3;
+        controller controller01;
     }
 }
 ```
@@ -184,13 +252,6 @@ How to Run Lagopus vswitch
 
 Examples of command line
 --------------------------
-The lagopus runtime is located at following path.
-NOTE: Due to the current implemenation, *lagopus.conf* is located the
-same directory of the executable of Lagopus vswitch.
-
-```
-$ cd ~/lagopus/src/cmds
-```
 
 ### Simple run
 * CPU core: 1 and 2
@@ -243,6 +304,8 @@ Lagopus command option
   * Specify a log/trace file path [default: syslog]
 * _-p filename | --pidfile filename_ : (Optional)
   * Specify a pid file path [default: /var/run/lt-lagopus.pid]
+* _-C filename | --config filename_ : (Optional)
+  * Specify a configuration file (DSL format) path
 
 ### Intel DPDK Option
 * _-c_ : (Mandatory)
@@ -252,26 +315,28 @@ Lagopus command option
     and bit3 on.
     0x1001 (binary) = 9 (Hexadecimal)
 
-		```
+```
 		-c9
-		```
+```
+
 * _-n_ : (Mandatory)
   * Specify number of memory channel which CPU supports
   * Range: 1,2,4
   * Example: a CPU supports dual memory channlel
 
-		```
+```
 		-n2
-		```
+```
+
 * _-m_ :(Optional)
   * Specify how much Hugepage memory is assigned to Lagopus in mega
   byte.
   Maximum hugepage memory is assigned if no option is specified.
   * Example: Use 512MB for Lagopus
 
-		```
+```
 		-m 512
-		```
+```
 
 * _--socket-mem_ : (Optional)
   * Specify how much Hugepage memory for each CPU socket is assigned
@@ -283,7 +348,7 @@ Lagopus command option
 #### Common option
 
 * _--no-cache_ :
-	* Don't use flow cache
+	* Don't use flow cache [default: use flow cache]
 * _--fifoness TYPE_ :
   * Select packet ordering (FIFOness) mode [default: none]
   * _none_ :
@@ -294,9 +359,9 @@ Lagopus command option
     * FIFOness per each flow.
   * Example: Specify flow-level FIFOness
 
-		```
+```
 		--fifoness flow
-		```
+```
 
 * _--hashtype TYPE_ :
   * Select key-value store type for flow cache [default: intel64]
@@ -305,9 +370,9 @@ Lagopus command option
 	* _murmur3_	 MurmurHash3 (32bit)
   * Example: Use CityHash
 
-		```
+```
 		--hashtype city64
-		```
+```
 
 * _--kvstype TYPE_:
   *  Select key-value store type for flow cache [default: hashmap_nolock]
@@ -319,9 +384,9 @@ Lagopus command option
       * Use patricia tree
   * Example: Use patricia tree for key-value store
 
-		```
+```
 		--kvstype ptree
-		```
+```
 
 #### CPU core and packet processing
 Dataplane of Lagopus provides two options to assign CPU core and
@@ -333,18 +398,27 @@ These options are exclusive.
   * hexadecimal bitmask of ports to be used
   * Example: Use port 0 and port 1
 
-		```
+```
 		-p3
-		```
+```
 
 * _-w NWORKERS_ :
   * number of packet processing worker  [default: assign as possible]
   * System assigns CPU core automatically.
   * Example: Use total 8 cores for data plane
 
-		```
+```
 		-w8
-		```
+```
+
+* _--core-assign TYPE_:
+  * Select automatically core assign policy [default: performance]
+    * performance:
+      * Don't use HTT core. (e.g. use only 8 cores on 8C16T processor)
+    * balance:
+      * Use HTT core (e.g. use 16 cores on 8C16T processor)
+    * minimum:
+      * Use only one core.
 
 ##### Explicit assignment option
 Current Lagopus limitation: youngest core number can not be specified
@@ -362,9 +436,7 @@ among available CPU cores.
 
   * Example: Assign port 0 to CPU core #2 and port 1 to CPU core #3
 
-		```
 			--rx '(0,0,2),(1,0,3)'
-		```
 
 * _--tx	"(PORT,CORE),(PORT,CORE),...,(PORT,CORE)"_ :
   * List NIC TX assignment policy of NIC TX port and CPU core with the
@@ -376,17 +448,17 @@ among available CPU cores.
 
   * Example: Assign port 0 TX to CPU core #4 and port 1 TX to CPU core #5
 
-		```
+```
 			--tx '(0,4),(1,5)'
-		```
+```
 
 * _--w "CORE, ..., CORE"_ :
   * List of the CPU cores for packet processing with ","
   * Example: Assign CPU core 8 - 15 for packet processing
 
-		```
+```
 			--w '8,9,10,11,12,13,14,15'
-		```
+```
 
 CLI
 --------------------------
@@ -394,9 +466,8 @@ Lagopus provides CLI for management.
 Current implementation is limited.
 Show port, flow table, controller and bridge name are supported
 
-
 ```
-sudo lagopus/src/config/cli/lagosh
+lagosh
 ```
 
 Development
@@ -406,7 +477,9 @@ Details can be found docs/how-to-write-tests-in-lagopus.md.
 
 You can enable developer mode with the following configure option.
 
-	$ configure with --enable-developer
+```
+	$ ./configure --enable-developer
+```
 
 To conduct developer's mode, you should install the following packages:
 

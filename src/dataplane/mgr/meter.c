@@ -14,13 +14,11 @@
  * limitations under the License.
  */
 
-
 /**
  *      @file   meter.c
  *      @brief  OpenFlow Meter management.
  */
 
-#include "lagopus/dpmgr.h"
 #include "lagopus/meter.h"
 #include "lagopus/ofp_dp_apis.h"
 
@@ -31,21 +29,29 @@ meter_table_lock_init(struct meter_table *meter_table) {
 
 static inline void
 meter_table_rdlock(struct meter_table *meter_table) {
+  (void) meter_table;
+
   FLOWDB_RWLOCK_RDLOCK();
 }
 
 static inline void
 meter_table_rdunlock(struct meter_table *meter_table) {
+  (void) meter_table;
+
   FLOWDB_RWLOCK_RDUNLOCK();
 }
 
 static inline void
 meter_table_wrlock(struct meter_table *meter_table) {
+  (void) meter_table;
+
   FLOWDB_UPDATE_BEGIN();
 }
 
 static inline void
 meter_table_wrunlock(struct meter_table *meter_table) {
+  (void) meter_table;
+
   FLOWDB_UPDATE_END();
 }
 
@@ -177,6 +183,8 @@ meter_table_meter_add(struct meter_table *meter_table,
 #endif /* METER_DEBUG */
 
 out:
+  ofp_meter_band_list_elem_free(band_list);
+
   /* Unlock the meter_table then return result. */
   meter_table_wrunlock(meter_table);
   return ret;
@@ -228,6 +236,8 @@ meter_table_meter_modify(struct meter_table *meter_table,
 #endif /* METER_DEBUG */
 
 out:
+  ofp_meter_band_list_elem_free(band_list);
+
   /* Unlock the meter_table then return result. */
   meter_table_wrunlock(meter_table);
   return ret;
@@ -556,12 +566,10 @@ ofp_meter_mod_add(uint64_t dpid,
                   struct ofp_meter_mod *meter_mod,
                   struct meter_band_list *band_list,
                   struct ofp_error *error) {
-  struct dpmgr *dpmgr;
   struct bridge *bridge;
   lagopus_result_t ret;
 
-  dpmgr = dpmgr_get_instance();
-  bridge = bridge_lookup_by_dpid(&dpmgr->bridge_list, dpid);
+  bridge = dp_bridge_lookup_by_dpid(dpid);
   if (bridge == NULL) {
     return LAGOPUS_RESULT_NOT_FOUND;
   }
@@ -577,12 +585,10 @@ ofp_meter_mod_modify(uint64_t dpid,
                      struct ofp_meter_mod *meter_mod,
                      struct meter_band_list *band_list,
                      struct ofp_error *error) {
-  struct dpmgr *dpmgr;
   struct bridge *bridge;
   lagopus_result_t ret;
 
-  dpmgr = dpmgr_get_instance();
-  bridge = bridge_lookup_by_dpid(&dpmgr->bridge_list, dpid);
+  bridge = dp_bridge_lookup_by_dpid(dpid);
   if (bridge == NULL) {
     return LAGOPUS_RESULT_NOT_FOUND;
   }
@@ -596,12 +602,10 @@ lagopus_result_t
 ofp_meter_mod_delete(uint64_t dpid,
                      struct ofp_meter_mod *meter_mod,
                      struct ofp_error *error) {
-  struct dpmgr *dpmgr;
   struct bridge *bridge;
   lagopus_result_t ret;
 
-  dpmgr = dpmgr_get_instance();
-  bridge = bridge_lookup_by_dpid(&dpmgr->bridge_list, dpid);
+  bridge = dp_bridge_lookup_by_dpid(dpid);
   if (bridge == NULL) {
     return LAGOPUS_RESULT_NOT_FOUND;
   }
@@ -637,11 +641,9 @@ ofp_meter_stats_get(uint64_t dpid,
                     struct ofp_meter_multipart_request *meter_request,
                     struct meter_stats_list *meter_stats_list,
                     struct ofp_error *error) {
-  struct dpmgr *dpmgr;
   struct bridge *bridge;
 
-  dpmgr = dpmgr_get_instance();
-  bridge = bridge_lookup_by_dpid(&dpmgr->bridge_list, dpid);
+  bridge = dp_bridge_lookup_by_dpid(dpid);
   if (bridge == NULL) {
     return LAGOPUS_RESULT_NOT_FOUND;
   }
@@ -660,11 +662,9 @@ ofp_meter_config_get(uint64_t dpid,
                      struct ofp_meter_multipart_request *meter_request,
                      struct meter_config_list *meter_config_list,
                      struct ofp_error *error) {
-  struct dpmgr *dpmgr;
   struct bridge *bridge;
 
-  dpmgr = dpmgr_get_instance();
-  bridge = bridge_lookup_by_dpid(&dpmgr->bridge_list, dpid);
+  bridge = dp_bridge_lookup_by_dpid(dpid);
   if (bridge == NULL) {
     return LAGOPUS_RESULT_NOT_FOUND;
   }
@@ -682,11 +682,9 @@ lagopus_result_t
 ofp_meter_features_get(uint64_t dpid,
                        struct ofp_meter_features *meter_features,
                        struct ofp_error *error) {
-  struct dpmgr *dpmgr;
   struct bridge *bridge;
 
-  dpmgr = dpmgr_get_instance();
-  bridge = bridge_lookup_by_dpid(&dpmgr->bridge_list, dpid);
+  bridge = dp_bridge_lookup_by_dpid(dpid);
   if (bridge == NULL) {
     return LAGOPUS_RESULT_NOT_FOUND;
   }

@@ -14,20 +14,19 @@
  * limitations under the License.
  */
 
-
 #ifndef __LAGOPUS_STRUTILS_H__
 #define __LAGOPUS_STRUTILS_H__
 
 
-
+
 
 
 /**
- *      @file   lagopus_strutils.h
+ *	@file	lagopus_strutils.h
  */
 
 
-
+
 
 
 lagopus_result_t
@@ -43,11 +42,15 @@ lagopus_str_unescape(const char *org, const char *escaped,
                      char **retptr);
 
 lagopus_result_t
+lagopus_str_escape(const char *in_str, const char *escape_chars,
+                   bool *is_escaped, char **out_str);
+
+lagopus_result_t
 lagopus_str_trim_right(const char *org, const char *trim_chars,
                        char **retptr);
 
 
-
+
 
 
 lagopus_result_t
@@ -62,7 +65,7 @@ lagopus_result_t
 lagopus_str_parse_uint16(const char *buf, uint16_t *val);
 
 
-
+
 
 
 lagopus_result_t
@@ -77,7 +80,7 @@ lagopus_result_t
 lagopus_str_parse_uint32(const char *buf, uint32_t *val);
 
 
-
+
 
 
 lagopus_result_t
@@ -92,7 +95,7 @@ lagopus_result_t
 lagopus_str_parse_uint64(const char *buf, uint64_t *val);
 
 
-
+
 
 
 lagopus_result_t
@@ -111,7 +114,7 @@ lagopus_result_t
 lagopus_str_parse_bool(const char *buf, bool *val);
 
 
-
+
 
 
 #endif /* ! __LAGOPUS_STRUTILS_H__ */

@@ -1,0 +1,50 @@
+TOPDIR		= @TOPDIR@
+MKRULESDIR	= @MKRULESDIR@
+
+STUB_LIBS = ../liblagopus_snmp_handler_using_stub.la
+
+TEST_SRCS  = 	ifnumber_test.c iftable_test.c \
+		iftable_ifAdminStatus_test.c \
+		iftable_ifInDiscards_test.c \
+		iftable_ifInErrors_test.c \
+		iftable_ifInNUcastPkts_test.c \
+		iftable_ifInOctets_test.c \
+		iftable_ifInUcastPkts_test.c \
+		iftable_ifInUnknownProtos_test.c \
+		iftable_ifIndex_test.c \
+		iftable_ifLastChange_test.c \
+		iftable_ifMtu_test.c \
+		iftable_ifOperStatus_test.c \
+		iftable_ifOutDiscards_test.c \
+		iftable_ifOutErrors_test.c \
+		iftable_ifOutNUcastPkts_test.c \
+		iftable_ifOutOctets_test.c \
+		iftable_ifOutQLen_test.c \
+		iftable_ifOutUcastPkts_test.c \
+		iftable_ifSpeed_test.c \
+		iftable_ifType_test.c \
+		iftable_ifPhysAddress_test.c \
+		iftable_ifDescr_test.c \
+		dot1dBaseType_test.c \
+		dot1dBaseNumPorts_test.c \
+		dot1dBaseBridgeAddress_test.c \
+		dot1dBasePortTable_test.c
+
+TESTS = $(TEST_SRCS:.c= )
+SRCS = $(TEST_SRCS)
+
+DEP_LIBS += $(DEP_LAGOPUS_UTIL_LIB) $(DEP_LAGOPUS_CONFIG_LIB)
+
+TEST_DEPS	= \
+	$(TEST_UTIL_OBJS) \
+	$(STUB_LIBS)
+
+CPPFLAGS += -I../
+LDFLAGS += $(NETSNMP_AGENT_LIBS)
+
+include $(MKRULESDIR)/vars.mk
+include $(MKRULESDIR)/rules.mk
+include .depend
+
+$(STUB_LIBS):
+	cd ..; $(MAKE) stub

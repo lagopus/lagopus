@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 /*
  * The miscellaneous functions found duplicated across the
  * datapath/dpmgr test sources.  Such the functions should be moved

@@ -244,6 +244,9 @@ $(DEP_LAGOPUS_DATAPLANE_TEST_LIB)::
 $(DEP_LAGOPUS_AGENT_LIB)::
 	(cd $(BUILD_AGENTDIR) && $(MAKE) $(LAGOPUS_AGENT_LIB))
 
+$(DEP_LAGOPUS_DATASTORE_LIB)::
+	(cd $(BUILD_DATASTOREDIR) && $(MAKE) $(LAGOPUS_DATASTORE_LIB))
+
 $(DEP_LAGOPUS_CONFIG_LIB)::
 	(cd $(BUILD_CONFIGDIR) && $(MAKE) $(LAGOPUS_CONFIG_LIB))
 
@@ -264,7 +267,7 @@ clean:: pkg-clean
 		*.o *.lo *.gcda *.gcno *.gcov
 	$(RM) -rf ./html ./scan-result ./clang.mk ./scan-build.mk ./icc.mk \
 	./fortify.mk ./fortify.fpr ./fortify.rtf ./fortify.pdf \
-	./und.mk ./und.txt ./und.udb ./und_html \
+	./und.mk ./und.txt ./und.udb ./und_html ./cov \
 	*gcov.mk *.gcno *.gcov gcovr_result.xml .libs
 
 distclean::	clean symlink-clean
@@ -273,8 +276,13 @@ distclean::	clean symlink-clean
 symlink-clean::
 	@find ./ -type l | xargs ${RM}
 
-beautify::
-	@sh $(MKRULESDIR)/beautify --exclude='config/cli/libedit' 'src/*.c' 'src/*.cpp' 'src/*.h'
+beautify-for-py::
+	@find . -type f -name '*.py' | \
+	egrep -v 'src/wip-or-deprecate|test/AutomaticVerificationTool' | \
+	xargs sh $(MKRULESDIR)/beautify_for_py
+
+beautify:: beautify-for-py
+	@sh $(MKRULESDIR)/beautify 'src/*.c' 'src/*.cpp' 'src/*.h'
 
 revert::
 	@git status . | grep modified: | awk '{ print $$NF }' | \
@@ -397,6 +405,15 @@ und::
 		$(RM) -f ./und.mk ; \
 	)
 
+cov::
+	@( \
+		$(MAKE) clean > /dev/null 2>&1 ; \
+		$(RM) -rf ./cov ; \
+		cov-build --dir ./cov sh -c "$(MAKE)" > /dev/null 2>&1 && \
+		cov-analyze --dir ./cov --all > /dev/null 2>&1 && \
+		cov-format-errors --dir ./cov > /dev/null 2>&1 ; \
+	)
+
 wc::
 	@find . -type f -name '*.c' -o -name '*.cpp' -o -name '*.h' | \
 	xargs wc
@@ -508,7 +525,7 @@ check:: gcov
 		./$${runner} > ./$${runner}.testresult; \
 		ret=$$?; \
 		if test $$ret -ge 128; then \
-			echo "got exit status $$ret, FAILED" >> ./$${runner}.testresult; \
+			echo "$${runner}:FAIL: exit status $$ret" >> ./$${runner}.testresult; \
 			testcount=`cat ./$${runner}.testresult|wc -l`; \
 			failcount=`grep FAILED ./$${runner}.testresult|wc -l`; \
 			echo "-----------------------" >> ./$${runner}.testresult; \

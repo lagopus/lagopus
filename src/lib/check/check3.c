@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 #include "lagopus_apis.h"
 
 static lagopus_result_t

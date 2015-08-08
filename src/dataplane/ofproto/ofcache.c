@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 /**
  *      @file   ofcache.c
  *      @brief  OpenFlow flowcache implementation.

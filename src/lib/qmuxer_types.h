@@ -14,12 +14,11 @@
  * limitations under the License.
  */
 
-
 #ifndef __QMUXER_TYPES_H__
 #define __QMUXER_TYPES_H__
 
 
-
+
 
 
 typedef struct lagopus_qmuxer_poll_record {
@@ -36,7 +35,7 @@ typedef struct lagopus_qmuxer_record {
 } lagopus_qmuxer_record;
 
 
-
+
 
 
 #endif /* __QMUXER_TYPES_H__ */

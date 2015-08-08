@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-
 /**
- *      @file   dpdk.c
+ *      @file   worker.c
  *      @brief  Datapath driver use with Intel DPDK
  */
 
@@ -92,12 +91,13 @@
 #include <rte_ring.h>
 #include <rte_mempool.h>
 #include <rte_string_fns.h>
+#ifdef __linux__
 #include <rte_kni.h>
+#endif /* __linux__ */
 
 #include "lagopus/ethertype.h"
 #include "lagopus/flowdb.h"
 #include "lagopus/meter.h"
-#include "lagopus/dpmgr.h"
 #include "lagopus/port.h"
 #include "lagopus_gstate.h"
 #include "lagopus/ofp_dp_apis.h"
@@ -105,6 +105,7 @@
 #include "lagopus/ofcache.h"
 
 #include "lagopus/dataplane.h"
+#include "lagopus/dp_apis.h"
 #include "pktbuf.h"
 #include "packet.h"
 #include "dpdk/dpdk.h"
@@ -128,7 +129,6 @@
 #endif
 
 struct worker_arg {
-  struct dpmgr *dpmgr;
   struct lagopus_packet *pkt;
 };
 
@@ -136,12 +136,10 @@ static inline void
 app_lcore_worker(struct app_lcore_params_worker *lp,
                  uint32_t bsz_rd,
                  struct worker_arg *arg) {
-  struct dpmgr *dpmgr;
   struct port *port;
   struct lagopus_packet *pkt;
   uint32_t i;
 
-  dpmgr = arg->dpmgr;
 
   for (i = 0; i < lp->n_rings_in; i ++) {
     struct rte_ring *ring_in = lp->rings_in[i];
@@ -188,17 +186,17 @@ app_lcore_worker(struct app_lcore_params_worker *lp,
       m = lp->mbuf_in.array[j];
       pkt = (struct lagopus_packet *)
             (m->buf_addr + APP_DEFAULT_MBUF_LOCALDATA_OFFSET);
-      APP_WORKER_PREFETCH0(pkt);
 #ifdef RTE_MBUF_HAS_PKT
-      port = port_lookup(dpmgr->ports, m->pkt.in_port);
+      port = dp_port_lookup(m->pkt.in_port);
 #else
-      port = port_lookup(dpmgr->ports, m->port);
+      port = dp_port_lookup(m->port);
 #endif /* RTE_MBUF_HAS_PKT */
       if (port == NULL ||
           port->bridge == NULL ||
           (port->ofp_port.config & OFPPC_NO_RECV) != 0) {
         /* drop m */
         rte_pktmbuf_free(m);
+        lp->mbuf_in.array[j] = NULL;
         continue;
       }
       /*
@@ -210,10 +208,29 @@ app_lcore_worker(struct app_lcore_params_worker *lp,
       lagopus_packet_init(pkt, m);
       if (port->bridge->flowdb->switch_mode == SWITCH_MODE_STANDALONE) {
         lagopus_forward_packet_to_port(pkt, OFPP_NORMAL);
+        lp->mbuf_in.array[j] = NULL;
         continue;
       }
+    }
+    for (j = 0; j < ret; j ++) {
+      struct rte_mbuf *m;
+
+      m = lp->mbuf_in.array[j];
+      if (m == NULL) {
+        continue;
+      }
+      if (likely(j < ret - 1)) {
+        APP_WORKER_PREFETCH1(rte_pktmbuf_mtod(lp->mbuf_in.array[j+1],
+                                              unsigned char *));
+      }
+      if (likely(j < ret - 2)) {
+        APP_WORKER_PREFETCH0(lp->mbuf_in.array[j+2]);
+      }
+      pkt = (struct lagopus_packet *)
+            (m->buf_addr + APP_DEFAULT_MBUF_LOCALDATA_OFFSET);
+      APP_WORKER_PREFETCH0(pkt);
       pkt->cache = lp->cache;
-      lagopus_receive_packet(port, pkt);
+      lagopus_receive_packet(pkt);
     }
     flowdb_rdunlock(NULL);
 #endif /* APP_WORKER_OUTPUT_TO_PORT1 */
@@ -268,7 +285,6 @@ app_lcore_main_loop_worker(void *arg) {
     lp->cache = init_flowcache(app.kvs_type);
   }
   i = 0;
-  warg.dpmgr = arg;
   warg.pkt = NULL;
   for (;;) {
     if (APP_LCORE_WORKER_FLUSH &&
@@ -302,7 +318,6 @@ app_lcore_main_loop_io_worker(void *arg) {
     lp->cache = init_flowcache(app.kvs_type);
   }
   i = 0;
-  warg.dpmgr = arg;
   warg.pkt = NULL;
   for (;;) {
     if (APP_LCORE_WORKER_FLUSH &&
@@ -390,7 +405,7 @@ app_assign_worker_ids(void) {
  * NOTE: Intel DPDK supports only physical port of the NIC.
  */
 int
-lagopus_send_packet_physical(struct lagopus_packet *pkt, uint32_t portid) {
+dpdk_send_packet_physical(struct lagopus_packet *pkt, uint32_t portid) {
   struct app_lcore_params_worker *lp;
   unsigned lcore;
   struct rte_mbuf *m;
@@ -399,12 +414,13 @@ lagopus_send_packet_physical(struct lagopus_packet *pkt, uint32_t portid) {
   int ret;
 
   lcore = rte_lcore_id();
-  if (unlikely(lcore == 0)) {
+  if (unlikely(lcore == 0 || lcore == UINT_MAX)) {
     /**
      * so far, packet-out action is running on core 0 (comm thread.)
      * but comm thread not as worker, it does not have tx rings.
      * workaround: Use first worker core rings (preliminary.)
      */
+    lcore = 0;
     while (app.lcore_params[lcore].type != e_APP_LCORE_WORKER &&
            app.lcore_params[lcore].type != e_APP_LCORE_IO_WORKER) {
       lcore++;

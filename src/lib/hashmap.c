@@ -14,18 +14,17 @@
  * limitations under the License.
  */
 
-
 #include "lagopus_apis.h"
 
 
-
+
 
 
 #include "hash.h"
 #include "hash.c"
 
 
-
+
 
 
 typedef struct lagopus_hashmap_record {
@@ -38,29 +37,29 @@ typedef struct lagopus_hashmap_record {
 } lagopus_hashmap_record;
 
 
-
+
 
 
 static inline void
-s_read_lock(lagopus_hashmap_t hm) {
-  if (hm != NULL) {
-    (void)lagopus_rwlock_reader_enter_critical(&(hm->m_lock));
+s_read_lock(lagopus_hashmap_t hm, int *ostateptr) {
+  if (hm != NULL && ostateptr != NULL) {
+    (void)lagopus_rwlock_reader_enter_critical(&(hm->m_lock), ostateptr);
   }
 }
 
 
 static inline void
-s_write_lock(lagopus_hashmap_t hm) {
-  if (hm != NULL) {
-    (void)lagopus_rwlock_writer_enter_critical(&(hm->m_lock));
+s_write_lock(lagopus_hashmap_t hm, int *ostateptr) {
+  if (hm != NULL && ostateptr != NULL) {
+    (void)lagopus_rwlock_writer_enter_critical(&(hm->m_lock), ostateptr);
   }
 }
 
 
 static inline void
-s_unlock(lagopus_hashmap_t hm) {
+s_unlock(lagopus_hashmap_t hm, int ostate) {
   if (hm != NULL) {
-    (void)lagopus_rwlock_leave_critical(&(hm->m_lock));
+    (void)lagopus_rwlock_leave_critical(&(hm->m_lock), ostate);
   }
 }
 
@@ -157,7 +156,7 @@ s_reinit(lagopus_hashmap_t hm, bool free_values) {
 }
 
 
-
+
 
 
 void
@@ -206,15 +205,16 @@ void
 lagopus_hashmap_shutdown(lagopus_hashmap_t *hmptr, bool free_values) {
   if (hmptr != NULL &&
       *hmptr != NULL) {
+    int cstate;
 
-    s_write_lock(*hmptr);
+    s_write_lock(*hmptr, &cstate);
     {
       if ((*hmptr)->m_is_operational == true) {
         (*hmptr)->m_is_operational = false;
         s_clean(*hmptr, free_values);
       }
     }
-    s_unlock(*hmptr);
+    s_unlock(*hmptr, cstate);
 
   }
 }
@@ -224,15 +224,16 @@ void
 lagopus_hashmap_destroy(lagopus_hashmap_t *hmptr, bool free_values) {
   if (hmptr != NULL &&
       *hmptr != NULL) {
+    int cstate;
 
-    s_write_lock(*hmptr);
+    s_write_lock(*hmptr, &cstate);
     {
       if ((*hmptr)->m_is_operational == true) {
         (*hmptr)->m_is_operational = false;
         s_clean(*hmptr, free_values);
       }
     }
-    s_unlock(*hmptr);
+    s_unlock(*hmptr, cstate);
 
     lagopus_rwlock_destroy(&((*hmptr)->m_lock));
     free((void *)*hmptr);
@@ -247,8 +248,9 @@ lagopus_hashmap_clear(lagopus_hashmap_t *hmptr, bool free_values) {
 
   if (hmptr != NULL &&
       *hmptr != NULL) {
+    int cstate;
 
-    s_write_lock(*hmptr);
+    s_write_lock(*hmptr, &cstate);
     {
       if ((*hmptr)->m_is_operational == true) {
         (*hmptr)->m_is_operational = false;
@@ -259,7 +261,7 @@ lagopus_hashmap_clear(lagopus_hashmap_t *hmptr, bool free_values) {
         ret = LAGOPUS_RESULT_NOT_OPERATIONAL;
       }
     }
-    s_unlock(*hmptr);
+    s_unlock(*hmptr, cstate);
 
   } else {
     ret = LAGOPUS_RESULT_INVALID_ARGS;
@@ -269,7 +271,7 @@ lagopus_hashmap_clear(lagopus_hashmap_t *hmptr, bool free_values) {
 }
 
 
-
+
 
 
 static inline lagopus_result_t
@@ -321,12 +323,13 @@ lagopus_hashmap_find(lagopus_hashmap_t *hmptr, void *key, void **valptr) {
   if (hmptr != NULL &&
       *hmptr != NULL &&
       valptr != NULL) {
+    int cstate;
 
-    s_read_lock(*hmptr);
+    s_read_lock(*hmptr, &cstate);
     {
       ret = s_find(hmptr, key, valptr);
     }
-    s_unlock(*hmptr);
+    s_unlock(*hmptr, cstate);
 
   } else {
     ret = LAGOPUS_RESULT_INVALID_ARGS;
@@ -336,7 +339,7 @@ lagopus_hashmap_find(lagopus_hashmap_t *hmptr, void *key, void **valptr) {
 }
 
 
-
+
 
 
 static inline lagopus_result_t
@@ -384,12 +387,13 @@ lagopus_hashmap_add(lagopus_hashmap_t *hmptr,
   if (hmptr != NULL &&
       *hmptr != NULL &&
       valptr != NULL) {
+    int cstate;
 
-    s_write_lock(*hmptr);
+    s_write_lock(*hmptr, &cstate);
     {
       ret = s_add(hmptr, key, valptr, allow_overwrite);
     }
-    s_unlock(*hmptr);
+    s_unlock(*hmptr, cstate);
 
   } else {
     ret = LAGOPUS_RESULT_INVALID_ARGS;
@@ -419,7 +423,7 @@ lagopus_hashmap_add_no_lock(lagopus_hashmap_t *hmptr,
 }
 
 
-
+
 
 
 static inline lagopus_result_t
@@ -462,12 +466,13 @@ lagopus_hashmap_delete(lagopus_hashmap_t *hmptr,
 
   if (hmptr != NULL &&
       *hmptr != NULL) {
+    int cstate;
 
-    s_write_lock(*hmptr);
+    s_write_lock(*hmptr, &cstate);
     {
       ret = s_delete(hmptr, key, valptr, free_value);
     }
-    s_unlock(*hmptr);
+    s_unlock(*hmptr, cstate);
 
   } else {
     ret = LAGOPUS_RESULT_INVALID_ARGS;
@@ -496,7 +501,7 @@ lagopus_hashmap_delete_no_lock(lagopus_hashmap_t *hmptr,
 }
 
 
-
+
 
 
 static inline lagopus_result_t
@@ -528,15 +533,16 @@ lagopus_hashmap_iterate(lagopus_hashmap_t *hmptr,
   if (hmptr != NULL &&
       *hmptr != NULL &&
       proc != NULL) {
+    int cstate;
 
     /*
      * The proc could modify hash values so we use write lock.
      */
-    s_write_lock(*hmptr);
+    s_write_lock(*hmptr, &cstate);
     {
       ret = s_iterate(hmptr, proc, arg);
     }
-    s_unlock(*hmptr);
+    s_unlock(*hmptr, cstate);
 
   } else {
     ret = LAGOPUS_RESULT_INVALID_ARGS;
@@ -566,7 +572,7 @@ lagopus_hashmap_iterate_no_lock(lagopus_hashmap_t *hmptr,
 }
 
 
-
+
 
 
 lagopus_result_t
@@ -575,8 +581,9 @@ lagopus_hashmap_size(lagopus_hashmap_t *hmptr) {
 
   if (hmptr != NULL &&
       *hmptr != NULL) {
+    int cstate;
 
-    s_read_lock(*hmptr);
+    s_read_lock(*hmptr, &cstate);
     {
       if ((*hmptr)->m_is_operational == true) {
         ret = (*hmptr)->m_n_entries;
@@ -584,7 +591,7 @@ lagopus_hashmap_size(lagopus_hashmap_t *hmptr) {
         ret = LAGOPUS_RESULT_NOT_OPERATIONAL;
       }
     }
-    s_unlock(*hmptr);
+    s_unlock(*hmptr, cstate);
 
   } else {
     ret = LAGOPUS_RESULT_INVALID_ARGS;
@@ -622,10 +629,11 @@ lagopus_hashmap_statistics(lagopus_hashmap_t *hmptr, const char **msgptr) {
   if (hmptr != NULL &&
       *hmptr != NULL &&
       msgptr != NULL) {
+    int cstate;
 
     *msgptr = NULL;
 
-    s_read_lock(*hmptr);
+    s_read_lock(*hmptr, &cstate);
     {
       if ((*hmptr)->m_is_operational == true) {
         *msgptr = (const char *)HashStats(&((*hmptr)->m_hashtable));
@@ -638,7 +646,7 @@ lagopus_hashmap_statistics(lagopus_hashmap_t *hmptr, const char **msgptr) {
         ret = LAGOPUS_RESULT_NOT_OPERATIONAL;
       }
     }
-    s_unlock(*hmptr);
+    s_unlock(*hmptr, cstate);
 
   } else {
     ret = LAGOPUS_RESULT_INVALID_ARGS;

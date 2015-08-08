@@ -14,17 +14,16 @@
  * limitations under the License.
  */
 
-
 #include "lagopus_apis.h"
 
 
-
+
 
 
 extern int end;
 
 
-
+
 
 
 static bool s_is_running_under_valgrind = false;
@@ -32,7 +31,7 @@ static pthread_once_t s_once = PTHREAD_ONCE_INIT;
 static void s_ctors(void) __attr_constructor__(101);
 
 
-
+
 
 
 #if 0
@@ -73,7 +72,7 @@ s_ctors(void) {
 }
 
 
-
+
 
 
 static inline bool
@@ -103,7 +102,7 @@ s_is_mallocd(const void *addr) {
 #endif
 
 
-
+
 
 
 void

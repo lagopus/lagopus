@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 #include "unity.h"
 #include "../ofp_set_async_handler.h"
 #include "../ofp_apis.h"

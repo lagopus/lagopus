@@ -1,0 +1,12 @@
+#
+# 1. copy the following files to the /tmp
+#    - check_cmd_load_03_01.txt
+#    - check_cmd_load_03_02.txt
+#    - check_cmd_load_03_03.txt
+#
+# 2. run test
+#    $ ./check_cmd /tmp/check_cmd_load_03_01.txt
+#
+load /tmp/check_cmd_load_03_02.txt
+load /tmp/check_cmd_load_03_03.txt
+

@@ -14,18 +14,17 @@
  * limitations under the License.
  */
 
-
 #include "lagopus_apis.h"
 #include "lagopus_thread_internal.h"
 
 #include <math.h>
 
 
-#
+#
 
 
 typedef struct {
-  lagopus_thread_record m_thd;  /* must be on the head. */
+  lagopus_thread_record m_thd;	/* must be on the head. */
 
   lagopus_mutex_t m_start_lock;
 
@@ -35,7 +34,7 @@ typedef struct {
 typedef test_thread_record *test_thread_t;
 
 
-
+
 
 
 static void
@@ -174,7 +173,7 @@ done:
 }
 
 
-
+
 
 
 static lagopus_mutex_t start_lock = NULL;
@@ -487,9 +486,9 @@ do_run(size_t nthds, ssize_t nputs) {
     /*
      * Wait for an event.
      *
-     *  Note that we better set timeout, not waiting forever.
+     *	Note that we better set timeout, not waiting forever.
      */
-    r = lagopus_qmuxer_poll(&qmx, (lagopus_qmuxer_poll_t *const)polls,
+    r = lagopus_qmuxer_poll(&qmx, (lagopus_qmuxer_poll_t * const)polls,
                             n_need_watch,
                             100LL * 1000LL * 1000LL);
 
@@ -626,7 +625,7 @@ done:
 }
 
 
-
+
 
 
 static void

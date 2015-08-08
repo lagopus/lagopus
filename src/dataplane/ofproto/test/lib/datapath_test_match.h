@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 #ifndef __DATAPLANE_TEST_MATCH_H__
 #define __DATAPLANE_TEST_MATCH_H__
 
@@ -61,14 +60,14 @@ void add_vlan_pcp_match(struct match_list *match_list, uint8_t pcp);
  * Ethernet.
  */
 void add_eth_dst_match(struct match_list *restrict match_list,
-                       const uint8_t  *restrict addr);
+                       const uint8_t *restrict addr);
 void add_eth_dst_w_match(struct match_list *restrict match_list,
-                         const uint8_t *restrict addr,
+                         const uint8_t  *restrict addr,
                          const uint8_t *restrict mask);
 void add_eth_src_match(struct match_list *restrict match_list,
-                       const uint8_t  *restrict addr);
+                       const uint8_t *restrict addr);
 void add_eth_src_w_match(struct match_list *restrict match_list,
-                         const uint8_t *restrict addr,
+                         const uint8_t  *restrict addr,
                          const uint8_t *restrict mask);
 void add_eth_type_match(struct match_list *match_list, uint16_t type);
 

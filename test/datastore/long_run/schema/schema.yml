@@ -1,0 +1,70 @@
+%YAML 1.1
+---
+### NOTE: Partial schemas("include", "schema") is "pykwalify" extension.
+###       Sometimes "required" does not function in partial schema.
+
+## "cmd" item schema
+schema;cmd_schema:
+  type:  map
+  mapping:
+    "cmd_type":
+      type:  str
+      enum:  [ds, shell]
+      required:  true
+    "cmd":
+      type:  str
+      required:  true
+    "result":
+      type:  str
+    "timeout":
+      type:  int
+      default:  30
+
+## "cmds" item schema
+schema;cmds_schema:
+  required:  true
+  type:  seq
+  sequence:
+    - type:  map
+      mapping:
+        "repetition_count":
+          type:  int
+          range: {min:  1}
+          default:  1
+        "repetition_time":
+          type:  int
+          range: {min:  1}
+          #  minutes
+        "cmds":
+          type:  seq
+          required:  true
+          sequence:
+            - include:  cmd_schema
+
+## TOP level schema
+type:  map
+mapping:
+  "use":
+    type:  seq
+    sequence:
+      - type:  str
+        enum:  [lagopus, ryu]
+  "mode":
+    type:  str
+    enum:  [sync, async]
+  "setup":
+    include:  cmds_schema
+  "teardown":
+    include:  cmds_schema
+  "testcases":
+    type:  seq
+    required:  true
+    sequence:
+      - type:  map
+        mapping:
+          "testcase":
+            type:  str
+            required:  true
+          "test":
+            required:  true
+            include:  cmds_schema

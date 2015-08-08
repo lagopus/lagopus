@@ -1,31 +1,14 @@
-/*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
-
 #include "lagopus_apis.h"
 #include "lagopus_runnable_internal.h"
 
 
+
 
 
-
-#define DEFAULT_RUNNABLE_ALLOC_SZ       (sizeof(lagopus_runnable_record))
-
+#define DEFAULT_RUNNABLE_ALLOC_SZ	(sizeof(lagopus_runnable_record))
 
 
+
 
 
 lagopus_result_t
@@ -90,9 +73,13 @@ lagopus_runnable_destroy(lagopus_runnable_t *rptr) {
 }
 
 
-void
+lagopus_result_t
 lagopus_runnable_start(const lagopus_runnable_t *rptr) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+
   if (rptr != NULL && *rptr != NULL) {
-    ((*rptr)->m_func)(rptr, (*rptr)->m_arg);
+    ret = ((*rptr)->m_func)(rptr, (*rptr)->m_arg);
   }
+
+  return ret;
 }

@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-
 /**
- * @file        ofp_multipart_handler.h
+ * @file	ofp_multipart_handler.h
  */
 
 #ifndef __OFP_MURTIPART_HANDLER_H__
@@ -27,15 +26,15 @@
 /**
  * ofp_multipart_request handler.
  *
- *     @param[in]       channel A pointer to \e channel structure.
- *     @param[in]       pbuf    A pointer to \e pbuf structure.
- *     @param[in]       xid_header      A pointer to \e ofp_header structure in request.
- *     @param[out]      error   A pointer to \e ofp_error structure.
+ *     @param[in]	channel	A pointer to \e channel structure.
+ *     @param[in]	pbuf	A pointer to \e pbuf structure.
+ *     @param[in]	xid_header	A pointer to \e ofp_header structure in request.
+ *     @param[out]	error	A pointer to \e ofp_error structure.
  *     If errors occur, set filed values.
  *
- *     @retval  LAGOPUS_RESULT_OK       Succeeded.
- *     @retval  LAGOPUS_RESULT_OFP_ERROR Failed, ofp_error.
- *     @retval  LAGOPUS_RESULT_ANY_FAILURES Failed.
+ *     @retval	LAGOPUS_RESULT_OK	Succeeded.
+ *     @retval	LAGOPUS_RESULT_OFP_ERROR Failed, ofp_error.
+ *     @retval	LAGOPUS_RESULT_ANY_FAILURES Failed.
  */
 lagopus_result_t
 ofp_multipart_request_handle(struct channel *channel, struct pbuf *pbuf,
@@ -45,10 +44,10 @@ ofp_multipart_request_handle(struct channel *channel, struct pbuf *pbuf,
 /**
  * Set length for multipart.
  *
- *     @param[in,out]   multipart_head  A pointer to head of multipart in pbuf.
- *     @param[in]       length  Size of multipart packet.
+ *     @param[in,out]	multipart_head	A pointer to head of multipart in pbuf.
+ *     @param[in]	length	Size of multipart packet.
  *
- *     @retval  void
+ *     @retval	void
  */
 lagopus_result_t
 ofp_multipart_length_set(uint8_t *multipart_head,

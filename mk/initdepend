@@ -9,11 +9,14 @@ for i in `find . -type f -name 'Makefile.in'`; do
     if test -z "${z}"; then
 	continue
     fi
-    d=`echo ${i} | sed 's:Makefile.in:\.depend:'`
-    echo -n "Creating empty ${d} ... "
-    rm -f ${d}
-    > ${d}
-    echo "Done."
+    m=`echo ${i} | sed 's:Makefile.in:Makefile:'`
+    if test -r "${m}"; then
+	d=`echo ${i} | sed 's:Makefile.in:\.depend:'`
+	echo -n "Creating empty ${d} ... "
+	rm -f ${d}
+	> ${d}
+	echo "Done."
+    fi
 done
 
 exit 0

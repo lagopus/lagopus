@@ -14,13 +14,12 @@
  * limitations under the License.
  */
 
-
 #include "lagopus_apis.h"
 #include "qmuxer_types.h"
 #include "qmuxer_internal.h"
 
 
-
+
 
 
 static inline void
@@ -112,13 +111,13 @@ s_qmx_setup_for_poll(lagopus_qmuxer_t *qmxptr,
                                         is_pre);
           /*
            * Note:
-           *    st < 0:         Any lagopus API error(s).
-           *    st == 0:        The queue is readable/writable.
-           *    st == 1:        Need to wait for reaable.
-           *    st == 2:        Need to wait for writable.
-           *    st == 3:        Need to wait for both readable and writable.
-           *                    So this must not happen and the
-           *                    function guarantees it.
+           *	st < 0:		Any lagopus API error(s).
+           *	st == 0:	The queue is readable/writable.
+           *	st == 1:	Need to wait for reaable.
+           *	st == 2:	Need to wait for writable.
+           *	st == 3:	Need to wait for both readable and writable.
+           *			So this must not happen and the
+           *			function guarantees it.
            */
           if (st == 0) {
             /*
@@ -169,7 +168,7 @@ done:
 }
 
 
-
+
 
 
 lagopus_result_t
@@ -203,7 +202,7 @@ lagopus_qmuxer_destroy(lagopus_qmuxer_t *qmxptr) {
 }
 
 
-
+
 
 
 lagopus_result_t
@@ -214,92 +213,119 @@ lagopus_qmuxer_poll(lagopus_qmuxer_t *qmxptr,
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
 
   if (qmxptr != NULL &&
-      *qmxptr != NULL &&
-      polls != NULL &&
-      npolls > 0) {
+      *qmxptr != NULL) {
 
-  recheck:
-    /*
-     * Setup the polls for pre-wait.
-     */
-    ret = s_qmx_setup_for_poll(qmxptr, polls, npolls, true);
-    if (ret == 0) {
+    if (polls != NULL &&
+        npolls > 0) {
 
+    recheck:
       /*
-       * Need to wait.
-       *
-       * Note:
-       *        As you see, locking the muxer itself is almost
-       *        meaningless. If we don't need to concern about the
-       *        performance, we want to lock the qmuxer just like
-       *        using a giant lock among all the queues in the
-       *        polls. Only reason to lock the *qmxptr is because
-       *        pthread_cond_wait() needs it, at least at this
-       *        moment. We would change this if the qmuxer mechanism
-       *        seems doropping events regular basis and if we realize
-       *        that catching events is more important than the
-       *        overall performance.
+       * Setup the polls for pre-wait.
        */
-      s_lock(*qmxptr);
-      {
-        ret = lagopus_cond_wait(&((*qmxptr)->m_cond),
-                                &((*qmxptr)->m_lock),
-                                nsec);
-      }
-      s_unlock(*qmxptr);
+      ret = s_qmx_setup_for_poll(qmxptr, polls, npolls, true);
+      if (ret == 0) {
 
-      if (ret == LAGOPUS_RESULT_OK) {
         /*
-         * Check if any events occur on all bbq/polls.
+         * Need to wait.
+         *
+         * Note:
+         *	As you see, locking the muxer itself is almost
+         *	meaningless. If we don't need to concern about the
+         *	performance, we want to lock the qmuxer just like
+         *	using a giant lock among all the queues in the
+         *	polls. Only reason to lock the *qmxptr is because
+         *	pthread_cond_wait() needs it, at least at this
+         *	moment. We would change this if the qmuxer mechanism
+         *	seems doropping events regular basis and if we realize
+         *	that catching events is more important than the
+         *	overall performance.
          */
-        ret = s_qmx_setup_for_poll(qmxptr, polls, npolls, false);
-        if (ret != 0) {
-          /*
-           * ret > 0 ... Having at least a queue that is ready for
-           *               play with.
-           * ret < 0 ... An error.
-           *
-           *    no matter what the ret is we have to return anyway.
-           */
-          goto done;
-        } else {
-          /*
-           * What happens here:
-           *
-           *    We are just awakened even the queues have no
-           *    events (means ret == 0). Why ?:
-           *
-           *            1) We are running on a operating system other
-           *            than the Linux since the Linux guarantees that
-           *            the sleepers in pthread_cond_wait(3) are
-           *            awakened ONLY by calling the
-           *            pthread_cond_broadcast(3)/pthread_cond_signal(3),
-           *            no system dependent events wakes the sleepers.
-           *
-           *            2) Most likely, any other threads just steal
-           *            the events already. If this occured, maybe you
-           *            better think why and rewrite your code.
-           *
-           *    Anyway, we have to start this all over again.
-           */
-          goto recheck;
+        s_lock(*qmxptr);
+        {
+          ret = lagopus_cond_wait(&((*qmxptr)->m_cond),
+                                  &((*qmxptr)->m_lock),
+                                  nsec);
         }
+        s_unlock(*qmxptr);
+
+        if (ret == LAGOPUS_RESULT_OK) {
+          /*
+           * Check if any events occur on all bbq/polls.
+           */
+          ret = s_qmx_setup_for_poll(qmxptr, polls, npolls, false);
+          if (ret != 0) {
+            /*
+             * ret > 0 ... Having at least a queue that is ready for
+             *		   play with.
+             * ret < 0 ... An error.
+             *
+             *	no matter what the ret is we have to return anyway.
+             */
+            goto done;
+          } else {
+            /*
+             * What happens here:
+             *
+             *	We are just awakened even the queues have no
+             *	events (means ret == 0). Why ?:
+             *
+             *		1) We are running on a operating system other
+             *		than the Linux since the Linux guarantees that
+             *		the sleepers in pthread_cond_wait(3) are
+             *		awakened ONLY by calling the
+             *		pthread_cond_broadcast(3)/pthread_cond_signal(3),
+             *		no system dependent events wakes the sleepers.
+             *
+             *		2) Most likely, any other threads just steal
+             *		the events already. If this occured, maybe you
+             *		better think why and rewrite your code.
+             *
+             *	Anyway, we have to start this all over again.
+             */
+            goto recheck;
+          }
+        }
+        /*
+         * else {
+         *	Any errors occur. Just return.
+         * }
+         */
       }
       /*
        * else {
-       *        Any errors occur. Just return.
+       *	We already have at least a queue having events, or, an
+       *	error occurs. Either ways Just return.
        * }
        */
+    } else {
+      if (nsec > 0) {
+        /*
+         * No queues to poll are specified but a timeout is
+         * specified. Just wait.
+         */
+        s_lock(*qmxptr);
+        {
+          ret = lagopus_cond_wait(&((*qmxptr)->m_cond),
+                                  &((*qmxptr)->m_lock),
+                                  nsec);
+        }
+        s_unlock(*qmxptr);
+      } else {
+        ret = LAGOPUS_RESULT_INVALID_ARGS;
+      }
     }
-    /*
-     * else {
-     *  We already have at least a queue having events, or, an
-     *  error occurs. Either ways Just return.
-     * }
-     */
-
   } else {
-    ret = LAGOPUS_RESULT_INVALID_ARGS;
+    if (nsec > 0) {
+      /*
+       * No valid muxer is specified. just sleep.
+       */
+      ret = lagopus_chrono_nanosleep(nsec, NULL);
+      if (ret == LAGOPUS_RESULT_OK) {
+        ret = LAGOPUS_RESULT_TIMEDOUT;
+      }
+    } else {
+      ret = LAGOPUS_RESULT_INVALID_ARGS;
+    }
   }
 
 done:
@@ -307,7 +333,7 @@ done:
 }
 
 
-
+
 
 
 void

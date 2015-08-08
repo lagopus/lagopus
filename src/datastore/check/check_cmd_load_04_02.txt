@@ -1,0 +1,8 @@
+channel channel01 create -dst-addr 127.0.0.1 -dst-port 12345 -protocol tcp
+controller controller01 create -channel channel01 -role equal -connection-type main
+interface eth0 create -type ethernet-rawsock -port-number 0
+interface eth1 create -type ethernet-rawsock -port-number 1
+port port01 create -interface eth0
+port port02 create -interface eth1
+bridge bridge01 create -controller controller01 -port port01 1 -port port02 2 -dpid 0x1
+

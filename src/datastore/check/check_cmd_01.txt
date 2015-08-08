@@ -1,0 +1,59 @@
+interface eth0 create --type ethernet --port-number 100
+# output:
+#  {"ret":"OK"}
+
+interface eth0 enable
+# output:
+#  {"ret":"OK"}
+
+interface eth1 create --type ethernet --port-number 200
+# output:
+#  {"ret":"OK"}
+
+interface
+# output:
+#  {"ret":"OK",
+#   "data":[{"name":"eth0",
+#   "type":"ethernet",
+#   "port-number":100,
+#   "is-used":false,
+#   "is-enabled":true},
+#  {"name":"eth1",
+#   "type":"ethernet",
+#   "port-number":200,
+#   "is-used":false,
+#   "is-enabled":false}]}
+
+interface eth0
+# output:
+#  {"ret":"OK",
+#   "data":[{"name":"eth0",
+#   "type":"ethernet",
+#   "port-number":100,
+#   "is-used":false,
+#   "is-enabled":true}]}
+
+interface eth0 create --type ethernet --port-number 100
+# output:
+#  {"ret":"ALREADY_EXISTS",
+#   "data":"name = eth0"}
+
+interface eth0 disable
+# output:
+#  {"ret":"OK"}
+
+interface eth0 destroy
+# output:
+#  {"ret":"OK"}
+
+interface eth1 disable
+# output:
+#  {"ret":"OK"}
+
+interface eth1 destroy
+# output:
+#  {"ret":"OK"}
+
+interface eth0 create --type ethernet --port-number 100
+# output:
+#  {"ret":"OK"}

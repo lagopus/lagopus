@@ -14,18 +14,18 @@
  * limitations under the License.
  */
 
-
 #include "lagopus_apis.h"
 #include "lagopus_thread_internal.h"
 
 
+
 
 
+#define MAX_CPUS	1024	/* Yeah, we mean it. */
+#define DEFAULT_THREAD_ALLOC_SZ	(sizeof(lagopus_thread_record))
 
-#define MAX_CPUS        1024    /* Yeah, we mean it. */
 
-
-
+
 
 
 static pthread_once_t s_once = PTHREAD_ONCE_INIT;
@@ -35,11 +35,11 @@ static lagopus_hashmap_t s_alloc_tbl;
 #ifdef HAVE_PTHREAD_SETAFFINITY_NP
 static size_t s_cpu_set_sz;
 #endif /* HAVE_PTHREAD_SETAFFINITY_NP */
-static void s_ctors(void) __attr_constructor__(104);
-static void s_dtors(void) __attr_destructor__(104);
+static void s_ctors(void) __attr_constructor__(105);
+static void s_dtors(void) __attr_destructor__(105);
 
 
-
+
 
 
 static void
@@ -116,32 +116,32 @@ s_dtors(void) {
 }
 
 
-
+
 
 
 static inline void
-s_add_thd(lagopus_thread_t thd) {
+s_add_thd(const lagopus_thread_t thd) {
   void *val = (void *)true;
   (void)lagopus_hashmap_add(&s_thd_tbl, (void *)thd, &val, true);
 }
 
 
 static inline void
-s_alloc_mark_thd(lagopus_thread_t thd) {
+s_alloc_mark_thd(const lagopus_thread_t thd) {
   void *val = (void *)true;
   (void)lagopus_hashmap_add(&s_alloc_tbl, (void *)thd, &val, true);
 }
 
 
 static inline void
-s_delete_thd(lagopus_thread_t thd) {
+s_delete_thd(const lagopus_thread_t thd) {
   (void)lagopus_hashmap_delete(&s_thd_tbl, (void *)thd, NULL, true);
   (void)lagopus_hashmap_delete(&s_alloc_tbl, (void *)thd, NULL, true);
 }
 
 
 static inline bool
-s_is_thd(lagopus_thread_t thd) {
+s_is_thd(const lagopus_thread_t thd) {
   void *val;
   lagopus_result_t r = lagopus_hashmap_find(&s_thd_tbl, (void *)thd, &val);
   return (r == LAGOPUS_RESULT_OK && (bool)val == true) ?
@@ -150,7 +150,7 @@ s_is_thd(lagopus_thread_t thd) {
 
 
 static inline bool
-s_is_alloc_marked(lagopus_thread_t thd) {
+s_is_alloc_marked(const lagopus_thread_t thd) {
   void *val;
   lagopus_result_t r = lagopus_hashmap_find(&s_alloc_tbl, (void *)thd, &val);
   return (r == LAGOPUS_RESULT_OK && (bool)val == true) ?
@@ -159,7 +159,7 @@ s_is_alloc_marked(lagopus_thread_t thd) {
 
 
 static inline void
-s_op_lock(lagopus_thread_t thd) {
+s_op_lock(const lagopus_thread_t thd) {
   if (thd != NULL) {
     (void)lagopus_mutex_lock(&(thd->m_op_lock));
   }
@@ -167,7 +167,7 @@ s_op_lock(lagopus_thread_t thd) {
 
 
 static inline void
-s_op_unlock(lagopus_thread_t thd) {
+s_op_unlock(const lagopus_thread_t thd) {
   if (thd != NULL) {
     (void)lagopus_mutex_unlock(&(thd->m_op_lock));
   }
@@ -175,7 +175,7 @@ s_op_unlock(lagopus_thread_t thd) {
 
 
 static inline void
-s_wait_lock(lagopus_thread_t thd) {
+s_wait_lock(const lagopus_thread_t thd) {
   if (thd != NULL) {
     (void)lagopus_mutex_lock(&(thd->m_wait_lock));
   }
@@ -183,7 +183,7 @@ s_wait_lock(lagopus_thread_t thd) {
 
 
 static inline void
-s_wait_unlock(lagopus_thread_t thd) {
+s_wait_unlock(const lagopus_thread_t thd) {
   if (thd != NULL) {
     (void)lagopus_mutex_unlock(&(thd->m_wait_lock));
   }
@@ -191,7 +191,7 @@ s_wait_unlock(lagopus_thread_t thd) {
 
 
 static inline void
-s_cancel_lock(lagopus_thread_t thd) {
+s_cancel_lock(const lagopus_thread_t thd) {
   if (thd != NULL) {
     (void)lagopus_mutex_lock(&(thd->m_cancel_lock));
   }
@@ -199,14 +199,14 @@ s_cancel_lock(lagopus_thread_t thd) {
 
 
 static inline void
-s_cancel_unlock(lagopus_thread_t thd) {
+s_cancel_unlock(const lagopus_thread_t thd) {
   if (thd != NULL) {
     (void)lagopus_mutex_unlock(&(thd->m_cancel_lock));
   }
 }
 
 
-
+
 
 
 static inline lagopus_result_t
@@ -294,34 +294,6 @@ s_finalize(lagopus_thread_t thd, bool is_canceled) {
 static inline void
 s_delete(lagopus_thread_t thd) {
   if (thd != NULL) {
-#if 0
-    if (s_is_thd(thd) == true) {
-      if (lagopus_heapcheck_is_mallocd((const void *)thd) == true) {
-        if (s_is_alloc_marked(thd) == true) {
-
-          lagopus_msg_debug(5, "free %p\n", (void *)thd);
-          free((void *)thd);
-        } else {
-          lagopus_msg_debug(5, "%p is a thread object NOT allocated by the "
-                            "lagopus_thread_create(). If you want to free(3) "
-                            "this by calling the lagopus_thread_destroy(), "
-                            "call lagopus_thread_free_when_destroy(%p).\n",
-                            (void *)thd, (void *)thd);
-        }
-      } else if (lagopus_heapcheck_is_in_heap((const void *)thd) == true) {
-        lagopus_msg_debug(5, "A thread was allocated in a heap address (%p) "
-                          "but it is not a head address of malloc()'d block. "
-                          "Call free(3) for the block containing the address "
-                          "%p explicitly or it will leak.\n",
-                          (void *)thd, (void *)thd);
-      } else {
-        lagopus_msg_debug(10, "A thread was created in an address %p and it "
-                          "seems not in the heap area.\n", (void *)thd);
-      }
-
-      s_delete_thd(thd);
-    }
-#else
     if (s_is_thd(thd) == true) {
       if (s_is_alloc_marked(thd) == true) {
         lagopus_msg_debug(5, "free %p\n", (void *)thd);
@@ -341,7 +313,6 @@ s_delete(lagopus_thread_t thd) {
 
       s_delete_thd(thd);
     }
-#endif
   }
 }
 
@@ -366,7 +337,9 @@ s_destroy(lagopus_thread_t *thdptr, bool is_clean_finish) {
       }
 
       if ((*thdptr)->m_cpusetptr != NULL) {
+#ifdef HAVE_PTHREAD_SETAFFINITY_NP
         CPU_FREE((*thdptr)->m_cpusetptr);
+#endif /* HAVE_PTHREAD_SETAFFINITY_NP */
         (*thdptr)->m_cpusetptr = NULL;
       }
 
@@ -395,15 +368,11 @@ s_destroy(lagopus_thread_t *thdptr, bool is_clean_finish) {
     }
 
     s_delete(*thdptr);
-
-  } else {
-    lagopus_msg_error("Trying to delete a non-thread pointer (%p) "
-                      "as a thread.\n", (void *)*thdptr);
   }
 }
 
 
-
+
 
 
 static void
@@ -459,8 +428,8 @@ s_pthd_entry_point(void *ptr) {
       /*
        * A BOGUS ALERT:
        *
-       *        OMG, according to clang/scan-build, the thd is
-       *        modified here. How could I live like this?
+       *	OMG, according to clang/scan-build, the thd is
+       *	modified here. How could I live like this?
        */
       ret = thd->m_main_proc(tptr, thd->m_arg);
       is_cleanly_finished = true;
@@ -472,8 +441,8 @@ s_pthd_entry_point(void *ptr) {
       /*
        * A BOGUS ALERT:
        *
-       *        OMG, also according to clang/scan-build, the thd could
-       *        be NULL. How could I live like this?
+       *	OMG, also according to clang/scan-build, the thd could
+       *	be NULL. How could I live like this?
        */
       thd->m_result_code = ret;
     }
@@ -486,7 +455,51 @@ s_pthd_entry_point(void *ptr) {
 }
 
 
+
 
+
+lagopus_result_t
+lagopus_thread_create_with_size(lagopus_thread_t *thdptr,
+                                size_t alloc_size,
+                                lagopus_thread_main_proc_t mainproc,
+                                lagopus_thread_finalize_proc_t finalproc,
+                                lagopus_thread_freeup_proc_t freeproc,
+                                const char *name,
+                                void *arg) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+
+  if (thdptr != NULL &&
+      mainproc != NULL) {
+    lagopus_thread_t thd;
+
+    if (*thdptr == NULL) {
+      size_t sz = (DEFAULT_THREAD_ALLOC_SZ > alloc_size) ?
+          DEFAULT_THREAD_ALLOC_SZ : alloc_size;
+      thd = (lagopus_thread_t)malloc(sz);
+      if (thd != NULL) {
+        *thdptr = thd;
+        s_alloc_mark_thd(thd);
+      } else {
+        *thdptr = NULL;
+        ret = LAGOPUS_RESULT_NO_MEMORY;
+        goto done;
+      }
+    } else {
+      thd = *thdptr;
+    }
+
+    ret = s_initialize(thd, mainproc, finalproc, freeproc, name, arg);
+    if (ret != LAGOPUS_RESULT_OK) {
+      s_destroy(&thd, false);
+    }
+
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+done:
+  return ret;
+}
 
 
 lagopus_result_t
@@ -496,37 +509,9 @@ lagopus_thread_create(lagopus_thread_t *thdptr,
                       lagopus_thread_freeup_proc_t freeproc,
                       const char *name,
                       void *arg) {
-  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
-
-  if (thdptr != NULL &&
-      mainproc != NULL) {
-    lagopus_thread_t thd;
-
-    if (*thdptr != NULL) {
-      thd = *thdptr;
-    } else {
-      thd = (lagopus_thread_t)malloc(sizeof(*thd));
-      if (thd == NULL) {
-        *thdptr = NULL;
-        ret = LAGOPUS_RESULT_NO_MEMORY;
-        goto done;
-      }
-      s_alloc_mark_thd(thd);
-    }
-    ret = s_initialize(thd, mainproc, finalproc, freeproc, name, arg);
-    if (ret != LAGOPUS_RESULT_OK) {
-      s_destroy(&thd, false);
-      thd = NULL;
-    }
-    if (*thdptr == NULL) {
-      *thdptr = thd;
-    }
-  } else {
-    ret = LAGOPUS_RESULT_INVALID_ARGS;
-  }
-
-done:
-  return ret;
+  return lagopus_thread_create_with_size(thdptr, 0,
+                                         mainproc, finalproc, freeproc,
+                                         name, arg);
 }
 
 

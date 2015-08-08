@@ -1,0 +1,42 @@
+use:
+  - lagopus
+
+mode: async
+
+setup:
+  - cmds:
+      - cmd_type: shell
+        cmd: "{{ shell_dir }}/dummy_eth_up.sh lago_eth 1"
+        result: "0"
+      - cmd_type: ds
+        cmd: channel channel01 create -dst-addr 127.0.0.1 -protocol tcp
+      - cmd_type: ds
+        cmd: >-
+          controller controller01 create -channel channel01
+          -role equal -connection-type main
+      - cmd_type: ds
+        cmd: >-
+          interface interface01 create -type ethernet-rawsock
+          -device lago_eth0 -port-number 1
+      - cmd_type: ds
+        cmd: port port01 create -interface interface01
+
+teardown:
+  - cmds:
+      - cmd_type: ds
+        cmd: destroy-all-obj
+      - cmd_type: shell
+        cmd: "{{ shell_dir }}/dummy_eth_down.sh lago_eth 1"
+        result: "0"
+
+testcases:
+  - testcase: create/destory bridge, one day
+    test:
+      - repetition_time: 1440 # minutes
+        cmds:
+          - cmd_type: ds
+            cmd: >-
+              bridge bridge01 create -controller controller01
+              -port port01 1 -dpid 0x1
+          - cmd_type: ds
+            cmd: bridge bridge01 destroy

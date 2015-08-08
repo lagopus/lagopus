@@ -14,21 +14,20 @@
  * limitations under the License.
  */
 
-
 #include "lagopus_apis.h"
 #include "lagopus_version.h"
-
 #include "agent.h"
-#include "confsys.h"
+
+#include "lagopus/datastore.h"
 
 
 
 
 
-#define ONE_SEC         1000LL * 1000LL * 1000LL
-#define REQ_TIMEDOUT    ONE_SEC
+#define ONE_SEC		1000LL * 1000LL * 1000LL
+#define REQ_TIMEDOUT	ONE_SEC
 
-#define DEFAULT_PIDFILE_DIR     "/var/run/"
+#define DEFAULT_PIDFILE_DIR	"/var/run/"
 
 
 
@@ -96,7 +95,7 @@ s_daemonize(int exclude_fd) {
 
   i = open("/dev/null", O_WRONLY);
   if (i > 2) {
-    (void)dup2(1, i);
+    (void)dup2(2, i);
     (void)close(i);
   }
 }
@@ -151,7 +150,7 @@ static void
 s_hup_handler(int sig) {
   (void)sig;
 
-  if (lagopus_log_get_destination() == LAGOPUS_LOG_EMIT_TO_FILE) {
+  if (lagopus_log_get_destination(NULL) == LAGOPUS_LOG_EMIT_TO_FILE) {
     lagopus_msg_info("The log file turned over.\n");
     (void)lagopus_log_reinitialize();
     lagopus_msg_info("The log file turned over.\n");
@@ -165,7 +164,7 @@ s_hup_handler(int sig) {
 static const char *s_progname;
 static const char *s_logfile;
 static const char *s_pidfile;
-static const char *s_conffile;
+static const char *s_configfile;
 static char s_pidfile_buf[PATH_MAX];
 
 static uint16_t s_debug_level = 0;
@@ -207,9 +206,9 @@ parse_args(int argc, const char *const argv[]) {
 
   /*
    * FIXME:
-   *    Avoid to use getopt() for proper multi-modules initialization.
+   *	Avoid to use getopt() for proper multi-modules initialization.
    */
-  while ((o = getopt_long(argc, (char *const *)argv,
+  while ((o = getopt_long(argc, (char * const *)argv,
                           "dh?vl:p:C:", s_longopts, NULL)) != EOF) {
     switch (o) {
       case 0: {
@@ -243,7 +242,7 @@ parse_args(int argc, const char *const argv[]) {
         break;
       }
       case 'C': {
-        s_conffile = optarg;
+        s_configfile = optarg;
         break;
       }
       default: {
@@ -297,29 +296,26 @@ s_del_pidfile(void) {
 static inline int
 s_do_main(int argc, const char *const argv[], int ipcfd) {
   lagopus_result_t st = LAGOPUS_RESULT_ANY_FAILURES;
+  shutdown_grace_level_t l = SHUTDOWN_UNKNOWN;
 
   lagopus_msg_info("Initializing all the modules.\n");
 
   (void)global_state_set(GLOBAL_STATE_INITIALIZING);
 
   if ((st = lagopus_module_initialize_all(argc,
-                                          (const char *const *)argv)) ==
+                                          (const char * const *)argv)) ==
       LAGOPUS_RESULT_OK &&
       s_got_term_sig == false) {
 
     lagopus_msg_info("All the modules are initialized.\n");
-
     lagopus_msg_info("Starting all the modules.\n");
 
     (void)global_state_set(GLOBAL_STATE_STARTING);
     if ((st = lagopus_module_start_all()) ==
         LAGOPUS_RESULT_OK &&
         s_got_term_sig == false) {
-      shutdown_grace_level_t l = SHUTDOWN_UNKNOWN;
 
       lagopus_msg_info("All the modules are started and ready to go.\n");
-
-      config_propagate_lagopus_conf(s_conffile);
 
       (void)global_state_set(GLOBAL_STATE_STARTED);
 
@@ -337,7 +333,7 @@ s_do_main(int argc, const char *const argv[], int ipcfd) {
       while ((st = global_state_wait_for_shutdown_request(&l,
                    REQ_TIMEDOUT)) ==
              LAGOPUS_RESULT_TIMEDOUT) {
-        lagopus_msg_debug(5, "Waiting for the shutdown request...\n");
+        lagopus_msg_debug(10, "Waiting for the shutdown request...\n");
       }
       if (st == LAGOPUS_RESULT_OK) {
         (void)global_state_set(GLOBAL_STATE_ACCEPT_SHUTDOWN);
@@ -384,32 +380,55 @@ s_do_main(int argc, const char *const argv[], int ipcfd) {
 
 int
 main(int argc, const char *const argv[]) {
+  lagopus_result_t r = LAGOPUS_RESULT_ANY_FAILURES;
   lagopus_log_destination_t dst = LAGOPUS_LOG_EMIT_TO_UNKNOWN;
   const char *logarg;
-  char *p;
-  uint16_t cur_debug_level = lagopus_log_get_debug_level();
+  uint16_t cur_debug_level = 0;
   int ipcfds[2];
 
   ipcfds[0] = -1;
   ipcfds[1] = -1;
 
-  s_progname = ((p = strrchr(argv[0], '/')) != NULL) ? ++p : argv[0];
+  (void)lagopus_set_command_name(argv[0]);
+  s_progname = lagopus_get_command_name();
 
   parse_args(argc, argv);
+
+  if (IS_VALID_STRING(s_configfile) == true) {
+    if ((r = datastore_set_config_file(s_configfile)) != LAGOPUS_RESULT_OK) {
+      lagopus_perror(r);
+      lagopus_msg_error("can't use '%s' as a configuration file.\n",
+                        s_configfile);
+      goto bailout;
+    }
+  }
+  s_configfile = NULL;
+  (void)datastore_get_config_file(&s_configfile);
+
+  r = datastore_preload_config();
+  if (r != LAGOPUS_RESULT_OK) {
+    lagopus_perror(r);
+    lagopus_msg_error("can't load the minimum configuration parameters "
+                      "from '%s'.\n", s_configfile);
+    goto bailout;
+  }
 
   if (IS_VALID_STRING(s_logfile) == true) {
     dst = LAGOPUS_LOG_EMIT_TO_FILE;
     logarg = s_logfile;
   } else {
-    dst = LAGOPUS_LOG_EMIT_TO_SYSLOG;
-    logarg = s_progname;
+    logarg = NULL;
+    dst = lagopus_log_get_destination(&logarg);
+    if (dst == LAGOPUS_LOG_EMIT_TO_UNKNOWN) {
+      dst = LAGOPUS_LOG_EMIT_TO_SYSLOG;
+      logarg = s_progname;
+    }
   }
-  /*
-   * If the cur_debug_level > 0 the debug level is set by the lagopus
-   * runtime so use it as is.
-   */
+
+  cur_debug_level = lagopus_log_get_debug_level();
+
   (void)lagopus_log_initialize(dst, logarg, false, true,
-                               (cur_debug_level > 0) ?
+                               (cur_debug_level > s_debug_level) ?
                                cur_debug_level : s_debug_level);
 
   (void)lagopus_signal(SIGHUP, s_hup_handler, NULL);
@@ -441,7 +460,7 @@ main(int argc, const char *const argv[]) {
 
     } else if (pid == 0) {
       s_daemonize(ipcfds[1]);
-      if (lagopus_log_get_destination() == LAGOPUS_LOG_EMIT_TO_FILE) {
+      if (lagopus_log_get_destination(NULL) == LAGOPUS_LOG_EMIT_TO_FILE) {
         (void)lagopus_log_reinitialize();
       }
     } else {
@@ -452,4 +471,7 @@ main(int argc, const char *const argv[]) {
   }
 
   return s_do_main(argc, argv, ipcfds[1]);
+
+bailout:
+  return (r == LAGOPUS_RESULT_OK) ? 0 : 1;
 }

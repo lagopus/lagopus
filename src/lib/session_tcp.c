@@ -14,25 +14,24 @@
  * limitations under the License.
  */
 
-
 #include "lagopus_apis.h"
-#include "lagopus/session.h"
-#include "lagopus/session_internal.h"
+#include "lagopus_session.h"
+#include "session_internal.h"
 
-struct session *session_tcp_init(struct session *);
+lagopus_session_t session_tcp_init(lagopus_session_t );
 
 static ssize_t
-read_tcp(struct session *s, void *buf, size_t n) {
+read_tcp(lagopus_session_t s, void *buf, size_t n) {
   return read(s->sock, buf, n);
 }
 
 static ssize_t
-write_tcp(struct session *s, void *buf, size_t n) {
+write_tcp(lagopus_session_t s, void *buf, size_t n) {
   return write(s->sock, buf, n);
 }
 
-struct session *
-session_tcp_init(struct session *s) {
+lagopus_session_t
+session_tcp_init(lagopus_session_t s) {
   s->read = read_tcp;
   s->write = write_tcp;
 

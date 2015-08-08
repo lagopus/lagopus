@@ -1,5 +1,7 @@
 DATAPLANE/usr/sbin/*                  usr/sbin/
 DATAPLANE/usr/lib/*                   usr/lib/
+DATAPLANE/usr/sbin/of_config/*        usr/sbin/of_config/
+DATAPLANE/usr/sbin/ovsdb/*            usr/sbin/ovsdb/
 DATAPLANE/etc/lagopus/*               etc/lagopus/
 DATAPLANE/usr/include/*               usr/include/
 DATAPLANE/usr/share/doc/lagopus/*     usr/share/doc/@PKG_NAME@-DATAPLANE/

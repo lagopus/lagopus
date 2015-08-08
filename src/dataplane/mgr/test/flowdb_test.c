@@ -14,12 +14,10 @@
  * limitations under the License.
  */
 
-
 #include <sys/queue.h>
 #include "unity.h"
 #include "lagopus_apis.h"
 #include "lagopus/pbuf.h"
-#include "lagopus/dpmgr.h"
 #include "lagopus/flowdb.h"
 #include "lagopus/flowinfo.h"
 #include "lagopus/group.h"
@@ -88,7 +86,6 @@ build_metadata(const uint8_t *b) {
 /*
  * Common setup and teardown.
  */
-static struct dpmgr *dpmgr;
 static struct bridge *bridge;
 static struct flowdb *flowdb;
 static struct vector *ports;
@@ -103,16 +100,19 @@ void ports_free(struct vector *v);
 
 void
 setUp(void) {
-  TEST_ASSERT_NULL(dpmgr);
+  datastore_bridge_info_t info;
+
   TEST_ASSERT_NULL(bridge);
   TEST_ASSERT_NULL(flowdb);
   TEST_ASSERT_NULL(ports);
   TEST_ASSERT_NULL(group_table);
 
-  TEST_ASSERT_NOT_NULL(dpmgr = dpmgr_alloc());
-  TEST_ASSERT_TRUE(LAGOPUS_RESULT_OK == dpmgr_bridge_add(dpmgr, bridge_name,
-                   dpid));
-  TEST_ASSERT_NOT_NULL(bridge = dpmgr_bridge_lookup(dpmgr, bridge_name));
+  TEST_ASSERT_EQUAL(dp_api_init(), LAGOPUS_RESULT_OK);
+  memset(&info, 0, sizeof(info));
+  info.dpid = dpid;
+  info.fail_mode = DATASTORE_BRIDGE_FAIL_MODE_SECURE;
+  TEST_ASSERT_TRUE(LAGOPUS_RESULT_OK == dp_bridge_create(bridge_name, &info));
+  TEST_ASSERT_NOT_NULL(bridge = dp_bridge_lookup(bridge_name));
   TEST_ASSERT_NOT_NULL(flowdb = bridge->flowdb);
   TEST_ASSERT_NOT_NULL(ports = ports_alloc());
   TEST_ASSERT_NOT_NULL(group_table = group_table_alloc(bridge));
@@ -120,22 +120,19 @@ setUp(void) {
 
 void
 tearDown(void) {
-  TEST_ASSERT_NOT_NULL(dpmgr);
   TEST_ASSERT_NOT_NULL(bridge);
   TEST_ASSERT_NOT_NULL(flowdb);
   TEST_ASSERT_NOT_NULL(ports);
   TEST_ASSERT_NOT_NULL(group_table);
 
-  TEST_ASSERT_TRUE(LAGOPUS_RESULT_OK == dpmgr_bridge_delete(dpmgr, bridge_name));
+  TEST_ASSERT_TRUE(LAGOPUS_RESULT_OK == dp_bridge_destroy(bridge_name));
   ports_free(ports);
   group_table_free(group_table);
-  dpmgr_free(dpmgr);
 
   ports = NULL;
   group_table = NULL;
   flowdb = NULL;
   bridge = NULL;
-  dpmgr = NULL;
 }
 
 void
@@ -251,8 +248,8 @@ add_write_metadata_instruction(struct instruction_list *instruction_list,
   ofp_insn = (struct ofp_instruction_write_metadata *)&insn->ofpit;
   ofp_insn->type = OFPIT_WRITE_METADATA;
   /* lagopus_set_instruction_function(insn); */
-  insn->exec = (lagopus_result_t (*)(struct lagopus_packet *,
-                                     const struct instruction *))stub_write_metadata;
+  insn->exec = (lagopus_result_t ( *)(struct lagopus_packet *,
+                                      const struct instruction *))stub_write_metadata;
   /* OS_MEMCPY(&pkt.of_metadata, md_i, sizeof(uint64_t)); */
   ofp_insn->metadata = build_metadata(md_n[mdset]);
   ofp_insn->metadata_mask =  build_metadata(md_m);
@@ -350,19 +347,19 @@ test_flowdb_flow_add(void) {
  */
 
 /* Assert if a flow has a Metadata Write instruction. */
-#define TEST_ASSERT_HAS_METADATA_WRITE(_fl, _mdset)                     \
-  do {                                                                  \
-    struct instruction *_insn;                                          \
-    TEST_ASSERT_NOT_NULL(_fl);                                          \
+#define TEST_ASSERT_HAS_METADATA_WRITE(_fl, _mdset)			\
+  do {									\
+    struct instruction *_insn;						\
+    TEST_ASSERT_NOT_NULL(_fl);						\
     TEST_ASSERT_INSNL_HAS_INSN(_insn, OFPIT_WRITE_METADATA, &(_fl)->instruction_list, entry); \
     TEST_ASSERT_TRUE(build_metadata(md_n[(_mdset)]) == _insn->ofpit_write_metadata.metadata); \
     TEST_ASSERT_TRUE(build_metadata(md_m) == _insn->ofpit_write_metadata.metadata_mask); \
   } while (0)
 
 /* Assert if a flow has no Metadata Write instruction. */
-#define TEST_ASSERT_NO_METADATA_WRITE(_fl)                              \
-  do {                                                                  \
-    TEST_ASSERT_NOT_NULL(_fl);                                          \
+#define TEST_ASSERT_NO_METADATA_WRITE(_fl)				\
+  do {									\
+    TEST_ASSERT_NOT_NULL(_fl);						\
     TEST_ASSERT_INSNL_NO_INSN(OFPIT_WRITE_METADATA, &(_fl)->instruction_list, entry); \
   } while (0)
 void
@@ -422,19 +419,19 @@ test_flowdb_flow_del_strict(void) {
  */
 
 /* Assert if a flow has a Metadata Write instruction. */
-#define TEST_ASSERT_HAS_METADATA_WRITE(_fl, _mdset)                     \
-  do {                                                                  \
-    struct instruction *_insn;                                          \
-    TEST_ASSERT_NOT_NULL(_fl);                                          \
+#define TEST_ASSERT_HAS_METADATA_WRITE(_fl, _mdset)			\
+  do {									\
+    struct instruction *_insn;						\
+    TEST_ASSERT_NOT_NULL(_fl);						\
     TEST_ASSERT_INSNL_HAS_INSN(_insn, OFPIT_WRITE_METADATA, &(_fl)->instruction_list, entry); \
     TEST_ASSERT_TRUE(build_metadata(md_n[(_mdset)]) == _insn->ofpit_write_metadata.metadata); \
     TEST_ASSERT_TRUE(build_metadata(md_m) == _insn->ofpit_write_metadata.metadata_mask); \
   } while (0)
 
 /* Assert if a flow has no Metadata Write instruction. */
-#define TEST_ASSERT_NO_METADATA_WRITE(_fl)                              \
-  do {                                                                  \
-    TEST_ASSERT_NOT_NULL(_fl);                                          \
+#define TEST_ASSERT_NO_METADATA_WRITE(_fl)				\
+  do {									\
+    TEST_ASSERT_NOT_NULL(_fl);						\
     TEST_ASSERT_INSNL_NO_INSN(OFPIT_WRITE_METADATA, &(_fl)->instruction_list, entry); \
   } while (0)
 void
@@ -478,8 +475,8 @@ test_flowdb_flow_modify(void) {
                              &instruction_list, &error);
   TEST_ASSERT_TABLE_NFLOW(tablep, MISC_FLOWS, 2);
 
-  TEST_ASSERT_HAS_METADATA_WRITE((*tablep)->flows[MISC_FLOWS].flows[0], 0);
-  TEST_ASSERT_NO_METADATA_WRITE((*tablep)->flows[MISC_FLOWS].flows[1]);
+  TEST_ASSERT_HAS_METADATA_WRITE((*tablep)->flow_list.flows[0], 0);
+  TEST_ASSERT_NO_METADATA_WRITE((*tablep)->flow_list.flows[1]);
 
   FLOWDB_DUMP(flowdb, "After modification (1)", stdout);
 
@@ -492,8 +489,8 @@ test_flowdb_flow_modify(void) {
                              &instruction_list, &error);
   TEST_ASSERT_TABLE_NFLOW(tablep, MISC_FLOWS, 2);
 
-  TEST_ASSERT_HAS_METADATA_WRITE((*tablep)->flows[MISC_FLOWS].flows[0], 0);
-  TEST_ASSERT_HAS_METADATA_WRITE((*tablep)->flows[MISC_FLOWS].flows[1], 1);
+  TEST_ASSERT_HAS_METADATA_WRITE((*tablep)->flow_list.flows[0], 0);
+  TEST_ASSERT_HAS_METADATA_WRITE((*tablep)->flow_list.flows[1], 1);
 
   FLOWDB_DUMP(flowdb, "After modification (2)", stdout);
 
@@ -506,8 +503,8 @@ test_flowdb_flow_modify(void) {
                              &instruction_list, &error);
   TEST_ASSERT_TABLE_NFLOW(tablep, MISC_FLOWS, 2);
 
-  TEST_ASSERT_HAS_METADATA_WRITE((*tablep)->flows[MISC_FLOWS].flows[0], 2);
-  TEST_ASSERT_HAS_METADATA_WRITE((*tablep)->flows[MISC_FLOWS].flows[1], 2);
+  TEST_ASSERT_HAS_METADATA_WRITE((*tablep)->flow_list.flows[0], 2);
+  TEST_ASSERT_HAS_METADATA_WRITE((*tablep)->flow_list.flows[1], 2);
 
   FLOWDB_DUMP(flowdb, "After modification (3)", stdout);
 
@@ -657,10 +654,10 @@ test_flowdb_switch_mode(void) {
   size_t i;
   enum switch_mode mode, origmode;
   static const enum switch_mode modes[] = {
-    SWITCH_MODE_OPENFLOW,
-    SWITCH_MODE_SECURE,
-    SWITCH_MODE_STANDALONE,
-  };
+                                            SWITCH_MODE_OPENFLOW,
+                                            SWITCH_MODE_SECURE,
+                                            SWITCH_MODE_STANDALONE,
+                                          };
 
   TEST_ASSERT_TRUE(LAGOPUS_RESULT_OK == flowdb_switch_mode_get(flowdb,
                    &origmode));

@@ -14,12 +14,11 @@
  * limitations under the License.
  */
 
-
 #ifndef __LAGOPUS_BBQ_H__
 #define __LAGOPUS_BBQ_H__
 
 
-
+
 
 
 /**
@@ -27,13 +26,13 @@
  */
 
 
-
+
 
 
 #include "lagopus_cbuffer.h"
 
 
-
+
 
 
 #ifndef __LAGOPUS_BBQ_T_DEFINED__
@@ -47,7 +46,7 @@ typedef lagopus_cbuffer_t lagopus_bbq_t;
 #define LAGOPUS_BOUND_BLOCK_Q_DECL(name, type) lagopus_bbq_t
 
 
-
+
 
 
 /**
@@ -105,7 +104,7 @@ typedef lagopus_cbuffer_t lagopus_bbq_t;
  *
  *     @retval LAGOPUS_RESULT_OK                Succeeded.
  *     @retval LAGOPUS_RESULT_NOT_OPERATIONAL   Failed, not operational.
- *     @retval LAGOPUS_RESULT_INVALID_ARGS      Failed, invalid argument(s).
+ *     @retval LAGOPUS_RESULT_INVALID_ARGS	Failed, invalid argument(s).
  *     @retval LAGOPUS_RESULT_ANY_FAILURES      Failed.
  */
 #define lagopus_bbq_clear(bbqptr, free_values)  \
@@ -115,21 +114,21 @@ typedef lagopus_cbuffer_t lagopus_bbq_t;
 /**
  * Wake up all the waiters in a bounded blocking queue.
  *
- *     @param[in]  cbptr        A pointer to a queue
- *     @param[in]  nsec         Wait time (nanosec).
+ *     @param[in]  cbptr	A pointer to a queue
+ *     @param[in]  nsec		Wait time (nanosec).
  *
  *     @retval LAGOPUS_RESULT_OK                Succeeded.
  *     @retval LAGOPUS_RESULT_NOT_OPERATIONAL   Failed, not operational.
  *     @retval LAGOPUS_RESULT_POSIX_API_ERROR   Failed, posix API error.
  *     @retval LAGOPUS_RESULT_TIMEDOUT          Failed, timedout.
- *     @retval LAGOPUS_RESULT_INVALID_ARGS      Failed, invalid argument(s).
+ *     @retval LAGOPUS_RESULT_INVALID_ARGS	Failed, invalid argument(s).
  *     @retval LAGOPUS_RESULT_ANY_FAILURES      Failed.
  */
 #define lagopus_bbq_wakeup(bbqptr, nsec) \
   lagopus_cbuffer_wakeup((bbqptr), (nsec))
 
 
-
+
 
 
 /**
@@ -144,7 +143,7 @@ typedef lagopus_cbuffer_t lagopus_bbq_t;
  *     @retval LAGOPUS_RESULT_NOT_OPERATIONAL   Failed, not operational.
  *     @retval LAGOPUS_RESULT_POSIX_API_ERROR   Failed, posix API error.
  *     @retval LAGOPUS_RESULT_TIMEDOUT          Failed, timedout.
- *     @retval LAGOPUS_RESULT_INVALID_ARGS      Failed, invalid argument(s).
+ *     @retval LAGOPUS_RESULT_INVALID_ARGS	Failed, invalid argument(s).
  *     @retval LAGOPUS_RESULT_ANY_FAILURES      Failed.
  */
 #define lagopus_bbq_put(bbqptr, valptr, type, nsec)        \
@@ -166,7 +165,7 @@ typedef lagopus_cbuffer_t lagopus_bbq_t;
  *     @retval LAGOPUS_RESULT_POSIX_API_ERROR   Failed, posix API error.
  *     @retval LAGOPUS_RESULT_TIMEDOUT          Failed, timedout.
  *     @retval LAGOPUS_RESULT_WAKEUP_REQUESTED  Failed, timedout.
- *     @retval LAGOPUS_RESULT_INVALID_ARGS      Failed, invalid argument(s).
+ *     @retval LAGOPUS_RESULT_INVALID_ARGS	Failed, invalid argument(s).
  *     @retval LAGOPUS_RESULT_ANY_FAILURES      Failed.
  *
  *     @details If the \b nsec is less than zero, it blocks until all the
@@ -195,7 +194,7 @@ typedef lagopus_cbuffer_t lagopus_bbq_t;
 #define lagopus_bbq_put_n(bbqptr, valptr, n_vals, type, nsec,           \
                           n_actual_put)                                 \
 lagopus_cbuffer_put_n((bbqptr), (void **)(valptr),                    \
-                      (n_vals), sizeof(type), (nsec),                 \
+                      (n_vals), type, (nsec),                         \
                       (n_actual_put))
 
 
@@ -211,7 +210,7 @@ lagopus_cbuffer_put_n((bbqptr), (void **)(valptr),                    \
  *     @retval LAGOPUS_RESULT_NOT_OPERATIONAL   Failed, not operational.
  *     @retval LAGOPUS_RESULT_POSIX_API_ERROR   Failed, posix API error.
  *     @retval LAGOPUS_RESULT_TIMEDOUT          Failed, timedout.
- *     @retval LAGOPUS_RESULT_INVALID_ARGS      Failed, invalid argument(s).
+ *     @retval LAGOPUS_RESULT_INVALID_ARGS	Failed, invalid argument(s).
  *     @retval LAGOPUS_RESULT_ANY_FAILURES      Failed.
  */
 #define lagopus_bbq_get(bbqptr, valptr, type, nsec)   \
@@ -234,7 +233,7 @@ lagopus_cbuffer_put_n((bbqptr), (void **)(valptr),                    \
  *     @retval LAGOPUS_RESULT_POSIX_API_ERROR   Failed, posix API error.
  *     @retval LAGOPUS_RESULT_TIMEDOUT          Failed, timedout.
  *     @retval LAGOPUS_RESULT_WAKEUP_REQUESTED  Failed, timedout.
- *     @retval LAGOPUS_RESULT_INVALID_ARGS      Failed, invalid argument(s).
+ *     @retval LAGOPUS_RESULT_INVALID_ARGS	Failed, invalid argument(s).
  *     @retval LAGOPUS_RESULT_ANY_FAILURES      Failed.
  *
  *     @details If the \b nsec is less than zero, it blocks until all the
@@ -268,7 +267,7 @@ lagopus_cbuffer_put_n((bbqptr), (void **)(valptr),                    \
                           type, nsec, n_actual_get)                     \
 lagopus_cbuffer_get_n((bbqptr), (void **)(valptr),                    \
                       (n_vals_max), (n_at_least),                     \
-                      sizeof(type), (nsec), (n_actual_get))
+                      type, (nsec), (n_actual_get))
 
 
 /**
@@ -283,7 +282,7 @@ lagopus_cbuffer_get_n((bbqptr), (void **)(valptr),                    \
  *     @retval LAGOPUS_RESULT_NOT_OPERATIONAL   Failed, not operational.
  *     @retval LAGOPUS_RESULT_POSIX_API_ERROR   Failed, posix API error.
  *     @retval LAGOPUS_RESULT_TIMEDOUT          Failed, timedout.
- *     @retval LAGOPUS_RESULT_INVALID_ARGS      Failed, invalid argument(s).
+ *     @retval LAGOPUS_RESULT_INVALID_ARGS	Failed, invalid argument(s).
  *     @retval LAGOPUS_RESULT_ANY_FAILURES      Failed.
  */
 #define lagopus_bbq_peek(bbqptr, valptr, type, nsec)            \
@@ -306,7 +305,7 @@ lagopus_cbuffer_get_n((bbqptr), (void **)(valptr),                    \
  *     @retval LAGOPUS_RESULT_POSIX_API_ERROR   Failed, posix API error.
  *     @retval LAGOPUS_RESULT_TIMEDOUT          Failed, timedout.
  *     @retval LAGOPUS_RESULT_WAKEUP_REQUESTED  Failed, timedout.
- *     @retval LAGOPUS_RESULT_INVALID_ARGS      Failed, invalid argument(s).
+ *     @retval LAGOPUS_RESULT_INVALID_ARGS	Failed, invalid argument(s).
  *     @retval LAGOPUS_RESULT_ANY_FAILURES      Failed.
  *
  *     @details If the \b nsec is less than zero, it blocks until all the
@@ -343,17 +342,17 @@ lagopus_cbuffer_peek_n((cbptr), (void **)(valptr),                    \
                        sizeof(type), (nsec), (n_actual_peek))
 
 
-
+
 
 
 /**
  * Get a # of values in a bounded blocking queue.
- *      @param[in]   bbqptr    A pointer to a queue.
+ *	@param[in]   bbqptr    A pointer to a queue.
  *
- *      @retval >=0     A # of values in the queue.
- *      @retval LAGOPUS_RESULT_INVALID_ARGS     Failed, invalid argument(s).
- *      @retval LAGOPUS_RESULT_NOT_OPERATIONAL  Failed, not operational.
- *      @retval LAGOPUS_RESULT_ANY_FAILURES     Failed.
+ *	@retval	>=0	A # of values in the queue.
+ *	@retval LAGOPUS_RESULT_INVALID_ARGS	Failed, invalid argument(s).
+ *	@retval LAGOPUS_RESULT_NOT_OPERATIONAL	Failed, not operational.
+ *	@retval LAGOPUS_RESULT_ANY_FAILURES	Failed.
  */
 #define lagopus_bbq_size(bbqptr)                \
   lagopus_cbuffer_size((bbqptr))
@@ -361,12 +360,12 @@ lagopus_cbuffer_peek_n((cbptr), (void **)(valptr),                    \
 
 /**
  * Get the remaining capacity of bounded blocking queue.
- *      @param[in]   bbqptr    A pointer to a queue.
+ *	@param[in]   bbqptr    A pointer to a queue.
  *
- *      @retval >=0     The remaining capacity of the queue.
- *      @retval LAGOPUS_RESULT_INVALID_ARGS     Failed, invalid argument(s).
- *      @retval LAGOPUS_RESULT_NOT_OPERATIONAL  Failed, not operational.
- *      @retval LAGOPUS_RESULT_ANY_FAILURES     Failed.
+ *	@retval	>=0	The remaining capacity of the queue.
+ *	@retval LAGOPUS_RESULT_INVALID_ARGS	Failed, invalid argument(s).
+ *	@retval LAGOPUS_RESULT_NOT_OPERATIONAL	Failed, not operational.
+ *	@retval LAGOPUS_RESULT_ANY_FAILURES	Failed.
  */
 #define lagopus_bbq_remaining_capacity(bbqptr)        \
   lagopus_cbuffer_remaining_capacity((bbqptr))
@@ -374,18 +373,18 @@ lagopus_cbuffer_peek_n((cbptr), (void **)(valptr),                    \
 
 /**
  * Get the maximum capacity of bounded blocking queue.
- *      @param[in]   bbqptr    A pointer to a queue.
+ *	@param[in]   bbqptr    A pointer to a queue.
  *
- *      @retval >=0     The maximum capacity of the queue.
- *      @retval LAGOPUS_RESULT_INVALID_ARGS     Failed, invalid argument(s).
- *      @retval LAGOPUS_RESULT_NOT_OPERATIONAL  Failed, not operational.
- *      @retval LAGOPUS_RESULT_ANY_FAILURES     Failed.
+ *	@retval	>=0	The maximum capacity of the queue.
+ *	@retval LAGOPUS_RESULT_INVALID_ARGS	Failed, invalid argument(s).
+ *	@retval LAGOPUS_RESULT_NOT_OPERATIONAL	Failed, not operational.
+ *	@retval LAGOPUS_RESULT_ANY_FAILURES	Failed.
  */
 #define lagopus_bbq_max_capacity(bbqptr)        \
   lagopus_cbuffer_max_capacity((bbqptr))
 
 
-
+
 
 
 /**
@@ -394,10 +393,10 @@ lagopus_cbuffer_peek_n((cbptr), (void **)(valptr),                    \
  *    @param[in]   bbqptr   A pointer to a queue.
  *    @param[out]  retptr   A pointer to a result.
  *
- *      @retval LAGOPUS_RESULT_OK               Succeeded.
- *      @retval LAGOPUS_RESULT_INVALID_ARGS     Failed, invalid argument(s).
- *      @retval LAGOPUS_RESULT_NOT_OPERATIONAL  Failed, not operational.
- *      @retval LAGOPUS_RESULT_ANY_FAILURES     Failed.
+ *	@retval	LAGOPUS_RESULT_OK		Succeeded.
+ *	@retval LAGOPUS_RESULT_INVALID_ARGS	Failed, invalid argument(s).
+ *	@retval LAGOPUS_RESULT_NOT_OPERATIONAL	Failed, not operational.
+ *	@retval LAGOPUS_RESULT_ANY_FAILURES	Failed.
  */
 #define lagopus_bbq_is_full(bbqptr, retptr)     \
   lagopus_cbuffer_is_full((bbqptr), (retptr))
@@ -409,10 +408,10 @@ lagopus_cbuffer_peek_n((cbptr), (void **)(valptr),                    \
  *    @param[in]   bbqptr   A pointer to a queue.
  *    @param[out]  retptr   A pointer to a result.
  *
- *      @retval LAGOPUS_RESULT_OK               Succeeded.
- *      @retval LAGOPUS_RESULT_INVALID_ARGS     Failed, invalid argument(s).
- *      @retval LAGOPUS_RESULT_NOT_OPERATIONAL  Failed, not operational.
- *      @retval LAGOPUS_RESULT_ANY_FAILURES     Failed.
+ *	@retval	LAGOPUS_RESULT_OK		Succeeded.
+ *	@retval LAGOPUS_RESULT_INVALID_ARGS	Failed, invalid argument(s).
+ *	@retval LAGOPUS_RESULT_NOT_OPERATIONAL	Failed, not operational.
+ *	@retval LAGOPUS_RESULT_ANY_FAILURES	Failed.
  */
 #define lagopus_bbq_is_empty(bbqptr, retptr)    \
   lagopus_cbuffer_is_empty((bbqptr), (retptr))
@@ -424,9 +423,9 @@ lagopus_cbuffer_peek_n((cbptr), (void **)(valptr),                    \
  *    @param[in]   cbptr    A pointer to a queue.
  *    @param[out]  retptr   A pointer to a result.
  *
- *      @retval LAGOPUS_RESULT_OK               Succeeded.
- *      @retval LAGOPUS_RESULT_INVALID_ARGS     Failed, invalid argument(s).
- *      @retval LAGOPUS_RESULT_ANY_FAILURES     Failed.
+ *	@retval	LAGOPUS_RESULT_OK		Succeeded.
+ *	@retval LAGOPUS_RESULT_INVALID_ARGS	Failed, invalid argument(s).
+ *	@retval LAGOPUS_RESULT_ANY_FAILURES	Failed.
  */
 #define lagopus_bbq_is_operational(bbqptr, retptr)    \
   lagopus_cbuffer_is_operational((bbqptr), (retptr))
@@ -435,14 +434,14 @@ lagopus_cbuffer_peek_n((cbptr), (void **)(valptr),                    \
 /**
  * Cleanup an internal state of a circular buffer after thread
  * cancellation.
- *      @param[in]      cbptr   A pointer to a circular buffer
+ *	@param[in]	cbptr	A pointer to a circular buffer
  */
 #define lagopus_bbq_cancel_janitor(cbptr)       \
   lagopus_cbuffer_cancel_janitor((cbptr))
 
 
 
-
+
 
 
 #endif  /* ! __LAGOPUS_BBQ_H__ */

@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 #ifndef __LAGOPUS_INCLUDES_H__
 #define __LAGOPUS_INCLUDES_H__
 
@@ -84,9 +83,9 @@
 #include <sys/time.h>
 #endif /* HAVE_SYS_TIME_H */
 
-#ifdef HAVE_SYS_TERMIOS_H
-#include <sys/termios.h>
-#endif /* HAVE_SYS_TERMIOS_H */
+#ifdef HAVE_TERMIOS_H
+#include <termios.h>
+#endif /* HAVE_TERMIOS_H */
 
 #ifdef HAVE_SYS_STAT_H
 #include <sys/stat.h>
@@ -172,5 +171,12 @@
 #include <assert.h>
 #endif /* HAVE_ASSERT_H */
 
+#ifdef HAVE_POLL_H
+#include <poll.h>
+#endif /* HAVE_POLL_H */
+
+#ifdef HAVE_SYS_SOCKET_H
+#include <sys/socket.h>
+#endif /* HAVE_SYS_SOCKET_H */
 
 #endif /* ! __LAGOPUS_INCLUDES_H__ */

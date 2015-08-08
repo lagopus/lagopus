@@ -1,0 +1,255 @@
+use:
+  - lagopus
+
+setup:
+  - repetition_count: 1
+    cmds:
+      - cmd_type: ds
+        cmd: log -debuglevel 10000
+        result: '{"ret": "OK"}'
+      - cmd_type: ds
+        cmd: destroy-all-obj
+        result: '{"ret": "OK"}'
+      - cmd_type: shell
+        cmd: "{{ shell_dir }}/dummy_eth_up.sh lago_eth 1"
+        result: "0"
+
+teardown:
+  - repetition_count: 1
+    cmds:
+      - cmd_type: ds
+        cmd: destroy-all-obj
+        result: '{"ret": "OK"}'
+      - cmd_type: shell
+        cmd: "{{ shell_dir }}/dummy_eth_down.sh lago_eth 1"
+        result: "0"
+
+testcases:
+  - testcase: queue
+    test:
+      - repetition_count: 1
+        cmds:
+          # load
+          - cmd_type: ds
+            cmd: load {{ test_home  }}/test_scenarios/functional_tests/queue.dsl
+            result: '{"ret": "OK"}'
+          # check show
+          - cmd_type: ds
+            cmd: queue queue01
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":":queue01",
+              "type":"single-rate",
+              "id":1,
+              "priority":2,
+              "color":"color-aware",
+              "committed-burst-size":1500,
+              "committed-information-rate":1500,
+              "excess-burst-size":1500,
+              "is-used":true,
+              "is-enabled":false}]}
+          - cmd_type: ds
+            cmd: queue queue02
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":":queue02",
+              "type":"single-rate",
+              "id":2,
+              "priority":3,
+              "color":"color-aware",
+              "committed-burst-size":1500,
+              "committed-information-rate":1500,
+              "excess-burst-size":1500,
+              "is-used":false,
+              "is-enabled":false}]}
+          - cmd_type: ds
+            cmd: port port01
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":":port01",
+              "port-number":1,
+              "interface":":if01",
+              "policer":"",
+              "queues":[":queue01"],
+              "is-used":true,
+              "is-enabled":false}]}
+
+          # config port (add queue02)
+          - cmd_type: ds
+            cmd: port port01 config -queue queue02
+            result: '{"ret": "OK"}'
+          # check show
+          - cmd_type: ds
+            cmd: queue queue01
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":":queue01",
+              "type":"single-rate",
+              "id":1,
+              "priority":2,
+              "color":"color-aware",
+              "committed-burst-size":1500,
+              "committed-information-rate":1500,
+              "excess-burst-size":1500,
+              "is-used":true,
+              "is-enabled":false}]}
+          - cmd_type: ds
+            cmd: queue queue02
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":":queue02",
+              "type":"single-rate",
+              "id":2,
+              "priority":3,
+              "color":"color-aware",
+              "committed-burst-size":1500,
+              "committed-information-rate":1500,
+              "excess-burst-size":1500,
+              "is-used":true ,
+              "is-enabled":false}]}
+          - cmd_type: ds
+            cmd: port port01
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":":port01",
+              "port-number":1,
+              "interface":":if01",
+              "policer":"",
+              "queues":[":queue01", ":queue02"],
+              "is-used":true,
+              "is-enabled":false}]}
+
+          # config port (delete queue01)
+          - cmd_type: ds
+            cmd: port port01 config -queue ~queue01
+            result: '{"ret": "OK"}'
+          # check show
+          - cmd_type: ds
+            cmd: queue queue01
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":":queue01",
+              "type":"single-rate",
+              "id":1,
+              "priority":2,
+              "color":"color-aware",
+              "committed-burst-size":1500,
+              "committed-information-rate":1500,
+              "excess-burst-size":1500,
+              "is-used":false,
+              "is-enabled":false}]}
+          - cmd_type: ds
+            cmd: queue queue02
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":":queue02",
+              "type":"single-rate",
+              "id":2,
+              "priority":3,
+              "color":"color-aware",
+              "committed-burst-size":1500,
+              "committed-information-rate":1500,
+              "excess-burst-size":1500,
+              "is-used":true ,
+              "is-enabled":false}]}
+          - cmd_type: ds
+            cmd: port port01
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":":port01",
+              "port-number":1,
+              "interface":":if01",
+              "policer":"",
+              "queues":[":queue02"],
+              "is-used":true,
+              "is-enabled":false}]}
+
+          # enable bridge
+          - cmd_type: ds
+            cmd: bridge bridge01 enable
+            result: '{"ret": "OK"}'
+          # check show
+          - cmd_type: ds
+            cmd: queue queue01
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":":queue01",
+              "type":"single-rate",
+              "id":1,
+              "priority":2,
+              "color":"color-aware",
+              "committed-burst-size":1500,
+              "committed-information-rate":1500,
+              "excess-burst-size":1500,
+              "is-used":false,
+              "is-enabled":false}]}
+          - cmd_type: ds
+            cmd: queue queue02
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":":queue02",
+              "type":"single-rate",
+              "id":2,
+              "priority":3,
+              "color":"color-aware",
+              "committed-burst-size":1500,
+              "committed-information-rate":1500,
+              "excess-burst-size":1500,
+              "is-used":true ,
+              "is-enabled":true}]}
+          - cmd_type: ds
+            cmd: port port01
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":":port01",
+              "port-number":1,
+              "interface":":if01",
+              "policer":"",
+              "queues":[":queue02"],
+              "is-used":true,
+              "is-enabled":true}]}
+
+          # config port (add queue01)
+          - cmd_type: ds
+            cmd: port port01 config -queue queue01
+            result: '{"ret": "OK"}'
+          # check show
+          - cmd_type: ds
+            cmd: queue queue01
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":":queue01",
+              "type":"single-rate",
+              "id":1,
+              "priority":2,
+              "color":"color-aware",
+              "committed-burst-size":1500,
+              "committed-information-rate":1500,
+              "excess-burst-size":1500,
+              "is-used":true,
+              "is-enabled":true}]}
+          - cmd_type: ds
+            cmd: queue queue02
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":":queue02",
+              "type":"single-rate",
+              "id":2,
+              "priority":3,
+              "color":"color-aware",
+              "committed-burst-size":1500,
+              "committed-information-rate":1500,
+              "excess-burst-size":1500,
+              "is-used":true ,
+              "is-enabled":true}]}
+          - cmd_type: ds
+            cmd: port port01
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":":port01",
+              "port-number":1,
+              "interface":":if01",
+              "policer":"",
+              "queues":[":queue02", ":queue01"],
+              "is-used":true,
+              "is-enabled":true}]}

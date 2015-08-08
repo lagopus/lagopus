@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 /**
  *      @file   flowinfo.h
  *      @brief  Flow information for fast lookup.

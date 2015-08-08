@@ -14,10 +14,9 @@
  * limitations under the License.
  */
 
-
 /* Time utility functions. */
 
 #define TV_USEC_PER_SEC 1000000
 
-long int timeval_cmp(struct timeval a, struct timeval b);
+long int timeval_cmp (struct timeval a, struct timeval b);
 struct timeval timeval_subtract(struct timeval a, struct timeval b);

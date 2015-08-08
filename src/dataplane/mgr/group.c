@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 /**
  *      @file   group.c
  *      @brief  OpenFlow Group management.
@@ -25,7 +24,6 @@
 #include <stdint.h>
 
 #include "openflow.h"
-#include "lagopus/dpmgr.h"
 #include "lagopus/flowdb.h"
 #include "lagopus/ofp_handler.h"
 #include "lagopus/ptree.h"
@@ -34,6 +32,7 @@
 #include "lagopus/group.h"
 #include "lagopus/dataplane.h"
 #include "lagopus/ofp_dp_apis.h"
+#include "lagopus/dp_apis.h"
 #include "lagopus_types.h"
 #include "lagopus_error.h"
 
@@ -58,21 +57,29 @@ struct group_table {
 
 static inline void
 group_table_rdlock(struct group_table *group_table) {
+  (void) group_table;
+
   FLOWDB_RWLOCK_RDLOCK();
 }
 
 static inline void
 group_table_rdunlock(struct group_table *group_table) {
+  (void) group_table;
+
   FLOWDB_RWLOCK_RDUNLOCK();
 }
 
 static inline void
 group_table_wrlock(struct group_table *group_table) {
+  (void) group_table;
+
   FLOWDB_UPDATE_BEGIN();
 }
 
 static inline void
 group_table_wrunlock(struct group_table *group_table) {
+  (void) group_table;
+
   FLOWDB_UPDATE_END();
 }
 
@@ -421,7 +428,6 @@ group_stats(struct group_table *group_table,
 
   (void)error;
 
-  group_table_rdlock(group_table);
   if (request->group_id == OFPG_ALL) {
     struct ptree_node *node;
 
@@ -452,7 +458,6 @@ group_stats(struct group_table *group_table,
       TAILQ_INSERT_TAIL(list, stats, entry);
     }
   }
-  group_table_rdunlock(group_table);
 
   return LAGOPUS_RESULT_OK;
 }
@@ -488,7 +493,7 @@ group_descs(struct group_table *group_table,
 }
 
 /**
- * group features are depend on datapath implementation.
+ * group features are depend on dataplane implementation.
  */
 lagopus_result_t
 get_group_features(struct group_table *group_table,
@@ -537,13 +542,11 @@ ofp_group_mod_add(uint64_t dpid,
                   struct ofp_group_mod *group_mod,
                   struct bucket_list *bucket_list,
                   struct ofp_error *error) {
-  struct dpmgr *dpmgr;
   struct bridge *bridge;
   struct group *group;
   lagopus_result_t rv;
 
-  dpmgr = dpmgr_get_instance();
-  bridge = bridge_lookup_by_dpid(&dpmgr->bridge_list, dpid);
+  bridge = dp_bridge_lookup_by_dpid(dpid);
   if (bridge == NULL) {
     return LAGOPUS_RESULT_NOT_FOUND;
   }
@@ -576,13 +579,11 @@ ofp_group_mod_modify(uint64_t dpid,
                      struct ofp_group_mod *group_mod,
                      struct bucket_list *bucket_list,
                      struct ofp_error *error) {
-  struct dpmgr *dpmgr;
   struct bridge *bridge;
   struct group *group;
   lagopus_result_t rv;
 
-  dpmgr = dpmgr_get_instance();
-  bridge = bridge_lookup_by_dpid(&dpmgr->bridge_list, dpid);
+  bridge = dp_bridge_lookup_by_dpid(dpid);
   if (bridge == NULL) {
     return LAGOPUS_RESULT_NOT_FOUND;
   }
@@ -608,13 +609,11 @@ lagopus_result_t
 ofp_group_mod_delete(uint64_t dpid,
                      struct ofp_group_mod *group_mod,
                      struct ofp_error *error) {
-  struct dpmgr *dpmgr;
   struct bridge *bridge;
 
   (void) error;
 
-  dpmgr = dpmgr_get_instance();
-  bridge = bridge_lookup_by_dpid(&dpmgr->bridge_list, dpid);
+  bridge = dp_bridge_lookup_by_dpid(dpid);
   if (bridge == NULL) {
     return LAGOPUS_RESULT_NOT_FOUND;
   }
@@ -635,11 +634,9 @@ ofp_group_stats_request_get(uint64_t dpid,
                             struct ofp_group_stats_request *group_stats_request,
                             struct group_stats_list *group_stats_list,
                             struct ofp_error *error) {
-  struct dpmgr *dpmgr;
   struct bridge *bridge;
 
-  dpmgr = dpmgr_get_instance();
-  bridge = bridge_lookup_by_dpid(&dpmgr->bridge_list, dpid);
+  bridge = dp_bridge_lookup_by_dpid(dpid);
   if (bridge == NULL) {
     return LAGOPUS_RESULT_NOT_FOUND;
   }
@@ -657,11 +654,9 @@ lagopus_result_t
 ofp_group_desc_get(uint64_t dpid,
                    struct group_desc_list *group_desc_list,
                    struct ofp_error *error) {
-  struct dpmgr *dpmgr;
   struct bridge *bridge;
 
-  dpmgr = dpmgr_get_instance();
-  bridge = bridge_lookup_by_dpid(&dpmgr->bridge_list, dpid);
+  bridge = dp_bridge_lookup_by_dpid(dpid);
   if (bridge == NULL) {
     return LAGOPUS_RESULT_NOT_FOUND;
   }
@@ -678,11 +673,9 @@ lagopus_result_t
 ofp_group_features_get(uint64_t dpid,
                        struct ofp_group_features *group_features,
                        struct ofp_error *error) {
-  struct dpmgr *dpmgr;
   struct bridge *bridge;
 
-  dpmgr = dpmgr_get_instance();
-  bridge = bridge_lookup_by_dpid(&dpmgr->bridge_list, dpid);
+  bridge = dp_bridge_lookup_by_dpid(dpid);
   if (bridge == NULL) {
     return LAGOPUS_RESULT_NOT_FOUND;
   }

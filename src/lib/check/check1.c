@@ -14,20 +14,19 @@
  * limitations under the License.
  */
 
-
 #include "lagopus_apis.h"
 
 
-#
+#
 
 
 typedef struct {
-  uint64_t key;         /* The key */
+  uint64_t key;		/* The key */
   const char *name;
 } aPair;
 
 
-
+
 
 
 static inline aPair *
@@ -93,7 +92,7 @@ llrand(uint64_t *vPtr) {
 }
 
 
-
+
 
 
 static inline const char *
@@ -108,13 +107,13 @@ myname(const char *argv0) {
 }
 
 
-
+
 
 
 #if defined(LAGOPUS_ARCH_64_BITS)
-#define keyRef(key)     (key)
+#define keyRef(key)	(key)
 #elif defined(LAGOPUS_ARCH_32_BITS)
-#define keyRef(key)     (&(key))
+#define keyRef(key)	(&(key))
 #else
 #error Sorry we can not live like this.
 #endif /* LAGOPUS_ARCH_64_BITS || LAGOPUS_ARCH_32_BITS */

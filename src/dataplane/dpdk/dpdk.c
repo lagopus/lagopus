@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 /**
  *      @file   dpdk.c
  *      @brief  Datapath driver use with Intel DPDK
@@ -91,7 +90,6 @@
 #include "lagopus/ethertype.h"
 #include "lagopus/flowdb.h"
 #include "lagopus/meter.h"
-#include "lagopus/dpmgr.h"
 #include "lagopus/port.h"
 #include "lagopus_gstate.h"
 #include "lagopus/ofp_dp_apis.h"
@@ -156,7 +154,9 @@ app_init(void) {
   app_init_rings_rx();
   app_init_rings_tx();
   app_init_nics();
+#ifdef __linux__
   app_init_kni();
+#endif /* __linux__ */
 
   printf("Initialization completed.\n");
 }
@@ -168,8 +168,15 @@ struct lagopus_packet *
 alloc_lagopus_packet(void) {
   struct lagopus_packet *pkt;
   struct rte_mbuf *mbuf;
+  unsigned sock;
 
-  mbuf = rte_pktmbuf_alloc(app.pools[0]);
+  mbuf = NULL;
+  for (sock = 0; sock < APP_MAX_SOCKETS; sock++) {
+    if (app.pools[sock] != NULL) {
+      mbuf = rte_pktmbuf_alloc(app.pools[sock]);
+      break;
+    }
+  }
   if (mbuf == NULL) {
     lagopus_msg_error("rte_pktmbuf_alloc failed\n");
     return NULL;
@@ -211,8 +218,8 @@ lagopus_instruction_experimenter(__UNUSED struct lagopus_packet *pkt,
 /* --------------------------Lagopus code end---------------------------- */
 
 lagopus_result_t
-datapath_thread_loop(__UNUSED const lagopus_thread_t *selfptr,
-                     __UNUSED void *arg) {
+dataplane_thread_loop(__UNUSED const lagopus_thread_t *selfptr,
+                      __UNUSED void *arg) {
   unsigned lcore_id;
 
   lagopus_result_t rv;
@@ -243,27 +250,41 @@ datapath_thread_loop(__UNUSED const lagopus_thread_t *selfptr,
 }
 
 lagopus_result_t
-lagopus_datapath_init(int argc, const char *argv[]) {
+lagopus_dataplane_init(int argc, const char *const argv[]) {
   int ret;
   size_t argsize;
   char **copy_argv;
+  int i;
 
   argsize = sizeof(char *) * (argc + 1);
   copy_argv = malloc(argsize);
   if (copy_argv == NULL) {
     return LAGOPUS_RESULT_NO_MEMORY;
   }
-  memcpy(copy_argv, argv, argsize);
+  copy_argv[0] = argv[0];
+  for (i = 1; i < argc; i++) {
+    if (!strcmp(argv[i], "--")) {
+      memcpy(&copy_argv[1], &argv[i + 1], sizeof(char *) * (argc - i - 1));
+      break;
+    }
+  }
+  if (i == argv) {
+    /* "--" is not found in argv */
+    memcpy(copy_argv, argv, argsize);
+  } else {
+    argc -= i;
+    optind = 1;
+  }
   /* init EAL */
   ret = rte_eal_init(argc, copy_argv);
   if (ret < 0) {
     return LAGOPUS_RESULT_INVALID_ARGS;
   }
 
-  argc -= ret;
+  optind = ret + 1;
 
   /* parse application arguments (after the EAL ones) */
-  ret = app_parse_args(argc, copy_argv + ret);
+  ret = app_parse_args(argc, copy_argv);
   free(copy_argv);
   if (ret < 0) {
     return LAGOPUS_RESULT_INVALID_ARGS;

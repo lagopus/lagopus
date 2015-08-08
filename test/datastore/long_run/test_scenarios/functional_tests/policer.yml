@@ -1,0 +1,302 @@
+use:
+  - lagopus
+
+setup:
+  - repetition_count: 1
+    cmds:
+      - cmd_type: ds
+        cmd: destroy-all-obj
+        result: '{"ret": "OK"}'
+      - cmd_type: shell
+        cmd: "{{ shell_dir }}/dummy_eth_up.sh lago_eth 1"
+        result: "0"
+
+teardown:
+  - repetition_count: 1
+    cmds:
+      - cmd_type: ds
+        cmd: destroy-all-obj
+        result: '{"ret": "OK"}'
+      - cmd_type: shell
+        cmd: "{{ shell_dir }}/dummy_eth_down.sh lago_eth 1"
+        result: "0"
+
+testcases:
+  - testcase: policer
+    test:
+      - repetition_count: 1
+        cmds:
+          # load
+          - cmd_type: ds
+            cmd: load {{ test_home  }}/test_scenarios/functional_tests/policer.dsl
+            result: '{"ret": "OK"}'
+          # check show
+          - cmd_type: ds
+            cmd: policer-action policer-action01
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":":policer-action01",
+              "type":"discard",
+              "is-used":true,
+              "is-enabled":false}]}
+          - cmd_type: ds
+            cmd: policer-action policer-action02
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":":policer-action02",
+              "type":"discard",
+              "is-used":true,
+              "is-enabled":false}]}
+          - cmd_type: ds
+            cmd: policer policer01
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":":policer01",
+              "actions":[":policer-action01"],
+              "bandwidth-limit":1500,
+              "burst-size-limit":1500,
+              "bandwidth-percent":0,
+              "is-used":true,
+              "is-enabled":false}]}
+          - cmd_type: ds
+            cmd: policer policer02
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":":policer02",
+              "actions":[":policer-action02"],
+              "bandwidth-limit":1500,
+              "burst-size-limit":1500,
+              "bandwidth-percent":0,
+              "is-used":false,
+              "is-enabled":false}]}
+          - cmd_type: ds
+            cmd: port port01
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":":port01",
+              "port-number":1,
+              "interface":":if01",
+              "policer":":policer01",
+              "queues":[],
+              "is-used":true,
+              "is-enabled":false}]}
+
+          # config port (delete policer01, add policer02)
+          - cmd_type: ds
+            cmd: port port01 config -policer policer02
+            result: '{"ret": "OK"}'
+          # check show
+          - cmd_type: ds
+            cmd: policer-action policer-action01
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":":policer-action01",
+              "type":"discard",
+              "is-used":true,
+              "is-enabled":false}]}
+          - cmd_type: ds
+            cmd: policer-action policer-action02
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":":policer-action02",
+              "type":"discard",
+              "is-used":true,
+              "is-enabled":false}]}
+          - cmd_type: ds
+            cmd: policer policer01
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":":policer01",
+              "actions":[":policer-action01"],
+              "bandwidth-limit":1500,
+              "burst-size-limit":1500,
+              "bandwidth-percent":0,
+              "is-used":false,
+              "is-enabled":false}]}
+          - cmd_type: ds
+            cmd: policer policer02
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":":policer02",
+              "actions":[":policer-action02"],
+              "bandwidth-limit":1500,
+              "burst-size-limit":1500,
+              "bandwidth-percent":0,
+              "is-used":true,
+              "is-enabled":false}]}
+          - cmd_type: ds
+            cmd: port port01
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":":port01",
+              "port-number":1,
+              "interface":":if01",
+              "policer":":policer02",
+              "queues":[],
+              "is-used":true,
+              "is-enabled":false}]}
+
+          # enable bridge
+          - cmd_type: ds
+            cmd: bridge bridge01 enable
+            result: '{"ret": "OK"}'
+          # check show
+          - cmd_type: ds
+            cmd: policer-action policer-action01
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":":policer-action01",
+              "type":"discard",
+              "is-used":true,
+              "is-enabled":false}]}
+          - cmd_type: ds
+            cmd: policer-action policer-action02
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":":policer-action02",
+              "type":"discard",
+              "is-used":true,
+              "is-enabled":true}]}
+          - cmd_type: ds
+            cmd: policer policer01
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":":policer01",
+              "actions":[":policer-action01"],
+              "bandwidth-limit":1500,
+              "burst-size-limit":1500,
+              "bandwidth-percent":0,
+              "is-used":false,
+              "is-enabled":false}]}
+          - cmd_type: ds
+            cmd: policer policer02
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":":policer02",
+              "actions":[":policer-action02"],
+              "bandwidth-limit":1500,
+              "burst-size-limit":1500,
+              "bandwidth-percent":0,
+              "is-used":true,
+              "is-enabled":true}]}
+          - cmd_type: ds
+            cmd: port port01
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":":port01",
+              "port-number":1,
+              "interface":":if01",
+              "policer":":policer02",
+              "queues":[],
+              "is-used":true,
+              "is-enabled":true}]}
+
+          # config port (delete policer02, add policer01)
+          - cmd_type: ds
+            cmd: port port01 config -policer policer01
+            result: '{"ret": "OK"}'
+          # check show
+          - cmd_type: ds
+            cmd: policer-action policer-action01
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":":policer-action01",
+              "type":"discard",
+              "is-used":true,
+              "is-enabled":true}]}
+          - cmd_type: ds
+            cmd: policer-action policer-action02
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":":policer-action02",
+              "type":"discard",
+              "is-used":true,
+              "is-enabled":false}]}
+          - cmd_type: ds
+            cmd: policer policer01
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":":policer01",
+              "actions":[":policer-action01"],
+              "bandwidth-limit":1500,
+              "burst-size-limit":1500,
+              "bandwidth-percent":0,
+              "is-used":true,
+              "is-enabled":true}]}
+          - cmd_type: ds
+            cmd: policer policer02
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":":policer02",
+              "actions":[":policer-action02"],
+              "bandwidth-limit":1500,
+              "burst-size-limit":1500,
+              "bandwidth-percent":0,
+              "is-used":false,
+              "is-enabled":false}]}
+          - cmd_type: ds
+            cmd: port port01
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":":port01",
+              "port-number":1,
+              "interface":":if01",
+              "policer":":policer01",
+              "queues":[],
+              "is-used":true,
+              "is-enabled":true}]}
+
+          # config port (delete policer01)
+          - cmd_type: ds
+            cmd: port port01 config -policer ~policer01
+            result: '{"ret": "OK"}'
+          # check show
+          - cmd_type: ds
+            cmd: policer-action policer-action01
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":":policer-action01",
+              "type":"discard",
+              "is-used":true,
+              "is-enabled":false}]}
+          - cmd_type: ds
+            cmd: policer-action policer-action02
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":":policer-action02",
+              "type":"discard",
+              "is-used":true,
+              "is-enabled":false}]}
+          - cmd_type: ds
+            cmd: policer policer01
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":":policer01",
+              "actions":[":policer-action01"],
+              "bandwidth-limit":1500,
+              "burst-size-limit":1500,
+              "bandwidth-percent":0,
+              "is-used":false,
+              "is-enabled":false}]}
+          - cmd_type: ds
+            cmd: policer policer02
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":":policer02",
+              "actions":[":policer-action02"],
+              "bandwidth-limit":1500,
+              "burst-size-limit":1500,
+              "bandwidth-percent":0,
+              "is-used":false,
+              "is-enabled":false}]}
+          - cmd_type: ds
+            cmd: port port01
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":":port01",
+              "port-number":1,
+              "interface":":if01",
+              "policer":"",
+              "queues":[],
+              "is-used":true,
+              "is-enabled":true}]}

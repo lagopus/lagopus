@@ -98,13 +98,16 @@ e.g.)
  PKG_HP_URL="http://www.lagopus.org"
  PKG_VCS="git://lagopus.org"
  PKG_VCS_URL=
- PKG_REMOVE_DIRS=''
+ PKG_REMOVE_DIRS='/usr/sbin/of_config /usr/sbin/ovsdb'
  PKG_REMOVE_FILES=
  PKG_PURGE_DIRS=${PKG_REMOVE_DIRS}
  PKG_PURGE_FILES='/etc/lagopus/lagopus.conf
                   /etc/lagopus/configuration.xml
                   /etc/lagopus/operational.xml
                   /etc/lagopus/lagopus.conf.example
+                  /etc/lagopus/ofconf_rsa
+                  /etc/lagopus/ofconf_rsa.pub
+                  /etc/lagopus/ofconf-passwords
 ```
 
 ### 2. Edit `debian/changelog` file.

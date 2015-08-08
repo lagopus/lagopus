@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 /**
  *      @file   port.c
  *      @brief  OpenFlow Port management.
@@ -23,12 +22,14 @@
 #include "lagopus_apis.h"
 #include <openflow.h>
 
-#include "lagopus/dpmgr.h"
 #include "lagopus/flowdb.h"
 #include "lagopus/port.h"
 #include "lagopus/dataplane.h"
 #include "lagopus/vector.h"
 #include "lagopus/ofp_dp_apis.h"
+
+#include "lagopus/dp_apis.h"
+#include "lagopus/interface.h"
 
 struct vector *
 ports_alloc(void) {
@@ -88,7 +89,7 @@ port_stats(struct port *port) {
   return stats;
 }
 
-static struct port *
+struct port *
 port_alloc(void) {
   struct port *port;
 
@@ -102,7 +103,7 @@ port_alloc(void) {
   return port;
 }
 
-static void
+void
 port_free(struct port *port) {
   free(port);
 }
@@ -110,7 +111,7 @@ port_free(struct port *port) {
 /**
  * lookup port structure from specified vector
  *
- * @param[in] v       vector associated with bridge or dpmgr
+ * @param[in] v       vector associated with bridge
  * @param[in] id      OpenFlow Port number or Physical Index number
  * @retval    ==NULL  port is not configured
  * @retval    !=NULL  port structure
@@ -124,71 +125,103 @@ port_lookup(struct vector *v, uint32_t id) {
 }
 
 /**
- * Add port to dpmgr vector.
+ * Add port to vector.
  *
- * @param[in]   v               Vector owned by dpmgr.
+ * @param[in]   v               Vector.
  * @param[in]   port_param      Port description.
  */
 lagopus_result_t
 port_add(struct vector *v, const struct port *port_param) {
+  datastore_interface_info_t info;
+  uint8_t hw_addr[6];
+  const char *name;
   int i;
-  struct port *find;
-  struct port *port;
   lagopus_result_t rv;
 
-  find = port_lookup(v, port_param->ifindex);
-  if (find != NULL) {
-    return LAGOPUS_RESULT_ALREADY_EXISTS;
-  }
+  (void) v;
 
-  port = port_alloc();
-  if (port == NULL) {
-    return LAGOPUS_RESULT_NO_MEMORY;
-  }
-
-  port->type = port_param->type;
-  port->ofp_port = port_param->ofp_port;
-  port->ifindex = port_param->ifindex;
-
-  rv = lagopus_configure_physical_port(port);
+  name = port_param->ofp_port.name;
+  rv = dp_interface_create(name);
   if (rv != LAGOPUS_RESULT_OK) {
-    port_free(port);
-    return rv;
+    goto out;
   }
-
-  printf("Adding Physical Port %u", port->ifindex);
+  switch (port_param->type) {
+    case LAGOPUS_PORT_TYPE_NULL:
+      info.type = DATASTORE_INTERFACE_TYPE_UNKNOWN;
+      break;
+    default:
+#ifdef HAVE_DPDK
+      info.type = DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_PHY;
+#else
+      info.type = DATASTORE_INTERFACE_TYPE_ETHERNET_RAWSOCK;
+#endif
+      break;
+  }
+  info.eth.port_number = port_param->ifindex;
+  rv = dp_interface_info_set(name, &info);
+  if (rv != LAGOPUS_RESULT_OK) {
+    goto out;
+  }
+  rv = dp_port_create(name);
+  if (rv != LAGOPUS_RESULT_OK) {
+    goto out;
+  }
+  rv = dp_port_interface_set(name, name);
+  if (rv != LAGOPUS_RESULT_OK) {
+    goto out;
+  }
+  rv = dp_interface_start(name);
+  if (rv != LAGOPUS_RESULT_OK) {
+    goto out;
+  }
+  rv = dp_port_start(name);
+  if (rv != LAGOPUS_RESULT_OK) {
+    goto out;
+  }
+  printf("Adding Physical Port %u", port_param->ifindex);
+  dp_interface_hw_addr_get(name, hw_addr);
   for (i = 0; i < 6; i++) {
-    printf(":%02x", port->ofp_port.hw_addr[i]);
+    printf(":%02x", hw_addr[i]);
   }
   printf("\n");
-  vector_set_index(v, port->ifindex, port);
-
-  return LAGOPUS_RESULT_OK;
+out:
+  return rv;
 }
 
 /**
- * Delete port to dpmgr vector.
+ * Delete port to vector.
  *
- * @param[in]   v               Vector owned by dpmgr.
+ * @param[in]   v               Vector.
  * @param[in]   port_index      Physical port ifindex.
  */
 lagopus_result_t
 port_delete(struct vector *v, uint32_t ifindex) {
   struct port *port;
+  lagopus_result_t rv;
 
-  port = port_lookup(v, ifindex);
+  (void) v;
+
+  port = dp_port_lookup(ifindex);
   if (port == NULL) {
-    return LAGOPUS_RESULT_NOT_FOUND;
+    rv = LAGOPUS_RESULT_NOT_FOUND;
+    goto out;
   }
   if (port->bridge != NULL) {
     /* assigned port to bridge, don't delete. */
-    return LAGOPUS_RESULT_ANY_FAILURES;
+    rv = LAGOPUS_RESULT_ANY_FAILURES;
+    goto out;
   }
-  vector_set_index(v, ifindex, NULL);
-  lagopus_unconfigure_physical_port(port);
-  port_free(port);
-
-  return LAGOPUS_RESULT_OK;
+  dp_port_interface_unset(port->ofp_port.name);
+  rv = dp_interface_destroy(port->ofp_port.name);
+  if (rv != LAGOPUS_RESULT_OK) {
+    goto out;
+  }
+  rv = dp_port_destroy(port->ofp_port.name);
+  if (rv != LAGOPUS_RESULT_OK) {
+    goto out;
+  }
+out:
+  return rv;
 }
 
 /**
@@ -214,14 +247,6 @@ ifindex2port(struct vector *v, uint32_t ifindex) {
   return NULL;
 }
 
-/**
- * get port structure by OpenFlow flow number.
- *
- * @param[in]   vector owned by dpmgr
- * @param[in]   port_no OpenFlow Port number.
- * @retval      !=NULL  lagopus port object
- *              ==NULL  lagopus port is not configured
- */
 struct port *
 port_lookup_number(struct vector *v, uint32_t port_no) {
   unsigned int id;
@@ -242,7 +267,7 @@ num_ports(struct vector *v) {
   unsigned int id, count;
 
   count = 0;
-  for (id = 0; id < v->allocated; id++) {
+  for (id = 0; id <= v->allocated; id++) {
     struct port *port;
 
     port = v->index[id];
@@ -270,7 +295,10 @@ lagopus_get_port_statistics(struct vector *ports,
         continue;
       }
       /* XXX read lock */
-      stats = port->stats(port);
+      if (port->interface == NULL || port->interface->stats == NULL) {
+        continue;
+      }
+      stats = port->interface->stats(port);
       /* XXX unlock */
       if (stats == NULL) {
         continue;
@@ -292,7 +320,11 @@ lagopus_get_port_statistics(struct vector *ports,
       return LAGOPUS_RESULT_OFP_ERROR;
     }
     /* XXX read lock */
-    stats = port->stats(port);
+    if (port->interface != NULL) {
+      stats = port->interface->stats(port);
+    } else {
+      stats = NULL;
+    }
     /* XXX unlock */
     if (stats == NULL) {
       return LAGOPUS_RESULT_NO_MEMORY;
@@ -300,6 +332,24 @@ lagopus_get_port_statistics(struct vector *ports,
     TAILQ_INSERT_TAIL(list, stats, entry);
   }
 
+  return LAGOPUS_RESULT_OK;
+}
+
+/**
+ * Change physical port state.
+ *
+ * @param[in]   port    physical port.
+ *
+ * @retval      LAGOPUS_RESULT_OK       success.
+ */
+static lagopus_result_t
+lagopus_change_physical_port(struct port *port) {
+  if (port->interface != NULL) {
+    dp_interface_change_config(port->interface,
+                               port->ofp_port.advertised,
+                               port->ofp_port.config);
+  }
+  send_port_status(port, OFPPR_MODIFY);
   return LAGOPUS_RESULT_OK;
 }
 
@@ -318,7 +368,7 @@ port_config(struct bridge *bridge,
       return LAGOPUS_RESULT_OFP_ERROR;
     }
     ofp_port = &port->ofp_port;
-    if (memcmp(ofp_port->hw_addr, port_mod->hw_addr, OFP_ETH_ALEN) != 0) {
+    if (port->interface == NULL) {
       ofp_error_set(error, OFPET_PORT_MOD_FAILED, OFPPMFC_BAD_HW_ADDR);
       return LAGOPUS_RESULT_OFP_ERROR;
     }
@@ -401,11 +451,9 @@ lagopus_result_t
 ofp_port_mod_modify(uint64_t dpid,
                     struct ofp_port_mod *port_mod,
                     struct ofp_error *error) {
-  struct dpmgr *dpmgr;
   struct bridge *bridge;
 
-  dpmgr = dpmgr_get_instance();
-  bridge = bridge_lookup_by_dpid(&dpmgr->bridge_list, dpid);
+  bridge = dp_bridge_lookup_by_dpid(dpid);
   if (bridge == NULL) {
     return LAGOPUS_RESULT_NOT_FOUND;
   }
@@ -421,11 +469,9 @@ ofp_port_stats_request_get(uint64_t dpid,
                            struct ofp_port_stats_request *port_stats_request,
                            struct port_stats_list *port_stats_list,
                            struct ofp_error *error) {
-  struct dpmgr *dpmgr;
   struct bridge *bridge;
 
-  dpmgr = dpmgr_get_instance();
-  bridge = bridge_lookup_by_dpid(&dpmgr->bridge_list, dpid);
+  bridge = dp_bridge_lookup_by_dpid(dpid);
   if (bridge == NULL) {
     return LAGOPUS_RESULT_NOT_FOUND;
   }
@@ -443,11 +489,9 @@ lagopus_result_t
 ofp_port_get(uint64_t dpid,
              struct port_desc_list *port_desc_list,
              struct ofp_error *error) {
-  struct dpmgr *dpmgr;
   struct bridge *bridge;
 
-  dpmgr = dpmgr_get_instance();
-  bridge = bridge_lookup_by_dpid(&dpmgr->bridge_list, dpid);
+  bridge = dp_bridge_lookup_by_dpid(dpid);
   if (bridge == NULL) {
     return LAGOPUS_RESULT_NOT_FOUND;
   }

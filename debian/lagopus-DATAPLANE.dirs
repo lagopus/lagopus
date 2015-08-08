@@ -1,4 +1,6 @@
 usr/sbin
+usr/sbin/of_config
+usr/sbin/ovsdb
 usr/lib
 etc/lagopus
 usr/include

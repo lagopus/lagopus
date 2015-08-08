@@ -14,26 +14,22 @@
  * limitations under the License.
  */
 
-
 /**
- * @file        pbuf.h
- * @brief       Packet buffer.
+ * @file	pbuf.h
+ * @brief	Packet buffer.
  */
 
 #ifndef __LAGOPUS_PBUF_H__
 #define __LAGOPUS_PBUF_H__
 
 #include "lagopus_apis.h"
-#include "lagopus/session.h"
+#include "lagopus_session.h"
 
 /* pbuf minimum data size. */
 #define PBUF_MIN_SIZE   1024
 
 /* pbuf unused buffer try get count. */
 #define PBUF_TRY_COUNT     5
-
-/* Forward declaration. */
-struct session;
 
 struct pbuf {
   /* Linked list entry. */
@@ -76,7 +72,7 @@ struct pbuf_list {
   struct pbuf_tailq unused;
 };
 
-#define DECODE_GET(P, L)                                                      \
+#define DECODE_GET(P,L)                                                       \
   do {                                                                        \
     memcpy((void *)(P), pbuf->getp, (L));                                     \
     pbuf->getp += (L);                                                        \
@@ -128,7 +124,7 @@ struct pbuf_list {
     pbuf->plen += (L);                                                        \
   } while (0)
 
-#define ENCODE_PUT(P, L)                                                      \
+#define ENCODE_PUT(P,L)                                                       \
   do {                                                                        \
     memcpy((void *)(pbuf->putp), (void *) (P), (L));                          \
     pbuf->putp += (L);                                                        \
@@ -190,7 +186,7 @@ ssize_t
 pbuf_read_size(struct pbuf *pbuf, int sock, size_t read_size);
 
 ssize_t
-pbuf_session_read(struct pbuf *pbuf, struct session *session);
+pbuf_session_read(struct pbuf *pbuf, lagopus_session_t session);
 
 size_t
 pbuf_readable_size(struct pbuf *pbuf);
@@ -220,7 +216,8 @@ ssize_t
 pbuf_list_write(struct pbuf_list *pbuf_list, int sock);
 
 ssize_t
-pbuf_list_session_write(struct pbuf_list *pbuf_list, struct session *session);
+pbuf_list_session_write(struct pbuf_list *pbuf_list,
+                        lagopus_session_t session);
 
 struct pbuf *
 pbuf_list_first(struct pbuf_list *pbuf_list);
@@ -265,12 +262,12 @@ pbuf_plen_equal_check(struct pbuf *pbuf, size_t len);
 /**
  * Get length (uint16_t).
  *
- *     @param[in]       pbuf    A pointer to \e pbuf structure.
- *     @param[out]      len     A pointer to pbuf length.
+ *     @param[in]	pbuf	A pointer to \e pbuf structure.
+ *     @param[out]	len	A pointer to pbuf length.
  *
- *     @retval  LAGOPUS_RESULT_OK       Succeeded.
- *     @retval  LAGOPUS_RESULT_OUT_OF_RANGE     Bad length.
- *     @retval  LAGOPUS_RESULT_ANY_FAILURES     Failed.
+ *     @retval	LAGOPUS_RESULT_OK	Succeeded.
+ *     @retval	LAGOPUS_RESULT_OUT_OF_RANGE	Bad length.
+ *     @retval	LAGOPUS_RESULT_ANY_FAILURES	Failed.
  */
 lagopus_result_t
 pbuf_length_get(struct pbuf *pbuf, uint16_t *len);
@@ -278,9 +275,9 @@ pbuf_length_get(struct pbuf *pbuf, uint16_t *len);
 /**
  * Get plen in pbuf.
  *
- *     @param[in]       pbuf    A pointer to \e pbuf structure.
+ *     @param[in]	pbuf	A pointer to \e pbuf structure.
  *
- *     @retval  length
+ *     @retval	length
  */
 size_t
 pbuf_plen_get(struct pbuf *pbuf);
@@ -288,10 +285,10 @@ pbuf_plen_get(struct pbuf *pbuf);
 /**
  * Set plen in pbuf.
  *
- *     @param[in]       pbuf    A pointer to \e pbuf structure.
- *     @param[in]       len     length.
+ *     @param[in]	pbuf	A pointer to \e pbuf structure.
+ *     @param[in]	len	length.
  *
- *     @retval  void
+ *     @retval	void
  */
 void
 pbuf_plen_set(struct pbuf *pbuf, size_t len);
@@ -299,9 +296,9 @@ pbuf_plen_set(struct pbuf *pbuf, size_t len);
 /**
  * Get size in pbuf.
  *
- *     @param[in]       pbuf    A pointer to \e pbuf structure.
+ *     @param[in]	pbuf	A pointer to \e pbuf structure.
  *
- *     @retval  size
+ *     @retval	size
  */
 size_t
 pbuf_size_get(struct pbuf *pbuf);
@@ -309,9 +306,9 @@ pbuf_size_get(struct pbuf *pbuf);
 /**
  * Get getp in pbuf.
  *
- *     @param[in]       pbuf    A pointer to \e pbuf structure.
+ *     @param[in]	pbuf	A pointer to \e pbuf structure.
  *
- *     @retval  getp
+ *     @retval	getp
  */
 uint8_t *
 pbuf_getp_get(struct pbuf *pbuf);
@@ -319,10 +316,10 @@ pbuf_getp_get(struct pbuf *pbuf);
 /**
  * Set getp in pbuf.
  *
- *     @param[in,out]   pbuf    A pointer to \e pbuf structure.
- *     @param[in]       p       A pointer to value.
+ *     @param[in,out]	pbuf	A pointer to \e pbuf structure.
+ *     @param[in]	p	A pointer to value.
  *
- *     @retval  void
+ *     @retval	void
  */
 void
 pbuf_getp_set(struct pbuf *pbuf, uint8_t *p);
@@ -330,9 +327,9 @@ pbuf_getp_set(struct pbuf *pbuf, uint8_t *p);
 /**
  * Get putp in pbuf.
  *
- *     @param[in]       pbuf    A pointer to \e pbuf structure.
+ *     @param[in]	pbuf	A pointer to \e pbuf structure.
  *
- *     @retval  putp
+ *     @retval	putp
  */
 uint8_t *
 pbuf_putp_get(struct pbuf *pbuf);
@@ -340,10 +337,10 @@ pbuf_putp_get(struct pbuf *pbuf);
 /**
  * Set putp in pbuf.
  *
- *     @param[in,out]   pbuf    A pointer to \e pbuf structure.
- *     @param[in]       p       A pointer to value.
+ *     @param[in,out]	pbuf	A pointer to \e pbuf structure.
+ *     @param[in]	p	A pointer to value.
  *
- *     @retval  void
+ *     @retval	void
  */
 void
 pbuf_putp_set(struct pbuf *pbuf, uint8_t *p);
@@ -351,9 +348,9 @@ pbuf_putp_set(struct pbuf *pbuf, uint8_t *p);
 /**
  * Get data in pbuf.
  *
- *     @param[in]       pbuf    A pointer to \e pbuf structure.
+ *     @param[in]	pbuf	A pointer to \e pbuf structure.
  *
- *     @retval  data    A pointer to data in pbuf.
+ *     @retval	data	A pointer to data in pbuf.
  */
 uint8_t *
 pbuf_data_get(struct pbuf *pbuf);
@@ -361,14 +358,14 @@ pbuf_data_get(struct pbuf *pbuf);
 /**
  * Copy to pbuf from data for encode.
  *
- *     @param[in,out]   pbuf    A pointer to \e pbuf structure.
- *     @param[in]       data    A pointer to copy data.
- *     @param[in]       length  Size of data.
+ *     @param[in,out]	pbuf	A pointer to \e pbuf structure.
+ *     @param[in]	data	A pointer to copy data.
+ *     @param[in]	length	Size of data.
  *
- *     @retval  LAGOPUS_RESULT_OK       Succeeded.
- *     @retval  LAGOPUS_RESULT_OUT_OF_RANGE     Bad length.
- *     @retval  LAGOPUS_RESULT_INVALID_ARGS     Invalid args.
- *     @retval  LAGOPUS_RESULT_ANY_FAILURES     Failed.
+ *     @retval	LAGOPUS_RESULT_OK	Succeeded.
+ *     @retval	LAGOPUS_RESULT_OUT_OF_RANGE	Bad length.
+ *     @retval	LAGOPUS_RESULT_INVALID_ARGS	Invalid args.
+ *     @retval	LAGOPUS_RESULT_ANY_FAILURES	Failed.
  */
 lagopus_result_t
 pbuf_encode(struct pbuf *pbuf, const void *data,
@@ -377,10 +374,10 @@ pbuf_encode(struct pbuf *pbuf, const void *data,
 /**
  * Store pbuf info(putp, getp, plen).
  *
- *     @param[in]       pbuf    A pointer to \e pbuf structure.
- *     @param[in,out]   pbuf_info       A pointer to \e pbuf info structure.
+ *     @param[in]	pbuf	A pointer to \e pbuf structure.
+ *     @param[in,out]	pbuf_info	A pointer to \e pbuf info structure.
  *
- *     @retval  void
+ *     @retval	void
  */
 void
 pbuf_info_store(struct pbuf *pbuf, pbuf_info_t *pbuf_info);
@@ -388,10 +385,10 @@ pbuf_info_store(struct pbuf *pbuf, pbuf_info_t *pbuf_info);
 /**
  * Load pbuf info(putp, getp, plen).
  *
- *     @param[in,out]   pbuf    A pointer to \e pbuf structure.
- *     @param[in]       pbuf_info       A pointer to \e pbuf info structure.
+ *     @param[in,out]	pbuf	A pointer to \e pbuf structure.
+ *     @param[in]	pbuf_info	A pointer to \e pbuf info structure.
  *
- *     @retval  void
+ *     @retval	void
  */
 void
 pbuf_info_load(struct pbuf *pbuf, pbuf_info_t *pbuf_info);

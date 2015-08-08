@@ -1,0 +1,65 @@
+TOPDIR		= @TOPDIR@
+MKRULESDIR	= @MKRULESDIR@
+
+.PHONY: all stub
+
+all ::
+
+# TODO, remove this when the DP apis are prepared
+# always use stub functions
+USE_STUB = yes
+
+TARGET_LIB		= $(SNMP_HANDLER_LIB)
+INSTALL_LIB_TARGETS	= $(TARGET_LIB)
+INSTALL_LIB_DIR		= $(DEST_LIBDIR)
+
+ifNumber_SRCS = 	ifNumber.c
+ifTable_SRCS = 		ifTable.c ifTable_access.c
+BridgeMIB_SRCS =	dot1dBaseBridgeAddress.c \
+			dot1dBaseNumPorts.c \
+			dot1dBaseType.c \
+			dot1dBasePortTable.c \
+			dot1dBasePortTable_access.c
+Trap_SRCS =		coldStart.c warmStart.c \
+			linkUp.c linkDown.c
+
+STUBS = dpapi_stub.c
+
+COMMON_SRCS =   snmpmgr.c \
+		dataplane_interface.c\
+		$(ifNumber_SRCS) $(ifTable_SRCS) \
+		$(BridgeMIB_SRCS) $(Trap_SRCS)
+
+TARGETS = $(TARGET_LIB)
+
+CPPFLAGS += -I../config/
+LDFLAGS += $(NETSNMP_AGENT_LIBS)
+DEP_LIBS += $(DEP_LAGOPUS_UTIL_LIB) $(DEP_LAGOPUS_CONFIG_LIB)
+
+ifndef USE_STUB
+# is this correct?
+SRCS = $(COMMON_SRCS)
+else
+SRCS += $(COMMON_SRCS) $(STUBS)
+endif
+
+TARGET_STUB_LIB = liblagopus_snmp_handler_using_stub.la
+STUB_SRCS = $(COMMON_SRCS) $(STUBS)
+STUB_OBJS = $(STUB_SRCS:.c=.lo)
+
+stub: $(TARGET_STUB_LIB)
+
+$(TARGET_STUB_LIB):	$(STUB_OBJS)
+	$(LTCLEAN) $@
+	$(LTLIB_CC) -o $@ $(STUB_OBJS) $(LDFLAGS) $(DEP_LIBS)
+
+clean::
+	$(LTCLEAN) $(TARGET_STUB_LIB)
+
+check:: stub
+
+DIRS = test
+
+include $(MKRULESDIR)/vars.mk
+include $(MKRULESDIR)/rules.mk
+include .depend

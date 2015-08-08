@@ -14,13 +14,12 @@
  * limitations under the License.
  */
 
-
 #include "unity.h"
 
-#include "lagopus/dpmgr.h"
 #include "lagopus/flowdb.h"
 #include "lagopus/port.h"
 #include "lagopus/dataplane.h"
+#include "lagopus/datastore/bridge.h"
 #include "pktbuf.h"
 #include "packet.h"
 #include "datapath_test_misc.h"
@@ -29,16 +28,18 @@
 
 void
 setUp(void) {
+  TEST_ASSERT_EQUAL(dp_api_init(), LAGOPUS_RESULT_OK);
 }
 
 void
 tearDown(void) {
+  dp_api_fini();
 }
 
 void
 test_set_field_IN_PORT(void) {
+  datastore_bridge_info_t info;
   struct action_list action_list;
-  struct dpmgr *my_dpmgr;
   struct bridge *bridge;
   struct port *port;
   struct action *action;
@@ -48,23 +49,13 @@ test_set_field_IN_PORT(void) {
   OS_MBUF *m;
 
   /* setup bridge and port */
-  my_dpmgr = dpmgr_alloc();
-  dpmgr_bridge_add(my_dpmgr, "br0", 0);
-  nport.type = LAGOPUS_PORT_TYPE_NULL; /* for test */
-  nport.ofp_port.port_no = 1;
-  nport.ifindex = 0;
-  dpmgr_port_add(my_dpmgr, &nport);
-  port = port_lookup(my_dpmgr->ports, 0);
-  TEST_ASSERT_NOT_NULL(port);
-  port->ofp_port.hw_addr[0] = 0xff;
-  nport.ofp_port.port_no = 2;
-  nport.ifindex = 1;
-  dpmgr_port_add(my_dpmgr, &nport);
-  port = port_lookup(my_dpmgr->ports, 1);
-  TEST_ASSERT_NOT_NULL(port);
-  port->ofp_port.hw_addr[0] = 0xff;
-  dpmgr_bridge_port_add(my_dpmgr, "br0", 0, 1);
-  dpmgr_bridge_port_add(my_dpmgr, "br0", 1, 2);
+  memset(&info, 0, sizeof(info));
+  info.fail_mode = DATASTORE_BRIDGE_FAIL_MODE_SECURE;
+  TEST_ASSERT_EQUAL(dp_bridge_create("br0", &info), LAGOPUS_RESULT_OK);
+  TEST_ASSERT_EQUAL(dp_port_create("port0"), LAGOPUS_RESULT_OK);
+  TEST_ASSERT_EQUAL(dp_port_create("port1"), LAGOPUS_RESULT_OK);
+  TEST_ASSERT_EQUAL(dp_bridge_port_set("br0", "port0", 1), LAGOPUS_RESULT_OK);
+  TEST_ASSERT_EQUAL(dp_bridge_port_set("br0", "port1", 2), LAGOPUS_RESULT_OK);
 
   TAILQ_INIT(&action_list);
   action = calloc(1, sizeof(*action) + 64);
@@ -78,7 +69,7 @@ test_set_field_IN_PORT(void) {
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
 
-  bridge = dpmgr_bridge_lookup(my_dpmgr, "br0");
+  bridge = dp_bridge_lookup("br0");
   TEST_ASSERT_NOT_NULL(bridge);
   pkt.in_port = port_lookup(bridge->ports, 1);
   TEST_ASSERT_NOT_NULL(pkt.in_port);

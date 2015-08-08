@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 /**
  * @file        flowdb.h
  * @brief       Flow database.
@@ -164,29 +163,35 @@ enum {
 };
 
 enum {
+  OOB_BASE,
   ETH_BASE,
   PBB_BASE,
   MPLS_BASE,
   L3_BASE,
   IPPROTO_BASE,
   L4_BASE,
+  V6EXT_BASE,
+  V6SRC_BASE,
+  V6DST_BASE,
   NDSLL_BASE,
   NDTLL_BASE,
   MAX_BASE
 };
 
 struct byteoff_match {
-  uint64_t bits;
-  uint8_t bytes[64];
-  uint8_t masks[64];
+  uint32_t bits;
+  uint8_t bytes[32];
+  uint8_t masks[32];
 };
 
 struct oob_data {
-  uint32_t in_port;
-  uint32_t in_phy_port;
-  uint16_t vlan_tci;
   uint64_t metadata;
   uint64_t tunnel_id;
+  uint32_t in_port;
+  uint32_t in_phy_port;
+  uint16_t ether_type;
+  uint16_t vlan_tci;
+  /* size over 32 byte */
   uint16_t ipv6_exthdr;
 };
 
@@ -195,8 +200,7 @@ TAILQ_HEAD(instruction_list, instruction);
 
 /* Flow entry. */
 struct flow {
-  /* Match structure used in datapath. */
-  struct byteoff_match oob_match;
+  /* Match structure used in dataplane. */
   struct byteoff_match byteoff_match[MAX_BASE];
 
   /* Instruction array for execution. */
@@ -247,18 +251,6 @@ struct flow {
   struct flow **flow_timer;
 };
 
-enum flow_index {
-  ARP_FLOWS = 0,
-  VLAN_FLOWS,
-  IPV4_FLOWS,
-  IPV6_FLOWS,
-  MPLS_FLOWS,
-  MPLSMC_FLOWS,
-  PBB_FLOWS,
-  MISC_FLOWS,
-  MAX_FLOWS
-};
-
 enum action_flag {
   SET_FIELD_ETH_DST    = 1 << 0,
   SET_FIELD_ETH_SRC    = 1 << 1,
@@ -267,18 +259,49 @@ enum action_flag {
 };
 #define SET_FIELD_ETH (SET_FIELD_ETH_DST | SET_FIELD_ETH_SRC)
 
+struct flowinfo;
+
 struct flow_list {
   int nflow;
   struct flow **flows;
 
-  /* MPLS match patricia tree. */
-  struct ptree *mpls_tree;
+  /* decision tree */
+  uint8_t type;
+  uint8_t base;
+  uint8_t match_off;
+  uint8_t keylen;
+  union {
+    uint8_t match_mask8;
+    uint16_t match_mask16;
+    uint32_t match_mask32;
+    uint64_t match_mask64;
+    uint8_t mask[sizeof(uint64_t)];
+  };
+  union {
+    uint8_t min8;
+    uint16_t min16;
+    uint32_t min32;
+    uint64_t min64;
+  };
+  union {
+    uint8_t threshold8;
+    uint16_t threshold16;
+    uint32_t threshold32;
+    uint64_t threshold64;
+  };
+  struct flow_list *flows_dontcare;
+  struct flowinfo *basic;
+  void *branch[65536];
+
+  uint8_t oxm_field;
+  uint8_t shift;
+  struct flow_list **mbtree_timer;
 };
 
 /* Flow table. */
 struct table {
   /* Flows by types. */
-  struct flow_list flows[MAX_FLOWS];
+  struct flow_list flow_list;
 
   /* active_count is number of flows. */
   uint64_t lookup_count;
@@ -292,7 +315,7 @@ struct table {
   /* Features. */
   struct ofp_table_features features;
 
-  /* userdata used in datapath */
+  /* userdata used in dataplane */
   void *userdata;
 };
 
@@ -453,6 +476,20 @@ flowdb_flow_stats(struct flowdb *flowdb,
                   struct flow_stats_list *flow_stats_list,
                   struct ofp_error *error);
 
+/**
+ * Get aggregated stats of flows from the flow database.
+ *
+ * @param[in]   flowdb  Flow database.
+ * @param[in]   request ofp_flow_stats_request structure of the flow.
+ * @param[in]   match_list list of match structures.
+ * @param[out]  flow_stats_list  matched flow statistics.
+ * @param[out]  error   OFP_ERROR value.
+ *
+ * @retval LAGOPUS_RESULT_OK            Succeeded.
+ * @retval LAGOPUS_RESULT_INVALID_ARGS  Failed, invalid argument(s).
+ * @retval LAGOPUS_RESULT_NO_MEMORY     Failed, no memory.
+ * @retval LAGOPUS_RESULT_OFP_ERROR     Failed with OFP error message.
+ */
 lagopus_result_t
 flowdb_aggregate_stats(struct flowdb *,
                        struct ofp_aggregate_stats_request *,
@@ -538,14 +575,44 @@ flowdb_wrunlock(struct flowdb *flowdb) {
   FLOWDB_UPDATE_END();
 }
 
-/* Temporary flowdb dump functions. */
+/**
+ * Add flow to flow list.
+ *
+ * @param[in]   flow    Flow entry.
+ * @param[in]   flows   Flow list.
+ *
+ * @retval LAGOPUS_RESULT_OK            Succeeded.
+ */
+lagopus_result_t
+flow_add_sub(struct flow *flow, struct flow_list *flows);
+
+/**
+ * Dump flow as human readable.
+ *
+ * @param[in]   flow    Flow entry.
+ * @param[in]   fp      Output file pointer.
+ */
 void
 flow_dump(struct flow *flow, FILE *fp);
 
+/**
+ * Dump all flows as human readable in flowdb.
+ *
+ * @param[in]   flowdb  Flow database.
+ * @param[in]   fp      Output file pointer.
+ */
 void
 flowdb_dump(struct flowdb *flowdb, FILE *fp);
 
-/* Get table from flowdb. */
+/**
+ * Get table from flowdb.
+ *
+ * @param[in]   flowdb          Flow database.
+ * @param[in]   table_id        Table ID.
+ *
+ * @retval LAGOPUS_RESULT_OK            Succeeded.
+ * @retval LAGOPUS_RESULT_NOT_FOUND     Table not found.
+ */
 struct table *
 table_get(struct flowdb *flowdb, uint8_t table_id);
 
@@ -598,7 +665,7 @@ get_current_time(void) {
 /**
  * initialize flow timer related structure.
  */
-void init_flow_timer(void);
+void init_dp_timer(void);
 
 /**
  * register flow with timeout to timer list.
@@ -608,9 +675,16 @@ void init_flow_timer(void);
 lagopus_result_t add_flow_timer(struct flow *flow);
 
 /**
+ * register to refresh flow_list optimization to timer list.
+ *
+ * @param[in]   flow_list       list of flow.
+ */
+lagopus_result_t add_mbtree_timer(struct flow_list *flow_list, time_t timeout);
+
+/**
  * flow removal timer loop.
  */
-lagopus_result_t flow_timer_loop(const lagopus_thread_t *t, void *arg);
+lagopus_result_t dp_timer_loop(const lagopus_thread_t *t, void *arg);
 
 /**
  * Free match list elements.

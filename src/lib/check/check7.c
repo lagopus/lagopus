@@ -14,18 +14,17 @@
  * limitations under the License.
  */
 
-
 #include "lagopus_apis.h"
 #include "lagopus_thread_internal.h"
 
 
+
 
 
-
-#define NTHDS   8
-
+#define NTHDS	8
 
 
+
 
 
 typedef struct a_obj_record {
@@ -40,16 +39,16 @@ typedef struct null_thread_record {
   lagopus_mutex_t m_lock;
   a_obj_t m_o;
 } null_thread_record;
-typedef null_thread_record      *null_thread_t;
+typedef null_thread_record 	*null_thread_t;
 
 
-
+
 
 
 static null_thread_record s_thds[NTHDS];
 
 
-
+
 
 
 static inline a_obj_t
@@ -91,8 +90,9 @@ a_obj_get(a_obj_t o) {
   bool ret = false;
 
   if (o != NULL) {
+    int cstate;
 
-    (void)lagopus_mutex_enter_critical(&(o->m_lock));
+    (void)lagopus_mutex_enter_critical(&(o->m_lock), &cstate);
     {
       ret = o->m_bool;
       /*
@@ -101,7 +101,7 @@ a_obj_get(a_obj_t o) {
       fprintf(stderr, "%s:%d:%s: called.\n",
               __FILE__, __LINE__, __func__);
     }
-    (void)lagopus_mutex_leave_critical(&(o->m_lock));
+    (void)lagopus_mutex_leave_critical(&(o->m_lock), cstate);
 
   }
 
@@ -112,8 +112,9 @@ a_obj_get(a_obj_t o) {
 static inline void
 a_obj_set(a_obj_t o, bool val) {
   if (o != NULL) {
+    int cstate;
 
-    (void)lagopus_mutex_enter_critical(&(o->m_lock));
+    (void)lagopus_mutex_enter_critical(&(o->m_lock), &cstate);
     {
       o->m_bool = val;
       /*
@@ -122,13 +123,13 @@ a_obj_set(a_obj_t o, bool val) {
       fprintf(stderr, "%s:%d:%s:0x" PFTIDS(016, x) ": called.\n",
               __FILE__, __LINE__, __func__, pthread_self());
     }
-    (void)lagopus_mutex_leave_critical(&(o->m_lock));
+    (void)lagopus_mutex_leave_critical(&(o->m_lock), cstate);
 
   }
 }
 
 
-
+
 
 
 static lagopus_result_t
@@ -143,10 +144,11 @@ s_main(const lagopus_thread_t *tptr, void *arg) {
 
     if (nptr != NULL &&
         o != NULL) {
+      int cstate;
 
       while (true) {
 
-        (void)lagopus_mutex_enter_critical(&(nptr->m_lock));
+        (void)lagopus_mutex_enter_critical(&(nptr->m_lock), &cstate);
         {
           /*
            * fprintf() is a cancel point.
@@ -155,7 +157,7 @@ s_main(const lagopus_thread_t *tptr, void *arg) {
                   __FILE__, __LINE__, __func__, pthread_self());
           sleep(1);
         }
-        (void)lagopus_mutex_leave_critical(&(nptr->m_lock));
+        (void)lagopus_mutex_leave_critical(&(nptr->m_lock), cstate);
 
         a_obj_set(o, true);
 
@@ -213,7 +215,7 @@ done:
 }
 
 
-
+
 
 
 int

@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 /**
  *      @file   meter.c
  *      @brief  Metering support with Intel DPDK

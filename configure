@@ -645,9 +645,24 @@ PKG_MAINTAINER
 PKG_REVISION
 PKG_VERSION
 PKG_NAME
+SSE42_CPPFLAGS
+MBTREE_FLAGS
+RTE_MBUF_HAS_PKT
+RTE_LIBS
+RTE_TARGET
+RTE_SDK
+FRAME_CPPFLAGS
+GMP_LIBS
+SSL_LIBS
+DEP_SNMP_HANDLER_LIB
+NETSNMP_AGENT_LIBS
+SNMP_CPPFLAGS
+SNMP_DIR
+PCAP_LIBS
 UNITY_SRC_DIR
 HAVE_UNITY
 HAVE_GCOVR
+HAVE_JQ
 HAVE_RUBY
 HAVE_NKF
 TARGET_ARCH
@@ -659,24 +674,10 @@ OS_LDFLAGS
 OS_CFLAGS
 OS_CPPFLAGS
 MAKE
-SSE42_CPPFLAGS
-FLOWCACHE_FLAGS
-RTE_MBUF_HAS_PKT
-RTE_LIBS
-RTE_TARGET
-RTE_SDK
-GMP_LIBS
-SSL_LIBS
-EXPAT_LIBS
-PCAP_LIBS
-READLINE_LIBS
 BASENAME
 READLINK
 MKDIR
 RM
-PYTHON_LIB
-PYTHON_INCLUDE_DIR
-PYTHON_BIN
 LEXLIB
 LEX_OUTPUT_ROOT
 LEX
@@ -733,6 +734,7 @@ build_vendor
 build_cpu
 build
 LIBTOOL
+PREFIX
 TOPDIR
 target_alias
 host_alias
@@ -782,10 +784,12 @@ enable_fast_install
 with_gnu_ld
 with_sysroot
 enable_libtool_lock
-with_dpdk_dir
-enable_flowcache
-enable_sse4_2
 enable_developer
+enable_snmp
+enable_jumbo_frame
+with_dpdk_dir
+enable_mbtree
+enable_sse4_2
 '
       ac_precious_vars='build_alias
 host_alias
@@ -1419,11 +1423,15 @@ Optional Features:
   --enable-fast-install[=PKGS]
                           optimize for fast installation [default=yes]
   --disable-libtool-lock  avoid locking (might break parallel builds)
-  --enable-flowcache      build with flowcache feature [default is no]
-  --enable-sse4.2         build with SSE4.2 instruction [default is yes]
   --enable-developer      enable build for developers, like unit tests
                           [default is no]
 
+  --enable-snmp           build with snmp feature [default is no]
+
+  --enable-jumbo-frame    enable jumbo frame [default is no]
+
+  --enable-mbtree         use multiple branch tree lookup [default is no]
+  --enable-sse4.2         build with SSE4.2 instruction [default is yes]
 
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
@@ -1433,7 +1441,7 @@ Optional Packages:
   --with-gnu-ld           assume the C compiler uses GNU ld [default=no]
   --with-sysroot=DIR Search for dependent libraries within DIR
                         (or the compiler's sysroot if not specified).
-  --with-dpdk-dir=PATH    speficy top directory of extracted DPDK
+  --with-dpdk-dir=PATH    specify top directory of extracted DPDK
 
 Some influential environment variables:
   CC          C compiler command
@@ -1916,150 +1924,6 @@ fi
 
 } # ac_fn_cxx_try_link
 
-# ac_fn_c_check_header_mongrel LINENO HEADER VAR INCLUDES
-# -------------------------------------------------------
-# Tests whether HEADER exists, giving a warning if it cannot be compiled using
-# the include files in INCLUDES and setting the cache variable VAR
-# accordingly.
-ac_fn_c_check_header_mongrel ()
-{
-  as_lineno=${as_lineno-"$1"} as_lineno_stack=as_lineno_stack=$as_lineno_stack
-  if eval \${$3+:} false; then :
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $2" >&5
-$as_echo_n "checking for $2... " >&6; }
-if eval \${$3+:} false; then :
-  $as_echo_n "(cached) " >&6
-fi
-eval ac_res=\$$3
-	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
-else
-  # Is the header compilable?
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking $2 usability" >&5
-$as_echo_n "checking $2 usability... " >&6; }
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-$4
-#include <$2>
-_ACEOF
-if ac_fn_c_try_compile "$LINENO"; then :
-  ac_header_compiler=yes
-else
-  ac_header_compiler=no
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_header_compiler" >&5
-$as_echo "$ac_header_compiler" >&6; }
-
-# Is the header present?
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking $2 presence" >&5
-$as_echo_n "checking $2 presence... " >&6; }
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-#include <$2>
-_ACEOF
-if ac_fn_c_try_cpp "$LINENO"; then :
-  ac_header_preproc=yes
-else
-  ac_header_preproc=no
-fi
-rm -f conftest.err conftest.i conftest.$ac_ext
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_header_preproc" >&5
-$as_echo "$ac_header_preproc" >&6; }
-
-# So?  What about this header?
-case $ac_header_compiler:$ac_header_preproc:$ac_c_preproc_warn_flag in #((
-  yes:no: )
-    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: accepted by the compiler, rejected by the preprocessor!" >&5
-$as_echo "$as_me: WARNING: $2: accepted by the compiler, rejected by the preprocessor!" >&2;}
-    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: proceeding with the compiler's result" >&5
-$as_echo "$as_me: WARNING: $2: proceeding with the compiler's result" >&2;}
-    ;;
-  no:yes:* )
-    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: present but cannot be compiled" >&5
-$as_echo "$as_me: WARNING: $2: present but cannot be compiled" >&2;}
-    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2:     check for missing prerequisite headers?" >&5
-$as_echo "$as_me: WARNING: $2:     check for missing prerequisite headers?" >&2;}
-    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: see the Autoconf documentation" >&5
-$as_echo "$as_me: WARNING: $2: see the Autoconf documentation" >&2;}
-    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2:     section \"Present But Cannot Be Compiled\"" >&5
-$as_echo "$as_me: WARNING: $2:     section \"Present But Cannot Be Compiled\"" >&2;}
-    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: proceeding with the compiler's result" >&5
-$as_echo "$as_me: WARNING: $2: proceeding with the compiler's result" >&2;}
-    ;;
-esac
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $2" >&5
-$as_echo_n "checking for $2... " >&6; }
-if eval \${$3+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  eval "$3=\$ac_header_compiler"
-fi
-eval ac_res=\$$3
-	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
-fi
-  eval $as_lineno_stack; ${as_lineno_stack:+:} unset as_lineno
-
-} # ac_fn_c_check_header_mongrel
-
-# ac_fn_c_check_member LINENO AGGR MEMBER VAR INCLUDES
-# ----------------------------------------------------
-# Tries to find if the field MEMBER exists in type AGGR, after including
-# INCLUDES, setting cache variable VAR accordingly.
-ac_fn_c_check_member ()
-{
-  as_lineno=${as_lineno-"$1"} as_lineno_stack=as_lineno_stack=$as_lineno_stack
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $2.$3" >&5
-$as_echo_n "checking for $2.$3... " >&6; }
-if eval \${$4+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-$5
-int
-main ()
-{
-static $2 ac_aggr;
-if (ac_aggr.$3)
-return 0;
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_compile "$LINENO"; then :
-  eval "$4=yes"
-else
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-$5
-int
-main ()
-{
-static $2 ac_aggr;
-if (sizeof ac_aggr.$3)
-return 0;
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_compile "$LINENO"; then :
-  eval "$4=yes"
-else
-  eval "$4=no"
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-fi
-rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
-fi
-eval ac_res=\$$4
-	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
-  eval $as_lineno_stack; ${as_lineno_stack:+:} unset as_lineno
-
-} # ac_fn_c_check_member
-
 # ac_fn_c_compute_int LINENO EXPR VAR INCLUDES
 # --------------------------------------------
 # Tries to find the compile-time value of EXPR in a program that includes
@@ -2242,6 +2106,150 @@ rm -f conftest.val
   as_fn_set_status $ac_retval
 
 } # ac_fn_c_compute_int
+
+# ac_fn_c_check_header_mongrel LINENO HEADER VAR INCLUDES
+# -------------------------------------------------------
+# Tests whether HEADER exists, giving a warning if it cannot be compiled using
+# the include files in INCLUDES and setting the cache variable VAR
+# accordingly.
+ac_fn_c_check_header_mongrel ()
+{
+  as_lineno=${as_lineno-"$1"} as_lineno_stack=as_lineno_stack=$as_lineno_stack
+  if eval \${$3+:} false; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $2" >&5
+$as_echo_n "checking for $2... " >&6; }
+if eval \${$3+:} false; then :
+  $as_echo_n "(cached) " >&6
+fi
+eval ac_res=\$$3
+	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
+$as_echo "$ac_res" >&6; }
+else
+  # Is the header compilable?
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking $2 usability" >&5
+$as_echo_n "checking $2 usability... " >&6; }
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+$4
+#include <$2>
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  ac_header_compiler=yes
+else
+  ac_header_compiler=no
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_header_compiler" >&5
+$as_echo "$ac_header_compiler" >&6; }
+
+# Is the header present?
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking $2 presence" >&5
+$as_echo_n "checking $2 presence... " >&6; }
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include <$2>
+_ACEOF
+if ac_fn_c_try_cpp "$LINENO"; then :
+  ac_header_preproc=yes
+else
+  ac_header_preproc=no
+fi
+rm -f conftest.err conftest.i conftest.$ac_ext
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_header_preproc" >&5
+$as_echo "$ac_header_preproc" >&6; }
+
+# So?  What about this header?
+case $ac_header_compiler:$ac_header_preproc:$ac_c_preproc_warn_flag in #((
+  yes:no: )
+    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: accepted by the compiler, rejected by the preprocessor!" >&5
+$as_echo "$as_me: WARNING: $2: accepted by the compiler, rejected by the preprocessor!" >&2;}
+    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: proceeding with the compiler's result" >&5
+$as_echo "$as_me: WARNING: $2: proceeding with the compiler's result" >&2;}
+    ;;
+  no:yes:* )
+    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: present but cannot be compiled" >&5
+$as_echo "$as_me: WARNING: $2: present but cannot be compiled" >&2;}
+    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2:     check for missing prerequisite headers?" >&5
+$as_echo "$as_me: WARNING: $2:     check for missing prerequisite headers?" >&2;}
+    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: see the Autoconf documentation" >&5
+$as_echo "$as_me: WARNING: $2: see the Autoconf documentation" >&2;}
+    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2:     section \"Present But Cannot Be Compiled\"" >&5
+$as_echo "$as_me: WARNING: $2:     section \"Present But Cannot Be Compiled\"" >&2;}
+    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: $2: proceeding with the compiler's result" >&5
+$as_echo "$as_me: WARNING: $2: proceeding with the compiler's result" >&2;}
+    ;;
+esac
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $2" >&5
+$as_echo_n "checking for $2... " >&6; }
+if eval \${$3+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  eval "$3=\$ac_header_compiler"
+fi
+eval ac_res=\$$3
+	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
+$as_echo "$ac_res" >&6; }
+fi
+  eval $as_lineno_stack; ${as_lineno_stack:+:} unset as_lineno
+
+} # ac_fn_c_check_header_mongrel
+
+# ac_fn_c_check_member LINENO AGGR MEMBER VAR INCLUDES
+# ----------------------------------------------------
+# Tries to find if the field MEMBER exists in type AGGR, after including
+# INCLUDES, setting cache variable VAR accordingly.
+ac_fn_c_check_member ()
+{
+  as_lineno=${as_lineno-"$1"} as_lineno_stack=as_lineno_stack=$as_lineno_stack
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $2.$3" >&5
+$as_echo_n "checking for $2.$3... " >&6; }
+if eval \${$4+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+$5
+int
+main ()
+{
+static $2 ac_aggr;
+if (ac_aggr.$3)
+return 0;
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  eval "$4=yes"
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+$5
+int
+main ()
+{
+static $2 ac_aggr;
+if (sizeof ac_aggr.$3)
+return 0;
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+  eval "$4=yes"
+else
+  eval "$4=no"
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+fi
+eval ac_res=\$$4
+	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
+$as_echo "$ac_res" >&6; }
+  eval $as_lineno_stack; ${as_lineno_stack:+:} unset as_lineno
+
+} # ac_fn_c_check_member
 cat >config.log <<_ACEOF
 This file contains any messages produced by compilers while
 running configure, to aid debugging if configure makes a mistake.
@@ -2629,61 +2637,7 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 
-# ===========================================================================
-#         http://www.gnu.org/software/autoconf-archive/ax_python.html
-# ===========================================================================
-#
-# SYNOPSIS
-#
-#   AX_PYTHON
-#
-# DESCRIPTION
-#
-#   This macro does a complete Python development environment check.
-#
-#   It recurses through several python versions (from 2.1 to 2.6 in this
-#   version), looking for an executable. When it finds an executable, it
-#   looks to find the header files and library.
-#
-#   It sets PYTHON_BIN to the name of the python executable,
-#   PYTHON_INCLUDE_DIR to the directory holding the header files, and
-#   PYTHON_LIB to the name of the Python library.
-#
-#   This macro calls AC_SUBST on PYTHON_BIN (via AC_CHECK_PROG),
-#   PYTHON_INCLUDE_DIR and PYTHON_LIB.
-#
-# LICENSE
-#
-#   Copyright (c) 2008 Michael Tindal
-#
-#   This program is free software; you can redistribute it and/or modify it
-#   under the terms of the GNU General Public License as published by the
-#   Free Software Foundation; either version 2 of the License, or (at your
-#   option) any later version.
-#
-#   This program is distributed in the hope that it will be useful, but
-#   WITHOUT ANY WARRANTY; without even the implied warranty of
-#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
-#   Public License for more details.
-#
-#   You should have received a copy of the GNU General Public License along
-#   with this program. If not, see <http://www.gnu.org/licenses/>.
-#
-#   As a special exception, the respective Autoconf Macro's copyright owner
-#   gives unlimited permission to copy, distribute and modify the configure
-#   scripts that are the output of Autoconf when processing the Macro. You
-#   need not follow the terms of the GNU General Public License when using
-#   or distributing such scripts, even though portions of the text of the
-#   Macro appear in them. The GNU General Public License (GPL) does govern
-#   all other use of the material that constitutes the Autoconf Macro.
-#
-#   This special exception to the GPL applies to versions of the Autoconf
-#   Macro released by the Autoconf Archive. When you make and distribute a
-#   modified version of the Autoconf Macro, you may extend this special
-#   exception to the GPL to apply to your modified version as well.
-
-#serial 14
-
+ac_config_headers="$ac_config_headers src/include/lagopus_config.h"
 
 
 if test "${prefix}" = "NONE"; then
@@ -2692,6 +2646,9 @@ fi
 if test "${exec_prefix}" = "NONE"; then
     exec_prefix='${prefix}'
 fi
+
+PREFIX=${prefix}
+
 
 SHELL=`which bash` > /dev/null 2>&1
 if test $? -ne 0 -o -z "${SHELL}"; then
@@ -15466,7 +15423,7 @@ rm -f conftest.l $LEX_OUTPUT_ROOT.c
 
 fi
 if test "x$LEX" != xflex -a "x$LEX" != xlex; then
-    as_fn_error $? "flex/lex must be installed." "$LINENO" 5
+   as_fn_error $? "flex/lex must be installed." "$LINENO" 5
 fi
 for ac_prog in gawk mawk nawk awk
 do
@@ -15543,170 +15500,6 @@ cat >>confdefs.h <<_ACEOF
 _ACEOF
 
 
-PYTHON_BIN=python2.7
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for python build information" >&5
-$as_echo_n "checking for python build information... " >&6; }
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: " >&5
-$as_echo "" >&6; }
-for python in python3.3 python3.2 python3.1 python3.0 python2.7 python2.6 python2.5 python2.4 python2.3 python2.2 python2.1 python; do
-for ac_prog in $python
-do
-  # Extract the first word of "$ac_prog", so it can be a program name with args.
-set dummy $ac_prog; ac_word=$2
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
-$as_echo_n "checking for $ac_word... " >&6; }
-if ${ac_cv_prog_PYTHON_BIN+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  if test -n "$PYTHON_BIN"; then
-  ac_cv_prog_PYTHON_BIN="$PYTHON_BIN" # Let the user override the test.
-else
-as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-    for ac_exec_ext in '' $ac_executable_extensions; do
-  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_prog_PYTHON_BIN="$ac_prog"
-    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-  done
-IFS=$as_save_IFS
-
-fi
-fi
-PYTHON_BIN=$ac_cv_prog_PYTHON_BIN
-if test -n "$PYTHON_BIN"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $PYTHON_BIN" >&5
-$as_echo "$PYTHON_BIN" >&6; }
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-fi
-
-
-  test -n "$PYTHON_BIN" && break
-done
-
-ax_python_bin=$PYTHON_BIN
-if test x$ax_python_bin != x; then
-   as_ac_Lib=`$as_echo "ac_cv_lib_$ax_python_bin''_main" | $as_tr_sh`
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -l$ax_python_bin" >&5
-$as_echo_n "checking for main in -l$ax_python_bin... " >&6; }
-if eval \${$as_ac_Lib+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-l$ax_python_bin  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-
-int
-main ()
-{
-return main ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  eval "$as_ac_Lib=yes"
-else
-  eval "$as_ac_Lib=no"
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-eval ac_res=\$$as_ac_Lib
-	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
-if eval test \"x\$"$as_ac_Lib"\" = x"yes"; then :
-  ax_python_lib=$ax_python_bin
-else
-  ax_python_lib=no
-fi
-
-   if test x$ax_python_lib == xno; then
-     as_ac_Lib=`$as_echo "ac_cv_lib_${ax_python_bin}m''_main" | $as_tr_sh`
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for main in -l${ax_python_bin}m" >&5
-$as_echo_n "checking for main in -l${ax_python_bin}m... " >&6; }
-if eval \${$as_ac_Lib+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-l${ax_python_bin}m  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-
-int
-main ()
-{
-return main ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  eval "$as_ac_Lib=yes"
-else
-  eval "$as_ac_Lib=no"
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-eval ac_res=\$$as_ac_Lib
-	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
-if eval test \"x\$"$as_ac_Lib"\" = x"yes"; then :
-  ax_python_lib=${ax_python_bin}m
-else
-  ax_python_lib=no
-fi
-
-   fi
-   if test x$ax_python_lib != xno; then
-     ax_python_header=`$ax_python_bin -c "from distutils.sysconfig import *; print(get_config_var('CONFINCLUDEPY'))"`
-     if test x$ax_python_header != x; then
-       break;
-     fi
-   fi
-fi
-done
-if test x$ax_python_bin = x; then
-   ax_python_bin=no
-fi
-if test x$ax_python_header = x; then
-   ax_python_header=no
-fi
-if test x$ax_python_lib = x; then
-   ax_python_lib=no
-fi
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result:   results of the Python check:" >&5
-$as_echo "  results of the Python check:" >&6; }
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result:     Binary:      $ax_python_bin" >&5
-$as_echo "    Binary:      $ax_python_bin" >&6; }
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result:     Library:     $ax_python_lib" >&5
-$as_echo "    Library:     $ax_python_lib" >&6; }
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result:     Include Dir: $ax_python_header" >&5
-$as_echo "    Include Dir: $ax_python_header" >&6; }
-
-if test x$ax_python_header != xno; then
-  PYTHON_INCLUDE_DIR=$ax_python_header
-
-fi
-if test x$ax_python_lib != xno; then
-  PYTHON_LIB=$ax_python_lib
-
-fi
-
 
 RM="rm -f"
 
@@ -15723,308 +15516,534 @@ READLINK="readlink"
 BASENAME="basename"
 
 
-oLIBS=${LIBS}
-LIBS=''
-# Check curses library for libedit of CLI.
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for tgetent in -ltinfo" >&5
-$as_echo_n "checking for tgetent in -ltinfo... " >&6; }
-if ${ac_cv_lib_tinfo_tgetent+:} false; then :
+# Assume 32 bit for cross compilation.
+# The cast to long int works around a bug in the HP C Compiler
+# version HP92453-01 B.11.11.23709.GP, which incorrectly rejects
+# declarations like `int a3[[(sizeof (unsigned char)) >= 0]];'.
+# This bug is HP SR number 8606223364.
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking size of short int" >&5
+$as_echo_n "checking size of short int... " >&6; }
+if ${ac_cv_sizeof_short_int+:} false; then :
   $as_echo_n "(cached) " >&6
 else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-ltinfo  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char tgetent ();
-int
-main ()
-{
-return tgetent ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_tinfo_tgetent=yes
-else
-  ac_cv_lib_tinfo_tgetent=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_tinfo_tgetent" >&5
-$as_echo "$ac_cv_lib_tinfo_tgetent" >&6; }
-if test "x$ac_cv_lib_tinfo_tgetent" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBTINFO 1
-_ACEOF
-
-  LIBS="-ltinfo $LIBS"
+  if ac_fn_c_compute_int "$LINENO" "(long int) (sizeof (short int))" "ac_cv_sizeof_short_int"        "$ac_includes_default"; then :
 
 else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for tgetent in -lterminfo" >&5
-$as_echo_n "checking for tgetent in -lterminfo... " >&6; }
-if ${ac_cv_lib_terminfo_tgetent+:} false; then :
+  if test "$ac_cv_type_short_int" = yes; then
+     { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error 77 "cannot compute sizeof (short int)
+See \`config.log' for more details" "$LINENO" 5; }
+   else
+     ac_cv_sizeof_short_int=0
+   fi
+fi
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_sizeof_short_int" >&5
+$as_echo "$ac_cv_sizeof_short_int" >&6; }
+
+
+
+cat >>confdefs.h <<_ACEOF
+#define SIZEOF_SHORT_INT $ac_cv_sizeof_short_int
+_ACEOF
+
+
+# The cast to long int works around a bug in the HP C Compiler
+# version HP92453-01 B.11.11.23709.GP, which incorrectly rejects
+# declarations like `int a3[[(sizeof (unsigned char)) >= 0]];'.
+# This bug is HP SR number 8606223364.
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking size of int" >&5
+$as_echo_n "checking size of int... " >&6; }
+if ${ac_cv_sizeof_int+:} false; then :
   $as_echo_n "(cached) " >&6
 else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lterminfo  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char tgetent ();
-int
-main ()
-{
-return tgetent ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_terminfo_tgetent=yes
-else
-  ac_cv_lib_terminfo_tgetent=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_terminfo_tgetent" >&5
-$as_echo "$ac_cv_lib_terminfo_tgetent" >&6; }
-if test "x$ac_cv_lib_terminfo_tgetent" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBTERMINFO 1
-_ACEOF
-
-  LIBS="-lterminfo $LIBS"
+  if ac_fn_c_compute_int "$LINENO" "(long int) (sizeof (int))" "ac_cv_sizeof_int"        "$ac_includes_default"; then :
 
 else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for tgetent in -ltermcap" >&5
-$as_echo_n "checking for tgetent in -ltermcap... " >&6; }
-if ${ac_cv_lib_termcap_tgetent+:} false; then :
+  if test "$ac_cv_type_int" = yes; then
+     { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error 77 "cannot compute sizeof (int)
+See \`config.log' for more details" "$LINENO" 5; }
+   else
+     ac_cv_sizeof_int=0
+   fi
+fi
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_sizeof_int" >&5
+$as_echo "$ac_cv_sizeof_int" >&6; }
+
+
+
+cat >>confdefs.h <<_ACEOF
+#define SIZEOF_INT $ac_cv_sizeof_int
+_ACEOF
+
+
+# The cast to long int works around a bug in the HP C Compiler
+# version HP92453-01 B.11.11.23709.GP, which incorrectly rejects
+# declarations like `int a3[[(sizeof (unsigned char)) >= 0]];'.
+# This bug is HP SR number 8606223364.
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking size of long int" >&5
+$as_echo_n "checking size of long int... " >&6; }
+if ${ac_cv_sizeof_long_int+:} false; then :
   $as_echo_n "(cached) " >&6
 else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-ltermcap  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char tgetent ();
-int
-main ()
-{
-return tgetent ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_termcap_tgetent=yes
-else
-  ac_cv_lib_termcap_tgetent=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_termcap_tgetent" >&5
-$as_echo "$ac_cv_lib_termcap_tgetent" >&6; }
-if test "x$ac_cv_lib_termcap_tgetent" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBTERMCAP 1
-_ACEOF
-
-  LIBS="-ltermcap $LIBS"
+  if ac_fn_c_compute_int "$LINENO" "(long int) (sizeof (long int))" "ac_cv_sizeof_long_int"        "$ac_includes_default"; then :
 
 else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for tgetent in -ltermlib" >&5
-$as_echo_n "checking for tgetent in -ltermlib... " >&6; }
-if ${ac_cv_lib_termlib_tgetent+:} false; then :
+  if test "$ac_cv_type_long_int" = yes; then
+     { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error 77 "cannot compute sizeof (long int)
+See \`config.log' for more details" "$LINENO" 5; }
+   else
+     ac_cv_sizeof_long_int=0
+   fi
+fi
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_sizeof_long_int" >&5
+$as_echo "$ac_cv_sizeof_long_int" >&6; }
+
+
+
+cat >>confdefs.h <<_ACEOF
+#define SIZEOF_LONG_INT $ac_cv_sizeof_long_int
+_ACEOF
+
+
+# The cast to long int works around a bug in the HP C Compiler
+# version HP92453-01 B.11.11.23709.GP, which incorrectly rejects
+# declarations like `int a3[[(sizeof (unsigned char)) >= 0]];'.
+# This bug is HP SR number 8606223364.
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking size of long long" >&5
+$as_echo_n "checking size of long long... " >&6; }
+if ${ac_cv_sizeof_long_long+:} false; then :
   $as_echo_n "(cached) " >&6
 else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-ltermlib  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char tgetent ();
-int
-main ()
-{
-return tgetent ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_termlib_tgetent=yes
-else
-  ac_cv_lib_termlib_tgetent=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_termlib_tgetent" >&5
-$as_echo "$ac_cv_lib_termlib_tgetent" >&6; }
-if test "x$ac_cv_lib_termlib_tgetent" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBTERMLIB 1
-_ACEOF
-
-  LIBS="-ltermlib $LIBS"
+  if ac_fn_c_compute_int "$LINENO" "(long int) (sizeof (long long))" "ac_cv_sizeof_long_long"        "$ac_includes_default"; then :
 
 else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for tgetent in -lcurses" >&5
-$as_echo_n "checking for tgetent in -lcurses... " >&6; }
-if ${ac_cv_lib_curses_tgetent+:} false; then :
+  if test "$ac_cv_type_long_long" = yes; then
+     { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error 77 "cannot compute sizeof (long long)
+See \`config.log' for more details" "$LINENO" 5; }
+   else
+     ac_cv_sizeof_long_long=0
+   fi
+fi
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_sizeof_long_long" >&5
+$as_echo "$ac_cv_sizeof_long_long" >&6; }
+
+
+
+cat >>confdefs.h <<_ACEOF
+#define SIZEOF_LONG_LONG $ac_cv_sizeof_long_long
+_ACEOF
+
+
+# The cast to long int works around a bug in the HP C Compiler
+# version HP92453-01 B.11.11.23709.GP, which incorrectly rejects
+# declarations like `int a3[[(sizeof (unsigned char)) >= 0]];'.
+# This bug is HP SR number 8606223364.
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking size of int64_t" >&5
+$as_echo_n "checking size of int64_t... " >&6; }
+if ${ac_cv_sizeof_int64_t+:} false; then :
   $as_echo_n "(cached) " >&6
 else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lcurses  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char tgetent ();
-int
-main ()
-{
-return tgetent ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_curses_tgetent=yes
-else
-  ac_cv_lib_curses_tgetent=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_curses_tgetent" >&5
-$as_echo "$ac_cv_lib_curses_tgetent" >&6; }
-if test "x$ac_cv_lib_curses_tgetent" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBCURSES 1
-_ACEOF
-
-  LIBS="-lcurses $LIBS"
+  if ac_fn_c_compute_int "$LINENO" "(long int) (sizeof (int64_t))" "ac_cv_sizeof_int64_t"        "$ac_includes_default"; then :
 
 else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for tgetent in -lncurses" >&5
-$as_echo_n "checking for tgetent in -lncurses... " >&6; }
-if ${ac_cv_lib_ncurses_tgetent+:} false; then :
+  if test "$ac_cv_type_int64_t" = yes; then
+     { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error 77 "cannot compute sizeof (int64_t)
+See \`config.log' for more details" "$LINENO" 5; }
+   else
+     ac_cv_sizeof_int64_t=0
+   fi
+fi
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_sizeof_int64_t" >&5
+$as_echo "$ac_cv_sizeof_int64_t" >&6; }
+
+
+
+cat >>confdefs.h <<_ACEOF
+#define SIZEOF_INT64_T $ac_cv_sizeof_int64_t
+_ACEOF
+
+
+# The cast to long int works around a bug in the HP C Compiler
+# version HP92453-01 B.11.11.23709.GP, which incorrectly rejects
+# declarations like `int a3[[(sizeof (unsigned char)) >= 0]];'.
+# This bug is HP SR number 8606223364.
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking size of size_t" >&5
+$as_echo_n "checking size of size_t... " >&6; }
+if ${ac_cv_sizeof_size_t+:} false; then :
   $as_echo_n "(cached) " >&6
 else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lncurses  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char tgetent ();
-int
-main ()
-{
-return tgetent ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_ncurses_tgetent=yes
-else
-  ac_cv_lib_ncurses_tgetent=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_ncurses_tgetent" >&5
-$as_echo "$ac_cv_lib_ncurses_tgetent" >&6; }
-if test "x$ac_cv_lib_ncurses_tgetent" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBNCURSES 1
-_ACEOF
-
-  LIBS="-lncurses $LIBS"
+  if ac_fn_c_compute_int "$LINENO" "(long int) (sizeof (size_t))" "ac_cv_sizeof_size_t"        "$ac_includes_default"; then :
 
 else
-  as_fn_error $? "libcurses or libncurses are required!" "$LINENO" 5
-
+  if test "$ac_cv_type_size_t" = yes; then
+     { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error 77 "cannot compute sizeof (size_t)
+See \`config.log' for more details" "$LINENO" 5; }
+   else
+     ac_cv_sizeof_size_t=0
+   fi
 fi
 
-
 fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_sizeof_size_t" >&5
+$as_echo "$ac_cv_sizeof_size_t" >&6; }
 
 
-fi
 
-
-fi
-
-
-fi
-
-
-fi
-
-READLINE_LIBS=${LIBS}
-
-LIBS=${oLIBS}
-
-for ac_func in strlcpy strlcat vis unvis
-do :
-  as_ac_var=`$as_echo "ac_cv_func_$ac_func" | $as_tr_sh`
-ac_fn_c_check_func "$LINENO" "$ac_func" "$as_ac_var"
-if eval test \"x\$"$as_ac_var"\" = x"yes"; then :
-  cat >>confdefs.h <<_ACEOF
-#define `$as_echo "HAVE_$ac_func" | $as_tr_cpp` 1
+cat >>confdefs.h <<_ACEOF
+#define SIZEOF_SIZE_T $ac_cv_sizeof_size_t
 _ACEOF
 
+
+# The cast to long int works around a bug in the HP C Compiler
+# version HP92453-01 B.11.11.23709.GP, which incorrectly rejects
+# declarations like `int a3[[(sizeof (unsigned char)) >= 0]];'.
+# This bug is HP SR number 8606223364.
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking size of void *" >&5
+$as_echo_n "checking size of void *... " >&6; }
+if ${ac_cv_sizeof_void_p+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if ac_fn_c_compute_int "$LINENO" "(long int) (sizeof (void *))" "ac_cv_sizeof_void_p"        "$ac_includes_default"; then :
+
+else
+  if test "$ac_cv_type_void_p" = yes; then
+     { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error 77 "cannot compute sizeof (void *)
+See \`config.log' for more details" "$LINENO" 5; }
+   else
+     ac_cv_sizeof_void_p=0
+   fi
 fi
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_sizeof_void_p" >&5
+$as_echo "$ac_cv_sizeof_void_p" >&6; }
+
+
+
+cat >>confdefs.h <<_ACEOF
+#define SIZEOF_VOID_P $ac_cv_sizeof_void_p
+_ACEOF
+
+
+# The cast to long int works around a bug in the HP C Compiler
+# version HP92453-01 B.11.11.23709.GP, which incorrectly rejects
+# declarations like `int a3[[(sizeof (unsigned char)) >= 0]];'.
+# This bug is HP SR number 8606223364.
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking size of pthread_t" >&5
+$as_echo_n "checking size of pthread_t... " >&6; }
+if ${ac_cv_sizeof_pthread_t+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if ac_fn_c_compute_int "$LINENO" "(long int) (sizeof (pthread_t))" "ac_cv_sizeof_pthread_t"        "$ac_includes_default"; then :
+
+else
+  if test "$ac_cv_type_pthread_t" = yes; then
+     { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error 77 "cannot compute sizeof (pthread_t)
+See \`config.log' for more details" "$LINENO" 5; }
+   else
+     ac_cv_sizeof_pthread_t=0
+   fi
+fi
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_sizeof_pthread_t" >&5
+$as_echo "$ac_cv_sizeof_pthread_t" >&6; }
+
+
+
+cat >>confdefs.h <<_ACEOF
+#define SIZEOF_PTHREAD_T $ac_cv_sizeof_pthread_t
+_ACEOF
+
+
+
+# sysdeps.
+
+eval `echo ${target} | awk -F- '{ printf "tagCPU=%s; tagOS=%s;\n", $1, $3 }'`
+
+CPU=`echo ${tagCPU} | tr '[A-Z]' '[a-z]'`
+OS=`echo ${tagOS} | tr '[A-Z]' '[a-z]'`
+unset tagOS tagCPU
+
+case $CPU in
+    i*86)
+        CPU=i386;;
+esac
+
+OS_CPPFLAGS='-D_REENTRANT'
+OS_LDFLAGS=''
+OS_LIBS=''
+OS_CFLAGS=''
+if test -z "${MAKE}"; then
+	MAKE=make
+fi
+
+case $OS in
+    sunos*)
+        OS=sunos;;
+    solaris*)
+        OS=solaris;;
+    freebsd*)
+	MAKE=gmake
+	OS_CPPFLAGS="${OS_CPPFLAGS} -I/usr/local/include"
+	OS_LDFLAGS="${OS_LDFLAGS} -L/usr/local/lib"
+	CPPFLAGS="${CPPFLAGS} ${OS_CPPFLAGS}"
+	LDFLAGS="${LDFLAGS} ${OS_LDFLAGS}"
+	OS_LIBS="-lpthread -lexecinfo"
+	OS=freebsd;;
+    linux*)
+	OS_CPPFLAGS="${OS_CPPFLAGS} -D_GNU_SOURCE -D_POSIX_SOURCE"
+	OS_LIBS="-lrt -lpthread -ldl"
+	OS=linux;;
+    netbsd*)
+        MAKE=gmake
+        OS_CPPFLAGS="${OS_CPPFLAGS} -I/usr/pkg/include"
+    	OS_LDFLAGS="-L/usr/pkg/lib"
+	OS_LIBS="-lpthread"
+	OS=netbsd;;
+esac
+
+
+
+
+
+
+
+CPUDEF=LAGOPUS_CPU_`echo $CPU | tr '[a-z]' '[A-Z]'`
+OSDEF=LAGOPUS_OS_`echo $OS | tr '[a-z]' '[A-Z]'`
+
+
+
+MKRULESDIR=${TOPDIR}/mk
+
+
+
+
+
+
+
+RUBY=ruby
+NKF=nkf
+UNITY_SRC_DIR=
+
+# Check whether --enable-developer was given.
+if test "${enable_developer+set}" = set; then :
+  enableval=$enable_developer; developer="$withval"
+else
+  developer=no
+fi
+
+
+if test "X${developer}" != "Xno"; then
+  # Extract the first word of "nkf", so it can be a program name with args.
+set dummy nkf; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_prog_HAVE_NKF+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if test -n "$HAVE_NKF"; then
+  ac_cv_prog_HAVE_NKF="$HAVE_NKF" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_prog_HAVE_NKF="yes"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
 done
+  done
+IFS=$as_save_IFS
 
+fi
+fi
+HAVE_NKF=$ac_cv_prog_HAVE_NKF
+if test -n "$HAVE_NKF"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $HAVE_NKF" >&5
+$as_echo "$HAVE_NKF" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+
+  # Extract the first word of "ruby", so it can be a program name with args.
+set dummy ruby; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_prog_HAVE_RUBY+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if test -n "$HAVE_RUBY"; then
+  ac_cv_prog_HAVE_RUBY="$HAVE_RUBY" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_prog_HAVE_RUBY="yes"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  test -z "$ac_cv_prog_HAVE_RUBY" && ac_cv_prog_HAVE_RUBY="no"
+fi
+fi
+HAVE_RUBY=$ac_cv_prog_HAVE_RUBY
+if test -n "$HAVE_RUBY"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $HAVE_RUBY" >&5
+$as_echo "$HAVE_RUBY" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+
+  if test "X${HAVE_RUBY}" != "Xyes"; then
+    as_fn_error $? "developer's build requires ruby." "$LINENO" 5
+  fi
+
+  # Extract the first word of "jq", so it can be a program name with args.
+set dummy jq; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_prog_HAVE_JQ+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if test -n "$HAVE_JQ"; then
+  ac_cv_prog_HAVE_JQ="$HAVE_JQ" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_prog_HAVE_JQ="yes"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+  test -z "$ac_cv_prog_HAVE_JQ" && ac_cv_prog_HAVE_JQ="no"
+fi
+fi
+HAVE_JQ=$ac_cv_prog_HAVE_JQ
+if test -n "$HAVE_JQ"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $HAVE_JQ" >&5
+$as_echo "$HAVE_JQ" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+
+  if test "X${HAVE_JQ}" != "Xyes"; then
+    as_fn_error $? "developer's build requires jq (Command-line JSON processor)." "$LINENO" 5
+  fi
+
+  ./mk/unitycheck.sh ${CC}
+  if test $? -eq 0 ; then
+    HAVE_UNITY=yes
+    UNITY_SRC_DIR=unity/src
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: unity is available." >&5
+$as_echo "unity is available." >&6; }
+  else
+    HAVE_UNITY=
+    as_fn_error $? "Unity is not available. developer's build requires Unity. Please check https://github.com/lagopus/lagopus/blob/master/docs/how-to-write-tests-in-lagopus.md." "$LINENO" 5
+  fi
+
+  # Extract the first word of "gcovr", so it can be a program name with args.
+set dummy gcovr; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_prog_HAVE_GCOVR+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if test -n "$HAVE_GCOVR"; then
+  ac_cv_prog_HAVE_GCOVR="$HAVE_GCOVR" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_prog_HAVE_GCOVR="yes"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+fi
+fi
+HAVE_GCOVR=$ac_cv_prog_HAVE_GCOVR
+if test -n "$HAVE_GCOVR"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $HAVE_GCOVR" >&5
+$as_echo "$HAVE_GCOVR" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+  if test "X${HAVE_GCOVR}" != "Xyes"; then
+    as_fn_error $? "taking coverage requires gcovr.." "$LINENO" 5
+  fi
+fi
+
+
+
+
+
+
+
+# headers/macros
 
 oLIBS=${LIBS}
 LIBS=''
@@ -16086,135 +16105,6 @@ fi
 PCAP_LIBS=${LIBS}
 
 LIBS=${oLIBS}
-
-oLIBS=${LIBS}
-LIBS=''
-ac_fn_c_check_header_mongrel "$LINENO" "expat.h" "ac_cv_header_expat_h" "$ac_includes_default"
-if test "x$ac_cv_header_expat_h" = xyes; then :
-  $as_echo "#define HAVE_EXPAT_H 1" >>confdefs.h
-
-else
-  as_fn_error $? "expat.h is required!" "$LINENO" 5
-fi
-
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for XML_ParserCreate in -lexpat" >&5
-$as_echo_n "checking for XML_ParserCreate in -lexpat... " >&6; }
-if ${ac_cv_lib_expat_XML_ParserCreate+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lexpat  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char XML_ParserCreate ();
-int
-main ()
-{
-return XML_ParserCreate ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_expat_XML_ParserCreate=yes
-else
-  ac_cv_lib_expat_XML_ParserCreate=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_expat_XML_ParserCreate" >&5
-$as_echo "$ac_cv_lib_expat_XML_ParserCreate" >&6; }
-if test "x$ac_cv_lib_expat_XML_ParserCreate" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBEXPAT 1
-_ACEOF
-
-  LIBS="-lexpat $LIBS"
-
-else
-  as_fn_error $? "libexpat is required!" "$LINENO" 5
-fi
-
-EXPAT_LIBS=${LIBS}
-
-LIBS=${oLIBS}
-
-#check ssl library
-oLIBS=${LIBS}
-LIBS=''
-ac_fn_c_check_header_mongrel "$LINENO" "openssl/ssl.h" "ac_cv_header_openssl_ssl_h" "$ac_includes_default"
-if test "x$ac_cv_header_openssl_ssl_h" = xyes; then :
-
-else
-  as_fn_error $? "openssl/ssl.h is required!" "$LINENO" 5
-fi
-
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for SSL_new in -lssl" >&5
-$as_echo_n "checking for SSL_new in -lssl... " >&6; }
-if ${ac_cv_lib_ssl_SSL_new+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lssl  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char SSL_new ();
-int
-main ()
-{
-return SSL_new ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_ssl_SSL_new=yes
-else
-  ac_cv_lib_ssl_SSL_new=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_ssl_SSL_new" >&5
-$as_echo "$ac_cv_lib_ssl_SSL_new" >&6; }
-if test "x$ac_cv_lib_ssl_SSL_new" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBSSL 1
-_ACEOF
-
-  LIBS="-lssl $LIBS"
-
-else
-  as_fn_error $? "libssl is required!" "$LINENO" 5
-fi
-
-SSL_LIBS=${LIBS}
-
-LIBS=${oLIBS}
-
-# headers/macros
-
-ac_config_headers="$ac_config_headers src/include/lagopus_config.h"
-
 
  { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether byte ordering is bigendian" >&5
 $as_echo_n "checking whether byte ordering is bigendian... " >&6; }
@@ -16666,9 +16556,9 @@ if test "x$ac_cv_header_sys_time_h" = xyes; then :
 fi
 
 
-ac_fn_c_check_header_mongrel "$LINENO" "sys/termios.h" "ac_cv_header_sys_termios_h" "$ac_includes_default"
-if test "x$ac_cv_header_sys_termios_h" = xyes; then :
-  $as_echo "#define HAVE_SYS_TERMIOS_H 1" >>confdefs.h
+ac_fn_c_check_header_mongrel "$LINENO" "termios.h" "ac_cv_header_termios_h" "$ac_includes_default"
+if test "x$ac_cv_header_termios_h" = xyes; then :
+  $as_echo "#define HAVE_TERMIOS_H 1" >>confdefs.h
 
 fi
 
@@ -16834,7 +16724,496 @@ if test "x$ac_cv_header_assert_h" = xyes; then :
 fi
 
 
+ac_fn_c_check_header_mongrel "$LINENO" "poll.h" "ac_cv_header_poll_h" "$ac_includes_default"
+if test "x$ac_cv_header_poll_h" = xyes; then :
+  $as_echo "#define HAVE_POLL_H 1" >>confdefs.h
 
+fi
+
+
+ac_fn_c_check_header_mongrel "$LINENO" "sys/socket.h" "ac_cv_header_sys_socket_h" "$ac_includes_default"
+if test "x$ac_cv_header_sys_socket_h" = xyes; then :
+  $as_echo "#define HAVE_SYS_SOCKET_H 1" >>confdefs.h
+
+fi
+
+
+
+for ac_func in strlcpy strlcat
+do :
+  as_ac_var=`$as_echo "ac_cv_func_$ac_func" | $as_tr_sh`
+ac_fn_c_check_func "$LINENO" "$ac_func" "$as_ac_var"
+if eval test \"x\$"$as_ac_var"\" = x"yes"; then :
+  cat >>confdefs.h <<_ACEOF
+#define `$as_echo "HAVE_$ac_func" | $as_tr_cpp` 1
+_ACEOF
+
+fi
+done
+
+ac_fn_c_check_func "$LINENO" "strtold" "ac_cv_func_strtold"
+if test "x$ac_cv_func_strtold" = xyes; then :
+  $as_echo "#define HAVE_STRTOLD 1" >>confdefs.h
+
+fi
+
+
+
+# snmp configuration
+
+SNMP_DIR=
+SNMP_CPPFLAGS=
+DEP_SNMP_HANDLER_LIB=
+NETSNMP_AGENT_LIBS=
+
+# Check whether --enable-snmp was given.
+if test "${enable_snmp+set}" = set; then :
+  enableval=$enable_snmp; snmp="$enableval"
+else
+  snmp=no
+fi
+
+
+if test "X${snmp}" != "Xno"; then
+
+   SNMP_DIR=src/snmp
+   SNMP_CPPFLAGS=-DENABLE_SNMP_MODULE
+
+   oLIBS=${LIBS}
+   LIBS=''
+   for ac_header in net-snmp/net-snmp-config.h\
+                     net-snmp/net-snmp-includes.h\
+                     net-snmp/agent/net-snmp-agent-includes.h\
+                     net-snmp/library/snmp_logging.h
+do :
+  as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
+ac_fn_c_check_header_compile "$LINENO" "$ac_header" "$as_ac_Header" "#ifndef NET_SNMP_CONFIG_H
+#include <net-snmp/net-snmp-config.h>
+# ifndef NET_SNMP_INCLUDES_H
+#include <net-snmp/net-snmp-includes.h>
+#  ifndef NET_SNMP_AGENT_INCLUDES_H
+#include <net-snmp/agent/net-snmp-agent-includes.h>
+#  endif
+# endif
+#endif
+
+"
+if eval test \"x\$"$as_ac_Header"\" = x"yes"; then :
+  cat >>confdefs.h <<_ACEOF
+#define `$as_echo "HAVE_$ac_header" | $as_tr_cpp` 1
+_ACEOF
+
+else
+  as_fn_error $? "netsnmp library headers must be installed" "$LINENO" 5
+fi
+
+done
+
+
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for init_snmp in -lnetsnmp" >&5
+$as_echo_n "checking for init_snmp in -lnetsnmp... " >&6; }
+if ${ac_cv_lib_netsnmp_init_snmp+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lnetsnmp  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char init_snmp ();
+int
+main ()
+{
+return init_snmp ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_netsnmp_init_snmp=yes
+else
+  ac_cv_lib_netsnmp_init_snmp=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_netsnmp_init_snmp" >&5
+$as_echo "$ac_cv_lib_netsnmp_init_snmp" >&6; }
+if test "x$ac_cv_lib_netsnmp_init_snmp" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBNETSNMP 1
+_ACEOF
+
+  LIBS="-lnetsnmp $LIBS"
+
+else
+  as_fn_error $? "libnetsnmp is required!" "$LINENO" 5
+fi
+
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for init_snmp_mib in -lnetsnmpmibs" >&5
+$as_echo_n "checking for init_snmp_mib in -lnetsnmpmibs... " >&6; }
+if ${ac_cv_lib_netsnmpmibs_init_snmp_mib+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lnetsnmpmibs  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char init_snmp_mib ();
+int
+main ()
+{
+return init_snmp_mib ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_netsnmpmibs_init_snmp_mib=yes
+else
+  ac_cv_lib_netsnmpmibs_init_snmp_mib=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_netsnmpmibs_init_snmp_mib" >&5
+$as_echo "$ac_cv_lib_netsnmpmibs_init_snmp_mib" >&6; }
+if test "x$ac_cv_lib_netsnmpmibs_init_snmp_mib" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBNETSNMPMIBS 1
+_ACEOF
+
+  LIBS="-lnetsnmpmibs $LIBS"
+
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for init_snmp_mib_5_5 in -lnetsnmpmibs" >&5
+$as_echo_n "checking for init_snmp_mib_5_5 in -lnetsnmpmibs... " >&6; }
+if ${ac_cv_lib_netsnmpmibs_init_snmp_mib_5_5+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lnetsnmpmibs -lnetsnmp $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char init_snmp_mib_5_5 ();
+int
+main ()
+{
+return init_snmp_mib_5_5 ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_netsnmpmibs_init_snmp_mib_5_5=yes
+else
+  ac_cv_lib_netsnmpmibs_init_snmp_mib_5_5=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_netsnmpmibs_init_snmp_mib_5_5" >&5
+$as_echo "$ac_cv_lib_netsnmpmibs_init_snmp_mib_5_5" >&6; }
+if test "x$ac_cv_lib_netsnmpmibs_init_snmp_mib_5_5" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBNETSNMPMIBS 1
+_ACEOF
+
+  LIBS="-lnetsnmpmibs $LIBS"
+
+else
+  as_fn_error $? "libnetsnmpmibs is required!" "$LINENO" 5
+fi
+
+fi
+
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for netsnmp_init_helpers in -lnetsnmphelpers" >&5
+$as_echo_n "checking for netsnmp_init_helpers in -lnetsnmphelpers... " >&6; }
+if ${ac_cv_lib_netsnmphelpers_netsnmp_init_helpers+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lnetsnmphelpers  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char netsnmp_init_helpers ();
+int
+main ()
+{
+return netsnmp_init_helpers ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_netsnmphelpers_netsnmp_init_helpers=yes
+else
+  ac_cv_lib_netsnmphelpers_netsnmp_init_helpers=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_netsnmphelpers_netsnmp_init_helpers" >&5
+$as_echo "$ac_cv_lib_netsnmphelpers_netsnmp_init_helpers" >&6; }
+if test "x$ac_cv_lib_netsnmphelpers_netsnmp_init_helpers" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBNETSNMPHELPERS 1
+_ACEOF
+
+  LIBS="-lnetsnmphelpers $LIBS"
+
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for netsnmp_init_helpers in -lnetsnmpagent" >&5
+$as_echo_n "checking for netsnmp_init_helpers in -lnetsnmpagent... " >&6; }
+if ${ac_cv_lib_netsnmpagent_netsnmp_init_helpers+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lnetsnmpagent -lnetsnmpmibs -lnetsnmp $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char netsnmp_init_helpers ();
+int
+main ()
+{
+return netsnmp_init_helpers ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_netsnmpagent_netsnmp_init_helpers=yes
+else
+  ac_cv_lib_netsnmpagent_netsnmp_init_helpers=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_netsnmpagent_netsnmp_init_helpers" >&5
+$as_echo "$ac_cv_lib_netsnmpagent_netsnmp_init_helpers" >&6; }
+if test "x$ac_cv_lib_netsnmpagent_netsnmp_init_helpers" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBNETSNMPAGENT 1
+_ACEOF
+
+  LIBS="-lnetsnmpagent $LIBS"
+
+else
+  as_fn_error $? "libnetsnmphelpers or libnetsnmpagent is required!" "$LINENO" 5
+fi
+
+fi
+
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for init_agent in -lnetsnmpagent" >&5
+$as_echo_n "checking for init_agent in -lnetsnmpagent... " >&6; }
+if ${ac_cv_lib_netsnmpagent_init_agent+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lnetsnmpagent -lnetsnmphelpers -lnetsnmpmibs -lnetsnmp $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char init_agent ();
+int
+main ()
+{
+return init_agent ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_netsnmpagent_init_agent=yes
+else
+  ac_cv_lib_netsnmpagent_init_agent=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_netsnmpagent_init_agent" >&5
+$as_echo "$ac_cv_lib_netsnmpagent_init_agent" >&6; }
+if test "x$ac_cv_lib_netsnmpagent_init_agent" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBNETSNMPAGENT 1
+_ACEOF
+
+  LIBS="-lnetsnmpagent $LIBS"
+
+else
+  as_fn_error $? "libnetsnmpagent is required!" "$LINENO" 5
+fi
+
+    NETSNMP_AGENT_LIBS=${LIBS}
+    LIBS=${oLIBS}
+
+    DEP_SNMP_HANDLER_LIB='$(DEP_SNMP_HANDLER_LIB)'
+fi
+
+
+
+
+
+
+# end net-snmp configuration
+
+# check ssl library
+ac_fn_c_check_header_mongrel "$LINENO" "openssl/ssl.h" "ac_cv_header_openssl_ssl_h" "$ac_includes_default"
+if test "x$ac_cv_header_openssl_ssl_h" = xyes; then :
+
+else
+  as_fn_error $? "openssl/ssl.h is required!" "$LINENO" 5
+fi
+
+
+oLIBS=${LIBS}
+SSL_LIBS=''
+LIBS=''
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for SSL_new in -lssl" >&5
+$as_echo_n "checking for SSL_new in -lssl... " >&6; }
+if ${ac_cv_lib_ssl_SSL_new+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lssl  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char SSL_new ();
+int
+main ()
+{
+return SSL_new ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_ssl_SSL_new=yes
+else
+  ac_cv_lib_ssl_SSL_new=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_ssl_SSL_new" >&5
+$as_echo "$ac_cv_lib_ssl_SSL_new" >&6; }
+if test "x$ac_cv_lib_ssl_SSL_new" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBSSL 1
+_ACEOF
+
+  LIBS="-lssl $LIBS"
+
+else
+  as_fn_error $? "libssl is required!" "$LINENO" 5
+fi
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for X509_new in -lcrypto" >&5
+$as_echo_n "checking for X509_new in -lcrypto... " >&6; }
+if ${ac_cv_lib_crypto_X509_new+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lcrypto  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char X509_new ();
+int
+main ()
+{
+return X509_new ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_crypto_X509_new=yes
+else
+  ac_cv_lib_crypto_X509_new=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_crypto_X509_new" >&5
+$as_echo "$ac_cv_lib_crypto_X509_new" >&6; }
+if test "x$ac_cv_lib_crypto_X509_new" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBCRYPTO 1
+_ACEOF
+
+  LIBS="-lcrypto $LIBS"
+
+else
+  as_fn_error $? "libcrypto is required!" "$LINENO" 5
+fi
+
+SSL_LIBS="${LIBS}"
+
+LIBS=${oLIBS}
+
+# check for gmp.
 ac_fn_c_check_header_mongrel "$LINENO" "gmp.h" "ac_cv_header_gmp_h" "$ac_includes_default"
 if test "x$ac_cv_header_gmp_h" = xyes; then :
   $as_echo "#define HAVE_GMP_H 1" >>confdefs.h
@@ -16842,7 +17221,6 @@ if test "x$ac_cv_header_gmp_h" = xyes; then :
 else
   as_fn_error $? "The GNU MP must be installed." "$LINENO" 5
 fi
-
 
 
 resultOK=0
@@ -16893,6 +17271,21 @@ else
 fi
 
 
+# Check whether --enable-jumbo-frame was given.
+if test "${enable_jumbo_frame+set}" = set; then :
+  enableval=$enable_jumbo_frame; jumbo_frame="$enableval"
+else
+  jumbo_frame=no
+fi
+
+
+if test "X${jumbo_frame}" != "Xno"; then
+   FRAME_CPPFLAGS=-DMAX_PACKET_SZ=16384
+else
+   FRAME_CPPFLAGS=-DMAX_PACKET_SZ=2048
+fi
+
+
 
 # Check whether --with-dpdk-dir was given.
 if test "${with_dpdk_dir+set}" = set; then :
@@ -16904,8 +17297,8 @@ fi
 if test "x$with_dpdk_dir" != "x"; then
   RTE_SDK=$with_dpdk_dir
   RTE_TARGET=build
-  as_ac_Header=`$as_echo "ac_cv_header_${RTE_SDK}/${RTE_TARGET}/include/rte_config.h" | $as_tr_sh`
-ac_fn_c_check_header_mongrel "$LINENO" "${RTE_SDK}/${RTE_TARGET}/include/rte_config.h" "$as_ac_Header" "$ac_includes_default"
+  as_ac_Header=`$as_echo "ac_cv_header_${RTE_SDK}/${RTE_TARGET}/include/rte_common.h" | $as_tr_sh`
+ac_fn_c_check_header_mongrel "$LINENO" "${RTE_SDK}/${RTE_TARGET}/include/rte_common.h" "$as_ac_Header" "$ac_includes_default"
 if eval test \"x\$"$as_ac_Header"\" = x"yes"; then :
 
 else
@@ -16925,14 +17318,14 @@ else
      ;;
      esac
      RTE_TARGET=${RTE_ARCH}-native-${RTE_OS}-${CC}
-     as_ac_Header=`$as_echo "ac_cv_header_${RTE_SDK}/${RTE_TARGET}/include/rte_config.h" | $as_tr_sh`
-ac_fn_c_check_header_mongrel "$LINENO" "${RTE_SDK}/${RTE_TARGET}/include/rte_config.h" "$as_ac_Header" "$ac_includes_default"
+     as_ac_Header=`$as_echo "ac_cv_header_${RTE_SDK}/${RTE_TARGET}/include/rte_common.h" | $as_tr_sh`
+ac_fn_c_check_header_mongrel "$LINENO" "${RTE_SDK}/${RTE_TARGET}/include/rte_common.h" "$as_ac_Header" "$ac_includes_default"
 if eval test \"x\$"$as_ac_Header"\" = x"yes"; then :
 
 else
   RTE_TARGET=${RTE_ARCH}-default-${RTE_OS}-${CC}
-       	as_ac_Header=`$as_echo "ac_cv_header_${RTE_SDK}/${RTE_TARGET}/include/rte_config.h" | $as_tr_sh`
-ac_fn_c_check_header_mongrel "$LINENO" "${RTE_SDK}/${RTE_TARGET}/include/rte_config.h" "$as_ac_Header" "$ac_includes_default"
+        as_ac_Header=`$as_echo "ac_cv_header_${RTE_SDK}/${RTE_TARGET}/include/rte_common.h" | $as_tr_sh`
+ac_fn_c_check_header_mongrel "$LINENO" "${RTE_SDK}/${RTE_TARGET}/include/rte_common.h" "$as_ac_Header" "$ac_includes_default"
 if eval test \"x\$"$as_ac_Header"\" = x"yes"; then :
 
 else
@@ -16966,10 +17359,51 @@ eval ac_res=\$$as_ac_File
 	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
 $as_echo "$ac_res" >&6; }
 if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
-  RTE_LIBS="$RTE_LIBS -lrte_distributor"
+  RTE_LIBS="$RTE_LIBS -Xlinker -lrte_distributor"
 fi
 
-  RTE_LIBS="$RTE_LIBS -lrte_kni"
+  as_ac_File=`$as_echo "ac_cv_file_${RTE_SDK}/${RTE_TARGET}/lib/librte_reorder.a" | $as_tr_sh`
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_reorder.a" >&5
+$as_echo_n "checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_reorder.a... " >&6; }
+if eval \${$as_ac_File+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  test "$cross_compiling" = yes &&
+  as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
+if test -r "${RTE_SDK}/${RTE_TARGET}/lib/librte_reorder.a"; then
+  eval "$as_ac_File=yes"
+else
+  eval "$as_ac_File=no"
+fi
+fi
+eval ac_res=\$$as_ac_File
+	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
+$as_echo "$ac_res" >&6; }
+if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
+  RTE_LIBS="$RTE_LIBS -Xlinker -lrte_reorder"
+fi
+
+  as_ac_File=`$as_echo "ac_cv_file_${RTE_SDK}/${RTE_TARGET}/lib/librte_kni.a" | $as_tr_sh`
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_kni.a" >&5
+$as_echo_n "checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_kni.a... " >&6; }
+if eval \${$as_ac_File+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  test "$cross_compiling" = yes &&
+  as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
+if test -r "${RTE_SDK}/${RTE_TARGET}/lib/librte_kni.a"; then
+  eval "$as_ac_File=yes"
+else
+  eval "$as_ac_File=no"
+fi
+fi
+eval ac_res=\$$as_ac_File
+	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
+$as_echo "$ac_res" >&6; }
+if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
+  RTE_LIBS="$RTE_LIBS -Xlinker -lrte_kni"
+fi
+
   as_ac_File=`$as_echo "ac_cv_file_${RTE_SDK}/${RTE_TARGET}/lib/librte_ivshmem.a" | $as_tr_sh`
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_ivshmem.a" >&5
 $as_echo_n "checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_ivshmem.a... " >&6; }
@@ -16988,7 +17422,7 @@ eval ac_res=\$$as_ac_File
 	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
 $as_echo "$ac_res" >&6; }
 if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
-  RTE_LIBS="$RTE_LIBS -lrte_ivshmem"
+  RTE_LIBS="$RTE_LIBS -Xlinker -lrte_ivshmem"
 fi
 
   as_ac_File=`$as_echo "ac_cv_file_${RTE_SDK}/${RTE_TARGET}/lib/librte_pipeline.a" | $as_tr_sh`
@@ -17009,7 +17443,7 @@ eval ac_res=\$$as_ac_File
 	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
 $as_echo "$ac_res" >&6; }
 if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
-  RTE_LIBS="$RTE_LIBS -lrte_pipeline"
+  RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pipeline"
 fi
 
   as_ac_File=`$as_echo "ac_cv_file_${RTE_SDK}/${RTE_TARGET}/lib/librte_table.a" | $as_tr_sh`
@@ -17030,7 +17464,7 @@ eval ac_res=\$$as_ac_File
 	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
 $as_echo "$ac_res" >&6; }
 if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
-  RTE_LIBS="$RTE_LIBS -lrte_table"
+  RTE_LIBS="$RTE_LIBS -Xlinker -lrte_table"
 fi
 
   as_ac_File=`$as_echo "ac_cv_file_${RTE_SDK}/${RTE_TARGET}/lib/librte_port.a" | $as_tr_sh`
@@ -17051,10 +17485,51 @@ eval ac_res=\$$as_ac_File
 	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
 $as_echo "$ac_res" >&6; }
 if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
-  RTE_LIBS="$RTE_LIBS -lrte_port"
+  RTE_LIBS="$RTE_LIBS -Xlinker -lrte_port"
 fi
 
-  RTE_LIBS="$RTE_LIBS -lrte_timer"
+  as_ac_File=`$as_echo "ac_cv_file_${RTE_SDK}/${RTE_TARGET}/lib/librte_timer.a" | $as_tr_sh`
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_timer.a" >&5
+$as_echo_n "checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_timer.a... " >&6; }
+if eval \${$as_ac_File+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  test "$cross_compiling" = yes &&
+  as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
+if test -r "${RTE_SDK}/${RTE_TARGET}/lib/librte_timer.a"; then
+  eval "$as_ac_File=yes"
+else
+  eval "$as_ac_File=no"
+fi
+fi
+eval ac_res=\$$as_ac_File
+	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
+$as_echo "$ac_res" >&6; }
+if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
+  RTE_LIBS="$RTE_LIBS -Xlinker -lrte_timer"
+fi
+
+  as_ac_File=`$as_echo "ac_cv_file_${RTE_SDK}/${RTE_TARGET}/lib/librte_jobstats.a" | $as_tr_sh`
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_jobstats.a" >&5
+$as_echo_n "checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_jobstats.a... " >&6; }
+if eval \${$as_ac_File+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  test "$cross_compiling" = yes &&
+  as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
+if test -r "${RTE_SDK}/${RTE_TARGET}/lib/librte_jobstats.a"; then
+  eval "$as_ac_File=yes"
+else
+  eval "$as_ac_File=no"
+fi
+fi
+eval ac_res=\$$as_ac_File
+	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
+$as_echo "$ac_res" >&6; }
+if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
+  RTE_LIBS="$RTE_LIBS -Xlinker -lrte_jobstats"
+fi
+
   as_ac_File=`$as_echo "ac_cv_file_${RTE_SDK}/${RTE_TARGET}/lib/librte_hash.a" | $as_tr_sh`
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_hash.a" >&5
 $as_echo_n "checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_hash.a... " >&6; }
@@ -17073,7 +17548,7 @@ eval ac_res=\$$as_ac_File
 	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
 $as_echo "$ac_res" >&6; }
 if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
-  RTE_LIBS="$RTE_LIBS -lrte_hash"
+  RTE_LIBS="$RTE_LIBS -Xlinker -lrte_hash"
 fi
 
   as_ac_File=`$as_echo "ac_cv_file_${RTE_SDK}/${RTE_TARGET}/lib/librte_lpm.a" | $as_tr_sh`
@@ -17094,7 +17569,7 @@ eval ac_res=\$$as_ac_File
 	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
 $as_echo "$ac_res" >&6; }
 if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
-  RTE_LIBS="$RTE_LIBS -lrte_lpm"
+  RTE_LIBS="$RTE_LIBS -Xlinker -lrte_lpm"
 fi
 
   as_ac_File=`$as_echo "ac_cv_file_${RTE_SDK}/${RTE_TARGET}/lib/librte_power.a" | $as_tr_sh`
@@ -17115,7 +17590,7 @@ eval ac_res=\$$as_ac_File
 	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
 $as_echo "$ac_res" >&6; }
 if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
-  RTE_LIBS="$RTE_LIBS -lrte_power"
+  RTE_LIBS="$RTE_LIBS -Xlinker -lrte_power"
 fi
 
   as_ac_File=`$as_echo "ac_cv_file_${RTE_SDK}/${RTE_TARGET}/lib/librte_acl.a" | $as_tr_sh`
@@ -17136,10 +17611,30 @@ eval ac_res=\$$as_ac_File
 	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
 $as_echo "$ac_res" >&6; }
 if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
-  RTE_LIBS="$RTE_LIBS -lrte_acl"
+  RTE_LIBS="$RTE_LIBS -Xlinker -lrte_acl"
 fi
 
-  RTE_LIBS="$RTE_LIBS -lrte_meter"
+  as_ac_File=`$as_echo "ac_cv_file_${RTE_SDK}/${RTE_TARGET}/lib/librte_meter.a" | $as_tr_sh`
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_meter.a" >&5
+$as_echo_n "checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_meter.a... " >&6; }
+if eval \${$as_ac_File+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  test "$cross_compiling" = yes &&
+  as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
+if test -r "${RTE_SDK}/${RTE_TARGET}/lib/librte_meter.a"; then
+  eval "$as_ac_File=yes"
+else
+  eval "$as_ac_File=no"
+fi
+fi
+eval ac_res=\$$as_ac_File
+	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
+$as_echo "$ac_res" >&6; }
+if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
+  RTE_LIBS="$RTE_LIBS -Xlinker -lrte_meter"
+fi
+
   as_ac_File=`$as_echo "ac_cv_file_${RTE_SDK}/${RTE_TARGET}/lib/librte_sched.a" | $as_tr_sh`
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_sched.a" >&5
 $as_echo_n "checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_sched.a... " >&6; }
@@ -17158,7 +17653,28 @@ eval ac_res=\$$as_ac_File
 	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
 $as_echo "$ac_res" >&6; }
 if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
-  RTE_LIBS="$RTE_LIBS -lrte_sched -lm -lrt"
+  RTE_LIBS="$RTE_LIBS -Xlinker -lrte_sched -lm -lrt"
+fi
+
+  as_ac_File=`$as_echo "ac_cv_file_${RTE_SDK}/${RTE_TARGET}/lib/librte_vhost.a" | $as_tr_sh`
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_vhost.a" >&5
+$as_echo_n "checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_vhost.a... " >&6; }
+if eval \${$as_ac_File+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  test "$cross_compiling" = yes &&
+  as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
+if test -r "${RTE_SDK}/${RTE_TARGET}/lib/librte_vhost.a"; then
+  eval "$as_ac_File=yes"
+else
+  eval "$as_ac_File=no"
+fi
+fi
+eval ac_res=\$$as_ac_File
+	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
+$as_echo "$ac_res" >&6; }
+if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
+  RTE_LIBS="$RTE_LIBS -Xlinker -lrte_vhost"
 fi
 
   RTE_LIBS="$RTE_LIBS -Xlinker --start-group"
@@ -17180,10 +17696,10 @@ eval ac_res=\$$as_ac_File
 	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
 $as_echo "$ac_res" >&6; }
 if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
-  RTE_LIBS="$RTE_LIBS -lrte_kvargs"
+  RTE_LIBS="$RTE_LIBS -Xlinker -lrte_kvargs"
 fi
 
-  RTE_LIBS="$RTE_LIBS -lrte_mbuf"
+  RTE_LIBS="$RTE_LIBS -Xlinker -lrte_mbuf"
   as_ac_File=`$as_echo "ac_cv_file_${RTE_SDK}/${RTE_TARGET}/lib/librte_ip_frag.a" | $as_tr_sh`
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_ip_frag.a" >&5
 $as_echo_n "checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_ip_frag.a... " >&6; }
@@ -17202,10 +17718,9 @@ eval ac_res=\$$as_ac_File
 	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
 $as_echo "$ac_res" >&6; }
 if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
-  RTE_LIBS="$RTE_LIBS -lrte_ip_frag"
+  RTE_LIBS="$RTE_LIBS -Xlinker -lrte_ip_frag"
 fi
 
-  RTE_LIBS="$RTE_LIBS -lethdev -lrte_malloc -lrte_mempool"
   RTE_LIBS="$RTE_LIBS -lrte_ring -lrte_eal"
   as_ac_File=`$as_echo "ac_cv_file_${RTE_SDK}/${RTE_TARGET}/lib/librte_cmdline.a" | $as_tr_sh`
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_cmdline.a" >&5
@@ -17375,6 +17890,27 @@ if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
   RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_virtio_uio"
 fi
 
+  as_ac_File=`$as_echo "ac_cv_file_${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_enic.a" | $as_tr_sh`
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_enic.a" >&5
+$as_echo_n "checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_enic.a... " >&6; }
+if eval \${$as_ac_File+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  test "$cross_compiling" = yes &&
+  as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
+if test -r "${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_enic.a"; then
+  eval "$as_ac_File=yes"
+else
+  eval "$as_ac_File=no"
+fi
+fi
+eval ac_res=\$$as_ac_File
+	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
+$as_echo "$ac_res" >&6; }
+if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
+  RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_enic"
+fi
+
   as_ac_File=`$as_echo "ac_cv_file_${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_i40e.a" | $as_tr_sh`
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_i40e.a" >&5
 $as_echo_n "checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_i40e.a... " >&6; }
@@ -17394,6 +17930,27 @@ eval ac_res=\$$as_ac_File
 $as_echo "$ac_res" >&6; }
 if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
   RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_i40e"
+fi
+
+  as_ac_File=`$as_echo "ac_cv_file_${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_fm10k.a" | $as_tr_sh`
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_fm10k.a" >&5
+$as_echo_n "checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_fm10k.a... " >&6; }
+if eval \${$as_ac_File+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  test "$cross_compiling" = yes &&
+  as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
+if test -r "${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_fm10k.a"; then
+  eval "$as_ac_File=yes"
+else
+  eval "$as_ac_File=no"
+fi
+fi
+eval ac_res=\$$as_ac_File
+	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
+$as_echo "$ac_res" >&6; }
+if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
+  RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_fm10k"
 fi
 
   as_ac_File=`$as_echo "ac_cv_file_${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_ixgbe.a" | $as_tr_sh`
@@ -17438,6 +17995,27 @@ if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
   RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_e1000"
 fi
 
+  as_ac_File=`$as_echo "ac_cv_file_${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_mlx4.a" | $as_tr_sh`
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_mlx4.a" >&5
+$as_echo_n "checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_mlx4.a... " >&6; }
+if eval \${$as_ac_File+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  test "$cross_compiling" = yes &&
+  as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
+if test -r "${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_mlx4.a"; then
+  eval "$as_ac_File=yes"
+else
+  eval "$as_ac_File=no"
+fi
+fi
+eval ac_res=\$$as_ac_File
+	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
+$as_echo "$ac_res" >&6; }
+if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
+  RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_mlx4"
+fi
+
   as_ac_File=`$as_echo "ac_cv_file_${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_ring.a" | $as_tr_sh`
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_ring.a" >&5
 $as_echo_n "checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_ring.a... " >&6; }
@@ -17480,7 +18058,50 @@ if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
   RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_pcap"
 fi
 
+  as_ac_File=`$as_echo "ac_cv_file_${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_af_packet.a" | $as_tr_sh`
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_af_packet.a" >&5
+$as_echo_n "checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_af_packet.a... " >&6; }
+if eval \${$as_ac_File+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  test "$cross_compiling" = yes &&
+  as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
+if test -r "${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_af_packet.a"; then
+  eval "$as_ac_File=yes"
+else
+  eval "$as_ac_File=no"
+fi
+fi
+eval ac_res=\$$as_ac_File
+	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
+$as_echo "$ac_res" >&6; }
+if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
+  RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_af_packet"
+fi
+
+  as_ac_File=`$as_echo "ac_cv_file_${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_null.a" | $as_tr_sh`
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_null.a" >&5
+$as_echo_n "checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_null.a... " >&6; }
+if eval \${$as_ac_File+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  test "$cross_compiling" = yes &&
+  as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
+if test -r "${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_null.a"; then
+  eval "$as_ac_File=yes"
+else
+  eval "$as_ac_File=no"
+fi
+fi
+eval ac_res=\$$as_ac_File
+	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
+$as_echo "$ac_res" >&6; }
+if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
+  RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_null"
+fi
+
   RTE_LIBS="$RTE_LIBS -Xlinker --end-group -Xlinker --no-whole-archive"
+  RTE_LIBS="$RTE_LIBS -lethdev -lrte_malloc -lrte_mempool"
   CPPFLAGS_BKUP="$CPPFLAGS"
   CPPFLAGS="$CPPFLAGS -I$RTE_SDK/$RTE_TARGET/include"
   ac_fn_c_check_member "$LINENO" "struct rte_mbuf" "pkt" "ac_cv_member_struct_rte_mbuf_pkt" "#include \"rte_config.h\"
@@ -17502,16 +18123,17 @@ fi
 
 
 
-# Check whether --enable-flowcache was given.
-if test "${enable_flowcache+set}" = set; then :
-  enableval=$enable_flowcache; flowcache="$withval"
+# Check whether --enable-mbtree was given.
+if test "${enable_mbtree+set}" = set; then :
+  enableval=$enable_mbtree; mbtree="$enableval"
 else
-  flowcache=no
+  mbtree="no"
 fi
 
 
-if test "X${flowcache}" != "Xno"; then
-   FLOWCACHE_FLAGS="-DFLOWCACHE"
+MBTREE_FLAGS=''
+if test "X${mbtree}" != "Xno"; then
+   MBTREE_FLAGS="-DUSE_MBTREE"
 
 fi
 
@@ -17526,279 +18148,6 @@ fi
 if test "X${sse42}" != "Xno"; then
   SSE42_CPPFLAGS="-msse4.2"
 fi
-
-
-ac_fn_c_check_func "$LINENO" "strtold" "ac_cv_func_strtold"
-if test "x$ac_cv_func_strtold" = xyes; then :
-  $as_echo "#define HAVE_STRTOLD 1" >>confdefs.h
-
-fi
-
-
-# Assume 32 bit for cross compilation.
-# The cast to long int works around a bug in the HP C Compiler
-# version HP92453-01 B.11.11.23709.GP, which incorrectly rejects
-# declarations like `int a3[[(sizeof (unsigned char)) >= 0]];'.
-# This bug is HP SR number 8606223364.
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking size of short int" >&5
-$as_echo_n "checking size of short int... " >&6; }
-if ${ac_cv_sizeof_short_int+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  if ac_fn_c_compute_int "$LINENO" "(long int) (sizeof (short int))" "ac_cv_sizeof_short_int"        "$ac_includes_default"; then :
-
-else
-  if test "$ac_cv_type_short_int" = yes; then
-     { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
-$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error 77 "cannot compute sizeof (short int)
-See \`config.log' for more details" "$LINENO" 5; }
-   else
-     ac_cv_sizeof_short_int=0
-   fi
-fi
-
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_sizeof_short_int" >&5
-$as_echo "$ac_cv_sizeof_short_int" >&6; }
-
-
-
-cat >>confdefs.h <<_ACEOF
-#define SIZEOF_SHORT_INT $ac_cv_sizeof_short_int
-_ACEOF
-
-
-# The cast to long int works around a bug in the HP C Compiler
-# version HP92453-01 B.11.11.23709.GP, which incorrectly rejects
-# declarations like `int a3[[(sizeof (unsigned char)) >= 0]];'.
-# This bug is HP SR number 8606223364.
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking size of int" >&5
-$as_echo_n "checking size of int... " >&6; }
-if ${ac_cv_sizeof_int+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  if ac_fn_c_compute_int "$LINENO" "(long int) (sizeof (int))" "ac_cv_sizeof_int"        "$ac_includes_default"; then :
-
-else
-  if test "$ac_cv_type_int" = yes; then
-     { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
-$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error 77 "cannot compute sizeof (int)
-See \`config.log' for more details" "$LINENO" 5; }
-   else
-     ac_cv_sizeof_int=0
-   fi
-fi
-
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_sizeof_int" >&5
-$as_echo "$ac_cv_sizeof_int" >&6; }
-
-
-
-cat >>confdefs.h <<_ACEOF
-#define SIZEOF_INT $ac_cv_sizeof_int
-_ACEOF
-
-
-# The cast to long int works around a bug in the HP C Compiler
-# version HP92453-01 B.11.11.23709.GP, which incorrectly rejects
-# declarations like `int a3[[(sizeof (unsigned char)) >= 0]];'.
-# This bug is HP SR number 8606223364.
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking size of long int" >&5
-$as_echo_n "checking size of long int... " >&6; }
-if ${ac_cv_sizeof_long_int+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  if ac_fn_c_compute_int "$LINENO" "(long int) (sizeof (long int))" "ac_cv_sizeof_long_int"        "$ac_includes_default"; then :
-
-else
-  if test "$ac_cv_type_long_int" = yes; then
-     { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
-$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error 77 "cannot compute sizeof (long int)
-See \`config.log' for more details" "$LINENO" 5; }
-   else
-     ac_cv_sizeof_long_int=0
-   fi
-fi
-
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_sizeof_long_int" >&5
-$as_echo "$ac_cv_sizeof_long_int" >&6; }
-
-
-
-cat >>confdefs.h <<_ACEOF
-#define SIZEOF_LONG_INT $ac_cv_sizeof_long_int
-_ACEOF
-
-
-# The cast to long int works around a bug in the HP C Compiler
-# version HP92453-01 B.11.11.23709.GP, which incorrectly rejects
-# declarations like `int a3[[(sizeof (unsigned char)) >= 0]];'.
-# This bug is HP SR number 8606223364.
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking size of long long" >&5
-$as_echo_n "checking size of long long... " >&6; }
-if ${ac_cv_sizeof_long_long+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  if ac_fn_c_compute_int "$LINENO" "(long int) (sizeof (long long))" "ac_cv_sizeof_long_long"        "$ac_includes_default"; then :
-
-else
-  if test "$ac_cv_type_long_long" = yes; then
-     { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
-$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error 77 "cannot compute sizeof (long long)
-See \`config.log' for more details" "$LINENO" 5; }
-   else
-     ac_cv_sizeof_long_long=0
-   fi
-fi
-
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_sizeof_long_long" >&5
-$as_echo "$ac_cv_sizeof_long_long" >&6; }
-
-
-
-cat >>confdefs.h <<_ACEOF
-#define SIZEOF_LONG_LONG $ac_cv_sizeof_long_long
-_ACEOF
-
-
-# The cast to long int works around a bug in the HP C Compiler
-# version HP92453-01 B.11.11.23709.GP, which incorrectly rejects
-# declarations like `int a3[[(sizeof (unsigned char)) >= 0]];'.
-# This bug is HP SR number 8606223364.
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking size of int64_t" >&5
-$as_echo_n "checking size of int64_t... " >&6; }
-if ${ac_cv_sizeof_int64_t+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  if ac_fn_c_compute_int "$LINENO" "(long int) (sizeof (int64_t))" "ac_cv_sizeof_int64_t"        "$ac_includes_default"; then :
-
-else
-  if test "$ac_cv_type_int64_t" = yes; then
-     { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
-$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error 77 "cannot compute sizeof (int64_t)
-See \`config.log' for more details" "$LINENO" 5; }
-   else
-     ac_cv_sizeof_int64_t=0
-   fi
-fi
-
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_sizeof_int64_t" >&5
-$as_echo "$ac_cv_sizeof_int64_t" >&6; }
-
-
-
-cat >>confdefs.h <<_ACEOF
-#define SIZEOF_INT64_T $ac_cv_sizeof_int64_t
-_ACEOF
-
-
-# The cast to long int works around a bug in the HP C Compiler
-# version HP92453-01 B.11.11.23709.GP, which incorrectly rejects
-# declarations like `int a3[[(sizeof (unsigned char)) >= 0]];'.
-# This bug is HP SR number 8606223364.
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking size of size_t" >&5
-$as_echo_n "checking size of size_t... " >&6; }
-if ${ac_cv_sizeof_size_t+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  if ac_fn_c_compute_int "$LINENO" "(long int) (sizeof (size_t))" "ac_cv_sizeof_size_t"        "$ac_includes_default"; then :
-
-else
-  if test "$ac_cv_type_size_t" = yes; then
-     { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
-$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error 77 "cannot compute sizeof (size_t)
-See \`config.log' for more details" "$LINENO" 5; }
-   else
-     ac_cv_sizeof_size_t=0
-   fi
-fi
-
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_sizeof_size_t" >&5
-$as_echo "$ac_cv_sizeof_size_t" >&6; }
-
-
-
-cat >>confdefs.h <<_ACEOF
-#define SIZEOF_SIZE_T $ac_cv_sizeof_size_t
-_ACEOF
-
-
-# The cast to long int works around a bug in the HP C Compiler
-# version HP92453-01 B.11.11.23709.GP, which incorrectly rejects
-# declarations like `int a3[[(sizeof (unsigned char)) >= 0]];'.
-# This bug is HP SR number 8606223364.
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking size of void *" >&5
-$as_echo_n "checking size of void *... " >&6; }
-if ${ac_cv_sizeof_void_p+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  if ac_fn_c_compute_int "$LINENO" "(long int) (sizeof (void *))" "ac_cv_sizeof_void_p"        "$ac_includes_default"; then :
-
-else
-  if test "$ac_cv_type_void_p" = yes; then
-     { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
-$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error 77 "cannot compute sizeof (void *)
-See \`config.log' for more details" "$LINENO" 5; }
-   else
-     ac_cv_sizeof_void_p=0
-   fi
-fi
-
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_sizeof_void_p" >&5
-$as_echo "$ac_cv_sizeof_void_p" >&6; }
-
-
-
-cat >>confdefs.h <<_ACEOF
-#define SIZEOF_VOID_P $ac_cv_sizeof_void_p
-_ACEOF
-
-
-# The cast to long int works around a bug in the HP C Compiler
-# version HP92453-01 B.11.11.23709.GP, which incorrectly rejects
-# declarations like `int a3[[(sizeof (unsigned char)) >= 0]];'.
-# This bug is HP SR number 8606223364.
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking size of pthread_t" >&5
-$as_echo_n "checking size of pthread_t... " >&6; }
-if ${ac_cv_sizeof_pthread_t+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  if ac_fn_c_compute_int "$LINENO" "(long int) (sizeof (pthread_t))" "ac_cv_sizeof_pthread_t"        "$ac_includes_default"; then :
-
-else
-  if test "$ac_cv_type_pthread_t" = yes; then
-     { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
-$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error 77 "cannot compute sizeof (pthread_t)
-See \`config.log' for more details" "$LINENO" 5; }
-   else
-     ac_cv_sizeof_pthread_t=0
-   fi
-fi
-
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_sizeof_pthread_t" >&5
-$as_echo "$ac_cv_sizeof_pthread_t" >&6; }
-
-
-
-cat >>confdefs.h <<_ACEOF
-#define SIZEOF_PTHREAD_T $ac_cv_sizeof_pthread_t
-_ACEOF
-
 
 
 # size_t printf() designator.
@@ -17929,222 +18278,6 @@ fi
 CFLAGS=${oCFLAGS}
 LDFLAGS="${oLDFLAGS} ${LIBS}"
 
-
-# sysdeps.
-
-eval `echo ${target} | awk -F- '{ printf "tagCPU=%s; tagOS=%s;\n", $1, $3 }'`
-
-CPU=`echo ${tagCPU} | tr '[A-Z]' '[a-z]'`
-OS=`echo ${tagOS} | tr '[A-Z]' '[a-z]'`
-unset tagOS tagCPU
-
-case $CPU in
-    i*86)
-        CPU=i386;;
-esac
-
-OS_CPPFLAGS='-D_REENTRANT'
-OS_LDFLAGS=''
-OS_LIBS=''
-OS_CFLAGS=''
-if test -z "${MAKE}"; then
-	MAKE=make
-fi
-
-case $OS in
-    sunos*)
-        OS=sunos;;
-    solaris*)
-        OS=solaris;;
-    freebsd*)
-	OS=freebsd;;
-    linux*)
-	OS_CPPFLAGS="${OS_CPPFLAGS} -D_GNU_SOURCE -D_POSIX_SOURCE"
-	OS_LIBS="-lrt -lpthread -ldl"
-	OS=linux;;
-    netbsd*)
-        MAKE=gmake
-        OS_CPPFLAGS="${OS_CPPFLAGS} -I/usr/pkg/include"
-    	OS_LDFLAGS="-L/usr/pkg/lib"
-	OS_LIBS="-lpthread"
-	OS=netbsd;;
-esac
-
-
-
-
-
-
-
-CPUDEF=LAGOPUS_CPU_`echo $CPU | tr '[a-z]' '[A-Z]'`
-OSDEF=LAGOPUS_OS_`echo $OS | tr '[a-z]' '[A-Z]'`
-
-
-
-MKRULESDIR=${TOPDIR}/mk
-
-
-CPPFLAGS=''
-CFLAGS=''
-
-
-
-
-
-RUBY=ruby
-NKF=nkf
-UNITY_SRC_DIR=
-
-# Check whether --enable-developer was given.
-if test "${enable_developer+set}" = set; then :
-  enableval=$enable_developer; developer="$withval"
-else
-  developer=no
-fi
-
-
-if test "X${developer}" != "Xno"; then
-  # Extract the first word of "nkf", so it can be a program name with args.
-set dummy nkf; ac_word=$2
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
-$as_echo_n "checking for $ac_word... " >&6; }
-if ${ac_cv_prog_HAVE_NKF+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  if test -n "$HAVE_NKF"; then
-  ac_cv_prog_HAVE_NKF="$HAVE_NKF" # Let the user override the test.
-else
-as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-    for ac_exec_ext in '' $ac_executable_extensions; do
-  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_prog_HAVE_NKF="yes"
-    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-  done
-IFS=$as_save_IFS
-
-fi
-fi
-HAVE_NKF=$ac_cv_prog_HAVE_NKF
-if test -n "$HAVE_NKF"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $HAVE_NKF" >&5
-$as_echo "$HAVE_NKF" >&6; }
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-fi
-
-
-
-  # Extract the first word of "ruby", so it can be a program name with args.
-set dummy ruby; ac_word=$2
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
-$as_echo_n "checking for $ac_word... " >&6; }
-if ${ac_cv_prog_HAVE_RUBY+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  if test -n "$HAVE_RUBY"; then
-  ac_cv_prog_HAVE_RUBY="$HAVE_RUBY" # Let the user override the test.
-else
-as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-    for ac_exec_ext in '' $ac_executable_extensions; do
-  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_prog_HAVE_RUBY="yes"
-    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-  done
-IFS=$as_save_IFS
-
-  test -z "$ac_cv_prog_HAVE_RUBY" && ac_cv_prog_HAVE_RUBY="no"
-fi
-fi
-HAVE_RUBY=$ac_cv_prog_HAVE_RUBY
-if test -n "$HAVE_RUBY"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $HAVE_RUBY" >&5
-$as_echo "$HAVE_RUBY" >&6; }
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-fi
-
-
-
-  if test "X${HAVE_RUBY}" != "Xyes"; then
-    as_fn_error $? "developer's build requires ruby." "$LINENO" 5
-  fi
-
-  ./mk/unitycheck.sh ${CC}
-  if test $? -eq 0 ; then
-    HAVE_UNITY=yes
-    UNITY_SRC_DIR=unity/src
-    { $as_echo "$as_me:${as_lineno-$LINENO}: result: unity is available." >&5
-$as_echo "unity is available." >&6; }
-  else
-    HAVE_UNITY=
-    as_fn_error $? "Unity is not available. developer's build requires Unity. Please check https://github.com/lagopus/lagopus/blob/master/docs/how-to-write-tests-in-lagopus.md." "$LINENO" 5
-
-  fi
-
-  # Extract the first word of "gcovr", so it can be a program name with args.
-set dummy gcovr; ac_word=$2
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
-$as_echo_n "checking for $ac_word... " >&6; }
-if ${ac_cv_prog_HAVE_GCOVR+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  if test -n "$HAVE_GCOVR"; then
-  ac_cv_prog_HAVE_GCOVR="$HAVE_GCOVR" # Let the user override the test.
-else
-as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-    for ac_exec_ext in '' $ac_executable_extensions; do
-  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_prog_HAVE_GCOVR="yes"
-    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-  done
-IFS=$as_save_IFS
-
-fi
-fi
-HAVE_GCOVR=$ac_cv_prog_HAVE_GCOVR
-if test -n "$HAVE_GCOVR"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $HAVE_GCOVR" >&5
-$as_echo "$HAVE_GCOVR" >&6; }
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-fi
-
-
-  if test "X${HAVE_GCOVR}" != "Xyes"; then
-    as_fn_error $? "taking coverage requires gcovr.." "$LINENO" 5
-  fi
-fi
-
-
-
-
-
-
-
 # packaging
 PKG_CONFFILE="mk/pkg_param.conf"
 if test -f "${PKG_CONFFILE}"; then
@@ -18175,7 +18308,7 @@ if test "x$?" != "x0"; then
 fi
 
 # emit.
-ac_config_files="$ac_config_files mk/vars.mk mk/doxygen.conf Makefile src/include/Makefile src/include/lagopus_platform.h src/lib/Makefile src/lib/test/Makefile src/lib/check/Makefile src/agent/Makefile src/agent/test/Makefile src/agent/check/Makefile src/cmds/Makefile src/dataplane/Makefile src/dataplane/dpdk/test/Makefile src/dataplane/ofproto/test/Makefile src/dataplane/ofproto/test/lib/Makefile src/dataplane/mgr/test/Makefile tools/Makefile tools/unity/src/Makefile src/config/Makefile src/config/cli/Makefile src/config/cli/libedit/Makefile debian/Makefile debian/control debian/copyright debian/lagopus-DATAPLANE.install"
+ac_config_files="$ac_config_files mk/vars.mk mk/doxygen.conf Makefile src/include/Makefile src/include/lagopus_platform.h src/lib/Makefile src/lib/test/Makefile src/lib/check/Makefile src/agent/Makefile src/agent/test/Makefile src/cmds/Makefile src/config/lagosh/Makefile src/config/lagosh/lagosh.py src/dataplane/Makefile src/dataplane/dpdk/test/Makefile src/dataplane/ofproto/test/Makefile src/dataplane/ofproto/test/lib/Makefile src/dataplane/mgr/test/Makefile src/datastore/Makefile src/datastore/test/Makefile src/datastore/check/Makefile src/snmp/Makefile src/snmp/test/Makefile tools/Makefile tools/unity/src/Makefile debian/Makefile debian/control debian/copyright debian/lagopus-DATAPLANE.install"
 
 
 # emit and set executable attribute.
@@ -19273,8 +19406,8 @@ cat >>$CONFIG_STATUS <<\_ACEOF || ac_write_fail=1
 for ac_config_target in $ac_config_targets
 do
   case $ac_config_target in
-    "libtool") CONFIG_COMMANDS="$CONFIG_COMMANDS libtool" ;;
     "src/include/lagopus_config.h") CONFIG_HEADERS="$CONFIG_HEADERS src/include/lagopus_config.h" ;;
+    "libtool") CONFIG_COMMANDS="$CONFIG_COMMANDS libtool" ;;
     "mk/vars.mk") CONFIG_FILES="$CONFIG_FILES mk/vars.mk" ;;
     "mk/doxygen.conf") CONFIG_FILES="$CONFIG_FILES mk/doxygen.conf" ;;
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
@@ -19285,18 +19418,21 @@ do
     "src/lib/check/Makefile") CONFIG_FILES="$CONFIG_FILES src/lib/check/Makefile" ;;
     "src/agent/Makefile") CONFIG_FILES="$CONFIG_FILES src/agent/Makefile" ;;
     "src/agent/test/Makefile") CONFIG_FILES="$CONFIG_FILES src/agent/test/Makefile" ;;
-    "src/agent/check/Makefile") CONFIG_FILES="$CONFIG_FILES src/agent/check/Makefile" ;;
     "src/cmds/Makefile") CONFIG_FILES="$CONFIG_FILES src/cmds/Makefile" ;;
+    "src/config/lagosh/Makefile") CONFIG_FILES="$CONFIG_FILES src/config/lagosh/Makefile" ;;
+    "src/config/lagosh/lagosh.py") CONFIG_FILES="$CONFIG_FILES src/config/lagosh/lagosh.py" ;;
     "src/dataplane/Makefile") CONFIG_FILES="$CONFIG_FILES src/dataplane/Makefile" ;;
     "src/dataplane/dpdk/test/Makefile") CONFIG_FILES="$CONFIG_FILES src/dataplane/dpdk/test/Makefile" ;;
     "src/dataplane/ofproto/test/Makefile") CONFIG_FILES="$CONFIG_FILES src/dataplane/ofproto/test/Makefile" ;;
     "src/dataplane/ofproto/test/lib/Makefile") CONFIG_FILES="$CONFIG_FILES src/dataplane/ofproto/test/lib/Makefile" ;;
     "src/dataplane/mgr/test/Makefile") CONFIG_FILES="$CONFIG_FILES src/dataplane/mgr/test/Makefile" ;;
+    "src/datastore/Makefile") CONFIG_FILES="$CONFIG_FILES src/datastore/Makefile" ;;
+    "src/datastore/test/Makefile") CONFIG_FILES="$CONFIG_FILES src/datastore/test/Makefile" ;;
+    "src/datastore/check/Makefile") CONFIG_FILES="$CONFIG_FILES src/datastore/check/Makefile" ;;
+    "src/snmp/Makefile") CONFIG_FILES="$CONFIG_FILES src/snmp/Makefile" ;;
+    "src/snmp/test/Makefile") CONFIG_FILES="$CONFIG_FILES src/snmp/test/Makefile" ;;
     "tools/Makefile") CONFIG_FILES="$CONFIG_FILES tools/Makefile" ;;
     "tools/unity/src/Makefile") CONFIG_FILES="$CONFIG_FILES tools/unity/src/Makefile" ;;
-    "src/config/Makefile") CONFIG_FILES="$CONFIG_FILES src/config/Makefile" ;;
-    "src/config/cli/Makefile") CONFIG_FILES="$CONFIG_FILES src/config/cli/Makefile" ;;
-    "src/config/cli/libedit/Makefile") CONFIG_FILES="$CONFIG_FILES src/config/cli/libedit/Makefile" ;;
     "debian/Makefile") CONFIG_FILES="$CONFIG_FILES debian/Makefile" ;;
     "debian/control") CONFIG_FILES="$CONFIG_FILES debian/control" ;;
     "debian/copyright") CONFIG_FILES="$CONFIG_FILES debian/copyright" ;;

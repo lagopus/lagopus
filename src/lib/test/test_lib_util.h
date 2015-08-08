@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 #ifndef __TEST_LIB_UTIL_H__
 #define __TEST_LIB_UTIL_H__
 

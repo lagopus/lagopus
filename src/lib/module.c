@@ -14,18 +14,17 @@
  * limitations under the License.
  */
 
-
 #include "lagopus_apis.h"
 
 
+
 
 
-
-#define MAX_MODULES             1024
-#define MAX_MODULE_NAME         64
-
+#define MAX_MODULES		1024
+#define MAX_MODULE_NAME		64
 
 
+
 
 
 typedef enum {
@@ -54,7 +53,7 @@ typedef struct {
 } a_module;
 
 
-
+
 
 
 static size_t s_n_modules = 0;
@@ -64,18 +63,18 @@ static pthread_once_t s_once = PTHREAD_ONCE_INIT;
 static lagopus_mutex_t s_lck = NULL;
 
 
-static void     s_ctors(void) __attr_constructor__(108);
-static void     s_dtors(void) __attr_destructor__(108);
+static void	s_ctors(void) __attr_constructor__(111);
+static void	s_dtors(void) __attr_destructor__(111);
 
 
-
+
 
 
 static void
 s_once_proc(void) {
   lagopus_result_t r;
   s_n_modules = 0;
-  (void)memset((void *)s_modules, sizeof(s_modules), 0);
+  (void)memset((void *)s_modules, 0, sizeof(s_modules));
 
   if ((r = lagopus_mutex_create(&s_lck)) != LAGOPUS_RESULT_OK) {
     lagopus_perror(r);
@@ -114,7 +113,7 @@ s_dtors(void) {
 }
 
 
-
+
 
 
 static inline void
@@ -133,7 +132,7 @@ s_unlock(void) {
 }
 
 
-
+
 
 
 static inline lagopus_result_t
@@ -409,7 +408,7 @@ s_usage_module(a_module *mptr, FILE *fd) {
 }
 
 
-
+
 
 
 lagopus_result_t
@@ -439,7 +438,7 @@ lagopus_module_register(const char *name,
 }
 
 
-
+
 
 
 void
@@ -715,7 +714,7 @@ lagopus_module_finalize_all(void) {
 }
 
 
-
+
 
 
 lagopus_result_t
