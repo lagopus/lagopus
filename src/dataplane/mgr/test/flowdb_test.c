@@ -552,6 +552,43 @@ test_flowdb_flow_del(void) {
 }
 
 void
+test_flowdb_flow_del_with_cookie(void) {
+  struct table **tablep;
+  struct ofp_flow_mod flow_mod;
+  struct match_list match_list;
+  struct instruction_list instruction_list;
+  struct ofp_error error;
+
+  TAILQ_INIT(&match_list);
+  TAILQ_INIT(&instruction_list);
+
+  flow_mod.table_id = 0;
+  flow_mod.priority = 1;
+  flow_mod.flags = 0;
+  flow_mod.cookie = 12345;
+  flow_mod.cookie_mask = 0;
+  flow_mod.out_port = OFPP_ANY;
+  flow_mod.out_group = OFPG_ANY;
+
+  TABLE_GET(tablep, flowdb, flow_mod.table_id);
+
+  flow_mod.command = OFPFC_ADD;
+  TEST_ASSERT_FLOW_ADD_OK(bridge, &flow_mod, &match_list,
+                          &instruction_list, &error);
+  TEST_ASSERT_TABLE_NFLOW(tablep, MISC_FLOWS, 1);
+
+  FLOWDB_DUMP(flowdb, "After addition", stdout);
+
+  flow_mod.command = OFPFC_DELETE;
+  TEST_ASSERT_FLOW_DELETE_OK(bridge, &flow_mod, &match_list, &error);
+  TEST_ASSERT_TABLE_NFLOW(tablep, MISC_FLOWS, 0);
+
+  FLOWDB_DUMP(flowdb, "After deletion", stdout);
+
+  /* Cleaned up already. */
+}
+
+void
 test_flowdb_flow_stats(void) {
   struct table **tablep;
   struct ofp_flow_mod flow_mod;

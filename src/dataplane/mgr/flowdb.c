@@ -1144,8 +1144,9 @@ flow_modify_sub(struct bridge *bridge,
     for (i = 0; i < flow_list->nflow; i++) {
       flow = flow_list->flows[i];
       /* filtering by cookie */
-      if (flow_mod->cookie != 0) {
-        if ((flow->cookie & flow_mod->cookie_mask) != flow_mod->cookie) {
+      if (flow_mod->cookie_mask != 0) {
+        if ((flow->cookie & flow_mod->cookie_mask)
+            != (flow_mod->cookie & flow_mod->cookie_mask)) {
           continue;
         }
       }
@@ -1427,8 +1428,9 @@ flow_del_sub(struct bridge *bridge,
     for (i = 0; i < flow_list->nflow; i++) {
       flow = flow_list->flows[i];
       /* filtering by cookie */
-      if (flow_mod->cookie != 0) {
-        if ((flow->cookie & flow_mod->cookie_mask) != flow_mod->cookie) {
+      if (flow_mod->cookie_mask != 0) {
+        if ((flow->cookie & flow_mod->cookie_mask)
+            != (flow_mod->cookie & flow_mod->cookie_mask)) {
           continue;
         }
       }
@@ -1639,8 +1641,9 @@ table_flow_stats(struct table *table,
   flow_list = &table->flow_list;
   for (i = 0; i < flow_list->nflow; i++) {
     flow = flow_list->flows[i];
-    if (request->cookie != 0) {
-      if ((flow->cookie & request->cookie_mask) != request->cookie) {
+    if (request->cookie_mask != 0) {
+      if ((flow->cookie & request->cookie_mask) !=
+          (request->cookie & request->cookie_mask)) {
         continue;
       }
     }
@@ -1753,8 +1756,9 @@ table_flow_counts(struct table *table,
   flow_list = &table->flow_list;
   for (i = 0; i < flow_list->nflow; i++) {
     flow = flow_list->flows[i];
-    if (request->cookie != 0) {
-      if ((flow->cookie & request->cookie_mask) != request->cookie) {
+    if (request->cookie_mask != 0) {
+      if ((flow->cookie & request->cookie_mask) !=
+          (request->cookie & request->cookie_mask)) {
         continue;
       }
     }
