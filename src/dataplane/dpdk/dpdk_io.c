@@ -1041,6 +1041,11 @@ dpdk_configure_interface(struct interface *ifp) {
               portid,
               ret);
   }
+
+  /* Virtio does not support hw offload */
+  if (strcmp(ifp->devinfo.driver_name, "rte_virtio_pmd") == 0) {
+    ifp->devinfo.default_txconf.txq_flags = ETH_TXQ_FLAGS_NOOFFLOADS;
+  }
   rte_eth_promiscuous_enable(portid);
 
   /* Init RX queues */
