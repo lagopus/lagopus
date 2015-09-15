@@ -1035,7 +1035,7 @@ dpdk_configure_interface(struct interface *ifp) {
               (unsigned) portid, strerror(-ret));
   }
   ret = rte_eth_dev_set_mtu(portid, ifp->info.eth_dpdk_phy.mtu);
-  if (ret < 0) {
+  if (ret < 0 && ret != -ENOTSUP) {
     rte_panic("Cannot set MTU(%d) for port %d (%d)\n",
               ifp->info.eth_dpdk_phy.mtu,
               portid,
