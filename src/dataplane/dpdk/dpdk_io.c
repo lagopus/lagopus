@@ -624,7 +624,6 @@ app_lcore_io_tx_kni(struct app_lcore_params_io *lp, uint32_t bsz) {
   uint16_t nb_tx;
   unsigned i, j;
 
-  return;
   for (i = 0; i < lp->tx.n_nic_ports; i++) {
 
     portid = lp->tx.nic_ports[i];
@@ -1163,13 +1162,13 @@ void
 app_init_kni(void) {
   uint8_t portid;
 
+  rte_kni_init(rte_eth_dev_count());
   for (portid = 0; portid < rte_eth_dev_count(); portid++) {
     struct rte_kni *kni;
     struct rte_kni_ops ops;
     struct rte_kni_conf conf;
     struct rte_eth_dev_info dev_info;
 
-    continue; /* XXX */
     /* Clear conf at first */
     memset(&conf, 0, sizeof(conf));
     memset(&dev_info, 0, sizeof(dev_info));
@@ -1183,8 +1182,7 @@ app_init_kni(void) {
     ops.port_id = portid;
     ops.change_mtu = kni_change_mtu;
     ops.config_network_if = kni_config_network_interface,
-        /* XXX socket 0 */
-        kni = rte_kni_alloc(app.pools[0], &conf, &ops);
+    kni = rte_kni_alloc(app.pools[0], &conf, &ops);
     if (kni == NULL) {
       lagopus_msg_error("Fail to create kni dev for port: %d\n", portid);
       continue;
@@ -1192,6 +1190,7 @@ app_init_kni(void) {
     lagopus_kni[portid] = kni;
     printf("KNI: %s is configured.\n", conf.name);
 
+    rte_eth_macaddr_get(portid, &lagopus_ports_eth_addr[portid]);
     printf("Port %u, MAC address: %02X:%02X:%02X:%02X:%02X:%02X\n\n",
            (unsigned) portid,
            lagopus_ports_eth_addr[portid].addr_bytes[0],
@@ -1202,7 +1201,7 @@ app_init_kni(void) {
            lagopus_ports_eth_addr[portid].addr_bytes[5]);
 
     /* initialize port stats */
-    memset(&port_statistics, 0, sizeof(port_statistics));
+    memset(&port_statistics[portid], 0, sizeof(struct lagopus_port_statistics));
   }
 }
 #endif /* __linux__ */
