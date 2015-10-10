@@ -163,8 +163,10 @@ process_event_dataq_entry(struct flowcache *cache,
           /* clear my own cache */
           clear_all_cache(cache);
         }
+#ifdef HAVE_DPDK
         /* and worker cache */
         clear_worker_flowcache(true);
+#endif /* HAVE_DPDK */
         reply = malloc(sizeof(*reply));
         if (reply == NULL) {
           break;

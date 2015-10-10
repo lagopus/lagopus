@@ -455,13 +455,6 @@ lagopus_unconfigure_physical_port(struct port *port) {
   return LAGOPUS_RESULT_OK;
 }
 
-lagopus_result_t
-lagopus_change_physical_port(struct port *port) {
-
-  send_port_status(port, OFPPR_MODIFY);
-  return LAGOPUS_RESULT_OK;
-}
-
 bool
 lagopus_is_port_enabled(__UNUSED const struct port *port) {
   return true;
@@ -569,17 +562,6 @@ lagopus_dataplane_init(int argc, const char *const argv[]) {
     }
   }
   return 0;
-}
-
-void
-clear_worker_flowcache(bool wait_flush) {
-
-  (void) wait_flush;
-
-  if (no_cache == true) {
-    return;
-  }
-  clear_cache = true;
 }
 
 static struct port_stats *
