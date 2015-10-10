@@ -46,11 +46,8 @@ static lagopus_hashmap_t queueid_hashmap;
  */
 static struct vector *port_vector;
 
-static struct bridge_list bridge_list;
-
 static void dp_port_interface_unset_internal(struct port *port);
-static void
-dp_queue_free(void *queue);
+static void dp_queue_free(void *queue);
 
 lagopus_result_t
 dp_api_init(void) {
@@ -60,7 +57,6 @@ dp_api_init(void) {
   if (port_vector == NULL) {
     return LAGOPUS_RESULT_NO_MEMORY;
   }
-  TAILQ_INIT(&bridge_list);
   rv = lagopus_hashmap_create(&interface_hashmap,
                               LAGOPUS_HASHMAP_TYPE_STRING,
                               dp_interface_free);
@@ -596,7 +592,6 @@ dp_bridge_create(const char *name,
       goto uout;
   }
   /* other parameter is just ignored. */
-  TAILQ_INSERT_TAIL(&bridge_list, bridge, entry);
   rv = lagopus_hashmap_add(&bridge_hashmap, name, (void **)&bridge, false);
   if (rv == LAGOPUS_RESULT_OK) {
     rv = lagopus_hashmap_find(&bridge_hashmap, (void *)name, (void **)&bridge);
@@ -621,7 +616,6 @@ dp_bridge_destroy(const char *name) {
   /* Lookup bridge by name. */
   bridge = dp_bridge_lookup(name);
   if (bridge != NULL) {
-    TAILQ_REMOVE(&bridge_list, bridge, entry);
     lagopus_hashmap_delete(&dpid_hashmap, bridge->dpid, NULL, true);
     lagopus_hashmap_delete(&bridge_hashmap, name, NULL, true);
     rv = LAGOPUS_RESULT_OK;
