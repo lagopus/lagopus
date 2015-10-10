@@ -794,7 +794,7 @@ dp_bridge_flow_iter_get(dp_bridge_iter_t iter, struct flow **flowp) {
 
   table = iter->flowdb->tables[iter->table_id];
   if (table != NULL) {
-    flow_list = &table->flow_list;
+    flow_list = table->flow_list;
     if (iter->flow_idx < flow_list->nflow) {
       *flowp = flow_list->flows[iter->flow_idx++];
       return LAGOPUS_RESULT_OK;

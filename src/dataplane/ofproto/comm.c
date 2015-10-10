@@ -151,8 +151,8 @@ process_event_dataq_entry(struct flowcache *cache,
             for (i = 0; i < flowdb->table_size; i++) {
               table = flowdb->tables[i];
               if (table != NULL) {
-                cleanup_mbtree(&table->flow_list);
-                build_mbtree(&table->flow_list);
+                cleanup_mbtree(table->flow_list);
+                build_mbtree(table->flow_list);
               }
             }
           }

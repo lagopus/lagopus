@@ -2328,7 +2328,7 @@ lagopus_match_and_action(struct lagopus_packet *pkt) {
 
       table->lookup_count++;
 #ifdef USE_MBTREE
-      flow = find_mbtree(pkt, &table->flow_list);
+      flow = find_mbtree(pkt, table->flow_list);
 #else
       flow = lagopus_find_flow(pkt, table);
 #endif
