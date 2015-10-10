@@ -229,7 +229,6 @@ out:
 
 static struct table *
 table_alloc(uint8_t table_id) {
-  int i;
   struct table *table;
 
   table = (struct table *)calloc(1, sizeof(struct table));
@@ -256,15 +255,15 @@ table_get(struct flowdb *flowdb, uint8_t table_id) {
 static void
 table_free(struct table *table) {
   struct flow_list *flow_list;
-  int nflow, i, j;
+  int nflow, i;
 
   flow_list = table->flow_list;
 #ifdef USE_MBTREE
   cleanup_mbtree(flow_list);
 #endif /* USE_MBTREE */
   nflow = flow_list->nflow;
-  for (j = 0; j < nflow; j++) {
-    flow_free(flow_list->flows[j]);
+  for (i = 0; i < nflow; i++) {
+    flow_free(flow_list->flows[i]);
   }
   free(flow_list);
   free(table);
@@ -673,7 +672,7 @@ flow_remove_with_reason_nolock(struct flow *flow,
   struct meter_table *meter_table;
   struct flow_list *flow_list;
   lagopus_result_t ret;
-  int type, i;
+  int i;
 
   (void) error;
 
@@ -1422,8 +1421,6 @@ flow_del_sub(struct bridge *bridge,
     add_mbtree_timer(flow_list, MBTREE_TIMEOUT);
 #endif /* USE_MBTREE */
   } else {
-    int type;
-
     /*
      * not strict. delete all flows if matched by match_list and cookie.
      */
@@ -1636,7 +1633,7 @@ table_flow_stats(struct table *table,
   struct flow_stats *flow_stats;
   struct flow_list *flow_list;
   struct flow *flow;
-  int type, i;
+  int i;
   lagopus_result_t rv;
 
   rv = LAGOPUS_RESULT_OK;
@@ -1754,7 +1751,7 @@ table_flow_counts(struct table *table,
 
   struct flow_list *flow_list;
   struct flow *flow;
-  int type, i;
+  int i;
 
   flow_list = table->flow_list;
   for (i = 0; i < flow_list->nflow; i++) {
@@ -1827,7 +1824,6 @@ flowdb_table_stats(struct flowdb *flowdb,
   for (table_id = 0; table_id <= UINT8_MAX; table_id++) {
     struct table_stats *stats;
     struct table *table;
-    int i;
 
     table = flowdb->tables[table_id];
     if (table == NULL) {

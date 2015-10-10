@@ -742,11 +742,9 @@ free_mbtree(int type, void *arg) {
             continue;
           }
           cleanup_mbtree(flow_list->branch[i]);
-          flow_list->branch[i] = NULL;
         }
         if (flow_list->flows_dontcare != NULL) {
           cleanup_mbtree(flow_list->flows_dontcare);
-          flow_list->flows_dontcare = NULL;
         }
         free(flow_list);
         break;
@@ -766,7 +764,6 @@ free_mbtree(int type, void *arg) {
         flow_list = arg;
         if (flow_list->basic != NULL) {
           flow_list->basic->destroy_func(flow_list->basic);
-          flow_list->basic == NULL;
         }
         free(flow_list);
         break;

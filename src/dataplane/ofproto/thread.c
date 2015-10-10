@@ -225,10 +225,12 @@ sockthread_initialize(void *arg) {
 lagopus_result_t
 dataplane_initialize(int argc,
                      const char *const argv[],
-                     void *extarg,
+                     __UNUSED void *extarg,
                      lagopus_thread_t **thdptr) {
   static struct dataplane_arg dparg;
+#ifdef HAVE_DPDK
   static struct dataplane_arg sockarg;
+#endif /* HAVE_DPDK */
   static struct dataplane_arg timerarg;
   lagopus_result_t nb_ports;
 

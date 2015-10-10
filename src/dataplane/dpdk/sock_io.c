@@ -59,9 +59,6 @@ static int ifindex[256];
 #define TIMEOUT_SHUTDOWN_RIGHT_NOW     (100*1000*1000) /* 100msec */
 #define TIMEOUT_SHUTDOWN_GRACEFULLY    (1500*1000*1000) /* 1.5sec */
 
-static bool no_cache = true;
-static int kvs_type = FLOWCACHE_HASHMAP_NOLOCK;
-static int hashtype = HASH_TYPE_INTEL64;
 static bool volatile clear_cache = false;
 
 static ssize_t

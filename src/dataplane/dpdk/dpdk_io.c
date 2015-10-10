@@ -648,7 +648,7 @@ app_lcore_io_tx_kni(struct app_lcore_params_io *lp, uint32_t bsz) {
 #endif /* __linux__ */
 
 static inline void
-app_lcore_io_tx_flush(struct app_lcore_params_io *lp, void *arg) {
+app_lcore_io_tx_flush(struct app_lcore_params_io *lp, __UNUSED void *arg) {
   uint8_t portid, i;
 
   for (i = 0; i < lp->tx.n_nic_ports; i++) {

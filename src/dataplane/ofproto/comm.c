@@ -35,6 +35,7 @@
 #include "lagopus/ofcache.h"
 #include "lagopus/ofp_bridge.h"
 #include "lagopus/ofp_bridgeq_mgr.h"
+#include "lagopus/dp_apis.h"
 
 #include "pktbuf.h"
 #include "packet.h"
@@ -412,7 +413,7 @@ static lagopus_mutex_t comm_lock = NULL;
 lagopus_result_t
 dpcomm_initialize(int argc,
                   const char *const argv[],
-                  void *extarg,
+                  __UNUSED void *extarg,
                   lagopus_thread_t **thdptr) {
   lagopus_result_t rv = LAGOPUS_RESULT_ANY_FAILURES;
   static struct dataplane_arg commarg;

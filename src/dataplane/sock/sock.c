@@ -133,7 +133,6 @@ read_packet(int fd, uint8_t *buf, size_t buflen) {
 
 lagopus_result_t
 rawsock_get_stats(struct interface *ifp, datastore_interface_stats_t *stats) {
-  struct sockaddr_nl sa;
   struct {
     struct nlmsghdr nlh;
     struct ifinfomsg ifinfo;
