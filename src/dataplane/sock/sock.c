@@ -586,6 +586,8 @@ port_stats(struct port *port) {
   struct port_stats *stats;
   int fd, len, rta_len;
 
+  link_stats = NULL;
+
   stats = calloc(1, sizeof(struct port_stats));
   if (stats == NULL) {
     return NULL;
@@ -696,8 +698,8 @@ found:
  * dataplane thread
  */
 lagopus_result_t
-dataplane_thread_loop(__UNUSED const lagopus_thread_t *selfptr, void *arg) {
-  struct dataplane_arg *dparg;
+dataplane_thread_loop(__UNUSED const lagopus_thread_t *selfptr,
+                      __UNUSED void *arg) {
   struct lagopus_packet pkt;
   struct sock_buf *m;
   struct port_stats *stats;
@@ -716,8 +718,6 @@ dataplane_thread_loop(__UNUSED const lagopus_thread_t *selfptr, void *arg) {
     return rv;
   }
 
-  dparg = arg;
-
   if (no_cache == false) {
     pkt.cache = init_flowcache(kvs_type);
   } else {
@@ -726,7 +726,6 @@ dataplane_thread_loop(__UNUSED const lagopus_thread_t *selfptr, void *arg) {
 
   for (;;) {
     struct port *port;
-    struct flowdb *flowdb;
 
     nb_ports = dp_port_count() + 1;
 
@@ -778,7 +777,6 @@ dataplane_thread_loop(__UNUSED const lagopus_thread_t *selfptr, void *arg) {
         }
         m->len = (size_t)len;
 
-        flowdb = port->bridge->flowdb;
         lagopus_set_in_port(&pkt, port);
         lagopus_packet_init(&pkt, m);
         if (port->bridge->flowdb->switch_mode == SWITCH_MODE_STANDALONE) {

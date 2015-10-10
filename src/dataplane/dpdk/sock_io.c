@@ -526,7 +526,6 @@ rawsocket_thread_loop(__UNUSED const lagopus_thread_t *selfptr, void *arg) {
 
   for (;;) {
     struct port *port;
-    struct flowdb *flowdb;
 
     nb_ports = dp_port_count() + 1;
 
@@ -570,7 +569,6 @@ rawsocket_thread_loop(__UNUSED const lagopus_thread_t *selfptr, void *arg) {
           }
         }
         (void)OS_M_APPEND(pkt->mbuf, len);
-        flowdb = port->bridge->flowdb;
         lagopus_set_in_port(pkt, port);
         lagopus_packet_init(pkt, pkt->mbuf);
         if (port->bridge->flowdb->switch_mode == SWITCH_MODE_STANDALONE) {

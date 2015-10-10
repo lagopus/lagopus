@@ -298,11 +298,9 @@ add_flow_ipv4_dst(struct flowinfo *self, struct flow *flow) {
     }
     flowinfo = node->info;
     rv = flowinfo->add_func(flowinfo, flow);
-  } else {
-    rv = self->misc->add_func(self->misc, flow);
-  }
-  if (rv == LAGOPUS_RESULT_OK) {
-    self->nflow++;
+    if (rv == LAGOPUS_RESULT_OK) {
+      self->nflow++;
+    }
   }
   return rv;
 }
@@ -323,11 +321,9 @@ del_flow_ipv4_dst(struct flowinfo *self, struct flow *flow) {
     }
     flowinfo = node->info;
     rv = flowinfo->del_func(flowinfo, flow);
-  } else {
-    rv = self->misc->del_func(self->misc, flow);
-  }
-  if (rv == LAGOPUS_RESULT_OK) {
-    self->nflow--;
+    if (rv == LAGOPUS_RESULT_OK) {
+      self->nflow--;
+    }
   }
   return rv;
 }
