@@ -174,7 +174,7 @@ typedef lagopus_result_t
  * The signature of object duplication function.
  *
  *	@param[in]	obj	An object
- *	@param[in]	fullname	A name of the duplication obj.
+ *	@param[in]	namespace	A namespace of the duplication obj.
  *
  *	@retval	LAGOPUS_RESULT_OK		Succeeded.
  *	@retval	LAGOPUS_RESULT_INVALID_ARGS	Failed, invalid args.
@@ -183,7 +183,7 @@ typedef lagopus_result_t
  *	@details The returned \b *namep must not be modified.
  */
 typedef lagopus_result_t
-(*datastore_duplicate_proc_t)(const void *obj, const char *fullname);
+(*datastore_duplicate_proc_t)(const void *obj, const char* namespace);
 
 
 /**

@@ -704,7 +704,7 @@ l2_bridge_attr_dup_modified(l2_bridge_conf_t *conf,
        * already exists. copy it.
        */
       ret = l2_bridge_attr_duplicate(conf->current_attr,
-                                     &conf->modified_attr);
+                                     &conf->modified_attr, NULL);
       if (ret != LAGOPUS_RESULT_OK) {
         ret = datastore_json_result_set(result, ret, NULL);
       }
@@ -1993,12 +1993,12 @@ l2_bridge_cmd_getname(const void *obj, const char **namep) {
 }
 
 static lagopus_result_t
-l2_bridge_cmd_duplicate(const void *obj, const char *fullname) {
+l2_bridge_cmd_duplicate(const void *obj, const char *namespace) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   l2_bridge_conf_t *dup_obj = NULL;
 
-  if (obj != NULL && fullname != NULL) {
-    ret = l2_bridge_conf_duplicate(obj, &dup_obj, fullname);
+  if (obj != NULL) {
+    ret = l2_bridge_conf_duplicate(obj, &dup_obj, namespace);
     if (ret == LAGOPUS_RESULT_OK) {
       ret = l2_bridge_conf_add(dup_obj);
 
@@ -2192,7 +2192,7 @@ l2_bridge_cmd_set_bridge(const char *name,
 
     if (ret == LAGOPUS_RESULT_OK) {
       len = strlen(bridge_name);
-      if (len <= DATASTORE_BRIDGE_NAME_MAX) {
+      if (len <= DATASTORE_BRIDGE_FULLNAME_MAX) {
         strncpy(conf->bridge_name, bridge_name, len);
         conf->bridge_name[len] = '\0';
         ret = LAGOPUS_RESULT_OK;

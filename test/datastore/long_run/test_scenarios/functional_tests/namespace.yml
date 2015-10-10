@@ -10,6 +10,9 @@ setup:
       - cmd_type: ds
         cmd: destroy-all-obj
         result: '{"ret": "OK"}'
+      - cmd_type: shell
+        cmd: "{{ shell_dir }}/dummy_eth_up.sh lago_eth 2"
+        result: "0"
 
 teardown:
   - repetition_count: 1
@@ -17,6 +20,9 @@ teardown:
       - cmd_type: ds
         cmd: destroy-all-obj
         result: '{"ret": "OK"}'
+      - cmd_type: shell
+        cmd: "{{ shell_dir }}/dummy_eth_down.sh lago_eth 2"
+        result: "0"
 
 testcases:
   - testcase: add, delete
@@ -137,4 +143,546 @@ testcases:
             result: |-
               {"ret":"NOT_FOUND",
               "data":"Bad opt value = invalid_opt"}
+
+  - testcase: invalid namespace scope1
+    test:
+      - repetition_count: 1
+        cmds:
+          - cmd_type: ds
+            cmd: namespace add ns01
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: namespace add ns02
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: namespace
+            result: |-
+              {"ret":"OK",
+              "current":"", "all":["ns01", "ns02"]}
+          - cmd_type: ds
+            cmd: namespace set ns01
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: namespace
+            result: |-
+              {"ret":"OK",
+              "current":"ns01", "all":["ns01", "ns02"]}
+          - cmd_type: ds
+            cmd: load {{ test_home  }}/test_scenarios/functional_tests/namespace_success.dsl
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: interface if01
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":"ns01:if01",
+              "type":"ethernet-rawsock",
+              "port-number":1,
+              "device":"lago_eth0",
+              "mtu":1,
+              "ip-addr":"127.0.0.1",
+              "is-used":true,
+              "is-enabled":false}]}
+          - cmd_type: ds
+            cmd: interface if02
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":"ns01:if02",
+              "type":"ethernet-rawsock",
+              "port-number":2,
+              "device":"lago_eth1",
+              "mtu":2,
+              "ip-addr":"127.0.0.2",
+              "is-used":true,
+              "is-enabled":false}]}
+          - cmd_type: ds
+            cmd: policer-action policer-action01
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":"ns01:policer-action01",
+              "type":"discard",
+              "is-used":true,
+              "is-enabled":false}]}
+          - cmd_type: ds
+            cmd: policer-action policer-action02
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":"ns01:policer-action02",
+              "type":"discard",
+              "is-used":true,
+              "is-enabled":false}]}
+          - cmd_type: ds
+            cmd: policer policer01
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":"ns01:policer01",
+              "actions":["ns01:policer-action01"],
+              "bandwidth-limit":1500,
+              "burst-size-limit":1500,
+              "bandwidth-percent":0,
+              "is-used":true,
+              "is-enabled":false}]}
+          - cmd_type: ds
+            cmd: policer policer02
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":"ns01:policer02",
+              "actions":["ns01:policer-action02"],
+              "bandwidth-limit":1500,
+              "burst-size-limit":1500,
+              "bandwidth-percent":0,
+              "is-used":true,
+              "is-enabled":false}]}
+          - cmd_type: ds
+            cmd: queue queue01
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":"ns01:queue01",
+              "type":"single-rate",
+              "id":1,
+              "priority":2,
+              "color":"color-aware",
+              "committed-burst-size":1500,
+              "committed-information-rate":1500,
+              "excess-burst-size":1500,
+              "is-used":true,
+              "is-enabled":false}]}
+          - cmd_type: ds
+            cmd: queue queue02
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":"ns01:queue02",
+              "type":"single-rate",
+              "id":2,
+              "priority":3,
+              "color":"color-aware",
+              "committed-burst-size":1500,
+              "committed-information-rate":1500,
+              "excess-burst-size":1500,
+              "is-used":true,
+              "is-enabled":false}]}
+          - cmd_type: ds
+            cmd: port port01
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":"ns01:port01",
+              "port-number":1,
+              "interface":"ns01:if01",
+              "policer":"ns01:policer01",
+              "queues":["ns01:queue01"],
+              "is-used":true,
+              "is-enabled":false}]}
+          - cmd_type: ds
+            cmd: port port02
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":"ns01:port02",
+              "port-number":2,
+              "interface":"ns01:if02",
+              "policer":"ns01:policer02",
+              "queues":["ns01:queue02"],
+              "is-used":true,
+              "is-enabled":false}]}
+          - cmd_type: ds
+            cmd: channel channel01
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":"ns01:channel01",
+              "dst-addr":"127.0.0.1",
+              "dst-port":12345,
+              "local-addr":"0.0.0.0",
+              "local-port":0,
+              "protocol":"tcp",
+              "is-used":true,
+              "is-enabled":false}]}
+          - cmd_type: ds
+            cmd: controller controller01
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":"ns01:controller01",
+              "channel":"ns01:channel01",
+              "role":"equal",
+              "connection-type":"main",
+              "is-used":true,
+              "is-enabled":false}]}
+          - cmd_type: ds
+            cmd: l2-bridge l2-bridge01
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":"ns01:l2-bridge01",
+              "expire":1,
+              "max-entries":1,
+              "tmp-dir":"\/tmp",
+              "bridge":"ns01:bridge01",
+              "is-used":true,
+              "is-enabled":false}]}
+          - cmd_type: ds
+            cmd: bridge bridge01
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":"ns01:bridge01",
+              "controllers":["ns01:controller01"],
+              "ports":{"ns01:port01":1,
+              "ns01:port02":2},
+              "l2-bridge":"ns01:l2-bridge01",
+              "dpid":1,
+              "fail-mode":"secure",
+              "flow-statistics":true,
+              "group-statistics":true,
+              "port-statistics":true,
+              "queue-statistics":true,
+              "table-statistics":true,
+              "reassemble-ip-fragments":false,
+              "max-buffered-packets":65535,
+              "max-ports":255,
+              "max-tables":255,
+              "max-flows":4294967295,
+              "packet-inq-size":1000,
+              "packet-inq-max-batches":1000,
+              "up-streamq-size":1000,
+              "up-streamq-max-batches":1000,
+              "down-streamq-size":1000,
+              "down-streamq-max-batches":1000,
+              "block-looping-ports":false,
+              "action-types":["copy-ttl-out","copy-ttl-in","set-mpls-ttl",
+                              "dec-mpls-ttl","push-vlan","pop-vlan",
+                              "push-mpls","pop-mpls","set-queue","group",
+                              "set-nw-ttl","dec-nw-ttl","set-field"],
+              "instruction-types":["apply-actions","clear-actions","write-actions",
+                                   "write-metadata","goto-table"],
+              "reserved-port-types":["all","controller","table",
+                                     "inport","any","normal","flood"],
+              "group-types":["all","select","indirect","fast-failover"],
+              "group-capabilities":["select-weight","select-liveness",
+                                    "chaining","chaining-check"],
+              "is-used":false,
+              "is-enabled":false}]}
+          - cmd_type: ds
+            cmd: namespace set ns02
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: interface ns01:if01
+            result: |-
+              {"ret":"INVALID_NAMESPACE",
+               "data":"Can't get fullname ns01:if01."}
+          - cmd_type: ds
+            cmd: interface ns01:if02
+            result: |-
+              {"ret":"INVALID_NAMESPACE",
+               "data":"Can't get fullname ns01:if02."}
+          - cmd_type: ds
+            cmd: policer-action ns01:policer-action01
+            result: |-
+              {"ret":"INVALID_NAMESPACE",
+               "data":"Can't get fullname ns01:policer-action01."}
+          - cmd_type: ds
+            cmd: policer-action ns01:policer-action02
+            result: |-
+              {"ret":"INVALID_NAMESPACE",
+               "data":"Can't get fullname ns01:policer-action02."}
+          - cmd_type: ds
+            cmd: policer ns01:policer01
+            result: |-
+              {"ret":"INVALID_NAMESPACE",
+               "data":"Can't get fullname ns01:policer01."}
+          - cmd_type: ds
+            cmd: policer ns01:policer02
+            result: |-
+              {"ret":"INVALID_NAMESPACE",
+               "data":"Can't get fullname ns01:policer02."}
+          - cmd_type: ds
+            cmd: queue ns01:queue01
+            result: |-
+              {"ret":"INVALID_NAMESPACE",
+               "data":"Can't get fullname ns01:queue01."}
+          - cmd_type: ds
+            cmd: queue ns01:queue02
+            result: |-
+              {"ret":"INVALID_NAMESPACE",
+               "data":"Can't get fullname ns01:queue02."}
+          - cmd_type: ds
+            cmd: port ns01:port01
+            result: |-
+              {"ret":"INVALID_NAMESPACE",
+               "data":"Can't get fullname ns01:port01."}
+          - cmd_type: ds
+            cmd: port ns01:port02
+            result: |-
+              {"ret":"INVALID_NAMESPACE",
+               "data":"Can't get fullname ns01:port02."}
+          - cmd_type: ds
+            cmd: channel ns01:channel01
+            result: |-
+              {"ret":"INVALID_NAMESPACE",
+               "data":"Can't get fullname ns01:channel01."}
+          - cmd_type: ds
+            cmd: controller ns01:controller01
+            result: |-
+              {"ret":"INVALID_NAMESPACE",
+               "data":"Can't get fullname ns01:controller01."}
+          - cmd_type: ds
+            cmd: l2-bridge ns01:l2-bridge01
+            result: |-
+              {"ret":"INVALID_NAMESPACE",
+               "data":"Can't get fullname ns01:l2-bridge01."}
+          - cmd_type: ds
+            cmd: bridge ns01:bridge01
+            result: |-
+              {"ret":"INVALID_NAMESPACE",
+               "data":"Can't get fullname ns01:bridge01."}
+
+  - testcase: invalid namespace scope2
+    test:
+      - repetition_count: 1
+        cmds:
+          - cmd_type: ds
+            cmd: namespace add ns01
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: namespace add ns02
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: namespace
+            result: |-
+              {"ret":"OK",
+              "current":"", "all":["ns01", "ns02"]}
+          - cmd_type: ds
+            cmd: namespace set ns01
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: namespace
+            result: |-
+              {"ret":"OK",
+              "current":"ns01", "all":["ns01", "ns02"]}
+          - cmd_type: ds
+            cmd: load {{ test_home  }}/test_scenarios/functional_tests/namespace_success.dsl
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: interface if01
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":"ns01:if01",
+              "type":"ethernet-rawsock",
+              "port-number":1,
+              "device":"lago_eth0",
+              "mtu":1,
+              "ip-addr":"127.0.0.1",
+              "is-used":true,
+              "is-enabled":false}]}
+          - cmd_type: ds
+            cmd: interface if02
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":"ns01:if02",
+              "type":"ethernet-rawsock",
+              "port-number":2,
+              "device":"lago_eth1",
+              "mtu":2,
+              "ip-addr":"127.0.0.2",
+              "is-used":true,
+              "is-enabled":false}]}
+          - cmd_type: ds
+            cmd: policer-action policer-action01
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":"ns01:policer-action01",
+              "type":"discard",
+              "is-used":true,
+              "is-enabled":false}]}
+          - cmd_type: ds
+            cmd: policer-action policer-action02
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":"ns01:policer-action02",
+              "type":"discard",
+              "is-used":true,
+              "is-enabled":false}]}
+          - cmd_type: ds
+            cmd: policer policer01
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":"ns01:policer01",
+              "actions":["ns01:policer-action01"],
+              "bandwidth-limit":1500,
+              "burst-size-limit":1500,
+              "bandwidth-percent":0,
+              "is-used":true,
+              "is-enabled":false}]}
+          - cmd_type: ds
+            cmd: policer policer02
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":"ns01:policer02",
+              "actions":["ns01:policer-action02"],
+              "bandwidth-limit":1500,
+              "burst-size-limit":1500,
+              "bandwidth-percent":0,
+              "is-used":true,
+              "is-enabled":false}]}
+          - cmd_type: ds
+            cmd: queue queue01
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":"ns01:queue01",
+              "type":"single-rate",
+              "id":1,
+              "priority":2,
+              "color":"color-aware",
+              "committed-burst-size":1500,
+              "committed-information-rate":1500,
+              "excess-burst-size":1500,
+              "is-used":true,
+              "is-enabled":false}]}
+          - cmd_type: ds
+            cmd: queue queue02
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":"ns01:queue02",
+              "type":"single-rate",
+              "id":2,
+              "priority":3,
+              "color":"color-aware",
+              "committed-burst-size":1500,
+              "committed-information-rate":1500,
+              "excess-burst-size":1500,
+              "is-used":true,
+              "is-enabled":false}]}
+          - cmd_type: ds
+            cmd: port port01
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":"ns01:port01",
+              "port-number":1,
+              "interface":"ns01:if01",
+              "policer":"ns01:policer01",
+              "queues":["ns01:queue01"],
+              "is-used":true,
+              "is-enabled":false}]}
+          - cmd_type: ds
+            cmd: port port02
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":"ns01:port02",
+              "port-number":2,
+              "interface":"ns01:if02",
+              "policer":"ns01:policer02",
+              "queues":["ns01:queue02"],
+              "is-used":true,
+              "is-enabled":false}]}
+          - cmd_type: ds
+            cmd: channel channel01
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":"ns01:channel01",
+              "dst-addr":"127.0.0.1",
+              "dst-port":12345,
+              "local-addr":"0.0.0.0",
+              "local-port":0,
+              "protocol":"tcp",
+              "is-used":true,
+              "is-enabled":false}]}
+          - cmd_type: ds
+            cmd: controller controller01
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":"ns01:controller01",
+              "channel":"ns01:channel01",
+              "role":"equal",
+              "connection-type":"main",
+              "is-used":true,
+              "is-enabled":false}]}
+          - cmd_type: ds
+            cmd: l2-bridge l2-bridge01
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":"ns01:l2-bridge01",
+              "expire":1,
+              "max-entries":1,
+              "tmp-dir":"\/tmp",
+              "bridge":"ns01:bridge01",
+              "is-used":true,
+              "is-enabled":false}]}
+          - cmd_type: ds
+            cmd: bridge bridge01
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":"ns01:bridge01",
+              "controllers":["ns01:controller01"],
+              "ports":{"ns01:port01":1,
+              "ns01:port02":2},
+              "l2-bridge":"ns01:l2-bridge01",
+              "dpid":1,
+              "fail-mode":"secure",
+              "flow-statistics":true,
+              "group-statistics":true,
+              "port-statistics":true,
+              "queue-statistics":true,
+              "table-statistics":true,
+              "reassemble-ip-fragments":false,
+              "max-buffered-packets":65535,
+              "max-ports":255,
+              "max-tables":255,
+              "max-flows":4294967295,
+              "packet-inq-size":1000,
+              "packet-inq-max-batches":1000,
+              "up-streamq-size":1000,
+              "up-streamq-max-batches":1000,
+              "down-streamq-size":1000,
+              "down-streamq-max-batches":1000,
+              "block-looping-ports":false,
+              "action-types":["copy-ttl-out","copy-ttl-in","set-mpls-ttl",
+                              "dec-mpls-ttl","push-vlan","pop-vlan",
+                              "push-mpls","pop-mpls","set-queue","group",
+                              "set-nw-ttl","dec-nw-ttl","set-field"],
+              "instruction-types":["apply-actions","clear-actions","write-actions",
+                                   "write-metadata","goto-table"],
+              "reserved-port-types":["all","controller","table",
+                                     "inport","any","normal","flood"],
+              "group-types":["all","select","indirect","fast-failover"],
+              "group-capabilities":["select-weight","select-liveness",
+                                    "chaining","chaining-check"],
+              "is-used":false,
+              "is-enabled":false}]}
+          - cmd_type: ds
+            cmd: namespace set ns02
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: controller controller01 create -channel ns01:channel01
+            result: |-
+              {"ret":"INVALID_NAMESPACE",
+               "data":"Can't get fullname ns01:channel01."}
+          - cmd_type: ds
+            cmd: policer policer01 create -action ns01:policer-action01
+            result: |-
+              {"ret":"INVALID_NAMESPACE",
+               "data":"Can't get fullname ns01:policer-action01."}
+          - cmd_type: ds
+            cmd: port port01 create -interface ns01:if01
+            result: |-
+              {"ret":"INVALID_NAMESPACE",
+               "data":"Can't get fullname ns01:if01."}
+          - cmd_type: ds
+            cmd: port port01 create -policer ns01:policer01
+            result: |-
+              {"ret":"INVALID_NAMESPACE",
+               "data":"Can't get fullname ns01:policer01."}
+          - cmd_type: ds
+            cmd: port port01 create -queue ns01:queue01
+            result: |-
+              {"ret":"INVALID_NAMESPACE",
+               "data":"Can't get fullname ns01:queue01."}
+          - cmd_type: ds
+            cmd: bridge bridge01 create -controller ns01:controller01
+            result: |-
+              {"ret":"INVALID_NAMESPACE",
+               "data":"Can't get fullname ns01:controller01."}
+          - cmd_type: ds
+            cmd: bridge bridge01 create -port ns01:port01 1
+            result: |-
+              {"ret":"INVALID_NAMESPACE",
+               "data":"Can't get fullname ns01:port01."}
+          - cmd_type: ds
+            cmd: bridge bridge01 create -l2-bridge ns01:l2-bridge01
+            result: |-
+              {"ret":"INVALID_NAMESPACE",
+               "data":"Can't get fullname ns01:l2-bridge01."}
 

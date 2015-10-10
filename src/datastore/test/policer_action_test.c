@@ -80,38 +80,106 @@ test_policer_action_conf_create_and_destroy(void) {
 void
 test_policer_action_conf_duplicate(void) {
   lagopus_result_t rc;
+  const char *ns1 = "ns1";
+  const char *ns2 = "ns2";
+  const char *name = "policer-action";
+  char *policer_action_fullname = NULL;
   bool result = false;
   policer_action_conf_t *src_conf = NULL;
   policer_action_conf_t *dst_conf = NULL;
-  const char *src_fullname = "src_conf";
-  const char *dst_fullname = "dst_conf";
+  policer_action_conf_t *actual_conf = NULL;
 
   policer_action_initialize();
 
-  rc = policer_action_conf_create(&src_conf, src_fullname);
-  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
-  TEST_ASSERT_NOT_NULL_MESSAGE(src_conf,
-                               "conf_create() will create new policer_action");
-
-  // Normal case
+  // Normal case1(no namespace)
   {
-    rc = policer_action_conf_duplicate(src_conf, &dst_conf, dst_fullname);
+    // create src conf
+    {
+      rc = ns_create_fullname(ns1, name, &policer_action_fullname);
+      TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK,
+                                rc, "cmd_ns_get_fullname error.");
+      rc = policer_action_conf_create(&src_conf, policer_action_fullname);
+      TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+      TEST_ASSERT_NOT_NULL_MESSAGE(src_conf,
+                                   "conf_create() will create new policer_action");
+      free(policer_action_fullname);
+      policer_action_fullname = NULL;
+    }
+
+    rc = policer_action_conf_duplicate(src_conf, &dst_conf, NULL);
     TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
-    result = policer_action_conf_equals(src_conf, dst_conf);
+
+    // create actual conf
+    {
+      rc = ns_create_fullname(ns1, name, &policer_action_fullname);
+      TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK,
+                                rc, "cmd_ns_get_fullname error.");
+      rc = policer_action_conf_create(&actual_conf, policer_action_fullname);
+      TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+      TEST_ASSERT_NOT_NULL_MESSAGE(src_conf,
+                                   "conf_create() will create new policer_action");
+      free(policer_action_fullname);
+      policer_action_fullname = NULL;
+    }
+
+    result = policer_action_conf_equals(dst_conf, actual_conf);
     TEST_ASSERT_TRUE(result);
+
+    policer_action_conf_destroy(src_conf);
+    src_conf = NULL;
+    policer_action_conf_destroy(dst_conf);
+    dst_conf = NULL;
+    policer_action_conf_destroy(actual_conf);
+    actual_conf = NULL;
+  }
+
+  // Normal case2
+  {
+    // create src conf
+    {
+      rc = ns_create_fullname(ns1, name, &policer_action_fullname);
+      TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK,
+                                rc, "cmd_ns_get_fullname error.");
+      rc = policer_action_conf_create(&src_conf, policer_action_fullname);
+      TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+      TEST_ASSERT_NOT_NULL_MESSAGE(src_conf,
+                                   "conf_create() will create new policer_action");
+      free(policer_action_fullname);
+      policer_action_fullname = NULL;
+    }
+
+    rc = policer_action_conf_duplicate(src_conf, &dst_conf, ns2);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+
+    // create actual conf
+    {
+      rc = ns_create_fullname(ns2, name, &policer_action_fullname);
+      TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK,
+                                rc, "cmd_ns_get_fullname error.");
+      rc = policer_action_conf_create(&actual_conf, policer_action_fullname);
+      TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+      TEST_ASSERT_NOT_NULL_MESSAGE(src_conf,
+                                   "conf_create() will create new policer_action");
+      free(policer_action_fullname);
+      policer_action_fullname = NULL;
+    }
+
+    result = policer_action_conf_equals(dst_conf, actual_conf);
+    TEST_ASSERT_TRUE(result);
+
+    policer_action_conf_destroy(src_conf);
+    src_conf = NULL;
+    policer_action_conf_destroy(dst_conf);
+    dst_conf = NULL;
+    policer_action_conf_destroy(actual_conf);
+    actual_conf = NULL;
   }
 
   // Abnormal case
   {
-    result = policer_action_conf_equals(src_conf, NULL);
-    TEST_ASSERT_FALSE(result);
-
-    result = policer_action_conf_equals(NULL, dst_conf);
-    TEST_ASSERT_FALSE(result);
+    rc = policer_action_conf_duplicate(NULL, &dst_conf, NULL);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_INVALID_ARGS, rc);
   }
-
-  policer_action_conf_destroy(src_conf);
-  policer_action_conf_destroy(dst_conf);
 
   policer_action_finalize();
 }
@@ -300,15 +368,15 @@ void
 test_policer_action_conf_list(void) {
   lagopus_result_t rc;
   policer_action_conf_t *conf1 = NULL;
-  const char *name1 = "namespace1"NAMESPACE_DELIMITER"policer_action_name1";
+  const char *name1 = "namespace1"DATASTORE_NAMESPACE_DELIMITER"policer_action_name1";
   policer_action_conf_t *conf2 = NULL;
-  const char *name2 = "namespace1"NAMESPACE_DELIMITER"policer_action_name2";
+  const char *name2 = "namespace1"DATASTORE_NAMESPACE_DELIMITER"policer_action_name2";
   policer_action_conf_t *conf3 = NULL;
-  const char *name3 = "namespace2"NAMESPACE_DELIMITER"policer_action_name3";
+  const char *name3 = "namespace2"DATASTORE_NAMESPACE_DELIMITER"policer_action_name3";
   policer_action_conf_t *conf4 = NULL;
-  const char *name4 = NAMESPACE_DELIMITER"policer_action_name4";
+  const char *name4 = DATASTORE_NAMESPACE_DELIMITER"policer_action_name4";
   policer_action_conf_t *conf5 = NULL;
-  const char *name5 = NAMESPACE_DELIMITER"policer_action_name5";
+  const char *name5 = DATASTORE_NAMESPACE_DELIMITER"policer_action_name5";
   policer_action_conf_t **actual_list = NULL;
   size_t i;
 
@@ -367,15 +435,15 @@ test_policer_action_conf_list(void) {
 
     for (i = 0; i < (size_t) rc; i++) {
       if (strcasecmp(actual_list[i]->name,
-                     "namespace1"NAMESPACE_DELIMITER"policer_action_name1") != 0 &&
+                     "namespace1"DATASTORE_NAMESPACE_DELIMITER"policer_action_name1") != 0 &&
           strcasecmp(actual_list[i]->name,
-                     "namespace1"NAMESPACE_DELIMITER"policer_action_name2") != 0 &&
+                     "namespace1"DATASTORE_NAMESPACE_DELIMITER"policer_action_name2") != 0 &&
           strcasecmp(actual_list[i]->name,
-                     "namespace2"NAMESPACE_DELIMITER"policer_action_name3") != 0 &&
+                     "namespace2"DATASTORE_NAMESPACE_DELIMITER"policer_action_name3") != 0 &&
           strcasecmp(actual_list[i]->name,
-                     NAMESPACE_DELIMITER"policer_action_name4") != 0 &&
+                     DATASTORE_NAMESPACE_DELIMITER"policer_action_name4") != 0 &&
           strcasecmp(actual_list[i]->name,
-                     NAMESPACE_DELIMITER"policer_action_name5") != 0) {
+                     DATASTORE_NAMESPACE_DELIMITER"policer_action_name5") != 0) {
         TEST_FAIL_MESSAGE("invalid list entry.");
       }
     }
@@ -390,9 +458,9 @@ test_policer_action_conf_list(void) {
 
     for (i = 0; i < (size_t) rc; i++) {
       if (strcasecmp(actual_list[i]->name,
-                     NAMESPACE_DELIMITER"policer_action_name4") != 0 &&
+                     DATASTORE_NAMESPACE_DELIMITER"policer_action_name4") != 0 &&
           strcasecmp(actual_list[i]->name,
-                     NAMESPACE_DELIMITER"policer_action_name5") != 0) {
+                     DATASTORE_NAMESPACE_DELIMITER"policer_action_name5") != 0) {
         TEST_FAIL_MESSAGE("invalid list entry.");
       }
     }
@@ -407,9 +475,9 @@ test_policer_action_conf_list(void) {
 
     for (i = 0; i < (size_t) rc; i++) {
       if (strcasecmp(actual_list[i]->name,
-                     "namespace1"NAMESPACE_DELIMITER"policer_action_name1") != 0 &&
+                     "namespace1"DATASTORE_NAMESPACE_DELIMITER"policer_action_name1") != 0 &&
           strcasecmp(actual_list[i]->name,
-                     "namespace1"NAMESPACE_DELIMITER"policer_action_name2") != 0) {
+                     "namespace1"DATASTORE_NAMESPACE_DELIMITER"policer_action_name2") != 0) {
         TEST_FAIL_MESSAGE("invalid list entry.");
       }
     }
@@ -591,10 +659,19 @@ test_policer_action_attr_duplicate(void) {
 
   // Normal case
   {
-    rc = policer_action_attr_duplicate(src_attr, &dst_attr);
+    rc = policer_action_attr_duplicate(src_attr, &dst_attr, "namespace");
     TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
     result = policer_action_attr_equals(src_attr, dst_attr);
     TEST_ASSERT_TRUE(result);
+    policer_action_attr_destroy(dst_attr);
+    dst_attr = NULL;
+
+    rc = policer_action_attr_duplicate(src_attr, &dst_attr, NULL);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+    result = policer_action_attr_equals(src_attr, dst_attr);
+    TEST_ASSERT_TRUE(result);
+    policer_action_attr_destroy(dst_attr);
+    dst_attr = NULL;
   }
 
   // Abnormal case
@@ -602,12 +679,15 @@ test_policer_action_attr_duplicate(void) {
     result = policer_action_attr_equals(src_attr, NULL);
     TEST_ASSERT_FALSE(result);
 
+    rc = policer_action_attr_duplicate(src_attr, &dst_attr, NULL);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
     result = policer_action_attr_equals(NULL, dst_attr);
     TEST_ASSERT_FALSE(result);
+    policer_action_attr_destroy(dst_attr);
+    dst_attr = NULL;
   }
 
   policer_action_attr_destroy(src_attr);
-  policer_action_attr_destroy(dst_attr);
 
   policer_action_finalize();
 }

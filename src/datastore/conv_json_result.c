@@ -68,6 +68,8 @@ static const char *const result_strs[] = {
   "TOO_SHORT",				/* 39 */
   "ADDR_RESOLVER_FAILURE",		/* 40 */
   "OUTPUT_FAILURE",			/* 41 */
+  "INVALID_STATE",			/* 42 */
+  "INVALID_NAMESPACE",			/* 43 */
   NULL
 };
 

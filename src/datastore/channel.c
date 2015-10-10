@@ -17,6 +17,7 @@
 #include "lagopus_apis.h"
 #include "lagopus/datastore.h"
 #include "datastore_internal.h"
+#include "ns_util.h"
 
 #define MINIMUM_DST_PORT 0
 #define MAXIMUM_DST_PORT UINT16_MAX
@@ -110,8 +111,10 @@ error:
 
 static inline lagopus_result_t
 channel_attr_duplicate(const channel_attr_t *src_attr,
-                       channel_attr_t **dst_attr) {
+                       channel_attr_t **dst_attr, const char *namespace) {
   lagopus_result_t rc;
+
+  (void)namespace;
 
   if (src_attr == NULL || dst_attr == NULL) {
     return LAGOPUS_RESULT_INVALID_ARGS;
@@ -225,11 +228,12 @@ channel_conf_destroy(channel_conf_t *conf) {
 
 static inline lagopus_result_t
 channel_conf_duplicate(const channel_conf_t *src_conf,
-                       channel_conf_t **dst_conf,
-                       const char *fullname) {
+                       channel_conf_t **dst_conf, const char *namespace) {
   lagopus_result_t rc;
   channel_attr_t *dst_current_attr = NULL;
   channel_attr_t *dst_modified_attr = NULL;
+  size_t len = 0;
+  char *buf = NULL;
 
   if (src_conf == NULL || dst_conf == NULL) {
     return LAGOPUS_RESULT_INVALID_ARGS;
@@ -240,13 +244,34 @@ channel_conf_duplicate(const channel_conf_t *src_conf,
     *dst_conf = NULL;
   }
 
-  rc = channel_conf_create(dst_conf, fullname);
-  if (rc != LAGOPUS_RESULT_OK) {
-    goto error;
+  if (namespace == NULL) {
+    rc = channel_conf_create(dst_conf, src_conf->name);
+    if (rc != LAGOPUS_RESULT_OK) {
+      goto error;
+    }
+  } else {
+    if ((len = strlen(src_conf->name)) <= DATASTORE_CHANNEL_FULLNAME_MAX) {
+      buf = (char *) malloc(sizeof(char) * (len + 1));
+
+      rc = ns_replace_namespace(src_conf->name, namespace, &buf);
+      if (rc == LAGOPUS_RESULT_OK) {
+        rc = channel_conf_create(dst_conf, buf);
+        if (rc != LAGOPUS_RESULT_OK) {
+          goto error;
+        }
+      } else {
+        goto error;
+      }
+      free(buf);
+    } else {
+      rc = LAGOPUS_RESULT_TOO_LONG;
+      goto error;
+    }
   }
 
   if (src_conf->current_attr != NULL) {
-    rc = channel_attr_duplicate(src_conf->current_attr, &dst_current_attr);
+    rc = channel_attr_duplicate(src_conf->current_attr,
+                                &dst_current_attr, namespace);
     if (rc != LAGOPUS_RESULT_OK) {
       goto error;
     }
@@ -254,7 +279,8 @@ channel_conf_duplicate(const channel_conf_t *src_conf,
   (*dst_conf)->current_attr = dst_current_attr;
 
   if (src_conf->modified_attr != NULL) {
-    rc = channel_attr_duplicate(src_conf->modified_attr, &dst_modified_attr);
+    rc = channel_attr_duplicate(src_conf->modified_attr,
+                                &dst_modified_attr, namespace);
     if (rc != LAGOPUS_RESULT_OK) {
       goto error;
     }
@@ -270,6 +296,7 @@ channel_conf_duplicate(const channel_conf_t *src_conf,
   return LAGOPUS_RESULT_OK;
 
 error:
+  free(buf);
   channel_conf_destroy(*dst_conf);
   *dst_conf = NULL;
   return rc;
@@ -366,12 +393,12 @@ channel_conf_iterate(void *key, void *val, lagopus_hashentry_t he,
         if (ctx->m_namespace[0] == '\0') {
           ret = lagopus_dstring_appendf(&ds,
                                         "%s",
-                                        NAMESPACE_DELIMITER);
+                                        DATASTORE_NAMESPACE_DELIMITER);
         } else {
           ret = lagopus_dstring_appendf(&ds,
                                         "%s%s",
                                         ctx->m_namespace,
-                                        NAMESPACE_DELIMITER);
+                                        DATASTORE_NAMESPACE_DELIMITER);
         }
 
         if (ret == LAGOPUS_RESULT_OK) {
@@ -656,7 +683,7 @@ channel_set_dst_addr_str(channel_attr_t *attr,
 
   if (attr != NULL && dst_addr != NULL) {
     len = strlen(dst_addr);
-    if (len > 0 && len <= DATASTORE_INTERFACE_NAME_MAX) {
+    if (len > 0 && len <= DATASTORE_INTERFACE_FULLNAME_MAX) {
       if (attr->dst_addr != NULL) {
         lagopus_ip_address_destroy(attr->dst_addr);
       }
@@ -703,7 +730,7 @@ channel_set_local_addr_str(channel_attr_t *attr,
 
   if (attr != NULL && local_addr != NULL) {
     len = strlen(local_addr);
-    if (len > 0 && len <= DATASTORE_INTERFACE_NAME_MAX) {
+    if (len > 0 && len <= DATASTORE_INTERFACE_FULLNAME_MAX) {
       if (attr->local_addr != NULL) {
         lagopus_ip_address_destroy(attr->local_addr);
       }

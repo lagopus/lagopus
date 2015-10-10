@@ -16,6 +16,7 @@
 
 #include "lagopus/datastore.h"
 #include "datastore_internal.h"
+#include "ns_util.h"
 
 typedef struct l2_bridge_attr {
   uint64_t expire;
@@ -32,7 +33,7 @@ typedef struct l2_bridge_conf {
   bool is_destroying;
   bool is_enabling;
   bool is_disabling;
-  char bridge_name[DATASTORE_BRIDGE_NAME_MAX + 1];
+  char bridge_name[DATASTORE_BRIDGE_FULLNAME_MAX + 1];
 } l2_bridge_conf_t;
 
 static lagopus_hashmap_t l2_bridge_table = NULL;
@@ -69,9 +70,11 @@ l2_bridge_attr_create(l2_bridge_attr_t **attr) {
 
 static inline lagopus_result_t
 l2_bridge_attr_duplicate(const l2_bridge_attr_t *src_attr,
-                           l2_bridge_attr_t **dst_attr) {
+                         l2_bridge_attr_t **dst_attr, const char *namespace) {
   lagopus_result_t rc;
   size_t len = 0;
+
+  (void)namespace;
 
   if (src_attr == NULL || dst_attr == NULL) {
     return LAGOPUS_RESULT_INVALID_ARGS;
@@ -177,11 +180,12 @@ l2_bridge_conf_destroy(l2_bridge_conf_t *conf) {
 
 static inline lagopus_result_t
 l2_bridge_conf_duplicate(const l2_bridge_conf_t *src_conf,
-                         l2_bridge_conf_t **dst_conf,
-                         const char *fullname) {
+                         l2_bridge_conf_t **dst_conf, const char *namespace) {
   lagopus_result_t rc;
   l2_bridge_attr_t *dst_current_attr = NULL;
   l2_bridge_attr_t *dst_modified_attr = NULL;
+  size_t len = 0;
+  char *buf = NULL;
 
   if (src_conf == NULL || dst_conf == NULL) {
     return LAGOPUS_RESULT_INVALID_ARGS;
@@ -192,13 +196,34 @@ l2_bridge_conf_duplicate(const l2_bridge_conf_t *src_conf,
     *dst_conf = NULL;
   }
 
-  rc = l2_bridge_conf_create(dst_conf, fullname);
-  if (rc != LAGOPUS_RESULT_OK) {
-    goto error;
+  if (namespace == NULL) {
+    rc = l2_bridge_conf_create(dst_conf, src_conf->name);
+    if (rc != LAGOPUS_RESULT_OK) {
+      goto error;
+    }
+  } else {
+    if ((len = strlen(src_conf->name)) <= DATASTORE_L2_BRIDGE_FULLNAME_MAX) {
+      buf = (char *) malloc(sizeof(char) * (len + 1));
+
+      rc = ns_replace_namespace(src_conf->name, namespace, &buf);
+      if (rc == LAGOPUS_RESULT_OK) {
+        rc = l2_bridge_conf_create(dst_conf, buf);
+        if (rc != LAGOPUS_RESULT_OK) {
+          goto error;
+        }
+      } else {
+        goto error;
+      }
+      free(buf);
+    } else {
+      rc = LAGOPUS_RESULT_TOO_LONG;
+      goto error;
+    }
   }
 
   if (src_conf->current_attr != NULL) {
-    rc = l2_bridge_attr_duplicate(src_conf->current_attr, &dst_current_attr);
+    rc = l2_bridge_attr_duplicate(src_conf->current_attr,
+                                  &dst_current_attr, namespace);
     if (rc != LAGOPUS_RESULT_OK) {
       goto error;
     }
@@ -206,7 +231,8 @@ l2_bridge_conf_duplicate(const l2_bridge_conf_t *src_conf,
   (*dst_conf)->current_attr = dst_current_attr;
 
   if (src_conf->modified_attr != NULL) {
-    rc = l2_bridge_attr_duplicate(src_conf->modified_attr, &dst_modified_attr);
+    rc = l2_bridge_attr_duplicate(src_conf->modified_attr,
+                                  &dst_modified_attr, namespace);
     if (rc != LAGOPUS_RESULT_OK) {
       goto error;
     }
@@ -222,6 +248,7 @@ l2_bridge_conf_duplicate(const l2_bridge_conf_t *src_conf,
   return LAGOPUS_RESULT_OK;
 
 error:
+  free(buf);
   l2_bridge_conf_destroy(*dst_conf);
   *dst_conf = NULL;
   return rc;
@@ -317,12 +344,12 @@ l2_bridge_conf_iterate(void *key, void *val, lagopus_hashentry_t he,
         if (ctx->m_namespace[0] == '\0') {
           ret = lagopus_dstring_appendf(&ds,
                                         "%s",
-                                        NAMESPACE_DELIMITER);
+                                        DATASTORE_NAMESPACE_DELIMITER);
         } else {
           ret = lagopus_dstring_appendf(&ds,
                                         "%s%s",
                                         ctx->m_namespace,
-                                        NAMESPACE_DELIMITER);
+                                        DATASTORE_NAMESPACE_DELIMITER);
         }
 
         if (ret == LAGOPUS_RESULT_OK) {

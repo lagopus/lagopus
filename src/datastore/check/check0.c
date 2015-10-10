@@ -131,11 +131,11 @@ s_getname(const void *obj, const char **namep) {
 
 
 static lagopus_result_t
-s_duplicate(const void *obj, const char *fullname) {
+s_duplicate(const void *obj, const char *namespace) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
 
   (void)obj;
-  (void)fullname;
+  (void)namespace;
 
   ret = LAGOPUS_RESULT_OK;
 

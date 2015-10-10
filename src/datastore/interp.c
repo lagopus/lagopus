@@ -1948,7 +1948,7 @@ s_destroy_obj(datastore_interp_t *iptr,const char *namespace,
       const char *objname = NULL;
 
       if (namespace != NULL) {
-        delim_len = strlen(NAMESPACE_DELIMITER);
+        delim_len = strlen(DATASTORE_NAMESPACE_DELIMITER);
 
         if (namespace[0] == '\0') {
           target_len = delim_len;
@@ -1960,7 +1960,7 @@ s_destroy_obj(datastore_interp_t *iptr,const char *namespace,
 
         if (target != NULL) {
           ret = snprintf(target, target_len + 1, "%s%s",
-                         namespace, NAMESPACE_DELIMITER);
+                         namespace, DATASTORE_NAMESPACE_DELIMITER);
           if (ret < 0) {
             lagopus_msg_warning("target namespace create failed.\n");
             ret = LAGOPUS_RESULT_ANY_FAILURES;

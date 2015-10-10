@@ -71,15 +71,15 @@ test_policer_cmd_parse_create_01(void) {
   const char *argv3[] = {"policer", NULL};
   const char test_str3[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name02\",\n"
-    "\"actions\":[\""NAMESPACE_DELIMITER"test_pa\\\"02\"],\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name02\",\n"
+    "\"actions\":[\""DATASTORE_NAMESPACE_DELIMITER"test_pa\\\"02\"],\n"
     "\"bandwidth-limit\":1601,\n"
     "\"burst-size-limit\":1602,\n"
     "\"bandwidth-percent\":10,\n"
     "\"is-used\":true,\n"
     "\"is-enabled\":true},\n"
-    "{\"name\":\""NAMESPACE_DELIMITER"test_name01\",\n"
-    "\"actions\":[\""NAMESPACE_DELIMITER"test_pa01\"],\n"
+    "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name01\",\n"
+    "\"actions\":[\""DATASTORE_NAMESPACE_DELIMITER"test_pa01\"],\n"
     "\"bandwidth-limit\":1501,\n"
     "\"burst-size-limit\":1502,\n"
     "\"bandwidth-percent\":1,\n"
@@ -88,8 +88,8 @@ test_policer_cmd_parse_create_01(void) {
   const char *argv4[] = {"policer", "test_name02", NULL};
   const char test_str4[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name02\",\n"
-    "\"actions\":[\""NAMESPACE_DELIMITER"test_pa\\\"02\"],\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name02\",\n"
+    "\"actions\":[\""DATASTORE_NAMESPACE_DELIMITER"test_pa\\\"02\"],\n"
     "\"bandwidth-limit\":1601,\n"
     "\"burst-size-limit\":1602,\n"
     "\"bandwidth-percent\":10,\n"
@@ -120,14 +120,14 @@ test_policer_cmd_parse_create_01(void) {
   const char *policer_action_argv3[] = {"policer-action", "test_pa\"02", NULL};
   const char policer_action_test_str3[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_pa\\\"02\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_pa\\\"02\",\n"
     "\"type\":\"discard\",\n"
     "\"is-used\":true,\n"
     "\"is-enabled\":true}]}";
   const char *policer_action_argv4[] = {"policer-action", "test_pa\"02", NULL};
   const char policer_action_test_str4[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_pa\\\"02\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_pa\\\"02\",\n"
     "\"type\":\"discard\",\n"
     "\"is-used\":false,\n"
     "\"is-enabled\":false}]}";
@@ -402,12 +402,12 @@ test_policer_cmd_parse_enable_unused(void) {
                         };
   const char test_str2[] =
     "{\"ret\":\"NOT_OPERATIONAL\",\n"
-    "\"data\":\"name = "NAMESPACE_DELIMITER"test_name09. is not used.\"}";
+    "\"data\":\"name = "DATASTORE_NAMESPACE_DELIMITER"test_name09. is not used.\"}";
   const char *argv3[] = {"policer", "test_name09", NULL};
   const char test_str3[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name09\",\n"
-    "\"actions\":[\""NAMESPACE_DELIMITER"test_pa03\"],\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name09\",\n"
+    "\"actions\":[\""DATASTORE_NAMESPACE_DELIMITER"test_pa03\"],\n"
     "\"bandwidth-limit\":1501,\n"
     "\"burst-size-limit\":1502,\n"
     "\"bandwidth-percent\":1,\n"
@@ -477,7 +477,7 @@ test_policer_cmd_parse_create_not_exists(void) {
                         };
   const char test_str1[] =
     "{\"ret\":\"NOT_FOUND\",\n"
-    "\"data\":\"action name = "NAMESPACE_DELIMITER"test_pa100.\"}";
+    "\"data\":\"action name = "DATASTORE_NAMESPACE_DELIMITER"test_pa100.\"}";
 
   /* create cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
@@ -502,8 +502,8 @@ test_policer_cmd_parse_config_01(void) {
   const char *argv2[] = {"policer", "test_name11", NULL};
   const char test_str2[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name11\",\n"
-    "\"actions\":[\""NAMESPACE_DELIMITER"test_pa04\"],\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name11\",\n"
+    "\"actions\":[\""DATASTORE_NAMESPACE_DELIMITER"test_pa04\"],\n"
     "\"bandwidth-limit\":1501,\n"
     "\"burst-size-limit\":1502,\n"
     "\"bandwidth-percent\":1,\n"
@@ -521,8 +521,8 @@ test_policer_cmd_parse_config_01(void) {
   const char *argv4[] = {"policer", "test_name11", NULL};
   const char test_str4[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name11\",\n"
-    "\"actions\":[\""NAMESPACE_DELIMITER"test_pa05\"],\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name11\",\n"
+    "\"actions\":[\""DATASTORE_NAMESPACE_DELIMITER"test_pa05\"],\n"
     "\"bandwidth-limit\":1601,\n"
     "\"burst-size-limit\":1602,\n"
     "\"bandwidth-percent\":10,\n"
@@ -540,14 +540,14 @@ test_policer_cmd_parse_config_01(void) {
   const char *policer_action_argv2[] = {"policer-action", "test_pa04", NULL};
   const char policer_action_test_str2[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_pa04\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_pa04\",\n"
     "\"type\":\"discard\",\n"
     "\"is-used\":true,\n"
     "\"is-enabled\":false}]}";
   const char *policer_action_argv3[] = {"policer-action", "test_pa04", NULL};
   const char policer_action_test_str3[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_pa04\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_pa04\",\n"
     "\"type\":\"discard\",\n"
     "\"is-used\":false,\n"
     "\"is-enabled\":false}]}";
@@ -559,14 +559,14 @@ test_policer_cmd_parse_config_01(void) {
   const char *policer_action_argv5[] = {"policer-action", "test_pa05", NULL};
   const char policer_action_test_str5[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_pa05\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_pa05\",\n"
     "\"type\":\"discard\",\n"
     "\"is-used\":false,\n"
     "\"is-enabled\":false}]}";
   const char *policer_action_argv6[] = {"policer-action", "test_pa05", NULL};
   const char policer_action_test_str6[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_pa05\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_pa05\",\n"
     "\"type\":\"discard\",\n"
     "\"is-used\":true,\n"
     "\"is-enabled\":false}]}";
@@ -682,8 +682,8 @@ test_policer_cmd_parse_config_02(void) {
   const char *argv3[] = {"policer", "test_name11", NULL};
   const char test_str3[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name11\",\n"
-    "\"actions\":[\""NAMESPACE_DELIMITER"test_pa06\"],\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name11\",\n"
+    "\"actions\":[\""DATASTORE_NAMESPACE_DELIMITER"test_pa06\"],\n"
     "\"bandwidth-limit\":1501,\n"
     "\"burst-size-limit\":1502,\n"
     "\"bandwidth-percent\":1,\n"
@@ -699,8 +699,8 @@ test_policer_cmd_parse_config_02(void) {
   const char *argv5[] = {"policer", "test_name11", NULL};
   const char test_str5[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name11\",\n"
-    "\"actions\":[\""NAMESPACE_DELIMITER"test_pa06\"],\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name11\",\n"
+    "\"actions\":[\""DATASTORE_NAMESPACE_DELIMITER"test_pa06\"],\n"
     "\"bandwidth-limit\":1601,\n"
     "\"burst-size-limit\":1602,\n"
     "\"bandwidth-percent\":10,\n"
@@ -809,8 +809,8 @@ test_policer_cmd_parse_config_show_01(void) {
   const char *argv2[] = {"policer", "test_name13", NULL};
   const char test_str2[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name13\",\n"
-    "\"actions\":[\""NAMESPACE_DELIMITER"test_pa09\"],\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name13\",\n"
+    "\"actions\":[\""DATASTORE_NAMESPACE_DELIMITER"test_pa09\"],\n"
     "\"bandwidth-limit\":1501,\n"
     "\"burst-size-limit\":1502,\n"
     "\"bandwidth-percent\":1,\n"
@@ -826,7 +826,7 @@ test_policer_cmd_parse_config_show_01(void) {
                         };
   const char test_str4[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name13\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name13\",\n"
     "\"bandwidth-limit\":1601}]}";
   const char *argv5[] = {"policer", "test_name13", "destroy",
                          NULL
@@ -903,7 +903,7 @@ test_policer_cmd_parse_destroy_used(void) {
                          NULL
                         };
   const char test_str3[] = {"{\"ret\":\"NOT_OPERATIONAL\",\n"
-                            "\"data\":\"name = "NAMESPACE_DELIMITER"test_name14: is used.\"}"
+                            "\"data\":\"name = "DATASTORE_NAMESPACE_DELIMITER"test_name14: is used.\"}"
                            };
   const char *argv4[] = {"policer", "test_name14", "destroy",
                          NULL
@@ -994,8 +994,8 @@ test_policer_cmd_parse_show_01(void) {
                         };
   const char test_str2[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name15\",\n"
-    "\"actions\":[\""NAMESPACE_DELIMITER"test_pa15\"],\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name15\",\n"
+    "\"actions\":[\""DATASTORE_NAMESPACE_DELIMITER"test_pa15\"],\n"
     "\"bandwidth-limit\":1501,\n"
     "\"burst-size-limit\":1502,\n"
     "\"bandwidth-percent\":1,\n"
@@ -1028,8 +1028,8 @@ test_policer_cmd_parse_show_01(void) {
                         };
   const char test_str7[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name15\",\n"
-    "\"actions\":[\""NAMESPACE_DELIMITER"test_pa15\"],\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name15\",\n"
+    "\"actions\":[\""DATASTORE_NAMESPACE_DELIMITER"test_pa15\"],\n"
     "\"bandwidth-limit\":1701,\n"
     "\"burst-size-limit\":1502,\n"
     "\"bandwidth-percent\":1,\n"
@@ -1125,8 +1125,8 @@ test_policer_cmd_serialize_default_opt(void) {
 
   /* serialize result str. */
   const char serialize_str1[] = "policer "
-                                NAMESPACE_DELIMITER"test_name16 create "
-                                "-action "NAMESPACE_DELIMITER"test_pa16 "
+                                DATASTORE_NAMESPACE_DELIMITER"test_name16 create "
+                                "-action "DATASTORE_NAMESPACE_DELIMITER"test_pa16 "
                                 "-bandwidth-limit 1500 "
                                 "-burst-size-limit 1500 "
                                 "-bandwidth-percent 0\n";
@@ -1157,7 +1157,7 @@ test_policer_cmd_serialize_default_opt(void) {
   /* TEST : serialize. */
   TEST_CMD_PROC(ret, LAGOPUS_RESULT_OK, policer_cmd_serialize, &interp, state,
                 &tbl,
-                NAMESPACE_DELIMITER"test_name16", conf, &ds, str, serialize_str1);
+                DATASTORE_NAMESPACE_DELIMITER"test_name16", conf, &ds, str, serialize_str1);
 
   /* destroy cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, policer_cmd_parse,
@@ -1191,8 +1191,8 @@ test_policer_cmd_serialize_default_opt_escape(void) {
 
   /* serialize result str. */
   const char serialize_str1[] = "policer "
-                                "\""NAMESPACE_DELIMITER"test_\\\"name17\" create "
-                                "-action "NAMESPACE_DELIMITER"test_pa17 "
+                                "\""DATASTORE_NAMESPACE_DELIMITER"test_\\\"name17\" create "
+                                "-action "DATASTORE_NAMESPACE_DELIMITER"test_pa17 "
                                 "-bandwidth-limit 1500 "
                                 "-burst-size-limit 1500 "
                                 "-bandwidth-percent 0\n";
@@ -1223,7 +1223,7 @@ test_policer_cmd_serialize_default_opt_escape(void) {
   /* TEST : serialize. */
   TEST_CMD_PROC(ret, LAGOPUS_RESULT_OK, policer_cmd_serialize, &interp, state,
                 &tbl,
-                NAMESPACE_DELIMITER"test_\"name17", conf, &ds, str, serialize_str1);
+                DATASTORE_NAMESPACE_DELIMITER"test_\"name17", conf, &ds, str, serialize_str1);
 
   /* destroy cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, policer_cmd_parse,
@@ -1257,8 +1257,8 @@ test_policer_cmd_serialize_default_opt_escape_white_space(void) {
 
   /* serialize result str. */
   const char serialize_str1[] = "policer "
-                                "\""NAMESPACE_DELIMITER"test name18\" create "
-                                "-action "NAMESPACE_DELIMITER"test_pa18 "
+                                "\""DATASTORE_NAMESPACE_DELIMITER"test name18\" create "
+                                "-action "DATASTORE_NAMESPACE_DELIMITER"test_pa18 "
                                 "-bandwidth-limit 1500 "
                                 "-burst-size-limit 1500 "
                                 "-bandwidth-percent 0\n";
@@ -1289,7 +1289,7 @@ test_policer_cmd_serialize_default_opt_escape_white_space(void) {
   /* TEST : serialize. */
   TEST_CMD_PROC(ret, LAGOPUS_RESULT_OK, policer_cmd_serialize, &interp, state,
                 &tbl,
-                NAMESPACE_DELIMITER"test name18", conf, &ds, str, serialize_str1);
+                DATASTORE_NAMESPACE_DELIMITER"test name18", conf, &ds, str, serialize_str1);
 
   /* destroy cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, policer_cmd_parse,
@@ -1338,8 +1338,8 @@ test_policer_cmd_serialize_all_opt(void) {
 
   /* serialize result str. */
   const char serialize_str1[] = "policer "
-                                NAMESPACE_DELIMITER"test_name19 create "
-                                "-action "NAMESPACE_DELIMITER"test_pa19 "
+                                DATASTORE_NAMESPACE_DELIMITER"test_name19 create "
+                                "-action "DATASTORE_NAMESPACE_DELIMITER"test_pa19 "
                                 "-bandwidth-limit 1601 "
                                 "-burst-size-limit 1602 "
                                 "-bandwidth-percent 10\n";
@@ -1359,7 +1359,7 @@ test_policer_cmd_serialize_all_opt(void) {
   /* TEST : serialize. */
   TEST_CMD_PROC(ret, LAGOPUS_RESULT_OK, policer_cmd_serialize, &interp, state,
                 &tbl,
-                NAMESPACE_DELIMITER"test_name19", conf, &ds, str, serialize_str1);
+                DATASTORE_NAMESPACE_DELIMITER"test_name19", conf, &ds, str, serialize_str1);
 
   /* destroy cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, policer_cmd_parse,
@@ -1408,8 +1408,8 @@ test_policer_cmd_serialize_all_opt_escape(void) {
 
   /* serialize result str. */
   const char serialize_str1[] = "policer "
-                                NAMESPACE_DELIMITER"test_name20 create "
-                                "-action \""NAMESPACE_DELIMITER"test_\\\"pa20\" "
+                                DATASTORE_NAMESPACE_DELIMITER"test_name20 create "
+                                "-action \""DATASTORE_NAMESPACE_DELIMITER"test_\\\"pa20\" "
                                 "-bandwidth-limit 1501 "
                                 "-burst-size-limit 1502 "
                                 "-bandwidth-percent 1\n";
@@ -1429,7 +1429,7 @@ test_policer_cmd_serialize_all_opt_escape(void) {
   /* TEST : serialize. */
   TEST_CMD_PROC(ret, LAGOPUS_RESULT_OK, policer_cmd_serialize, &interp, state,
                 &tbl,
-                NAMESPACE_DELIMITER"test_name20", conf, &ds, str, serialize_str1);
+                DATASTORE_NAMESPACE_DELIMITER"test_name20", conf, &ds, str, serialize_str1);
 
   /* destroy cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, policer_cmd_parse,
@@ -1479,8 +1479,8 @@ test_policer_cmd_serialize_all_opt_escape_white_space(void) {
 
   /* serialize result str. */
   const char serialize_str1[] = "policer "
-                                NAMESPACE_DELIMITER"test_name21 create "
-                                "-action \""NAMESPACE_DELIMITER"test pa21\" "
+                                DATASTORE_NAMESPACE_DELIMITER"test_name21 create "
+                                "-action \""DATASTORE_NAMESPACE_DELIMITER"test pa21\" "
                                 "-bandwidth-limit 1501 "
                                 "-burst-size-limit 1502 "
                                 "-bandwidth-percent 1\n";
@@ -1500,7 +1500,7 @@ test_policer_cmd_serialize_all_opt_escape_white_space(void) {
   /* TEST : serialize. */
   TEST_CMD_PROC(ret, LAGOPUS_RESULT_OK, policer_cmd_serialize, &interp, state,
                 &tbl,
-                NAMESPACE_DELIMITER"test_name21", conf, &ds, str, serialize_str1);
+                DATASTORE_NAMESPACE_DELIMITER"test_name21", conf, &ds, str, serialize_str1);
 
   /* destroy cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, policer_cmd_parse,
@@ -1539,8 +1539,8 @@ test_policer_cmd_parse_atomic_commit(void) {
   const char *argv3[] = {"policer", "test_name24", "modified", NULL};
   const char test_str3[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name24\",\n"
-    "\"actions\":[\""NAMESPACE_DELIMITER"test_pa24\"],\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name24\",\n"
+    "\"actions\":[\""DATASTORE_NAMESPACE_DELIMITER"test_pa24\"],\n"
     "\"bandwidth-limit\":1501,\n"
     "\"burst-size-limit\":1502,\n"
     "\"bandwidth-percent\":1,\n"
@@ -1562,8 +1562,8 @@ test_policer_cmd_parse_atomic_commit(void) {
   const char *argv6[] = {"policer", "test_name24", "modified", NULL};
   const char test_str6[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name24\",\n"
-    "\"actions\":[\""NAMESPACE_DELIMITER"test_pa24_2\"],\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name24\",\n"
+    "\"actions\":[\""DATASTORE_NAMESPACE_DELIMITER"test_pa24_2\"],\n"
     "\"bandwidth-limit\":1601,\n"
     "\"burst-size-limit\":1602,\n"
     "\"bandwidth-percent\":10,\n"
@@ -1572,8 +1572,8 @@ test_policer_cmd_parse_atomic_commit(void) {
   const char *argv7[] = {"policer", "test_name24", NULL};
   const char test_str7[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name24\",\n"
-    "\"actions\":[\""NAMESPACE_DELIMITER"test_pa24_2\"],\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name24\",\n"
+    "\"actions\":[\""DATASTORE_NAMESPACE_DELIMITER"test_pa24_2\"],\n"
     "\"bandwidth-limit\":1601,\n"
     "\"burst-size-limit\":1602,\n"
     "\"bandwidth-percent\":10,\n"
@@ -1654,11 +1654,11 @@ test_policer_cmd_parse_atomic_commit(void) {
 
   /* commiting. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, policer_cmd_update, &interp, state2, &tbl,
-            NAMESPACE_DELIMITER"test_name24", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name24", conf, &ds);
 
   /* commited. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, policer_cmd_update, &interp, state3, &tbl,
-            NAMESPACE_DELIMITER"test_name24", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name24", conf, &ds);
 
   /* show cmd (current). */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, policer_cmd_parse, &interp, state1,
@@ -1715,8 +1715,8 @@ test_policer_cmd_parse_atomic_rollback(void) {
   const char *argv3[] = {"policer", "test_name25", "modified", NULL};
   const char test_str3[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name25\",\n"
-    "\"actions\":[\""NAMESPACE_DELIMITER"test_pa25\"],\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name25\",\n"
+    "\"actions\":[\""DATASTORE_NAMESPACE_DELIMITER"test_pa25\"],\n"
     "\"bandwidth-limit\":1501,\n"
     "\"burst-size-limit\":1502,\n"
     "\"bandwidth-percent\":1,\n"
@@ -1738,8 +1738,8 @@ test_policer_cmd_parse_atomic_rollback(void) {
   const char *argv6[] = {"policer", "test_name25", "modified", NULL};
   const char test_str6[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name25\",\n"
-    "\"actions\":[\""NAMESPACE_DELIMITER"test_pa25_2\"],\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name25\",\n"
+    "\"actions\":[\""DATASTORE_NAMESPACE_DELIMITER"test_pa25_2\"],\n"
     "\"bandwidth-limit\":1601,\n"
     "\"burst-size-limit\":1602,\n"
     "\"bandwidth-percent\":10,\n"
@@ -1816,11 +1816,11 @@ test_policer_cmd_parse_atomic_rollback(void) {
 
   /* rollbacking. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, policer_cmd_update, &interp, state2, &tbl,
-            NAMESPACE_DELIMITER"test_name25", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name25", conf, &ds);
 
   /* rollbacked. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, policer_cmd_update, &interp, state3, &tbl,
-            NAMESPACE_DELIMITER"test_name25", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name25", conf, &ds);
 
   /* show cmd (current). */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
@@ -1869,8 +1869,8 @@ test_policer_cmd_parse_atomic_delay_enable(void) {
   const char *argv4[] = {"policer", "test_name26", "modified", NULL};
   const char test_str4[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name26\",\n"
-    "\"actions\":[\""NAMESPACE_DELIMITER"test_pa26\"],\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name26\",\n"
+    "\"actions\":[\""DATASTORE_NAMESPACE_DELIMITER"test_pa26\"],\n"
     "\"bandwidth-limit\":1501,\n"
     "\"burst-size-limit\":1502,\n"
     "\"bandwidth-percent\":1,\n"
@@ -1883,8 +1883,8 @@ test_policer_cmd_parse_atomic_delay_enable(void) {
   const char *argv6[] = {"policer", "test_name26", "modified", NULL};
   const char test_str6[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name26\",\n"
-    "\"actions\":[\""NAMESPACE_DELIMITER"test_pa26\"],\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name26\",\n"
+    "\"actions\":[\""DATASTORE_NAMESPACE_DELIMITER"test_pa26\"],\n"
     "\"bandwidth-limit\":1501,\n"
     "\"burst-size-limit\":1502,\n"
     "\"bandwidth-percent\":1,\n"
@@ -1893,8 +1893,8 @@ test_policer_cmd_parse_atomic_delay_enable(void) {
   const char *argv7[] = {"policer", "test_name26", NULL};
   const char test_str7[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name26\",\n"
-    "\"actions\":[\""NAMESPACE_DELIMITER"test_pa26\"],\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name26\",\n"
+    "\"actions\":[\""DATASTORE_NAMESPACE_DELIMITER"test_pa26\"],\n"
     "\"bandwidth-limit\":1501,\n"
     "\"burst-size-limit\":1502,\n"
     "\"bandwidth-percent\":1,\n"
@@ -1962,7 +1962,7 @@ test_policer_cmd_parse_atomic_delay_enable(void) {
 
   /* commiting. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, policer_cmd_update, &interp, state2, &tbl,
-            NAMESPACE_DELIMITER"test_name26", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name26", conf, &ds);
 
   /* show cmd (current). */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
@@ -1977,7 +1977,7 @@ test_policer_cmd_parse_atomic_delay_enable(void) {
 
   /* commited. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, policer_cmd_update, &interp, state3, &tbl,
-            NAMESPACE_DELIMITER"test_name26", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name26", conf, &ds);
 
   /* show cmd (current). */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, policer_cmd_parse, &interp, state1,
@@ -2033,8 +2033,8 @@ test_policer_cmd_parse_atomic_delay_disable(void) {
   const char *argv4[] = {"policer", "test_name27", NULL};
   const char test_str4[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name27\",\n"
-    "\"actions\":[\""NAMESPACE_DELIMITER"test_pa27\"],\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name27\",\n"
+    "\"actions\":[\""DATASTORE_NAMESPACE_DELIMITER"test_pa27\"],\n"
     "\"bandwidth-limit\":1501,\n"
     "\"burst-size-limit\":1502,\n"
     "\"bandwidth-percent\":1,\n"
@@ -2043,8 +2043,8 @@ test_policer_cmd_parse_atomic_delay_disable(void) {
   const char *argv5[] = {"policer", "test_name27", NULL};
   const char test_str5[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name27\",\n"
-    "\"actions\":[\""NAMESPACE_DELIMITER"test_pa27\"],\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name27\",\n"
+    "\"actions\":[\""DATASTORE_NAMESPACE_DELIMITER"test_pa27\"],\n"
     "\"bandwidth-limit\":1501,\n"
     "\"burst-size-limit\":1502,\n"
     "\"bandwidth-percent\":1,\n"
@@ -2053,8 +2053,8 @@ test_policer_cmd_parse_atomic_delay_disable(void) {
   const char *argv6[] = {"policer", "test_name27", NULL};
   const char test_str6[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name27\",\n"
-    "\"actions\":[\""NAMESPACE_DELIMITER"test_pa27\"],\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name27\",\n"
+    "\"actions\":[\""DATASTORE_NAMESPACE_DELIMITER"test_pa27\"],\n"
     "\"bandwidth-limit\":1501,\n"
     "\"burst-size-limit\":1502,\n"
     "\"bandwidth-percent\":1,\n"
@@ -2117,7 +2117,7 @@ test_policer_cmd_parse_atomic_delay_disable(void) {
 
   /* commiting. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, policer_cmd_update, &interp, state2, &tbl,
-            NAMESPACE_DELIMITER"test_name27", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name27", conf, &ds);
 
   /* show cmd (current). */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, policer_cmd_parse, &interp, state1,
@@ -2126,7 +2126,7 @@ test_policer_cmd_parse_atomic_delay_disable(void) {
 
   /* commited. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, policer_cmd_update, &interp, state3, &tbl,
-            NAMESPACE_DELIMITER"test_name27", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name27", conf, &ds);
 
   /* show cmd (current). */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, policer_cmd_parse, &interp, state1,
@@ -2175,29 +2175,29 @@ test_policer_cmd_parse_atomic_delay_destroy(void) {
   const char *argv3[] = {"policer", "test_name28", NULL};
   const char test_str3[] =
     "{\"ret\":\"NOT_FOUND\",\n"
-    "\"data\":\"name = "NAMESPACE_DELIMITER"test_name28\"}";
+    "\"data\":\"name = "DATASTORE_NAMESPACE_DELIMITER"test_name28\"}";
   const char *argv4[] = {"policer", "test_name28", "enable",
                          NULL
                         };
   const char test_str4[] =
     "{\"ret\":\"INVALID_OBJECT\",\n"
-    "\"data\":\"name = "NAMESPACE_DELIMITER"test_name28\"}";
+    "\"data\":\"name = "DATASTORE_NAMESPACE_DELIMITER"test_name28\"}";
   const char *argv5[] = {"policer", "test_name28", "disable",
                          NULL
                         };
   const char test_str5[] =
     "{\"ret\":\"INVALID_OBJECT\",\n"
-    "\"data\":\"name = "NAMESPACE_DELIMITER"test_name28\"}";
+    "\"data\":\"name = "DATASTORE_NAMESPACE_DELIMITER"test_name28\"}";
   const char *argv6[] = {"policer", "test_name28", "destroy",
                          NULL
                         };
   const char test_str6[] =
     "{\"ret\":\"INVALID_OBJECT\",\n"
-    "\"data\":\"name = "NAMESPACE_DELIMITER"test_name28\"}";
+    "\"data\":\"name = "DATASTORE_NAMESPACE_DELIMITER"test_name28\"}";
   const char *argv7[] = {"policer", "test_name28", NULL};
   const char test_str7[] =
     "{\"ret\":\"NOT_FOUND\",\n"
-    "\"data\":\"name = "NAMESPACE_DELIMITER"test_name28\"}";
+    "\"data\":\"name = "DATASTORE_NAMESPACE_DELIMITER"test_name28\"}";
   const char *policer_action_argv1[] = {"policer-action", "test_pa28", "create",
                                         "-type", "discard",
                                         NULL
@@ -2251,11 +2251,11 @@ test_policer_cmd_parse_atomic_delay_destroy(void) {
 
   /* commiting. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, policer_cmd_update, &interp, state2, &tbl,
-            NAMESPACE_DELIMITER"test_name28", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name28", conf, &ds);
 
   /* commited. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, policer_cmd_update, &interp, state3, &tbl,
-            NAMESPACE_DELIMITER"test_name28", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name28", conf, &ds);
 
   /* show cmd (current). */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
@@ -2295,8 +2295,8 @@ test_policer_cmd_parse_atomic_abort_01(void) {
   const char *argv3[] = {"policer", "test_name29", "modified", NULL};
   const char test_str3[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name29\",\n"
-    "\"actions\":[\""NAMESPACE_DELIMITER"test_pa29\"],\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name29\",\n"
+    "\"actions\":[\""DATASTORE_NAMESPACE_DELIMITER"test_pa29\"],\n"
     "\"bandwidth-limit\":1501,\n"
     "\"burst-size-limit\":1502,\n"
     "\"bandwidth-percent\":1,\n"
@@ -2318,8 +2318,8 @@ test_policer_cmd_parse_atomic_abort_01(void) {
   const char *argv6[] = {"policer", "test_name29", "modified", NULL};
   const char test_str6[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name29\",\n"
-    "\"actions\":[\""NAMESPACE_DELIMITER"test_pa29_2\"],\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name29\",\n"
+    "\"actions\":[\""DATASTORE_NAMESPACE_DELIMITER"test_pa29_2\"],\n"
     "\"bandwidth-limit\":1601,\n"
     "\"burst-size-limit\":1602,\n"
     "\"bandwidth-percent\":10,\n"
@@ -2332,8 +2332,8 @@ test_policer_cmd_parse_atomic_abort_01(void) {
   const char *argv8[] = {"policer", "test_name29", "modified", NULL};
   const char test_str8[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name29\",\n"
-    "\"actions\":[\""NAMESPACE_DELIMITER"test_pa29_2\"],\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name29\",\n"
+    "\"actions\":[\""DATASTORE_NAMESPACE_DELIMITER"test_pa29_2\"],\n"
     "\"bandwidth-limit\":1601,\n"
     "\"burst-size-limit\":1602,\n"
     "\"bandwidth-percent\":10,\n"
@@ -2342,7 +2342,7 @@ test_policer_cmd_parse_atomic_abort_01(void) {
   const char *argv9[] = {"policer", "test_name29", NULL};
   const char test_str9[] =
     "{\"ret\":\"NOT_FOUND\",\n"
-    "\"data\":\"name = "NAMESPACE_DELIMITER"test_name29\"}";
+    "\"data\":\"name = "DATASTORE_NAMESPACE_DELIMITER"test_name29\"}";
   const char *policer_action_argv1[] = {"policer-action", "test_pa29", "create",
                                         "-type", "discard",
                                         NULL
@@ -2410,7 +2410,7 @@ test_policer_cmd_parse_atomic_abort_01(void) {
 
   /* aborting. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, policer_cmd_update, &interp, state2, &tbl,
-            NAMESPACE_DELIMITER"test_name29", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name29", conf, &ds);
 
   /* show cmd (current). */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
@@ -2425,7 +2425,7 @@ test_policer_cmd_parse_atomic_abort_01(void) {
 
   /* aborted. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, policer_cmd_update, &interp, state3, &tbl,
-            NAMESPACE_DELIMITER"test_name29", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name29", conf, &ds);
 
   /* show cmd (current). */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
@@ -2468,8 +2468,8 @@ test_policer_cmd_parse_atomic_abort_02(void) {
   const char *argv2[] = {"policer", "test_name30", NULL};
   const char test_str2[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name30\",\n"
-    "\"actions\":[\""NAMESPACE_DELIMITER"test_pa30\"],\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name30\",\n"
+    "\"actions\":[\""DATASTORE_NAMESPACE_DELIMITER"test_pa30\"],\n"
     "\"bandwidth-limit\":1501,\n"
     "\"burst-size-limit\":1502,\n"
     "\"bandwidth-percent\":1,\n"
@@ -2491,8 +2491,8 @@ test_policer_cmd_parse_atomic_abort_02(void) {
   const char *argv5[] = {"policer", "test_name30", NULL};
   const char test_str5[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name30\",\n"
-    "\"actions\":[\""NAMESPACE_DELIMITER"test_pa30\"],\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name30\",\n"
+    "\"actions\":[\""DATASTORE_NAMESPACE_DELIMITER"test_pa30\"],\n"
     "\"bandwidth-limit\":1501,\n"
     "\"burst-size-limit\":1502,\n"
     "\"bandwidth-percent\":1,\n"
@@ -2501,8 +2501,8 @@ test_policer_cmd_parse_atomic_abort_02(void) {
   const char *argv6[] = {"policer", "test_name30", "modified", NULL};
   const char test_str6[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name30\",\n"
-    "\"actions\":[\""NAMESPACE_DELIMITER"test_pa30_2\"],\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name30\",\n"
+    "\"actions\":[\""DATASTORE_NAMESPACE_DELIMITER"test_pa30_2\"],\n"
     "\"bandwidth-limit\":1601,\n"
     "\"burst-size-limit\":1602,\n"
     "\"bandwidth-percent\":10,\n"
@@ -2511,8 +2511,8 @@ test_policer_cmd_parse_atomic_abort_02(void) {
   const char *argv7[] = {"policer", "test_name30", NULL};
   const char test_str7[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name30\",\n"
-    "\"actions\":[\""NAMESPACE_DELIMITER"test_pa30\"],\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name30\",\n"
+    "\"actions\":[\""DATASTORE_NAMESPACE_DELIMITER"test_pa30\"],\n"
     "\"bandwidth-limit\":1501,\n"
     "\"burst-size-limit\":1502,\n"
     "\"bandwidth-percent\":1,\n"
@@ -2521,8 +2521,8 @@ test_policer_cmd_parse_atomic_abort_02(void) {
   const char *argv8[] = {"policer", "test_name30", "modified", NULL};
   const char test_str8[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name30\",\n"
-    "\"actions\":[\""NAMESPACE_DELIMITER"test_pa30_2\"],\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name30\",\n"
+    "\"actions\":[\""DATASTORE_NAMESPACE_DELIMITER"test_pa30_2\"],\n"
     "\"bandwidth-limit\":1601,\n"
     "\"burst-size-limit\":1602,\n"
     "\"bandwidth-percent\":10,\n"
@@ -2531,8 +2531,8 @@ test_policer_cmd_parse_atomic_abort_02(void) {
   const char *argv9[] = {"policer", "test_name30", NULL};
   const char test_str9[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name30\",\n"
-    "\"actions\":[\""NAMESPACE_DELIMITER"test_pa30\"],\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name30\",\n"
+    "\"actions\":[\""DATASTORE_NAMESPACE_DELIMITER"test_pa30\"],\n"
     "\"bandwidth-limit\":1501,\n"
     "\"burst-size-limit\":1502,\n"
     "\"bandwidth-percent\":1,\n"
@@ -2612,7 +2612,7 @@ test_policer_cmd_parse_atomic_abort_02(void) {
 
   /* aborting. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, policer_cmd_update, &interp, state2, &tbl,
-            NAMESPACE_DELIMITER"test_name30", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name30", conf, &ds);
 
   /* show cmd (current). */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, policer_cmd_parse, &interp, state1,
@@ -2626,7 +2626,7 @@ test_policer_cmd_parse_atomic_abort_02(void) {
 
   /* aborted. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, policer_cmd_update, &interp, state3, &tbl,
-            NAMESPACE_DELIMITER"test_name30", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name30", conf, &ds);
 
   /* show cmd (current). */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, policer_cmd_parse, &interp, state1,
@@ -2683,7 +2683,7 @@ test_policer_cmd_parse_atomic_destroy_create(void) {
   const char *argv3[] = {"policer", "test_name31", NULL};
   const char test_str3[] =
     "{\"ret\":\"NOT_FOUND\",\n"
-    "\"data\":\"name = "NAMESPACE_DELIMITER"test_name31\"}";
+    "\"data\":\"name = "DATASTORE_NAMESPACE_DELIMITER"test_name31\"}";
   const char *argv4[] = {"policer", "test_name31", "create",
                          "-action", "~test_pa31",
                          "-action", "test_pa31_2",
@@ -2696,8 +2696,8 @@ test_policer_cmd_parse_atomic_destroy_create(void) {
   const char *argv5[] = {"policer", "test_name31", NULL};
   const char test_str5[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name31\",\n"
-    "\"actions\":[\""NAMESPACE_DELIMITER"test_pa31\"],\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name31\",\n"
+    "\"actions\":[\""DATASTORE_NAMESPACE_DELIMITER"test_pa31\"],\n"
     "\"bandwidth-limit\":1501,\n"
     "\"burst-size-limit\":1502,\n"
     "\"bandwidth-percent\":1,\n"
@@ -2706,8 +2706,8 @@ test_policer_cmd_parse_atomic_destroy_create(void) {
   const char *argv6[] = {"policer", "test_name31", "modified", NULL};
   const char test_str6[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name31\",\n"
-    "\"actions\":[\""NAMESPACE_DELIMITER"test_pa31_2\"],\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name31\",\n"
+    "\"actions\":[\""DATASTORE_NAMESPACE_DELIMITER"test_pa31_2\"],\n"
     "\"bandwidth-limit\":1601,\n"
     "\"burst-size-limit\":1602,\n"
     "\"bandwidth-percent\":10,\n"
@@ -2716,8 +2716,8 @@ test_policer_cmd_parse_atomic_destroy_create(void) {
   const char *argv7[] = {"policer", "test_name31", NULL};
   const char test_str7[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name31\",\n"
-    "\"actions\":[\""NAMESPACE_DELIMITER"test_pa31_2\"],\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name31\",\n"
+    "\"actions\":[\""DATASTORE_NAMESPACE_DELIMITER"test_pa31_2\"],\n"
     "\"bandwidth-limit\":1601,\n"
     "\"burst-size-limit\":1602,\n"
     "\"bandwidth-percent\":10,\n"
@@ -2797,11 +2797,11 @@ test_policer_cmd_parse_atomic_destroy_create(void) {
 
   /* commiting. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, policer_cmd_update, &interp, state2, &tbl,
-            NAMESPACE_DELIMITER"test_name31", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name31", conf, &ds);
 
   /* commited. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, policer_cmd_update, &interp, state3, &tbl,
-            NAMESPACE_DELIMITER"test_name31", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name31", conf, &ds);
 
   /* show cmd (current). */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, policer_cmd_parse, &interp, state4,

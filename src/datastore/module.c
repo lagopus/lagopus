@@ -23,6 +23,7 @@
 #include "datastore_internal.h"
 #include "conv_json.h"
 #include "cmd_common.h"
+#include "ns_util.h"
 
 
 #define DATASTORE_DEFAULT_BIND_ADDR	"0.0.0.0"
@@ -282,104 +283,79 @@ s_get_current_namespace(char **namespace) {
 static inline lagopus_result_t
 s_get_namespace(const char *str, char **namespace) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
-  char *ns_buf = NULL;
-  size_t i = 0;
-  size_t idx = 0;
-  size_t ns_len = 0;
+  char *buf_ns = NULL;
+  char *buf_name = NULL;
 
   if (IS_VALID_STRING(str) == true && namespace != NULL) {
-    ret = lagopus_str_indexof(str, NAMESPACE_DELIMITER);
-
+    ret = lagopus_str_indexof(str, DATASTORE_NAMESPACE_DELIMITER);
     if (ret >= 0) {
-      ns_buf = strdup(str);
-      if (IS_VALID_STRING(ns_buf) == true) {
-        idx = (size_t) ret;
-        ns_len = strlen(ns_buf);
-
-        for (i = idx; i < ns_len; i++) {
-          ns_buf[i] = '\0';
-        }
-
-        *namespace = ns_buf;
-
-        return LAGOPUS_RESULT_OK;
+      ret = ns_split_fullname(str, &buf_ns, &buf_name);
+      if (ret == LAGOPUS_RESULT_OK) {
+        *namespace = buf_ns;
       } else {
-        free(ns_buf);
-        return LAGOPUS_RESULT_NO_MEMORY;
+        free(buf_ns);
+        free(buf_name);
+        lagopus_perror(ret);
       }
     } else {
-      ret = s_get_current_namespace(&ns_buf);
+      ret = s_get_current_namespace(&buf_ns);
       if (ret == LAGOPUS_RESULT_OK) {
-        *namespace = ns_buf;
-        return LAGOPUS_RESULT_OK;
+        *namespace = buf_ns;
       } else {
-        free(ns_buf);
+        free(buf_ns);
         lagopus_perror(ret);
-        return ret;
       }
     }
   } else {
-    return LAGOPUS_RESULT_INVALID_ARGS;
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
   }
+  return ret;
 }
 
 
 static inline lagopus_result_t
 s_get_fullname(const char *name, char **fullname) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
-  size_t full_len = 0;
-  size_t ns_len = 0;
-  size_t delim_len = 0;
-  size_t name_len = 0;
-  char *current_namespace = NULL;
+  char *current_ns = NULL;
   char *buf_fullname = NULL;
+  char *buf_ns = NULL;
+  char *buf_name = NULL;
 
   if (name != NULL && fullname != NULL) {
-    if (strstr(name, NAMESPACE_DELIMITER) == NULL) {
-
-      ret = s_get_current_namespace(&current_namespace);
-      if (ret == LAGOPUS_RESULT_OK) {
-        ns_len = strlen(current_namespace);
-        delim_len = strlen(NAMESPACE_DELIMITER);
-        name_len = strlen(name);
-        full_len = ns_len + delim_len + name_len;
-
-        buf_fullname = (char *) malloc(sizeof(char) * (full_len + 1));
-
-        if (buf_fullname != NULL) {
-          ret = snprintf(buf_fullname, full_len + 1, "%s%s%s",
-                         current_namespace,
-                         NAMESPACE_DELIMITER,
-                         name);
-          if (ret >= 0) {
-            *fullname = buf_fullname;
-            ret = LAGOPUS_RESULT_OK;
-          } else {
-            lagopus_msg_warning("get fullname failed.\n");
-            free((void *) buf_fullname);
-            ret = LAGOPUS_RESULT_ANY_FAILURES;
-          }
-        } else {
-          ret = LAGOPUS_RESULT_NO_MEMORY;
+    ret = s_get_current_namespace(&current_ns);
+    if (ret == LAGOPUS_RESULT_OK) {
+      if (strstr(name, DATASTORE_NAMESPACE_DELIMITER) == NULL) {
+        ret = ns_create_fullname(current_ns, name, &buf_fullname);
+        if (ret == LAGOPUS_RESULT_OK) {
+          *fullname = buf_fullname;
         }
-      }
-
-      free((void *) current_namespace);
-
-      return ret;
-    } else {
-      *fullname = strdup(name);
-      if (IS_VALID_STRING(*fullname) == true) {
-        return LAGOPUS_RESULT_OK;
       } else {
-        return LAGOPUS_RESULT_INVALID_ARGS;
+        ret = ns_split_fullname(name, &buf_ns, &buf_name);
+        if (ret == LAGOPUS_RESULT_OK) {
+          if (strcmp(current_ns, buf_ns) == 0) {
+            *fullname = strdup(name);
+            if (IS_VALID_STRING(*fullname) == true) {
+              ret = LAGOPUS_RESULT_OK;
+            } else {
+              ret = LAGOPUS_RESULT_INVALID_ARGS;
+            }
+          } else {
+            ret = LAGOPUS_RESULT_INVALID_NAMESPACE;
+          }
+        }
+
+        free((void *) buf_ns);
+        free((void *) buf_name);
       }
     }
-  } else {
-    return LAGOPUS_RESULT_INVALID_ARGS;
-  }
-}
 
+    free((void *) current_ns);
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  return ret;
+}
 
 static inline lagopus_result_t
 s_get_search_target(const char *fullname, char **target) {
@@ -391,14 +367,14 @@ s_get_search_target(const char *fullname, char **target) {
   size_t delim_len = 0;
 
   if (IS_VALID_STRING(fullname) == true && target != NULL) {
-    ret = lagopus_str_indexof(fullname, NAMESPACE_DELIMITER);
+    ret = lagopus_str_indexof(fullname, DATASTORE_NAMESPACE_DELIMITER);
     if (ret >= 0) { /* namespace + name or namespace + delim or delim + name */
       target_buf = strdup(fullname);
 
       if (IS_VALID_STRING(target_buf) == true) {
         idx = (size_t) ret;
         target_len = strlen(target_buf);
-        delim_len = strlen(NAMESPACE_DELIMITER);
+        delim_len = strlen(DATASTORE_NAMESPACE_DELIMITER);
 
         if (target_len == delim_len) { /* only default namespace */
           ret = NS_DEFAULT_NAMESPACE;

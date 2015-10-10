@@ -28,6 +28,10 @@
 
 #define CALLOUT_TASK_SCHED_JITTER	1000LL	/* 1 usec. */
 
+#define CALLOUT_TASK_SCHED_DELAY_COMPENSATION	50LL * 1000LL	/* 50 usec. */
+
+#define CALLOUT_TASK_MIN_INTERVAL	10LL * 1000LL /* 10 usec. */
+
 #define CALLOUT_IDLE_PROC_MIN_INTERVAL	1000LL * 1000LL /* 1 msec. */
 
 #define CALLOUT_STAGE_SHUTDOWN_TIMEOUT	5LL * 1000LL * 1000LL * 1000LL
@@ -36,9 +40,9 @@
 #define lagopus_msg_error_with_task(t, str, ...) {                      \
     do {                                                                \
       if (IS_VALID_STRING((t)->m_name) == true) {                       \
-        lagopus_msg_error("%s:" str, (t)->m_name, ##__VA_ARGS__);       \
+        lagopus_msg_error("%s: " str, (t)->m_name, ##__VA_ARGS__);      \
       } else {                                                          \
-        lagopus_msg_error("%p:" str, (void *)(t), ##__VA_ARGS__);       \
+        lagopus_msg_error("%p: " str, (void *)(t), ##__VA_ARGS__);      \
       }                                                                 \
     } while (0);                                                        \
   }
@@ -53,7 +57,8 @@ typedef struct chrono_task_queue_t chrono_task_queue_t;
 
 typedef lagopus_result_t
 (*final_task_schedule_proc_t)(const lagopus_callout_task_t * const tasks,
-                                 size_t n);
+                              lagopus_chrono_t start_time,
+                              size_t n);
 
 
 
@@ -82,8 +87,6 @@ static size_t s_n_workers;
 static volatile bool s_do_loop = false;		/* The main loop on/off */
 static volatile bool s_is_stopped = false;	/* The main loop is
                                                  * stopped or not. */
-
-static volatile lagopus_chrono_t s_next_wakeup_abstime;
 
 static volatile bool s_is_handler_inited = false;
 
@@ -163,7 +166,9 @@ static void s_unschedule_timed_task(lagopus_callout_task_t t);
 static lagopus_result_t s_exec_task(lagopus_callout_task_t t);
 
 static lagopus_result_t s_submit_callout_stage(
-    const lagopus_callout_task_t * const tasks, size_t n);
+    const lagopus_callout_task_t * const tasks,
+    lagopus_chrono_t start_time,
+    size_t n);
 
 static void s_task_freeup(void **valptr);
 
@@ -330,15 +335,14 @@ s_wakeup_sched(void) {
 
 
 static inline lagopus_result_t
-s_run_tasks_by_self(const lagopus_callout_task_t * const tasks, size_t n) {
+s_run_tasks_by_self(const lagopus_callout_task_t * const tasks,
+                    lagopus_chrono_t start_time,
+                    size_t n) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
 
   if (likely(tasks != NULL && n > 0)) {
-    lagopus_chrono_t now;
     lagopus_callout_task_t t;
     size_t i;
-
-    WHAT_TIME_IS_IT_NOW_IN_NSEC(now);
 
     for (i = 0; i < n; i++) {
       /*
@@ -349,9 +353,12 @@ s_run_tasks_by_self(const lagopus_callout_task_t * const tasks, size_t n) {
 
       s_lock_task(t);
       {
-        (void)s_set_task_state_in_table(t, TASK_STATE_DEQUEUED);
-        t->m_status = TASK_STATE_DEQUEUED;
-        t->m_last_abstime = now;
+        if (t->m_status == TASK_STATE_ENQUEUED ||
+            t->m_status == TASK_STATE_CREATED) {
+          (void)s_set_task_state_in_table(t, TASK_STATE_DEQUEUED);
+          t->m_status = TASK_STATE_DEQUEUED;
+        }
+        t->m_last_abstime = start_time;
       }
       s_unlock_task(t);
 
@@ -380,7 +387,6 @@ s_start_callout_main_loop(void) {
   if (likely(ret == LAGOPUS_RESULT_OK)) {
     if (likely(s == GLOBAL_STATE_STARTED)) {
       lagopus_chrono_t timeout = s_idle_interval;
-      lagopus_callout_task_t t;
 
       lagopus_callout_task_t out_tasks[CALLOUT_TASK_MAX * 3];
       size_t n_out_tasks;
@@ -397,14 +403,12 @@ s_start_callout_main_loop(void) {
       lagopus_result_t r;
 
       lagopus_chrono_t now;
-      lagopus_chrono_t now2;
       lagopus_chrono_t next_wakeup;
-      lagopus_chrono_t old_next_wakeup;
+      lagopus_chrono_t prev_wakeup;
 
       int cstate = 0;
 
-      bool do_timed;
-      bool do_idle;
+      WHAT_TIME_IS_IT_NOW_IN_NSEC(prev_wakeup);
 
       (void)lagopus_mutex_enter_critical(&s_sched_lck, &cstate);
       {
@@ -419,17 +423,12 @@ s_start_callout_main_loop(void) {
            * Get the current time.
            */
           WHAT_TIME_IS_IT_NOW_IN_NSEC(now);
-          now2 = now - CALLOUT_TASK_SCHED_JITTER;
 
-          /*
-           * Then fetch the start time of the timed task in the queue head.
-           */
-          next_wakeup = s_peek_current_wakeup_time();
-
-          do_idle = (s_idle_proc != NULL &&
-                     s_next_idle_abstime < now2) ? true : false;
-          do_timed = (next_wakeup > 0LL &&
-                      next_wakeup <= now2) ? true : false;
+#ifdef CO_MSG_DEBUG
+          lagopus_msg_debug(3, "now:  " PF64(d) "\n", now);
+          lagopus_msg_debug(3, "prv:  " PF64(d) "\n", prev_wakeup);
+          lagopus_msg_debug(3, "to:   " PF64(d) "\n", timeout);
+#endif /* CO_MSG_DEBUG */
 
           s_lock_global();
           {
@@ -449,164 +448,177 @@ s_start_callout_main_loop(void) {
                                   CALLOUT_TASK_MAX, 1LL,
                                   lagopus_callout_task_t,
                                   0LL, NULL);
+
           }
           s_unlock_global();
 
-          if (likely((do_idle == true) ||
-                     (do_timed == true) ||
-                     (sn_urgent_tasks > 0) ||
-                     (sn_idle_tasks > 0))) {
+          /*
+           * Pack the tasks into a buffer.
+           */
 
+          sn_timed_tasks = s_get_runnable_timed_task(now, timed_tasks,
+                                                     CALLOUT_TASK_MAX,
+                                                     &next_wakeup);
+          if (sn_timed_tasks > 0) {
             /*
-             * We have tasks and/or an idle proc to execute.
+             * Pack the timed tasks.
              */
+            (void)memcpy((void *)(out_tasks + n_out_tasks),
+                         timed_tasks,
+                         (size_t)(sn_timed_tasks) *
+                         sizeof(lagopus_callout_task_t));
+            n_out_tasks += (size_t)sn_timed_tasks;
 
-            /*
-             * Fetch timed tasks to execute.
-             */
-            sn_timed_tasks = 0;
-            if (do_timed == true) {
-              sn_timed_tasks = s_get_runnable_timed_task(now, timed_tasks,
-                                                         CALLOUT_TASK_MAX,
-                                                         &next_wakeup);
-            }
+#ifdef CO_MSG_DEBUG
+            lagopus_msg_debug(3, "timed task " PF64(u) ".\n",
+                              sn_timed_tasks);
+            lagopus_msg_debug(3, "nw:   " PF64(d) ".\n",
+                              next_wakeup);
+#endif /* CO_MSG_DEBUG */
 
+          } else if (sn_timed_tasks < 0) {
             /*
-             * Pack the tasks into a buffer.
+             * We can't be treat this as a fatal error. Carry on.
              */
-            if (sn_timed_tasks > 0) {
-              (void)memcpy((void *)(out_tasks + n_out_tasks),
-                           timed_tasks,
-                           (size_t)(sn_timed_tasks) *
-                           sizeof(lagopus_callout_task_t));
-              n_out_tasks += (size_t)sn_timed_tasks;
-            } else if (sn_timed_tasks < 0) {
+            lagopus_perror(sn_timed_tasks);
+            lagopus_msg_error("timed tasks fetch failed.\n");
+          }
+
+          if (sn_urgent_tasks > 0) {
+            /*
+             * Pack the urgent tasks.
+             */
+            (void)memcpy((void *)(out_tasks + n_out_tasks),
+                         urgent_tasks,
+                         (size_t)(sn_urgent_tasks) *
+                         sizeof(lagopus_callout_task_t));
+            n_out_tasks += (size_t)sn_urgent_tasks;
+          } else if (sn_urgent_tasks < 0) {
+            /*
+             * We can't be treat this as a fatal error. Carry on.
+             */
+            lagopus_perror(sn_urgent_tasks);
+            lagopus_msg_error("urgent tasks fetch failed.\n");
+          }
+
+          if (sn_idle_tasks > 0) {
+            /*
+             * Pack the idle tasks.
+             */
+            (void)memcpy((void *)(out_tasks + n_out_tasks),
+                         idle_tasks,
+                         (size_t)(sn_idle_tasks) *
+                         sizeof(lagopus_callout_task_t));
+            n_out_tasks += (size_t)sn_idle_tasks;
+          } else if (sn_idle_tasks < 0) {
+            /*
+             * We can't be treat this as a fatal error. Carry on.
+             */
+            lagopus_perror(sn_idle_tasks);
+            lagopus_msg_error("idle tasks fetch failed.\n");
+          }
+
+          if (n_out_tasks > 0) {
+            /*
+             * Run/Submit the tasks.
+             */
+            r = (s_final_task_sched_proc)(out_tasks, now, n_out_tasks);
+            if (unlikely(r <= 0)) {
               /*
                * We can't be treat this as a fatal error. Carry on.
                */
-              lagopus_perror(sn_timed_tasks);
-              lagopus_msg_error("timed tasks fetch failed.\n");
+              lagopus_perror(r);
+              lagopus_msg_error("failed to submit " PFSZ(u) 
+                                " urgent/timed tasks.\n", n_out_tasks);
             }
+          }
 
-            if (sn_urgent_tasks > 0) {
-              (void)memcpy((void *)(out_tasks + n_out_tasks),
-                           urgent_tasks,
-                           (size_t)(sn_urgent_tasks) *
-                           sizeof(lagopus_callout_task_t));
-              n_out_tasks += (size_t)sn_urgent_tasks;
-            } else if (sn_urgent_tasks < 0) {
-              /*
-               * We can't be treat this as a fatal error. Carry on.
-               */
-              lagopus_perror(sn_urgent_tasks);
-              lagopus_msg_error("urgent tasks fetch failed.\n");
-            }
-
-            if (sn_idle_tasks > 0) {
-              (void)memcpy((void *)(out_tasks + n_out_tasks),
-                           idle_tasks,
-                           (size_t)(sn_idle_tasks) *
-                           sizeof(lagopus_callout_task_t));
-              n_out_tasks += (size_t)sn_idle_tasks;
-            } else if (sn_idle_tasks < 0) {
-              /*
-               * We can't be treat this as a fatal error. Carry on.
-               */
-              lagopus_perror(sn_idle_tasks);
-              lagopus_msg_error("idle tasks fetch failed.\n");
-            }
-
-            if (n_out_tasks > 0) {
-              /*
-               * Run/Submit the tasks.
-               */
-              r = (s_final_task_sched_proc)(out_tasks, n_out_tasks);
-              if (unlikely(r <= 0)) {
-                /*
-                 * We can't be treat this as a fatal error. Carry on.
-                 */
-                lagopus_perror(r);
-                lagopus_msg_error("failed to submit " PFSZ(u) 
-                                  " urgent/timed tasks.\n", n_out_tasks);
-              }
-            }
-
-            if (do_idle == true) {
-              if (likely(s_idle_proc(s_idle_proc_arg) ==
-                         LAGOPUS_RESULT_OK)) {
-                s_next_idle_abstime = now + s_idle_interval;
-              } else {
-                /*
-                 * Stop the main loop and return (clean finish.)
-                 */
-                s_do_loop = false;
-                goto critical_end;
-              }
-            }
-
-            if (next_wakeup < 0LL) {
-              /*
-               * Nothing in the timed Q.
-               */
-              if (s_next_idle_abstime < 0LL) {
-                s_next_idle_abstime = now + s_idle_interval;
-              }
-              next_wakeup = s_next_idle_abstime;
-              goto wait_events;
-            }
-
-          } else {
-
-            /*
-             * Wait any events.
-             */
-
-            /*
-             * calculate the timeout.
-             */
-         wait_events:
-            timeout = next_wakeup - now;
-            if (timeout < 0LL) {
-              timeout = 0LL;
+          if (s_idle_proc != NULL &&
+              s_next_idle_abstime < (now + CALLOUT_TASK_SCHED_JITTER)) {
+            if (likely(s_idle_proc(s_idle_proc_arg) ==
+                       LAGOPUS_RESULT_OK)) {
+              s_next_idle_abstime = now + s_idle_interval;
             } else {
-              timeout = (timeout < s_idle_interval) ?
-                  timeout : s_idle_interval;
-            }
-
-            /*
-             * Atomic update of the wakeup time. Note that usually we
-             * don't need following code since the pthread APIs should
-             * call the memory barrier internally. But in this
-             * particular case we need this since it could take
-             * relatively long time to take here and the next pthread
-             * related APIs call.
-             */
-            old_next_wakeup = __sync_fetch_and_add(&s_next_wakeup_abstime, 0);
-            if (unlikely(__sync_bool_compare_and_swap(&s_next_wakeup_abstime,
-                                                      old_next_wakeup,
-                                                      next_wakeup) != true)) {
               /*
-               * must not happens since noone modify the old_next_wakeup.
+               * Stop the main loop and return (clean finish.)
                */
-              lagopus_exit_fatal("Someone changed the old wakeup time??\n");
-              /* not reached. */
+              s_do_loop = false;
+              goto critical_end;
+            }
+          }
+
+          /*
+           * fetch the start time of the timed task in the queue head.
+           */
+          next_wakeup = s_peek_current_wakeup_time();
+          if (next_wakeup <= 0LL) {
+            /*
+             * Nothing in the timed Q.
+             */
+            if (s_next_idle_abstime <= 0LL) {
+              s_next_idle_abstime = now + s_idle_interval;
+            }
+            next_wakeup = s_next_idle_abstime;
+          }
+
+          /*
+           * TODO
+           *
+           *	Re-optimize forcible waje up by timed task submission
+           *	timing and times. See also
+           *	callout_queue.c:s_do_sched().
+           */
+
+          /*
+           * calculate the timeout and sleep.
+           */
+          timeout = next_wakeup - now;
+          if (likely(timeout > 0LL)) {
+            if (timeout > s_idle_interval) {
+              timeout = s_idle_interval;
+              next_wakeup = now + timeout;
             }
 
-            r = lagopus_bbq_peek(&s_urgent_tsk_q, &t, lagopus_callout_task_t,
-                                 timeout);
-            if (unlikely(r != LAGOPUS_RESULT_OK &&
+#ifdef CO_MSG_DEBUG
+            lagopus_msg_debug(4,
+                              "about to sleep, timeout " PF64(d) " nsec.\n",
+                              timeout);
+#endif /* CO_MSG_DEBUG */
+
+            prev_wakeup = next_wakeup;
+
+            r = lagopus_bbq_wait_gettable(&s_urgent_tsk_q, timeout);
+            if (unlikely(r <= 0 &&
                          r != LAGOPUS_RESULT_TIMEDOUT &&
                          r != LAGOPUS_RESULT_WAKEUP_REQUESTED)) {
               lagopus_perror(r);
               lagopus_msg_error("Event wait failure.\n");
               ret = r;
               goto critical_end;
-            }
+            } else {
+              if (r == LAGOPUS_RESULT_WAKEUP_REQUESTED) {
 
-            /*
-             * The end of the desired potion of the loop.
-             */
+#ifdef CO_MSG_DEBUG
+                lagopus_msg_debug(4, "woke up.\n");
+#endif /* CO_MSG_DEBUG */
+
+              }
+            }
+          } else {
+            timeout = 0LL;
+            WHAT_TIME_IS_IT_NOW_IN_NSEC(next_wakeup);
+
+            prev_wakeup = next_wakeup;
+
+#ifdef CO_MSG_DEBUG
+            lagopus_msg_debug(4, "timeout zero. contiune.\n");
+#endif /* CO_MSG_DEBUG */
+
           }
+
+          /*
+           * The end of the desired potion of the loop.
+           */
 
         } /* while (s_do_loop == true) */
 
@@ -884,3 +896,50 @@ lagopus_callout_exec_task_forcibly(const lagopus_callout_task_t *tptr) {
   return ret;
 }
 
+
+lagopus_result_t
+lagopus_callout_task_reset_interval(lagopus_callout_task_t *tptr,
+                                    lagopus_chrono_t interval) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+
+  if (likely(tptr != NULL && *tptr != NULL)) {
+    if (likely(interval >= CALLOUT_TASK_MIN_INTERVAL)) {
+      lagopus_callout_task_t t = *tptr;
+
+      s_lock_task(t);
+      {
+        if (likely(t->m_status == TASK_STATE_EXECUTING)) {
+          t->m_interval_time = interval;
+          ret = LAGOPUS_RESULT_OK;
+        } else {
+          ret = LAGOPUS_RESULT_INVALID_STATE_TRANSITION;
+        }
+      }
+      s_unlock_task(t);
+
+    } else {
+      ret = LAGOPUS_RESULT_TOO_SMALL;
+    }
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  return ret;
+}
+
+
+lagopus_result_t
+lagopus_callout_task_state(lagopus_callout_task_t *tptr,
+                           lagopus_callout_task_state_t *sptr) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+
+  if (likely(tptr != NULL && *tptr != NULL &&
+             sptr != NULL)) {
+    *sptr = s_get_task_state_in_table(*tptr);
+    ret = LAGOPUS_RESULT_OK;
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  return ret;
+}

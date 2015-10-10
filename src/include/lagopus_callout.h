@@ -29,6 +29,7 @@
 
 
 
+#include "lagopus_callout_task_state.h"
 #include "lagopus_callout_task_funcs.h"
 #include "lagopus_runnable.h"
 
@@ -40,6 +41,11 @@
 typedef struct lagopus_callout_task_record 	*lagopus_callout_task_t;
 #define CALLOUT_TASK_T_DECLARED
 #endif /* ! CALLOUT_TASK_T_DECLARED */
+
+
+
+
+
 
 
 
@@ -214,6 +220,37 @@ lagopus_callout_cancel_task(const lagopus_callout_task_t *tptr);
  */
 lagopus_result_t
 lagopus_callout_exec_task_forcibly(const lagopus_callout_task_t *tptr);
+
+
+/**
+ * Reset task execution interval.
+ *
+ *	@param[in]	tptr	A pointer to a task.
+ *	@paran[in]	interval	An interval (in nsec.)
+ *
+ *	@retval	LAGOPUS_RESULT_OK		Succeeded.
+ *	@retval <0				Failure.
+ *
+ *	@details This API only useable when it is isssued in an
+ *	execution task. Otherwise the API returns an error.
+ */
+lagopus_result_t
+lagopus_callout_task_reset_interval(lagopus_callout_task_t *tptr,
+                                    lagopus_chrono_t interval);
+
+
+/**
+ * Acquire a task state.
+ *
+ *	@param[in]	tptr	A pointer to a task.
+ *	@paran[out]	sptr	A pointer to a task state returns.
+ *
+ *	@retval	LAGOPUS_RESULT_OK		Succeeded.
+ *	@retval <0				Failure.
+ */
+lagopus_result_t
+lagopus_callout_task_state(lagopus_callout_task_t *tptr,
+                           lagopus_callout_task_state_t *sptr);
 
 
 

@@ -57,12 +57,14 @@ static const char *const s_error_strs[] = {
   "Datastore interp error(s)",		/* 33 */
   "End of file",			/* 34 */
   "No more action",			/* 35 */
-  "Too large.",				/* 36 */
-  "Too small.",				/* 37 */
-  "Too long.",				/* 38 */
-  "Too short.",				/* 39 */
+  "Too large",				/* 36 */
+  "Too small",				/* 37 */
+  "Too long",				/* 38 */
+  "Too short",				/* 39 */
   "Address resolver failure",		/* 40 */
   "Output failure",			/* 41 */
+  "Invalid state",			/* 42 */
+
   NULL
 };
 

@@ -16,6 +16,7 @@
 
 #include "lagopus/datastore.h"
 #include "datastore_internal.h"
+#include "ns_util.h"
 
 #define MINIMUM_BANDWIDTH_LIMIT 1500LL
 #define MAXIMUM_BANDWIDTH_LIMIT 100000000000LL
@@ -102,7 +103,7 @@ error:
 
 static inline lagopus_result_t
 policer_attr_duplicate(const policer_attr_t *src_attr,
-                       policer_attr_t **dst_attr) {
+                       policer_attr_t **dst_attr, const char *namespace) {
   lagopus_result_t rc;
 
   if (src_attr == NULL || dst_attr == NULL) {
@@ -124,7 +125,7 @@ policer_attr_duplicate(const policer_attr_t *src_attr,
   (*dst_attr)->bandwidth_percent = src_attr->bandwidth_percent;
 
   rc = datastore_names_duplicate(src_attr->action_names,
-                                 &((*dst_attr)->action_names));
+                                 &((*dst_attr)->action_names), namespace);
   if (rc != LAGOPUS_RESULT_OK) {
     goto error;
   }
@@ -258,10 +259,12 @@ policer_conf_destroy(policer_conf_t *conf) {
 static inline lagopus_result_t
 policer_conf_duplicate(const policer_conf_t *src_conf,
                        policer_conf_t **dst_conf,
-                       const char *fullname) {
+                       const char *namespace) {
   lagopus_result_t rc;
   policer_attr_t *dst_current_attr = NULL;
   policer_attr_t *dst_modified_attr = NULL;
+  size_t len = 0;
+  char *buf = NULL;
 
   if (src_conf == NULL || dst_conf == NULL) {
     return LAGOPUS_RESULT_INVALID_ARGS;
@@ -272,13 +275,34 @@ policer_conf_duplicate(const policer_conf_t *src_conf,
     *dst_conf = NULL;
   }
 
-  rc = policer_conf_create(dst_conf, fullname);
-  if (rc != LAGOPUS_RESULT_OK) {
-    goto error;
+  if (namespace == NULL) {
+    rc = policer_conf_create(dst_conf, src_conf->name);
+    if (rc != LAGOPUS_RESULT_OK) {
+      goto error;
+    }
+  } else {
+    if ((len = strlen(src_conf->name)) <= DATASTORE_POLICER_FULLNAME_MAX) {
+      buf = (char *) malloc(sizeof(char) * (len + 1));
+
+      rc = ns_replace_namespace(src_conf->name, namespace, &buf);
+      if (rc == LAGOPUS_RESULT_OK) {
+        rc = policer_conf_create(dst_conf, buf);
+        if (rc != LAGOPUS_RESULT_OK) {
+          goto error;
+        }
+      } else {
+        goto error;
+      }
+      free(buf);
+    } else {
+      rc = LAGOPUS_RESULT_TOO_LONG;
+      goto error;
+    }
   }
 
   if (src_conf->current_attr != NULL) {
-    rc = policer_attr_duplicate(src_conf->current_attr, &dst_current_attr);
+    rc = policer_attr_duplicate(src_conf->current_attr,
+                                &dst_current_attr, namespace);
     if (rc != LAGOPUS_RESULT_OK) {
       goto error;
     }
@@ -286,7 +310,8 @@ policer_conf_duplicate(const policer_conf_t *src_conf,
   (*dst_conf)->current_attr = dst_current_attr;
 
   if (src_conf->modified_attr != NULL) {
-    rc = policer_attr_duplicate(src_conf->modified_attr, &dst_modified_attr);
+    rc = policer_attr_duplicate(src_conf->modified_attr,
+                                &dst_modified_attr, namespace);
     if (rc != LAGOPUS_RESULT_OK) {
       goto error;
     }
@@ -302,6 +327,7 @@ policer_conf_duplicate(const policer_conf_t *src_conf,
   return LAGOPUS_RESULT_OK;
 
 error:
+  free(buf);
   policer_conf_destroy(*dst_conf);
   *dst_conf = NULL;
   return rc;
@@ -397,12 +423,12 @@ policer_conf_iterate(void *key, void *val, lagopus_hashentry_t he,
         if (ctx->m_namespace[0] == '\0') {
           ret = lagopus_dstring_appendf(&ds,
                                         "%s",
-                                        NAMESPACE_DELIMITER);
+                                        DATASTORE_NAMESPACE_DELIMITER);
         } else {
           ret = lagopus_dstring_appendf(&ds,
                                         "%s%s",
                                         ctx->m_namespace,
-                                        NAMESPACE_DELIMITER);
+                                        DATASTORE_NAMESPACE_DELIMITER);
         }
 
         if (ret == LAGOPUS_RESULT_OK) {
@@ -591,7 +617,7 @@ policer_get_action_names(const policer_attr_t *attr,
                          datastore_name_info_t **action_names) {
   if (attr != NULL && action_names != NULL) {
     return datastore_names_duplicate(attr->action_names,
-                                     action_names);
+                                     action_names, NULL);
   }
   return LAGOPUS_RESULT_INVALID_ARGS;
 }
@@ -661,7 +687,7 @@ policer_set_action_names(policer_attr_t *attr,
                          const datastore_name_info_t *action_names) {
   if (attr != NULL && action_names != NULL) {
     return datastore_names_duplicate(action_names,
-                                     &(attr->action_names));
+                                     &(attr->action_names), NULL);
   }
   return LAGOPUS_RESULT_INVALID_ARGS;
 }

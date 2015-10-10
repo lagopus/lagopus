@@ -16,9 +16,10 @@
 
 #include "lagopus/datastore.h"
 #include "datastore_internal.h"
+#include "ns_util.h"
 
 typedef struct controller_attr {
-  char channel_name[DATASTORE_CHANNEL_NAME_MAX + 1];
+  char channel_name[DATASTORE_CHANNEL_FULLNAME_MAX + 1];
   datastore_controller_role_t role;
   datastore_controller_connection_type_t type;
 } controller_attr_t;
@@ -98,9 +99,10 @@ controller_attr_create(controller_attr_t **attr) {
 
 static inline lagopus_result_t
 controller_attr_duplicate(const controller_attr_t *src_attr,
-                          controller_attr_t **dst_attr) {
+                          controller_attr_t **dst_attr, const char *namespace) {
   lagopus_result_t rc;
   size_t len = 0;
+  char *buf = NULL;
 
   if (src_attr == NULL || dst_attr == NULL) {
     return LAGOPUS_RESULT_INVALID_ARGS;
@@ -116,23 +118,39 @@ controller_attr_duplicate(const controller_attr_t *src_attr,
     goto error;
   }
 
-  if (src_attr->channel_name != NULL) {
-    if ((len = strlen(src_attr->channel_name)) <= DATASTORE_CHANNEL_NAME_MAX) {
-      strncpy((*dst_attr)->channel_name, src_attr->channel_name, len);
-      (*dst_attr)->channel_name[len] = '\0';
-      (*dst_attr)->role = src_attr->role;
-      (*dst_attr)->type = src_attr->type;
-      return LAGOPUS_RESULT_OK;
+  if (src_attr->channel_name[0] != '\0') {
+    if ((len = strlen(src_attr->channel_name))
+        <= DATASTORE_CHANNEL_FULLNAME_MAX) {
+      if (namespace == NULL) {
+        strncpy((*dst_attr)->channel_name, src_attr->channel_name, len);
+        (*dst_attr)->channel_name[len] = '\0';
+      } else {
+        rc = ns_replace_namespace(src_attr->channel_name, namespace, &buf);
+        if (rc == LAGOPUS_RESULT_OK) {
+          if ((len = strlen(buf)) <= DATASTORE_CHANNEL_FULLNAME_MAX) {
+            strncpy((*dst_attr)->channel_name, buf, len);
+            (*dst_attr)->channel_name[len] = '\0';
+          } else {
+            rc = LAGOPUS_RESULT_TOO_LONG;
+            goto error;
+          }
+        } else {
+          goto error;
+        }
+        free(buf);
+      }
     } else {
       rc = LAGOPUS_RESULT_TOO_LONG;
       goto error;
     }
-  } else {
-    rc = LAGOPUS_RESULT_INVALID_ARGS;
-    goto error;
   }
 
+  (*dst_attr)->role = src_attr->role;
+  (*dst_attr)->type = src_attr->type;
+  return LAGOPUS_RESULT_OK;
+
 error:
+  free(buf);
   controller_attr_destroy(*dst_attr);
   *dst_attr = NULL;
   return rc;
@@ -208,11 +226,12 @@ controller_conf_destroy(controller_conf_t *conf) {
 
 static inline lagopus_result_t
 controller_conf_duplicate(const controller_conf_t *src_conf,
-                          controller_conf_t **dst_conf,
-                          const char *fullname) {
+                          controller_conf_t **dst_conf, const char *namespace) {
   lagopus_result_t rc;
   controller_attr_t *dst_current_attr = NULL;
   controller_attr_t *dst_modified_attr = NULL;
+  size_t len = 0;
+  char *buf = NULL;
 
   if (src_conf == NULL || dst_conf == NULL) {
     return LAGOPUS_RESULT_INVALID_ARGS;
@@ -223,13 +242,34 @@ controller_conf_duplicate(const controller_conf_t *src_conf,
     *dst_conf = NULL;
   }
 
-  rc = controller_conf_create(dst_conf, fullname);
-  if (rc != LAGOPUS_RESULT_OK) {
-    goto error;
+  if (namespace == NULL) {
+    rc = controller_conf_create(dst_conf, src_conf->name);
+    if (rc != LAGOPUS_RESULT_OK) {
+      goto error;
+    }
+  } else {
+    if ((len = strlen(src_conf->name)) <= DATASTORE_CONTROLLER_FULLNAME_MAX) {
+      buf = (char *) malloc(sizeof(char) * (len + 1));
+
+      rc = ns_replace_namespace(src_conf->name, namespace, &buf);
+      if (rc == LAGOPUS_RESULT_OK) {
+        rc = controller_conf_create(dst_conf, buf);
+        if (rc != LAGOPUS_RESULT_OK) {
+          goto error;
+        }
+      } else {
+        goto error;
+      }
+      free(buf);
+    } else {
+      rc = LAGOPUS_RESULT_TOO_LONG;
+      goto error;
+    }
   }
 
   if (src_conf->current_attr != NULL) {
-    rc = controller_attr_duplicate(src_conf->current_attr, &dst_current_attr);
+    rc = controller_attr_duplicate(src_conf->current_attr,
+                                   &dst_current_attr, namespace);
     if (rc != LAGOPUS_RESULT_OK) {
       goto error;
     }
@@ -237,7 +277,8 @@ controller_conf_duplicate(const controller_conf_t *src_conf,
   (*dst_conf)->current_attr = dst_current_attr;
 
   if (src_conf->modified_attr != NULL) {
-    rc = controller_attr_duplicate(src_conf->modified_attr, &dst_modified_attr);
+    rc = controller_attr_duplicate(src_conf->modified_attr,
+                                   &dst_modified_attr, namespace);
     if (rc != LAGOPUS_RESULT_OK) {
       goto error;
     }
@@ -253,6 +294,7 @@ controller_conf_duplicate(const controller_conf_t *src_conf,
   return LAGOPUS_RESULT_OK;
 
 error:
+  free(buf);
   controller_conf_destroy(*dst_conf);
   *dst_conf = NULL;
   return rc;
@@ -349,12 +391,12 @@ controller_conf_iterate(void *key, void *val, lagopus_hashentry_t he,
         if (ctx->m_namespace[0] == '\0') {
           ret = lagopus_dstring_appendf(&ds,
                                         "%s",
-                                        NAMESPACE_DELIMITER);
+                                        DATASTORE_NAMESPACE_DELIMITER);
         } else {
           ret = lagopus_dstring_appendf(&ds,
                                         "%s%s",
                                         ctx->m_namespace,
-                                        NAMESPACE_DELIMITER);
+                                        DATASTORE_NAMESPACE_DELIMITER);
         }
 
         if (ret == LAGOPUS_RESULT_OK) {
@@ -587,7 +629,7 @@ controller_set_channel_name(controller_attr_t *attr,
                             const char *channel_name) {
   if (attr != NULL && channel_name != NULL) {
     size_t len = strlen(channel_name);
-    if (len <= DATASTORE_CHANNEL_NAME_MAX) {
+    if (len <= DATASTORE_CHANNEL_FULLNAME_MAX) {
       strncpy(attr->channel_name, channel_name, len);
       attr->channel_name[len] = '\0';
       return LAGOPUS_RESULT_OK;

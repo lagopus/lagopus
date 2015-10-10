@@ -653,7 +653,7 @@ config_sub_cmd_parse_internal(datastore_interp_t *iptr,
        * already exists. copy it.
        */
       ret = policer_action_attr_duplicate(conf->current_attr,
-                                          &conf->modified_attr);
+                                          &conf->modified_attr, NULL);
       if (ret != LAGOPUS_RESULT_OK) {
         ret = datastore_json_result_set(result, ret, NULL);
         goto done;
@@ -1354,12 +1354,12 @@ policer_action_cmd_getname(const void *obj, const char **namep) {
 }
 
 static lagopus_result_t
-policer_action_cmd_duplicate(const void *obj, const char *fullname) {
+policer_action_cmd_duplicate(const void *obj, const char *namespace) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   policer_action_conf_t *dup_obj = NULL;
 
-  if (obj != NULL && fullname != NULL) {
-    ret = policer_action_conf_duplicate(obj, &dup_obj, fullname);
+  if (obj != NULL) {
+    ret = policer_action_conf_duplicate(obj, &dup_obj, namespace);
     if (ret == LAGOPUS_RESULT_OK) {
       ret = policer_action_conf_add(dup_obj);
 

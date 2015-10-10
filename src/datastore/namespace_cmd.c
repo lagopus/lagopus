@@ -29,7 +29,7 @@ s_namespace_add(const char *namespace) {
     return LAGOPUS_RESULT_NOT_STARTED;
   } else if (namespace == NULL) {
     return LAGOPUS_RESULT_INVALID_ARGS;
-  } else if (strstr(namespace, NAMESPACE_DELIMITER) != NULL) {
+  } else if (strstr(namespace, DATASTORE_NAMESPACE_DELIMITER) != NULL) {
     return LAGOPUS_RESULT_INVALID_ARGS;
   } else if (strlen(namespace) > DATASTORE_NAMESPACE_MAX) {
     return LAGOPUS_RESULT_TOO_LONG;

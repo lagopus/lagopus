@@ -16,6 +16,7 @@
 
 #include "lagopus/datastore.h"
 #include "datastore_internal.h"
+#include "ns_util.h"
 
 typedef struct policer_action_attr {
   datastore_policer_action_type_t type;
@@ -74,8 +75,11 @@ policer_action_attr_create(policer_action_attr_t **attr) {
 
 static inline lagopus_result_t
 policer_action_attr_duplicate(const policer_action_attr_t *src_attr,
-                              policer_action_attr_t **dst_attr) {
+                              policer_action_attr_t **dst_attr,
+                              const char *namespace) {
   lagopus_result_t rc;
+
+  (void)namespace;
 
   if (src_attr == NULL || dst_attr == NULL) {
     return LAGOPUS_RESULT_INVALID_ARGS;
@@ -171,10 +175,12 @@ policer_action_conf_destroy(policer_action_conf_t *conf) {
 static inline lagopus_result_t
 policer_action_conf_duplicate(const policer_action_conf_t *src_conf,
                               policer_action_conf_t **dst_conf,
-                              const char *fullname) {
+                              const char *namespace) {
   lagopus_result_t rc;
   policer_action_attr_t *dst_current_attr = NULL;
   policer_action_attr_t *dst_modified_attr = NULL;
+  size_t len = 0;
+  char *buf = NULL;
 
   if (src_conf == NULL || dst_conf == NULL) {
     return LAGOPUS_RESULT_INVALID_ARGS;
@@ -185,14 +191,35 @@ policer_action_conf_duplicate(const policer_action_conf_t *src_conf,
     *dst_conf = NULL;
   }
 
-  rc = policer_action_conf_create(dst_conf, fullname);
-  if (rc != LAGOPUS_RESULT_OK) {
-    goto error;
+  if (namespace == NULL) {
+    rc = policer_action_conf_create(dst_conf, src_conf->name);
+    if (rc != LAGOPUS_RESULT_OK) {
+      goto error;
+    }
+  } else {
+    if ((len = strlen(src_conf->name))
+        <= DATASTORE_POLICER_ACTION_FULLNAME_MAX) {
+      buf = (char *) malloc(sizeof(char) * (len + 1));
+
+      rc = ns_replace_namespace(src_conf->name, namespace, &buf);
+      if (rc == LAGOPUS_RESULT_OK) {
+        rc = policer_action_conf_create(dst_conf, buf);
+        if (rc != LAGOPUS_RESULT_OK) {
+          goto error;
+        }
+      } else {
+        goto error;
+      }
+      free(buf);
+    } else {
+      rc = LAGOPUS_RESULT_TOO_LONG;
+      goto error;
+    }
   }
 
   if (src_conf->current_attr != NULL) {
     rc = policer_action_attr_duplicate(src_conf->current_attr,
-                                       &dst_current_attr);
+                                       &dst_current_attr, namespace);
     if (rc != LAGOPUS_RESULT_OK) {
       goto error;
     }
@@ -201,7 +228,7 @@ policer_action_conf_duplicate(const policer_action_conf_t *src_conf,
 
   if (src_conf->modified_attr != NULL) {
     rc = policer_action_attr_duplicate(src_conf->modified_attr,
-                                       &dst_modified_attr);
+                                       &dst_modified_attr, namespace);
     if (rc != LAGOPUS_RESULT_OK) {
       goto error;
     }
@@ -217,6 +244,7 @@ policer_action_conf_duplicate(const policer_action_conf_t *src_conf,
   return LAGOPUS_RESULT_OK;
 
 error:
+  free(buf);
   policer_action_conf_destroy(*dst_conf);
   *dst_conf = NULL;
   return rc;
@@ -312,12 +340,12 @@ policer_action_conf_iterate(void *key, void *val, lagopus_hashentry_t he,
         if (ctx->m_namespace[0] == '\0') {
           ret = lagopus_dstring_appendf(&ds,
                                         "%s",
-                                        NAMESPACE_DELIMITER);
+                                        DATASTORE_NAMESPACE_DELIMITER);
         } else {
           ret = lagopus_dstring_appendf(&ds,
                                         "%s%s",
                                         ctx->m_namespace,
-                                        NAMESPACE_DELIMITER);
+                                        DATASTORE_NAMESPACE_DELIMITER);
         }
 
         if (ret == LAGOPUS_RESULT_OK) {

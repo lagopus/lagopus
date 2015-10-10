@@ -592,9 +592,9 @@ s_getname(const void *obj, const char **namep) {
 
 
 static lagopus_result_t
-s_duplicate(const void *obj, const char *fullname) {
+s_duplicate(const void *obj, const char *namespace) {
   (void)obj;
-  (void)fullname;
+  (void)namespace;
   return LAGOPUS_RESULT_OK;
 }
 

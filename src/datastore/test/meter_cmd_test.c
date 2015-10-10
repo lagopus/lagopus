@@ -104,7 +104,7 @@ test_meter_cmd_parse_dump_01(void) {
                         };
   const char test_str1[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"b1\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
     "\"meters\":[]}]}";
 
   /* bridge create cmd. */
@@ -131,7 +131,7 @@ test_meter_cmd_parse_stats_01(void) {
                         };
   const char test_str1[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"b2\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b2\",\n"
     "\"meters\":[]}]}";
 
   /* bridge create cmd. */
@@ -158,7 +158,7 @@ test_meter_cmd_parse_bat_opt_01(void) {
                         };
   const char test_str1[] =
     "{\"ret\":\"INVALID_OBJECT\",\n"
-    "\"data\":\"name = "NAMESPACE_DELIMITER"hoge\"}";
+    "\"data\":\"name = "DATASTORE_NAMESPACE_DELIMITER"hoge\"}";
 
   /* dump cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
@@ -205,7 +205,7 @@ test_meter_cmd_parse_stats_bat_opt_01(void) {
                         };
   const char test_str1[] =
     "{\"ret\":\"INVALID_OBJECT\",\n"
-    "\"data\":\"name = "NAMESPACE_DELIMITER"br4\"}";
+    "\"data\":\"name = "DATASTORE_NAMESPACE_DELIMITER"br4\"}";
 
   /* bridge create cmd. */
   TEST_BRIDGE_CREATE(ret, &interp, state, &tbl, &ds, str,
@@ -235,7 +235,7 @@ test_meter_cmd_parse_dump_02(void) {
                         };
   const char test_str1[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"b5\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b5\",\n"
     "\"meters\":[{\"meter-id\":5,\n"
     "\"flags\":[\"kbps\",\n"
     "\"burst\"],\n"

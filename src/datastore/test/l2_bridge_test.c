@@ -79,38 +79,106 @@ test_l2_bridge_conf_create_and_destroy(void) {
 void
 test_l2_bridge_conf_duplicate(void) {
   lagopus_result_t rc;
+  const char *ns1 = "ns1";
+  const char *ns2 = "ns2";
+  const char *name = "l2_bridge";
+  char *l2_bridge_fullname = NULL;
   bool result = false;
   l2_bridge_conf_t *src_conf = NULL;
   l2_bridge_conf_t *dst_conf = NULL;
-  const char *src_fullname = "src_conf";
-  const char *dst_fullname = "dst_conf";
+  l2_bridge_conf_t *actual_conf = NULL;
 
   l2_bridge_initialize();
 
-  rc = l2_bridge_conf_create(&src_conf, src_fullname);
-  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
-  TEST_ASSERT_NOT_NULL_MESSAGE(src_conf,
-                               "conf_create() will create new l2_bridge");
-
-  // Normal case
+  // Normal case1(no namespace)
   {
-    rc = l2_bridge_conf_duplicate(src_conf, &dst_conf, dst_fullname);
+    // create src conf
+    {
+      rc = ns_create_fullname(ns1, name, &l2_bridge_fullname);
+      TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK,
+                                rc, "cmd_ns_get_fullname error.");
+      rc = l2_bridge_conf_create(&src_conf, l2_bridge_fullname);
+      TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+      TEST_ASSERT_NOT_NULL_MESSAGE(src_conf,
+                                   "conf_create() will create new l2_bridge_action");
+      free(l2_bridge_fullname);
+      l2_bridge_fullname = NULL;
+    }
+
+    rc = l2_bridge_conf_duplicate(src_conf, &dst_conf, NULL);
     TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
-    result = l2_bridge_conf_equals(src_conf, dst_conf);
+
+    // create actual conf
+    {
+      rc = ns_create_fullname(ns1, name, &l2_bridge_fullname);
+      TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK,
+                                rc, "cmd_ns_get_fullname error.");
+      rc = l2_bridge_conf_create(&actual_conf, l2_bridge_fullname);
+      TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+      TEST_ASSERT_NOT_NULL_MESSAGE(src_conf,
+                                   "conf_create() will create new l2_bridge_action");
+      free(l2_bridge_fullname);
+      l2_bridge_fullname = NULL;
+    }
+
+    result = l2_bridge_conf_equals(dst_conf, actual_conf);
     TEST_ASSERT_TRUE(result);
+
+    l2_bridge_conf_destroy(src_conf);
+    src_conf = NULL;
+    l2_bridge_conf_destroy(dst_conf);
+    dst_conf = NULL;
+    l2_bridge_conf_destroy(actual_conf);
+    actual_conf = NULL;
+  }
+
+  // Normal case2
+  {
+    // create src conf
+    {
+      rc = ns_create_fullname(ns1, name, &l2_bridge_fullname);
+      TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK,
+                                rc, "cmd_ns_get_fullname error.");
+      rc = l2_bridge_conf_create(&src_conf, l2_bridge_fullname);
+      TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+      TEST_ASSERT_NOT_NULL_MESSAGE(src_conf,
+                                   "conf_create() will create new l2_bridge_action");
+      free(l2_bridge_fullname);
+      l2_bridge_fullname = NULL;
+    }
+
+    rc = l2_bridge_conf_duplicate(src_conf, &dst_conf, ns2);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+
+    // create actual conf
+    {
+      rc = ns_create_fullname(ns2, name, &l2_bridge_fullname);
+      TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK,
+                                rc, "cmd_ns_get_fullname error.");
+      rc = l2_bridge_conf_create(&actual_conf, l2_bridge_fullname);
+      TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+      TEST_ASSERT_NOT_NULL_MESSAGE(src_conf,
+                                   "conf_create() will create new l2_bridge_action");
+      free(l2_bridge_fullname);
+      l2_bridge_fullname = NULL;
+    }
+
+    result = l2_bridge_conf_equals(dst_conf, actual_conf);
+    TEST_ASSERT_TRUE(result);
+
+    l2_bridge_conf_destroy(src_conf);
+    src_conf = NULL;
+    l2_bridge_conf_destroy(dst_conf);
+    dst_conf = NULL;
+    l2_bridge_conf_destroy(actual_conf);
+    actual_conf = NULL;
   }
 
   // Abnormal case
   {
-    result = l2_bridge_conf_equals(src_conf, NULL);
-    TEST_ASSERT_FALSE(result);
-
-    result = l2_bridge_conf_equals(NULL, dst_conf);
-    TEST_ASSERT_FALSE(result);
+    rc = l2_bridge_conf_duplicate(NULL, &dst_conf, NULL);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_INVALID_ARGS, rc);
   }
-
-  l2_bridge_conf_destroy(src_conf);
-  l2_bridge_conf_destroy(dst_conf);
 
   l2_bridge_finalize();
 }
@@ -292,15 +360,15 @@ void
 test_l2_bridge_conf_list(void) {
   lagopus_result_t rc;
   l2_bridge_conf_t *conf1 = NULL;
-  const char *name1 = "namespace1"NAMESPACE_DELIMITER"l2_bridge_name1";
+  const char *name1 = "namespace1"DATASTORE_NAMESPACE_DELIMITER"l2_bridge_name1";
   l2_bridge_conf_t *conf2 = NULL;
-  const char *name2 = "namespace1"NAMESPACE_DELIMITER"l2_bridge_name2";
+  const char *name2 = "namespace1"DATASTORE_NAMESPACE_DELIMITER"l2_bridge_name2";
   l2_bridge_conf_t *conf3 = NULL;
-  const char *name3 = "namespace2"NAMESPACE_DELIMITER"l2_bridge_name3";
+  const char *name3 = "namespace2"DATASTORE_NAMESPACE_DELIMITER"l2_bridge_name3";
   l2_bridge_conf_t *conf4 = NULL;
-  const char *name4 = NAMESPACE_DELIMITER"l2_bridge_name4";
+  const char *name4 = DATASTORE_NAMESPACE_DELIMITER"l2_bridge_name4";
   l2_bridge_conf_t *conf5 = NULL;
-  const char *name5 = NAMESPACE_DELIMITER"l2_bridge_name5";
+  const char *name5 = DATASTORE_NAMESPACE_DELIMITER"l2_bridge_name5";
   l2_bridge_conf_t **actual_list = NULL;
   size_t i;
 
@@ -354,15 +422,15 @@ test_l2_bridge_conf_list(void) {
 
     for (i = 0; i < (size_t) rc; i++) {
       if (strcasecmp(actual_list[i]->name,
-                     "namespace1"NAMESPACE_DELIMITER"l2_bridge_name1") != 0 &&
+                     "namespace1"DATASTORE_NAMESPACE_DELIMITER"l2_bridge_name1") != 0 &&
           strcasecmp(actual_list[i]->name,
-                     "namespace1"NAMESPACE_DELIMITER"l2_bridge_name2") != 0 &&
+                     "namespace1"DATASTORE_NAMESPACE_DELIMITER"l2_bridge_name2") != 0 &&
           strcasecmp(actual_list[i]->name,
-                     "namespace2"NAMESPACE_DELIMITER"l2_bridge_name3") != 0 &&
+                     "namespace2"DATASTORE_NAMESPACE_DELIMITER"l2_bridge_name3") != 0 &&
           strcasecmp(actual_list[i]->name,
-                     NAMESPACE_DELIMITER"l2_bridge_name4") != 0 &&
+                     DATASTORE_NAMESPACE_DELIMITER"l2_bridge_name4") != 0 &&
           strcasecmp(actual_list[i]->name,
-                     NAMESPACE_DELIMITER"l2_bridge_name5") != 0) {
+                     DATASTORE_NAMESPACE_DELIMITER"l2_bridge_name5") != 0) {
         TEST_FAIL_MESSAGE("invalid list entry.");
       }
     }
@@ -377,9 +445,9 @@ test_l2_bridge_conf_list(void) {
 
     for (i = 0; i < (size_t) rc; i++) {
       if (strcasecmp(actual_list[i]->name,
-                     NAMESPACE_DELIMITER"l2_bridge_name4") != 0 &&
+                     DATASTORE_NAMESPACE_DELIMITER"l2_bridge_name4") != 0 &&
           strcasecmp(actual_list[i]->name,
-                     NAMESPACE_DELIMITER"l2_bridge_name5") != 0) {
+                     DATASTORE_NAMESPACE_DELIMITER"l2_bridge_name5") != 0) {
         TEST_FAIL_MESSAGE("invalid list entry.");
       }
     }
@@ -394,9 +462,9 @@ test_l2_bridge_conf_list(void) {
 
     for (i = 0; i < (size_t) rc; i++) {
       if (strcasecmp(actual_list[i]->name,
-                     "namespace1"NAMESPACE_DELIMITER"l2_bridge_name1") != 0 &&
+                     "namespace1"DATASTORE_NAMESPACE_DELIMITER"l2_bridge_name1") != 0 &&
           strcasecmp(actual_list[i]->name,
-                     "namespace1"NAMESPACE_DELIMITER"l2_bridge_name2") != 0) {
+                     "namespace1"DATASTORE_NAMESPACE_DELIMITER"l2_bridge_name2") != 0) {
         TEST_FAIL_MESSAGE("invalid list entry.");
       }
     }
@@ -585,10 +653,19 @@ test_l2_bridge_attr_duplicate(void) {
 
   // Normal case
   {
-    rc = l2_bridge_attr_duplicate(src_attr, &dst_attr);
+    rc = l2_bridge_attr_duplicate(src_attr, &dst_attr, "namespace");
     TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
     result = l2_bridge_attr_equals(src_attr, dst_attr);
     TEST_ASSERT_TRUE(result);
+    l2_bridge_attr_destroy(dst_attr);
+    dst_attr = NULL;
+
+    rc = l2_bridge_attr_duplicate(src_attr, &dst_attr, NULL);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+    result = l2_bridge_attr_equals(src_attr, dst_attr);
+    TEST_ASSERT_TRUE(result);
+    l2_bridge_attr_destroy(dst_attr);
+    dst_attr = NULL;
   }
 
   // Abnormal case
@@ -596,12 +673,15 @@ test_l2_bridge_attr_duplicate(void) {
     result = l2_bridge_attr_equals(src_attr, NULL);
     TEST_ASSERT_FALSE(result);
 
+    rc = l2_bridge_attr_duplicate(src_attr, &dst_attr, NULL);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
     result = l2_bridge_attr_equals(NULL, dst_attr);
     TEST_ASSERT_FALSE(result);
+    l2_bridge_attr_destroy(dst_attr);
+    dst_attr = NULL;
   }
 
   l2_bridge_attr_destroy(src_attr);
-  l2_bridge_attr_destroy(dst_attr);
 
   l2_bridge_finalize();
 }

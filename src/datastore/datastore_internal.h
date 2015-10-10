@@ -25,7 +25,6 @@
 #include "datastore_apis.h"
 
 #define DATASTORE_TMP_DIR "/tmp"
-#define NAMESPACE_DELIMITER ":"
 
 enum ns_types {
   NS_FULLNAME = 1,

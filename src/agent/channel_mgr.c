@@ -33,7 +33,7 @@ static struct event_manager *em;
            (bridge_name));
 
 #define MAIN_KEY_LEN \
-  INET6_ADDRSTRLEN+DATASTORE_BRIDGE_NAME_MAX+5 /* 5 = len(":%02d") + 1 */
+  INET6_ADDRSTRLEN+DATASTORE_BRIDGE_FULLNAME_MAX+5 /* 5 = len(":%02d") + 1 */
 
 static void
 channel_entry_free(void *arg) {

@@ -18,6 +18,7 @@
 #include "lagopus_ip_addr.h"
 #include "lagopus/datastore.h"
 #include "datastore_internal.h"
+#include "ns_util.h"
 
 #define MINIMUM_PORT_NUMBER 0
 #define MAXIMUM_PORT_NUMBER UINT32_MAX
@@ -34,7 +35,7 @@
 
 typedef struct interface_attr {
   uint32_t port_number;
-  char device[DATASTORE_INTERFACE_NAME_MAX + 1];
+  char device[DATASTORE_INTERFACE_FULLNAME_MAX + 1];
   datastore_interface_type_t type;
   lagopus_ip_address_t *dst_addr;
   uint32_t dst_port;
@@ -164,9 +165,12 @@ error:
 
 static inline lagopus_result_t
 interface_attr_duplicate(const interface_attr_t *src_attr,
-                         interface_attr_t **dst_attr) {
+                         interface_attr_t **dst_attr,
+                         const char *namespace) {
   lagopus_result_t rc;
   size_t len = 0;
+
+  (void)namespace;
 
   if (src_attr == NULL || dst_attr == NULL) {
     return LAGOPUS_RESULT_INVALID_ARGS;
@@ -185,7 +189,7 @@ interface_attr_duplicate(const interface_attr_t *src_attr,
   (*dst_attr)->port_number = src_attr->port_number;
 
   if (src_attr->device != NULL) {
-    if ((len = strlen(src_attr->device)) <= DATASTORE_INTERFACE_NAME_MAX) {
+    if ((len = strlen(src_attr->device)) <= DATASTORE_INTERFACE_FULLNAME_MAX) {
       strncpy((*dst_attr)->device, src_attr->device, len);
       (*dst_attr)->device[len] = '\0';
     } else {
@@ -323,10 +327,12 @@ interface_conf_destroy(interface_conf_t *conf) {
 static inline lagopus_result_t
 interface_conf_duplicate(const interface_conf_t *src_conf,
                          interface_conf_t **dst_conf,
-                         const char *fullname) {
+                         const char *namespace) {
   lagopus_result_t rc;
   interface_attr_t *dst_current_attr = NULL;
   interface_attr_t *dst_modified_attr = NULL;
+  size_t len = 0;
+  char *buf = NULL;
 
   if (src_conf == NULL || dst_conf == NULL) {
     return LAGOPUS_RESULT_INVALID_ARGS;
@@ -337,13 +343,34 @@ interface_conf_duplicate(const interface_conf_t *src_conf,
     *dst_conf = NULL;
   }
 
-  rc = interface_conf_create(dst_conf, fullname);
-  if (rc != LAGOPUS_RESULT_OK) {
-    goto error;
+  if (namespace == NULL) {
+    rc = interface_conf_create(dst_conf, src_conf->name);
+    if (rc != LAGOPUS_RESULT_OK) {
+      goto error;
+    }
+  } else {
+    if ((len = strlen(src_conf->name)) <= DATASTORE_INTERFACE_FULLNAME_MAX) {
+      buf = (char *) malloc(sizeof(char) * (len + 1));
+
+      rc = ns_replace_namespace(src_conf->name, namespace, &buf);
+      if (rc == LAGOPUS_RESULT_OK) {
+        rc = interface_conf_create(dst_conf, buf);
+        if (rc != LAGOPUS_RESULT_OK) {
+          goto error;
+        }
+      } else {
+        goto error;
+      }
+      free(buf);
+    } else {
+      rc = LAGOPUS_RESULT_TOO_LONG;
+      goto error;
+    }
   }
 
   if (src_conf->current_attr != NULL) {
-    rc = interface_attr_duplicate(src_conf->current_attr, &dst_current_attr);
+    rc = interface_attr_duplicate(src_conf->current_attr, &dst_current_attr,
+                                  namespace);
     if (rc != LAGOPUS_RESULT_OK) {
       goto error;
     }
@@ -351,7 +378,8 @@ interface_conf_duplicate(const interface_conf_t *src_conf,
   (*dst_conf)->current_attr = dst_current_attr;
 
   if (src_conf->modified_attr != NULL) {
-    rc = interface_attr_duplicate(src_conf->modified_attr, &dst_modified_attr);
+    rc = interface_attr_duplicate(src_conf->modified_attr, &dst_modified_attr,
+                                  namespace);
     if (rc != LAGOPUS_RESULT_OK) {
       goto error;
     }
@@ -367,6 +395,7 @@ interface_conf_duplicate(const interface_conf_t *src_conf,
   return LAGOPUS_RESULT_OK;
 
 error:
+  free(buf);
   interface_conf_destroy(*dst_conf);
   *dst_conf = NULL;
   return rc;
@@ -463,12 +492,12 @@ interface_conf_iterate(void *key, void *val, lagopus_hashentry_t he,
         if (ctx->m_namespace[0] == '\0') {
           ret = lagopus_dstring_appendf(&ds,
                                         "%s",
-                                        NAMESPACE_DELIMITER);
+                                        DATASTORE_NAMESPACE_DELIMITER);
         } else {
           ret = lagopus_dstring_appendf(&ds,
                                         "%s%s",
                                         ctx->m_namespace,
-                                        NAMESPACE_DELIMITER);
+                                        DATASTORE_NAMESPACE_DELIMITER);
         }
 
         if (ret == LAGOPUS_RESULT_OK) {
@@ -880,7 +909,7 @@ static inline lagopus_result_t
 interface_set_device(interface_attr_t *attr, const char *device) {
   if (attr != NULL && device != NULL) {
     size_t len = strlen(device);
-    if (len <= DATASTORE_INTERFACE_NAME_MAX) {
+    if (len <= DATASTORE_INTERFACE_FULLNAME_MAX) {
       strncpy(attr->device, device, len);
       attr->device[len] = '\0';
       return LAGOPUS_RESULT_OK;

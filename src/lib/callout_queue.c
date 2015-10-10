@@ -104,19 +104,24 @@ s_do_sched(lagopus_callout_task_t t) {
 
         ret = t->m_next_abstime;
 
-        e = TAILQ_FIRST(&s_chrono_tsk_q);
+        /*
+         * Fianlly wake the master scheduler.
+         */
+        lagopus_msg_debug(4, "wake the master scheduler up.\n");
 
         /*
-         * Fianlly wake the master scheduler if needed.
+         * TODO
+         *
+         *	Re-optimize forcible waje up by timed task submission
+         *	timing and times. See also
+         *	callout.c:s_start_callout_main_loop()
          */
-        if (__sync_fetch_and_add(&s_next_wakeup_abstime, 0) >
-            e->m_next_abstime) {
-          r = lagopus_bbq_wakeup(&s_urgent_tsk_q, -1LL);
-          if (unlikely(r != LAGOPUS_RESULT_OK)) {
-            lagopus_perror(r);
-            lagopus_msg_error("can't wake the callout task master "
-                              "scheduler up.\n");
-          }
+
+        r = lagopus_bbq_wakeup(&s_urgent_tsk_q, -1LL);
+        if (unlikely(r != LAGOPUS_RESULT_OK)) {
+          lagopus_perror(r);
+          lagopus_msg_error("can't wake the callout task master "
+                            "scheduler up.\n");
         }
       }
     }
@@ -174,8 +179,11 @@ s_do_unsched(lagopus_callout_task_t t) {
 
         TAILQ_REMOVE(&s_chrono_tsk_q, t, m_entry);
 
-        (void)s_set_task_state_in_table(t, TASK_STATE_DEQUEUED);
-        t->m_status = TASK_STATE_DEQUEUED;
+        if (t->m_status == TASK_STATE_ENQUEUED) {
+            (void)s_set_task_state_in_table(t, TASK_STATE_DEQUEUED);
+            t->m_status = TASK_STATE_DEQUEUED;
+        }
+
         t->m_is_in_timed_q = false;
       }
     }

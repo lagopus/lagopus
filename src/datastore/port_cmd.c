@@ -2188,7 +2188,7 @@ port_attr_dup_modified(port_conf_t *conf,
        * already exists. copy it.
        */
       ret = port_attr_duplicate(conf->current_attr,
-                                &conf->modified_attr);
+                                &conf->modified_attr, NULL);
       if (ret != LAGOPUS_RESULT_OK) {
         ret = datastore_json_result_set(result, ret, NULL);
       }
@@ -3493,12 +3493,12 @@ port_cmd_getname(const void *obj, const char **namep) {
 }
 
 static lagopus_result_t
-port_cmd_duplicate(const void *obj, const char *fullname) {
+port_cmd_duplicate(const void *obj, const char *namespace) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   port_conf_t *dup_obj = NULL;
 
-  if (obj != NULL && fullname != NULL) {
-    ret = port_conf_duplicate(obj, &dup_obj, fullname);
+  if (obj != NULL) {
+    ret = port_conf_duplicate(obj, &dup_obj, namespace);
     if (ret == LAGOPUS_RESULT_OK) {
       ret = port_conf_add(dup_obj);
 

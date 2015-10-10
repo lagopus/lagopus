@@ -72,7 +72,7 @@ test_channel_cmd_parse_create_01(void) {
   const char *argv3[] = {"channel", NULL};
   const char test_str3[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name02\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name02\",\n"
     "\"dst-addr\":\"127.0.0.1\",\n"
     "\"dst-port\":65535,\n"
     "\"local-addr\":\"127.0.0.1\",\n"
@@ -80,7 +80,7 @@ test_channel_cmd_parse_create_01(void) {
     "\"protocol\":\"tcp\",\n"
     "\"is-used\":true,\n"
     "\"is-enabled\":true},\n"
-    "{\"name\":\""NAMESPACE_DELIMITER"test_name01\",\n"
+    "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name01\",\n"
     "\"dst-addr\":\"127.0.0.1\",\n"
     "\"dst-port\":65535,\n"
     "\"local-addr\":\"127.0.0.1\",\n"
@@ -91,7 +91,7 @@ test_channel_cmd_parse_create_01(void) {
   const char *argv4[] = {"channel", "test_name02", NULL};
   const char test_str4[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name02\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name02\",\n"
     "\"dst-addr\":\"127.0.0.1\",\n"
     "\"dst-port\":65535,\n"
     "\"local-addr\":\"127.0.0.1\",\n"
@@ -364,11 +364,11 @@ test_channel_cmd_parse_enable_unused(void) {
                         };
   const char test_str2[] =
     "{\"ret\":\"NOT_OPERATIONAL\",\n"
-    "\"data\":\"name = "NAMESPACE_DELIMITER"test_name12. is not used.\"}";
+    "\"data\":\"name = "DATASTORE_NAMESPACE_DELIMITER"test_name12. is not used.\"}";
   const char *argv3[] = {"channel", "test_name12", NULL};
   const char test_str3[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name12\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name12\",\n"
     "\"dst-addr\":\"127.0.0.1\",\n"
     "\"dst-port\":65535,\n"
     "\"local-addr\":\"127.0.0.1\",\n"
@@ -420,7 +420,7 @@ test_channel_cmd_parse_config_01(void) {
   const char *argv2[] = {"channel", "test_name13", NULL};
   const char test_str2[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name13\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name13\",\n"
     "\"dst-addr\":\"127.0.0.1\",\n"
     "\"dst-port\":65535,\n"
     "\"local-addr\":\"127.0.0.1\",\n"
@@ -440,7 +440,7 @@ test_channel_cmd_parse_config_01(void) {
   const char *argv4[] = {"channel", "test_name13", NULL};
   const char test_str4[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name13\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name13\",\n"
     "\"dst-addr\":\"127.0.0.2\",\n"
     "\"dst-port\":3000,\n"
     "\"local-addr\":\"127.0.0.2\",\n"
@@ -500,7 +500,7 @@ test_channel_cmd_parse_config_02(void) {
   const char *argv3[] = {"channel", "test_name14", NULL};
   const char test_str3[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name14\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name14\",\n"
     "\"dst-addr\":\"127.0.0.1\",\n"
     "\"dst-port\":65535,\n"
     "\"local-addr\":\"127.0.0.1\",\n"
@@ -520,7 +520,7 @@ test_channel_cmd_parse_config_02(void) {
   const char *argv5[] = {"channel", "test_name14", NULL};
   const char test_str5[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name14\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name14\",\n"
     "\"dst-addr\":\"127.0.0.2\",\n"
     "\"dst-port\":3000,\n"
     "\"local-addr\":\"127.0.0.2\",\n"
@@ -611,7 +611,7 @@ test_channel_cmd_parse_config_show_01(void) {
   const char *argv2[] = {"channel", "test_name15", NULL};
   const char test_str2[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name15\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name15\",\n"
     "\"dst-addr\":\"127.0.0.1\",\n"
     "\"dst-port\":65535,\n"
     "\"local-addr\":\"127.0.0.1\",\n"
@@ -629,7 +629,7 @@ test_channel_cmd_parse_config_show_01(void) {
                         };
   const char test_str4[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name15\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name15\",\n"
     "\"dst-port\":3001}]}";
   const char *argv5[] = {"channel", "test_name15", "destroy",
                          NULL
@@ -684,7 +684,7 @@ test_channel_cmd_parse_destroy_used(void) {
                          NULL
                         };
   const char test_str3[] = {"{\"ret\":\"NOT_OPERATIONAL\",\n"
-                            "\"data\":\"name = "NAMESPACE_DELIMITER"test_name102: is used.\"}"
+                            "\"data\":\"name = "DATASTORE_NAMESPACE_DELIMITER"test_name102: is used.\"}"
                            };
   const char *ctrler_argv1[] = {"controller", "c_name101", "create",
                                 "-channel", "test_name102",
@@ -735,7 +735,7 @@ test_channel_cmd_parse_show_01(void) {
                         };
   const char test_str2[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name16\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name16\",\n"
     "\"dst-addr\":\"127.0.0.1\",\n"
     "\"dst-port\":65535,\n"
     "\"local-addr\":\"127.0.0.1\",\n"
@@ -770,7 +770,7 @@ test_channel_cmd_parse_show_01(void) {
                         };
   const char test_str7[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name16\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name16\",\n"
     "\"dst-addr\":\"127.0.0.1\",\n"
     "\"dst-port\":3002,\n"
     "\"local-addr\":\"127.0.0.1\",\n"
@@ -841,7 +841,7 @@ test_channel_cmd_serialize_default_opt(void) {
 
   /* serialize result str. */
   const char serialize_str1[] = "channel "
-                                NAMESPACE_DELIMITER"test_name17 create "
+                                DATASTORE_NAMESPACE_DELIMITER"test_name17 create "
                                 "-dst-addr 127.0.0.1 "
                                 "-dst-port 6633 "
                                 "-local-addr 0.0.0.0 "
@@ -856,7 +856,7 @@ test_channel_cmd_serialize_default_opt(void) {
   /* TEST : serialize. */
   TEST_CMD_PROC(ret, LAGOPUS_RESULT_OK, channel_cmd_serialize, &interp, state,
                 &tbl,
-                NAMESPACE_DELIMITER"test_name17", conf, &ds, str, serialize_str1);
+                DATASTORE_NAMESPACE_DELIMITER"test_name17", conf, &ds, str, serialize_str1);
 
   /* destroy cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, channel_cmd_parse,
@@ -881,7 +881,7 @@ test_channel_cmd_serialize_default_opt_escape(void) {
 
   /* serialize result str. */
   const char serialize_str1[] = "channel "
-                                "\""NAMESPACE_DELIMITER"test_\\\"name18\" create "
+                                "\""DATASTORE_NAMESPACE_DELIMITER"test_\\\"name18\" create "
                                 "-dst-addr 127.0.0.1 "
                                 "-dst-port 6633 "
                                 "-local-addr 0.0.0.0 "
@@ -896,7 +896,7 @@ test_channel_cmd_serialize_default_opt_escape(void) {
   /* TEST : serialize. */
   TEST_CMD_PROC(ret, LAGOPUS_RESULT_OK, channel_cmd_serialize, &interp, state,
                 &tbl,
-                NAMESPACE_DELIMITER"test_\"name18", conf, &ds, str, serialize_str1);
+                DATASTORE_NAMESPACE_DELIMITER"test_\"name18", conf, &ds, str, serialize_str1);
 
   /* destroy cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, channel_cmd_parse,
@@ -921,7 +921,7 @@ test_channel_cmd_serialize_default_opt_escape_white_space(void) {
 
   /* serialize result str. */
   const char serialize_str1[] = "channel "
-                                "\""NAMESPACE_DELIMITER"test name19\" create "
+                                "\""DATASTORE_NAMESPACE_DELIMITER"test name19\" create "
                                 "-dst-addr 127.0.0.1 "
                                 "-dst-port 6633 "
                                 "-local-addr 0.0.0.0 "
@@ -936,7 +936,7 @@ test_channel_cmd_serialize_default_opt_escape_white_space(void) {
   /* TEST : serialize. */
   TEST_CMD_PROC(ret, LAGOPUS_RESULT_OK, channel_cmd_serialize, &interp, state,
                 &tbl,
-                NAMESPACE_DELIMITER"test name19", conf, &ds, str, serialize_str1);
+                DATASTORE_NAMESPACE_DELIMITER"test name19", conf, &ds, str, serialize_str1);
 
   /* destroy cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, channel_cmd_parse,
@@ -968,7 +968,7 @@ test_channel_cmd_serialize_all_opt(void) {
 
   /* serialize result str. */
   const char serialize_str1[] = "channel "
-                                NAMESPACE_DELIMITER"test_name20 create "
+                                DATASTORE_NAMESPACE_DELIMITER"test_name20 create "
                                 "-dst-addr 10.0.0.1 "
                                 "-dst-port 11111 "
                                 "-local-addr 10.0.0.2 "
@@ -983,7 +983,7 @@ test_channel_cmd_serialize_all_opt(void) {
   /* TEST : serialize. */
   TEST_CMD_PROC(ret, LAGOPUS_RESULT_OK, channel_cmd_serialize, &interp, state,
                 &tbl,
-                NAMESPACE_DELIMITER"test_name20", conf, &ds, str, serialize_str1);
+                DATASTORE_NAMESPACE_DELIMITER"test_name20", conf, &ds, str, serialize_str1);
 
   /* destroy cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, channel_cmd_parse,
@@ -1016,7 +1016,7 @@ test_channel_cmd_parse_atomic_commit(void) {
   const char *argv3[] = {"channel", "test_name21", "modified", NULL};
   const char test_str3[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name21\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name21\",\n"
     "\"dst-addr\":\"127.0.0.1\",\n"
     "\"dst-port\":65535,\n"
     "\"local-addr\":\"127.0.0.1\",\n"
@@ -1039,7 +1039,7 @@ test_channel_cmd_parse_atomic_commit(void) {
   const char *argv6[] = {"channel", "test_name21", "modified", NULL};
   const char test_str6[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name21\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name21\",\n"
     "\"dst-addr\":\"127.0.0.2\",\n"
     "\"dst-port\":3000,\n"
     "\"local-addr\":\"127.0.0.2\",\n"
@@ -1050,7 +1050,7 @@ test_channel_cmd_parse_atomic_commit(void) {
   const char *argv7[] = {"channel", "test_name21", NULL};
   const char test_str7[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name21\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name21\",\n"
     "\"dst-addr\":\"127.0.0.2\",\n"
     "\"dst-port\":3000,\n"
     "\"local-addr\":\"127.0.0.2\",\n"
@@ -1101,11 +1101,11 @@ test_channel_cmd_parse_atomic_commit(void) {
 
   /* commiting. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, channel_cmd_update, &interp, state2, &tbl,
-            NAMESPACE_DELIMITER"test_name21", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name21", conf, &ds);
 
   /* commited. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, channel_cmd_update, &interp, state3, &tbl,
-            NAMESPACE_DELIMITER"test_name21", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name21", conf, &ds);
 
   /* show cmd (current). */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, channel_cmd_parse, &interp, state1,
@@ -1148,7 +1148,7 @@ test_channel_cmd_parse_atomic_rollback(void) {
   const char *argv3[] = {"channel", "test_name22", "modified", NULL};
   const char test_str3[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name22\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name22\",\n"
     "\"dst-addr\":\"127.0.0.1\",\n"
     "\"dst-port\":65535,\n"
     "\"local-addr\":\"127.0.0.1\",\n"
@@ -1171,7 +1171,7 @@ test_channel_cmd_parse_atomic_rollback(void) {
   const char *argv6[] = {"channel", "test_name22", "modified", NULL};
   const char test_str6[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name22\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name22\",\n"
     "\"dst-addr\":\"127.0.0.2\",\n"
     "\"dst-port\":3000,\n"
     "\"local-addr\":\"127.0.0.2\",\n"
@@ -1218,11 +1218,11 @@ test_channel_cmd_parse_atomic_rollback(void) {
 
   /* rollbacking. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, channel_cmd_update, &interp, state2, &tbl,
-            NAMESPACE_DELIMITER"test_name22", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name22", conf, &ds);
 
   /* rollbacked. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, channel_cmd_update, &interp, state3, &tbl,
-            NAMESPACE_DELIMITER"test_name22", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name22", conf, &ds);
 
   /* show cmd (current). */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
@@ -1258,7 +1258,7 @@ test_channel_cmd_parse_atomic_delay_enable(void) {
   const char *argv4[] = {"channel", "test_name23", "modified", NULL};
   const char test_str4[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name23\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name23\",\n"
     "\"dst-addr\":\"127.0.0.1\",\n"
     "\"dst-port\":65535,\n"
     "\"local-addr\":\"127.0.0.1\",\n"
@@ -1273,7 +1273,7 @@ test_channel_cmd_parse_atomic_delay_enable(void) {
   const char *argv6[] = {"channel", "test_name23", "modified", NULL};
   const char test_str6[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name23\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name23\",\n"
     "\"dst-addr\":\"127.0.0.1\",\n"
     "\"dst-port\":65535,\n"
     "\"local-addr\":\"127.0.0.1\",\n"
@@ -1284,7 +1284,7 @@ test_channel_cmd_parse_atomic_delay_enable(void) {
   const char *argv7[] = {"channel", "test_name23", NULL};
   const char test_str7[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name23\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name23\",\n"
     "\"dst-addr\":\"127.0.0.1\",\n"
     "\"dst-port\":65535,\n"
     "\"local-addr\":\"127.0.0.1\",\n"
@@ -1340,7 +1340,7 @@ test_channel_cmd_parse_atomic_delay_enable(void) {
 
   /* commiting. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, channel_cmd_update, &interp, state2, &tbl,
-            NAMESPACE_DELIMITER"test_name23", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name23", conf, &ds);
 
   /* show cmd (current). */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
@@ -1355,7 +1355,7 @@ test_channel_cmd_parse_atomic_delay_enable(void) {
 
   /* commited. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, channel_cmd_update, &interp, state3, &tbl,
-            NAMESPACE_DELIMITER"test_name23", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name23", conf, &ds);
 
   /* show cmd (current). */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, channel_cmd_parse, &interp, state1,
@@ -1404,7 +1404,7 @@ test_channel_cmd_parse_atomic_delay_disable(void) {
   const char *argv4[] = {"channel", "test_name24", NULL};
   const char test_str4[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name24\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name24\",\n"
     "\"dst-addr\":\"127.0.0.1\",\n"
     "\"dst-port\":65535,\n"
     "\"local-addr\":\"127.0.0.1\",\n"
@@ -1415,7 +1415,7 @@ test_channel_cmd_parse_atomic_delay_disable(void) {
   const char *argv5[] = {"channel", "test_name24", NULL};
   const char test_str5[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name24\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name24\",\n"
     "\"dst-addr\":\"127.0.0.1\",\n"
     "\"dst-port\":65535,\n"
     "\"local-addr\":\"127.0.0.1\",\n"
@@ -1426,7 +1426,7 @@ test_channel_cmd_parse_atomic_delay_disable(void) {
   const char *argv6[] = {"channel", "test_name24", NULL};
   const char test_str6[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name24\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name24\",\n"
     "\"dst-addr\":\"127.0.0.1\",\n"
     "\"dst-port\":65535,\n"
     "\"local-addr\":\"127.0.0.1\",\n"
@@ -1477,7 +1477,7 @@ test_channel_cmd_parse_atomic_delay_disable(void) {
 
   /* commiting. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, channel_cmd_update, &interp, state2, &tbl,
-            NAMESPACE_DELIMITER"test_name24", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name24", conf, &ds);
 
   /* show cmd (current). */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, channel_cmd_parse, &interp, state1,
@@ -1486,7 +1486,7 @@ test_channel_cmd_parse_atomic_delay_disable(void) {
 
   /* commited. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, channel_cmd_update, &interp, state3, &tbl,
-            NAMESPACE_DELIMITER"test_name24", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name24", conf, &ds);
 
   /* show cmd (current). */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, channel_cmd_parse, &interp, state1,
@@ -1529,23 +1529,23 @@ test_channel_cmd_parse_atomic_delay_destroy(void) {
   const char *argv3[] = {"channel", "test_name25", NULL};
   const char test_str3[] =
     "{\"ret\":\"NOT_FOUND\",\n"
-    "\"data\":\"name = "NAMESPACE_DELIMITER"test_name25\"}";
+    "\"data\":\"name = "DATASTORE_NAMESPACE_DELIMITER"test_name25\"}";
   const char *argv4[] = {"channel", "test_name25", "enable", NULL};
   const char test_str4[] =
     "{\"ret\":\"INVALID_OBJECT\",\n"
-    "\"data\":\"name = "NAMESPACE_DELIMITER"test_name25\"}";
+    "\"data\":\"name = "DATASTORE_NAMESPACE_DELIMITER"test_name25\"}";
   const char *argv5[] = {"channel", "test_name25", "disable", NULL};
   const char test_str5[] =
     "{\"ret\":\"INVALID_OBJECT\",\n"
-    "\"data\":\"name = "NAMESPACE_DELIMITER"test_name25\"}";
+    "\"data\":\"name = "DATASTORE_NAMESPACE_DELIMITER"test_name25\"}";
   const char *argv6[] = {"channel", "test_name25", "destroy", NULL};
   const char test_str6[] =
     "{\"ret\":\"INVALID_OBJECT\",\n"
-    "\"data\":\"name = "NAMESPACE_DELIMITER"test_name25\"}";
+    "\"data\":\"name = "DATASTORE_NAMESPACE_DELIMITER"test_name25\"}";
   const char *argv7[] = {"channel", "test_name25", NULL};
   const char test_str7[] =
     "{\"ret\":\"NOT_FOUND\",\n"
-    "\"data\":\"name = "NAMESPACE_DELIMITER"test_name25\"}";
+    "\"data\":\"name = "DATASTORE_NAMESPACE_DELIMITER"test_name25\"}";
 
   /* create cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, channel_cmd_parse, &interp, state4,
@@ -1583,11 +1583,11 @@ test_channel_cmd_parse_atomic_delay_destroy(void) {
 
   /* commiting. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, channel_cmd_update, &interp, state2, &tbl,
-            NAMESPACE_DELIMITER"test_name25", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name25", conf, &ds);
 
   /* commited. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, channel_cmd_update, &interp, state3, &tbl,
-            NAMESPACE_DELIMITER"test_name25", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name25", conf, &ds);
 
   /* show cmd (current). */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
@@ -1620,7 +1620,7 @@ test_channel_cmd_parse_atomic_abort_01(void) {
   const char *argv3[] = {"channel", "test_name26", "modified", NULL};
   const char test_str3[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name26\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name26\",\n"
     "\"dst-addr\":\"127.0.0.1\",\n"
     "\"dst-port\":65535,\n"
     "\"local-addr\":\"127.0.0.1\",\n"
@@ -1643,7 +1643,7 @@ test_channel_cmd_parse_atomic_abort_01(void) {
   const char *argv6[] = {"channel", "test_name26", "modified", NULL};
   const char test_str6[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name26\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name26\",\n"
     "\"dst-addr\":\"127.0.0.2\",\n"
     "\"dst-port\":3000,\n"
     "\"local-addr\":\"127.0.0.2\",\n"
@@ -1658,7 +1658,7 @@ test_channel_cmd_parse_atomic_abort_01(void) {
   const char *argv8[] = {"channel", "test_name26", "modified", NULL};
   const char test_str8[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name26\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name26\",\n"
     "\"dst-addr\":\"127.0.0.2\",\n"
     "\"dst-port\":3000,\n"
     "\"local-addr\":\"127.0.0.2\",\n"
@@ -1669,7 +1669,7 @@ test_channel_cmd_parse_atomic_abort_01(void) {
   const char *argv9[] = {"channel", "test_name26", NULL};
   const char test_str9[] =
     "{\"ret\":\"NOT_FOUND\",\n"
-    "\"data\":\"name = "NAMESPACE_DELIMITER"test_name26\"}";
+    "\"data\":\"name = "DATASTORE_NAMESPACE_DELIMITER"test_name26\"}";
 
   /* create cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, channel_cmd_parse, &interp, state1,
@@ -1705,7 +1705,7 @@ test_channel_cmd_parse_atomic_abort_01(void) {
 
   /* aborting. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, channel_cmd_update, &interp, state2, &tbl,
-            NAMESPACE_DELIMITER"test_name26", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name26", conf, &ds);
 
   /* show cmd (current). */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
@@ -1720,7 +1720,7 @@ test_channel_cmd_parse_atomic_abort_01(void) {
 
   /* aborted. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, channel_cmd_update, &interp, state3, &tbl,
-            NAMESPACE_DELIMITER"test_name26", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name26", conf, &ds);
 
   /* show cmd (current). */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
@@ -1750,7 +1750,7 @@ test_channel_cmd_parse_atomic_abort_02(void) {
   const char *argv2[] = {"channel", "test_name27", NULL};
   const char test_str2[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name27\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name27\",\n"
     "\"dst-addr\":\"127.0.0.1\",\n"
     "\"dst-port\":65535,\n"
     "\"local-addr\":\"127.0.0.1\",\n"
@@ -1773,7 +1773,7 @@ test_channel_cmd_parse_atomic_abort_02(void) {
   const char *argv5[] = {"channel", "test_name27", NULL};
   const char test_str5[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name27\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name27\",\n"
     "\"dst-addr\":\"127.0.0.1\",\n"
     "\"dst-port\":65535,\n"
     "\"local-addr\":\"127.0.0.1\",\n"
@@ -1784,7 +1784,7 @@ test_channel_cmd_parse_atomic_abort_02(void) {
   const char *argv6[] = {"channel", "test_name27", "modified", NULL};
   const char test_str6[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name27\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name27\",\n"
     "\"dst-addr\":\"127.0.0.2\",\n"
     "\"dst-port\":3000,\n"
     "\"local-addr\":\"127.0.0.2\",\n"
@@ -1795,7 +1795,7 @@ test_channel_cmd_parse_atomic_abort_02(void) {
   const char *argv7[] = {"channel", "test_name27", NULL};
   const char test_str7[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name27\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name27\",\n"
     "\"dst-addr\":\"127.0.0.1\",\n"
     "\"dst-port\":65535,\n"
     "\"local-addr\":\"127.0.0.1\",\n"
@@ -1806,7 +1806,7 @@ test_channel_cmd_parse_atomic_abort_02(void) {
   const char *argv8[] = {"channel", "test_name27", "modified", NULL};
   const char test_str8[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name27\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name27\",\n"
     "\"dst-addr\":\"127.0.0.2\",\n"
     "\"dst-port\":3000,\n"
     "\"local-addr\":\"127.0.0.2\",\n"
@@ -1817,7 +1817,7 @@ test_channel_cmd_parse_atomic_abort_02(void) {
   const char *argv9[] = {"channel", "test_name27", NULL};
   const char test_str9[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name27\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name27\",\n"
     "\"dst-addr\":\"127.0.0.1\",\n"
     "\"dst-port\":65535,\n"
     "\"local-addr\":\"127.0.0.1\",\n"
@@ -1867,7 +1867,7 @@ test_channel_cmd_parse_atomic_abort_02(void) {
 
   /* aborting. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, channel_cmd_update, &interp, state2, &tbl,
-            NAMESPACE_DELIMITER"test_name27", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name27", conf, &ds);
 
   /* show cmd (current). */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, channel_cmd_parse, &interp, state1,
@@ -1881,7 +1881,7 @@ test_channel_cmd_parse_atomic_abort_02(void) {
 
   /* aborted. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, channel_cmd_update, &interp, state3, &tbl,
-            NAMESPACE_DELIMITER"test_name27", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name27", conf, &ds);
 
   /* show cmd (current). */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, channel_cmd_parse, &interp, state1,
@@ -1925,7 +1925,7 @@ test_channel_cmd_parse_atomic_destroy_create(void) {
   const char *argv3[] = {"channel", "test_name28", NULL};
   const char test_str3[] =
     "{\"ret\":\"NOT_FOUND\",\n"
-    "\"data\":\"name = "NAMESPACE_DELIMITER"test_name28\"}";
+    "\"data\":\"name = "DATASTORE_NAMESPACE_DELIMITER"test_name28\"}";
   const char *argv4[] = {"channel", "test_name28", "create",
                          "-dst-addr", "127.0.0.2",
                          "-dst-port", "65535",
@@ -1938,7 +1938,7 @@ test_channel_cmd_parse_atomic_destroy_create(void) {
   const char *argv5[] = {"channel", "test_name28", NULL};
   const char test_str5[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name28\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name28\",\n"
     "\"dst-addr\":\"127.0.0.1\",\n"
     "\"dst-port\":65535,\n"
     "\"local-addr\":\"127.0.0.1\",\n"
@@ -1949,7 +1949,7 @@ test_channel_cmd_parse_atomic_destroy_create(void) {
   const char *argv6[] = {"channel", "test_name28", "modified", NULL};
   const char test_str6[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name28\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name28\",\n"
     "\"dst-addr\":\"127.0.0.2\",\n"
     "\"dst-port\":65535,\n"
     "\"local-addr\":\"127.0.0.2\",\n"
@@ -1960,7 +1960,7 @@ test_channel_cmd_parse_atomic_destroy_create(void) {
   const char *argv7[] = {"channel", "test_name28", NULL};
   const char test_str7[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name28\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name28\",\n"
     "\"dst-addr\":\"127.0.0.2\",\n"
     "\"dst-port\":65535,\n"
     "\"local-addr\":\"127.0.0.2\",\n"
@@ -2010,11 +2010,11 @@ test_channel_cmd_parse_atomic_destroy_create(void) {
 
   /* commiting. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, channel_cmd_update, &interp, state2, &tbl,
-            NAMESPACE_DELIMITER"test_name28", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name28", conf, &ds);
 
   /* commited. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, channel_cmd_update, &interp, state3, &tbl,
-            NAMESPACE_DELIMITER"test_name28", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name28", conf, &ds);
 
   /* show cmd (current). */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, channel_cmd_parse, &interp, state4,

@@ -30,27 +30,12 @@
 
 
 
+#include "lagopus_callout_task_state.h"
 #include "lagopus_callout_task_funcs.h"
 #include "lagopus_runnable_internal.h"
 
 
 
-
-
-/**
- * The callout task status.
- */
-typedef enum {
-  TASK_STATE_UNKNOWN = 0,
-  TASK_STATE_CREATED,	/** Created. */
-  TASK_STATE_ENQUEUED,	/** Submitted/enqueued. */
-  TASK_STATE_DEQUEUED,	/** Decqueud for execution. */
-  TASK_STATE_EXECUTING,	/** Just executing at the moment. */
-  TASK_STATE_EXECUTED,	/** Executed. */
-  TASK_STATE_EXEC_FAILED,	/** Execution failed. */
-  TASK_STATE_CANCELLED,	/** Cancelled. */
-  TASK_STATE_DELETING	/** Just deleting at the moment. */
-} callout_task_state_t;
 
 
 typedef struct lagopus_callout_task_record {
@@ -77,6 +62,8 @@ typedef struct lagopus_callout_task_record {
                             check that a specified entry is really in
                             a specified queue for the
                             insertion/removal. */
+  bool m_is_in_bbq;	/** \b true ... the task is either in the
+                            uegent Q or the idle Q. */
   lagopus_chrono_t m_initial_delay_time;
   lagopus_chrono_t m_interval_time;
   lagopus_chrono_t m_last_abstime;
