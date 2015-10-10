@@ -196,6 +196,16 @@ else
   AC_MSG_RESULT([does noe exists.])
 fi
 
+AC_ARG_ENABLE([hybrid],
+	[AC_HELP_STRING([--enable-hybrid],
+	 [enable build as hybrid switch [default is no]])]
+	 ,[hybrid="$enableval"], [hybrid=no])
+
+if test "X${hybrid}" != "Xno"; then
+   HYBRID_CPPFLAGS=-DHYBRID
+fi
+AC_SUBST(HYBRID_CPPFLAGS)
+
 # headers/macros
 
 oLIBS=${LIBS}

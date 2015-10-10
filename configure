@@ -660,6 +660,7 @@ NETSNMP_AGENT_LIBS
 SNMP_CPPFLAGS
 SNMP_DIR
 PCAP_LIBS
+HYBRID_CPPFLAGS
 UNITY_SRC_DIR
 HAVE_UNITY
 HAVE_GCOVR
@@ -786,6 +787,7 @@ with_gnu_ld
 with_sysroot
 enable_libtool_lock
 enable_developer
+enable_hybrid
 enable_snmp
 enable_jumbo_frame
 with_dpdk_dir
@@ -1427,6 +1429,8 @@ Optional Features:
   --disable-libtool-lock  avoid locking (might break parallel builds)
   --enable-developer      enable build for developers, like unit tests
                           [default is no]
+
+  --enable-hybrid         enable build as hybrid switch [default is no]
 
   --enable-snmp           build with snmp feature [default is no]
 
@@ -16057,6 +16061,19 @@ else
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: does noe exists." >&5
 $as_echo "does noe exists." >&6; }
 fi
+
+# Check whether --enable-hybrid was given.
+if test "${enable_hybrid+set}" = set; then :
+  enableval=$enable_hybrid; hybrid="$enableval"
+else
+  hybrid=no
+fi
+
+
+if test "X${hybrid}" != "Xno"; then
+   HYBRID_CPPFLAGS=-DHYBRID
+fi
+
 
 # headers/macros
 
