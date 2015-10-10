@@ -30,8 +30,8 @@ static bool run = false;
 static lagopus_session_t event_w, event_r;
 static lagopus_callout_task_t channel_free_task;
 
-#define UNUSED_DPID 0
-#define MAX_CHANNELES 1024
+#define UNUSED_DPID (0)
+#define MAX_CHANNELES (1024)
 #define POLL_TIMEOUT  (1000) /* 1sec */
 #define MAKE_MAIN_HASH(key, ipaddr, addr, bridge_name) \
   snprintf((key), sizeof((key)), "%s:%02d:%s", (ipaddr), (addr)->family, \
@@ -50,7 +50,7 @@ struct session_set {
 };
 
 static bool
-channel_session_add(__UNUSED void *key, void *val, __UNUSED lagopus_hashentry_t he, void *arg) {
+channel_session_gather(__UNUSED void *key, void *val, __UNUSED lagopus_hashentry_t he, void *arg) {
   lagopus_session_t s;
   struct channel *chan = (struct channel *) val;
   struct session_set *ss = (struct session_set *) arg;
@@ -80,6 +80,7 @@ channel_process(__UNUSED void *key, void *val, __UNUSED lagopus_hashentry_t he, 
   lagopus_session_t s;
   struct channel *channel = (struct channel *) val;
 
+  channel_refs_get(channel);
   s = channel_session_get(channel);
   if (s != NULL) {
     bool r = false, w = false;
@@ -102,6 +103,7 @@ channel_process(__UNUSED void *key, void *val, __UNUSED lagopus_hashentry_t he, 
       (*cnt)--;
     }
   }
+  channel_refs_put(channel);
 
   if (*cnt == 0) {
     /* all sessions were proccessed. */
@@ -122,7 +124,7 @@ channel_mgr_loop(__UNUSED const lagopus_thread_t *t, __UNUSED void *arg) {
     ss.s[0] = event_r;
     ss.n_sessions = 1;
 
-    ret = lagopus_hashmap_iterate(&main_table, channel_session_add, &ss);
+    ret = lagopus_hashmap_iterate(&main_table, channel_session_gather, &ss);
     if (ret != LAGOPUS_RESULT_OK && ret != LAGOPUS_RESULT_ITERATION_HALTED) {
       lagopus_perror(ret);
       return ret;

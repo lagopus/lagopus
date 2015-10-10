@@ -89,7 +89,7 @@ s_do_sched(lagopus_callout_task_t t) {
               ;
             }
             if (e != NULL) {
-              TAILQ_INSERT_AFTER(&s_chrono_tsk_q, e, t, m_entry);
+              TAILQ_INSERT_BEFORE(e, t, m_entry);
             } else {
               TAILQ_INSERT_TAIL(&s_chrono_tsk_q, t, m_entry);
             }

@@ -151,6 +151,9 @@ struct channel {
   /* reference counter */
   int refs;
 
+  /* channel alive */
+  bool is_alive;
+
   /* channel set with same dpid */
 #define IS_USED_DPID_ENTRY(a) ((a)->dpid_entry.le_prev != NULL)
   LIST_ENTRY(channel) dpid_entry;
@@ -557,8 +560,8 @@ channel_start(struct channel *channel) {
     return -1;
   }
 
-  /* Increment channel reference count. */
-  channel->refs++;
+  /* Channel is alive */
+  channel->is_alive = true;
 
   /* Register read and write event. */
   channel_read_on(channel);
@@ -603,10 +606,6 @@ channel_stop(struct channel *channel) {
       lagopus_perror(ret);
     }
     /* TODO: close all auxiliary connections if existed */
-  }
-
-  if (channel->refs > 0) {
-    channel->refs--;
   }
 
   if (channel->callout != NULL) {
@@ -728,6 +727,33 @@ channel_process(struct channel *channel) {
 }
 
 /* Finite State Machine. */
+/*
+ *                                   Event
+ *                +-------------+    func()      +-------------+
+ *                |     Idle    |--------------->|   Connect   |
+ *                +-------------+ Channel_Start  +-------------+
+ *                       ^        channel_start         |
+ *                       |                              | TCP_Connection_Open
+ * TCP_Connection_Closed |                              | channel_connect_success
+ *     channel_stop      |     OpenFlow_Hello_Received  |
+ *                       |      channel_hello_confirm   V
+ *                +-------------+                +-------------+
+ *                | Established |<---------------|  HelloSent  |
+ *                +-------------+                +-------------+
+ *
+ *                                       -
+ *                +-------------+ channel_enable +-------------+
+ *                |   Disable   |--------------->|     Idle    |
+ *                +-------------+                +-------------+
+ *                      ^
+ *                      | Channel_Expired
+ *                      | channel_expire
+ *                      |
+ *                +-------------+
+ *                |  Any State  |
+ *                +-------------+
+ *
+ */
 struct {
   int (*func)(struct channel *);
   int next;
@@ -948,6 +974,7 @@ channel_alloc_internal(struct addrunion *controller) {
   }
 
   channel->refs = 0;
+  channel->is_alive = false;
   channel->dpid_entry.le_prev = NULL;
 
   ofp_role_channel_mask_init(&channel->role_mask);
@@ -1036,7 +1063,7 @@ channel_free(struct channel *channel) {
       channel_lock(channel);
     }
 
-    if (channel->refs > 0 || channel->status != Disable) {
+    if (channel->refs > 0 || channel->is_alive == true) {
       ret = LAGOPUS_RESULT_BUSY;
       channel_unlock(channel);
       lagopus_msg_debug(10, "%p: refs: %d, return busy\n", channel, channel->refs);
@@ -1658,6 +1685,10 @@ channel_is_alive(struct channel *channel) {
     return false;
   }
 
+  if (channel->is_alive == false) {
+    return false;
+  }
+
   if (channel->status != Established && channel->status != HelloSent) {
     return false;
   }
@@ -1786,10 +1817,9 @@ void
 channel_disable(struct channel *channel) {
   lagopus_msg_debug(10, "disable(%p)\n", channel);
   channel_lock(channel);
-  if (channel->event != Channel_Expired) {
+  if (channel->is_alive) {
+    channel->is_alive = false;
     channel_update(channel, Disable);
-    channel_event_nolock(channel, Channel_Expired);
-    channel_mgr_event_upcall();
   }
   channel_unlock(channel);
 }

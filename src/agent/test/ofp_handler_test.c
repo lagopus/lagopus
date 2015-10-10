@@ -489,7 +489,6 @@ test_put_channelq_packet_out(void) {
   res = lagopus_bbq_size(&(ofpb->event_dataq));
   TEST_ASSERT_EQUAL_MESSAGE(0, res, "event_dataq length error");
 
-  destroy_data_channel(channel);
   ofp_packet_out_free(edata);
 }
 
