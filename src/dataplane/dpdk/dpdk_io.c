@@ -998,6 +998,7 @@ app_init_rings_tx(void) {
   }
 }
 
+#if defined(RTE_VERSION_NUM) && RTE_VERSION >= RTE_VERSION_NUM(2, 0, 0, 4)
 static inline uint8_t
 dpdk_get_detachable_portid_by_name(const char *name) {
   uint8_t portid;
@@ -1033,6 +1034,7 @@ dpdk_get_detachable_portid_by_name(const char *name) {
 out:
   return portid;
 }
+#endif
 
 static inline const char *
 dpdk_remove_namespace(const char *device) {
