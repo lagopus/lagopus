@@ -1346,9 +1346,15 @@ port_stats(struct port *port) {
 lagopus_result_t
 update_port_link_status(struct port *port) {
   struct rte_eth_link link;
+  struct interface *ifp;
   uint8_t portid;
   bool changed = false;
 
+  ifp = port->interface;
+  if (ifp == NULL ||
+      ifp->info.type != DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_PHY) {
+    return LAGOPUS_RESULT_OK;
+  }
   portid = (uint8_t)port->ifindex;
   /* ofp_port.config is configured by the controller. */
 
