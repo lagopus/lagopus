@@ -475,8 +475,8 @@ test_flowdb_flow_modify(void) {
                              &instruction_list, &error);
   TEST_ASSERT_TABLE_NFLOW(tablep, MISC_FLOWS, 2);
 
-  TEST_ASSERT_HAS_METADATA_WRITE((*tablep)->flow_list.flows[0], 0);
-  TEST_ASSERT_NO_METADATA_WRITE((*tablep)->flow_list.flows[1]);
+  TEST_ASSERT_HAS_METADATA_WRITE((*tablep)->flow_list->flows[0], 0);
+  TEST_ASSERT_NO_METADATA_WRITE((*tablep)->flow_list->flows[1]);
 
   FLOWDB_DUMP(flowdb, "After modification (1)", stdout);
 
@@ -489,8 +489,8 @@ test_flowdb_flow_modify(void) {
                              &instruction_list, &error);
   TEST_ASSERT_TABLE_NFLOW(tablep, MISC_FLOWS, 2);
 
-  TEST_ASSERT_HAS_METADATA_WRITE((*tablep)->flow_list.flows[0], 0);
-  TEST_ASSERT_HAS_METADATA_WRITE((*tablep)->flow_list.flows[1], 1);
+  TEST_ASSERT_HAS_METADATA_WRITE((*tablep)->flow_list->flows[0], 0);
+  TEST_ASSERT_HAS_METADATA_WRITE((*tablep)->flow_list->flows[1], 1);
 
   FLOWDB_DUMP(flowdb, "After modification (2)", stdout);
 
@@ -503,8 +503,8 @@ test_flowdb_flow_modify(void) {
                              &instruction_list, &error);
   TEST_ASSERT_TABLE_NFLOW(tablep, MISC_FLOWS, 2);
 
-  TEST_ASSERT_HAS_METADATA_WRITE((*tablep)->flow_list.flows[0], 2);
-  TEST_ASSERT_HAS_METADATA_WRITE((*tablep)->flow_list.flows[1], 2);
+  TEST_ASSERT_HAS_METADATA_WRITE((*tablep)->flow_list->flows[0], 2);
+  TEST_ASSERT_HAS_METADATA_WRITE((*tablep)->flow_list->flows[1], 2);
 
   FLOWDB_DUMP(flowdb, "After modification (3)", stdout);
 

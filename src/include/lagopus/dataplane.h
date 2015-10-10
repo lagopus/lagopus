@@ -333,39 +333,6 @@ out:
   return rv;
 }
 
-/**
- * find flow entry matching packet from the table.
- *
- * @param[in]   pkt     packet.
- * @param[in]   table   flow table related with the bridge.
- *
- * @retval      NULL    flow is not found.
- * @retval      !=NULL  matched flow.
- */
-static inline struct flow *
-lagopus_find_flow(struct lagopus_packet *pkt, struct table *table) {
-  struct flowinfo *flowinfo;
-  struct flow *flow;
-  int32_t prio;
-
-  prio = -1;
-
-  flowinfo = table->userdata;
-  if (flowinfo != NULL) {
-    flow = flowinfo->match_func(flowinfo, pkt, &prio);
-  } else {
-    flow = NULL;
-  }
-
-  if (flow != NULL) {
-    DP_PRINT("MATCHED\n");
-    DPRINT_FLOW(flow);
-  } else {
-    DP_PRINT("NOT MATCHED\n");
-  }
-  return flow;
-}
-
 /* Prototypes. */
 
 /**

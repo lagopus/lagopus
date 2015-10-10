@@ -17,6 +17,7 @@
 #include "lagopus/ofcache.h"
 #include "pktbuf.h"
 #include "packet.h"
+#include "mbtree.h"
 
 #include "datapath_test_misc.h"
 
@@ -382,6 +383,15 @@ flow_benchmark(struct lagopus_packet *pkt, time_t sec) {
   loop = true;
   lookup_count = 0;
   match_count = 0;
+
+#ifdef USE_MBTREE
+  flowdb = pkt->in_port->bridge->flowdb;
+  table = table_lookup(flowdb, pkt->table_id);
+  if (table->flow_list->type == 0) {
+    cleanup_mbtree(table->flow_list);
+    build_mbtree(table->flow_list);
+  }
+#endif /* USE_MBTREE */
 
   set_timer(sec);
   /* lookup loop */

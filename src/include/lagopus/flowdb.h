@@ -264,6 +264,7 @@ struct flowinfo;
 struct flow_list {
   int nflow;
   struct flow **flows;
+  int alloced;
 
   /* decision tree */
   uint8_t type;
@@ -291,17 +292,19 @@ struct flow_list {
   };
   struct flow_list *flows_dontcare;
   struct flowinfo *basic;
-  void *branch[65536];
 
   uint8_t oxm_field;
   uint8_t shift;
   struct flow_list **mbtree_timer;
+
+  int nbranch;
+  void *branch[0];
 };
 
 /* Flow table. */
 struct table {
   /* Flows by types. */
-  struct flow_list flow_list;
+  struct flow_list *flow_list;
 
   /* active_count is number of flows. */
   uint64_t lookup_count;

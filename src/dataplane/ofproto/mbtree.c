@@ -172,11 +172,13 @@ build_mbtree(struct flow_list *flows) {
       childp = &flows->flows_dontcare;
     }
     if (*childp == NULL) {
-      *childp = calloc(1, sizeof(struct flow_list));
+      *childp = calloc(1, sizeof(struct flow_list)
+                       + sizeof(void *) * BRANCH_NUM);
+      (*childp)->nbranch = BRANCH_NUM;
     }
     flow_add_sub(flow, *childp);
   }
-  for (i = 0; i < 0xffff; i++) {
+  for (i = 0; i < flows->nbranch; i++) {
     if (flows->branch[i] != NULL) {
       build_mbtree_child(flows->branch[i]);
     }
@@ -217,7 +219,8 @@ build_mbtree_decision8(struct flow_list *flows,
       DPRINTF("flows[%d] = %d -> branch[%d]\n",
               i, val8, BRANCH8i(val8, flows->threshold8));
       if (BRANCH8(val8) == NULL) {
-        BRANCH8(val8) = calloc(1, sizeof(struct flow_list));
+        BRANCH8(val8) = calloc(1, sizeof(struct flow_list)
+                               + sizeof(void *) * BRANCH_NUM);
       }
       if (flow_add_sub(flow, BRANCH8(val8)) != LAGOPUS_RESULT_OK) {
         DPRINTF("true: flow_add_sub error\n");
@@ -257,7 +260,8 @@ build_mbtree_decision16(struct flow_list *flows,
       DPRINTF("flows[%d] = %d -> branch[%d]\n",
               i, val16, BRANCH16i(val16, flows->threshold16));
       if (BRANCH16(val16) == NULL) {
-        BRANCH16(val16) = calloc(1, sizeof(struct flow_list));
+        BRANCH16(val16) = calloc(1, sizeof(struct flow_list)
+                                 + sizeof(void *) * BRANCH_NUM);
       }
       if (flow_add_sub(flow, BRANCH16(val16)) != LAGOPUS_RESULT_OK) {
         DPRINTF("true: flow_add_sub error\n");
@@ -297,7 +301,8 @@ build_mbtree_decision32(struct flow_list *flows,
       DPRINTF("flows[%d] = %d -> branch[%d]\n",
               i, val32, BRANCH32i(val32, flows->threshold32));
       if (BRANCH32(val32) == NULL) {
-        BRANCH32(val32) = calloc(1, sizeof(struct flow_list));
+        BRANCH32(val32) = calloc(1, sizeof(struct flow_list)
+                                 + sizeof(void *) * BRANCH_NUM);
       }
       if (flow_add_sub(flow, BRANCH32(val32)) != LAGOPUS_RESULT_OK) {
         DPRINTF("true: flow_add_sub error\n");
@@ -337,7 +342,8 @@ build_mbtree_decision64(struct flow_list *flows,
       DPRINTF("flows[%d] = %qd -> branch[%d]\n",
               i, val64, BRANCH64i(val64, flows->threshold64));
       if (BRANCH64(val64) == NULL) {
-        BRANCH64(val64) = calloc(1, sizeof(struct flow_list));
+        BRANCH64(val64) = calloc(1, sizeof(struct flow_list)
+                                 + sizeof(void *) * BRANCH_NUM);
       }
       if (flow_add_sub(flow, BRANCH64(val64)) != LAGOPUS_RESULT_OK) {
         DPRINTF("true: flow_add_sub error\n");
@@ -553,7 +559,8 @@ get_child_flow_list(struct flow_list *flow_list,
       }
       node = ptree_node_get(child_array[0], key, flow_list->keylen);
       if (node->info == NULL) {
-        node->info = calloc(1, sizeof(struct flow_list));
+        node->info = calloc(1, sizeof(struct flow_list)
+                            + sizeof(void *) * BRANCH_NUM);
       }
       child = node->info;
       break;
@@ -654,7 +661,8 @@ build_mbtree_child(struct flow_list *flow_list) {
   }
   /* distribute flow entries */
   if (flow_list->flows_dontcare == NULL) {
-    flow_list->flows_dontcare = calloc(1, sizeof(struct flow_list));
+    flow_list->flows_dontcare = calloc(1, sizeof(struct flow_list)
+                                       + sizeof(void *) * BRANCH_NUM);
   }
 
   /* set flow_list type and related values */
@@ -693,48 +701,52 @@ build_mbtree_child(struct flow_list *flow_list) {
 }
 
 static void
-free_mbtree(int type, struct flow_list *flow_list) {
-  if (flow_list != NULL) {
-    int i;
+free_mbtree(int type, void *arg) {
+  struct flow_list *flow_list;
+  struct ptree_node *node;
+  int i;
 
-    for (i = 0; i < BRANCH_NUM + 1; i++) {
-      struct ptree_node *node;
-
-      if (flow_list->branch[i] == NULL) {
-        continue;
-      }
-      switch (type) {
-        case DECISION8:
-        case DECISION16:
-        case DECISION32:
-        case DECISION64:
-          cleanup_mbtree(flow_list->branch[i]);
-          break;
-
-        case RADIXTREE:
-          node = ptree_top(flow_list->branch[0]);
-          while (node != NULL) {
-            if (node->info != NULL) {
-              cleanup_mbtree(node->info);
-            }
-            node = ptree_next(node);
+  if (arg != NULL) {
+    switch (type) {
+      case DECISION8:
+      case DECISION16:
+      case DECISION32:
+      case DECISION64:
+        flow_list = arg;
+        for (i = 0; i < BRANCH_NUM + 1; i++) {
+          if (flow_list->branch[i] == NULL) {
+            continue;
           }
-          ptree_free(flow_list->branch[0]);
-          break;
+          cleanup_mbtree(flow_list->branch[i]);
+          flow_list->branch[i] = NULL;
+        }
+        if (flow_list->flows_dontcare != NULL) {
+          cleanup_mbtree(flow_list->flows_dontcare);
+          flow_list->flows_dontcare = NULL;
+        }
+        free(flow_list);
+        break;
 
-        case SEQUENCIAL:
-          free(flow_list->branch[i]);
-          break;
-      }
-      flow_list->branch[i] = NULL;
+      case RADIXTREE:
+        for (node = ptree_top(arg);
+             node != NULL;
+             node = ptree_next(node)) {
+          if (node->info != NULL) {
+            cleanup_mbtree(node->info);
+          }
+        }
+        ptree_free(arg);
+        break;
+
+      case SEQUENCIAL:
+        flow_list = arg;
+        if (flow_list->basic != NULL) {
+          flow_list->basic->destroy_func(flow_list->basic);
+          flow_list->basic == NULL;
+        }
+        free(flow_list);
+        break;
     }
-
-    if (flow_list->flows_dontcare != NULL) {
-      cleanup_mbtree(flow_list->flows_dontcare);
-      flow_list->flows_dontcare = NULL;
-    }
-
-    free(flow_list);
   }
 }
 
@@ -747,7 +759,7 @@ cleanup_mbtree(struct flow_list *flows) {
   }
   type = flows->type;
   flows->type = SEQUENCIAL;
-  for (i = 0; i < 0xffff; i++) {
+  for (i = 0; i < flows->nbranch; i++) {
     if (flows->branch[i] != NULL) {
       free_mbtree(type, flows->branch[i]);
       flows->branch[i] = NULL;

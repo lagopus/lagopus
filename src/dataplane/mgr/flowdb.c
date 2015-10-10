@@ -239,9 +239,9 @@ table_alloc(uint8_t table_id) {
   }
 
   table->table_id = table_id;
-  table->flow_list.nflow = 0;
-  table->flow_list.flows = NULL;
-
+  table->flow_list = calloc(1, sizeof(struct flow_list)
+                            + sizeof(void *) * 65536);
+  table->flow_list->nbranch = 65536;
   return table;
 }
 
@@ -259,7 +259,7 @@ table_free(struct table *table) {
   struct flow_list *flow_list;
   int nflow, i, j;
 
-  flow_list = &table->flow_list;
+  flow_list = table->flow_list;
 #ifdef USE_MBTREE
   cleanup_mbtree(flow_list);
 #endif /* USE_MBTREE */
@@ -267,6 +267,7 @@ table_free(struct table *table) {
   for (j = 0; j < nflow; j++) {
     flow_free(flow_list->flows[j]);
   }
+  free(flow_list);
   free(table);
 }
 
@@ -688,7 +689,7 @@ flow_remove_with_reason_nolock(struct flow *flow,
   meter_table = bridge->meter_table;
   table = table_get(bridge->flowdb, flow->table_id);
 
-  flow_list = &table->flow_list;
+  flow_list = table->flow_list;
   for (i = 0; i < flow_list->nflow; i++) {
     if (flow == flow_list->flows[i]) {
       /* call flowinfo cleanup. */
@@ -909,8 +910,11 @@ flow_add_sub(struct flow *flow, struct flow_list *flows) {
   int i, st, ed, off;
 
   ret = LAGOPUS_RESULT_OK;
-  flows->flows = realloc(flows->flows,
-                         (size_t)(flows->nflow + 1) * sizeof(struct flow *));
+  if (flows->nflow + 1 > flows->alloced) {
+    flows->alloced = flows->nflow * 2;
+    flows->flows = realloc(flows->flows,
+                           (size_t)(flows->alloced) * sizeof(struct flow *));
+  }
   if (flows->flows == NULL) {
     ret = LAGOPUS_RESULT_NO_MEMORY;
     goto out;
@@ -993,7 +997,7 @@ flowdb_flow_add(struct bridge *bridge,
   if (lagopus_find_flow_hook != NULL) {
     identical_flow = lagopus_find_flow_hook(flow, table);
   } else {
-    identical_flow = flow_exist_sub(flow, &table->flow_list);
+    identical_flow = flow_exist_sub(flow, table->flow_list);
   }
   if (identical_flow != NULL) {
     /* Check if overlapped entry exist.  see 6.4 Flow Table Modification
@@ -1043,7 +1047,7 @@ flowdb_flow_add(struct bridge *bridge,
     if (ret != LAGOPUS_RESULT_OK) {
       goto out;
     }
-    ret = flow_add_sub(flow, &table->flow_list);
+    ret = flow_add_sub(flow, table->flow_list);
     if (ret != LAGOPUS_RESULT_OK) {
       goto out;
     }
@@ -1054,10 +1058,10 @@ flowdb_flow_add(struct bridge *bridge,
       add_flow_timer(flow);
     }
 #ifdef USE_MBTREE
-    if (table->flow_list.mbtree_timer != NULL) {
-      *table->flow_list.mbtree_timer = NULL;
+    if (table->flow_list->mbtree_timer != NULL) {
+      *table->flow_list->mbtree_timer = NULL;
     }
-    add_mbtree_timer(&table->flow_list, MBTREE_TIMEOUT);
+    add_mbtree_timer(table->flow_list, MBTREE_TIMEOUT);
 #endif /* USE_MBTREE */
   }
 
@@ -1424,7 +1428,7 @@ flow_del_sub(struct bridge *bridge,
     /*
      * not strict. delete all flows if matched by match_list and cookie.
      */
-    flow_list = &table->flow_list;
+    flow_list = table->flow_list;
     for (i = 0; i < flow_list->nflow; i++) {
       flow = flow_list->flows[i];
       /* filtering by cookie */
@@ -1482,7 +1486,7 @@ table_flow_modify(struct bridge *bridge, struct table *table,
                   struct ofp_error *error,
                   int strict) {
   flow_modify_sub(bridge, flow_mod,
-                  &table->flow_list,
+                  table->flow_list,
                   match_list, instruction_list,
                   error, strict);
   return LAGOPUS_RESULT_OK;
@@ -1496,7 +1500,7 @@ table_flow_delete(struct bridge *bridge,
                   int strict,
                   struct ofp_error *error) {
   flow_del_sub(bridge, table, flow_mod,
-               &table->flow_list, match_list,
+               table->flow_list, match_list,
                strict, error);
 }
 
@@ -1638,7 +1642,7 @@ table_flow_stats(struct table *table,
 
   rv = LAGOPUS_RESULT_OK;
 
-  flow_list = &table->flow_list;
+  flow_list = table->flow_list;
   for (i = 0; i < flow_list->nflow; i++) {
     flow = flow_list->flows[i];
     if (request->cookie_mask != 0) {
@@ -1753,7 +1757,7 @@ table_flow_counts(struct table *table,
   struct flow *flow;
   int type, i;
 
-  flow_list = &table->flow_list;
+  flow_list = table->flow_list;
   for (i = 0; i < flow_list->nflow; i++) {
     flow = flow_list->flows[i];
     if (request->cookie_mask != 0) {
@@ -1835,7 +1839,7 @@ flowdb_table_stats(struct flowdb *flowdb,
       return LAGOPUS_RESULT_NO_MEMORY;
     }
     stats->ofp.table_id = (uint8_t)table_id;
-    stats->ofp.active_count = (uint32_t)table->flow_list.nflow;
+    stats->ofp.active_count = (uint32_t)table->flow_list->nflow;
     stats->ofp.lookup_count = table->lookup_count;
     stats->ofp.matched_count = table->matched_count;
     TAILQ_INSERT_TAIL(list, stats, entry);
@@ -2626,7 +2630,7 @@ flowdb_dump(struct flowdb *flowdb, FILE *fp) {
     if (table != NULL) {
       fprintf(fp, "table %d\n", i);
 
-      flow_list = &table->flow_list;
+      flow_list = table->flow_list;
       for (j = 0; j < flow_list->nflow; j++) {
         flow_dump(flow_list->flows[j], fp);
       }
