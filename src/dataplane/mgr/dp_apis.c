@@ -885,7 +885,7 @@ dp_bridge_stats_get(const char *name,
     }
   }
   get_flowcache_statistics(bridge, &cache_stats);
-  stats->flowcache_entries = cache_stats.hit + cache_stats.miss;
+  stats->flowcache_entries = cache_stats.nentries;
   stats->flowcache_hit = cache_stats.hit;
   stats->flowcache_miss = cache_stats.miss;
 
