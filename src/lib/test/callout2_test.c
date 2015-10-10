@@ -521,6 +521,12 @@ test_idle_cancel_while(void) {
   lagopus_callout_cancel_task(&t);
 
   n_exec = s_wait_freeup_arg(arg);
+  if (n_exec == 0) {
+    /*
+     * idle tasks could be cancelled before execution.
+     */
+    n_exec = 1;
+  }
   TEST_ASSERT_EQUAL(n_exec, 1);
 
   s_destroy_arg(arg);

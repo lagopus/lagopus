@@ -525,9 +525,9 @@ check:: gcov
 		./$${runner} > ./$${runner}.testresult; \
 		ret=$$?; \
 		if test $$ret -ge 128; then \
-			echo "$${runner}:FAIL: exit status $$ret" >> ./$${runner}.testresult; \
+			echo "$${runner}:::FAIL: exit status $$ret" >> ./$${runner}.testresult; \
 			testcount=`cat ./$${runner}.testresult|wc -l`; \
-			failcount=`grep FAILED ./$${runner}.testresult|wc -l`; \
+			failcount=`grep ':FAIL' ./$${runner}.testresult|wc -l`; \
 			echo "-----------------------" >> ./$${runner}.testresult; \
 			echo "$$testcount Tests $$failcount Failures 0 Ignored" >> ./$${runner}.testresult; \
 			echo "FAIL" >> ./$${runner}.testresult; \

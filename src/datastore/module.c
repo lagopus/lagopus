@@ -292,6 +292,7 @@ s_get_namespace(const char *str, char **namespace) {
       ret = ns_split_fullname(str, &buf_ns, &buf_name);
       if (ret == LAGOPUS_RESULT_OK) {
         *namespace = buf_ns;
+        free(buf_name);
       } else {
         free(buf_ns);
         free(buf_name);
