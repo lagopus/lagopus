@@ -72,6 +72,9 @@ enum {
 #define MAKE_MATCH_IDX(base, type, member,  mask, shift)        \
   { base, offsetof(struct type, member), sizeof(((struct type *)0)->member), mask, shift }
 #define OXM_FIELD_TYPE(field) ((field) >> 1)
+#define OXM_FIELD_HAS_MASK(field) (((field) & 1) != 0)
+#define OXM_MATCH_VALUE_LEN(match) \
+  ((match)->oxm_length >> ((match)->oxm_field & 1))
 
 #define BRANCH8i(val, t)        (((val) - flows->min8) / (t))
 #define BRANCH16i(val, t)       (((val) - flows->min16) / (t))
@@ -365,40 +368,45 @@ struct match_stats {
 static void
 count_match(struct match *match, struct match_list *match_stats_list) {
   struct match *match_stats;
-  uint64_t value;
+  uint64_t value, length;
   int i;
 
   TAILQ_FOREACH(match_stats, match_stats_list, entry) {
     if (match->oxm_field == match_stats->oxm_field) {
-      if ((match->oxm_field & 1) == 0 ||
-          !memcmp(&match->oxm_value[match->oxm_length],
-                  &match_stats->oxm_value[match->oxm_length],
-                  match->oxm_length)) {
-        /* found exist match_stats */
-        if (match->oxm_length <= sizeof(uint64_t)) {
-          value = 0;
-          for (i = 0; i < match->oxm_length; i++) {
-            value <<= 8;
-            value |= match->oxm_value[i];
-          }
-          if (((struct match_stats *)match_stats)->min_value > value) {
-            ((struct match_stats *)match_stats)->min_value = value;
-          }
-          if (((struct match_stats *)match_stats)->max_value < value) {
-            ((struct match_stats *)match_stats)->max_value = value;
-          }
+      length = match->oxm_length;
+      if (OXM_FIELD_HAS_MASK(match->oxm_field)) {
+        length >>= 1;
+        if (memcmp(&match->oxm_value[length],
+                   &match_stats->oxm_value[length],
+                   length) != 0) {
+          continue;
         }
-        ((struct match_stats *)match_stats)->count++;
-        return;
       }
+      /* found exist match_stats */
+      if (length <= sizeof(uint64_t)) {
+        value = 0;
+        for (i = 0; i < length; i++) {
+          value <<= 8;
+          value |= match->oxm_value[i];
+        }
+        if (((struct match_stats *)match_stats)->min_value > value) {
+          ((struct match_stats *)match_stats)->min_value = value;
+        }
+        if (((struct match_stats *)match_stats)->max_value < value) {
+          ((struct match_stats *)match_stats)->max_value = value;
+        }
+      }
+      ((struct match_stats *)match_stats)->count++;
+      return;
     }
   }
+  /* new match_stats add to the list */
   match_stats = calloc(1, sizeof(struct match_stats));
   memcpy(match_stats, match, sizeof(struct match) + match->oxm_length);
   ((struct match_stats *)match_stats)->count = 1;
   value = 0;
-  if (match->oxm_length <= sizeof(uint64_t)) {
-    for (i = 0; i < match->oxm_length; i++) {
+  if (OXM_MATCH_VALUE_LEN(match) <= sizeof(uint64_t)) {
+    for (i = 0; i < OXM_MATCH_VALUE_LEN(match); i++) {
       value <<= 8;
       value |= match->oxm_value[i];
     }
@@ -418,7 +426,7 @@ count_flow_list_match(struct flow_list *flow_list,
   for (i = 0; i < flow_list->nflow; i++) {
     flow = flow_list->flows[i];
     TAILQ_FOREACH(match, &flow->match_list, entry) {
-      if (match->oxm_field >> 1 == OFPXMT_OFB_ETH_TYPE) {
+      if (OXM_FIELD_TYPE(match->oxm_field) == OFPXMT_OFB_ETH_TYPE) {
         continue;
       }
       count_match(match, match_stats_list);
@@ -428,7 +436,7 @@ count_flow_list_match(struct flow_list *flow_list,
 
 static struct match_stats *
 get_most_match(struct flow_list *flow_list) {
-  struct match_stats nullmatch = { };
+  struct match_stats nullmatch = { { } };
   struct match_list match_stats_list;
   struct match *match;
   struct match_stats *most_match;
@@ -452,7 +460,7 @@ get_most_match(struct flow_list *flow_list) {
   if (most_match == &nullmatch) {
     return NULL;
   }
-  threshold = (most_match->max_value -most_match->min_value) / BRANCH_NUM;
+  threshold = (most_match->max_value - most_match->min_value) / BRANCH_NUM;
   if (threshold == 0) {
     threshold = 1;
   }
@@ -470,10 +478,10 @@ get_match_field(struct match_list *match_list, struct match *match_stats) {
         /* field match.  match has no mask. */
         break;
       }
-      if (!memcmp(&match->oxm_value[match->oxm_length],
-                  &match_stats->oxm_value[match->oxm_length],
-                  match->oxm_length)) {
-        /* field ans mask match. */
+      if (!memcmp(&match->oxm_value[match->oxm_length >> 1],
+                  &match_stats->oxm_value[match->oxm_length >> 1],
+                  match->oxm_length >> 1)) {
+        /* field and mask match. */
         break;
       }
     }
@@ -521,7 +529,8 @@ get_child_flow_list(struct flow_list *flow_list,
   struct ptree_node *node;
   void *child;
 
-  get_shifted_value(match->oxm_value, match->oxm_length,
+  get_shifted_value(match->oxm_value,
+                    OXM_MATCH_VALUE_LEN(match),
                     flow_list->shift, flow_list->keylen >> 3, key);
   switch (flow_list->type) {
     case DECISION8:
@@ -561,6 +570,9 @@ get_child_flow_list(struct flow_list *flow_list,
       if (node->info == NULL) {
         node->info = calloc(1, sizeof(struct flow_list)
                             + sizeof(void *) * BRANCH_NUM);
+        DPRINTF("key %d,%d,%d,%d, new node %p\n",
+                key[0], key[1], key[2], key[3],
+                node->info);
       }
       child = node->info;
       break;
@@ -578,7 +590,7 @@ set_flow_list_desc(struct flow_list *flow_list,
   int idx;
 
   flow_list->type = RADIXTREE;
-  idx = match_stats->match.oxm_field >> 1;
+  idx = OXM_FIELD_TYPE(match_stats->match.oxm_field);
   flow_list->base = match_idx[idx].base;
   flow_list->match_off = match_idx[idx].off;
   flow_list->shift = match_idx[idx].shift;
@@ -668,9 +680,21 @@ build_mbtree_child(struct flow_list *flow_list) {
   /* set flow_list type and related values */
   set_flow_list_desc(flow_list, most_match);
 
+  DPRINTF("most_match: oxm_field %d\n", most_match->match.oxm_field);
+  DPRINTF("most_match: oxm_length %d\n", most_match->match.oxm_length);
+  DPRINTF("most_match: min_value %llu\n", most_match->min_value);
+  DPRINTF("most_match: max_value %llu\n", most_match->max_value);
+  DPRINTF("most_match: shift %d\n", most_match->shift);
+  DPRINTF("most_match: count %d\n", most_match->count);
+  DPRINTF("flow_list: nflow %d\n", flow_list->nflow);
+  DPRINTF("flow_list: shift %d\n", flow_list->shift);
+  DPRINTF("flow_list: match_off %d\n", flow_list->match_off);
+  DPRINTF("flow_list: keylen %d\n", flow_list->keylen);
+
   for (i = 0; i < flow_list->nflow; i++) {
     distribute_flow_to_child(flow_list->flows[i], most_match, flow_list);
   }
+  DPRINTF("dontcare: nflow %d\n", flow_list->flows_dontcare->nflow);
   /* build child flow list */
   switch (flow_list->type) {
     case DECISION8:

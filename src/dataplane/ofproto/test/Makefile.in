@@ -18,7 +18,7 @@ TESTS = match_test match_basic_test match_eth_test match_ipv4_test	\
 	flowinfo_ipv6_sctp_test flowinfo_ipv6_icmpv6_test		\
 	flowinfo_pbb_test flowinfo_ipv4_arp_test			\
 	flowinfo_ipv6_nd_ns_test flowinfo_ipv6_nd_na_test		\
-	group_test cityhash_test benchmark_test
+	group_test cityhash_test mbtree_test benchmark_test
 
 SRCS = match_test.c match_basic_test.c match_eth_test.c			\
 	match_ipv4_test.c match_ipv4_arp_test.c match_ipv6_test.c	\
@@ -40,7 +40,7 @@ SRCS = match_test.c match_basic_test.c match_eth_test.c			\
 	flowinfo_ipv6_icmpv6_test.c flowinfo_pbb_test.c			\
 	flowinfo_ipv4_arp_test.c flowinfo_ipv6_nd_ns_test.c		\
 	flowinfo_ipv6_nd_na_test.c cityhash_test.c group_test.c         \
-	benchmark_test.c
+	mbtree_test.c benchmark_test.c
 
 OFPROTODIR=$(BUILD_DATAPLANEDIR)/ofproto
 # so far, hardcoded.
