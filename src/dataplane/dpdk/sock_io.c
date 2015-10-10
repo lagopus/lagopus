@@ -253,9 +253,17 @@ rawsock_get_hwaddr(struct interface *ifp, uint8_t *hw_addr) {
 int
 rawsock_send_packet_physical(struct lagopus_packet *pkt, uint32_t portid) {
   if (pollfd[portid].fd != 0) {
+    OS_MBUF *m;
+    uint32_t plen;
+
+    m = pkt->mbuf;
+    plen = OS_M_PKTLEN(m);
+    if (plen < 60) {
+      memset(OS_M_APPEND(m, 60 - plen), 0, (uint32_t)(60 - plen));
+    }
     (void)write(pollfd[portid].fd,
-                OS_MTOD(pkt->mbuf, char *),
-                OS_M_PKTLEN(pkt->mbuf));
+                OS_MTOD(m, char *),
+                OS_M_PKTLEN(m));
   }
   lagopus_packet_free(pkt);
   return 0;

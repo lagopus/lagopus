@@ -411,9 +411,9 @@ dpdk_send_packet_physical(struct lagopus_packet *pkt, uint32_t portid) {
   lp = &app.lcore_params[lcore].worker;
 
   m = pkt->mbuf;
-  plen = OS_M_PKTLEN(m) - (pkt->base[L3_BASE] - pkt->base[ETH_BASE]);
-  if (plen < 46) {
-    memset(OS_M_APPEND(m, 46 - plen), 0, (uint32_t)(46 - plen));
+  plen = OS_M_PKTLEN(m);
+  if (plen < 60) {
+    memset(OS_M_APPEND(m, 60 - plen), 0, (uint32_t)(60 - plen));
   }
 
   pos = lp->mbuf_out[portid].n_mbufs;

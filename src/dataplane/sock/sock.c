@@ -467,6 +467,14 @@ lagopus_packet_free(struct lagopus_packet *pkt) {
 int
 rawsock_send_packet_physical(struct lagopus_packet *pkt, uint32_t portid) {
   if (pollfd[portid].fd != 0) {
+    OS_MBUF *m;
+    uint32_t plen;
+
+    m = pkt->mbuf;
+    plen = OS_M_PKTLEN(m);
+    if (plen < 60) {
+      memset(OS_M_APPEND(m, 60 - plen), 0, (uint32_t)(60 - plen));
+    }
     (void)write(pollfd[portid].fd, pkt->mbuf->data, OS_M_PKTLEN(pkt->mbuf));
   }
   lagopus_packet_free(pkt);
