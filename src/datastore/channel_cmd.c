@@ -2054,6 +2054,27 @@ channel_cmd_getname(const void *obj, const char **namep) {
   return ret;
 }
 
+static lagopus_result_t
+channel_cmd_duplicate(const void *obj, const char *fullname) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  channel_conf_t *dup_obj = NULL;
+
+  if (obj != NULL && fullname != NULL) {
+    ret = channel_conf_duplicate(obj, &dup_obj, fullname);
+    if (ret == LAGOPUS_RESULT_OK) {
+      ret = channel_conf_add(dup_obj);
+
+      if (ret != LAGOPUS_RESULT_OK && dup_obj != NULL) {
+        channel_conf_destroy(dup_obj);
+      }
+    }
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  return ret;
+}
+
 extern datastore_interp_t datastore_get_master_interp(void);
 
 static inline lagopus_result_t
@@ -2125,7 +2146,8 @@ initialize_internal(void) {
                                       channel_cmd_serialize,
                                       channel_cmd_destroy,
                                       channel_cmd_compare,
-                                      channel_cmd_getname)) !=
+                                      channel_cmd_getname,
+                                      channel_cmd_duplicate)) !=
       LAGOPUS_RESULT_OK) {
     lagopus_perror(ret);
     goto done;

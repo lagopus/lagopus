@@ -48,7 +48,7 @@
       } else {                                                          \
         _ret = datastore_find_table(_name, &(_tbl),                     \
                                     NULL, NULL, NULL,                   \
-                                    NULL, NULL, NULL);                  \
+                                    NULL, NULL, NULL, NULL);            \
         TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, _ret,              \
                                   "datastore_find_table error.");       \
       }                                                                 \

@@ -9,7 +9,7 @@ SRCS =	error.c logger.c hashmap.c chrono.c lock.c thread.c event.c \
 	timeutil.c strutils.c cbuffer.c ptree.c pbuf.c qmuxer.c qpoll.c \
 	heapcheck.c vector.c signal.c session.c session_tcp.c session_tls.c \
 	addrunion.c pipeline_stage.c gstate.c module.c runnable.c dstring.c \
-	argv0.c ip_addr.c callout.c
+	argv0.c ip_addr.c callout.c mainloop.c
 
 LDFLAGS	+=	@GMP_LIBS@ @SSL_LIBS@
 

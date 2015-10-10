@@ -430,7 +430,7 @@ ofp_match_list_encode_wrap(struct channel *channel,
   (*pbuf)->plen = tlv_length;
 
   /* Call func (2 match encode). */
-  ret = ofp_match_list_encode(NULL, *pbuf, &match_list,
+  ret = ofp_match_list_encode(NULL, pbuf, &match_list,
                               &total_len);
   TEST_ASSERT_EQUAL_MESSAGE(total_len, tlv_length,
                             "match length error.");
@@ -471,7 +471,7 @@ ofp_match_list_encode_match_list_empty_wrap(struct channel *channel,
   (*pbuf)->plen = (size_t) (tlv_length + padding_length);
 
   /* Call func (2 match encode). */
-  ret = ofp_match_list_encode(NULL, *pbuf, &match_list,
+  ret = ofp_match_list_encode(NULL, pbuf, &match_list,
                               &total_len);
 
   TEST_ASSERT_EQUAL_MESSAGE(total_len, tlv_length + padding_length,
@@ -498,7 +498,7 @@ test_ofp_match_list_encode_null(void) {
   struct pbuf *pbuf = pbuf_alloc(0);
 
   /* Call func (Arg is NULL). */
-  ret = ofp_match_list_encode(NULL, pbuf, NULL, &total_len);
+  ret = ofp_match_list_encode(NULL, &pbuf, NULL, &total_len);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS, ret,
                             "ofp_match_list_encode error.");
 
@@ -506,7 +506,7 @@ test_ofp_match_list_encode_null(void) {
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS, ret,
                             "ofp_match_list_encode error.");
 
-  ret = ofp_match_list_encode(NULL, pbuf, &match_list, NULL);
+  ret = ofp_match_list_encode(NULL, &pbuf, &match_list, NULL);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS, ret,
                             "ofp_match_list_encode error.");
 
@@ -582,7 +582,7 @@ test_ofp_match_list_for_list_encode(void) {
   pbuf_list_add(pbuf_list, pbuf);
 
   /* Call func (2 match encode). */
-  ret = ofp_match_list_encode(pbuf_list, pbuf, &match_list,
+  ret = ofp_match_list_encode(pbuf_list, &pbuf, &match_list,
                               &total_len);
 
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, ret,

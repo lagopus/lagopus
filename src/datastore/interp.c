@@ -66,6 +66,7 @@ typedef struct objtbl_record {
   datastore_destroy_proc_t m_dty_proc;
   datastore_compare_proc_t m_cmp_proc;
   datastore_getname_proc_t m_gnm_proc;
+  datastore_duplicate_proc_t m_dup_proc;
 } objtbl_record;
 typedef objtbl_record *objtbl_t;
 
@@ -308,25 +309,18 @@ s_add_tbl(const char *name,
           datastore_serialize_proc_t s_proc,
           datastore_destroy_proc_t d_proc,
           datastore_compare_proc_t c_proc,
-          datastore_getname_proc_t n_proc) {
+          datastore_getname_proc_t n_proc,
+          datastore_duplicate_proc_t dup_proc) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
 
   if (IS_VALID_STRING(name) == true &&
       hptr != NULL && *hptr != NULL &&
-#ifdef IT_MUST_BE_LIKE_THIS
       u_proc != NULL &&
       e_proc != NULL &&
       s_proc != NULL &&
       d_proc != NULL &&
-      n_prpc != NULL) {
-#else
-      /*
-       * FIXME:
-       *	Need to check all the funcs are properly
-       *	specified. This is a temporary solution.
-       */
-      u_proc != NULL) {
-#endif
+      n_proc != NULL &&
+      dup_proc != NULL) {
     objtbl_t o = (objtbl_t)malloc(sizeof(*o));
     if (o != NULL) {
       const char *cpname = strdup(name);
@@ -340,6 +334,7 @@ s_add_tbl(const char *name,
         o->m_dty_proc = d_proc;
         o->m_cmp_proc = c_proc;
         o->m_gnm_proc = n_proc;
+        o->m_dup_proc = dup_proc;
         if ((ret = lagopus_hashmap_add(&s_obj_tbl, (void *)(o->m_name),
                                        &val, false)) != LAGOPUS_RESULT_OK) {
           free((void *)(o->m_name));
@@ -2037,9 +2032,11 @@ datastore_register_table(const char *argv0,
                          datastore_serialize_proc_t s_proc,
                          datastore_destroy_proc_t d_proc,
                          datastore_compare_proc_t c_proc,
-                         datastore_getname_proc_t n_proc) {
+                         datastore_getname_proc_t n_proc,
+                         datastore_duplicate_proc_t dup_proc) {
   return s_add_tbl(argv0,
-                   tptr, u_proc, e_proc, s_proc, d_proc, c_proc, n_proc);
+                   tptr, u_proc, e_proc, s_proc, d_proc, c_proc, n_proc,
+                   dup_proc);
 }
 
 
@@ -2051,7 +2048,8 @@ datastore_find_table(const char *argv0,
                      datastore_serialize_proc_t *s_pptr,
                      datastore_destroy_proc_t *d_pptr,
                      datastore_compare_proc_t *c_pptr,
-                     datastore_getname_proc_t *n_pptr) {
+                     datastore_getname_proc_t *n_pptr,
+                     datastore_duplicate_proc_t *dup_pptr) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
 
   if (IS_VALID_STRING(argv0) == true) {
@@ -2078,6 +2076,9 @@ datastore_find_table(const char *argv0,
       }
       if (n_pptr != NULL) {
         *n_pptr = o->m_gnm_proc;
+      }
+      if (dup_pptr != NULL) {
+        *dup_pptr = o->m_dup_proc;
       }
       ret = LAGOPUS_RESULT_OK;
     } else {

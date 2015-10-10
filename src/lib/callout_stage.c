@@ -155,17 +155,31 @@ s_callout_worker_final(const lagopus_pipeline_stage_t *sptr,
 
 static void
 s_callout_worker_free(const lagopus_pipeline_stage_t *sptr) {
-  /*
-   * Not needed, but for in case.
-   */
-  (void)sptr;
+  if (likely(sptr != NULL && *sptr != NULL)) {
+    callout_stage_t cs = (callout_stage_t)*sptr;
+
+    if (likely(cs == &s_cs)) {
+      size_t i;
+
+      for (i = 0; i < cs->m_n_workers; i++) {
+        lagopus_bbq_destroy(&(cs->m_qs[i]), true);
+      }
+
+      free((void *)(cs->m_qs));
+      cs->m_n_workers = 0;
+      cs->m_qs = NULL;
+
+    } else {
+      lagopus_exit_fatal("Too bad address for a callout stage.\n");
+    }
+  }
 }
 
 
 
 
 
-static lagopus_result_t
+static inline lagopus_result_t
 s_create_callout_stage(size_t n_workers) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
 
@@ -218,6 +232,27 @@ s_create_callout_stage(size_t n_workers) {
 
   }
   return ret;
+}
+
+
+static inline void
+s_destroy_callout_stage(void) {
+  if (likely(s_cs.m_is_initialized == true)) {
+    lagopus_pipeline_stage_t s = (lagopus_pipeline_stage_t)&s_cs;
+
+    /*
+     * s_cs.m_qs are freed up via the s_callout_worker_free().
+     */
+    lagopus_pipeline_stage_destroy(&s);
+  }
+}
+
+
+static inline lagopus_result_t
+s_start_callout_stage(void) {
+  lagopus_pipeline_stage_t s = (lagopus_pipeline_stage_t)&s_cs;
+
+  return lagopus_pipeline_stage_start(&s);
 }
 
 
@@ -288,3 +323,64 @@ s_submit_callout_stage(const lagopus_callout_task_t * const tasks, size_t n) {
 
   return ret;
 }
+
+
+static inline lagopus_result_t
+s_cancel_callout_stage(void) {
+  lagopus_pipeline_stage_t s = (lagopus_pipeline_stage_t)&s_cs;
+
+  return lagopus_pipeline_stage_cancel(&s);
+}
+
+
+static inline lagopus_result_t
+s_shutdown_callout_stage(shutdown_grace_level_t lvl) {
+  lagopus_pipeline_stage_t s = (lagopus_pipeline_stage_t)&s_cs;
+
+  return lagopus_pipeline_stage_shutdown(&s, lvl);
+}
+
+
+static inline lagopus_result_t
+s_wait_callout_stage(lagopus_chrono_t nsec) {
+  lagopus_pipeline_stage_t s = (lagopus_pipeline_stage_t)&s_cs;
+
+  return lagopus_pipeline_stage_wait(&s, nsec);
+}
+
+
+static inline lagopus_result_t
+s_finish_callout_stage(lagopus_chrono_t timeout) {
+  lagopus_result_t ret = 
+      s_shutdown_callout_stage((timeout == 0) ?
+                               SHUTDOWN_RIGHT_NOW : SHUTDOWN_GRACEFULLY);
+
+  if (likely(ret == LAGOPUS_RESULT_OK)) {
+    ret = s_wait_callout_stage(timeout + 1000LL * 1000LL * 1000LL);
+    if (ret == LAGOPUS_RESULT_OK) {
+      s_destroy_callout_stage();
+      lagopus_msg_debug(1, "the callout stage shutdown cleanly.\n");
+    } else if (ret == LAGOPUS_RESULT_TIMEDOUT) {
+      ret = s_cancel_callout_stage();
+      if (ret == LAGOPUS_RESULT_OK) {
+        ret = s_wait_callout_stage(timeout + 1000LL * 1000LL * 1000LL);
+        if (ret == LAGOPUS_RESULT_OK) {
+          s_destroy_callout_stage();
+          lagopus_msg_debug(1, "the callout stage is cancelled.\n");
+        } else {
+          lagopus_perror(ret);
+          lagopus_msg_error("can't cancel/wait the callout stage.\n");
+        }
+      }
+    } else {
+      lagopus_perror(ret);
+      lagopus_msg_error("can't wait the callout stage.\n");
+    }
+  } else {
+    lagopus_perror(ret);
+    lagopus_msg_error("can't shutdown the callout stage.\n");
+  }
+
+  return ret;
+}
+

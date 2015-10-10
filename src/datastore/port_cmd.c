@@ -1649,69 +1649,72 @@ interface_opt_parse(const char *const *argv[],
       (*argv)++;
       if (IS_VALID_STRING(*(*argv)) == true) {
         if ((ret = lagopus_str_unescape(*(*argv), "\"'", &name)) >= 0) {
-          if ((ret = namespace_get_fullname(name, &fullname))
-              == LAGOPUS_RESULT_OK) {
-            /* check exists. */
-            if (interface_exists(fullname) == true) {
-              /* check is_used. */
-              if ((ret = datastore_interface_is_used(fullname, &is_used)) ==
-                  LAGOPUS_RESULT_OK) {
-                if (is_used == false) {
-                  /* unset is_used. */
-                  if (conf->current_attr != NULL) {
-                    if ((ret = ofp_port_interface_used_set(conf->current_attr,
-                                                           false, result)) !=
-                        LAGOPUS_RESULT_OK) {
-                      ret = datastore_json_result_string_setf(result, ret,
-                                                              "interface name = "
-                                                              "%s.", fullname);
-                      goto done;
-                    }
-                  }
-                  if (conf->modified_attr != NULL) {
-                    if ((ret = ofp_port_interface_used_set(conf->modified_attr,
-                                                           false, result)) !=
-                        LAGOPUS_RESULT_OK) {
-                      ret = datastore_json_result_string_setf(result, ret,
-                                                              "interface name = "
-                                                              "%s.", fullname);
-                      goto done;
-                    }
-                  }
-
-                  ret = port_set_interface_name(conf->modified_attr,
-                                                fullname);
-                  if (ret != LAGOPUS_RESULT_OK) {
-                    ret = datastore_json_result_string_setf(result, ret,
-                                                            "interface name = "
-                                                            "%s.", fullname);
-                  }
-                } else {
-                  ret = datastore_json_result_string_setf(
-                          result, LAGOPUS_RESULT_NOT_OPERATIONAL,
-                          "interface name = %s.", fullname);
-                }
-              } else {
-                ret = datastore_json_result_string_setf(result, ret,
-                                                        "interface name = %s.",
-                                                        fullname);
-              }
-            } else {
-              ret = datastore_json_result_string_setf(result,
-                                                      LAGOPUS_RESULT_NOT_FOUND,
-                                                      "interface name = %s.",
-                                                      fullname);
-            }
-          } else {
+          if ((ret = namespace_get_fullname(name, &fullname)) !=
+              LAGOPUS_RESULT_OK) {
             ret = datastore_json_result_string_setf(result,
                                                     ret,
                                                     "Can't get fullname %s.",
                                                     name);
+            goto done;
           }
         } else {
           ret = datastore_json_result_string_setf(result, ret,
                                                   "interface name = %s.",
                                                   *(*argv));
+          goto done;
+        }
+
+        /* check exists. */
+        if (interface_exists(fullname) == false) {
+          ret = datastore_json_result_string_setf(result,
+                                                  LAGOPUS_RESULT_NOT_FOUND,
+                                                  "interface name = %s.",
+                                                  fullname);
+          goto done;
+        }
+
+        /* check is_used. */
+        if ((ret = datastore_interface_is_used(fullname, &is_used)) ==
+            LAGOPUS_RESULT_OK) {
+          if (is_used == false) {
+            /* unset is_used. */
+            if (conf->current_attr != NULL) {
+              if ((ret = ofp_port_interface_used_set(conf->current_attr,
+                                                     false, result)) !=
+                  LAGOPUS_RESULT_OK) {
+                ret = datastore_json_result_string_setf(result, ret,
+                                                        "interface name = "
+                                                        "%s.", fullname);
+                goto done;
+              }
+            }
+            if (conf->modified_attr != NULL) {
+              if ((ret = ofp_port_interface_used_set(conf->modified_attr,
+                                                     false, result)) !=
+                  LAGOPUS_RESULT_OK) {
+                ret = datastore_json_result_string_setf(result, ret,
+                                                        "interface name = "
+                                                        "%s.", fullname);
+                goto done;
+              }
+            }
+
+            ret = port_set_interface_name(conf->modified_attr,
+                                          fullname);
+            if (ret != LAGOPUS_RESULT_OK) {
+              ret = datastore_json_result_string_setf(result, ret,
+                                                      "interface name = "
+                                                      "%s.", fullname);
+            }
+          } else {
+            ret = datastore_json_result_string_setf(
+                result, LAGOPUS_RESULT_NOT_OPERATIONAL,
+                "interface name = %s.", fullname);
+          }
+        } else {
+          ret = datastore_json_result_string_setf(result, ret,
+                                                  "interface name = %s.",
+                                                  fullname);
         }
       } else {
         if (*(*argv) == NULL) {
@@ -1815,71 +1818,74 @@ policer_opt_parse(const char *const *argv[],
               goto done;
             }
           }
+
           /* check exists. */
-          if (policer_exists(fullname) == true) {
-            /* check is_used. */
-            if ((ret =
-                   datastore_policer_is_used(fullname, &is_used)) ==
-                LAGOPUS_RESULT_OK) {
-              if (is_used == false) {
-                ret = port_set_policer_name(
-                        conf->modified_attr,
-                        fullname);
-                if (ret == LAGOPUS_RESULT_OK) {
-                  ret = ofp_port_policer_used_set(conf->modified_attr,
-                                                  true,
-                                                  result);
-                  if (ret != LAGOPUS_RESULT_OK) {
-                    ret = datastore_json_result_string_setf(
-                            result, ret,
-                            "policer name = %s.", fullname);
-                  }
-                } else {
-                  ret = datastore_json_result_string_setf(
-                          result, ret,
-                          "policer name = %s.", fullname);
-                }
-              } else {
-                ret = datastore_json_result_string_setf(
-                        result,
-                        LAGOPUS_RESULT_NOT_OPERATIONAL,
-                        "policer name = %s.", fullname);
-              }
-            } else {
-              ret = datastore_json_result_string_setf(
-                      result, ret,
-                      "policer name = %s.", fullname);
-            }
-          } else {
+          if (policer_exists(fullname) == false) {
             ret = datastore_json_result_string_setf(
                     result,
                     LAGOPUS_RESULT_NOT_FOUND,
                     "policer name = %s.", fullname);
+            goto done;
           }
-        } else {
-          /* delete. */
-          if (IS_VALID_STRING(exists_name) == true) {
-            /* unset is_used. */
-            ret = ofp_port_policer_used_set(conf->modified_attr,
-                                            false,
-                                            result);
-            if (ret == LAGOPUS_RESULT_OK) {
-              ret = port_set_policer_name(conf->modified_attr,
-                                          "");
-              if (ret != LAGOPUS_RESULT_OK) {
-                ret = datastore_json_result_string_setf(
-                        result, ret,
-                        "policer name = %s.", fullname);
-              }
-            } else {
-              ret = datastore_json_result_string_setf(
+
+          /* check is_used. */
+          if ((ret =
+               datastore_policer_is_used(fullname, &is_used)) ==
+              LAGOPUS_RESULT_OK) {
+            if (is_used == false) {
+              ret = port_set_policer_name(
+                  conf->modified_attr,
+                  fullname);
+              if (ret == LAGOPUS_RESULT_OK) {
+                ret = ofp_port_policer_used_set(conf->modified_attr,
+                                                true,
+                                                result);
+                if (ret != LAGOPUS_RESULT_OK) {
+                  ret = datastore_json_result_string_setf(
                       result, ret,
                       "policer name = %s.", fullname);
+                }
+              } else {
+                ret = datastore_json_result_string_setf(
+                    result, ret,
+                    "policer name = %s.", fullname);
+                }
+            } else {
+              ret = datastore_json_result_string_setf(
+                  result,
+                  LAGOPUS_RESULT_NOT_OPERATIONAL,
+                  "policer name = %s.", fullname);
             }
           } else {
             ret = datastore_json_result_string_setf(
+                result, ret,
+                "policer name = %s.", fullname);
+          }
+        } else {
+          /* delete. */
+          if (IS_VALID_STRING(exists_name) == false) {
+            ret = datastore_json_result_string_setf(
                     result, LAGOPUS_RESULT_NOT_FOUND,
                     "policer name = %s.", fullname);
+            goto done;
+          }
+
+          /* unset is_used. */
+          ret = ofp_port_policer_used_set(conf->modified_attr,
+                                          false,
+                                          result);
+          if (ret == LAGOPUS_RESULT_OK) {
+            ret = port_set_policer_name(conf->modified_attr,
+                                        "");
+            if (ret != LAGOPUS_RESULT_OK) {
+              ret = datastore_json_result_string_setf(
+                  result, ret,
+                  "policer name = %s.", fullname);
+            }
+          } else {
+            ret = datastore_json_result_string_setf(
+                result, ret,
+                "policer name = %s.", fullname);
           }
         }
       } else {
@@ -1947,83 +1953,89 @@ queue_opt_parse(const char *const *argv[],
               is_exists =
                 port_attr_queue_name_exists(conf->modified_attr,
                                             fullname);
-              if (is_added == true) {
-                /* add. */
-                if (is_exists == false) {
-                  /* check exists. */
-                  if (queue_exists(fullname) == true) {
-                    /* check is_used. */
-                    if ((ret =
-                           datastore_queue_is_used(fullname, &is_used)) ==
-                        LAGOPUS_RESULT_OK) {
-                      if (is_used == false) {
-                        ret = port_attr_add_queue_name(
-                                conf->modified_attr,
-                                fullname);
-                        if (ret != LAGOPUS_RESULT_OK) {
-                          ret = datastore_json_result_string_setf(
-                                  result, ret,
-                                  "queue name = %s.", fullname);
-                        }
-                      } else {
-                        ret = datastore_json_result_string_setf(
-                                result,
-                                LAGOPUS_RESULT_NOT_OPERATIONAL,
-                                "queue name = %s.", fullname);
-                      }
-                    } else {
-                      ret = datastore_json_result_string_setf(
-                              result, ret,
-                              "queue name = %s.", fullname);
-                    }
-                  } else {
-                    ret = datastore_json_result_string_setf(
-                            result,
-                            LAGOPUS_RESULT_NOT_FOUND,
-                            "queue name = %s.", fullname);
-                  }
-                } else {
-                  ret = datastore_json_result_string_setf(
-                          result,
-                          LAGOPUS_RESULT_ALREADY_EXISTS,
-                          "queue name = %s.", fullname);
-                }
-              } else {
-                /* delete. */
-                if (is_exists == true) {
-                  ret = port_attr_remove_queue_name(conf->modified_attr,
-                                                    fullname);
-
-                  if (ret == LAGOPUS_RESULT_OK) {
-                    /* unset is_used. */
-                    ret = ofp_port_queue_used_set_internal(fullname,
-                                                           false,
-                                                           result);
-                  } else {
-                    ret = datastore_json_result_string_setf(
-                            result, ret,
-                            "queue name = %s.", fullname);
-                  }
-                } else {
-                  ret = datastore_json_result_string_setf(
-                          result, LAGOPUS_RESULT_NOT_FOUND,
-                          "queue name = %s.", fullname);
-                }
-              }
             } else {
               ret = datastore_json_result_string_setf(result,
                                                       ret,
                                                       "Can't get fullname %s.",
                                                       name);
+              goto done;
             }
           } else {
             ret = datastore_json_result_string_setf(result, ret,
                                                     "Can't get queue_name.");
+            goto done;
           }
         } else {
           ret = datastore_json_result_string_setf(result, ret,
                                                   "queue name = %s.",
                                                   *(*argv));
+          goto done;
+        }
+
+        if (is_added == true) {
+          /* add. */
+          /* check exists. */
+          if (is_exists == true) {
+            ret = datastore_json_result_string_setf(
+                result,
+                LAGOPUS_RESULT_ALREADY_EXISTS,
+                "queue name = %s.", fullname);
+            goto done;
+          }
+
+          if (queue_exists(fullname) == false) {
+            ret = datastore_json_result_string_setf(
+                result,
+                LAGOPUS_RESULT_NOT_FOUND,
+                "queue name = %s.", fullname);
+            goto done;
+          }
+
+          /* check is_used. */
+          if ((ret =
+               datastore_queue_is_used(fullname, &is_used)) ==
+              LAGOPUS_RESULT_OK) {
+            if (is_used == false) {
+              ret = port_attr_add_queue_name(
+                  conf->modified_attr,
+                  fullname);
+              if (ret != LAGOPUS_RESULT_OK) {
+                ret = datastore_json_result_string_setf(
+                    result, ret,
+                    "queue name = %s.", fullname);
+              }
+            } else {
+              ret = datastore_json_result_string_setf(
+                  result,
+                  LAGOPUS_RESULT_NOT_OPERATIONAL,
+                  "queue name = %s.", fullname);
+            }
+          } else {
+            ret = datastore_json_result_string_setf(
+                result, ret,
+                "queue name = %s.", fullname);
+          }
+        } else {
+          /* delete. */
+          if (is_exists == false) {
+            ret = datastore_json_result_string_setf(
+                result, LAGOPUS_RESULT_NOT_FOUND,
+                "queue name = %s.", fullname);
+            goto done;
+          }
+
+          ret = port_attr_remove_queue_name(conf->modified_attr,
+                                            fullname);
+          if (ret == LAGOPUS_RESULT_OK) {
+            /* unset is_used. */
+            ret = ofp_port_queue_used_set_internal(fullname,
+                                                   false,
+                                                   result);
+          } else {
+            ret = datastore_json_result_string_setf(
+                result, ret,
+                "queue name = %s.", fullname);
+          }
         }
       } else {
         if (*(*argv) == NULL) {
@@ -2051,6 +2063,7 @@ queue_opt_parse(const char *const *argv[],
                                     NULL);
   }
 
+done:
   free(name);
   free(name_str);
   free(fullname);
@@ -3479,6 +3492,27 @@ port_cmd_getname(const void *obj, const char **namep) {
   return ret;
 }
 
+static lagopus_result_t
+port_cmd_duplicate(const void *obj, const char *fullname) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  port_conf_t *dup_obj = NULL;
+
+  if (obj != NULL && fullname != NULL) {
+    ret = port_conf_duplicate(obj, &dup_obj, fullname);
+    if (ret == LAGOPUS_RESULT_OK) {
+      ret = port_conf_add(dup_obj);
+
+      if (ret != LAGOPUS_RESULT_OK && dup_obj != NULL) {
+        port_conf_destroy(dup_obj);
+      }
+    }
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  return ret;
+}
+
 extern datastore_interp_t datastore_get_master_interp(void);
 
 static inline lagopus_result_t
@@ -3546,7 +3580,8 @@ initialize_internal(void) {
                                       port_cmd_serialize,
                                       port_cmd_destroy,
                                       port_cmd_compare,
-                                      port_cmd_getname)) !=
+                                      port_cmd_getname,
+                                      port_cmd_duplicate)) !=
       LAGOPUS_RESULT_OK) {
     lagopus_perror(ret);
     goto done;

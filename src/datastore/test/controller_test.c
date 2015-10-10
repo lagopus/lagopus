@@ -76,6 +76,112 @@ test_controller_conf_create_and_destroy(void) {
 }
 
 void
+test_controller_conf_duplicate(void) {
+  lagopus_result_t rc;
+  bool result = false;
+  controller_conf_t *src_conf = NULL;
+  controller_conf_t *dst_conf = NULL;
+  const char *src_fullname = "src_conf";
+  const char *dst_fullname = "dst_conf";
+
+  controller_initialize();
+
+  rc = controller_conf_create(&src_conf, src_fullname);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+  TEST_ASSERT_NOT_NULL_MESSAGE(src_conf,
+                               "conf_create() will create new controller");
+
+  // Normal case
+  {
+    rc = controller_conf_duplicate(src_conf, &dst_conf, dst_fullname);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+    result = controller_conf_equals(src_conf, dst_conf);
+    TEST_ASSERT_TRUE(result);
+  }
+
+  // Abnormal case
+  {
+    result = controller_conf_equals(src_conf, NULL);
+    TEST_ASSERT_FALSE(result);
+
+    result = controller_conf_equals(NULL, dst_conf);
+    TEST_ASSERT_FALSE(result);
+  }
+
+  controller_conf_destroy(src_conf);
+  controller_conf_destroy(dst_conf);
+
+  controller_finalize();
+}
+
+void
+test_controller_conf_equals(void) {
+  lagopus_result_t rc;
+  bool result = false;
+  controller_conf_t *conf1 = NULL;
+  controller_conf_t *conf2 = NULL;
+  controller_conf_t *conf3 = NULL;
+  const char *fullname1 = "conf1";
+  const char *fullname2 = "conf2";
+  const char *fullname3 = "conf3";
+
+  controller_initialize();
+
+  rc = controller_conf_create(&conf1, fullname1);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+  TEST_ASSERT_NOT_NULL_MESSAGE(conf1, "conf_create() will create new controller");
+  rc = controller_conf_add(conf1);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+
+  rc = controller_conf_create(&conf2, fullname2);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+  TEST_ASSERT_NOT_NULL_MESSAGE(conf2, "conf_create() will create new controller");
+  rc = controller_conf_add(conf2);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+
+  rc = controller_conf_create(&conf3, fullname3);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+  TEST_ASSERT_NOT_NULL_MESSAGE(conf3, "conf_create() will create new controller");
+  rc = controller_conf_add(conf3);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+  rc = controller_set_enabled(fullname3, true);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+
+  // Normal case
+  {
+    result = controller_conf_equals(conf1, conf2);
+    TEST_ASSERT_TRUE(result);
+
+    result = controller_conf_equals(NULL, NULL);
+    TEST_ASSERT_TRUE(result);
+
+    result = controller_conf_equals(conf1, conf3);
+    TEST_ASSERT_FALSE(result);
+
+    result = controller_conf_equals(conf2, conf3);
+    TEST_ASSERT_FALSE(result);
+  }
+
+  // Abnormal case
+  {
+    result = controller_conf_equals(conf1, NULL);
+    TEST_ASSERT_FALSE(result);
+
+    result = controller_conf_equals(NULL, conf2);
+    TEST_ASSERT_FALSE(result);
+  }
+
+  rc = controller_conf_delete(conf1);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+  rc = controller_conf_delete(conf2);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+  rc = controller_conf_delete(conf3);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+
+  controller_finalize();
+}
+
+void
 test_controller_conf_add(void) {
   lagopus_result_t rc;
   controller_conf_t *conf = NULL;
@@ -522,21 +628,24 @@ test_controller_attr_equals(void) {
 
   rc = controller_attr_create(&attr1);
   TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
-  TEST_ASSERT_NOT_NULL_MESSAGE(attr1, "attr_create() will create new channel");
+  TEST_ASSERT_NOT_NULL_MESSAGE(attr1, "attr_create() will create new controller");
 
   rc = controller_attr_create(&attr2);
   TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
-  TEST_ASSERT_NOT_NULL_MESSAGE(attr2, "attr_create() will create new channel");
+  TEST_ASSERT_NOT_NULL_MESSAGE(attr2, "attr_create() will create new controller");
 
   rc = controller_attr_create(&attr3);
   TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
-  TEST_ASSERT_NOT_NULL_MESSAGE(attr3, "attr_create() will create new channel");
+  TEST_ASSERT_NOT_NULL_MESSAGE(attr3, "attr_create() will create new controller");
   rc = controller_set_channel_name(attr3, channel_name);
   TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
 
   // Normal case
   {
     result = controller_attr_equals(attr1, attr2);
+    TEST_ASSERT_TRUE(result);
+
+    result = controller_attr_equals(NULL, NULL);
     TEST_ASSERT_TRUE(result);
 
     result = controller_attr_equals(attr1, attr3);

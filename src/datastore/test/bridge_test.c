@@ -89,6 +89,112 @@ test_bridge_conf_create_and_destroy(void) {
 }
 
 void
+test_bridge_conf_duplicate(void) {
+  lagopus_result_t rc;
+  bool result = false;
+  bridge_conf_t *src_conf = NULL;
+  bridge_conf_t *dst_conf = NULL;
+  const char *src_fullname = "src_conf";
+  const char *dst_fullname = "dst_conf";
+
+  bridge_initialize();
+
+  rc = bridge_conf_create(&src_conf, src_fullname);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+  TEST_ASSERT_NOT_NULL_MESSAGE(src_conf,
+                               "conf_create() will create new bridge");
+
+  // Normal case
+  {
+    rc = bridge_conf_duplicate(src_conf, &dst_conf, dst_fullname);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+    result = bridge_conf_equals(src_conf, dst_conf);
+    TEST_ASSERT_TRUE(result);
+  }
+
+  // Abnormal case
+  {
+    result = bridge_conf_equals(src_conf, NULL);
+    TEST_ASSERT_FALSE(result);
+
+    result = bridge_conf_equals(NULL, dst_conf);
+    TEST_ASSERT_FALSE(result);
+  }
+
+  bridge_conf_destroy(src_conf);
+  bridge_conf_destroy(dst_conf);
+
+  bridge_finalize();
+}
+
+void
+test_bridge_conf_equals(void) {
+  lagopus_result_t rc;
+  bool result = false;
+  bridge_conf_t *conf1 = NULL;
+  bridge_conf_t *conf2 = NULL;
+  bridge_conf_t *conf3 = NULL;
+  const char *fullname1 = "conf1";
+  const char *fullname2 = "conf2";
+  const char *fullname3 = "conf3";
+
+  bridge_initialize();
+
+  rc = bridge_conf_create(&conf1, fullname1);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+  TEST_ASSERT_NOT_NULL_MESSAGE(conf1, "conf_create() will create new bridge");
+  rc = bridge_conf_add(conf1);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+
+  rc = bridge_conf_create(&conf2, fullname2);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+  TEST_ASSERT_NOT_NULL_MESSAGE(conf2, "conf_create() will create new bridge");
+  rc = bridge_conf_add(conf2);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+
+  rc = bridge_conf_create(&conf3, fullname3);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+  TEST_ASSERT_NOT_NULL_MESSAGE(conf3, "conf_create() will create new bridge");
+  rc = bridge_conf_add(conf3);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+  rc = bridge_set_enabled(fullname3, true);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+
+  // Normal case
+  {
+    result = bridge_conf_equals(conf1, conf2);
+    TEST_ASSERT_TRUE(result);
+
+    result = bridge_conf_equals(NULL, NULL);
+    TEST_ASSERT_TRUE(result);
+
+    result = bridge_conf_equals(conf1, conf3);
+    TEST_ASSERT_FALSE(result);
+
+    result = bridge_conf_equals(conf2, conf3);
+    TEST_ASSERT_FALSE(result);
+  }
+
+  // Abnormal case
+  {
+    result = bridge_conf_equals(conf1, NULL);
+    TEST_ASSERT_FALSE(result);
+
+    result = bridge_conf_equals(NULL, conf2);
+    TEST_ASSERT_FALSE(result);
+  }
+
+  rc = bridge_conf_delete(conf1);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+  rc = bridge_conf_delete(conf2);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+  rc = bridge_conf_delete(conf3);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+
+  bridge_finalize();
+}
+
+void
 test_bridge_conf_add(void) {
   lagopus_result_t rc;
   bridge_conf_t *conf = NULL;
@@ -836,6 +942,9 @@ test_bridge_attr_equals(void) {
   // Normal case
   {
     result = bridge_attr_equals(attr1, attr2);
+    TEST_ASSERT_TRUE(result);
+
+    result = bridge_attr_equals(NULL, NULL);
     TEST_ASSERT_TRUE(result);
 
     result = bridge_attr_equals(attr1, attr3);

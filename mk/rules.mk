@@ -277,7 +277,7 @@ symlink-clean::
 	@find ./ -type l | xargs ${RM}
 
 beautify-for-py::
-	@find . -type f -name '*.py' | \
+	@find . -type f -name '*.py' -o -name '*.py.in'| \
 	egrep -v 'src/wip-or-deprecate|test/AutomaticVerificationTool' | \
 	xargs sh $(MKRULESDIR)/beautify_for_py
 

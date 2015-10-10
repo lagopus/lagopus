@@ -50,8 +50,9 @@ typedef struct chrono_task_queue_t chrono_task_queue_t;
 
 static pthread_once_t s_once = PTHREAD_ONCE_INIT;
 
+static lagopus_mutex_t s_sched_lck = NULL;	/* The scheduler main lock. */
+static lagopus_cond_t s_sched_cnd = NULL;		/* The scheduler cond. */
 static lagopus_mutex_t s_lck = NULL;		/* The global lock. */
-static lagopus_cond_t s_cnd = NULL;		/* The cond. */
 
 static lagopus_hashmap_t s_tsk_tbl = NULL;	/* The valid tasks table. */
 
@@ -63,6 +64,18 @@ static lagopus_bbq_t s_idle_tsk_q = NULL;	/* The Idle taskss Q. */
 static lagopus_callout_idle_proc_t s_idle_proc = NULL;
 static lagopus_callout_idle_arg_freeup_proc_t s_free_proc = NULL;
 static void *s_idle_proc_arg = NULL;
+static lagopus_chrono_t s_idle_interval = -1LL;
+static lagopus_chrono_t s_next_idle_abstime = -1LL;
+
+static volatile bool s_do_loop = false;		/* The main loop on/off */
+static volatile bool s_is_stopped = false;	/* The main loop is
+                                                 * stopped or not. */
+static volatile bool s_is_started = false;	/* Either the main
+                                                 * loop or the callout
+                                                 * stage workers still
+                                                 * exists. */
+
+static volatile lagopus_chrono_t s_next_wakeup_abstime;
 
 
 
@@ -72,58 +85,76 @@ static void s_ctors(void) __attr_constructor__(106);
 static void s_dtors(void) __attr_destructor__(106);
 
 
+/**
+ * General lock order:
+ *
+ *	The global lock (s_lock_global)
+ *	The timed task queue lock (s_lock_task_q)
+ *	A task lock (s_lock_task)
+ *
+ * Note taht the task locks are recursive.
+ */
+
+
 static void s_lock_global(void);
 static void s_unlock_global(void);
-static bool s_is_global_locked(void);
+
+static void s_lock_task_q(void);
+static void s_unlock_task_q(void);
 
 static void s_lock_task(lagopus_callout_task_t t);
 static void s_unlock_task(lagopus_callout_task_t t);
-static bool s_is_task_locked(lagopus_callout_task_t t);
 
-static void s_task_freeup(void **valptr);
+static callout_task_state_t s_set_task_state_in_table(
+    const lagopus_callout_task_t t,
+    callout_task_state_t s);
+static callout_task_state_t s_get_task_state_in_table(
+    const lagopus_callout_task_t t);
+static inline void s_delete_task_in_table(const lagopus_callout_task_t t);
+
+static callout_task_state_t s_set_task_state(lagopus_callout_task_t t,
+                                             callout_task_state_t s);
+static callout_task_state_t s_get_task_state(const lagopus_callout_task_t t);
+
 
 /**
  * _no_lock() version of the APIs need to be between
  * s_lock_global()/s_unlock_global()
  */
-static callout_task_state_t s_set_task_state_no_lock(lagopus_callout_task_t t,
-                                                     callout_task_state_t s);
-static callout_task_state_t s_set_task_state(lagopus_callout_task_t t,
-                                             callout_task_state_t s);
-static callout_task_state_t
-s_get_task_state_no_lock(const lagopus_callout_task_t t);
-static callout_task_state_t
-s_get_task_state(const lagopus_callout_task_t t);
-static void s_delete_task_no_lock(const lagopus_callout_task_t t);
-static void s_delete_task(const lagopus_callout_task_t t);
-
-/**
- * The timed task scheduler/unscheduler need to be in
- * s_lock_task()/s_unlock_task().
- */
-static lagopus_result_t
-s_schedule_timed_task_no_lock(lagopus_callout_task_t t);
-static lagopus_result_t s_schedule_timed_task(lagopus_callout_task_t t);
-static void s_unschedule_timed_task_no_lock(lagopus_callout_task_t t);
-static void s_unschedule_timed_task(lagopus_callout_task_t t);
-
 static lagopus_result_t
 s_create_task(lagopus_callout_task_t *tptr,
               size_t sz,
               callout_task_type_t type,
               const char *name,
               lagopus_callout_task_proc_t proc,
-              lagopus_callout_task_get_event_n_proc_t get_n_proc,
               void *arg,
               lagopus_callout_task_arg_freeup_proc_t freeproc);
-static void s_destroy_task(lagopus_callout_task_t);
+
 static void s_destroy_task_no_lock(lagopus_callout_task_t);
+static void s_destroy_task(lagopus_callout_task_t);
+
+
+static inline void s_cancel_task_no_lock(const lagopus_callout_task_t t);
+static inline void s_cancel_task(const lagopus_callout_task_t t);
+
+static lagopus_result_t s_schedule_timed_task_no_lock(
+    lagopus_callout_task_t t);
+static lagopus_result_t s_schedule_timed_task(lagopus_callout_task_t t);
+static void s_unschedule_timed_task_no_lock(lagopus_callout_task_t t);
+static void s_unschedule_timed_task(lagopus_callout_task_t t);
+
 static lagopus_result_t s_exec_task(lagopus_callout_task_t t);
+
+static lagopus_result_t s_submit_callout_stage(
+    const lagopus_callout_task_t * const tasks, size_t n);
+
+static void s_task_freeup(void **valptr);
 
 
 
 
 
+#include "callout_task.c"
 #include "callout_stage.c"
 #include "callout_queue.c"
 
@@ -134,13 +165,20 @@ static lagopus_result_t s_exec_task(lagopus_callout_task_t t);
 static void
 s_task_freeup(void **valptr) {
   if (likely(valptr != NULL && *valptr != NULL)) {
-    /*
-     * It should be unnecessary to unschedule the task but for in
-     * case.
-     */
-    s_unschedule_timed_task((lagopus_callout_task_t)*valptr);
-    s_delete_task((lagopus_callout_task_t)*valptr);
-    s_destroy_task((lagopus_callout_task_t)*valptr);
+
+    s_lock_global();
+    {
+      /*
+       * It should be unnecessary to unschedule the task but for in
+       * case.
+       */
+
+      s_unschedule_timed_task_no_lock((lagopus_callout_task_t)*valptr);
+      s_delete_task_in_table((lagopus_callout_task_t)*valptr);
+      s_destroy_task_no_lock((lagopus_callout_task_t)*valptr);
+    }
+    s_unlock_global();
+
   }
 }
 
@@ -149,12 +187,17 @@ static void
 s_once_proc(void) {
   lagopus_result_t r;
 
+  if ((r = lagopus_mutex_create(&s_sched_lck)) != LAGOPUS_RESULT_OK) {
+    lagopus_perror(r);
+    lagopus_exit_fatal("can't initialize the callout scheduler main mutex.\n");
+  }
+
   if ((r = lagopus_mutex_create(&s_lck)) != LAGOPUS_RESULT_OK) {
     lagopus_perror(r);
     lagopus_exit_fatal("can't initialize the callout global mutex.\n");
   }
 
-  if ((r = lagopus_cond_create(&s_cnd)) != LAGOPUS_RESULT_OK) {
+  if ((r = lagopus_cond_create(&s_sched_cnd)) != LAGOPUS_RESULT_OK) {
     lagopus_perror(r);
     lagopus_exit_fatal("can't initialize the callout cond.\n");
   }
@@ -180,7 +223,7 @@ s_once_proc(void) {
     lagopus_exit_fatal("can't initialize the callout idle tasks queue.\n");
   }
 
-  if ((r = lagopus_mutex_create(&s_q_lck)) != LAGOPUS_RESULT_OK) {
+  if ((r = lagopus_mutex_create_recursive(&s_q_lck)) != LAGOPUS_RESULT_OK) {
     lagopus_perror(r);
     lagopus_exit_fatal("can't initialize the callout task queue mutex.\n");
   }
@@ -208,8 +251,9 @@ s_final(void) {
   lagopus_bbq_destroy(&s_idle_tsk_q, true);
   lagopus_bbq_destroy(&s_urgent_tsk_q, true);
   lagopus_hashmap_destroy(&s_tsk_tbl, true);
-  lagopus_cond_destroy(&s_cnd);
+  lagopus_cond_destroy(&s_sched_cnd);
   lagopus_mutex_destroy(&s_lck);
+  lagopus_mutex_destroy(&s_sched_lck);
 }
 
 
@@ -240,215 +284,35 @@ s_unlock_global(void) {
 }
 
 
-static inline bool
-s_is_global_locked(void) {
-  lagopus_result_t r = lagopus_mutex_trylock(&s_lck);
-
-  if (r == LAGOPUS_RESULT_OK) {
-    (void)lagopus_mutex_unlock(&s_lck);
-    return true;
-  } else {
-    return false;
+static inline void
+s_lock_sched(void) {
+  if (likely(s_sched_lck != NULL)) {
+    (void)lagopus_mutex_lock(&s_sched_lck);
   }
 }
 
 
 static inline void
-s_lock_task(lagopus_callout_task_t t) {
-  if (likely(t != NULL)) {
-    (void)lagopus_mutex_lock(&(t->m_lock));
+s_unlock_sched(void) {
+  if (likely(s_sched_lck != NULL)) {
+    (void)lagopus_mutex_unlock(&s_sched_lck);
   }
 }
 
 
 static inline void
-s_unlock_task(lagopus_callout_task_t t) {
-  if (likely(t != NULL)) {
-    (void)lagopus_mutex_unlock(&(t->m_lock));
-  }
-}
-
-
-static inline bool
-s_is_task_locked(lagopus_callout_task_t t) {
-  if (likely(t != NULL)) {
-    lagopus_result_t r = lagopus_mutex_trylock(&(t->m_lock));
-
-    if (r == LAGOPUS_RESULT_OK) {
-      (void)lagopus_mutex_unlock(&(t->m_lock));
-      return true;
-    } else {
-      return false;
-    }
-  } else {
-    return false;
-  }
-}
-
-
-
-
-
-static inline callout_task_state_t
-s_get_task_state_no_lock(const lagopus_callout_task_t t) {
-  callout_task_state_t ret = TASK_STATE_UNKNOWN;
-
-  if (likely(t != NULL)) {
-    void *val;
-    lagopus_result_t r;
-
-    r = lagopus_hashmap_find_no_lock(&s_tsk_tbl, (void *)t, &val);
-    if (likely(r == LAGOPUS_RESULT_OK)) {
-      ret = (callout_task_state_t)val;
-    }
-  }
-
-  return ret;
-}
-
-
-static inline callout_task_state_t
-s_get_task_state(const lagopus_callout_task_t t) {
-  callout_task_state_t ret = TASK_STATE_UNKNOWN;
-
-  if (likely(t != NULL)) {
-    void *val;
-    lagopus_result_t r;
-
-    s_lock_global();
-    {
-      r = lagopus_hashmap_find_no_lock(&s_tsk_tbl, (void *)t, &val);
-    }
-    s_unlock_global();
-
-    if (likely(r == LAGOPUS_RESULT_OK)) {
-      ret = (callout_task_state_t)val;
-    }
-  }
-
-  return ret;
-}
-
-
-static inline callout_task_state_t
-s_set_task_state_no_lock(const lagopus_callout_task_t t,
-                         callout_task_state_t s) {
-  callout_task_state_t ret = TASK_STATE_UNKNOWN;
-
-  if (likely(t != NULL)) {
-    void *val;
-    lagopus_result_t r;
-
-    if (likely((r = lagopus_hashmap_find_no_lock(&s_tsk_tbl,
-                                                 (void *)t, &val)) ==
-               LAGOPUS_RESULT_OK)) {
-      ret = (callout_task_state_t)val;
-      val = (void *)s;
-
-      if (unlikely((r != lagopus_hashmap_add_no_lock(&s_tsk_tbl, (void *)t,
-                                                     &val, true)) ==
-                   LAGOPUS_RESULT_OK)) {
-        ret = TASK_STATE_UNKNOWN;
-      }
-    } else if (likely(r == LAGOPUS_RESULT_NOT_FOUND)) {
-      val = (void *)s;
-      if (likely((r = lagopus_hashmap_add_no_lock(&s_tsk_tbl, (void *)t,
-                                                  &val, true)) ==
-                 LAGOPUS_RESULT_OK)) {
-        ret = s;
-      }
-    }
-  }
-
-  return ret;
-}
-
-
-static inline callout_task_state_t
-s_set_task_state(const lagopus_callout_task_t t,
-                 callout_task_state_t s) {
-  callout_task_state_t ret = TASK_STATE_UNKNOWN;
-
-  if (likely(t != NULL)) {
-    void *val;
-    lagopus_result_t r;
-
-    s_lock_global();
-    {
-      if (likely((r = lagopus_hashmap_find_no_lock(&s_tsk_tbl,
-                                                   (void *)t, &val)) ==
-                 LAGOPUS_RESULT_OK)) {
-        ret = (callout_task_state_t)val;
-        val = (void *)s;
-
-        if (unlikely((r != lagopus_hashmap_add_no_lock(&s_tsk_tbl, (void *)t,
-                                                       &val, true)) ==
-                     LAGOPUS_RESULT_OK)) {
-          ret = TASK_STATE_UNKNOWN;
-        }
-      } else if (likely(r == LAGOPUS_RESULT_NOT_FOUND)) {
-        val = (void *)s;
-        if (likely((r = lagopus_hashmap_add_no_lock(&s_tsk_tbl, (void *)t,
-                                                    &val, true)) ==
-                   LAGOPUS_RESULT_OK)) {
-          ret = s;
-        }
-      }
-    }
-    s_unlock_global();
-
-  }
-
-  return ret;
-}
-
-
-static inline void
-s_delete_task_no_lock(const lagopus_callout_task_t t) {
-  if (likely(t != NULL)) {
-    (void)lagopus_hashmap_delete_no_lock(&s_tsk_tbl, (void *)t, NULL, true);
+s_wait_sched(lagopus_chrono_t to) {
+  if (likely(s_sched_lck != NULL && s_sched_cnd != NULL)) {
+    (void)lagopus_cond_wait(&s_sched_cnd, &s_sched_lck, to);
   }
 }
 
 
 static inline void
-s_delete_task(const lagopus_callout_task_t t) {
-  if (likely(t != NULL)) {
-
-    s_lock_global();
-    {
-      (void)lagopus_hashmap_delete_no_lock(&s_tsk_tbl, (void *)t, NULL, true);
-    }
-    s_unlock_global();
-
+s_wakeup_sched(void) {
+  if (likely(s_sched_cnd != NULL)) {
+    (void)lagopus_cond_notify(&s_sched_cnd, true);
   }
-}
-
-
-
-/*
- * Runnable
- */
-
-
-static lagopus_result_t
-s_runnable_run(const lagopus_runnable_t *rptr, void *arg) {
-  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
-
-  (void)arg;
-
-  if (likely(rptr != NULL && *rptr != NULL)) {
-    lagopus_callout_task_t t = (lagopus_callout_task_t)*rptr;
-    if (likely(t->m_proc != NULL)) {
-      ret = (t->m_proc)(t->m_arg);
-    } else {
-      ret = LAGOPUS_RESULT_INVALID_ARGS;
-    }
-  } else {
-    ret = LAGOPUS_RESULT_INVALID_ARGS;
-  }
-
-  return ret;
 }
 
 
@@ -456,322 +320,277 @@ s_runnable_run(const lagopus_runnable_t *rptr, void *arg) {
 
 
 static inline lagopus_result_t
-s_create_task(lagopus_callout_task_t *tptr,
-              size_t sz,
-              callout_task_type_t type,
-              const char *name,
-              lagopus_callout_task_proc_t proc,
-              lagopus_callout_task_get_event_n_proc_t get_n_proc,
-              void *arg,
-              lagopus_callout_task_arg_freeup_proc_t freeproc) {
+s_start_callout_main_loop(void) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
-  const char *nm = NULL;
+  global_state_t s;
+  shutdown_grace_level_t l;
 
-  if (IS_VALID_STRING(name) == true) {
-    if (unlikely((nm = strdup(name)) == NULL)) {
-      ret = LAGOPUS_RESULT_NO_MEMORY;
-      goto done;
-    }
-  }
+  ret = global_state_wait_for(GLOBAL_STATE_STARTED, &s, &l, -1LL);
+  if (likely(ret == LAGOPUS_RESULT_OK)) {
+    if (likely(s == GLOBAL_STATE_STARTED)) {
+      lagopus_chrono_t timeout = s_idle_interval;
+      lagopus_callout_task_t t;
 
-  if (sz == 0) {
-    sz = DEFAULT_TASK_ALLOC_SZ;
-  }
+      lagopus_callout_task_t out_tasks[CALLOUT_TASK_MAX * 3];
+      size_t n_out_tasks;
 
-  if (unlikely((ret = lagopus_mutex_create(&((*tptr)->m_lock))) == 
-               LAGOPUS_RESULT_OK)) {
-    goto done;
-  }
+      lagopus_callout_task_t urgent_tasks[CALLOUT_TASK_MAX];
+      lagopus_result_t sn_urgent_tasks;
 
-  s_lock_global();
-  {
-    if (likely((ret = lagopus_runnable_create((lagopus_runnable_t *)tptr, sz,
-                                              s_runnable_run, NULL, NULL)) ==
-               LAGOPUS_RESULT_OK)) {
+      lagopus_callout_task_t idle_tasks[CALLOUT_TASK_MAX];
+      lagopus_result_t sn_idle_tasks;
 
-      (void)memset((void *)&((*tptr)->m_entry), 0, sizeof((*tptr)->m_entry));
+      lagopus_callout_task_t timed_tasks[CALLOUT_TASK_MAX];
+      lagopus_result_t sn_timed_tasks;
 
-      (*tptr)->m_type = type;
-      (*tptr)->m_name = nm;
-      (*tptr)->m_proc = proc;
-      (*tptr)->m_get_n_proc = get_n_proc;
-      (*tptr)->m_arg = arg;
-      (*tptr)->m_freeproc = freeproc;
-      (*tptr)->m_do_repeat = false;
-      (*tptr)->m_is_first = true;
-      (*tptr)->m_initial_delay_time = -1LL;
-      (*tptr)->m_interval_time = -1LL;
-      (*tptr)->m_last_abstime = 0;
-      (*tptr)->m_next_abstime = 0;
+      lagopus_result_t r;
 
-      if (unlikely(s_set_task_state_no_lock(*tptr, TASK_STATE_CREATED) ==
-                   TASK_STATE_CREATED)) {
-        /*
-         * Avoid arg be freed by destroyer at this moment.
-         */
-        (*tptr)->m_arg = NULL;
-        (*tptr)->m_freeproc = NULL;
-        s_destroy_task_no_lock(*tptr);
-        nm = NULL;
-      }
-    }
-  }
-  s_unlock_global();
+      lagopus_chrono_t now;
+      lagopus_chrono_t next_wakeup;
+      lagopus_chrono_t old_next_wakeup;
 
-done:
-  if (ret != LAGOPUS_RESULT_OK && nm != NULL) {
-    free((void *)nm);
-  }
+      int cstate = 0;
 
-  return ret;
-}
+      bool do_timed;
+      bool do_idle;
 
+      (void)lagopus_mutex_enter_critical(&s_sched_lck, &cstate);
+      {
+        s_is_stopped = false;
+        mbar();
 
-static inline void
-s_destroy_task_no_lock(lagopus_callout_task_t t) {
-  if (likely(t != NULL)) {
-    lagopus_runnable_t r = (lagopus_runnable_t)t;
-    callout_task_state_t st;
+        while (s_do_loop == true) {
 
-    st = s_get_task_state_no_lock(t);
-    if (st == TASK_STATE_UNKNOWN || st == TASK_STATE_CANCELLED) {
-
-      if (t->m_freeproc != NULL && t->m_arg != NULL) {
-        (t->m_freeproc)(t->m_arg);
-      }
-
-      if (IS_VALID_STRING(t->m_name) == true) {
-        free((void *)t->m_name);
-      }
-
-      lagopus_mutex_destroy(&(t->m_lock));
-
-      s_delete_task_no_lock(t);
-      lagopus_runnable_destroy(&r);
-    }
-  }
-}
-
-
-static inline void
-s_destroy_task(lagopus_callout_task_t t) {
-  if (likely(t != NULL)) {
-    lagopus_runnable_t r = (lagopus_runnable_t)t;
-    callout_task_state_t st;
-
-    s_lock_global();
-    {
-      st = s_get_task_state_no_lock(t);
-      if (st == TASK_STATE_UNKNOWN || st == TASK_STATE_CANCELLED) {
-
-        if (t->m_freeproc != NULL && t->m_arg != NULL) {
-          (t->m_freeproc)(t->m_arg);
-        }
-
-        if (IS_VALID_STRING(t->m_name) == true) {
-          free((void *)t->m_name);
-        }
-
-        lagopus_mutex_destroy(&(t->m_lock));
-
-        s_delete_task_no_lock(t);
-        lagopus_runnable_destroy(&r);
-      }
-    }
-    s_unlock_global();
-
-  }
-}
-
-
-static inline void
-s_cancel_task_no_lock(const lagopus_callout_task_t t) {
-  if (likely(t != NULL)) {
-    callout_task_state_t ostate;
-
-    ostate = s_set_task_state_no_lock(t, TASK_STATE_CANCELLED);
-    if (ostate == TASK_STATE_ENQUEUED) {
-      s_unschedule_timed_task_no_lock(t);
-      s_destroy_task_no_lock(t);
-    }
-  }
-}
-
-
-static inline void
-s_cancel_task(lagopus_callout_task_t t) {
-  if (likely(t != NULL)) {
-    callout_task_state_t ostate;
-
-    s_lock_global();
-    {
-      ostate = s_set_task_state_no_lock(t, TASK_STATE_CANCELLED);
-      if (ostate == TASK_STATE_ENQUEUED) {
-        s_unschedule_timed_task_no_lock(t);
-        s_destroy_task_no_lock(t);
-      }
-    }
-    s_unlock_global();
-
-  }
-}
-
-
-static inline lagopus_result_t
-s_exec_task(lagopus_callout_task_t t) {
-  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
-
-  if (likely(t != NULL)) {
-    callout_task_state_t st;
-    bool do_delete = false;
-    bool do_resched = false;
-    lagopus_runnable_t r = (lagopus_runnable_t)t;
-
-    /*
-     * At this moment here could be some other threads trying to
-     * execute this task. Block those threads by taking the global
-     * lock first.
-     */
-
-    s_lock_global();
-    {
-
-      /*
-       * Then check the curent state of the task and go on if the
-       * state is the TASK_STATE_DEQUEUED.
-       */
-      st = s_get_task_state_no_lock(t);
-      if (likely(st == TASK_STATE_DEQUEUED)) {
-
-        /*
-         * Change the state to TASK_STATE_EXECUTING.
-         */
-        (void)s_set_task_state_no_lock(t, TASK_STATE_EXECUTING);
-
-        s_lock_task(t);
-        {
+          n_out_tasks = 0;
+          do_idle = false;
           /*
-           * Note we still have the global lock. While we have the
-           * global lock, we also acquire the task lock.
+           * Get the current time.
            */
-
-          s_unlock_global();
-          /*
-           * Now the global lock is released.
-           */
+          WHAT_TIME_IS_IT_NOW_IN_NSEC(now);
 
           /*
-           * Note that the any other threads trying to execute this
-           * task at this moment now know that the task state is the
-           * TASK_STATE_EXECUTING and just leave.
+           * Then fetch the start time of the timed task in the queue head.
            */
+          next_wakeup = s_peek_current_wakeup_time();
 
-          /*
-           * Then execute the task.
-           */
-          t->m_is_first = false;
-          ret = lagopus_runnable_start(&r);
-          if (likely(ret == LAGOPUS_RESULT_OK)) {
+          if (likely(
+
+                  ((do_idle = (s_idle_proc != NULL &&
+                               s_next_idle_abstime < (now - 1000LL)) ?
+                    true : false) == true) ||
+
+                  ((do_timed = ((next_wakeup > 0LL) &&
+                                (next_wakeup <= (now - 1000LL))) ? 
+                    true : false) == true) ||
+
+                  ((sn_urgent_tasks = 
+                    lagopus_bbq_get_n(&s_urgent_tsk_q, (void **)urgent_tasks,
+                                      CALLOUT_TASK_MAX, 1LL,
+                                      lagopus_callout_task_t,
+                                      0LL, NULL)) > 0) ||
+
+                  ((sn_idle_tasks = 
+                    lagopus_bbq_get_n(&s_idle_tsk_q, (void **)idle_tasks,
+                                      CALLOUT_TASK_MAX, 1LL,
+                                      lagopus_callout_task_t,
+                                      0LL, NULL)) > 0)
+
+                     )
+              ) {
+
             /*
-             * The execution succeeded.
+             * We have tasks and/or an idle proc to execute.
              */
-            if (t->m_do_repeat == true) {
-              do_resched = true;
+
+            /*
+             * Fetch timed tasks to execute.
+             */
+            sn_timed_tasks = 0;
+            if (do_timed == true) {
+              sn_timed_tasks = s_get_runnable_timed_task(now, timed_tasks,
+                                                         CALLOUT_TASK_MAX,
+                                                         &next_wakeup);
             }
-          } else {
-            /*
-             * The execution failed.
-             */
-            s_set_task_state(t, TASK_STATE_EXEC_FAILED);
-            lagopus_perror(ret);
-            lagopus_msg_error_with_task(t,
-                                        "task execution failure.\n");
-            do_delete = true;
-          }
-
-          if (do_resched == true || do_delete == true) {
-
-            s_lock_global();
 
             /*
-             * Now the global lock is acquired again to be safe about
-             * the task deletion or re-scheduling.
+             * Pack the tasks into a buffer.
              */
-            if (do_resched == true) {
+            if (sn_timed_tasks > 0) {
+              (void)memcpy((void *)(out_tasks + n_out_tasks),
+                           timed_tasks, (size_t)sn_timed_tasks);
+              n_out_tasks += (size_t)sn_timed_tasks;
+            } else if (sn_timed_tasks < 0) {
               /*
-               * Re-schedule this task.
+               * We can't be treat this as a fatal error. Carry on.
                */
-              ret = s_schedule_timed_task_no_lock(t);
-              if (likely(ret >= 0)) {
-                ret = LAGOPUS_RESULT_OK;
-              } else {
+              lagopus_perror(sn_timed_tasks);
+              lagopus_msg_error("timed tasks fetch failed.\n");
+            }
+
+            if (sn_urgent_tasks > 0) {
+              (void)memcpy((void *)(out_tasks + n_out_tasks),
+                           urgent_tasks, (size_t)sn_urgent_tasks);
+              n_out_tasks += (size_t)sn_urgent_tasks;
+            } else if (sn_urgent_tasks < 0) {
+              /*
+               * We can't be treat this as a fatal error. Carry on.
+               */
+              lagopus_perror(sn_urgent_tasks);
+              lagopus_msg_error("urgent tasks fetch failed.\n");
+            }
+
+            if (sn_idle_tasks > 0) {
+              (void)memcpy((void *)(out_tasks + n_out_tasks),
+                           idle_tasks, (size_t)sn_idle_tasks);
+              n_out_tasks += (size_t)sn_idle_tasks;
+            } else if (sn_idle_tasks < 0) {
+              /*
+               * We can't be treat this as a fatal error. Carry on.
+               */
+              lagopus_perror(sn_idle_tasks);
+              lagopus_msg_error("idle tasks fetch failed.\n");
+            }
+
+            if (n_out_tasks > 0) {
+              /*
+               * Submit the tasks.
+               */
+              r = s_submit_callout_stage(out_tasks, n_out_tasks);
+              if (unlikely(r != LAGOPUS_RESULT_OK)) {
                 /*
-                 * Make this task to be deleted.
+                 * We can't be treat this as a fatal error. Carry on.
                  */
-                do_delete = true;
-                lagopus_perror(ret);
-                lagopus_msg_error_with_task(t,
-                                            "can't re-schedule the task.\n");
+                lagopus_perror(r);
+                lagopus_msg_error("failed to submit " PFSZ(u) 
+                                  " rgent/timed tasks.\n", n_out_tasks);
+              }
+            }
+
+            if (do_idle == true) {
+              if (unlikely(s_idle_proc(s_idle_proc_arg) !=
+                           LAGOPUS_RESULT_OK)) {
+                /*
+                 * Stop the main loop and return (clean finish.)
+                 */
+                s_do_loop = false;
+                goto critical_end;
+              } else {
+                s_next_idle_abstime = now + s_idle_interval;
               }
             }
 
           } else {
-            goto final_global_unlock;
+
+            /*
+             * Wait any events.
+             */
+
+            /*
+             * calculate the timeout.
+             */
+            timeout = next_wakeup - now;
+            if (timeout < 0LL) {
+              timeout = 0LL;
+            } else {
+              timeout = (timeout < s_idle_interval) ?
+                  timeout : s_idle_interval;
+            }
+
+            /*
+             * Atomic update of the wakeup time. Note that usually we
+             * don't need following code since the pthread APIs should
+             * call the memory barrier internally. But in this
+             * particular case we need this since it could take
+             * relatively long time to take here and the next pthread
+             * related APIs call.
+             */
+            old_next_wakeup = __sync_fetch_and_add(&s_next_wakeup_abstime, 0);
+            if (unlikely(__sync_bool_compare_and_swap(&s_next_wakeup_abstime,
+                                                      old_next_wakeup,
+                                                      next_wakeup) != true)) {
+              /*
+               * must not happens since noone modify the old_next_wakeup.
+               */
+              lagopus_exit_fatal("Someone changed the old wakeup time??\n");
+              /* not reached. */
+            }
+
+            r = lagopus_bbq_peek(&s_urgent_tsk_q, &t, lagopus_callout_task_t,
+                                 timeout);
+            if (unlikely(r != LAGOPUS_RESULT_OK &&
+                         r != LAGOPUS_RESULT_WAKEUP_REQUESTED)) {
+              lagopus_perror(r);
+              lagopus_msg_error("Event wait failure.\n");
+              ret = r;
+              goto critical_end;
+            }
+
+            /*
+             * The end of the desired potion of the loop.
+             */
           }
 
-        }
-        s_unlock_task(t);
+        } /* while (s_do_loop == true) */
 
+      }
+   critical_end:
+      s_is_stopped = true;
+      s_wakeup_sched();
+      (void)lagopus_mutex_leave_critical(&s_sched_lck, cstate);
+  
+      if (s_do_loop == false) {
         /*
-         * We still/again have the global lock. Use "no lock" version
-         * of the APIs.
+         * The clean finish.
          */
-        if (do_delete == true) {
-          /*
-           * Delete the task.
-           */
-          s_delete_task_no_lock(t);
-          s_destroy_task_no_lock(t);
-          /*
-           * Note that the return value is determined at this
-           * moment. Don't change it.
-           */
-        }
-
-      } else {	/* st == TASK_STATE_DEQUEUED */
-
-        /*
-         * Illegal state, the most likely already executing.
-         */
-
-        if (likely(st == TASK_STATE_EXECUTING)) {
-          /*
-           * Do nothing.
-           */
-          ret = LAGOPUS_RESULT_OK;
-        } else if (st == TASK_STATE_UNKNOWN ||
-                   st == TASK_STATE_CANCELLED) {
-          /*
-           * Deleted.
-           */
-          s_delete_task_no_lock(t);
-          s_destroy_task_no_lock(t);
-
-          /*
-           * And make the return value a "not OK".
-           */
-          ret = LAGOPUS_RESULT_INVALID_OBJECT;
-        } else {
-          ret = LAGOPUS_RESULT_INVALID_STATE_TRANSITION;
-        }
+        ret = LAGOPUS_RESULT_OK;
       }
 
+    } else { /* s == GLOBAL_STATE_STARTED */
+      ret = LAGOPUS_RESULT_INVALID_STATE_TRANSITION;
     }
- final_global_unlock:
-    s_unlock_global();
+  }
+
+  return ret;
+}
+
+
+static inline lagopus_result_t
+s_stop_callout_main_loop(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+
+  if (s_is_stopped == false) {
+    if (s_do_loop == true) {
+      /*
+       * Stop the main loop first.
+       */
+      s_do_loop = false;
+      mbar();
+
+      s_lock_sched();
+      {
+        while (s_is_stopped == false) {
+          s_wait_sched(-1LL);
+        }
+      }
+      s_unlock_sched();
+    }
+    /*
+     * Then stop the callout stage.
+     */
+    ret = s_finish_callout_stage(1000LL * 1000LL * 500LL);
+    s_is_started = false;
 
   } else {
-    ret = LAGOPUS_RESULT_INVALID_ARGS;
+    ret = LAGOPUS_RESULT_OK;
+
+    /*
+     * If the main loop exits cleanly, the callout stage is still
+     * running at the moment. Stop it now.
+     */
+    if (s_is_started == true) {
+      (void)s_finish_callout_stage(1000LL * 1000LL * 500LL);
+      s_is_started = false;
+    }
   }
 
   return ret;
@@ -780,4 +599,89 @@ s_exec_task(lagopus_callout_task_t t) {
 
 
 
+
+/*
+ * Exported APIs
+ */
+
+
+lagopus_result_t
+lagopus_callout_initialize_handler(size_t n_workers,
+                                   lagopus_callout_idle_proc_t proc,
+                                   void *arg,
+                                   lagopus_chrono_t interval,
+                                   lagopus_callout_idle_arg_freeup_proc_t
+                                   freeup) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+
+  if (likely(n_workers > 0 &&
+             ((proc == NULL) ? true :
+              (interval > 1000LL * 1000LL /* 1 usec. */)))) {
+    if (likely((ret = s_create_callout_stage(n_workers)) == 
+               LAGOPUS_RESULT_OK)) {
+      s_idle_proc = proc;
+      s_idle_proc_arg = arg;
+      s_idle_interval = interval;
+      s_free_proc = freeup;
+      s_do_loop = false;
+      s_is_stopped = false;
+    }
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  return ret;
+}
+
+
+void
+lagopus_callout_finalize_handler(void) {
+  if (s_stop_callout_main_loop() == LAGOPUS_RESULT_OK) {
+    s_destroy_all_queued_timed_tasks();
+    (void)lagopus_bbq_clear(&s_urgent_tsk_q, true);
+    (void)lagopus_bbq_clear(&s_idle_tsk_q, true);
+  }
+}
+
+
+lagopus_result_t
+lagopus_callout_start_main_loop(void) {
+  lagopus_result_t ret = s_start_callout_stage();
+
+  if (likely(ret == LAGOPUS_RESULT_OK)) {
+    s_do_loop = true;
+    mbar();
+
+    ret = s_start_callout_main_loop();
+  }
+
+  return ret;
+}
+
+
+lagopus_result_t
+lagopus_callout_stop_main_loop(void) {
+  return s_stop_callout_main_loop();
+}
+
+
+
+
+
+void
+lagopus_callout_cancel_task(const lagopus_callout_task_t *tptr) {
+  if (likely(tptr != NULL && *tptr != NULL)) {
+    s_cancel_task(*tptr);
+  }
+}
+
+
+lagopus_result_t
+lagopus_callout_exec_task_forcibly(const lagopus_callout_task_t *tptr) {
+  if (likely(tptr != NULL && *tptr != NULL)) {
+    return s_force_schedule_task(*tptr);
+  } else {
+    return LAGOPUS_RESULT_INVALID_ARGS;
+  }
+}
 

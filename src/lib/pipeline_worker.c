@@ -31,14 +31,14 @@ typedef lagopus_result_t (*worker_main_proc_t)(lagopus_pipeline_worker_t w);
 
 typedef struct lagopus_pipeline_worker_record {
   lagopus_thread_record m_thd;  /* must be placed at the head. */
-  lagopus_pipeline_stage_t *m_sptr;
+  lagopus_pipeline_stage_t m_stg;
   /* ref. to the parent container. */
-  size_t m_idx;			/* A worker index in the m_sptr */
+  size_t m_idx;			/* A worker index in the m_stg */
   worker_main_proc_t m_proc;
   bool m_is_started;
 
   uint8_t m_buf[0];		/* A buffer for the batch, must be >=
-                                 * (*m_sptr)->m_batch_buffer_size (in
+                                 * m_stg->m_batch_buffer_size (in
                                  * bytes) and placed at the tail of
                                  * the record. */
 } lagopus_pipeline_worker_record;
@@ -59,7 +59,7 @@ static inline void	s_worker_maintenance(lagopus_pipeline_worker_t w,
 #define WORKER_LOOP(OPS)                                                \
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;                   \
   if (w != NULL) {                                                      \
-    lagopus_pipeline_stage_t *sptr = w->m_sptr;                         \
+    lagopus_pipeline_stage_t *sptr = &(w->m_stg);                       \
     if (sptr != NULL && *sptr != NULL) {                                \
       void *evbuf = (void *)(w->m_buf);                                 \
       size_t max_n_evs = (*sptr)->m_max_batch;                          \
@@ -235,7 +235,7 @@ s_worker_main(const lagopus_thread_t *tptr, void *arg) {
         ret = global_state_wait_for(GLOBAL_STATE_STARTED, &s, &l, -1LL);
         if (ret == LAGOPUS_RESULT_OK) {
           if (s == GLOBAL_STATE_STARTED) {
-            lagopus_pipeline_stage_t *sptr = w->m_sptr;
+            lagopus_pipeline_stage_t *sptr = &(w->m_stg);
 
             w->m_is_started = true;
             lagopus_msg_debug(10, "gala opening.\n");
@@ -288,7 +288,7 @@ s_worker_finalize(const lagopus_thread_t *tptr, bool is_canceled, void *arg) {
   if (tptr != NULL) {
     lagopus_pipeline_worker_t w = (lagopus_pipeline_worker_t)*tptr;
     if (w != NULL) {
-      lagopus_pipeline_stage_t *sptr = w->m_sptr;
+      lagopus_pipeline_stage_t *sptr = &(w->m_stg);
 
       if (sptr != NULL && *sptr != NULL) {
 
@@ -359,7 +359,7 @@ s_worker_create(lagopus_pipeline_worker_t *wptr,
                                        s_worker_freeup,
                                        buf,
                                        NULL)) == LAGOPUS_RESULT_OK) {
-        w->m_sptr = sptr;
+        w->m_stg = *sptr;
         w->m_idx = idx;
         w->m_proc = proc;
         w->m_is_started = false;

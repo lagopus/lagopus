@@ -77,6 +77,112 @@ test_queue_conf_create_and_destroy(void) {
 }
 
 void
+test_queue_conf_duplicate(void) {
+  lagopus_result_t rc;
+  bool result = false;
+  queue_conf_t *src_conf = NULL;
+  queue_conf_t *dst_conf = NULL;
+  const char *src_fullname = "src_conf";
+  const char *dst_fullname = "dst_conf";
+
+  queue_initialize();
+
+  rc = queue_conf_create(&src_conf, src_fullname);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+  TEST_ASSERT_NOT_NULL_MESSAGE(src_conf,
+                               "conf_create() will create new queue");
+
+  // Normal case
+  {
+    rc = queue_conf_duplicate(src_conf, &dst_conf, dst_fullname);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+    result = queue_conf_equals(src_conf, dst_conf);
+    TEST_ASSERT_TRUE(result);
+  }
+
+  // Abnormal case
+  {
+    result = queue_conf_equals(src_conf, NULL);
+    TEST_ASSERT_FALSE(result);
+
+    result = queue_conf_equals(NULL, dst_conf);
+    TEST_ASSERT_FALSE(result);
+  }
+
+  queue_conf_destroy(src_conf);
+  queue_conf_destroy(dst_conf);
+
+  queue_finalize();
+}
+
+void
+test_queue_conf_equals(void) {
+  lagopus_result_t rc;
+  bool result = false;
+  queue_conf_t *conf1 = NULL;
+  queue_conf_t *conf2 = NULL;
+  queue_conf_t *conf3 = NULL;
+  const char *fullname1 = "conf1";
+  const char *fullname2 = "conf2";
+  const char *fullname3 = "conf3";
+
+  queue_initialize();
+
+  rc = queue_conf_create(&conf1, fullname1);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+  TEST_ASSERT_NOT_NULL_MESSAGE(conf1, "conf_create() will create new queue");
+  rc = queue_conf_add(conf1);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+
+  rc = queue_conf_create(&conf2, fullname2);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+  TEST_ASSERT_NOT_NULL_MESSAGE(conf2, "conf_create() will create new queue");
+  rc = queue_conf_add(conf2);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+
+  rc = queue_conf_create(&conf3, fullname3);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+  TEST_ASSERT_NOT_NULL_MESSAGE(conf3, "conf_create() will create new queue");
+  rc = queue_conf_add(conf3);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+  rc = queue_set_enabled(fullname3, true);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+
+  // Normal case
+  {
+    result = queue_conf_equals(conf1, conf2);
+    TEST_ASSERT_TRUE(result);
+
+    result = queue_conf_equals(NULL, NULL);
+    TEST_ASSERT_TRUE(result);
+
+    result = queue_conf_equals(conf1, conf3);
+    TEST_ASSERT_FALSE(result);
+
+    result = queue_conf_equals(conf2, conf3);
+    TEST_ASSERT_FALSE(result);
+  }
+
+  // Abnormal case
+  {
+    result = queue_conf_equals(conf1, NULL);
+    TEST_ASSERT_FALSE(result);
+
+    result = queue_conf_equals(NULL, conf2);
+    TEST_ASSERT_FALSE(result);
+  }
+
+  rc = queue_conf_delete(conf1);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+  rc = queue_conf_delete(conf2);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+  rc = queue_conf_delete(conf3);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+
+  queue_finalize();
+}
+
+void
 test_queue_conf_add(void) {
   lagopus_result_t rc;
   queue_conf_t *conf = NULL;
@@ -586,6 +692,9 @@ test_queue_attr_equals(void) {
   // Normal case
   {
     result = queue_attr_equals(attr1, attr2);
+    TEST_ASSERT_TRUE(result);
+
+    result = queue_attr_equals(NULL, NULL);
     TEST_ASSERT_TRUE(result);
 
     result = queue_attr_equals(attr1, attr3);

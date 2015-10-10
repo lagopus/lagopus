@@ -67,17 +67,20 @@ typedef struct lagopus_callout_task_record {
   lagopus_runnable_record m_runnable;
   TAILQ_ENTRY(lagopus_callout_task_record) m_entry;
 
-  lagopus_mutex_t m_lock;
+  lagopus_mutex_t m_lock;	/** A recursive lock. */
+  volatile callout_task_state_t m_status;
+
+  volatile size_t m_exec_ref_count;	/** 0 ... no one is executing;
+                                            >0 ... someone is executing. */
 
   callout_task_type_t m_type;
   const char *m_name;
   lagopus_callout_task_proc_t m_proc;
-  lagopus_callout_task_get_event_n_proc_t m_get_n_proc;
   void *m_arg;
   lagopus_callout_task_arg_freeup_proc_t m_freeproc;
   bool m_do_repeat;
   bool m_is_first;
-  bool m_is_in_q;	/** We need this since the TAILQ_* APIs don't
+  bool m_is_in_timed_q;	/** We need this since the TAILQ_* APIs don't
                             check that a specified entry is really in
                             a specified queue for the
                             insertion/removal. */

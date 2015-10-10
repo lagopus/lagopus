@@ -46,7 +46,7 @@ setUp(void) {
 
   ret = datastore_find_table("port", &tbl_port,
                              NULL, NULL, NULL,
-                             NULL, NULL, NULL);
+                             NULL, NULL, NULL, NULL);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, ret,
                             "datastore_find_table error.");
 }

@@ -147,7 +147,9 @@ port_attr_queue_name_exists(const port_attr_t *attr, const char *name) {
 
 static inline bool
 port_attr_equals(port_attr_t *attr0, port_attr_t *attr1) {
-  if (attr0 == NULL || attr1 == NULL) {
+  if (attr0 == NULL && attr1 == NULL) {
+    return true;
+  } else if (attr0 == NULL || attr1 == NULL) {
     return false;
   }
 
@@ -249,6 +251,82 @@ port_conf_destroy(port_conf_t *conf) {
     }
   }
   free((void *) conf);
+}
+
+static inline lagopus_result_t
+port_conf_duplicate(const port_conf_t *src_conf,
+                    port_conf_t **dst_conf,
+                    const char *fullname) {
+  lagopus_result_t rc;
+  port_attr_t *dst_current_attr = NULL;
+  port_attr_t *dst_modified_attr = NULL;
+
+  if (src_conf == NULL || dst_conf == NULL) {
+    return LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  if (*dst_conf != NULL) {
+    port_conf_destroy(*dst_conf);
+    *dst_conf = NULL;
+  }
+
+  rc = port_conf_create(dst_conf, fullname);
+  if (rc != LAGOPUS_RESULT_OK) {
+    goto error;
+  }
+
+  if (src_conf->current_attr != NULL) {
+    rc = port_attr_duplicate(src_conf->current_attr, &dst_current_attr);
+    if (rc != LAGOPUS_RESULT_OK) {
+      goto error;
+    }
+  }
+  (*dst_conf)->current_attr = dst_current_attr;
+
+  if (src_conf->modified_attr != NULL) {
+    rc = port_attr_duplicate(src_conf->modified_attr, &dst_modified_attr);
+    if (rc != LAGOPUS_RESULT_OK) {
+      goto error;
+    }
+  }
+  (*dst_conf)->modified_attr = dst_modified_attr;
+
+  (*dst_conf)->is_used = src_conf->is_used;
+  (*dst_conf)->is_enabled = src_conf->is_enabled;
+  (*dst_conf)->is_destroying = src_conf->is_destroying;
+  (*dst_conf)->is_enabling = src_conf->is_enabling;
+  (*dst_conf)->is_disabling = src_conf->is_disabling;
+
+  return LAGOPUS_RESULT_OK;
+
+error:
+  port_conf_destroy(*dst_conf);
+  *dst_conf = NULL;
+  return rc;
+}
+
+static inline bool
+port_conf_equals(const port_conf_t *conf0,
+                 const port_conf_t *conf1) {
+  if (conf0 == NULL && conf1 == NULL) {
+    return true;
+  } else if (conf0 == NULL || conf1 == NULL) {
+    return false;
+  }
+
+  if ((port_attr_equals(conf0->current_attr,
+                        conf1->current_attr) == true) &&
+      (port_attr_equals(conf0->modified_attr,
+                        conf1->modified_attr) == true) &&
+      (conf0->is_used == conf1->is_used) &&
+      (conf0->is_enabled == conf1->is_enabled) &&
+      (conf0->is_destroying == conf1->is_destroying) &&
+      (conf0->is_enabling == conf1->is_enabling) &&
+      (conf0->is_disabling == conf1->is_disabling)) {
+    return true;
+  }
+
+  return false;
 }
 
 static inline lagopus_result_t

@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-#include <stdbool.h>
-#include <stdint.h>
 #include "lagopus_apis.h"
 #include "openflow.h"
 #include "openflow13packet.h"
+#include "lagopus/datastore.h"
 #include "lagopus/ofp_handler.h"
 #include "lagopus/ofp_dp_apis.h"
 #include "lagopus/ofp_pdump.h"
+#include "lagopus/ofp_bridgeq_mgr.h"
 #include "ofp_apis.h"
 
 static void
@@ -32,6 +32,63 @@ multipart_request_trace(struct ofp_multipart_request *multipart) {
     lagopus_msg_pdump(TRACE_OFPT_MULTIPART_REQUEST, PDUMP_OFP_MULTIPART_REQUEST,
                       *multipart, "");
   }
+}
+
+static uint32_t
+multipart_capability_get(struct ofp_multipart_request *multipart) {
+  switch (multipart->type) {
+    case OFPMP_FLOW:
+      return OFPC_FLOW_STATS;
+    case OFPMP_TABLE:
+      return OFPC_TABLE_STATS;
+    case OFPMP_PORT_STATS:
+      return OFPC_PORT_STATS;
+    case OFPMP_QUEUE:
+      return OFPC_QUEUE_STATS;
+    case OFPMP_GROUP:
+      return OFPC_GROUP_STATS;
+    default:
+      return UINT32_MAX;
+  }
+}
+
+static bool
+multipart_request_features_check(struct channel *channel,
+                                 struct ofp_multipart_request *multipart) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  bool rv = false;
+  datastore_bridge_info_t info;
+  uint32_t features_capabilities = 0;
+  uint64_t dpid;
+
+  dpid = channel_dpid_get(channel);
+
+  if ((ret = ofp_bridgeq_mgr_info_get(dpid,
+                                      &info)) !=
+      LAGOPUS_RESULT_OK) {
+    lagopus_msg_warning("FAILED (%s).\n",
+                        lagopus_error_get_string(ret));
+    rv = false;
+    goto done;
+  }
+
+  if ((ret = ofp_features_capabilities_convert(
+          info.capabilities,
+          &features_capabilities)) != LAGOPUS_RESULT_OK) {
+    lagopus_msg_warning("FAILED (%s).\n",
+                        lagopus_error_get_string(ret));
+    rv = false;
+    goto done;
+  }
+
+  if ((features_capabilities & multipart_capability_get(multipart)) != 0) {
+    rv = true;
+  } else {
+    rv = false;
+  }
+
+done:
+  return rv;
 }
 
 /* multipart_request received. */
@@ -63,6 +120,15 @@ ofp_multipart_request_handle(struct channel *channel, struct pbuf *pbuf,
 
   /* dump trace. */
   multipart_request_trace(&multipart);
+
+  /* check features. */
+  if (multipart_request_features_check(channel, &multipart) == false) {
+    lagopus_msg_warning("unsupported type (multipart, %s).\n",
+                        ofp_multipart_type_str(multipart.type));
+    res = LAGOPUS_RESULT_OFP_ERROR;
+    ofp_error_set(error, OFPET_BAD_REQUEST, OFPBRC_BAD_MULTIPART);
+    goto done;
+  }
 
   /* check role. */
   if (ofp_role_mp_check(channel, pbuf, &multipart) == false) {

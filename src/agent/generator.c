@@ -374,15 +374,12 @@ exp_generate_list_encoder(struct exp_list *elist) {
   fprintf(fp_source, "    if (*pbuf == NULL) {\n");
   fprintf(fp_source, "      return LAGOPUS_RESULT_NO_MEMORY;\n");
   fprintf(fp_source, "    }\n");
+  fprintf(fp_source, "    pbuf_list_add(pbuf_list, *pbuf);\n");
   fprintf(fp_source, "    (*pbuf)->plen = OFP_PACKET_MAX_SIZE;\n");
   fprintf(fp_source, "    ret = ofp_header_mp_copy(*pbuf, before_pbuf);\n");
   fprintf(fp_source, "    if (ret != LAGOPUS_RESULT_OK) {\n");
-  fprintf(fp_source, "      if (*pbuf != NULL) {\n");
-  fprintf(fp_source, "        pbuf_free(*pbuf);\n");
-  fprintf(fp_source, "      }\n");
   fprintf(fp_source, "      return ret;\n");
   fprintf(fp_source, "    }\n");
-  fprintf(fp_source, "    pbuf_list_add(pbuf_list, *pbuf);\n");
   fprintf(fp_source, "    ret = %s_encode(*pbuf, packet);\n", elist->name);
   fprintf(fp_source, "  }\n");
   fprintf(fp_source, "\n");

@@ -93,7 +93,7 @@ ofp_match_parse(struct channel *channel, struct pbuf *pbuf,
  */
 lagopus_result_t
 ofp_match_list_encode(struct pbuf_list *pbuf_list,
-                      struct pbuf *pbuf,
+                      struct pbuf **pbuf,
                       struct match_list *match_list,
                       uint16_t *total_length);
 

@@ -49,14 +49,20 @@ typedef struct lagopus_callout_task_record 	*lagopus_callout_task_t;
  * The signature of the callout handler idle function.
  *
  *	@param[in]	arg	An argument.
+ *
+ *	@retval	LAGOPUS_RESULT_OK	Succeeded and the callout master
+ *					scheduler carries on.
+ *	@retval <0			Failed and the callout master
+ *					sceduler stops.
  */
-typedef void	(*lagopus_callout_idle_proc_t)(void *arg);
+typedef lagopus_result_t	(*lagopus_callout_idle_proc_t)(void *arg);
 
 
 /**
  * The signature of callout handler idle function argument freeup functions.
  *
  *	@param[in]	arg	An argument.
+ *
  */
 typedef void	(*lagopus_callout_idle_arg_freeup_proc_t)(void *arg);
 
@@ -190,7 +196,7 @@ lagopus_callout_submit_task(const lagopus_callout_task_t *tptr,
 
 
 /**
- * cancel a submitted task.
+ * Cancel a submitted task.
  *
  *	@param[in]	tptr	A pointer to a task.
  *
@@ -200,6 +206,18 @@ lagopus_callout_submit_task(const lagopus_callout_task_t *tptr,
  */
 void
 lagopus_callout_cancel_task(const lagopus_callout_task_t *tptr);
+
+
+/**
+ * Execute the sumitted task forcibly.
+ *
+ *	@param[in]	tptr	A pointer to a task.
+ *
+ *	@retval	LAGOPUS_RESULT_OK		Succeeded.
+ *	@retval <0				Failure.
+ */
+lagopus_result_t
+lagopus_callout_exec_task_forcibly(const lagopus_callout_task_t *tptr);
 
 
 

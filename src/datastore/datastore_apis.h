@@ -171,6 +171,22 @@ typedef lagopus_result_t
 
 
 /**
+ * The signature of object duplication function.
+ *
+ *	@param[in]	obj	An object
+ *	@param[in]	fullname	A name of the duplication obj.
+ *
+ *	@retval	LAGOPUS_RESULT_OK		Succeeded.
+ *	@retval	LAGOPUS_RESULT_INVALID_ARGS	Failed, invalid args.
+ *	@retval <0	TBD or command specific error(s).
+ *
+ *	@details The returned \b *namep must not be modified.
+ */
+typedef lagopus_result_t
+(*datastore_duplicate_proc_t)(const void *obj, const char *fullname);
+
+
+/**
  * The signature of each command interpreter.
  *
  *	@param[in]	iptr	An interpreter.
@@ -217,6 +233,7 @@ typedef lagopus_result_t
  *	@param[in]	d_proc	A destroy function.
  *	@param[in]	c_proc	A compare function (NULL allowed.)
  *	@param[in]	n_proc	A getname function.
+ *	@param[in]	dup_proc	A duplicate function.
  *
  *	@retval	LAGOPUS_RESULT_OK		Succeeded.
  *	@retval	LAGOPUS_RESULT_INVALID_ARGS	Failed, invalid args.
@@ -240,7 +257,8 @@ datastore_register_table(const char *argv0,
                          datastore_serialize_proc_t s_proc,
                          datastore_destroy_proc_t d_proc,
                          datastore_compare_proc_t c_proc,
-                         datastore_getname_proc_t n_proc);
+                         datastore_getname_proc_t n_proc,
+                         datastore_duplicate_proc_t dup_proc);
 
 
 /**
@@ -256,6 +274,7 @@ datastore_register_table(const char *argv0,
  *	@param[out]	d_pptr	A destroy function returned (NULL allowed.)
  *	@param[out]	c_pptr	A compare function returned (NULL allowed.)
  *	@param[out]	n_pptr	A getname function returned (NULL allowed.)
+ *	@param[out]	dup_pptr	A duplicate function returned (NULL allowed.)
  *
  *	@retval	LAGOPUS_RESULT_OK		Succeeded.
  *	@retval	LAGOPUS_RESULT_INVALID_ARGS	Failed, invalid args.
@@ -270,7 +289,8 @@ datastore_find_table(const char *argv0,
                      datastore_serialize_proc_t *s_pptr,
                      datastore_destroy_proc_t *d_pptr,
                      datastore_compare_proc_t *c_pptr,
-                     datastore_getname_proc_t *n_pptr);
+                     datastore_getname_proc_t *n_pptr,
+                     datastore_duplicate_proc_t *dup_pptr);
 
 
 /**

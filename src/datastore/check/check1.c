@@ -503,6 +503,64 @@ s_update(datastore_interp_t *iptr,
 
 
 static lagopus_result_t
+s_enable(datastore_interp_t *iptr,
+         datastore_interp_state_t state,
+         void *obj,
+         bool *currentp,
+         bool enabled,
+         lagopus_dstring_t *result) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+
+  (void)iptr;
+  (void)state;
+  (void)obj;
+  (void)currentp;
+  (void)enabled;
+  (void)result;
+
+  ret = LAGOPUS_RESULT_OK;
+
+  return ret;
+}
+
+
+static lagopus_result_t
+s_serialize(datastore_interp_t *iptr,
+            datastore_interp_state_t state,
+            const void *obj,
+            lagopus_dstring_t *result) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+
+  (void)iptr;
+  (void)state;
+  (void)obj;
+  (void)result;
+
+  ret = LAGOPUS_RESULT_OK;
+
+  return ret;
+}
+
+
+static lagopus_result_t
+s_destroy(datastore_interp_t *iptr,
+          datastore_interp_state_t state,
+          void *obj,
+          lagopus_dstring_t *result) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+
+  (void)iptr;
+  (void)state;
+  (void)obj;
+  (void)result;
+
+  ret = LAGOPUS_RESULT_OK;
+
+  return ret;
+}
+
+
+static lagopus_result_t
 s_compare(const void *obj0, const void *obj1, int *result) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
 
@@ -530,6 +588,14 @@ s_getname(const void *obj, const char **namep) {
   }
 
   return ret;
+}
+
+
+static lagopus_result_t
+s_duplicate(const void *obj, const char *fullname) {
+  (void)obj;
+  (void)fullname;
+  return LAGOPUS_RESULT_OK;
 }
 
 
@@ -890,11 +956,12 @@ s_once_proc(void) {
   if ((r = datastore_register_table(MY_COMMAND_NAME,
                                     &s_tbl,
                                     s_update,
-                                    NULL,
-                                    NULL,
-                                    NULL,
+                                    s_enable,
+                                    s_serialize,
+                                    s_destroy,
                                     s_compare,
-                                    s_getname)) != LAGOPUS_RESULT_OK) {
+                                    s_getname,
+                                    s_duplicate)) != LAGOPUS_RESULT_OK) {
     lagopus_perror(r);
     lagopus_exit_fatal("can't register an object table for \"%s\".\n",
                        MY_COMMAND_NAME);
@@ -906,6 +973,7 @@ s_once_proc(void) {
     datastore_destroy_proc_t d_proc = NULL;
     datastore_compare_proc_t c_proc = NULL;
     datastore_getname_proc_t n_proc = NULL;
+    datastore_duplicate_proc_t dup_proc = NULL;
 
     if ((r = datastore_find_table(MY_COMMAND_NAME,
                                   &s_tbl2,
@@ -914,14 +982,16 @@ s_once_proc(void) {
                                   &s_proc,
                                   &d_proc,
                                   &c_proc,
-                                  &n_proc)) != LAGOPUS_RESULT_OK ||
+                                  &n_proc,
+                                  &dup_proc)) != LAGOPUS_RESULT_OK ||
         s_tbl != s_tbl2 ||
         u_proc != s_update ||
-        e_proc != NULL ||
-        s_proc != NULL ||
-        d_proc != NULL ||
+        e_proc != s_enable ||
+        s_proc != s_serialize ||
+        d_proc != s_destroy ||
         c_proc != s_compare ||
-        n_proc != s_getname) {
+        n_proc != s_getname ||
+        dup_proc != s_duplicate) {
       if (r != LAGOPUS_RESULT_OK) {
         lagopus_perror(r);
       }
