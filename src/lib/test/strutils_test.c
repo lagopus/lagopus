@@ -105,3 +105,37 @@ test_lagopus_str_escape_null(void) {
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS, ret,
                             "lagopus_str_escap error (null).");
 }
+
+void
+test_lagopus_str_indexof(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+
+  ret = lagopus_str_indexof("abcdefg", "abcd");
+  TEST_ASSERT_EQUAL_MESSAGE(0, ret,
+                            "cmd_string_indexof error (invalid_args).");
+
+  ret = lagopus_str_indexof("abcdefg", "cde");
+  TEST_ASSERT_EQUAL_MESSAGE(2, ret,
+                            "cmd_string_indexof error (invalid_args).");
+
+  ret = lagopus_str_indexof("abcdefg", "efg");
+  TEST_ASSERT_EQUAL_MESSAGE(4, ret,
+                            "cmd_string_indexof error (invalid_args).");
+
+  ret = lagopus_str_indexof("abcdefg", "zabc");
+  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_NOT_FOUND, ret,
+                            "cmd_string_indexof error (invalid_args).");
+
+  ret = lagopus_str_indexof("abcdefg", "efgh");
+  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_NOT_FOUND, ret,
+                            "cmd_string_indexof error (invalid_args).");
+
+  ret = lagopus_str_indexof(NULL, "abcdefg");
+  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS, ret,
+                            "cmd_string_indexof error (invalid_args).");
+
+  ret = lagopus_str_indexof("abcdefg", NULL);
+  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS, ret,
+                            "cmd_string_indexof error (invalid_args).");
+}
+

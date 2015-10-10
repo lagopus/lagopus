@@ -6,13 +6,6 @@
 
 
 
-static shutdown_grace_level_t s_gl = SHUTDOWN_GRACEFULLY;
-static volatile bool s_got_term_sig = false;
-
-
-
-
-
 static void
 s_term_handler(int sig) {
   lagopus_result_t r = LAGOPUS_RESULT_ANY_FAILURES;
@@ -42,7 +35,7 @@ s_term_handler(int sig) {
 
     } else if ((int)gs < (int)GLOBAL_STATE_STARTED) {
       if (sig == SIGTERM || sig == SIGINT || sig == SIGQUIT) {
-        s_got_term_sig = true;
+        lagopus_abort_before_mainloop();
       }
     } else {
       lagopus_msg_debug(5, "The system is already shutting down.\n");
@@ -55,85 +48,40 @@ s_term_handler(int sig) {
 
 
 
+typedef	lagopus_result_t (*test_proc_t)(void *arg);
+
+
+typedef struct {
+  test_proc_t m_proc;
+  void *m_arg;
+} callout_test_task_record;
+typedef callout_test_task_record *callout_test_task_t;
+
+
+/*
+ * Actuall test driver.
+ */
+
+
+static lagopus_thread_t s_thd = NULL;
+
+
 static lagopus_result_t
-s_idle_proc(void *arg) {
+s_thd_main(const lagopus_thread_t *tptr, void *arg) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
-  shutdown_grace_level_t *glptr = (shutdown_grace_level_t *)arg;
-  shutdown_grace_level_t gl = SHUTDOWN_UNKNOWN;
+  global_state_t s;
+  shutdown_grace_level_t l;
 
-  ret = global_state_wait_for_shutdown_request(&gl, 0LL);
-  if (unlikely(ret == LAGOPUS_RESULT_OK)) {
-    if (glptr != NULL) {
-      *glptr = gl;
-    }
-    /*
-     * Got a shutdown request. Accept it anyway.
-     */
-    (void)global_state_set(GLOBAL_STATE_ACCEPT_SHUTDOWN);
-    /*
-     * And return <0 to stop the callout main loop.
-     */
-    ret = LAGOPUS_RESULT_ANY_FAILURES;
-  } else {
-    ret = LAGOPUS_RESULT_OK;
-  }
+  (void)tptr;
 
-  return ret;
-}
-
-
-static inline lagopus_result_t
-s_mainloop(int argc, const char * const argv[]) {
-  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
-
-  if (likely(s_got_term_sig == false)) {
-    bool handler_inited = false;
-
-    /*
-     * Initialize the callout handler.
-     */
-    ret = lagopus_callout_initialize_handler(1,
-                                             s_idle_proc, (void *)&s_gl,
-                                             1000LL * 1000LL * 1000LL,
-                                             NULL);
-    if (likely(ret == LAGOPUS_RESULT_OK)) {
-      handler_inited = true;
-      if (s_got_term_sig == false) {
-        ret = lagopus_mainloop_prologue(argc, argv, NULL);
-        if (likely(ret == LAGOPUS_RESULT_OK &&
-                   s_got_term_sig == false)) {
-          lagopus_result_t r1 = LAGOPUS_RESULT_ANY_FAILURES;
-          lagopus_result_t r2 = LAGOPUS_RESULT_ANY_FAILURES;
-
-          /*
-           * Start the callout handler main loop.
-           */
-          ret = lagopus_callout_start_main_loop();
-
-          /*
-           * No matter the ret is, here we have the main loop stopped. To
-           * make it sure that the loop stopping call the stop API in case.
-           */
-          r1 = lagopus_callout_stop_main_loop();
-          if (r1 == LAGOPUS_RESULT_ALREADY_HALTED) {
-            r1 = LAGOPUS_RESULT_OK;
-          }
-
-          r2 = lagopus_mainloop_epilogue(s_gl,
-                                         5 * 1000LL * 1000LL * 1000LL);
-
-          if (ret == LAGOPUS_RESULT_OK) {
-            ret = r1;
-          }
-          if (ret == LAGOPUS_RESULT_OK) {
-            ret = r2;
-          }
-        }
-      }
-      
-      if (handler_inited == true) {
-        lagopus_callout_finalize_handler();
-      }
+  ret = global_state_wait_for(GLOBAL_STATE_STARTED, &s, &l, -1LL);
+  if (ret == LAGOPUS_RESULT_OK &&
+      s == GLOBAL_STATE_STARTED) {
+    callout_test_task_t t = (callout_test_task_t)arg;
+    if (t != NULL) {
+      ret = (t->m_proc)(t->m_arg);
+    } else {
+      ret = LAGOPUS_RESULT_OK;
     }
   }
 
@@ -144,17 +92,151 @@ s_mainloop(int argc, const char * const argv[]) {
 
 
 
+static uint64_t s_val0 = 0LL;
+static uint64_t s_val1 = 0LL;
+
+
+static lagopus_result_t
+callout0(void *arg) {
+  uint64_t *v = (uint64_t *)arg;
+
+  lagopus_msg_debug(1, "task0 called.\n");
+
+  (void)__sync_fetch_and_add(v, 1);
+
+#if 0
+  (void)lagopus_chrono_nanosleep(2LL * 1000LL * 1000LL * 1000LL, NULL);
+#endif
+
+  return LAGOPUS_RESULT_OK;
+}
+
+
+static void
+callout0_freeup(void *arg) {
+  (void)arg;
+  lagopus_msg_debug(1, "freeup0 called.\n");
+}
+
+
+static lagopus_result_t
+callout1(void *arg) {
+  uint64_t *v = (uint64_t *)arg;
+
+  lagopus_msg_debug(1, "task1 called.\n");
+
+  if (__sync_fetch_and_add(v, 1) > 3) {
+    return LAGOPUS_RESULT_ANY_FAILURES;
+  } else {
+    return LAGOPUS_RESULT_OK;
+  }
+}
+
+
+static void
+callout1_freeup(void *arg) {
+  (void)arg;
+  lagopus_msg_debug(1, "freeup1 called.\n");
+}
+
+
+static lagopus_result_t
+test_1(void *arg) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  lagopus_callout_task_t t0 = NULL;
+  lagopus_callout_task_t t1 = NULL;
+  uint64_t val;
+
+  (void)arg;
+
+  s_val0 = 0LL;
+
+  if (likely(((ret = lagopus_callout_create_task(&t0, 0, "test_task0",
+                                                 callout0, (void *)&s_val0,
+                                                 callout0_freeup)) ==
+              LAGOPUS_RESULT_OK) &&
+
+             ((ret = lagopus_callout_create_task(&t1, 0, "test_task1",
+                                                 callout1, (void *)&s_val1,
+                                                 callout1_freeup)) ==
+              LAGOPUS_RESULT_OK))) {
+
+    if (likely(((ret =
+                 lagopus_callout_submit_task(&t0,
+                                             0LL, 
+                                             1000LL * 1000LL * 1000LL)) ==
+                LAGOPUS_RESULT_OK) &&
+
+               ((ret =
+                 lagopus_callout_submit_task(&t1,
+                                             10LL * 1000LL * 1000LL * 1000LL, 
+                                             300LL * 1000LL * 1000LL)) ==
+                LAGOPUS_RESULT_OK))) {
+
+      (void)lagopus_chrono_nanosleep(1500LL * 1000LL * 1000LL, NULL);
+
+      (void)lagopus_callout_exec_task_forcibly(&t0);
+      (void)lagopus_callout_exec_task_forcibly(&t1);
+
+      (void)lagopus_chrono_nanosleep(4LL * 1000LL * 1000LL * 1000LL, NULL);
+
+      lagopus_callout_cancel_task(&t0);
+
+      (void)lagopus_chrono_nanosleep(1LL * 1000LL * 1000LL * 1000LL, NULL);
+
+      val = __sync_fetch_and_add(&s_val0, 0);
+
+      fprintf(stdout, "\nval = " PFSZ(u) ".\n", val);
+      ret = LAGOPUS_RESULT_OK;
+    }
+  }
+
+  if (ret != LAGOPUS_RESULT_OK) {
+    lagopus_perror(ret);
+  }
+
+  return ret;
+}
+
+
 int
 main(int argc, const char * const argv[]) {
+  size_t n_workers = 1;
+  callout_test_task_record t = {
+    test_1, NULL
+  };
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
 
-  (void)lagopus_set_command_name(argv[0]);
+  if (argc > 1 && IS_VALID_STRING(argv[1]) == true) {
+    size_t tmp = 0;
+    if (lagopus_str_parse_uint64(argv[1], &tmp) == LAGOPUS_RESULT_OK) {
+      if (tmp <= 4) {
+        n_workers = tmp;
+      }
+    }
+  }
+
+  (void)lagopus_mainloop_set_callout_workers_number(n_workers);
+  fprintf(stderr, "workers: " PFSZ(u) ".\n", n_workers);
 
   (void)lagopus_signal(SIGINT, s_term_handler, NULL);
   (void)lagopus_signal(SIGTERM, s_term_handler, NULL);
   (void)lagopus_signal(SIGQUIT, s_term_handler, NULL);
 
-  ret = lagopus_mainloop(argc, argv, s_mainloop);
+  ret = lagopus_thread_create(&s_thd,
+                              s_thd_main,
+                              NULL,
+                              NULL,
+                              "test", (void *)&t);
+  if (likely(ret == LAGOPUS_RESULT_OK)) {
+    ret = lagopus_thread_start(&s_thd, false);
+    if (unlikely(ret != LAGOPUS_RESULT_OK)) {
+      goto done;
+    }
+  }
 
+  ret = lagopus_mainloop_with_callout(argc, argv, NULL, NULL, false, false);
+
+done:
   return (ret == LAGOPUS_RESULT_OK) ? 0 : 1;
 }

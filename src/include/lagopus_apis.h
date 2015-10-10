@@ -45,6 +45,7 @@
 #include "lagopus_runnable.h"
 #include "lagopus_callout.h"
 #include "lagopus_mainloop.h"
+#include "lagopus_statistic.h"
 #include "lagopus/addrunion.h"
 #include "lagopus_session.h"
 #include "lagopus_session_tls.h"

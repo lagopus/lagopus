@@ -16,53 +16,142 @@
 
 
 /**
- * The signature of the main loop function.
+ * The signature of the mainloop pre/post-startup hook functions.
  *
- *	@paran[in] argc The \b argc for the \b
- *			lagopus_module_initialize_all().
- *	@paran[in] argv The \b argv for the \b
- *			lagopus_module_initialize_all().
+ *	@param[in]	argc		A # of arguments, passed to 
+ *					the \b lagopus_mainloop().
+ *	@param[in]	argv		Arguments passed to 
+ *					the \b lagopus_mainloop().
  *
  *	@retval LAGOPUS_RESULT_OK	Succeeded.
- *	@retval <0			Any failures.
+ *	@retval <0			Any failures. Returning
+ *					these values makes the mainloop exit.
  *
- *	@details This procedure must block until the application is
- *	required to shutdown by any other threads.
- *
- *	@details The most likely this function should firstly calls
- *	the \b lagopus_mainloop_prologue(), then waits for the
- *	shutdown request (mainly by callling the \b
- *	global_state_wait_for_shutdown_request()), finally calls the
- *	\b lagopus_mainloop_epilogue().
+ *	@detals Use these functions to install a hook for the mainloop
+ *	pre/post-startup.
  */
-typedef lagopus_result_t (*lagopus_mainloop_proc_t)(
+typedef lagopus_result_t (*lagopus_mainloop_startup_hook_proc_t)(
     int argc, const char * const argv[]);
-
-
-/**
- * The signature of the module startup hook functions.
- *
- *	@retval LAGOPUS_RESULT_OK	Succeeded.
- *	@retval <0			Any failures.
- *
- *	@detals Use this function to install a hook for module
- *	startup, for the lagopus_mainloop_prologue() to provide a
- *	custom main loop function.
- */
-typedef lagopus_result_t (*lagopus_mainloop_module_startup_hook_proc_t)(void);
 
 
 
 
 
 /**
+ * Request abortion before the mainloop start.
+ *
+ *	@details Use this function if you want to abort the
+ *	application before entering the mainloop, like from a signal
+ *	handler.
+ */
+void
+lagopus_abort_before_mainloop(void);
+
+
+/**
+ * Query abortion request.
+ *
+ *	@details Use this function if you need to provide a custom
+ *	mainloop function and its abortion.
+ */
+bool
+lagopus_is_abort_before_mainloop(void);
+
+
+/**
+ * Set name of the pid file.
+ *
+ *	@param[in]	file	A filename for the pid file.
+ *
+ *	@retval	LAGOPUS_RESULT_OK	Suceeded.
+ *	@retval	<0			Any failures.
+ *
+ *	@details If the filename is not specified, the \b
+ *	lagopus_mainloop() uses "/var/run/%commandname%.pid", where
+ *	the %commandname% is, on Linux, retrieved by /proc.
+ */
+lagopus_result_t
+lagopus_set_pidfile(const char *file);
+
+
+/**
+ * Create the pid file.
+ *
+ *	@details The filename could be specified by the \b
+ *	lagopus_set_pidfile(). Not needed to be called explicitly if
+ *	the mainloop APIs are used.
+ */
+void
+lagopus_create_pidfile(void);
+
+
+/**
+ * Remove the pid file.
+ *
+ *	@details Not needed to be called explicitly if the mainloop
+ *	APIs are used.
+ */
+void
+lagopus_remove_pidfile(void);
+
+
+/**
+ * Set # of callout workers.
+ *
+ *	@param[in]	n	A # of the workers.
+ *
+ *	@retval	LAGOPUS_RESULT_OK	Suceeded.
+ *	@retval LAGOUS_RESULT_TOO_LARGE	Too large, must be <= 4.
+ *	@retval <0			Any failures.
+ */
+lagopus_result_t
+lagopus_mainloop_set_callout_workers_number(size_t n);
+
+
+/**
+ * Set shutdown request check interval in the main loop.
+ *
+ *	@param[in]	nsec	An interval (in nsec.)
+ *
+ *	@retval	LAGOPUS_RESULT_OK	Suceeded.
+ *	@retval LAGOPUS_RESULT_TO_SMALL	To small, must be > 1 sec.
+ *	@retval LAGOPUS_RESULT_TO_LARGE	TO large, must be <= 10 sec.
+ */
+lagopus_result_t
+lagopus_mainloop_set_shutdown_check_interval(lagopus_chrono_t nsec);
+
+
+/**
+ * Set shutdown timeout for the main loop.
+ *
+ *	@param[in]	nsec	A timeout (in nsec.)
+ *
+ *	@retval	LAGOPUS_RESULT_OK	Suceeded.
+ *	@retval LAGOPUS_RESULT_TO_SMALL	To small, must be > 1 sec.
+ *	@retval LAGOPUS_RESULT_TO_LARGE	TO large, must be <= 30 sec.
+ *
+ *	@details When the main loop is requested to shut the
+ *	application down, it broadcasts the shutdown message to all
+ *	the modules running. If any modules still remain after the \b
+ *	nsec, the main loop forcibly terminate them.
+ */
+lagopus_result_t
+lagopus_mainloop_set_shutdown_timeout(lagopus_chrono_t nsec);
+
+
+/**
  * Enter the application main loop.
  *
- *	@paran[in] argc The \b argc for the \b
- *			lagopus_module_initialize_all().
- *	@paran[in] argv The \b argv for the \b
- *			lagopus_module_initialize_all().
- *	@param[in]	proc	The main loop function (NULL allowed.)
+ *	@paran[in] argc		The \b argc for the \b
+ *				lagopus_module_initialize_all().
+ *	@paran[in] argv		The \b argv for the \b
+ *				lagopus_module_initialize_all().
+ *	@param[in] pre_hook	The pre-startup hook (NULL allowed.)
+ *	@param[in] post_hook	The post-startup hook (NULL allowed.)
+ *	@param[in] do_fork	If \b true call fork(2) before startup.
+ *	@param[in] do_pidfile	If \b true create a pid file.
+ *				The file name can be specified 
+ *				by the \b lagopus_set_pidfile().
  *
  *	@retval	LAGOPUS_RESULT_OK	Succeeded.
  *	@retval <0			Any failures.
@@ -75,44 +164,76 @@ typedef lagopus_result_t (*lagopus_mainloop_module_startup_hook_proc_t)(void);
  */
 lagopus_result_t
 lagopus_mainloop(int argc, const char * const argv[],
-                 lagopus_mainloop_proc_t proc);
+                 lagopus_mainloop_startup_hook_proc_t pre_hook,
+                 lagopus_mainloop_startup_hook_proc_t post_hook,
+                 bool do_fork, bool do_pidfile);
+
+
+/**
+ * Enter the application main loop with the callout support.
+ *
+ *	@paran[in] argc		The \b argc for the \b
+ *				lagopus_module_initialize_all().
+ *	@paran[in] argv		The \b argv for the \b
+ *				lagopus_module_initialize_all().
+ *	@param[in] pre_hook	The pre-startup hook (NULL allowed.)
+ *	@param[in] post_hook	The post-startup hook (NULL allowed.)
+ *	@param[in] do_fork	If \b true call fork(2) before startup.
+ *	@param[in] do_pidfile	If \b true create a pid file.
+ *				The file name can be specified 
+ *				by the \b lagopus_set_pidfile().
+ *
+ *	@retval	LAGOPUS_RESULT_OK	Succeeded.
+ *	@retval <0			Any failures.
+ *
+ *	@details If the \b proc is NULL, the default main loop
+ *	function, that a) initializa and start all the registered
+ *	module; b) Wait for the shutdown request; c) If got the
+ *	request, shutdown and finalize all the modules; d) Exit the
+ *	application.
+ */
+lagopus_result_t
+lagopus_mainloop_with_callout(int argc, const char * const argv[],
+                              lagopus_mainloop_startup_hook_proc_t pre_hook,
+                              lagopus_mainloop_startup_hook_proc_t post_hook,
+                              bool do_fork, bool do_pidfile);
 
 
 /**
  * The prologue of the application main loop.
  *
  *	@paran[in] argc The \b argc for the \b
- *			lagopus_module_initialize_all().
+ *      		lagopus_module_initialize_all().
  *	@paran[in] argv The \b argv for the \b
  *			lagopus_module_initialize_all().
- *	@param[in] hook A module startup hook (NULL allowed.)
+ *	@param[in] pre_hook	The pre-startup hook (NULL allowed.)
+ *	@param[in] post_hook	The post-startup hook (NULL allowed.)
  *
- *	@retval	LAGOPUS_RESULT_OK	Succeeded.
- *	@retval <0			Any failures.
+ *	@retval LAGOPUS_RESULT_OK       Succeeded.
+ *	@retval <0                      Any failures.
  *
  *	@details This function mainly performs the initialization and
- *	startup of the registerd modules. If the \b hook is not \b
- *	NULL, it is called between the initialization and the startup
- *	of the modules. Use this function to provide a custom main
- *	loop function.
+ *	startup of the registerd modules. Use this function if you
+ *	nned to provide a custom main loop function.
  */
 lagopus_result_t
-lagopus_mainloop_prologue(int argc, const char * const argv[], 
-                          lagopus_mainloop_module_startup_hook_proc_t hook);
+lagopus_mainloop_prologue(int argc, const char * const argv[],
+                          lagopus_mainloop_startup_hook_proc_t pre_hook,
+                          lagopus_mainloop_startup_hook_proc_t post_hook);
 
 
 /**
  * The epilogue of the application main loop.
  *
- *	@param[in]	l	The shutdown grace level.
- *	@param[in]	to	The shutdown timeout.
+ *	@param[in]      l       The shutdown grace level.
+ *	@param[in]      to      The shutdown timeout.
  *
- *	@retval	LAGOPUS_RESULT_OK	Succeeded.
- *	@retval <0			Any failures.
+ *	@retval LAGOPUS_RESULT_OK       Succeeded.
+ *	@retval <0                      Any failures.
  *
  *	@detail This function mainly performs the shutdown and
- *	finalization of the registered modules. Use this function to
- *	provide a custom main loop function.
+ *	finalization of the registered modules. Use this function if
+ *	you need to provide a custom main loop function.
  */
 lagopus_result_t
 lagopus_mainloop_epilogue(shutdown_grace_level_t l, lagopus_chrono_t to);

@@ -48,6 +48,7 @@ s_callout_worker_sched(const lagopus_pipeline_stage_t *sptr,
   if (likely(sptr != NULL && *sptr != NULL)) {
     callout_stage_t cs = (callout_stage_t)*sptr;
     size_t idx = (size_t)hint;
+    lagopus_callout_task_t *tasks = (lagopus_callout_task_t *)evbuf;
 
     if (likely(idx < cs->m_n_workers)) {
       size_t n_puts = 0;
@@ -55,9 +56,9 @@ s_callout_worker_sched(const lagopus_pipeline_stage_t *sptr,
 
       while (n_total_puts < n_evs) {
         ret = lagopus_bbq_put_n(&(cs->m_qs[idx]),
-                                (void **)(evbuf + n_total_puts),
+                                (void **)(tasks + n_total_puts),
                                 n_evs - n_total_puts,
-                                sizeof(lagopus_callout_task_t),
+                                lagopus_callout_task_t,
                                 -1LL, &n_puts);
         if (likely(ret >= 0)) {
           n_total_puts += (size_t)ret;
@@ -72,6 +73,7 @@ s_callout_worker_sched(const lagopus_pipeline_stage_t *sptr,
 
       if (likely(ret > 0)) {
         ret = (lagopus_result_t)n_total_puts;
+        lagopus_msg_debug(1, "submit " PFSZ(u) " tasks.\n", ret);
       }
     } else {
       ret = LAGOPUS_RESULT_INVALID_ARGS;
@@ -98,11 +100,36 @@ s_callout_worker_fetch(const lagopus_pipeline_stage_t *sptr,
     ret = lagopus_bbq_get_n(&(cs->m_qs[idx]),
                             (void **)evbuf,
                             max_n_evs, 1,
-                            sizeof(lagopus_callout_task_t),
-                            -1, &n_puts);
-    if (unlikely(ret == LAGOPUS_RESULT_WAKEUP_REQUESTED)) {
-      ret = (lagopus_result_t)n_puts;
+                            lagopus_callout_task_t,
+                            1000LL * 1000LL * 1000LL, /* 1 sec. */
+                            &n_puts);
+    switch (ret) {
+      case LAGOPUS_RESULT_WAKEUP_REQUESTED: {
+        ret = (lagopus_result_t)n_puts;
+        break;
+      }
+      case LAGOPUS_RESULT_TIMEDOUT: {
+        /*
+         * Returning a negative value stops pipeline. So return zero.
+         */
+        ret = 0;
+        break;
+      }
+      case LAGOPUS_RESULT_OK: {
+        ret = 0;
+        break;
+      }
+      default: {
+        if (likely(ret > 0)) {
+          lagopus_msg_debug(1, "fetched " PFSZ(u) " tasks.\n", ret);
+        } else {
+          lagopus_perror(ret);
+          lagopus_msg_warning("task fetch failed.\n");
+        }
+        break;
+      }
     }
+
   } else {
     ret = LAGOPUS_RESULT_INVALID_ARGS;
   }
@@ -119,7 +146,6 @@ s_callout_worker_main(const lagopus_pipeline_stage_t *sptr,
   (void)idx;
 
   if (likely(sptr != NULL && *sptr != NULL)) {
-    lagopus_result_t st;
     size_t i;
     lagopus_callout_task_t t;
     lagopus_callout_task_t *tasks = (lagopus_callout_task_t *)buf;
@@ -128,12 +154,10 @@ s_callout_worker_main(const lagopus_pipeline_stage_t *sptr,
 
     for (i = 0; i < n; i++) {
       t = tasks[i];
-
-      st = s_exec_task(t);
-      if (likely(st == LAGOPUS_RESULT_OK)) {
-        ret++;
-      }
+      (void)s_exec_task(t);
     }
+    ret = (lagopus_result_t)n;
+
   } else {
     ret = LAGOPUS_RESULT_INVALID_ARGS;
   }
@@ -146,7 +170,12 @@ static void
 s_callout_worker_final(const lagopus_pipeline_stage_t *sptr,
                        bool is_cancelled) {
   if (likely(sptr != NULL)) {
+    callout_stage_t cs = (callout_stage_t)*sptr;
     if (unlikely(is_cancelled == true)) {
+      size_t i;
+      for (i = 0; i < cs->m_n_workers; i++) {
+        (void)lagopus_bbq_cancel_janitor(&(cs->m_qs[i]));
+      }
       lagopus_pipeline_stage_cancel_janitor(sptr);
     }
   }
@@ -203,7 +232,7 @@ s_create_callout_stage(size_t n_workers) {
 
       if (likely(ret == LAGOPUS_RESULT_OK)) {
         ret = lagopus_pipeline_stage_create(
-            &s, 0, "callout_task", n_workers,
+            &s, 0, "c.o. worker", n_workers,
             sizeof(lagopus_callout_task_t), CALLOUT_TASK_MAX,
             NULL,			/* pre_pause */
             s_callout_worker_sched,	/* sched */
@@ -263,6 +292,29 @@ s_submit_callout_stage(const lagopus_callout_task_t * const tasks, size_t n) {
   if (likely(s_cs.m_is_initialized == true)) {
     if (likely(tasks != NULL && n > 0)) {
       lagopus_pipeline_stage_t s = (lagopus_pipeline_stage_t)&s_cs;
+      lagopus_chrono_t now;
+      size_t i;
+      lagopus_callout_task_t t;
+
+      WHAT_TIME_IS_IT_NOW_IN_NSEC(now);
+
+      for (i = 0; i < n; i++) {
+        /*
+         * Change the state of tasks to TASK_STATE_DEQUEUED and set
+         * the last execution (start) time as now.
+         */
+
+        t = tasks[i];
+
+        s_lock_task(t);
+        {
+          (void)s_set_task_state_in_table(t, TASK_STATE_DEQUEUED);
+          t->m_status = TASK_STATE_DEQUEUED;
+          t->m_last_abstime = now;
+        }
+        s_unlock_task(t);
+
+      }
 
       if (s_cs.m_n_workers == 1) {
         ret = lagopus_pipeline_stage_submit(&s, (void *)tasks, n, (void *)0);
@@ -325,19 +377,46 @@ s_submit_callout_stage(const lagopus_callout_task_t * const tasks, size_t n) {
 }
 
 
-static inline lagopus_result_t
-s_cancel_callout_stage(void) {
+static inline void
+s_wakeup_callout_workers(void) {
   lagopus_pipeline_stage_t s = (lagopus_pipeline_stage_t)&s_cs;
+  lagopus_result_t r = LAGOPUS_RESULT_ANY_FAILURES;
+  size_t i;
 
-  return lagopus_pipeline_stage_cancel(&s);
+  for (i = 0; i < s->m_n_workers; i++) {
+    r = lagopus_bbq_wakeup(&(s_cs.m_qs[i]), 1000LL * 1000LL * 100LL);
+    if (r != LAGOPUS_RESULT_OK && r != LAGOPUS_RESULT_NOT_OPERATIONAL) {
+      lagopus_perror(r);
+      lagopus_msg_warning("can't wake callout worker #" PFSZ(u) " up.\n", i);
+    }
+  }
 }
 
 
 static inline lagopus_result_t
 s_shutdown_callout_stage(shutdown_grace_level_t lvl) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   lagopus_pipeline_stage_t s = (lagopus_pipeline_stage_t)&s_cs;
 
-  return lagopus_pipeline_stage_shutdown(&s, lvl);
+  /*
+   * Set the stage shutdown mode first.
+   */
+  ret = lagopus_pipeline_stage_shutdown(&s, lvl);
+
+  /*
+   * Then wake all the worker that might waiting tasks queued up.
+   */
+  s_wakeup_callout_workers();
+
+  return ret;
+}
+
+
+static inline lagopus_result_t
+s_cancel_callout_stage(void) {
+  lagopus_pipeline_stage_t s = (lagopus_pipeline_stage_t)&s_cs;
+
+  return lagopus_pipeline_stage_cancel(&s);
 }
 
 

@@ -198,17 +198,4 @@ cmd_uint_parse(const char *const str,
                enum cmd_uint_type type,
                union cmd_uint *cmd_uint);
 
-/**
- * Locate string in string.
- *
- *     @param[in]	str1 		A pointer to input string.
- *     @param[in]	str2 		A pointer to input string.
- *
- *     @retval	index of the beginning of the substring.
- *     @retval	LAGOPUS_RESULT_INVALID_ARGS	Failed, invalid argument(s).
- *     @retval	LAGOPUS_RESULT_NOT_FOUND	not found the specified string.
- */
-lagopus_result_t
-cmd_string_indexof(const char *str1, const char *str2);
-
 #endif /* __CMD_COMMON_H__ */

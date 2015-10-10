@@ -146,6 +146,7 @@
 #define NSEC_TO_USEC(nsec) \
   (lagopus_chrono_t)((((nsec) / 100LL) + 5LL) / 10LL)
 
+#ifdef MOD_IS_FASTER_THAN_MUL_SUB
 #define NSEC_TO_TS(nsec, ts) \
   do {                                                              \
     (ts).tv_sec = (time_t)((nsec) / (1000LL * 1000LL * 1000LL));  \
@@ -158,6 +159,22 @@
     (tv).tv_sec = (long)((__u_sec__) / (1000LL * 1000LL));      \
     (tv).tv_usec = (long)((__u_sec__) % (1000LL * 1000LL));     \
   } while (0)
+#else
+#define NSEC_TO_TS(nsec, ts) \
+  do {                                                                  \
+    (ts).tv_sec = (time_t)((nsec) / (1000LL * 1000LL * 1000LL));        \
+    (ts).tv_nsec = (long)((nsec) -                                      \
+                          (ts).tv_sec * (1000LL * 1000LL * 1000LL));    \
+  } while (0)
+
+#define NSEC_TO_TV(nsec, tv)                                        \
+  do {                                                              \
+    lagopus_chrono_t __u_sec__ = NSEC_TO_USEC(nsec);                \
+    (tv).tv_sec = (long)((__u_sec__) / (1000LL * 1000LL));          \
+    (tv).tv_usec = (long)((__u_sec__) -                             \
+                          (tv).tv_sec * (1000LL * 1000LL));         \
+  } while (0)
+#endif /* MOD_IS_FASTER_THAN_MUL_SUB */
 
 #define TS_TO_NSEC(ts) \
   ((lagopus_chrono_t)((ts).tv_sec) * 1000LL * 1000LL * 1000LL + \

@@ -185,8 +185,6 @@ tearDown(void) {
                     dp_port_destroy(port_name01));
   TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK,
                     dp_port_destroy(port_name02));
-  free((void *)interface_info01.eth_dpdk_phy.device);
-  free((void *)interface_info02.eth_dpdk_phy.device);
   TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK,
                     dp_interface_destroy(interface_name01));
   TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK,

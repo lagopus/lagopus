@@ -83,8 +83,10 @@ lagopus_error_get_string(lagopus_result_t r) {
     } else {
       return "??? error string out of range ???";
     }
-  } else {
+  } else if (r == 0) {
     return s_error_strs[0];
+  } else {
+    return "Greater than zero, means not errors??";
   }
 }
 

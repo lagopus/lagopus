@@ -288,7 +288,7 @@ s_get_namespace(const char *str, char **namespace) {
   size_t ns_len = 0;
 
   if (IS_VALID_STRING(str) == true && namespace != NULL) {
-    ret = cmd_string_indexof(str, NAMESPACE_DELIMITER);
+    ret = lagopus_str_indexof(str, NAMESPACE_DELIMITER);
 
     if (ret >= 0) {
       ns_buf = strdup(str);
@@ -391,7 +391,7 @@ s_get_search_target(const char *fullname, char **target) {
   size_t delim_len = 0;
 
   if (IS_VALID_STRING(fullname) == true && target != NULL) {
-    ret = cmd_string_indexof(fullname, NAMESPACE_DELIMITER);
+    ret = lagopus_str_indexof(fullname, NAMESPACE_DELIMITER);
     if (ret >= 0) { /* namespace + name or namespace + delim or delim + name */
       target_buf = strdup(fullname);
 
@@ -866,6 +866,7 @@ datastore_initialize(int argc,
                      void *extarg,
                      lagopus_thread_t **thdptr) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  const char *configfile = NULL;
 
   (void)extarg;
 
@@ -883,6 +884,15 @@ datastore_initialize(int argc,
       lagopus_msg_debug(5, "argc: %d\n", argc);
       for (i = 0; i < argc; i++) {
         lagopus_msg_debug(5, "%5d: '%s'\n", i, argv[i]);
+      }
+
+      (void) datastore_get_config_file(&configfile);
+      if ((ret = datastore_preload_config()) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        lagopus_msg_error("can't load the minimum configuration parameters "
+                          "from '%s'.\n", configfile);
+        goto unlock;
       }
 
       if ((ret = datastore_all_commands_initialize()) != LAGOPUS_RESULT_OK) {

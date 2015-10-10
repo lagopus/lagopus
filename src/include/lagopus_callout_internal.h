@@ -53,27 +53,20 @@ typedef enum {
 } callout_task_state_t;
 
 
-/**
- * The callout task type.
- */
-typedef enum {
-  TASK_TYPE_UNKNOWN,
-  TASK_TYPE_SINGLE_SHOT,
-  TASK_TYPE_PERIODIC
-} callout_task_type_t;
-
-
 typedef struct lagopus_callout_task_record {
   lagopus_runnable_record m_runnable;
   TAILQ_ENTRY(lagopus_callout_task_record) m_entry;
 
   lagopus_mutex_t m_lock;	/** A recursive lock. */
+  lagopus_cond_t m_cond;	/** A cond, mainly for cancel sync. */
+
   volatile callout_task_state_t m_status;
 
   volatile size_t m_exec_ref_count;	/** 0 ... no one is executing;
                                             >0 ... someone is executing. */
+  volatile size_t m_cancel_ref_count;	/** 0 ... no one is cancelling;
+                                            >0 ... someone is cancelling. */
 
-  callout_task_type_t m_type;
   const char *m_name;
   lagopus_callout_task_proc_t m_proc;
   void *m_arg;

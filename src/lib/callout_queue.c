@@ -54,6 +54,7 @@ s_unlock_task_q(void) {
 static inline lagopus_chrono_t
 s_do_sched(lagopus_callout_task_t t) {
   lagopus_result_t ret = -1LL;
+  lagopus_result_t r;
   lagopus_callout_task_t e;
 
   s_lock_task_q();
@@ -63,13 +64,36 @@ s_do_sched(lagopus_callout_task_t t) {
     {
       if (likely(t->m_is_in_timed_q == false)) {
 
-        for (e = TAILQ_FIRST(&s_chrono_tsk_q);
-             e != NULL && e->m_next_abstime <= t->m_next_abstime;
-             e = TAILQ_NEXT(e, m_entry)) {
-          ;
+        /*
+         * Firstly (re-)compute the next exeution time of this
+         * task.
+         */
+        if (t->m_is_first == false && t->m_do_repeat == true) {
+          t->m_next_abstime = t->m_last_abstime + t->m_interval_time;
+        } else {
+          WHAT_TIME_IS_IT_NOW_IN_NSEC(t->m_last_abstime);
+          t->m_next_abstime = t->m_last_abstime + t->m_initial_delay_time;
         }
+
+        /*
+         * Then insert the task into the Q.
+         */
+        e = TAILQ_FIRST(&s_chrono_tsk_q);
         if (e != NULL) {
-          TAILQ_INSERT_AFTER(&s_chrono_tsk_q, e, t, m_entry);
+          if (e->m_next_abstime > t->m_next_abstime) {
+            TAILQ_INSERT_HEAD(&s_chrono_tsk_q, t, m_entry);
+          } else {
+            for (;
+                 e != NULL && e->m_next_abstime <= t->m_next_abstime;
+                 e = TAILQ_NEXT(e, m_entry)) {
+              ;
+            }
+            if (e != NULL) {
+              TAILQ_INSERT_AFTER(&s_chrono_tsk_q, e, t, m_entry);
+            } else {
+              TAILQ_INSERT_TAIL(&s_chrono_tsk_q, t, m_entry);
+            }
+          }
         } else {
           TAILQ_INSERT_TAIL(&s_chrono_tsk_q, t, m_entry);
         }
@@ -78,13 +102,22 @@ s_do_sched(lagopus_callout_task_t t) {
         t->m_status = TASK_STATE_ENQUEUED;
         t->m_is_in_timed_q = true;
 
-        if (t->m_is_first == false && t->m_do_repeat == true) {
-          t->m_next_abstime = t->m_last_abstime + t->m_interval_time;
-        } else {
-          t->m_next_abstime = t->m_last_abstime + t->m_initial_delay_time;
-        }
         ret = t->m_next_abstime;
 
+        e = TAILQ_FIRST(&s_chrono_tsk_q);
+
+        /*
+         * Fianlly wake the master scheduler if needed.
+         */
+        if (__sync_fetch_and_add(&s_next_wakeup_abstime, 0) >
+            e->m_next_abstime) {
+          r = lagopus_bbq_wakeup(&s_urgent_tsk_q, -1LL);
+          if (unlikely(r != LAGOPUS_RESULT_OK)) {
+            lagopus_perror(r);
+            lagopus_msg_error("can't wake the callout task master "
+                              "scheduler up.\n");
+          }
+        }
       }
     }
     s_unlock_task(t);
@@ -276,7 +309,7 @@ s_get_runnables(lagopus_chrono_t base_abstime,
                 lagopus_chrono_t *next_wakeup) {
   size_t n_ret = 0LL;
   lagopus_callout_task_t e;
-  lagopus_chrono_t the_abstime = base_abstime + 1000LL;	/* 1 usec. */
+  lagopus_chrono_t the_abstime = base_abstime + CALLOUT_TASK_SCHED_JITTER;
 
   s_lock_task_q();
   {
@@ -363,8 +396,7 @@ s_destroy_all_queued_timed_tasks(void) {
   {
 
     while ((t = s_get_timed_task_no_lock()) != NULL) {
-      s_delete_task_in_table(t);
-      s_destroy_task_no_lock(t);
+      s_set_cancel_and_destroy_task_no_lock(t);
     }
 
   }

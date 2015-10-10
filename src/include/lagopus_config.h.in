@@ -85,6 +85,8 @@
 #undef HAVE_VIS
 #undef HAVE_UNVIS
 
+#undef HAVE_PROCFS_SELF_EXE
+
 #include "lagopus_platform.h"
 
 #endif /* ! __LAGOPUS_CONFIG_H__ */

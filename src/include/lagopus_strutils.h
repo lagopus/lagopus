@@ -117,4 +117,8 @@ lagopus_str_parse_bool(const char *buf, bool *val);
 
 
 
+lagopus_result_t
+lagopus_str_indexof(const char *str1, const char *str2);
+
+
 #endif /* ! __LAGOPUS_STRUTILS_H__ */

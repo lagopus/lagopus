@@ -63,8 +63,8 @@ static pthread_once_t s_once = PTHREAD_ONCE_INIT;
 static lagopus_mutex_t s_lck = NULL;
 
 
-static void	s_ctors(void) __attr_constructor__(111);
-static void	s_dtors(void) __attr_destructor__(111);
+static void	s_ctors(void) __attr_constructor__(112);
+static void	s_dtors(void) __attr_destructor__(112);
 
 
 

@@ -16043,6 +16043,18 @@ fi
 
 
 
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking /proc/self/exe" >&5
+$as_echo_n "checking /proc/self/exe... " >&6; }
+if test -h /proc/self/exe; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: exists." >&5
+$as_echo "exists." >&6; }
+  $as_echo "#define HAVE_PROCFS_SELF_EXE 1" >>confdefs.h
+
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: does noe exists." >&5
+$as_echo "does noe exists." >&6; }
+fi
+
 # headers/macros
 
 oLIBS=${LIBS}

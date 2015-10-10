@@ -1450,3 +1450,22 @@ lagopus_str_trim_right(const char *org, const char *trimchars,
 
   return n;
 }
+
+lagopus_result_t
+lagopus_str_indexof(const char *str1, const char *str2) {
+  char *ptr = NULL;
+  int64_t ret = 0;
+
+  if (str1 != NULL && str2 != NULL) {
+    ptr = strstr(str1, str2);
+    if (ptr != NULL) {
+      ret = ptr - str1;
+    } else {
+      ret = LAGOPUS_RESULT_NOT_FOUND;
+    }
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  return ret;
+}

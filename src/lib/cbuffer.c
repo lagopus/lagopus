@@ -257,6 +257,9 @@ s_wait_io_ready(lagopus_cbuffer_t cb,
             /*
              * All the waiters are gone. Wake the waker up.
              */
+
+            lagopus_msg_debug(5, "sync wakeup who woke me up.\n");
+
             cb->m_is_awakened = false;
             (void)lagopus_cond_notify(&(cb->m_cond_awakened), true);
           }
@@ -783,39 +786,47 @@ lagopus_cbuffer_wakeup(lagopus_cbuffer_t *cbptr, lagopus_chrono_t nsec) {
     s_lock(*cbptr);
     {
 
-      if ((*cbptr)->m_is_operational == true) {
-        if ((*cbptr)->m_is_awakened == false &&
-	    (*cbptr)->m_n_waiters > 0) {
-          /*
-           * Wake all the waiters up.
-           */
-          (*cbptr)->m_is_awakened = true;
-          (void)lagopus_cond_notify(&((*cbptr)->m_cond_get), true);
-          (void)lagopus_cond_notify(&((*cbptr)->m_cond_put), true);
+      if ((*cbptr)->m_n_waiters > 0) {
+        if ((*cbptr)->m_is_operational == true) {
+          if ((*cbptr)->m_is_awakened == false) {
+            /*
+             * Wake all the waiters up.
+             */
+            (*cbptr)->m_is_awakened = true;
+            (void)lagopus_cond_notify(&((*cbptr)->m_cond_get), true);
+            (void)lagopus_cond_notify(&((*cbptr)->m_cond_put), true);
 
-          /*
-           * Then wait for one of the waiters wakes this thread up.
-           */
-        recheck:
-          if ((*cbptr)->m_is_operational == true) {
-            if ((*cbptr)->m_is_awakened == true) {
-            recheck2:
-              if ((ret = lagopus_cond_wait(&((*cbptr)->m_cond_awakened),
-                                           &((*cbptr)->m_lock), nsec)) ==
-                  LAGOPUS_RESULT_OK) {
-                goto recheck;
+            /*
+             * Then wait for one of the waiters wakes this thread up.
+             */
+         recheck:
+            if ((*cbptr)->m_is_operational == true) {
+              if ((*cbptr)->m_is_awakened == true) {
+
+                lagopus_msg_debug(5, "sync wait a waiter wake me up...\n");
+
+                if ((ret = lagopus_cond_wait(&((*cbptr)->m_cond_awakened),
+                                             &((*cbptr)->m_lock), nsec)) ==
+                    LAGOPUS_RESULT_OK) {
+                  goto recheck;
+                }
+
+                lagopus_msg_debug(5, "a waiter woke me up.\n");
+
+              } else {
+                ret = LAGOPUS_RESULT_OK;
               }
             } else {
-              ret = LAGOPUS_RESULT_OK;
+              ret = LAGOPUS_RESULT_NOT_OPERATIONAL;
             }
           } else {
-            ret = LAGOPUS_RESULT_NOT_OPERATIONAL;
+            ret = LAGOPUS_RESULT_OK;
           }
         } else {
-          goto recheck2;
+          ret = LAGOPUS_RESULT_NOT_OPERATIONAL;
         }
       } else {
-        ret = LAGOPUS_RESULT_NOT_OPERATIONAL;
+        ret = LAGOPUS_RESULT_OK;
       }
 
     }

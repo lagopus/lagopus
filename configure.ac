@@ -188,6 +188,14 @@ AC_SUBST(UNITY_SRC_DIR)
 AC_SUBST(HAVE_NKF)
 AC_SUBST(HAVE_GCOVR)
 
+AC_MSG_CHECKING([/proc/self/exe])
+if test -h /proc/self/exe; then
+  AC_MSG_RESULT([exists.])
+  AC_DEFINE(HAVE_PROCFS_SELF_EXE)
+else
+  AC_MSG_RESULT([does noe exists.])
+fi
+
 # headers/macros
 
 oLIBS=${LIBS}

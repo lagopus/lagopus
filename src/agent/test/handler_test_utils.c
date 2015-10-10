@@ -260,7 +260,6 @@ s_destroy_static_data(void) {
                       ofp_bridgeq_mgr_clear());
     TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK,
                       dp_port_destroy(port_name));
-    free((void *)s_interface_info.eth_dpdk_phy.device);
     TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK,
                       dp_interface_destroy(interface_name));
   }

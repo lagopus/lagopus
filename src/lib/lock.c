@@ -857,8 +857,13 @@ lagopus_cond_wait(lagopus_cond_t *cndptr,
   if (mtxptr != NULL &&
       *mtxptr != NULL &&
       cndptr != NULL &&
-      *cndptr != NULL &&
-      (*mtxptr)->m_type != LAGOPUS_MUTEX_TYPE_RECURSIVE) {
+      *cndptr != NULL) {
+    /*
+     * It's kinda risky but we allow to cond-wait with recursive lock.
+     *
+     * So this condition is not checked:
+     * (*mtxptr)->m_type != LAGOPUS_MUTEX_TYPE_RECURSIVE)
+     */
     int st;
 
     errno = 0;
