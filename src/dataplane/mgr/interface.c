@@ -96,6 +96,10 @@ dp_interface_unconfigure_internal(struct interface *ifp) {
       rv = LAGOPUS_RESULT_OK;
       break;
 
+    case DATASTORE_INTERFACE_TYPE_VXLAN:
+      /* TODO */
+      rv = LAGOPUS_RESULT_OK;
+      break;
     default:
       break;
   }

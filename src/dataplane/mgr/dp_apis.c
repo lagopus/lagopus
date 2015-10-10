@@ -175,6 +175,46 @@ dp_interface_info_set(const char *name,
   }
   if (interface_info == NULL) {
     rv = dp_interface_unconfigure_internal(ifp);
+    if (rv != LAGOPUS_RESULT_OK) {
+      return rv;
+    }
+    /* Before clear ifp->info, free some pointers */
+    switch (ifp->info.type) {
+      case DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_PHY:
+        if (ifp->info.eth_dpdk_phy.device) {
+          free(ifp->info.eth_dpdk_phy.device);
+        }
+        if (ifp->info.eth_dpdk_phy.ip_addr) {
+          free(ifp->info.eth_dpdk_phy.ip_addr);
+        }
+        break;
+      case DATASTORE_INTERFACE_TYPE_ETHERNET_RAWSOCK:
+        if (ifp->info.eth_rawsock.device) {
+          free(ifp->info.eth_rawsock.device);
+        }
+        if (ifp->info.eth_rawsock.ip_addr) {
+          free(ifp->info.eth_rawsock.ip_addr);
+        }
+        break;
+      case DATASTORE_INTERFACE_TYPE_VXLAN:
+        if (ifp->info.vxlan.dst_addr) {
+          free(ifp->info.vxlan.dst_addr);
+        }
+        if (ifp->info.vxlan.mcast_group) {
+          free(ifp->info.vxlan.mcast_group);
+        }
+        if (ifp->info.vxlan.src_addr) {
+          free(ifp->info.vxlan.src_addr);
+        }
+        if (ifp->info.vxlan.ip_addr) {
+          free(ifp->info.vxlan.ip_addr);
+        }
+        break;
+      case DATASTORE_INTERFACE_TYPE_UNKNOWN:
+        break;
+      default:
+        break;
+    }
     memset(&ifp->info, 0, sizeof(ifp->info));
     return rv;
   } else {

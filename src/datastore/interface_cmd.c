@@ -264,12 +264,6 @@ ethernet_port_create(const char *name,
   }
 
 done:
-  free(device);
-  free(dst_addr);
-  free(src_addr);
-  free(ip_addr);
-  free(mcast_group);
-
   return ret;
 }
 
