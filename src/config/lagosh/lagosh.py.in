@@ -607,16 +607,16 @@ class Topcmd(Cmd):
             return
 
         if subcmd == 'bridge':
-            odata = ''
+            odata = []
             data = ds_client().call('bridge\n')
             try:
-                data.sort()
                 for ifdata in data:
-                    odata += ifdata['name'].encode() + ':\n'
                     req = 'bridge ' + ifdata['name'].encode() + ' stats\n'
-                    res = ds_client().call(req)
-                    odata += json.dumps(res, indent=4) + '\n'
-                self.output(odata)
+                    res = ds_client().call(req)[0]
+                    res['name'] = ifdata['name']
+                    res['is-enabled'] = ifdata['is-enabled']
+                    odata.append(res)
+                self.output(json.dumps(odata, indent=4) + '\n')
             except:
                 return
 
@@ -629,72 +629,64 @@ class Topcmd(Cmd):
             self.output(json.dumps(data, indent=4))
 
         elif subcmd == 'flow':
-            odata = ''
+            odata = []
             data = ds_client().call('bridge\n')
             try:
-                data.sort()
                 for ifdata in data:
-                    odata += ifdata['name'].encode() + ':\n'
                     req = 'flow ' + ifdata['name'].encode() + '\n'
-                    res = ds_client().call(req)
-                    odata += json.dumps(res, indent=4) + '\n'
-                self.output(odata)
+                    res = ds_client().call(req)[0]
+                    odata.append(res)
+                self.output(json.dumps(odata, indent=4) + '\n')
             except:
                 return
 
         elif subcmd == 'group':
-            odata = ''
+            odata = []
             data = ds_client().call('bridge\n')
             try:
-                data.sort()
                 for ifdata in data:
-                    odata += ifdata['name'].encode() + ':\n'
                     req = 'group ' + ifdata['name'].encode() + ' stats\n'
-                    res = ds_client().call(req)
-                    odata += json.dumps(res, indent=4) + '\n'
-                self.output(odata)
+                    res = ds_client().call(req)[0]
+                    odata.append(res)
+                self.output(json.dumps(odata, indent=4) + '\n')
             except:
                 return
 
         elif subcmd == 'interface':
-            odata = ''
+            odata = []
             data = ds_client().call('interface\n')
             try:
-                data.sort()
                 for ifdata in data:
-                    odata += ifdata['name'].encode() + ':\n'
                     req = 'interface ' + ifdata['name'].encode() + ' stats\n'
-                    res = ds_client().call(req)
-                    odata += json.dumps(res, indent=4) + '\n'
-                self.output(odata)
+                    res = ds_client().call(req)[0]
+                    res['name'] = ifdata['name']
+                    odata.append(res)
+                self.output(json.dumps(odata, indent=4) + '\n')
             except:
                 return
 
         elif subcmd == 'meter':
-            odata = ''
+            odata = []
             data = ds_client().call('bridge\n')
             try:
-                data.sort()
                 for ifdata in data:
-                    odata += ifdata['name'].encode() + ':\n'
                     req = 'meter ' + ifdata['name'].encode() + ' stats\n'
-                    res = ds_client().call(req)
-                    odata += json.dumps(res, indent=4) + '\n'
-                self.output(odata)
+                    res = ds_client().call(req)[0]
+                    odata.append(res)
+                self.output(json.dumps(odata, indent=4) + '\n')
             except:
                 return
 
         elif subcmd == 'port':
-            odata = ''
+            odata = []
             data = ds_client().call('port\n')
             try:
-                data.sort()
                 for ifdata in data:
-                    odata += ifdata['name'].encode() + ':\n'
                     req = 'port ' + ifdata['name'].encode() + ' stats\n'
-                    res = ds_client().call(req)
-                    odata += json.dumps(res, indent=4) + '\n'
-                self.output(odata)
+                    res = ds_client().call(req)[0]
+                    res['name'] = ifdata['name']
+                    odata.append(res)
+                self.output(json.dumps(odata, indent=4) + '\n')
             except:
                 return
 
