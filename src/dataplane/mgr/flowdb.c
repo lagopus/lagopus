@@ -1738,7 +1738,7 @@ flowdb_flow_stats(struct flowdb *flowdb,
       goto out;
     }
     rv = table_flow_stats(table, request->table_id, request,
-                         match_list, flow_stats_list);
+                          match_list, flow_stats_list);
   }
 
   /* Unlock the flowdb and return result. */

@@ -136,10 +136,10 @@ any_flow_add(int n, ...) {
                     match_arg & 0xff);
           break;
 
-      case 1:
-        add_match(&match_list, nbytes, match_type,
-                  match_arg & 0xff);
-        break;
+        case 1:
+          add_match(&match_list, nbytes, match_type,
+                    match_arg & 0xff);
+          break;
       }
     }
   }

@@ -32,10 +32,13 @@ import pydoc
 
 
 class DSLError(Exception):
+
     def __init__(self, value):
         self.value = value
+
     def __str__(self):
         return repr(self.value)
+
 
 class dsl:
 
@@ -248,6 +251,7 @@ class ds_client:
         except:
             return
 
+
 class Cmd(cmd.Cmd):
 
     pager = False
@@ -264,7 +268,7 @@ class Cmd(cmd.Cmd):
     def completenames(self, text, *ignored):
         dotext = 'do_' + text
         return [a[3:] for a in self.get_names()
-                if a.startswith(dotext) and a != 'do_shell' ]
+                if a.startswith(dotext) and a != 'do_shell']
 
     def precmd(self, line):
         args = line.split()
@@ -338,6 +342,7 @@ class Cmd(cmd.Cmd):
 
     def do_quit(self, _line):
         return True
+
 
 class Configure(Cmd):
 
@@ -560,6 +565,7 @@ class Configure(Cmd):
 
 
 class Topcmd(Cmd):
+
     def __init__(self, *args, **kwargs):
         self._in_onecmd = False
         self.prompt = 'Lagosh> '
@@ -568,7 +574,7 @@ class Topcmd(Cmd):
     def complete_configure(self, text, line, begidx, endidx):
         dotext = 'do_' + text
         return [a[3:] for a in Configure().get_names()
-                if a.startswith(dotext) and a != 'do_shell' ]
+                if a.startswith(dotext) and a != 'do_shell']
 
     def do_configure(self, line):
         """
