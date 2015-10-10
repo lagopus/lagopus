@@ -48,6 +48,9 @@
 #define STATS_SUB_CMD "stats"
 #define DUMP_SUB_CMD "dump"
 #define CLEAR_SUB_CMD "clear"
+#define ADD_SUB_CMD "add"
+#define DEL_SUB_CMD "del"
+#define MOD_SUB_CMD "mod"
 #define SHOW_OPT_CURRENT "current"
 #define SHOW_OPT_MODIFIED "modified"
 
@@ -65,6 +68,26 @@
   (((_ops) & (_reops)) == (_reops))
 #define ESCAPE_NAME_FMT(_is_esc, _s) \
   (((_is_esc) == true || strchr(_s, ' ') != NULL) ? " \"%s\"" : " %s")
+
+#ifdef LAGOPUS_BIG_ENDIAN
+#ifndef hton24
+#define hton24(_x) (_x)
+#endif /* hton24 */
+#ifndef ntoh24
+#define ntoh24(_x) (_x)
+#endif /* ntoh24 */
+#else
+#ifndef hton24
+#define hton24(_x)                                      \
+  ((uint32_t) (((_x) & 0x000000ffLL) << 16) |           \
+   htons((uint16_t) (((_x) & 0x00ffff00LL) >> 8)))
+#endif /* hton24 */
+#ifndef ntoh24
+#define ntoh24(_x)                                      \
+  ((uint32_t) (((_x) & 0x000000ffLL) << 16) |           \
+   ntohs((uint16_t) (((_x) & 0x00ffff00LL) >> 8)))
+#endif /* ntoh24 */
+#endif /* LAGOPUS_BIG_ENDIAN */
 
 /* uint types. */
 enum cmd_uint_type {

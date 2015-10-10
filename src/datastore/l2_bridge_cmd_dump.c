@@ -170,9 +170,11 @@ l2_bridge_cmd_dump(datastore_interp_t *iptr,
                    FILE *fp,
                    void *stream_out,
                    datastore_printf_proc_t printf_proc,
+                   bool is_with_stats,
                    lagopus_dstring_t *result) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   l2_bridge_dump_conf_t *conf;
+  (void) is_with_stats;
 
   if (iptr != NULL && c != NULL && fp != NULL &&
       stream_out !=NULL && printf_proc != NULL &&
@@ -387,6 +389,7 @@ thread_main(const lagopus_thread_t *t, void *a) {
                              args->printf_proc,
                              args->ftype,
                              args->file_name,
+                             false,
                              l2_bridge_cmd_dump)) !=
         LAGOPUS_RESULT_OK) {
       lagopus_perror(ret);

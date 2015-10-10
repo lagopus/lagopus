@@ -55,6 +55,7 @@ flow_cmd_parse(datastore_interp_t *iptr,
  *
  *     @param[in]	name	A bridge name.
  *     @paran[in]	table_id	Table id.
+ *     @param[in]	is_with_stats	Dump with stats.
  *     @param[in]	is_bridge_first	A first element flag for bridges.
  *     @param[out]	result	A result/output string (NULL allowed).
  *
@@ -66,6 +67,7 @@ flow_cmd_parse(datastore_interp_t *iptr,
 STATIC lagopus_result_t
 dump_bridge_domains_flow(const char *name,
                          uint8_t table_id,
+                         bool is_with_stats,
                          bool is_bridge_first,
                          lagopus_dstring_t *result);
 

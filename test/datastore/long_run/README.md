@@ -28,27 +28,19 @@ How to run test
 ## 2. Install lagopus.
  cf.) {LAGOPUS\_DIR}/INSTALL.txt
 
-## 3. Make lagopus.conf (empty file).
-
-```
- % touch /usr/local/etc/lagopus/lagopus.conf
- % wc -c /usr/local/etc/lagopus/lagopus.conf
-   0 /usr/local/etc/lagopus/lagopus.conf
-```
-
-## 4. Edit `conf/ds_test.ini` file.
+## 3. Edit `conf/ds_test.ini` file.
 
 ```
  % vi conf/ds_test.ini
 ```
 
-## 5. Run YAML schema check (for sample).
+## 4. Run YAML schema check (for sample).
 
 ```
  % ./ds_test.py -C schema/schema.yml sample/
 ```
 
-## 6. Run test (for sample).
+## 5. Run test (for sample).
 * Usage:
   * ds_test.py [options] TEST_SCENARIOS_FILE_OR_DIR
 

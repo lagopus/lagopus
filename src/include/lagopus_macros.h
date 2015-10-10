@@ -191,7 +191,25 @@
     (ns) = TS_TO_NSEC(__t_s__);                            \
   } while (0)
 
-
+#ifdef LAGOPUS_BIG_ENDIAN
+#ifndef htonll
+#define htonll(_x64) (_x64)
+#endif /* htonll */
+#ifndef ntohll
+#define ntohll(_x64) (_x64)
+#endif /* ntohll */
+#else
+#ifndef htonll
+#define htonll(_x64)                                     \
+    ((((uint64_t) htonl((_x64) & 0xffffffffLL)) << 32) | \
+     htonl((uint32_t) ((_x64) >> 32)))
+#endif /* htonll */
+#ifndef ntohll
+#define ntohll(_x64)                                     \
+    ((((uint64_t) ntohl((_x64) & 0xffffffffLL)) << 32) | \
+     ntohl((uint32_t) ((_x64) >> 32)))
+#endif /* ntohll */
+#endif /* LAGOPUS_BIG_ENDIAN */
 
 /* Unused argument. */
 #define __UNUSED __attribute__((unused))

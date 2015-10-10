@@ -250,6 +250,7 @@ s_initialize(lagopus_thread_t thd,
       thd->m_is_destroying = false;
 
       thd->m_do_autodelete = false;
+      thd->m_startup_sync_done = false;
 
       ret = LAGOPUS_RESULT_OK;
     }
@@ -419,11 +420,36 @@ s_pthd_entry_point(void *ptr) {
           thd->m_is_activated = true;
           thd->m_is_started = true;
           (void)lagopus_cond_notify(&(thd->m_startup_cond), true);
+
+          /*
+           * The notifiction is done and then the parent thread send
+           * us "an ACK". Wait for it.
+           */
+       sync_done_check:
+          if (thd->m_startup_sync_done == false) {
+            ret = lagopus_cond_wait(&(thd->m_startup_cond),
+                                    &(thd->m_wait_lock),
+                                    -1);
+
+            if (ret == LAGOPUS_RESULT_OK) {
+              goto sync_done_check;
+            } else {
+              lagopus_perror(ret);
+              lagopus_msg_error("startup synchronization failed with the"
+                                "parent thread.\n");
+              goto unlock;
+            }
+          }
         }
+     unlock:
         s_wait_unlock(thd);
 
       }
       (void)pthread_setcancelstate(o_cancel_state, NULL);
+
+      if (unlikely(ret != LAGOPUS_RESULT_OK)) {
+        goto set_result;
+      }
 
       /*
        * A BOGUS ALERT:
@@ -451,6 +477,7 @@ s_pthd_entry_point(void *ptr) {
     }
     pthread_cleanup_pop((is_cleanly_finished == true) ? 0 : 1);
 
+ set_result:
     s_op_lock(thd);
     {
       /*
@@ -580,6 +607,8 @@ lagopus_thread_start(const lagopus_thread_t *thdptr,
             (*thdptr)->m_is_destroying = false;
             (*thdptr)->m_is_canceled = false;
             (*thdptr)->m_is_started = false;
+            (*thdptr)->m_startup_sync_done = false;
+            mbar();
 
             /*
              * Wait the spawned thread starts.
@@ -605,6 +634,14 @@ lagopus_thread_start(const lagopus_thread_t *thdptr,
                 goto unlock;
               }
             }
+
+            /*
+             * The newly created thread notified its start. Then "send
+             * an ACK" to the thread to notify that the thread can do
+             * anything, including its deletion.
+             */
+            (*thdptr)->m_startup_sync_done = true;
+            (void)lagopus_cond_notify(&((*thdptr)->m_startup_cond), true);
 
             ret = LAGOPUS_RESULT_OK;
 

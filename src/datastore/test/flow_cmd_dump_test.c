@@ -208,28 +208,26 @@ test_flow_cmd_dump_01(void) {
   char *str = NULL;
   const char test_str1[] =
     "{\"name\":\"test_bridge01\",\n"
-    "\"tables\":[{\"table_id\":0,\n"
+    "\"tables\":[{\"table\":0,\n"
     "\"flows\":[{\"priority\":1,\n"
     "\"idle_timeout\":4,\n"
     "\"hard_timeout\":5,\n"
-    "\"flags\":2,\n"
+    "\"check_overlap\":null,\n"
     "\"cookie\":3,\n"
-    "\"packet_count\":0,\n"
-    "\"byte_count\":0,\n"
     "\"in_port\":16,\n"
-    "\"actions\":[{\"write_action\":[{\"output\":1},\n"
+    "\"actions\":[{\"write_actions\":\n"
+    "[{\"output\":1},\n"
     "{\"group\":3},\n"
-    "{\"set_field\":{\"eth_src\":\"00:0c:29:7a:90:b3\"}}]}]},\n"
+    "{\"dl_src\":\"00:0c:29:7a:90:b3\"}]}]},\n"
     "{\"priority\":1,\n"
     "\"idle_timeout\":4,\n"
     "\"hard_timeout\":5,\n"
-    "\"flags\":2,\n"
+    "\"check_overlap\":null,\n"
     "\"cookie\":3,\n"
-    "\"packet_count\":0,\n"
-    "\"byte_count\":0,\n"
-    "\"actions\":[{\"write_action\":[{\"output\":1},\n"
+    "\"actions\":[{\"write_actions\":\n"
+    "[{\"output\":1},\n"
     "{\"group\":3},\n"
-    "{\"set_field\":{\"eth_src\":\"00:0c:29:7a:90:b3\"}}]}]}]}]}";
+    "{\"dl_src\":\"00:0c:29:7a:90:b3\"}]}]}]}]}";
 
   /* group_mod */
   create_buckets(&bucket_list);
@@ -260,7 +258,87 @@ test_flow_cmd_dump_01(void) {
   TEST_ASSERT_FLOW_ADD(ret, dpid, &flow_mod, &match_list,
                        &instruction_list2, &error);
 
-  ret = dump_bridge_domains_flow(bridge_name, OFPTT_ALL, true, &ds);
+  ret = dump_bridge_domains_flow(bridge_name, OFPTT_ALL,
+                                 false, true, &ds);
+  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, ret,
+                            "flow_cmd_dump error.");
+  TEST_DSTRING(ret, &ds, str, test_str1, true);
+
+  TEST_ASSERT_FLOW_DEL(ret, dpid, &flow_mod, &match_list,
+                       &error);
+
+  TEST_ASSERT_GROUP_DEL(ret, dpid, &group_mod, &error);
+}
+
+void
+test_flow_cmd_dump_with_stats(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  struct instruction_list instruction_list1;
+  struct instruction_list instruction_list2;
+  struct match_list match_list;
+  struct ofp_flow_mod flow_mod;
+  struct bucket_list bucket_list;
+  struct ofp_group_mod group_mod;
+  struct ofp_error error;
+  char *str = NULL;
+  const char test_str1[] =
+    "{\"name\":\"test_bridge01\",\n"
+    "\"tables\":[{\"table\":0,\n"
+    "\"flows\":[{\"priority\":1,\n"
+    "\"idle_timeout\":4,\n"
+    "\"hard_timeout\":5,\n"
+    "\"check_overlap\":null,\n"
+    "\"cookie\":3,\n"
+    "\"in_port\":16,\n"
+    "\"actions\":[{\"write_actions\":\n"
+    "[{\"output\":1},\n"
+    "{\"group\":3},\n"
+    "{\"dl_src\":\"00:0c:29:7a:90:b3\"}]}],\n"
+    "\"stats\":{\"packet_count\":0,\n"
+    "\"byte_count\":0}},\n"
+    "{\"priority\":1,\n"
+    "\"idle_timeout\":4,\n"
+    "\"hard_timeout\":5,\n"
+    "\"check_overlap\":null,\n"
+    "\"cookie\":3,\n"
+    "\"actions\":[{\"write_actions\":\n"
+    "[{\"output\":1},\n"
+    "{\"group\":3},\n"
+    "{\"dl_src\":\"00:0c:29:7a:90:b3\"}]}],\n"
+    "\"stats\":{\"packet_count\":0,\n"
+    "\"byte_count\":0}}]}]}";
+
+  /* group_mod */
+  create_buckets(&bucket_list);
+  memset(&group_mod, 0, sizeof(group_mod));
+  group_mod.group_id = 3;
+  group_mod.type = OFPGT_ALL;
+
+  TEST_ASSERT_GROUP_ADD(ret, dpid, &group_mod,
+                        &bucket_list, &error);
+
+  /* flow_mod */
+  create_matchs(&match_list);
+  create_instructions(&instruction_list1);
+  create_instructions(&instruction_list2);
+  memset(&flow_mod, 0, sizeof(flow_mod));
+  flow_mod.table_id = 0;
+  flow_mod.priority = 1;
+  flow_mod.flags = 2;
+  flow_mod.cookie = 3;
+  flow_mod.idle_timeout = 4;
+  flow_mod.hard_timeout = 5;
+  flow_mod.out_port = OFPP_ANY;
+  flow_mod.out_group = OFPG_ANY;
+
+  TEST_ASSERT_FLOW_ADD(ret, dpid, &flow_mod, &match_list,
+                       &instruction_list1, &error);
+
+  TEST_ASSERT_FLOW_ADD(ret, dpid, &flow_mod, &match_list,
+                       &instruction_list2, &error);
+
+  ret = dump_bridge_domains_flow(bridge_name, OFPTT_ALL,
+                                 true, true, &ds);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, ret,
                             "flow_cmd_dump error.");
   TEST_DSTRING(ret, &ds, str, test_str1, true);

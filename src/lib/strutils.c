@@ -1097,8 +1097,8 @@ lagopus_str_parse_bool(const char *buf, bool *val) {
 
 
 lagopus_result_t
-lagopus_str_tokenize(char *buf, char **tokens,
-                     size_t max, const char *delm) {
+lagopus_str_tokenize_with_limit(char *buf, char **tokens,
+                                size_t max, size_t limit, const char *delm) {
   lagopus_result_t n = 0;
   size_t no_delm = 0;
 
@@ -1117,6 +1117,12 @@ lagopus_str_tokenize(char *buf, char **tokens,
         break;
       }
       tokens[n] = buf;
+
+      /* split limit check. */
+      if (limit != 0 && limit <= (size_t) n) {
+        n++;
+        goto done;
+      }
 
       no_delm = 0;
       while (strchr(delm, (int)*buf) == NULL && *buf != '\0') {
@@ -1141,7 +1147,7 @@ lagopus_str_tokenize(char *buf, char **tokens,
   } else {
     n  = LAGOPUS_RESULT_INVALID_ARGS;
   }
-
+done:
   return n;
 }
 
@@ -1429,23 +1435,83 @@ lagopus_str_trim_right(const char *org, const char *trimchars,
       IS_VALID_STRING(trimchars) == true &&
       retptr != NULL) {
     char *buf = strdup(org);
-    char *ed = buf + strlen(buf) - 1;
+
+    if (buf != NULL) {
+      char *ed = buf + strlen(buf) - 1;
+
+      *retptr = NULL;
+
+      while (ed >= buf) {
+        if (strchr(trimchars, (int)*ed) != NULL) {
+          *ed = '\0';
+          ed--;
+        } else {
+          break;
+        }
+      }
+
+      *retptr = buf;
+      n = (lagopus_result_t)strlen(buf);
+    } else {
+      n = LAGOPUS_RESULT_NO_MEMORY;
+    }
+  } else {
+    n = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  return n;
+}
+
+lagopus_result_t
+lagopus_str_trim_left(const char *org, const char *trimchars,
+                      char **retptr) {
+  lagopus_result_t n = LAGOPUS_RESULT_ANY_FAILURES;
+  char *buf = NULL;
+
+  if (IS_VALID_STRING(org) == true &&
+      IS_VALID_STRING(trimchars) == true &&
+      retptr != NULL) {
+    char *st = (char *) org;
 
     *retptr = NULL;
 
-    while (ed >= buf) {
-      if (strchr(trimchars, (int)*ed) != NULL) {
-        *ed = '\0';
-        ed--;
+    while (*st != '\0') {
+      if (strchr(trimchars, (int)*st) != NULL) {
+        st++;
       } else {
         break;
       }
     }
 
-    *retptr = buf;
-    n = (lagopus_result_t)strlen(buf);
+    buf = strdup(st);
+
+    if (buf != NULL) {
+      *retptr = buf;
+      n = (lagopus_result_t)strlen(buf);
+    } else {
+      n = LAGOPUS_RESULT_NO_MEMORY;
+    }
   } else {
     n = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  return n;
+}
+
+lagopus_result_t
+lagopus_str_trim(const char *org, const char *trimchars,
+                 char **retptr) {
+  lagopus_result_t n = LAGOPUS_RESULT_ANY_FAILURES;
+  char *tmp_str = NULL;
+
+  if ((n = lagopus_str_trim_right(org, trimchars, &tmp_str)) > 0) {
+    n = lagopus_str_trim_left(tmp_str, trimchars, retptr);
+  }
+
+  if (n == 0) {
+    *retptr = tmp_str;
+  } else {
+    free(tmp_str);
   }
 
   return n;

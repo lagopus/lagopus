@@ -31,6 +31,7 @@ typedef lagopus_result_t
                    FILE *fp,
                    void *stream_out,
                    datastore_printf_proc_t printf_proc,
+                   bool is_with_stats,
                    lagopus_dstring_t *result);
 
 /**
@@ -97,6 +98,7 @@ cmd_dump_error_send(void *stream_out,
  *     @param[in]	printf_proc	A pointer to a print func for out stream
  *     @param[in]	ftype	Type of lagopus config file.
  *     @param[in]	file_name	Dump file.
+ *     @param[in]	is_with_stats	Dump with stats.
  *     @param[in]	dump_proc	Dump func.
  *
  *     @retval	LAGOPUS_RESULT_OK	Succeeded.
@@ -112,6 +114,7 @@ cmd_dump_main(lagopus_thread_t *thd,
               datastore_printf_proc_t printf_proc,
               datastore_config_type_t ftype,
               char *file_name,
+              bool is_with_stats,
               cmd_dump_proc_t dump_proc);
 
 #endif /* __CMD_DUMP_H__ */

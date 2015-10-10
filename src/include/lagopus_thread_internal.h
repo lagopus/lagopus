@@ -59,7 +59,8 @@ typedef struct lagopus_thread_record {
   volatile bool m_is_finalized;
   volatile bool m_is_destroying;
 
-  bool m_do_autodelete;
+  volatile bool m_do_autodelete;
+  volatile uint64_t m_startup_sync_done;
 } lagopus_thread_record;
 
 

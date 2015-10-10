@@ -28,6 +28,7 @@ CONF_SEC_SYS_DS_PORT = "ds_port"
 
 CONF_SEC_LAGOPUS = "lagopus"
 CONF_SEC_LAGOPUS_PATH = "lagopus_path"
+CONF_SEC_LAGOPUS_CONF = "lagopus_conf"
 CONF_SEC_LAGOPUS_OPTS = "lagopus_opts"
 
 CONF_SEC_RYU = "ryu"

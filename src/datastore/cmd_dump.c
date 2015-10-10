@@ -125,6 +125,7 @@ cmd_dump_main(lagopus_thread_t *thd,
               datastore_printf_proc_t printf_proc,
               datastore_config_type_t ftype,
               char *file_name,
+              bool is_with_stats,
               cmd_dump_proc_t dump_proc) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   lagopus_dstring_t result = NULL;
@@ -159,6 +160,7 @@ cmd_dump_main(lagopus_thread_t *thd,
         unlink(file_name);
         ret = dump_proc(iptr, conf, fp,
                         stream_out, printf_proc,
+                        is_with_stats,
                         &result);
         if (ret != LAGOPUS_RESULT_OK) {
           lagopus_perror(ret);

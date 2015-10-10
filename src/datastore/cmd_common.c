@@ -219,8 +219,6 @@ cmd_uint_parse(const char *const str,
             ret = LAGOPUS_RESULT_OK;
             break;
         }
-      } else {
-        lagopus_perror(ret);
       }
     } else {
       ret = LAGOPUS_RESULT_NO_MEMORY;

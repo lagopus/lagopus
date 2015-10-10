@@ -75,14 +75,14 @@
 #define INTERP_DESTROY(_name, _interp, _tbl, _ds,                       \
                        _em, _destroy) {                                 \
     if (_interp != NULL && destroy == true) {                           \
-      lagopus_result_t ret;                                             \
+      lagopus_result_t _ret;                                            \
       datastore_destroy_interp(&(_interp));                             \
       datastore_all_commands_finalize();                                \
       channel_mgr_finalize();                                           \
       dp_api_fini();                                                    \
       ofp_bridgeq_mgr_destroy();                                        \
-      ret = global_state_request_shutdown(SHUTDOWN_GRACEFULLY);         \
-      TEST_ASSERT_EQUAL(ret, LAGOPUS_RESULT_OK);                        \
+      _ret = global_state_request_shutdown(SHUTDOWN_GRACEFULLY);        \
+      TEST_ASSERT_EQUAL(_ret, LAGOPUS_RESULT_OK);                       \
       lagopus_mainloop_wait_thread();                                   \
     }                                                                   \
     if (_tbl != NULL) {                                                 \
@@ -214,6 +214,18 @@
             _name, _obj, _ds);                                        \
   TEST_DSTRING(_ret, _ds, _str, _test_str, false);                    \
 }
+
+#define TEST_CMD_FLOW_DUMP(_ret, _cmp_ret, _bri_name, _table_id,        \
+                           _ds, _str, _test_str) {                      \
+    lagopus_dstring_clear(_ds);                                         \
+    _ret = dump_bridge_domains_flow(DATASTORE_NAMESPACE_DELIMITER       \
+                                    _bri_name, _table_id, false,        \
+                                    true, _ds);                         \
+    TEST_ASSERT_EQUAL_MESSAGE(_cmp_ret, _ret,                           \
+                              "flow_cmd_dump error.");                  \
+    TEST_DSTRING(_ret, _ds, _str, _test_str, true);                     \
+  }
+
 
 #define TEST_CONTROLLER_CREATE(_ret, _interp, _state, _tbl,             \
                                _ds, _str, _c_name, _ctrler_name) {      \
