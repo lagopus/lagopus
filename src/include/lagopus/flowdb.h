@@ -116,10 +116,10 @@ TAILQ_HEAD(match_list, match);
 
 /* Action. */
 struct action {
-  TAILQ_ENTRY(action) entry;
+  TAILQ_ENTRY(action) entry;    /** link for next action */
   lagopus_result_t (*exec)(struct lagopus_packet *,
                            struct action *);
-  uint64_t cookie; /* for packet_in */
+  uint64_t cookie;              /** cookie for packet_in */
   int flags;
   struct ofp_action_header ofpat;
 };
@@ -137,9 +137,9 @@ TAILQ_HEAD(action_list, action);
  * Instruction.
  */
 struct instruction {
-  TAILQ_ENTRY(instruction) entry;
+  TAILQ_ENTRY(instruction) entry;       /** link for next instruction */
   union {
-    struct ofp_instruction ofpit;
+    struct ofp_instruction ofpit;       /** common instruction structure */
     struct ofp_instruction_goto_table ofpit_goto_table;
     struct ofp_instruction_write_metadata ofpit_write_metadata;
     struct ofp_instruction_actions ofpit_actions;
@@ -185,14 +185,14 @@ struct byteoff_match {
 };
 
 struct oob_data {
-  uint64_t metadata;
-  uint64_t tunnel_id;
-  uint32_t in_port;
-  uint32_t in_phy_port;
-  uint16_t ether_type;
-  uint16_t vlan_tci;
+  uint64_t metadata;            /** OpenFlow metadata */
+  uint64_t tunnel_id;           /** OpenFlow Tunnel ID */
+  uint32_t in_port;             /** OpenFlow ingress port */
+  uint32_t in_phy_port;         /** OpenFlow ingress physical port */
+  uint16_t ether_type;          /** L3 ethertype */
+  uint16_t vlan_tci;            /** VLAN TCI */
   /* size over 32 byte */
-  uint16_t ipv6_exthdr;
+  uint16_t ipv6_exthdr;         /** OpenFlow IPV6_EXT pseudo header */
 };
 
 /* Action list. */
@@ -205,50 +205,24 @@ struct flow {
 
   /* Instruction array for execution. */
   struct instruction *instruction[INSTRUCTION_INDEX_MAX];
+  uint64_t packet_count;			/** Matched packet count. */
+  uint64_t byte_count;				/** Mtched byte count. */
+  uint16_t flags; 				/** ofp_flow_mod flags. */
+  int32_t priority;  				/** Priority. */
+  uint64_t cookie;				/** ofp_flow_mod cookie. a*/
+  uint16_t idle_timeout; 			/** Idle timeout. */
+  uint16_t hard_timeout;			/** Hard timeout. */
+  struct match_list match_list; 		/** Match list. */
+  struct instruction_list instruction_list;	/** Instruction list. */
+  struct bridge *bridge;  			/** Pointer to bridge. */
+  uint64_t field_bits;  			/** Match field type bits. */
+  uint8_t table_id;  				/** Table ID. */
+  uint8_t flow_type;  				/** Internal use of flow type. */
+  struct timespec create_time;  		/** Creation time. */
+  struct timespec update_time;  		/** Last updated time. */
+  struct flow **flow_timer;  			/** Back reference to entry
+                                                 ** of the flow timer. */
 
-  /* Statistics. */
-  uint64_t packet_count;
-  uint64_t byte_count;
-
-  /* ofp_flow_mod flags. */
-  uint16_t flags;
-
-  /* Priority. */
-  int32_t priority;
-
-  /* ofp_flow_mod cookie. a*/
-  uint64_t cookie;
-
-  /* Timeouts. */
-  uint16_t idle_timeout;
-  uint16_t hard_timeout;
-
-  /* Match list. */
-  struct match_list match_list;
-
-  /* Instruction list for statistics. */
-  struct instruction_list instruction_list;
-
-  /* Pointer to bridge. */
-  struct bridge *bridge;
-
-  /* Match field type bits. */
-  uint64_t field_bits;
-
-  /* Table ID. */
-  uint8_t table_id;
-
-  /* Internal use of flow type. */
-  uint8_t flow_type;
-
-  /* Creation time. */
-  struct timespec create_time;
-
-  /* Last updated time. */
-  struct timespec update_time;
-
-  /* Back reference to entry of the flow timer. */
-  struct flow **flow_timer;
 };
 
 enum action_flag {

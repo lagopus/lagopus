@@ -27,33 +27,19 @@
 struct group_stats_list;
 struct group_desc_list;
 
-struct group {
-  /* Group id. */
-  uint32_t id;
-
-  /* Group type. */
-  enum ofp_group_type type;
-
-  /* Bucket. */
-  struct bucket_list bucket_list;
-
-  /* Round-robin index for OFPGT_SELECT */
-  int select;
-
-  /* Statistics. */
-  uint64_t packet_count;
-  uint64_t byte_count;
-  uint32_t duration_sec;
-  uint32_t duration_nsec;
-
-  /* Creation time. */
-  struct timespec create_time;
-
-  /* Relationship with flow entries */
-  struct vector *flows;
-
-  /* Relationship with group taable. */
-  struct group_table *group_table;
+struct group {				/** Internal group structure. */
+  uint32_t id;  			/** OpenFlow group id. */
+  enum ofp_group_type type;		/** Group type. */
+  struct bucket_list bucket_list;	/** List of goup bucket */
+  int select;				/** Round-robin index
+                                         ** for OFPGT_SELECT */
+  uint64_t packet_count;		/** Packet count. */
+  uint64_t byte_count;			/** Byte count. */
+  uint32_t duration_sec;		/** Duration (sec part) */
+  uint32_t duration_nsec;		/** Duration (nano sec part */
+  struct timespec create_time;  	/** Creation time. */
+  struct vector *flows;			/** Relationship with flow entries */
+  struct group_table *group_table;  	/** Relationship with group taable. */
 };
 
 /**
@@ -117,18 +103,34 @@ group_table_delete(struct group_table *group_table, uint32_t group_id);
 
 /**
  * Alloc group.
+ *
+ * @param[in]   group_mod       OpenFlow group_mod structure.
+ * @param[in]   bucket_list     List of bucket for allocated group.
+ *
+ * @retval      !=NULL          New group structure.
+ * @retval      ==NULL          Memory exhausted.
+ *
+ * group_alloc is for internal use.
  */
 struct group *
 group_alloc(struct ofp_group_mod *group_mod, struct bucket_list *bucket_list);
 
 /**
  * Free group.
+ *
+ * @param[in]   group   Internal group structure.
+ *
+ * group_free is for internal use.
  */
 void
 group_free(struct group *group);
 
 /**
  * Modify group.
+ *
+ * @param[in]   group           Group structure.
+ * @param[in]   group_mod       OpenFlow group_mod structure.
+ * @param[in]   bucket_list     List of backet for modified group.
  */
 void
 group_modify(struct group *group, struct ofp_group_mod *group_mod,
@@ -144,6 +146,13 @@ void group_remove_ref_flow(struct group *group, struct flow *flow);
 
 /**
  * Get group statistics.
+ *
+ * @param[in]   group_table     Group table that inclues all groups.
+ * @param[in]   request         Group statistics request includes group id.
+ * @param[out]  list            Group statistics for each group.
+ * @param[out]  error           Error indicated if request is invalid.
+ *
+ * @retval      LAGOPUS_RESULT_OK       Success.
  */
 lagopus_result_t
 group_stats(struct group_table *group_table,
@@ -152,6 +161,12 @@ group_stats(struct group_table *group_table,
 
 /**
  * Get group description.
+ *
+ * @param[in]   group_table     Group table that inclues all groups.
+ * @param[out]  group_desc_list Group description for each group.
+ * @param[out]  error           Error indicated if request is invalid.
+ *
+ * @retval      LAGOPUS_RESULT_OK       Success.
  */
 lagopus_result_t
 group_descs(struct group_table *group_table,
@@ -160,6 +175,12 @@ group_descs(struct group_table *group_table,
 
 /**
  * Get group features.
+ *
+ * @param[in]   group_table     Group table that inclues all groups.
+ * @param[out]  features        Group features.
+ * @param[out]  error           Error indicated if request is invalid.
+ *
+ * @retval      LAGOPUS_RESULT_OK       Success.
  */
 lagopus_result_t
 get_group_features(struct group_table *group_table,
@@ -168,6 +189,12 @@ get_group_features(struct group_table *group_table,
 
 /**
  * Get live bucket.
+ *
+ * @param[in]   bridge  Bridge.
+ * @param[in]   group   Group.
+ *
+ * @retval      !=NULL  Selected live bucket in the group.
+ * @retval      ==NULL  Live bufket is not found.
  */
 struct bucket *
 group_live_bucket(struct bridge *bridge,

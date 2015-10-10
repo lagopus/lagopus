@@ -38,68 +38,37 @@ struct meter_config_list;
 
 #define LAGOPUS_METER_MAX_BANDS 16
 
-/* Meter bands. */
-struct meter_band {
-  TAILQ_ENTRY(meter_band) entry;
-
-  /* One of the OFPMBT_*: drop packet, remark DSCP or experimental. */
-  uint16_t type;
-
-  /* Length in bytes of this band. */
-  uint16_t len;
-
-  /* Rate for this band. */
-  uint32_t rate;
-
-  /* Size of bursts. */
-  uint32_t burst_size;
-
-  /* Number of drop precedence level to add.  Only used by
-   * OFPMBT_DSCP_REMARK. */
-  uint8_t prec_level;
-
-  /* Experimenter. */
-  uint32_t experimenter;
-
-  /* Counters. */
-  struct ofp_meter_band_stats stats;
+struct meter_band {                     /** Meter bands. */
+  TAILQ_ENTRY(meter_band) entry;        /** Link for next band */
+  uint16_t type;                        /** Band type. */
+  uint16_t len;                         /** Length in bytes of this band. */
+  uint32_t rate;                        /** Rate for this band. */
+  uint32_t burst_size;                  /** Burst size. */
+  uint8_t prec_level;                   /** Number of drop precedence level
+                                         ** to add.  Only used by
+                                         ** OFPMBT_DSCP_REMARK. */
+  uint32_t experimenter;                /** Experimenter. */
+  struct ofp_meter_band_stats stats;    /** Counters. */
 };
 
-/* Meter band list. */
-TAILQ_HEAD(meter_band_list, meter_band);
+TAILQ_HEAD(meter_band_list, meter_band);        /** Meter band list. */
 
-/* Meter. */
-struct meter {
-  /* Meter id. */
-  uint32_t meter_id;
-
-  /* Flags defined by ofp_meter_flags. */
-  uint16_t flags;
-
-  /* Unordered list of meter band. */
-  struct meter_band_list band_list;
-
-  /* Counters. */
-  uint32_t flow_count;
-  uint64_t input_packet_count;
-  uint64_t input_byte_count;
-  uint32_t duration_sec;
-  uint32_t duration_nanosec;
-
-  /* Creation time. */
-  struct timespec create_time;
-
-  /* Driver specific data */
-  void *driverdata;
+struct meter {                          /** Meter. */
+  uint32_t meter_id;                    /** OpenFlow meter id. */
+  uint16_t flags;                       /** ofp_meter_flags. */
+  struct meter_band_list band_list;     /** Unordered list of meter band. */
+  uint32_t flow_count;                  /** Flow count. */
+  uint64_t input_packet_count;          /** Input packet count. */
+  uint64_t input_byte_count;            /** Input byte count. */
+  uint32_t duration_sec;                /** Duration (sec part) */
+  uint32_t duration_nanosec;            /** Duration (nanosec part) */
+  struct timespec create_time;          /** Creation time. */
+  void *driverdata;                     /** Driver specific data */
 };
 
-/* Meter table. */
-struct meter_table {
-  /* Read-write lock. */
-  pthread_rwlock_t rwlock;
-
-  /* Meter id tree. */
-  struct ptree *ptree;
+struct meter_table {                    /** Meter table. */
+  pthread_rwlock_t rwlock;              /** Read-write lock. */
+  struct ptree *ptree;                  /** Meter id tree. */
 };
 
 /**
@@ -153,6 +122,12 @@ meter_table_meter_modify(struct meter_table *meter_table,
 
 /**
  * Delete meter.
+ *
+ * @param[in]   meter_table     Metar table.
+ * @param[in]   mod             Meter modificaiton message.
+ * @param[out]  error           Error information.
+ *
+ * @retval      LAGOPUS_RESULT_OK       Success.
  */
 lagopus_result_t
 meter_table_meter_delete(struct meter_table *meter_table,
@@ -161,22 +136,40 @@ meter_table_meter_delete(struct meter_table *meter_table,
 
 /**
  * Lookup meter.
+ *
+ * @param[in]   meter_table     Metar table.
+ * @param[in]   meter_id        Meter ID.
+ *
+ * @retval      !=NULL          Meter structure.
+ * @retval      ==NULL          Meter is not found.
  */
 struct meter *
 meter_table_lookup(struct meter_table *meter_table, uint32_t meter_id);
 
 /**
  * Allocate meter band.
+ *
+ * @param[in]   band    Meter band data.
+ *
+ * @retval      !=NULL  Meter band structure.
+ * @retval      ==NULL  Memory exhausted.
  */
 struct meter_band *
 meter_band_alloc(struct ofp_meter_band_header *band);
 
 /**
  * Free meter band.
+ *
+ * @param[in]   meter_band      Meter band structure.
  */
 void
 meter_band_free(struct meter_band *meter_band);
 
+/**
+ * Dump meter table (for debug)
+ *
+ * @param[in]   meter_table     Metar table.
+ */
 void
 meter_table_dump(struct meter_table *meter_table);
 
@@ -194,14 +187,19 @@ void (*lagopus_unregister_meter)(struct meter *);
  * Free band list elements.
  *
  * @param[in]   band_list       List of \e meter_band structures.
- *
- * @retval      void
  */
 void
 ofp_meter_band_list_elem_free(struct meter_band_list *band_list);
 
 /**
  * Get meter statistics.
+ *
+ * @param[in]   meter_table     Metar table.
+ * @param[in]   request         Request includes meter id.
+ * @param[out]  list            Statistics for each meter.
+ * @param[out]  error           Error indicated if invalid request.
+ *
+ * @retval      LAGOPUS_RESULT_OK       Success.
  */
 lagopus_result_t
 get_meter_stats(struct meter_table *meter_table,
@@ -211,6 +209,13 @@ get_meter_stats(struct meter_table *meter_table,
 
 /**
  * Get meter config.
+ *
+ * @param[in]   meter_table     Metar table.
+ * @param[in]   request         Request includes meter id.
+ * @param[out]  list            Configuration for each meter.
+ * @param[out]  error           Error indicated if invalid request.
+ *
+ * @retval      LAGOPUS_RESULT_OK       Success.
  */
 lagopus_result_t
 get_meter_config(struct meter_table *meter_table,
@@ -220,6 +225,12 @@ get_meter_config(struct meter_table *meter_table,
 
 /**
  * Get meter features.
+ *
+ * @param[in]   meter_table     Metar table.
+ * @param[out]  features        Features.
+ * @param[out]  error           Error indicated if invalid request.
+ *
+ * @retval      LAGOPUS_RESULT_OK       Success.
  */
 lagopus_result_t
 get_meter_features(struct meter_table *meter_table,
