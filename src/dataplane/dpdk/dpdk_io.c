@@ -1097,10 +1097,16 @@ dpdk_configure_interface(struct interface *ifp) {
   }
   ret = rte_eth_dev_set_mtu(portid, ifp->info.eth_dpdk_phy.mtu);
   if (ret < 0) {
-    rte_panic("Cannot set MTU(%d) for port %d (%d)\n",
-              ifp->info.eth_dpdk_phy.mtu,
-              portid,
-              ret);
+    if (ret != -ENOTSUP) {
+      rte_panic("Cannot set MTU(%d) for port %d (%d)\n",
+                ifp->info.eth_dpdk_phy.mtu,
+                portid,
+                ret);
+    } else {
+      lagopus_msg_notice("Cannot set MTU(%d) for port %d, not supporetd\n",
+                         ifp->info.eth_dpdk_phy.mtu,
+                         portid);
+    }
   }
   rte_eth_promiscuous_enable(portid);
 
