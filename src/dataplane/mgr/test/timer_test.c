@@ -27,3 +27,12 @@ test_add_flow_timer(void) {
   rv = add_flow_timer(&flow);
   TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
 }
+
+void
+test_add_mbtree_timer(void) {
+  struct flow_list flow_list;
+  lagopus_result_t rv;
+
+  rv = add_mbtree_timer(&flow_list, 100);
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
+}

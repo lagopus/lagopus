@@ -4,7 +4,7 @@ MKRULESDIR	= @MKRULESDIR@
 TESTS = bridge_test flowdb_test 					\
 	flowdb_dpmgr_port_test flowdb_table_features_test meter_test	\
 	port_test group_test interface_test queue_test timer_test
-SRCS = bridge_test.c flowdb_test.c flowdb_dpmgr_controller_test.c	\
+SRCS = bridge_test.c flowdb_test.c 					\
 	flowdb_dpmgr_port_test.c flowdb_table_features_test.c		\
 	meter_test.c port_test.c group_test.c interface_test.c		\
 	queue_test.c timer_test.c
