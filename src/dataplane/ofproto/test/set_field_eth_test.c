@@ -59,8 +59,7 @@ test_set_field_ETH_DST(void) {
   m->data[12] = 0x08;
   m->data[13] = 0x00;
 
-  lagopus_set_in_port(&pkt, &port);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   set_match(action_set->field, 6, OFPXMT_OFB_ETH_DST << 1,
             0x23, 0x45, 0x67, 0x89, 0xab, 0xcd);
   execute_action(&pkt, &action_list);
@@ -103,8 +102,7 @@ test_set_field_ETH_SRC(void) {
   m->data[12] = 0x08;
   m->data[13] = 0x00;
 
-  lagopus_set_in_port(&pkt, &port);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   set_match(action_set->field, 6, OFPXMT_OFB_ETH_SRC << 1,
             0x22, 0x44, 0x66, 0x88, 0xaa, 0xcc);
   execute_action(&pkt, &action_list);
@@ -146,8 +144,7 @@ test_set_field_ETH_TYPE(void) {
   m->data[12] = 0x08;
   m->data[13] = 0x00;
 
-  lagopus_set_in_port(&pkt, &port);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   set_match(action_set->field, 2, OFPXMT_OFB_ETH_TYPE << 1,
             0x20, 0xf1);
   execute_action(&pkt, &action_list);
@@ -159,7 +156,7 @@ test_set_field_ETH_TYPE(void) {
   m->data[12] = 0x81;
   m->data[13] = 0x00;
 
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   execute_action(&pkt, &action_list);
 
   TEST_ASSERT_EQUAL_MESSAGE(m->data[16], 0x20,

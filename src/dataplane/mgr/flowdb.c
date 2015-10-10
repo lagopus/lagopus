@@ -43,7 +43,6 @@
 
 #define MBTREE_TIMEOUT 2
 
-#define MPLS_LABEL_BITLEN    20
 #define PUT_TIMEOUT 100LL * 1000LL * 1000LL
 
 #define OXM_FIELD_TYPE(X)       ((X) >> 1)

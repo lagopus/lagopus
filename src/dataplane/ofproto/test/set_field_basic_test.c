@@ -73,7 +73,7 @@ test_set_field_IN_PORT(void) {
   TEST_ASSERT_NOT_NULL(bridge);
   pkt.in_port = port_lookup(bridge->ports, 1);
   TEST_ASSERT_NOT_NULL(pkt.in_port);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, pkt.in_port);
   set_match(action_set->field, 4, OFPXMT_OFB_IN_PORT << 1,
             0x00, 0x00, 0x00, 0x02);
   execute_action(&pkt, &action_list);
@@ -104,8 +104,7 @@ test_set_field_METADATA(void) {
   m->data = &m->dat[128];
 
   pkt.oob_data.metadata = 0;
-  lagopus_set_in_port(&pkt, &port);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   set_match(action_set->field, 8, OFPXMT_OFB_METADATA << 1,
             0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0);
   execute_action(&pkt, &action_list);

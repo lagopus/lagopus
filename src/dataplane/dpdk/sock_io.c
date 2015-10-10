@@ -503,8 +503,8 @@ rawsock_change_config(struct interface *ifp,
  * dataplane thread (raw socket I/O)
  */
 lagopus_result_t
-rawsocket_thread_loop(__UNUSED const lagopus_thread_t *selfptr, void *arg) {
-  struct dataplane_arg *dparg;
+rawsocket_thread_loop(__UNUSED const lagopus_thread_t *selfptr,
+                      __UNUSED void *arg) {
   struct lagopus_packet *pkt;
   struct port_stats *stats;
   ssize_t len;
@@ -521,8 +521,6 @@ rawsocket_thread_loop(__UNUSED const lagopus_thread_t *selfptr, void *arg) {
   if (rv != LAGOPUS_RESULT_OK) {
     return rv;
   }
-
-  dparg = arg;
 
   for (;;) {
     struct port *port;
@@ -569,12 +567,11 @@ rawsocket_thread_loop(__UNUSED const lagopus_thread_t *selfptr, void *arg) {
           }
         }
         (void)OS_M_APPEND(pkt->mbuf, len);
-        lagopus_set_in_port(pkt, port);
-        lagopus_packet_init(pkt, pkt->mbuf);
+        lagopus_packet_init(pkt, pkt->mbuf, port);
         if (port->bridge->flowdb->switch_mode == SWITCH_MODE_STANDALONE) {
           lagopus_forward_packet_to_port(pkt, OFPP_NORMAL);
         } else {
-          lagopus_receive_packet(pkt);
+          lagopus_match_and_action(pkt);
         }
         lagopus_packet_free(pkt);
       }

@@ -217,7 +217,6 @@ struct flow {
   struct bridge *bridge;  			/** Pointer to bridge. */
   uint64_t field_bits;  			/** Match field type bits. */
   uint8_t table_id;  				/** Table ID. */
-  uint8_t flow_type;  				/** Internal use of flow type. */
   struct timespec create_time;  		/** Creation time. */
   struct timespec update_time;  		/** Last updated time. */
   struct flow **flow_timer;  			/** Back reference to entry

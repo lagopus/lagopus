@@ -358,16 +358,9 @@ void lagopus_packet_free(struct lagopus_packet *);
  * @param[in]   pkt     packet structure.
  * @param[in]   m       pointer to data of the packet.
  *                      such as mbuf, skbuff, etc.
+ * @param[in]   port    internal port structure.
  */
-void lagopus_packet_init(struct lagopus_packet *, void *);
-
-/**
- * Bind port structure to the packet.
- *
- * @param[in]   pkt     packet structure.
- * @param[in]   port    port structure.
- */
-void lagopus_set_in_port(struct lagopus_packet *, struct port *);
+void lagopus_packet_init(struct lagopus_packet *, void *, struct port *);
 
 /**
  * Send packet to specified OpenFlow port.
@@ -700,28 +693,14 @@ lagopus_result_t update_port_link_status(struct port *);
 struct lagopus_packet *copy_packet(struct lagopus_packet *);
 
 /**
- * Process received packet.
- *
- * @param[in]   port            Ingress port.
- * @param[in]   pkt             Packet.
- */
-static inline void
-lagopus_receive_packet(struct lagopus_packet *pkt) {
-
-#ifdef PACKET_CAPTURE
-  /* capture received packet */
-  if (port->pcap_queue != NULL) {
-    lagopus_pcap_enqueue(pkt->in_port, pkt);
-  }
-#endif /* PACKET_CAPTURE */
-  lagopus_match_and_action(pkt);
-}
-
-/**
  */
 void copy_dataplane_info(char *buf, int len);
 
 /**
+ * Raw socket I/O process function.
+ *
+ * @param[in]   t       Thread object pointer.
+ * @param[in]   arg     Do not used argument.
  */
 lagopus_result_t rawsocket_thread_loop(const lagopus_thread_t *t, void *arg);
 

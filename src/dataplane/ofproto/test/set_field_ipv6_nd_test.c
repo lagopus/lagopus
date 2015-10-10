@@ -63,8 +63,7 @@ test_set_field_IPV6_ND_TARGET(void) {
   m->data[13] = 0xdd;
   m->data[20] = IPPROTO_ICMPV6;
 
-  lagopus_set_in_port(&pkt, &port);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   set_match(action_set->field, 16, OFPXMT_OFB_IPV6_ND_TARGET << 1,
             0x20, 0x01, 0x00, 0x00, 0xe0, 0x45, 0x22, 0xeb,
             0x09, 0x00, 0x00, 0x08, 0xdc, 0x18, 0x94, 0xad);
@@ -105,7 +104,7 @@ test_set_field_IPV6_ND_TARGET(void) {
   m->data[20] = IPPROTO_DSTOPTS;
   m->data[54] = IPPROTO_ICMPV6;
   m->data[55] = 0;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   execute_action(&pkt, &action_list);
   TEST_ASSERT_EQUAL_MESSAGE(m->data[54], IPPROTO_ICMPV6,
                             "SET_FIELD IPV6_ND_TARGET proto error.");
@@ -175,8 +174,7 @@ test_set_field_IPV6_ND_SLL(void) {
   m->data[79] = 1;
   m->data[86] = ND_OPT_TARGET_LINKADDR;
   m->data[87] = 1;
-  lagopus_set_in_port(&pkt, &port);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   set_match(action_set->field, ETH_ALEN, OFPXMT_OFB_IPV6_ND_SLL << 1,
             0xe0, 0x4d, 0x01, 0x34, 0x56, 0x78);
   execute_action(&pkt, &action_list);
@@ -226,8 +224,7 @@ test_set_field_IPV6_ND_TLL(void) {
   m->data[79] = 1;
   m->data[86] = ND_OPT_TARGET_LINKADDR;
   m->data[87] = 1;
-  lagopus_set_in_port(&pkt, &port);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   set_match(action_set->field, ETH_ALEN, OFPXMT_OFB_IPV6_ND_TLL << 1,
             0xe0, 0x4d, 0x01, 0x34, 0x56, 0x78);
   execute_action(&pkt, &action_list);

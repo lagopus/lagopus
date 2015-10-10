@@ -215,7 +215,6 @@ match_flow_ipv4_src_mask(struct flowinfo *self, struct lagopus_packet *pkt,
     .hard_timeout = 0,
     .match_list = {NULL, NULL},
     .instruction_list = {NULL, NULL},
-    .flow_type = 0,
     .field_bits = 0
   };
   unsigned int i;

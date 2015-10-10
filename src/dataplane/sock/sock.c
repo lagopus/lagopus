@@ -777,13 +777,18 @@ dataplane_thread_loop(__UNUSED const lagopus_thread_t *selfptr,
         }
         m->len = (size_t)len;
 
-        lagopus_set_in_port(&pkt, port);
-        lagopus_packet_init(&pkt, m);
+        lagopus_packet_init(&pkt, m, port);
         if (port->bridge->flowdb->switch_mode == SWITCH_MODE_STANDALONE) {
           pkt.in_port = port;
           lagopus_forward_packet_to_port(&pkt, OFPP_NORMAL);
         } else {
-          lagopus_receive_packet(&pkt);
+#ifdef PACKET_CAPTURE
+          /* capture received packet */
+          if (port->pcap_queue != NULL) {
+            lagopus_pcap_enqueue(pkt->in_port, pkt);
+          }
+#endif /* PACKET_CAPTURE */
+          lagopus_match_and_action(&pkt);
         }
       }
       flowdb_rdunlock(NULL);

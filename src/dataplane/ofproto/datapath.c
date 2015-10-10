@@ -569,7 +569,7 @@ re_classify_packet(struct lagopus_packet *pkt) {
 
 /* Setup packet information. */
 void
-lagopus_packet_init(struct lagopus_packet *pkt, void *m) {
+lagopus_packet_init(struct lagopus_packet *pkt, void *m, struct port *port) {
 
   /* initialize OpenFlow related members */
   pkt->table_id = 0;
@@ -578,8 +578,11 @@ lagopus_packet_init(struct lagopus_packet *pkt, void *m) {
 
   pkt->flags = 0;
   pkt->nmatched = 0;
-  /* set raw packet data */
+  /* set raw packet data and port */
   pkt->mbuf = (OS_MBUF *)m;
+  pkt->in_port = port;
+  pkt->oob_data.in_port = htonl(port->ofp_port.port_no);
+  pkt->oob_data.in_phy_port= htonl(port->ofp_port.port_no);
   /* pre match */
   classify_packet(pkt);
 }
@@ -2256,22 +2259,11 @@ lagopus_set_instruction_function(struct instruction *instruction) {
   }
 }
 
-STATIC void
-lagopus_set_in_port(struct lagopus_packet *pkt, struct port *port) {
-  pkt->in_port = port;
-
-  pkt->oob_data.in_port = htonl(port->ofp_port.port_no);
-  pkt->oob_data.in_phy_port= htonl(port->ofp_port.port_no);
-}
-
-/*
- * process received packet.
- */
-lagopus_result_t
-lagopus_match_and_action(struct lagopus_packet *pkt) {
+static inline lagopus_result_t
+dp_openflow_do_cached_action(struct lagopus_packet *pkt) {
   struct flowdb *flowdb;
   struct flow *flow;
-  const struct flow **flowp;
+  struct flow **flowp;
   struct table *table;
   const struct cache_entry *cache_entry;
   lagopus_result_t rv;
@@ -2279,13 +2271,13 @@ lagopus_match_and_action(struct lagopus_packet *pkt) {
 
   flowdb = pkt->in_port->bridge->flowdb;
 
-  rv = LAGOPUS_RESULT_OK;
   cache_entry = cache_lookup(pkt->cache, pkt);
   if (likely(cache_entry != NULL)) {
     DP_PRINT("MATCHED (cache)\n");
     pkt->flags |= PKT_FLAG_CACHED_FLOW;
     flowp = cache_entry->flow;
 
+    rv = LAGOPUS_RESULT_OK;
     for (i = 0; i < cache_entry->nmatched; i++) {
       flow = *flowp++;
       if ((flow->flags & OFPFF_NO_PKT_COUNTS) == 0) {
@@ -2317,49 +2309,74 @@ lagopus_match_and_action(struct lagopus_packet *pkt) {
       }
     }
   } else {
-    for (;;) {
-      /* Get table from tabile_id. */
-      table = table_lookup(flowdb, pkt->table_id);
-      if (table == NULL) {
-        /* table not found.  finish action. */
-        lagopus_packet_free(pkt);
-        return LAGOPUS_RESULT_STOP;
-      }
-
-      table->lookup_count++;
-#ifdef USE_MBTREE
-      flow = find_mbtree(pkt, table->flow_list);
-#else
-      flow = lagopus_find_flow(pkt, table);
-#endif
-      if (likely(flow != NULL)) {
-        DP_PRINT("MATCHED\n");
-        /* execute_instruction is able to call this function recursively. */
-        pkt->flow = flow;
-        pkt->matched_flow[pkt->nmatched++] = flow;
-        rv = execute_instruction(pkt,
-                                 (const struct instruction **)flow->instruction);
-      } else {
-        DP_PRINT("NOT MATCHED\n");
-        /*
-         * the behavior on a table miss depends on the table configuration.
-         * 5.4 Table-miss says,
-         * by default packets unmached are dropped (discarded).
-         * A switch configuration, for example using the OpenFlow Configuration
-         * Protocol, may override this default and specify another behaviour.
-         */
-        rv = LAGOPUS_RESULT_STOP;
-      }
-      if (rv < LAGOPUS_RESULT_OK) {
-        break;
-      }
-      if (rv == pkt->table_id) {
-        rv = LAGOPUS_RESULT_OK;
-        break;
-      }
-      pkt->table_id = rv;
-    }
+    rv = LAGOPUS_RESULT_NOT_FOUND;
   }
+  return rv;
+}
+
+/**
+ * match packet (no cache)
+ */
+static inline lagopus_result_t
+dp_openflow_match(struct lagopus_packet *pkt) {
+  struct flowdb *flowdb;
+  struct flow *flow;
+  struct table *table;
+  lagopus_result_t rv;
+
+  flowdb = pkt->in_port->bridge->flowdb;
+
+  /* Get table from tabile_id. */
+  table = table_lookup(flowdb, pkt->table_id);
+  if (table == NULL) {
+    /* table not found.  finish action. */
+    lagopus_packet_free(pkt);
+    return LAGOPUS_RESULT_STOP;
+  }
+
+  table->lookup_count++;
+#ifdef USE_MBTREE
+  flow = find_mbtree(pkt, table->flow_list);
+#else
+  flow = lagopus_find_flow(pkt, table);
+#endif
+  if (likely(flow != NULL)) {
+    DP_PRINT("MATCHED\n");
+    /* execute_instruction is able to call this function recursively. */
+    pkt->flow = flow;
+    pkt->matched_flow[pkt->nmatched++] = flow;
+    rv = LAGOPUS_RESULT_OK;
+  } else {
+    DP_PRINT("NOT MATCHED\n");
+    /*
+     * the behavior on a table miss depends on the table configuration.
+     * 5.4 Table-miss says,
+     * by default packets unmached are dropped (discarded).
+     * A switch configuration, for example using the OpenFlow Configuration
+     * Protocol, may override this default and specify another behaviour.
+     */
+    rv = LAGOPUS_RESULT_STOP;
+  }
+  return rv;
+}
+
+static inline lagopus_result_t
+dp_openflow_do_action(struct lagopus_packet *pkt) {
+  struct flow *flow;
+  lagopus_result_t rv;
+
+  flow = pkt->flow;
+  rv = execute_instruction(pkt,
+                           (const struct instruction **)flow->instruction);
+
+  return rv;
+}
+
+static inline lagopus_result_t
+dp_openflow_do_action_set(struct lagopus_packet *pkt) {
+  lagopus_result_t rv;
+
+  rv = LAGOPUS_RESULT_OK;
   /*
    * required: execute stored action-set.
    * execution order:
@@ -2375,66 +2392,44 @@ lagopus_match_and_action(struct lagopus_packet *pkt) {
    * 10. group
    * 11. output
    */
-  if (rv == LAGOPUS_RESULT_OK) {
-    if ((pkt->flags & PKT_FLAG_HAS_ACTION) != 0) {
-      rv = execute_action_set(pkt, pkt->actions);
-      pkt->flags &= (uint32_t)~PKT_FLAG_HAS_ACTION;
+  if ((pkt->flags & PKT_FLAG_HAS_ACTION) != 0) {
+    rv = execute_action_set(pkt, pkt->actions);
+    pkt->flags &= (uint32_t)~PKT_FLAG_HAS_ACTION;
+  }
+  return rv;
+}
+
+/*
+ * process received packet.
+ */
+lagopus_result_t
+lagopus_match_and_action(struct lagopus_packet *pkt) {
+  lagopus_result_t rv;
+
+  rv = dp_openflow_do_cached_action(pkt);
+  if (unlikely(rv == LAGOPUS_RESULT_NOT_FOUND)) {
+    for (;;) {
+      rv = dp_openflow_match(pkt);
+      if (rv != LAGOPUS_RESULT_OK) {
+        break;
+      }
+      rv = dp_openflow_do_action(pkt);
+      if (rv < LAGOPUS_RESULT_OK) {
+        break;
+      }
+      if (rv == pkt->table_id) {
+        rv = LAGOPUS_RESULT_OK;
+        break;
+      }
+      pkt->table_id = rv;
     }
+  }
+  if (rv == LAGOPUS_RESULT_OK) {
+    rv = dp_openflow_do_action_set(pkt);
   }
   /* required: if no output action, drop packet. */
   if (rv != LAGOPUS_RESULT_NO_MORE_ACTION) {
     lagopus_packet_free(pkt);
   }
   return rv;
-}
-
-/*
- * Set switch configuration. (Agent/DP API)
- */
-lagopus_result_t
-ofp_switch_config_set(uint64_t dpid,
-                      struct ofp_switch_config *switch_config,
-                      struct ofp_error *error) {
-  struct bridge *bridge;
-
-  bridge = dp_bridge_lookup_by_dpid(dpid);
-  if (bridge == NULL) {
-    return LAGOPUS_RESULT_NOT_FOUND;
-  }
-  /* Reassemble fragmented packet is not supported */
-  if ((switch_config->flags & OFPC_FRAG_REASM) != 0) {
-    ofp_error_set(error, OFPET_SWITCH_CONFIG_FAILED, OFPSCFC_BAD_FLAGS);
-    return LAGOPUS_RESULT_OFP_ERROR;
-  }
-  if (switch_config->miss_send_len < 64) {
-    ofp_error_set(error, OFPET_SWITCH_CONFIG_FAILED, OFPSCFC_BAD_LEN);
-    return LAGOPUS_RESULT_OFP_ERROR;
-  }
-  bridge->switch_config = *switch_config;
-
-  return LAGOPUS_RESULT_OK;
-}
-
-/*
- * Get switch configuration. (Agent/DP API)
- */
-lagopus_result_t
-ofp_switch_config_get(uint64_t dpid,
-                      struct ofp_switch_config *switch_config,
-                      struct ofp_error *error) {
-  struct bridge *bridge;
-
-  (void) error;
-
-  bridge = dp_bridge_lookup_by_dpid(dpid);
-  if (bridge == NULL) {
-    return LAGOPUS_RESULT_NOT_FOUND;
-  }
-
-  if (bridge == NULL || switch_config == NULL) {
-    return LAGOPUS_RESULT_INVALID_ARGS;
-  }
-  *switch_config = bridge->switch_config;
-
-  return LAGOPUS_RESULT_OK;
 }

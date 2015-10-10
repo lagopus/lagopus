@@ -47,7 +47,6 @@ test_match_basic_IPV4_IP_DSCP(void) {
   bool rv;
 
   /* prepare packet */
-  pkt.in_port = &port;
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
@@ -67,7 +66,7 @@ test_match_basic_IPV4_IP_DSCP(void) {
             0x3f);
   m->data[15] = 0x3f;
   refresh_match(flow);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "IP_DSCP mismatch error.");
@@ -86,7 +85,6 @@ test_match_basic_IPV4_IP_ECN(void) {
   bool rv;
 
   /* prepare packet */
-  pkt.in_port = &port;
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
@@ -106,7 +104,7 @@ test_match_basic_IPV4_IP_ECN(void) {
             0x3);
   m->data[15] = 0xcc;
   refresh_match(flow);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "IP_ECN mismatch error.");
@@ -125,7 +123,6 @@ test_match_basic_IPV4_PROTO(void) {
   bool rv;
 
   /* prepare packet */
-  pkt.in_port = &port;
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
@@ -148,12 +145,12 @@ test_match_basic_IPV4_PROTO(void) {
   m->data[14] = 0x45;
 
   m->data[23] = IPPROTO_UDP;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "IP_PROTO mismatch error.");
   m->data[23] = IPPROTO_TCP;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, true,
                             "IP_PROTO match error.");
@@ -164,12 +161,12 @@ test_match_basic_IPV4_PROTO(void) {
   m->data[18] = 0x45;
 
   m->data[27] = IPPROTO_UDP;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "IP_PROTO mismatch(vlan) error.");
   m->data[27] = IPPROTO_TCP;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, true,
                             "IP_PROTO match(vlan) error.");
@@ -185,7 +182,6 @@ test_match_basic_IPV4_SRC(void) {
   bool rv;
 
   /* prepare packet */
-  pkt.in_port = &port;
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
@@ -210,7 +206,7 @@ test_match_basic_IPV4_SRC(void) {
   m->data[32] = 0;
   m->data[33] = 1;
   refresh_match(flow);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "IPV4_SRC mismatch(1) error.");
@@ -221,7 +217,7 @@ test_match_basic_IPV4_SRC(void) {
   m->data[31] = 0;
   m->data[32] = 168;
   m->data[33] = 192;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "IPV4_SRC mismatch(2) error.");
@@ -229,7 +225,7 @@ test_match_basic_IPV4_SRC(void) {
   m->data[31] = 168;
   m->data[32] = 0;
   m->data[33] = 1;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, true,
                             "IPV4_SRC match error.");
@@ -245,7 +241,6 @@ test_match_basic_IPV4_SRC_W(void) {
   bool rv;
 
   /* prepare packet */
-  pkt.in_port = &port;
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
@@ -271,7 +266,7 @@ test_match_basic_IPV4_SRC_W(void) {
   m->data[32] = 0;
   m->data[33] = 1;
   refresh_match(flow);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "IPV4_SRC_W mismatch(1) error.");
@@ -279,7 +274,7 @@ test_match_basic_IPV4_SRC_W(void) {
   m->data[31] = 1;
   m->data[32] = 21;
   m->data[33] = 172;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "IPV4_SRC_W mismatch(2) error.");
@@ -287,7 +282,7 @@ test_match_basic_IPV4_SRC_W(void) {
   m->data[31] = 21;
   m->data[32] = 1;
   m->data[33] = 2;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, true,
                             "IPV4_SRC_W match error.");
@@ -303,7 +298,6 @@ test_match_basic_IPV4_DST(void) {
   bool rv;
 
   /* prepare packet */
-  pkt.in_port = &port;
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
@@ -328,7 +322,7 @@ test_match_basic_IPV4_DST(void) {
   m->data[36] = 0;
   m->data[37] = 1;
   refresh_match(flow);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "IPV4_DST mismatch(1) error.");
@@ -336,7 +330,7 @@ test_match_basic_IPV4_DST(void) {
   m->data[35] = 0;
   m->data[36] = 168;
   m->data[37] = 192;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "IPV4_DST mismatch(2) error.");
@@ -344,7 +338,7 @@ test_match_basic_IPV4_DST(void) {
   m->data[35] = 168;
   m->data[36] = 0;
   m->data[37] = 2;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, true,
                             "IPV4_DST match error.");
@@ -359,7 +353,6 @@ test_match_basic_IPV4_DST_W(void) {
   bool rv;
 
   /* prepare packet */
-  pkt.in_port = &port;
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
@@ -384,7 +377,7 @@ test_match_basic_IPV4_DST_W(void) {
   m->data[36] = 1;
   m->data[37] = 2;
   refresh_match(flow);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "IPV4_DST_W mismatch(1) error.");
@@ -392,7 +385,7 @@ test_match_basic_IPV4_DST_W(void) {
   m->data[35] = 0;
   m->data[36] = 168;
   m->data[37] = 192;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "IPV4_DST_W mismatch(2) error.");
@@ -400,7 +393,7 @@ test_match_basic_IPV4_DST_W(void) {
   m->data[35] = 168;
   m->data[36] = 0;
   m->data[37] = 2;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, true,
                             "IPV4_DST_W match error.");
@@ -415,7 +408,6 @@ test_match_basic_IPV4_TCP_SRC(void) {
   bool rv;
 
   /* prepare packet */
-  pkt.in_port = &port;
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
@@ -441,7 +433,7 @@ test_match_basic_IPV4_TCP_SRC(void) {
   m->data[38] = 0;
   m->data[39] = 0xf0;
   refresh_match(flow);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "TCP_SRC mismatch error.");
@@ -462,7 +454,6 @@ test_match_basic_IPV4_TCP_DST(void) {
   bool rv;
 
   /* prepare packet */
-  pkt.in_port = &port;
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
@@ -489,13 +480,13 @@ test_match_basic_IPV4_TCP_DST(void) {
   m->data[40] = 80;
   m->data[41] = 0;
   refresh_match(flow);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "TCP_DST mismatch error.");
   m->data[40] = 0;
   m->data[41] = 80;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, true,
                             "TCP_DST match error.");
@@ -511,7 +502,6 @@ test_match_basic_IPV4_UDP_SRC(void) {
   bool rv;
 
   /* prepare packet */
-  pkt.in_port = &port;
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
@@ -537,7 +527,7 @@ test_match_basic_IPV4_UDP_SRC(void) {
   m->data[38] = 0;
   m->data[39] = 0xf0;
   refresh_match(flow);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "UDP_SRC mismatch error.");
@@ -558,7 +548,6 @@ test_match_basic_IPV4_UDP_DST(void) {
   bool rv;
 
   /* prepare packet */
-  pkt.in_port = &port;
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
@@ -585,13 +574,13 @@ test_match_basic_IPV4_UDP_DST(void) {
   m->data[40] = 80;
   m->data[41] = 0;
   refresh_match(flow);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "UDP_DST mismatch error.");
   m->data[40] = 0;
   m->data[41] = 80;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, true,
                             "UDP_DST match error.");
@@ -607,7 +596,6 @@ test_match_basic_IPV4_SCTP_SRC(void) {
   bool rv;
 
   /* prepare packet */
-  pkt.in_port = &port;
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
@@ -633,7 +621,7 @@ test_match_basic_IPV4_SCTP_SRC(void) {
   m->data[38] = 0;
   m->data[39] = 0xf0;
   refresh_match(flow);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "SCTP_SRC mismatch error.");
@@ -654,7 +642,6 @@ test_match_basic_IPV4_SCTP_DST(void) {
   bool rv;
 
   /* prepare packet */
-  pkt.in_port = &port;
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
@@ -681,13 +668,13 @@ test_match_basic_IPV4_SCTP_DST(void) {
   m->data[40] = 80;
   m->data[41] = 0;
   refresh_match(flow);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "SCTP_DST mismatch error.");
   m->data[40] = 0;
   m->data[41] = 80;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, true,
                             "SCTP_DST match error.");
@@ -703,7 +690,6 @@ test_match_basic_IPV4_ICMP_TYPE(void) {
   bool rv;
 
   /* prepare packet */
-  pkt.in_port = &port;
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
@@ -729,12 +715,12 @@ test_match_basic_IPV4_ICMP_TYPE(void) {
             ICMP_ECHO);
   m->data[38] = ICMP_ECHOREPLY;
   refresh_match(flow);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "ICMPV4_TYPE mismatch error.");
   m->data[38] = ICMP_ECHO;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, true,
                             "ICMPV4_TYPE match error.");
@@ -749,7 +735,6 @@ test_match_basic_IPV4_ICMP_CODE(void) {
   bool rv;
 
   /* prepare packet */
-  pkt.in_port = &port;
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
@@ -775,12 +760,12 @@ test_match_basic_IPV4_ICMP_CODE(void) {
             ICMP_HOST_UNREACH);
   m->data[39] = ICMP_PORT_UNREACH;
   refresh_match(flow);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "ICMPV4_CODE mismatch error.");
   m->data[39] = ICMP_HOST_UNREACH;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, true,
                             "ICMPV4_CODE match error.");

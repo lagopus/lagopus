@@ -305,8 +305,7 @@ build_packet(uint32_t in_port) {
   OS_M_APPEND(pkt->mbuf, packet_length);
   port = port_lookup(bridge->ports, in_port);
   TEST_ASSERT_NOT_NULL(port);
-  lagopus_set_in_port(pkt, port);
-  lagopus_packet_init(pkt, pkt->mbuf);
+  lagopus_packet_init(pkt, pkt->mbuf, port);
 
   return pkt;
 }
@@ -332,8 +331,7 @@ build_mpls_packet(uint32_t in_port, uint32_t mpls_label) {
   p[16] = (mpls_label << 4) & 0xff;
   port = port_lookup(bridge->ports, in_port);
   TEST_ASSERT_NOT_NULL(port);
-  lagopus_set_in_port(pkt, port);
-  lagopus_packet_init(pkt, pkt->mbuf);
+  lagopus_packet_init(pkt, pkt->mbuf, port);
 
   return pkt;
 }
@@ -367,8 +365,7 @@ build_ip_packet(uint32_t in_port, uint32_t ipsrc, uint32_t ipdst,
   p[33] = ipdst & 0xff;
   port = port_lookup(bridge->ports, in_port);
   TEST_ASSERT_NOT_NULL(port);
-  lagopus_set_in_port(pkt, port);
-  lagopus_packet_init(pkt, pkt->mbuf);
+  lagopus_packet_init(pkt, pkt->mbuf, port);
 
   return pkt;
 }

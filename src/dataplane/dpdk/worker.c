@@ -151,24 +151,6 @@ app_lcore_worker(struct app_lcore_params_worker *lp,
     if (unlikely(ret == 0)) {
       continue;
     }
-#if APP_WORKER_DROP_ALL_PACKETS
-    for (j = 0; j < ret; j ++) {
-      struct rte_mbuf *m = lp->mbuf_in.array[j];
-      rte_pktmbuf_free(m);
-    }
-    continue;
-#endif
-#if APP_WORKER_OUTPUT_TO_PORT1
-    for (j = 0; j < ret; j ++) {
-      struct rte_mbuf *m = lp->mbuf_in.array[j];
-      pkt = (struct lagopus_packet *)
-            (m->buf_addr + APP_DEFAULT_MBUF_LOCALDATA_OFFSET);
-      pkt->mbuf = m;
-      lagopus_send_packet_physical(pkt, 1);
-      rte_pktmbuf_free(m);
-    }
-    continue;
-#else
     APP_WORKER_PREFETCH1(rte_pktmbuf_mtod(lp->mbuf_in.array[0],
                                           unsigned char *));
     APP_WORKER_PREFETCH0(lp->mbuf_in.array[1]);
@@ -204,8 +186,7 @@ app_lcore_worker(struct app_lcore_params_worker *lp,
        * if "fail standalone mode", all packets are send to
        * OFPP_NORMAL.
        */
-      lagopus_set_in_port(pkt, port);
-      lagopus_packet_init(pkt, m);
+      lagopus_packet_init(pkt, m, port);
       if (port->bridge->flowdb->switch_mode == SWITCH_MODE_STANDALONE) {
         lagopus_forward_packet_to_port(pkt, OFPP_NORMAL);
         lp->mbuf_in.array[j] = NULL;
@@ -230,10 +211,9 @@ app_lcore_worker(struct app_lcore_params_worker *lp,
             (m->buf_addr + APP_DEFAULT_MBUF_LOCALDATA_OFFSET);
       APP_WORKER_PREFETCH0(pkt);
       pkt->cache = lp->cache;
-      lagopus_receive_packet(pkt);
+      lagopus_match_and_action(pkt);
     }
     flowdb_rdunlock(NULL);
-#endif /* APP_WORKER_OUTPUT_TO_PORT1 */
   }
 }
 

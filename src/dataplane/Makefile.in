@@ -34,6 +34,7 @@ CPPFLAGS += -I$(BUILD_DATAPLANEDIR)/$(DPMGRDIR)
 CPPFLAGS += -I$(BUILD_DATAPLANEDIR)/$(DATAPATHDIR)
 
 WARN_CFLAGS += -Werror=missing-prototypes
+WARN_CFLAGS += -Werror=uninitialized
 
 TARGETS	=	$(TARGET_LIB)
 

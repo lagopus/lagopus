@@ -120,8 +120,7 @@ process_event_dataq_entry(struct flowcache *cache,
 
           (void)OS_M_APPEND(pkt->mbuf, data_len);
           DECODE_GET(OS_MTOD(pkt->mbuf, char *), data_len);
-          lagopus_set_in_port(pkt, port);
-          lagopus_packet_init(pkt, pkt->mbuf);
+          lagopus_packet_init(pkt, pkt->mbuf, port);
           pkt->cache = NULL;
           pkt->hash64 = 0;
           if (lagopus_register_action_hook != NULL) {
