@@ -101,7 +101,9 @@ struct table_features_list;
 struct group_table;
 struct vector;
 
-/* Match. */
+/**
+ * @brief Match structure.
+ */
 struct match {
   TAILQ_ENTRY(match) entry;     /** link for next match */
   bool except_flag;             /** used flag, except for baseic match */
@@ -111,10 +113,11 @@ struct match {
   uint8_t oxm_value[0];         /** OXM value */
 };
 
-/* Match list. */
-TAILQ_HEAD(match_list, match);
+TAILQ_HEAD(match_list, match);  /** Match list. */
 
-/* Action. */
+/**
+ * @brief Action structure.
+ */
 struct action {
   TAILQ_ENTRY(action) entry;    /** link for next action */
   lagopus_result_t (*exec)(struct lagopus_packet *,
@@ -124,8 +127,8 @@ struct action {
   struct ofp_action_header ofpat;
 };
 
-/* list of action. */
-TAILQ_HEAD(action_list, action);
+TAILQ_HEAD(action_list, action);        /** list of action. */
+
 
 /**
  * execution order. see 5.10 Action Set
@@ -134,7 +137,7 @@ TAILQ_HEAD(action_list, action);
 #define LAGOPUS_ACTION_SET_ORDER_MAX 11
 
 /**
- * Instruction.
+ * @brief Instruction structure.
  */
 struct instruction {
   TAILQ_ENTRY(instruction) entry;       /** link for next instruction */
@@ -178,12 +181,18 @@ enum {
   MAX_BASE
 };
 
+/**
+ * @brief Byte offset match structure.
+ */
 struct byteoff_match {
   uint32_t bits;
   uint8_t bytes[32];
   uint8_t masks[32];
 };
 
+/**
+ * @brief Out Of Bound data structure.
+ */
 struct oob_data {
   uint64_t metadata;            /** OpenFlow metadata */
   uint64_t tunnel_id;           /** OpenFlow Tunnel ID */
@@ -195,31 +204,32 @@ struct oob_data {
   uint16_t ipv6_exthdr;         /** OpenFlow IPV6_EXT pseudo header */
 };
 
-/* Action list. */
-TAILQ_HEAD(instruction_list, instruction);
+TAILQ_HEAD(instruction_list, instruction);      /** Instruction list. */
 
-/* Flow entry. */
+/**
+ * @brief Flow entry.
+ */
 struct flow {
   /* Match structure used in dataplane. */
   struct byteoff_match byteoff_match[MAX_BASE];
 
   /* Instruction array for execution. */
   struct instruction *instruction[INSTRUCTION_INDEX_MAX];
-  uint64_t packet_count;			/** Matched packet count. */
-  uint64_t byte_count;				/** Mtched byte count. */
-  uint16_t flags; 				/** ofp_flow_mod flags. */
-  int32_t priority;  				/** Priority. */
-  uint64_t cookie;				/** ofp_flow_mod cookie. a*/
-  uint16_t idle_timeout; 			/** Idle timeout. */
-  uint16_t hard_timeout;			/** Hard timeout. */
-  struct match_list match_list; 		/** Match list. */
-  struct instruction_list instruction_list;	/** Instruction list. */
-  struct bridge *bridge;  			/** Pointer to bridge. */
-  uint64_t field_bits;  			/** Match field type bits. */
-  uint8_t table_id;  				/** Table ID. */
-  struct timespec create_time;  		/** Creation time. */
-  struct timespec update_time;  		/** Last updated time. */
-  struct flow **flow_timer;  			/** Back reference to entry
+  uint64_t packet_count;                        /** Matched packet count. */
+  uint64_t byte_count;                          /** Mtched byte count. */
+  uint16_t flags;                               /** ofp_flow_mod flags. */
+  int32_t priority;                             /** Priority. */
+  uint64_t cookie;                              /** ofp_flow_mod cookie. a*/
+  uint16_t idle_timeout;                        /** Idle timeout. */
+  uint16_t hard_timeout;                        /** Hard timeout. */
+  struct match_list match_list;                 /** Match list. */
+  struct instruction_list instruction_list;     /** Instruction list. */
+  struct bridge *bridge;                        /** Pointer to bridge. */
+  uint64_t field_bits;                          /** Match field type bits. */
+  uint8_t table_id;                             /** Table ID. */
+  struct timespec create_time;                  /** Creation time. */
+  struct timespec update_time;                  /** Last updated time. */
+  struct flow **flow_timer;                     /** Back reference to entry
                                                  ** of the flow timer. */
 
 };
@@ -234,6 +244,9 @@ enum action_flag {
 
 struct flowinfo;
 
+/**
+ * @brief List of flow entries.
+ */
 struct flow_list {
   int nflow;
   struct flow **flows;
@@ -274,25 +287,19 @@ struct flow_list {
   void *branch[0];
 };
 
-/* Flow table. */
+/**
+ * @brief Flow table.
+ */
 struct table {
-  /* Flows by types. */
-  struct flow_list *flow_list;
-
-  /* active_count is number of flows. */
-  uint64_t lookup_count;
-  uint64_t matched_count;
-
-  uint8_t table_id;
-
-  /* Flow counts by match type. */
-  uint16_t flow_match_type_count[OFPXMT_OFB_IPV6_EXTHDR + 1];
-
-  /* Features. */
-  struct ofp_table_features features;
-
-  /* userdata used in dataplane */
-  void *userdata;
+  struct flow_list *flow_list;  /** Flows by types. */
+  uint64_t lookup_count;        /** Lookup count */
+  uint64_t matched_count;       /** Matched count */
+  uint8_t table_id;             /** Table id. */
+  uint16_t flow_match_type_count[OFPXMT_OFB_IPV6_EXTHDR + 1];  /** Flow counts
+                                                                ** by match
+                                                                ** type. */
+  struct ofp_table_features features;   /** Features. */
+  void *userdata;               /** userdata used in dataplane */
 };
 
 
@@ -304,23 +311,19 @@ enum switch_mode {
   SWITCH_MODE_STANDALONE = 2
 };
 
-/* Flow database. */
+/**
+ * @brief Flow database.
+ */
 struct flowdb {
-  /* Read-write lock. */
 #ifdef HAVE_DPDK
-  rte_rwlock_t rwlock;
+  rte_rwlock_t rwlock;          /** Read-write lock. */
 #else
-  pthread_rwlock_t rwlock;
+  pthread_rwlock_t rwlock;      /** Read-write lock. */
 #endif /* HAVE_DPDK */
+  uint8_t table_size;           /** Flow table size. */
+  struct table **tables;        /** Flow table. */
+  enum switch_mode switch_mode; /** Switch mode. */
 
-  /* Flow table size. */
-  uint8_t table_size;
-
-  /* Flow table. */
-  struct table **tables;
-
-  /* Switch mode. */
-  enum switch_mode switch_mode;
 };
 
 void (*lagopus_register_action_hook)(struct action *);

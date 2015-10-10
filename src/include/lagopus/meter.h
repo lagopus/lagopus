@@ -38,7 +38,10 @@ struct meter_config_list;
 
 #define LAGOPUS_METER_MAX_BANDS 16
 
-struct meter_band {                     /** Meter bands. */
+/**
+ * @brief Meter bands.
+ */
+struct meter_band {
   TAILQ_ENTRY(meter_band) entry;        /** Link for next band */
   uint16_t type;                        /** Band type. */
   uint16_t len;                         /** Length in bytes of this band. */
@@ -53,7 +56,10 @@ struct meter_band {                     /** Meter bands. */
 
 TAILQ_HEAD(meter_band_list, meter_band);        /** Meter band list. */
 
-struct meter {                          /** Meter. */
+/**
+ * @brief Meter structure.
+ */
+struct meter {
   uint32_t meter_id;                    /** OpenFlow meter id. */
   uint16_t flags;                       /** ofp_meter_flags. */
   struct meter_band_list band_list;     /** Unordered list of meter band. */
@@ -66,6 +72,9 @@ struct meter {                          /** Meter. */
   void *driverdata;                     /** Driver specific data */
 };
 
+/**
+ * @brief Meter table.
+ */
 struct meter_table {                    /** Meter table. */
   pthread_rwlock_t rwlock;              /** Read-write lock. */
   struct ptree *ptree;                  /** Meter id tree. */

@@ -27,19 +27,22 @@
 struct group_stats_list;
 struct group_desc_list;
 
-struct group {				/** Internal group structure. */
-  uint32_t id;  			/** OpenFlow group id. */
-  enum ofp_group_type type;		/** Group type. */
-  struct bucket_list bucket_list;	/** List of goup bucket */
-  int select;				/** Round-robin index
+/**
+ * @brief Group structure.
+ */
+struct group {                          /** Internal group structure. */
+  uint32_t id;                          /** OpenFlow group id. */
+  enum ofp_group_type type;             /** Group type. */
+  struct bucket_list bucket_list;       /** List of goup bucket */
+  int select;                           /** Round-robin index
                                          ** for OFPGT_SELECT */
-  uint64_t packet_count;		/** Packet count. */
-  uint64_t byte_count;			/** Byte count. */
-  uint32_t duration_sec;		/** Duration (sec part) */
-  uint32_t duration_nsec;		/** Duration (nano sec part */
-  struct timespec create_time;  	/** Creation time. */
-  struct vector *flows;			/** Relationship with flow entries */
-  struct group_table *group_table;  	/** Relationship with group taable. */
+  uint64_t packet_count;                /** Packet count. */
+  uint64_t byte_count;                  /** Byte count. */
+  uint32_t duration_sec;                /** Duration (sec part) */
+  uint32_t duration_nsec;               /** Duration (nano sec part */
+  struct timespec create_time;          /** Creation time. */
+  struct vector *flows;                 /** Relationship with flow entries */
+  struct group_table *group_table;      /** Relationship with group taable. */
 };
 
 /**

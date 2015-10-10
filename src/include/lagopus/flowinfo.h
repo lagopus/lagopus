@@ -23,7 +23,7 @@
 #define SRC_INCLUDE_LAGOPUS_FLOWINFO_H_
 
 /**
- * definition of structured flow table.
+ * @brief Structured flow table.
  */
 struct flowinfo {
   int nflow;                    /** number of entries. */

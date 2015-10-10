@@ -41,7 +41,9 @@ struct port;
 #define BRIDGE_N_BUFFERS_DEFAULT BRIDGE_N_BUFFERS_MAX
 #define BRIDGE_N_TABLES_DEFAULT BRIDGE_N_TABLES_MAX
 
-/* Fail mode of the openflow bridge. */
+/**
+ * @brief Fail mode of the openflow bridge.
+ */
 enum fail_mode {
   FAIL_SECURE_MODE = 0,
   FAIL_STANDALONE_MODE = 1
@@ -50,7 +52,10 @@ enum fail_mode {
 struct dp_bridge_iter;
 typedef struct dp_bridge_iter *dp_bridge_iter_t;
 
-struct bridge {                         /** Bridge internal object. */
+/**
+ * @brief Bridge internal object.
+ */
+struct bridge {
   TAILQ_ENTRY(bridge) entry;            /** Linked list. */
   char name[BRIDGE_MAX_NAME_LEN];       /** Bridge name. */
   uint64_t dpid;                        /** Datapath ID. */

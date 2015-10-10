@@ -30,7 +30,7 @@ struct interface;
 struct lagopus_packet;
 
 /**
- * Port structure.
+ * @brief Port structure.
  */
 struct port {
   int type;                             /** Port type. */
@@ -198,20 +198,6 @@ get_port_desc(struct vector *ports,
  */
 bool
 port_liveness(struct bridge *bridge, uint32_t port_no);
-
-/**
- * outout queue per port
- * see 7.2.2 Queue Structures
- */
-struct lagopus_queue {
-  TAILQ_ENTRY(lagopus_queue) next;
-  uint32_t queue_id;
-  uint16_t min_rate;
-  uint16_t max_rate;
-  /* struct lagopus_packet_list tx_queue; */
-};
-
-TAILQ_HEAD(lagopus_queue_list, lagopus_queue);
 
 enum {
   /* null ports for test */
