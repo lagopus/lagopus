@@ -486,9 +486,7 @@ class Configure(Cmd):
                 os.system('cd ' + confdir +
                           '; git commit --allow-empty-message -m ""')
         # Edit
-        editor = os.environ.get('EDITOR')
-        if editor == '':
-            editor = 'vi'
+        editor = os.environ.get('EDITOR', 'vi')
         try:
             st = os.system('cd ' + confdir + ';' + editor + ' ' + conffile)
             if st != 0:
