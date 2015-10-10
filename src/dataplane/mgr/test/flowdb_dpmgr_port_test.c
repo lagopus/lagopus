@@ -71,6 +71,7 @@ static uint64_t dpid_base;
     struct port *_port;                                                 \
     \
     snprintf(_buf, sizeof(_buf), "%s, add ports", (_msg));		\
+    memset(&ifinfo, 0, sizeof(ifinfo));                                 \
     \
     for (size_t _s = (_b); _s < (_e); _s++) {				\
       TEST_ASSERT_TRUE_MESSAGE(LAGOPUS_RESULT_OK == dp_port_create(port_name[_s]), _buf); \
