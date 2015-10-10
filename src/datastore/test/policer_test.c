@@ -15,6 +15,8 @@
  */
 
 #include "unity.h"
+#include "lagopus_apis.h"
+#include "cmd_test_utils.h"
 #include "../policer.c"
 #include "../ns_util.h"
 #define CAST_UINT64(x) (uint64_t) x

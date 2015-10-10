@@ -908,7 +908,12 @@ lagopus_pipeline_stage_wait(const lagopus_pipeline_stage_t *sptr,
               lagopus_exit_fatal("must not happen, waiting for all the worker "
                                  "exit succeeded but the number of the exited "
                                  "workers and the number of succeeded API "
-                                 "calls differ on stage '%s'\n", ps->m_name);
+                                 "calls differ on stage '%s', "
+                                 "workers " PFSZ(u) ", "
+                                 "shutdown " PFSZ(u) ", "
+                                 "cancel " PFSZ(u) "\n",
+                                 ps->m_name,
+                                 ps->m_n_workers, n_shutdown, n_canceled);
             }
 
             ps->m_do_loop = false;

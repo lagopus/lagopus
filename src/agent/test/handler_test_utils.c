@@ -31,7 +31,7 @@
 /* Create packet data. */
 #define BUF_SIZE 65535
 #define TIMEOUT 100LL * 1000LL * 1000LL * 1000LL
-
+#define SHUTDOWN_TIMEOUT 100LL * 1000LL * 1000LL * 1000LL
 
 #define TEST_ASSERT_EQUAL_OFP_ERROR(expected, actual)                       \
   {                                                                         \
@@ -48,6 +48,7 @@
 static const char *bridge_name = "test_bridge01";
 static const char *port_name = "test_port01";
 static const char *interface_name = "test_if01";
+static lagopus_thread_t *th = NULL;
 
 lagopus_result_t
 ofp_header_decode_sneak_test(struct pbuf *pbuf,
@@ -78,7 +79,7 @@ s_start_ofp_handler(void) {
     return false;
   }
   /* create ofp_handler */
-  res = ofp_handler_initialize(NULL, NULL);
+  res = ofp_handler_initialize(NULL, &th);
   if (res != LAGOPUS_RESULT_OK) {
     lagopus_perror(res);
     TEST_FAIL_MESSAGE("handler_test_utils.c: handler creation error");
@@ -102,6 +103,10 @@ s_shutdown_ofp_handler(void) {
     lagopus_perror(res);
     TEST_FAIL_MESSAGE("handler_test_utils.c: handler shutdown error");
   }
+  res = lagopus_thread_wait((lagopus_thread_t *) th,
+                            SHUTDOWN_TIMEOUT);
+  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, res, "wait error");
+
   return res;
 }
 
@@ -481,12 +486,12 @@ check_packet_parse_with_dequeue_expect_error(ofp_handler_proc_t handler_proc,
     void **get,
     const struct ofp_error *expected_error) {
   lagopus_result_t res = LAGOPUS_RESULT_ANY_FAILURES;
-  struct channel *channel = create_data_channel();
+  struct channel *channel = NULL;
   struct ofp_header xid_header;
   struct ofp_bridge *ofpb = NULL;
-  struct pbuf *pbuf;
+  struct pbuf *pbuf = NULL;
   struct ofp_error error;
-  struct ofp_bridgeq *bridgeq;
+  struct ofp_bridgeq *bridgeq = NULL;
 
   if (get == NULL) {
     return LAGOPUS_RESULT_INVALID_ARGS;
@@ -497,6 +502,11 @@ check_packet_parse_with_dequeue_expect_error(ofp_handler_proc_t handler_proc,
   }
 
   /* get ofp_bridge */
+  channel = create_data_channel();
+  if (channel == NULL) {
+    TEST_FAIL_MESSAGE("channel is NULL.");
+  }
+
   res = ofp_bridgeq_mgr_bridge_lookup(channel_dpid_get(channel), &bridgeq);
   if (res == LAGOPUS_RESULT_OK) {
     ofpb = ofp_bridgeq_mgr_bridge_get(bridgeq);
@@ -531,11 +541,15 @@ check_packet_parse_with_dequeue_expect_error(ofp_handler_proc_t handler_proc,
 
   /* unregister & destroy ofp_bridge */
   (void) ofp_bridgeq_mgr_bridge_unregister(channel_dpid_get(channel));
-  /* free */
-  pbuf_free(pbuf);
+
 done:
   s_destroy_static_data();
   (void)s_shutdown_ofp_handler();
+
+  if (pbuf != NULL) {
+    pbuf_free(pbuf);
+  }
+
   return res;
 }
 

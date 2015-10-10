@@ -132,11 +132,6 @@ static callout_task_state_t s_get_task_state_in_table(
     const lagopus_callout_task_t t);
 static inline void s_delete_task_in_table(const lagopus_callout_task_t t);
 
-static callout_task_state_t s_set_task_state(lagopus_callout_task_t t,
-                                             callout_task_state_t s);
-static callout_task_state_t s_get_task_state(const lagopus_callout_task_t t);
-
-
 /**
  * _no_lock() version of the APIs need to be between
  * s_lock_global()/s_unlock_global()

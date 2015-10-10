@@ -71,6 +71,7 @@ typedef struct ofp_handler_record *ofp_handler_t;
 static ofp_handler_t s_ofp_handler = NULL;
 static pthread_once_t s_initialized = PTHREAD_ONCE_INIT;
 static volatile bool s_is_started = false;
+static volatile bool s_is_running = false;
 static volatile uint16_t channelq_size = CHANNELQ_SIZE;
 static volatile uint16_t channelq_max_batches = CHANNELQ_SIZE;
 
@@ -162,6 +163,8 @@ ofp_handler_start(void) {
   lagopus_msg_info("called.\n");
   if (s_validate_ofp_handler() == true) {
     if (s_get_status() != OFPH_RUNNING) {
+      mbar();
+      s_is_running = true;
       s_set_status(OFPH_RUNNING);
       res = s_recreate();
       if (res == LAGOPUS_RESULT_OK) {
@@ -192,16 +195,14 @@ ofp_handler_shutdown(shutdown_grace_level_t level) {
                                   &is_valid);
     if (res == LAGOPUS_RESULT_OK) {
       if (is_valid == true) {
+        mbar();
+        s_is_running = false;
         switch (level) {
           case SHUTDOWN_RIGHT_NOW:
             s_set_status(OFPH_SHUTDOWN_RIGHT_NOW);
-            res = lagopus_thread_wait((lagopus_thread_t *)&s_ofp_handler,
-                                      SHUTDOWN_TIMEOUT);
             break;
           case SHUTDOWN_GRACEFULLY:
             s_set_status(OFPH_SHUTDOWN_GRACEFULLY);
-            res = lagopus_thread_wait((lagopus_thread_t *)&s_ofp_handler,
-                                      SHUTDOWN_TIMEOUT);
             break;
           default:
             res = LAGOPUS_RESULT_INVALID_ARGS;
@@ -913,7 +914,7 @@ s_ofph_thread_main(const lagopus_thread_t *selfptr,
 
   s_is_started = true;
   /* main loop. */
-  while (s_get_status() == OFPH_RUNNING) {
+  while (s_is_running == true) {
     n_need_watch = 0;
     n_valid_polls = 0;
 

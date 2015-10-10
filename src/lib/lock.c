@@ -916,6 +916,11 @@ lagopus_cond_notify(lagopus_cond_t *cndptr,
       *cndptr != NULL) {
     int st;
 
+    /*
+     * I know I don't need this but:
+     */
+    mbar();
+
     errno = 0;
     if ((st = ((for_all == true) ? s_notify_all_proc : s_notify_single_proc)(
                 &((*cndptr)->m_cond))) == 0) {

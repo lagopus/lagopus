@@ -64,6 +64,8 @@ static const char *const s_error_strs[] = {
   "Address resolver failure",		/* 40 */
   "Output failure",			/* 41 */
   "Invalid state",			/* 42 */
+  "Invalid namespace",			/* 43 */
+  "Interrupted",			/* 44 */
 
   NULL
 };

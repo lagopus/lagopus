@@ -593,6 +593,7 @@ void
 test_finalize_ofph(void) {
   ofp_handler_finalize();
 }
+
 void
 test_epilogue(void) {
   lagopus_result_t r;

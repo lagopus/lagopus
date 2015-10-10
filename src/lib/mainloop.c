@@ -574,7 +574,7 @@ s_set_failsafe_handler(int sig) {
     if (h == NULL || h == SIG_DFL || h == SIG_IGN) {
       lagopus_result_t r = lagopus_signal(SIGQUIT, s_term_handler, NULL);
       if (r == LAGOPUS_RESULT_OK) {
-        lagopus_msg_warning("The signal %d seems not to be properly handled."
+        lagopus_msg_warning("The signal %d seems not to be properly handled. "
                             "Set a decent handler.\n", sig);
       } else {
         lagopus_perror(r);

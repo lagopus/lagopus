@@ -115,46 +115,6 @@ s_delete_task_in_table(const lagopus_callout_task_t t) {
 
 
 
-static inline callout_task_state_t
-s_get_task_state(const lagopus_callout_task_t t) {
-  callout_task_state_t ret = TASK_STATE_UNKNOWN;
-
-  if (likely(t != NULL)) {
-    
-    s_lock_task(t);
-    {
-      ret = t->m_status;
-    }
-    s_unlock_task(t);
-  }
-
-  return ret;
-}
-
-
-static inline callout_task_state_t
-s_set_task_state(const lagopus_callout_task_t t,
-                 callout_task_state_t s) {
-  callout_task_state_t ret = TASK_STATE_UNKNOWN;
-
-  if (likely(t != NULL)) {
-
-    s_lock_task(t);
-    {
-      ret = t->m_status;
-      t->m_status = s;
-    }
-    s_unlock_task(t);
-
-  }
-
-  return ret;
-}
-
-
-
-
-
 static lagopus_result_t
 s_runnable_run(const lagopus_runnable_t *rptr, void *arg) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
@@ -503,7 +463,14 @@ s_exec_task(lagopus_callout_task_t t) {
 
         s_lock_task(t);
         {
-          if (likely(t->m_status == TASK_STATE_DEQUEUED)) {
+          /*
+           * The task could be cancelled while reaching here. Check
+           * the outer task state again.
+           */
+          st = s_get_task_state_in_table(t);
+
+          if (likely(st == TASK_STATE_DEQUEUED &&
+                     t->m_status == TASK_STATE_DEQUEUED)) {
 
             /*
              * Change the state to TASK_STATE_EXECUTING.
@@ -529,12 +496,21 @@ s_exec_task(lagopus_callout_task_t t) {
               do_delete = true;
             }
           } else {
-            /*
-             * Must not happens.
-             */
-            lagopus_exit_fatal("Must not be here. A callout task state "
-                               "mismatch occured.\n");
-            /* not reached. */
+            if (likely(st == t->m_status)) {
+              /*
+               * The task state is changed to other than the
+               * TASK_STATE_DEQUEUED. Handle this.
+               */
+              s_unlock_task(t);
+              goto not_the_dequeued_state;
+            } else {
+              /*
+               * Must not happens.
+               */
+              lagopus_exit_fatal("Must not be here. A callout task state "
+                                 "mismatch occured.\n");
+              /* not reached. */
+            }
           }
         }
         s_unlock_task(t);
@@ -634,6 +610,7 @@ s_exec_task(lagopus_callout_task_t t) {
       }
 
     } else {	/* st == TASK_STATE_DEQUEUED */
+   not_the_dequeued_state:
 
       /*
        * Illegal state, the most likely already executing.

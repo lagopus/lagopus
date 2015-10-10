@@ -24,10 +24,12 @@
 #include "../channel_mgr.h"
 
 #define PUT_TIMEOUT 100LL * 1000LL * 1000LL * 1000LL
+#define SHUTDOWN_TIMEOUT 100LL * 1000LL * 1000LL * 1000LL
 
 #define SLEEP_SHORT()  usleep(10000)
 
 static bool s_finalize_ofp_handler = false;
+static lagopus_thread_t *th = NULL;
 
 struct eventq_data *
 new_eventq_data(void) {
@@ -45,7 +47,7 @@ setUp(void) {
   /*
    * create ofp_handler
    */
-  res = ofp_handler_initialize(NULL, NULL);
+  res = ofp_handler_initialize(NULL, &th);
   res = ofp_handler_start();
 #if 0
   if (res != LAGOPUS_RESULT_OK) {
@@ -183,10 +185,13 @@ test_start_shutdown_loop(void) {
     // shutdown
     lagopus_msg_debug(10, "%lu stop\n", i);
     ofp_handler_shutdown(SHUTDOWN_GRACEFULLY);
+    res = lagopus_thread_wait((lagopus_thread_t *) th,
+                              SHUTDOWN_TIMEOUT);
+    TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, res, "wait error");
     SLEEP_SHORT();
     // create
     lagopus_msg_debug(10, "%lu initialize\n", i);
-    res = ofp_handler_initialize(NULL, NULL);
+    res = ofp_handler_initialize(NULL, &th);
     TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, res, "init error");
     SLEEP_SHORT();
     // start
@@ -214,7 +219,7 @@ test_start_stop_loop(void) {
     SLEEP_SHORT();
     // create
     lagopus_msg_debug(10, "%lu initialize\n", i);
-    res = ofp_handler_initialize(NULL, NULL);
+    res = ofp_handler_initialize(NULL, &th);
     TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, res, "init error");
     SLEEP_SHORT();
     // start
@@ -226,6 +231,7 @@ test_start_stop_loop(void) {
 
 void
 test_register_bridge(void) {
+  lagopus_result_t res = LAGOPUS_RESULT_ANY_FAILURES;
   uint64_t i;
   struct ofp_bridge *ofpb[3];
   for (i = 0; i < 3; i++) {
@@ -238,10 +244,14 @@ test_register_bridge(void) {
   }
   SLEEP_SHORT();
   ofp_handler_shutdown(SHUTDOWN_GRACEFULLY);
+  res = lagopus_thread_wait((lagopus_thread_t *) th,
+                            SHUTDOWN_TIMEOUT);
+  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, res, "wait error");
 }
 
 void
 test_unregister_bridge(void) {
+  lagopus_result_t res = LAGOPUS_RESULT_ANY_FAILURES;
   uint64_t i;
   struct ofp_bridge *ofpb[3];
   for (i = 0; i < 3; i++) {
@@ -261,6 +271,9 @@ test_unregister_bridge(void) {
   }
   SLEEP_SHORT();
   ofp_handler_shutdown(SHUTDOWN_GRACEFULLY);
+  res = lagopus_thread_wait((lagopus_thread_t *) th,
+                            SHUTDOWN_TIMEOUT);
+  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, res, "wait error");
 }
 
 #define TIME_OUT_COUNTER 100
@@ -319,6 +332,9 @@ test_put_eventq(void) {
     TEST_ASSERT_EQUAL_MESSAGE(0, res, "eventq2 polling error");
   }
   ofp_handler_shutdown(SHUTDOWN_GRACEFULLY);
+  res = lagopus_thread_wait((lagopus_thread_t *) th,
+                            SHUTDOWN_TIMEOUT);
+  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, res, "wait error");
 }
 
 void
@@ -375,6 +391,9 @@ test_put_dataq(void) {
     TEST_ASSERT_EQUAL_MESSAGE(0, res, "dataq2 polling error");
   }
   ofp_handler_shutdown(SHUTDOWN_GRACEFULLY);
+  res = lagopus_thread_wait((lagopus_thread_t *) th,
+                            SHUTDOWN_TIMEOUT);
+  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, res, "wait error");
 }
 
 void
@@ -411,6 +430,9 @@ test_put_event_dataq(void) {
     TEST_ASSERT_EQUAL_MESSAGE((i+1)*3, res, "event_dataq2 polling error");
   }
   ofp_handler_shutdown(SHUTDOWN_GRACEFULLY);
+  res = lagopus_thread_wait((lagopus_thread_t *) th,
+                            SHUTDOWN_TIMEOUT);
+  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, res, "wait error");
 }
 
 void
@@ -492,8 +514,12 @@ test_put_channelq_packet_out(void) {
   TEST_ASSERT_EQUAL_MESSAGE(0, res, "channelq length error");
   res = lagopus_bbq_size(&(ofpb->event_dataq));
   TEST_ASSERT_EQUAL_MESSAGE(0, res, "event_dataq length error");
-
   ofp_packet_out_free(edata);
+
+  ofp_handler_shutdown(SHUTDOWN_GRACEFULLY);
+  res = lagopus_thread_wait((lagopus_thread_t *) th,
+                            SHUTDOWN_TIMEOUT);
+  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, res, "wait error");
 }
 
 #define TIMEOUT 100LL * 1000LL * 1000LL

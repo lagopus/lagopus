@@ -112,12 +112,12 @@ s_do_sched(lagopus_callout_task_t t) {
         /*
          * TODO
          *
-         *	Re-optimize forcible waje up by timed task submission
+         *	Re-optimize forcible wake up by timed task submission
          *	timing and times. See also
          *	callout.c:s_start_callout_main_loop()
          */
 
-        r = lagopus_bbq_wakeup(&s_urgent_tsk_q, -1LL);
+        r = lagopus_bbq_wakeup(&s_urgent_tsk_q, 0LL);
         if (unlikely(r != LAGOPUS_RESULT_OK)) {
           lagopus_perror(r);
           lagopus_msg_error("can't wake the callout task master "

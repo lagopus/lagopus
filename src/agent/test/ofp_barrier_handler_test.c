@@ -287,6 +287,13 @@ test_ofp_barrier_reply_handle_null(void) {
   TEST_ASSERT_EQUAL_MESSAGE(ret, LAGOPUS_RESULT_INVALID_ARGS,
                             "ofp_barrier_reply_handle error.");
 }
+
+/* freeup ofp_handler. (for valgrind warnings.) */
+void
+test_finalize_ofph(void) {
+  ofp_handler_finalize();
+}
+
 void
 test_epilogue(void) {
   lagopus_result_t r;
