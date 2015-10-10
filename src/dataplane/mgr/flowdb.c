@@ -911,7 +911,7 @@ flow_add_sub(struct flow *flow, struct flow_list *flows) {
 
   ret = LAGOPUS_RESULT_OK;
   if (flows->nflow + 1 > flows->alloced) {
-    flows->alloced = flows->nflow * 2;
+    flows->alloced = (flows->nflow + 1) * 2;
     flows->flows = realloc(flows->flows,
                            (size_t)(flows->alloced) * sizeof(struct flow *));
   }
