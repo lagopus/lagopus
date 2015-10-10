@@ -1,7 +1,7 @@
 usr/sbin
-usr/sbin/of_config
-usr/sbin/ovsdb
+# usr/sbin/of_config
+# usr/sbin/ovsdb
 usr/lib
-etc/lagopus
+# etc/lagopus
 usr/include
 usr/share/doc/lagopus

@@ -701,7 +701,10 @@ channel_hello_confirm(struct channel *channel) {
     lagopus_perror(ret);
   }
   if (channel->callout != NULL) {
+      /* avoid dead lock. */
+      channel_unlock(channel);
       lagopus_callout_cancel_task(&channel->callout);
+      channel_lock(channel);
       channel->callout = NULL;
   }
   ret = lagopus_callout_create_task(&channel->callout, 0,
@@ -1059,10 +1062,7 @@ channel_free(struct channel *channel) {
     int i;
     lagopus_result_t ret = LAGOPUS_RESULT_OK;
 
-    if (channel->lock != NULL) {
-      channel_lock(channel);
-    }
-
+    channel_lock(channel);
     if (channel->refs > 0 || channel->is_alive == true) {
       ret = LAGOPUS_RESULT_BUSY;
       channel_unlock(channel);
@@ -1073,7 +1073,10 @@ channel_free(struct channel *channel) {
     assert(channel->refs == 0);
 
     if (channel->callout != NULL) {
+      /* avoid dead lock. */
+      channel_unlock(channel);
       lagopus_callout_cancel_task(&channel->callout);
+      channel_lock(channel);
       channel->callout = NULL;
     }
 

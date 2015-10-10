@@ -1673,12 +1673,12 @@ test_flow_cmd_mod_add_match_nw_src_bad_mask(void) {
   char *str = NULL;
   const char *argv1[] = {"flow", "b1", "add",
                          "dl_type=2048",
-                         "nw_src=127.0.0.1/255.254.253.252x",
+                         "nw_src=127.0.0.1/127.0.0.1000",
                          NULL
   };
   const char test_str1[] =
       "{\"ret\":\"ADDR_RESOLVER_FAILURE\",\n"
-      "\"data\":\"Bad value (255.254.253.252x).\"}";
+      "\"data\":\"Bad value (127.0.0.1000).\"}";
 
   /* add cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
@@ -1782,12 +1782,12 @@ test_flow_cmd_mod_add_match_nw_dst_bad_mask(void) {
   char *str = NULL;
   const char *argv1[] = {"flow", "b1", "add",
                          "dl_type=2048",
-                         "nw_dst=127.0.0.1/255.254.253.252x",
+                         "nw_dst=127.0.0.1/127.0.0.1000",
                          NULL
   };
   const char test_str1[] =
       "{\"ret\":\"ADDR_RESOLVER_FAILURE\",\n"
-      "\"data\":\"Bad value (255.254.253.252x).\"}";
+      "\"data\":\"Bad value (127.0.0.1000).\"}";
 
   /* add cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
@@ -3117,12 +3117,12 @@ test_flow_cmd_mod_add_match_arp_spa_bad_mask(void) {
   char *str = NULL;
   const char *argv1[] = {"flow", "b1", "add",
                          "dl_type=2054",
-                         "arp_spa=127.0.0.1/255.254.253.252x",
+                         "arp_spa=127.0.0.1/127.0.0.1000",
                          NULL
   };
   const char test_str1[] =
       "{\"ret\":\"ADDR_RESOLVER_FAILURE\",\n"
-      "\"data\":\"Bad value (255.254.253.252x).\"}";
+      "\"data\":\"Bad value (127.0.0.1000).\"}";
 
   /* add cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
@@ -3226,12 +3226,12 @@ test_flow_cmd_mod_add_match_arp_tpa_bad_mask(void) {
   char *str = NULL;
   const char *argv1[] = {"flow", "b1", "add",
                          "dl_type=2054",
-                         "arp_tpa=127.0.0.1/255.254.253.252x",
+                         "arp_tpa=127.0.0.1/127.0.0.1000",
                          NULL
   };
   const char test_str1[] =
       "{\"ret\":\"ADDR_RESOLVER_FAILURE\",\n"
-      "\"data\":\"Bad value (255.254.253.252x).\"}";
+      "\"data\":\"Bad value (127.0.0.1000).\"}";
 
   /* add cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,

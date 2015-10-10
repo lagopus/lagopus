@@ -296,7 +296,9 @@ test_put_eventq(void) {
 
     /* wait */
     while (1) {
-      if (lagopus_bbq_size(&(ofpb0->eventq)) != 0) {
+      if ((lagopus_bbq_size(&(ofpb0->eventq)) != 0) ||
+          (lagopus_bbq_size(&(ofpb1->eventq)) != 0) ||
+          (lagopus_bbq_size(&(ofpb2->eventq)) != 0)) {
         if (j < TIME_OUT_COUNTER) {
           SLEEP_SHORT();
           j++;
@@ -350,7 +352,9 @@ test_put_dataq(void) {
 
     /* wait */
     while (1) {
-      if (lagopus_bbq_size(&(ofpb0->dataq)) != 0) {
+      if ((lagopus_bbq_size(&(ofpb0->dataq)) != 0) ||
+          (lagopus_bbq_size(&(ofpb1->dataq)) != 0) ||
+          (lagopus_bbq_size(&(ofpb2->dataq)) != 0)) {
         if (j < TIME_OUT_COUNTER) {
           SLEEP_SHORT();
           j++;

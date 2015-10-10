@@ -295,3 +295,8 @@ test_meter_cmd_parse_stats_02(void) {
   TEST_BRIDGE_DESTROY(ret, &interp, state, &tbl, &ds, str,
                       "b6", "cha6", "c6", "i6", "p6");
 }
+
+void
+test_destroy(void) {
+    destroy = true;
+}

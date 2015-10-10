@@ -5,6 +5,9 @@ TARGET_LIB		= $(LAGOPUS_DATASTORE_LIB)
 INSTALL_LIB_TARGETS	= $(TARGET_LIB)
 INSTALL_LIB_DIR		= $(DEST_LIBDIR)
 
+INSTALL_EXAMPLE_TARGETS = $(TOPDIR)/misc/examples/lagopus.conf
+INSTALL_EXAMPLE_DIR     = $(DEST_EXAMPLEDIR)
+
 SRCS =	interp.c datastore.c conv_json.c \
         conv_json_result.c cmd_common.c interface_cmd.c \
         port_cmd.c channel_cmd.c controller_cmd.c module.c \
