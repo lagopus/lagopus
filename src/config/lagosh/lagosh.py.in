@@ -177,7 +177,7 @@ class ds_client:
         if isinstance(arg, dict):
             for a in arg.iterkeys():
                 if isinstance(arg[a], unicode):
-                    arg[a] = arg[a].replace(':', '', 1)
+                    arg[a] = re.sub(r'^:([^:])', r'\1', arg[a]);
                 elif isinstance(arg[a], dict):
                     self.remove_namespace(arg[a])
                 elif isinstance(arg[a], list):
