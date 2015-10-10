@@ -138,7 +138,7 @@ rawsock_configure_interface(struct interface *ifp) {
   unsigned int mtu;
   int fd, on;
 
-  fd = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
+  fd = socket(PF_PACKET, SOCK_RAW | SOCK_NONBLOCK, htons(ETH_P_ALL));
   if (fd == -1) {
     lagopus_msg_error("%s: %s\n",
                       ifp->info.eth_rawsock.device, strerror(errno));
