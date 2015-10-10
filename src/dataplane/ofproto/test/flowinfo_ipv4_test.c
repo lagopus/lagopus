@@ -84,7 +84,7 @@ static struct addrunion testmask[ARRAY_LEN(test_flow)];
     TEST_ASSERT_FLOWINFO_FLOW_NUM((_fl), (_flnum), (_msg));		\
     if (NULL != (_fl)->misc->next[ETHERTYPE_IP])			\
       for (_s = (_bi); _s < (_ei); _s++)				\
-        TEST_ASSERT_FLOWINFO_HASIPV4PROTO((_fl)->misc->next[ETHERTYPE_IP]->misc, TEST_IPV4_PROTO(_s), (_msg)); \
+        TEST_ASSERT_FLOWINFO_HASIPV4PROTO((_fl)->misc->next[ETHERTYPE_IP]->misc->misc, TEST_IPV4_PROTO(_s), (_msg)); \
     else {								\
       char __buf[TEST_ASSERT_MESSAGE_BUFSIZE];				\
       \
@@ -102,7 +102,7 @@ static struct addrunion testmask[ARRAY_LEN(test_flow)];
     TEST_ASSERT_FLOWINFO_FLOW_NUM((_fl), (_flnum), (_msg));		\
     if (NULL != (_fl)->misc->next[ETHERTYPE_IP])			\
       for (_s = (_bi); _s < (_ei); _s++)				\
-        TEST_ASSERT_FLOWINFO_HASIPV4PROTO((_fl)->misc->next[ETHERTYPE_IP]->misc, TEST_IPV4_PROTO(_s), (_msg)); \
+        TEST_ASSERT_FLOWINFO_HASIPV4PROTO((_fl)->misc->next[ETHERTYPE_IP]->misc->misc, TEST_IPV4_PROTO(_s), (_msg)); \
     else {								\
       char __buf[TEST_ASSERT_MESSAGE_BUFSIZE];				\
       \
@@ -127,7 +127,7 @@ static struct addrunion testmask[ARRAY_LEN(test_flow)];
     _TEST_ASSERT_FLOWINFO_DELFLOW_NG(_fl, _bi, _ei, _flnum, (_msg));	\
     if (NULL != (_fl)->misc->next[ETHERTYPE_IP])			\
       for (_s = (_bi); _s < (_ei); _s++)				\
-        TEST_ASSERT_FLOWINFO_HASIPV4PROTO((_fl)->misc->next[ETHERTYPE_IP]->misc, TEST_IPV4_PROTO(_s), (_msg)); \
+        TEST_ASSERT_FLOWINFO_HASIPV4PROTO((_fl)->misc->next[ETHERTYPE_IP]->misc->misc, TEST_IPV4_PROTO(_s), (_msg)); \
     else {								\
       char __buf[TEST_ASSERT_MESSAGE_BUFSIZE];				\
       \
@@ -144,7 +144,7 @@ static struct addrunion testmask[ARRAY_LEN(test_flow)];
     _TEST_ASSERT_FLOWINFO_DELFLOW_NG(_fl, _bi, _ei, _flnum, (_msg));	\
     if (NULL != (_fl)->misc->next[ETHERTYPE_IP])			\
       for (_s = (_bi); _s < (_ei); _s++)				\
-        TEST_ASSERT_FLOWINFO_NOIPV4PROTO((_fl)->misc->next[ETHERTYPE_IP]->misc, TEST_IPV4_PROTO(_s), (_msg)); \
+        TEST_ASSERT_FLOWINFO_NOIPV4PROTO((_fl)->misc->next[ETHERTYPE_IP]->misc->misc, TEST_IPV4_PROTO(_s), (_msg)); \
     else {								\
       char __buf[TEST_ASSERT_MESSAGE_BUFSIZE];				\
       \

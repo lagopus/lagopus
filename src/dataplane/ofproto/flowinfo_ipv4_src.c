@@ -1,22 +1,8 @@
-/*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+/* %COPYRIGHT% */
 
 /**
- *      @file   flowinfo_ipv4_dst.c
- *      @brief  Optimized flow database for dataplane, for ipv4_dst
+ *      @file   flowinfo_ipv4_src.c
+ *      @brief  Optimized flow database for dataplane, for ipv4_src
  */
 
 #include <stdlib.h>
@@ -30,45 +16,45 @@
 #include "lagopus/flowinfo.h"
 
 #define OXM_FIELD_TYPE(field) ((field) >> 1)
-#define IPV4_DST_BITLEN (32)
+#define IPV4_SRC_BITLEN (32)
 
 static lagopus_result_t
-add_flow_ipv4_dst_mask(struct flowinfo *, struct flow *);
+add_flow_ipv4_src_mask(struct flowinfo *, struct flow *);
 static lagopus_result_t
-del_flow_ipv4_dst_mask(struct flowinfo *, struct flow *);
+del_flow_ipv4_src_mask(struct flowinfo *, struct flow *);
 static struct flow *
-match_flow_ipv4_dst_mask(struct flowinfo *, struct lagopus_packet *,
+match_flow_ipv4_src_mask(struct flowinfo *, struct lagopus_packet *,
                          int32_t *);
 static struct flow *
-find_flow_ipv4_dst_mask(struct flowinfo *, struct flow *);
+find_flow_ipv4_src_mask(struct flowinfo *, struct flow *);
 static void
-destroy_flowinfo_ipv4_dst_mask(struct flowinfo *);
+destroy_flowinfo_ipv4_src_mask(struct flowinfo *);
 
 static lagopus_result_t
-add_flow_ipv4_dst(struct flowinfo *, struct flow *);
+add_flow_ipv4_src(struct flowinfo *, struct flow *);
 static lagopus_result_t
-del_flow_ipv4_dst(struct flowinfo *, struct flow *);
+del_flow_ipv4_src(struct flowinfo *, struct flow *);
 static struct flow *
-match_flow_ipv4_dst(struct flowinfo *, struct lagopus_packet *, int32_t *);
+match_flow_ipv4_src(struct flowinfo *, struct lagopus_packet *, int32_t *);
 static struct flow *
-find_flow_ipv4_dst(struct flowinfo *, struct flow *);
+find_flow_ipv4_src(struct flowinfo *, struct flow *);
 static void
-destroy_flowinfo_ipv4_dst(struct flowinfo *);
+destroy_flowinfo_ipv4_src(struct flowinfo *);
 
 static lagopus_result_t
-get_match_ipv4_dst(const struct match_list *match_list,
-                   uint32_t *ipv4_dst,
+get_match_ipv4_src(const struct match_list *match_list,
+                   uint32_t *ipv4_src,
                    uint32_t *mask) {
   const struct match *match;
 
   TAILQ_FOREACH(match, match_list, entry) {
-    if (match->oxm_field == (OFPXMT_OFB_IPV4_DST << 1) + 1) {
-      OS_MEMCPY(ipv4_dst, match->oxm_value, sizeof(*ipv4_dst));
+    if (match->oxm_field == (OFPXMT_OFB_IPV4_SRC << 1) + 1) {
+      OS_MEMCPY(ipv4_src, match->oxm_value, sizeof(*ipv4_src));
       OS_MEMCPY(mask, &match->oxm_value[4], sizeof(*mask));
       break;
     }
-    if (OXM_FIELD_TYPE(match->oxm_field) == OFPXMT_OFB_IPV4_DST) {
-      OS_MEMCPY(ipv4_dst, match->oxm_value, sizeof(*ipv4_dst));
+    if (OXM_FIELD_TYPE(match->oxm_field) == OFPXMT_OFB_IPV4_SRC) {
+      OS_MEMCPY(ipv4_src, match->oxm_value, sizeof(*ipv4_src));
       *mask = 0xffffffff;
       break;
     }
@@ -80,7 +66,7 @@ get_match_ipv4_dst(const struct match_list *match_list,
 }
 
 struct flowinfo *
-new_flowinfo_ipv4_dst_mask(void) {
+new_flowinfo_ipv4_src_mask(void) {
   struct flowinfo *self;
 
   self = calloc(1, sizeof(struct flowinfo));
@@ -88,18 +74,18 @@ new_flowinfo_ipv4_dst_mask(void) {
     self->nflow = 0;
     self->nnext = 0;
     self->next = malloc(1);
-    self->misc = new_flowinfo_ipv4_src_mask();
-    self->add_func = add_flow_ipv4_dst_mask;
-    self->del_func = del_flow_ipv4_dst_mask;
-    self->match_func = match_flow_ipv4_dst_mask;
-    self->find_func = find_flow_ipv4_dst_mask;
-    self->destroy_func = destroy_flowinfo_ipv4_dst_mask;
+    self->misc = new_flowinfo_ipv4();
+    self->add_func = add_flow_ipv4_src_mask;
+    self->del_func = del_flow_ipv4_src_mask;
+    self->match_func = match_flow_ipv4_src_mask;
+    self->find_func = find_flow_ipv4_src_mask;
+    self->destroy_func = destroy_flowinfo_ipv4_src_mask;
   }
   return self;
 }
 
 static void
-destroy_flowinfo_ipv4_dst_mask(struct flowinfo *self) {
+destroy_flowinfo_ipv4_src_mask(struct flowinfo *self) {
   struct flowinfo *flowinfo;
   unsigned int i;
 
@@ -112,24 +98,24 @@ destroy_flowinfo_ipv4_dst_mask(struct flowinfo *self) {
 }
 
 struct flowinfo *
-new_flowinfo_ipv4_dst(void) {
+new_flowinfo_ipv4_src(void) {
   struct flowinfo *self;
 
   self = calloc(1, sizeof(struct flowinfo));
   if (self != NULL) {
-    self->ptree = ptree_init(IPV4_DST_BITLEN);
+    self->ptree = ptree_init(IPV4_SRC_BITLEN);
     /* misc is not used */
-    self->add_func = add_flow_ipv4_dst;
-    self->del_func = del_flow_ipv4_dst;
-    self->match_func = match_flow_ipv4_dst;
-    self->find_func = find_flow_ipv4_dst;
-    self->destroy_func = destroy_flowinfo_ipv4_dst;
+    self->add_func = add_flow_ipv4_src;
+    self->del_func = del_flow_ipv4_src;
+    self->match_func = match_flow_ipv4_src;
+    self->find_func = find_flow_ipv4_src;
+    self->destroy_func = destroy_flowinfo_ipv4_src;
   }
   return self;
 }
 
 static void
-destroy_flowinfo_ipv4_dst(struct flowinfo *self) {
+destroy_flowinfo_ipv4_src(struct flowinfo *self) {
   struct ptree_node *node;
   struct flowinfo *flowinfo;
 
@@ -146,13 +132,13 @@ destroy_flowinfo_ipv4_dst(struct flowinfo *self) {
 }
 
 static lagopus_result_t
-add_flow_ipv4_dst_mask(struct flowinfo *self, struct flow *flow) {
+add_flow_ipv4_src_mask(struct flowinfo *self, struct flow *flow) {
   struct flowinfo *flowinfo;
-  uint32_t ipv4_dst, mask;
+  uint32_t ipv4_src, mask;
   lagopus_result_t rv;
   unsigned int i;
 
-  rv = get_match_ipv4_dst(&flow->match_list, &ipv4_dst, &mask);
+  rv = get_match_ipv4_src(&flow->match_list, &ipv4_src, &mask);
   if (rv == LAGOPUS_RESULT_OK) {
     rv = LAGOPUS_RESULT_NOT_FOUND;
     for (i = 0; i < self->nnext; i++) {
@@ -164,7 +150,7 @@ add_flow_ipv4_dst_mask(struct flowinfo *self, struct flow *flow) {
     }
     if (rv == LAGOPUS_RESULT_NOT_FOUND) {
       /* new node. */
-      flowinfo = new_flowinfo_ipv4_dst();
+      flowinfo = new_flowinfo_ipv4_src();
       flowinfo->userdata = mask;
       self->next = realloc(self->next,
                            (unsigned long)(self->nnext + 1) *
@@ -183,13 +169,13 @@ add_flow_ipv4_dst_mask(struct flowinfo *self, struct flow *flow) {
 }
 
 static lagopus_result_t
-del_flow_ipv4_dst_mask(struct flowinfo *self, struct flow *flow) {
+del_flow_ipv4_src_mask(struct flowinfo *self, struct flow *flow) {
   struct flowinfo *flowinfo;
-  uint32_t ipv4_dst, mask;
+  uint32_t ipv4_src, mask;
   lagopus_result_t rv;
   unsigned int i;
 
-  rv = get_match_ipv4_dst(&flow->match_list, &ipv4_dst, &mask);
+  rv = get_match_ipv4_src(&flow->match_list, &ipv4_src, &mask);
   if (rv == LAGOPUS_RESULT_OK) {
     rv = LAGOPUS_RESULT_NOT_FOUND;
     for (i = 0; i < self->nnext; i++) {
@@ -218,7 +204,7 @@ del_flow_ipv4_dst_mask(struct flowinfo *self, struct flow *flow) {
 }
 
 static struct flow *
-match_flow_ipv4_dst_mask(struct flowinfo *self, struct lagopus_packet *pkt,
+match_flow_ipv4_src_mask(struct flowinfo *self, struct lagopus_packet *pkt,
                          int32_t *pri) {
   struct flowinfo *flowinfo;
   struct flow *flow[self->nnext], *matched, *alt_flow;
@@ -256,13 +242,13 @@ match_flow_ipv4_dst_mask(struct flowinfo *self, struct lagopus_packet *pkt,
 }
 
 static struct flow *
-find_flow_ipv4_dst_mask(struct flowinfo *self, struct flow *flow) {
+find_flow_ipv4_src_mask(struct flowinfo *self, struct flow *flow) {
   struct flowinfo *flowinfo;
-  uint32_t ipv4_dst, mask;
+  uint32_t ipv4_src, mask;
   lagopus_result_t rv;
   unsigned int i;
 
-  rv = get_match_ipv4_dst(&flow->match_list, &ipv4_dst, &mask);
+  rv = get_match_ipv4_src(&flow->match_list, &ipv4_src, &mask);
   if (rv == LAGOPUS_RESULT_OK) {
     rv = LAGOPUS_RESULT_NOT_FOUND;
     for (i = 0; i < self->nnext; i++) {
@@ -282,16 +268,16 @@ find_flow_ipv4_dst_mask(struct flowinfo *self, struct flow *flow) {
 }
 
 static lagopus_result_t
-add_flow_ipv4_dst(struct flowinfo *self, struct flow *flow) {
+add_flow_ipv4_src(struct flowinfo *self, struct flow *flow) {
   struct flowinfo *flowinfo;
   struct ptree_node *node;
-  uint32_t ipv4_dst, mask;
+  uint32_t ipv4_src, mask;
   lagopus_result_t rv;
 
-  rv = get_match_ipv4_dst(&flow->match_list, &ipv4_dst, &mask);
+  rv = get_match_ipv4_src(&flow->match_list, &ipv4_src, &mask);
   if (rv == LAGOPUS_RESULT_OK) {
-    node = ptree_node_get(self->ptree, (uint8_t *)&ipv4_dst,
-                          IPV4_DST_BITLEN);
+    node = ptree_node_get(self->ptree, (uint8_t *)&ipv4_src,
+                          IPV4_SRC_BITLEN);
     if (node->info == NULL) {
       /* new node. */
       node->info = new_flowinfo_ipv4();
@@ -308,16 +294,16 @@ add_flow_ipv4_dst(struct flowinfo *self, struct flow *flow) {
 }
 
 static lagopus_result_t
-del_flow_ipv4_dst(struct flowinfo *self, struct flow *flow) {
+del_flow_ipv4_src(struct flowinfo *self, struct flow *flow) {
   struct flowinfo *flowinfo;
   struct ptree_node *node;
-  uint32_t ipv4_dst, mask;
+  uint32_t ipv4_src, mask;
   lagopus_result_t rv;
 
-  rv = get_match_ipv4_dst(&flow->match_list, &ipv4_dst, &mask);
+  rv = get_match_ipv4_src(&flow->match_list, &ipv4_src, &mask);
   if (rv == LAGOPUS_RESULT_OK) {
-    node = ptree_node_lookup(self->ptree, (uint8_t *)&ipv4_dst,
-                             IPV4_DST_BITLEN);
+    node = ptree_node_lookup(self->ptree, (uint8_t *)&ipv4_src,
+                             IPV4_SRC_BITLEN);
     if (node == NULL || node->info == NULL) {
       return LAGOPUS_RESULT_NOT_FOUND;
     }
@@ -333,16 +319,16 @@ del_flow_ipv4_dst(struct flowinfo *self, struct flow *flow) {
 }
 
 static struct flow *
-match_flow_ipv4_dst(struct flowinfo *self, struct lagopus_packet *pkt,
+match_flow_ipv4_src(struct flowinfo *self, struct lagopus_packet *pkt,
                     int32_t *pri) {
   struct flowinfo *flowinfo;
   struct ptree_node *node;
-  uint32_t ipv4_dst;
+  uint32_t ipv4_src;
   struct flow *flow;
 
   flow = NULL;
-  ipv4_dst = (pkt->ipv4->ip_dst.s_addr & (uint32_t)self->userdata);
-  node = ptree_node_lookup(self->ptree, (uint8_t *)&ipv4_dst, IPV4_DST_BITLEN);
+  ipv4_src = (pkt->ipv4->ip_src.s_addr & (uint32_t)self->userdata);
+  node = ptree_node_lookup(self->ptree, (uint8_t *)&ipv4_src, IPV4_SRC_BITLEN);
   if (node != NULL) {
     flowinfo = node->info;
     flow = flowinfo->match_func(flowinfo, pkt, pri);
@@ -352,16 +338,16 @@ match_flow_ipv4_dst(struct flowinfo *self, struct lagopus_packet *pkt,
 }
 
 static struct flow *
-find_flow_ipv4_dst(struct flowinfo *self, struct flow *flow) {
+find_flow_ipv4_src(struct flowinfo *self, struct flow *flow) {
   struct flowinfo *flowinfo;
   struct ptree_node *node;
-  uint32_t ipv4_dst, mask;
+  uint32_t ipv4_src, mask;
   lagopus_result_t rv;
 
-  rv = get_match_ipv4_dst(&flow->match_list, &ipv4_dst, &mask);
+  rv = get_match_ipv4_src(&flow->match_list, &ipv4_src, &mask);
   if (rv == LAGOPUS_RESULT_OK) {
-    node = ptree_node_get(self->ptree, (uint8_t *)&ipv4_dst,
-                          IPV4_DST_BITLEN);
+    node = ptree_node_get(self->ptree, (uint8_t *)&ipv4_src,
+                          IPV4_SRC_BITLEN);
     if (node->info == NULL) {
       return NULL;
     }

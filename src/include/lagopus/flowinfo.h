@@ -102,6 +102,22 @@ struct flowinfo *new_flowinfo_ipv4_dst_mask(void);
 struct flowinfo *new_flowinfo_ipv4_dst(void);
 
 /**
+ * Allocate and initialize flowinfo for IPv4 source address with mask.
+ *
+ * @retval      !=NULL  Created flowinfo.
+ *              ==NULL  failed to create flowinfo.
+ */
+struct flowinfo *new_flowinfo_ipv4_src_mask(void);
+
+/**
+ * Allocate and initialize flowinfo for IPv4 source address.
+ *
+ * @retval      !=NULL  Created flowinfo.
+ *              ==NULL  failed to create flowinfo.
+ */
+struct flowinfo *new_flowinfo_ipv4_src(void);
+
+/**
  * Allocate and initialize flowinfo for IPv4 packets.
  *
  * @retval      !=NULL  Created flowinfo.
