@@ -65,14 +65,15 @@ class dsl:
             words.pop(0)
             # identifier
             if (words[0])[0] != '-':
-                result += '\t' + words.pop(0).replace(':', '', 1) + ' {\n'
+                result += '\t'
+                result += re.sub(r'^:([^:])', r'\1', words.pop(0)) + ' {\n'
                 tab = '\t'
             else:
                 tab = ''
             # params
             fmt = ''
             while words != []:
-                word = words.pop(0).replace(':', '', 1)
+                word = re.sub(r'^:([^:])', r'\1', words.pop(0))
                 if word == 'create':
                     continue
                 if word[0] == '-':
