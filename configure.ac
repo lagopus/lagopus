@@ -634,6 +634,7 @@ AC_CONFIG_FILES(
 	src/datastore/check/Makefile
 	src/snmp/Makefile
 	src/snmp/test/Makefile
+	test/dataplane/benchmark/Makefile
 	tools/Makefile
 	tools/unity/src/Makefile
 	debian/Makefile

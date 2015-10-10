@@ -32,35 +32,17 @@ struct interface;
  * Port structure.
  */
 struct port {
-  /* Port type. */
-  int type;
-
-  /* OpenFlow port. */
-  struct ofp_port ofp_port;
-
-  /* OpenFlow port statistics. */
-  struct ofp_port_stats ofp_port_stats;
-
-  /* Interface index for physical port.  Not same as ofp_port.port_no. */
-  uint32_t ifindex;
-
-  /* Parent bridge. */
-  struct bridge *bridge;
-
-  /* Related interface. */
-  struct interface *interface;
-
-  /* Related active queue hashtable. */
-  lagopus_hashmap_t queueinfo_hashmap;
-
-  /* Packet queue for capture */
-  lagopus_bbq_t pcap_queue;
-
-  /* Creation time. */
-  struct timespec create_time;
-
-  /* Statistics function. */
-  struct port_stats *(*stats)(struct port *);
+  int type;                             /** Port type. */
+  struct ofp_port ofp_port;             /** OpenFlow port. */
+  struct ofp_port_stats ofp_port_stats; /** OpenFlow port statistics. */
+  uint32_t ifindex;                     /** Interface index for physical port.
+                                         *  Not same as ofp_port.port_no. */
+  struct bridge *bridge;                /** Parent bridge. */
+  struct interface *interface;          /** Related interface. */
+  lagopus_hashmap_t queueinfo_hashmap;  /** Related active queue hashtable. */
+  lagopus_bbq_t pcap_queue;             /** Packet queue for capture */
+  struct timespec create_time;          /** Creation time. */
+  struct port_stats *(*stats)(struct port *);  /** Statistics function. */
 
   /* Type specific member. */
   union {

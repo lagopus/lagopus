@@ -378,3 +378,49 @@ test_group_stats(void) {
   stats = TAILQ_FIRST(&group_stats_list);
   TEST_ASSERT_NULL_MESSAGE(stats, "stats is not empry");
 }
+
+void
+test_group_live_bucket(void) {
+  struct bridge *bridge;
+  struct group_table *group_table;
+  struct group *group;
+  struct ofp_group_mod group_mod;
+  struct bucket_list bucket_list;
+  struct bucket *bucket;
+  struct action *action;
+  struct ofp_error error;
+  lagopus_result_t rv;
+
+  bridge = dp_bridge_lookup("br0");
+  group_table = bridge->group_table;
+  group_mod.group_id = 1;
+  group_mod.type = OFPGT_ALL;
+  TAILQ_INIT(&bucket_list);
+  action = action_alloc(sizeof(uint32_t));
+  TEST_ASSERT_NOT_NULL(action);
+  action->ofpat.type = OFPAT_OUTPUT;
+  bucket = calloc(1, sizeof(struct bucket));
+  TEST_ASSERT_NOT_NULL(bucket);
+  bucket->ofp.watch_port = 1;
+  TAILQ_INIT(&bucket->action_list);
+  ((struct ofp_action_output *)&action->ofpat)->port = 1;
+  ((struct ofp_action_group *)&action->ofpat)->len =
+    sizeof(struct ofp_action_header) + sizeof(uint32_t);
+  TAILQ_INSERT_TAIL(&bucket->action_list, action, entry);
+  TAILQ_INSERT_TAIL(&bucket_list, bucket, entry);
+  action = action_alloc(sizeof(uint32_t));
+  TEST_ASSERT_NOT_NULL(action);
+  action->ofpat.type = OFPAT_OUTPUT;
+  bucket = calloc(1, sizeof(struct bucket));
+  TEST_ASSERT_NOT_NULL(bucket);
+  TAILQ_INIT(&bucket->action_list);
+  ((struct ofp_action_output *)&action->ofpat)->port = 3;
+  ((struct ofp_action_output *)&action->ofpat)->len =
+    sizeof(struct ofp_action_header) + sizeof(uint32_t);
+  TAILQ_INSERT_TAIL(&bucket->action_list, action, entry);
+  TAILQ_INSERT_TAIL(&bucket_list, bucket, entry);
+  group = group_alloc(&group_mod, &bucket_list);
+  rv = group_table_add(group_table, group, &error);
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
+  TEST_ASSERT_NULL(group_live_bucket(bridge, group));
+}

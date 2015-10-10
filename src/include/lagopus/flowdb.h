@@ -103,12 +103,12 @@ struct vector;
 
 /* Match. */
 struct match {
-  TAILQ_ENTRY(match) entry;
-  bool except_flag;
-  uint16_t oxm_class;
-  uint8_t oxm_field;
-  uint8_t oxm_length;
-  uint8_t oxm_value[0];
+  TAILQ_ENTRY(match) entry;     /** link for next match */
+  bool except_flag;             /** used flag, except for baseic match */
+  uint16_t oxm_class;           /** OXM Class */
+  uint8_t oxm_field;            /** OXM field */
+  uint8_t oxm_length;           /** OXM length */
+  uint8_t oxm_value[0];         /** OXM value */
 };
 
 /* Match list. */

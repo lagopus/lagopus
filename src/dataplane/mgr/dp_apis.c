@@ -117,6 +117,9 @@ dp_interface_create(const char *name) {
   struct interface *ifp;
   lagopus_result_t rv;
 
+  if (name == NULL) {
+    return LAGOPUS_RESULT_INVALID_ARGS;
+  }
   flowdb_wrlock(NULL);
   rv = lagopus_hashmap_find(&interface_hashmap, name, (void **)&ifp);
   if (rv == LAGOPUS_RESULT_OK) {
@@ -145,7 +148,13 @@ dp_interface_destroy(const char *name) {
   lagopus_result_t rv;
 
   rv = dp_interface_stop(name);
+  if (rv != LAGOPUS_RESULT_OK) {
+    return rv;
+  }
   rv = dp_interface_info_set(name, NULL);
+  if (rv != LAGOPUS_RESULT_OK) {
+    return rv;
+  }
   flowdb_wrlock(NULL);
   rv = lagopus_hashmap_find(&interface_hashmap, name, (void **)&ifp);
   if (rv != LAGOPUS_RESULT_OK) {
@@ -211,13 +220,21 @@ dp_interface_info_set(const char *name,
         }
         break;
       case DATASTORE_INTERFACE_TYPE_UNKNOWN:
-        break;
       default:
         break;
     }
     memset(&ifp->info, 0, sizeof(ifp->info));
     return rv;
   } else {
+    switch (ifp->info.type) {
+      case DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_PHY:
+      case DATASTORE_INTERFACE_TYPE_ETHERNET_RAWSOCK:
+      case DATASTORE_INTERFACE_TYPE_VXLAN:
+      case DATASTORE_INTERFACE_TYPE_UNKNOWN:
+        break;
+      default:
+        return LAGOPUS_RESULT_INVALID_ARGS;
+    }
     ifp->info = *interface_info;
     return dp_interface_configure_internal(ifp);
   }
@@ -240,6 +257,9 @@ dp_interface_stop(const char *name) {
   struct interface *ifp;
   lagopus_result_t rv;
 
+  if (name == NULL) {
+    return LAGOPUS_RESULT_INVALID_ARGS;
+  }
   rv = lagopus_hashmap_find(&interface_hashmap, (void *)name, (void **)&ifp);
   if (rv != LAGOPUS_RESULT_OK) {
     return rv;
@@ -423,8 +443,7 @@ dp_port_interface_unset_internal(struct port *port) {
 #ifdef HAVE_DPDK
     dpdk_queue_unconfigure(port->interface);
 #endif /* HAVE_DPDK */
-    vector_set_index(port_vector,
-                     port->interface->info.eth.port_number, NULL);
+    vector_set_index(port_vector, port->ifindex, NULL);
     port->interface->port = NULL;
     port->interface->stats = NULL;
     port->interface = NULL;
@@ -1097,6 +1116,9 @@ dp_queue_create(const char *name,
   rv = lagopus_hashmap_add(&queue_hashmap, name, (void **)&queue, false);
   if (rv == LAGOPUS_RESULT_OK) {
     rv = lagopus_hashmap_find(&queue_hashmap, (void *)name, (void **)&queue);
+    if (rv != LAGOPUS_RESULT_OK) {
+      goto out;
+    }
     id = queue_info->id;
     rv = lagopus_hashmap_add(&queueid_hashmap, (void *)id,
                              (void **)&queue, false);

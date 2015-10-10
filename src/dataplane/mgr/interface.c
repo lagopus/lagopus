@@ -68,6 +68,7 @@ dp_interface_configure_internal(struct interface *ifp) {
       /* TODO */
       rv = LAGOPUS_RESULT_OK;
       break;
+
     default:
       break;
   }
@@ -79,7 +80,7 @@ lagopus_result_t
 dp_interface_unconfigure_internal(struct interface *ifp) {
   lagopus_result_t rv;
 
-  rv = LAGOPUS_RESULT_INVALID_ARGS;
+  rv = LAGOPUS_RESULT_OK;
   switch (ifp->info.type) {
     case DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_PHY:
     case DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_PCAP:
@@ -100,6 +101,7 @@ dp_interface_unconfigure_internal(struct interface *ifp) {
       /* TODO */
       rv = LAGOPUS_RESULT_OK;
       break;
+
     default:
       break;
   }
@@ -132,6 +134,9 @@ dp_interface_start_internal(struct interface *ifp) {
 
 lagopus_result_t
 dp_interface_stop_internal(struct interface *ifp) {
+  if (ifp == NULL) {
+    return LAGOPUS_RESULT_INVALID_ARGS;
+  }
   switch (ifp->info.type) {
     case DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_PHY:
     case DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_PCAP:
@@ -144,13 +149,13 @@ dp_interface_stop_internal(struct interface *ifp) {
       return rawsock_stop_interface(ifp);
 
     case DATASTORE_INTERFACE_TYPE_UNKNOWN:
-      return LAGOPUS_RESULT_OK;
+      break;
 
     default:
       break;
   }
 
-  return LAGOPUS_RESULT_INVALID_ARGS;
+  return LAGOPUS_RESULT_OK;
 }
 
 lagopus_result_t

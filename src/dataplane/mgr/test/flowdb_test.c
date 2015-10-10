@@ -22,6 +22,8 @@
 #include "lagopus/flowinfo.h"
 #include "lagopus/group.h"
 #include "lagopus/vector.h"
+#include "lagopus/ethertype.h"
+#include "lagopus/dp_apis.h"
 #include "openflow13.h"
 #include "ofp_action.h"
 #include "ofp_match.h"
@@ -217,6 +219,74 @@ test_ofp_action_list_elem_free(void) {
                             true, "action list error.");
 }
 
+static void
+make_match(struct match_list *match_list, int n, ...) {
+  va_list ap;
+
+  int match_type;
+  uint32_t match_arg, match_mask;
+  int nbytes, i;
+
+  va_start(ap, n);
+  for (i = 0; i < n; i++) {
+    nbytes = va_arg(ap, int);
+    match_type = va_arg(ap, int);
+    match_arg = va_arg(ap, uint32_t);
+    if (match_type & 1) {
+      match_mask = va_arg(ap, uint32_t);
+      switch (nbytes) {
+        case 8:
+          add_match(match_list, nbytes, match_type,
+                    (match_arg >> 24) & 0xff,
+                    (match_arg >> 16) & 0xff,
+                    (match_arg >>  8) & 0xff,
+                    match_arg & 0xff,
+                    (match_mask >> 24) & 0xff,
+                    (match_mask >> 16) & 0xff,
+                    (match_mask >>  8) & 0xff,
+                    match_mask & 0xff);
+          break;
+
+        case 4:
+          add_match(match_list, nbytes, match_type,
+                    (match_arg >>  8) & 0xff,
+                    match_arg & 0xff,
+                    (match_mask >>  8) & 0xff,
+                    match_mask & 0xff);
+          break;
+
+        case 2:
+          add_match(match_list, nbytes, match_type,
+                    match_arg & 0xff,
+                    match_mask & 0xff);
+          break;
+      }
+    } else {
+      switch (nbytes) {
+        case 4:
+          add_match(match_list, nbytes, match_type,
+                    (match_arg >> 24) & 0xff,
+                    (match_arg >> 16) & 0xff,
+                    (match_arg >>  8) & 0xff,
+                    match_arg & 0xff);
+          break;
+
+        case 2:
+          add_match(match_list, nbytes, match_type,
+                    (match_arg >>  8) & 0xff,
+                    match_arg & 0xff);
+          break;
+
+        case 1:
+          add_match(match_list, nbytes, match_type,
+                    match_arg & 0xff);
+          break;
+      }
+    }
+  }
+  va_end(ap);
+}
+
 static lagopus_result_t
 stub_write_metadata(void) {
   fprintf(stdout, "%s.\n", __func__);
@@ -260,6 +330,66 @@ add_write_metadata_instruction(struct instruction_list *instruction_list,
   /* execute_instruction(&pkt, &insns_list); */
   /* TEST_ASSERT_EQUAL_UINT8_ARRAY_MESSAGE(&pkt.of_metadata, md_r, 8,
      "WRITE_METADATA error."); */
+}
+
+static struct instruction *
+add_instruction(struct instruction_list *instruction_list, uint16_t type) {
+  struct instruction *insn;
+  struct ofp_instruction *ofp_insn;
+
+  insn = calloc(1, sizeof(struct instruction));
+  TEST_ASSERT_NOT_NULL(insn);
+  if (insn != NULL) {
+    ofp_insn = &insn->ofpit;
+    ofp_insn->type = type;
+    lagopus_set_instruction_function(insn);
+
+    /* TAILQ_INSERT_TAIL(&insns_list, insn, entry); */
+    TAILQ_INSERT_TAIL(instruction_list, insn, entry);
+  }
+  return insn;
+}
+
+static void
+add_action_output_instruction(struct instruction_list *instruction_list,
+                              uint32_t port_number) {
+  struct instruction *insn;
+  struct action *action;
+  struct ofp_action_output *action_output;
+
+  insn = add_instruction(instruction_list, OFPIT_APPLY_ACTIONS);
+  if (insn != NULL) {
+    action = calloc(1, sizeof(*action) +
+                    sizeof(*action_output) - sizeof(struct ofp_action_header));
+    TEST_ASSERT_NOT_NULL_MESSAGE(action, "action: calloc error.");
+    action_output = (struct ofp_action_output *)&action->ofpat;
+    action_output->type = OFPAT_OUTPUT;
+    action_output->port = port_number;
+    lagopus_set_action_function(action);
+    TAILQ_INIT(&insn->action_list);
+    TAILQ_INSERT_TAIL(&insn->action_list, action, entry);
+  }
+}
+
+static void
+add_write_action_output_instruction(struct instruction_list *instruction_list,
+                             uint32_t port_number) {
+  struct instruction *insn;
+  struct action *action;
+  struct ofp_action_output *action_output;
+
+  insn = add_instruction(instruction_list, OFPIT_WRITE_ACTIONS);
+  if (insn != NULL) {
+    action = calloc(1, sizeof(*action) +
+                    sizeof(*action_output) - sizeof(struct ofp_action_header));
+    TEST_ASSERT_NOT_NULL_MESSAGE(action, "action: calloc error.");
+    action_output = (struct ofp_action_output *)&action->ofpat;
+    action_output->type = OFPAT_OUTPUT;
+    action_output->port = port_number;
+    lagopus_set_action_function(action);
+    TAILQ_INIT(&insn->action_list);
+    TAILQ_INSERT_TAIL(&insn->action_list, action, entry);
+  }
 }
 
 void
@@ -309,23 +439,52 @@ test_flowdb_flow_add(void) {
 
   /* Add with match */
   add_port_match(&match_list, 1);
+  make_match(&match_list,
+             4,
+             2, OFPXMT_OFB_ETH_TYPE << 1, ETHERTYPE_IP,
+             1, OFPXMT_OFB_IP_PROTO << 1, 0,
+             4, OFPXMT_OFB_IPV4_SRC << 1, 0xffffffff,
+             4, OFPXMT_OFB_IPV4_DST << 1, 0xffffffff);
   TEST_ASSERT_FLOW_ADD_OK(bridge, &flow_mod, &match_list,
                           &instruction_list, &error);
   TEST_ASSERT_TABLE_NFLOW(tablep, MISC_FLOWS, 3);
 
   /* Add with match (overriden) */
   add_port_match(&match_list, 1);
+  make_match(&match_list,
+             4,
+             2, OFPXMT_OFB_ETH_TYPE << 1, ETHERTYPE_IP,
+             1, OFPXMT_OFB_IP_PROTO << 1, 0,
+             4, OFPXMT_OFB_IPV4_SRC << 1, 0xffffffff,
+             4, OFPXMT_OFB_IPV4_DST << 1, 0xffffffff);
   TEST_ASSERT_FLOW_ADD_OK(bridge, &flow_mod, &match_list,
                           &instruction_list, &error);
   TEST_ASSERT_TABLE_NFLOW(tablep, MISC_FLOWS, 3);
 
   /* Add with match (overriden, CHECK_OVERLAP) */
   add_port_match(&match_list, 1);
+  make_match(&match_list,
+             4,
+             2, OFPXMT_OFB_ETH_TYPE << 1, ETHERTYPE_IP,
+             1, OFPXMT_OFB_IP_PROTO << 1, 0,
+             4, OFPXMT_OFB_IPV4_SRC << 1, 0xffffffff,
+             4, OFPXMT_OFB_IPV4_DST << 1, 0xffffffff);
   flow_mod.flags = OFPFF_CHECK_OVERLAP;
   TEST_ASSERT_FLOW_ADD_NG(bridge, &flow_mod, &match_list,
                           &instruction_list, &error);
   TEST_ASSERT_TABLE_NFLOW(tablep, MISC_FLOWS, 3);
 
+  /* bad instruction */
+  add_instruction(&instruction_list, 0xff);
+  TEST_ASSERT_FLOW_ADD_NG(bridge, &flow_mod, &match_list,
+                          &instruction_list, &error);
+  TEST_ASSERT_TABLE_NFLOW(tablep, MISC_FLOWS, 3);
+  /* duplicate instruction */
+  add_instruction(&instruction_list, OFPIT_CLEAR_ACTIONS);
+  add_instruction(&instruction_list, OFPIT_CLEAR_ACTIONS);
+  TEST_ASSERT_FLOW_ADD_NG(bridge, &flow_mod, &match_list,
+                          &instruction_list, &error);
+  TEST_ASSERT_TABLE_NFLOW(tablep, MISC_FLOWS, 3);
 #if 0
   flow_mod.table_id = 1;
   TEST_ASSERT_FLOW_ADD_NG(bridge, &flow_mod, &match_list,
@@ -376,7 +535,7 @@ test_flowdb_flow_del_strict(void) {
 
   flow_mod.table_id = 0;
   flow_mod.priority = 1;
-  flow_mod.flags = 0;
+  flow_mod.flags = OFPFF_SEND_FLOW_REM;
   flow_mod.cookie = 0;
 
   TABLE_GET(tablep, flowdb, flow_mod.table_id);
@@ -508,6 +667,16 @@ test_flowdb_flow_modify(void) {
 
   FLOWDB_DUMP(flowdb, "After modification (3)", stdout);
 
+  /* Non-strictly modify the instruction of all the flow. */
+  flow_mod.command = OFPFC_MODIFY;
+  add_write_action_output_instruction(&instruction_list, 1);
+  TAILQ_INIT(&match_list);
+  TEST_ASSERT_FLOW_MODIFY_OK(bridge, &flow_mod, &match_list,
+                             &instruction_list, &error);
+  TEST_ASSERT_TABLE_NFLOW(tablep, MISC_FLOWS, 2);
+  TEST_ASSERT_NO_METADATA_WRITE((*tablep)->flow_list->flows[0]);
+  TEST_ASSERT_HAS_METADATA_WRITE((*tablep)->flow_list->flows[1], 2);
+
   /* Cleanup. */
   flow_mod.command = OFPFC_DELETE;
   TEST_ASSERT_FLOW_DELETE_OK(bridge, &flow_mod, &match_list, &error);
@@ -530,7 +699,7 @@ test_flowdb_flow_del(void) {
 
   flow_mod.table_id = 0;
   flow_mod.priority = 1;
-  flow_mod.flags = 0;
+  flow_mod.flags = OFPFF_SEND_FLOW_REM;
   flow_mod.cookie = 0;
   flow_mod.out_port = OFPP_ANY;
   flow_mod.out_group = OFPG_ANY;
@@ -564,7 +733,7 @@ test_flowdb_flow_del_with_cookie(void) {
 
   flow_mod.table_id = 0;
   flow_mod.priority = 1;
-  flow_mod.flags = 0;
+  flow_mod.flags = OFPFF_SEND_FLOW_REM;
   flow_mod.cookie = 12345;
   flow_mod.cookie_mask = 0;
   flow_mod.out_port = OFPP_ANY;
@@ -687,6 +856,72 @@ test_flowdb_flow_stats(void) {
 }
 
 void
+test_flowdb_flow_aggregate_stats(void) {
+  struct table **tablep;
+  struct ofp_flow_mod flow_mod;
+  struct match_list match_list;
+  struct instruction_list instruction_list;
+  struct ofp_aggregate_stats_request request;
+  struct ofp_aggregate_stats_reply reply;
+  struct ofp_error error;
+  lagopus_result_t rv;
+
+  TAILQ_INIT(&match_list);
+  TAILQ_INIT(&instruction_list);
+
+  /* Add flow entry. */
+  flow_mod.table_id = 5;
+  flow_mod.priority = 1;
+  flow_mod.flags = 0;
+  flow_mod.cookie = 0;
+  flow_mod.out_port = OFPP_ANY;
+  flow_mod.out_group = OFPG_ANY;
+
+  TABLE_GET(tablep, flowdb, flow_mod.table_id);
+
+  TEST_ASSERT_FLOW_ADD_OK(bridge, &flow_mod, &match_list,
+                          &instruction_list, &error);
+  TEST_ASSERT_TABLE_NFLOW(tablep, MISC_FLOWS, 1);
+
+  FLOWDB_DUMP(flowdb, "After addition", stdout);
+
+  request.table_id = 5;
+  request.cookie = 0;
+
+  rv = flowdb_aggregate_stats(flowdb, &request, &match_list, &reply, &error);
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
+  TEST_ASSERT_EQUAL(reply.flow_count, 1);
+
+  request.table_id = 0;
+
+  rv = flowdb_aggregate_stats(flowdb, &request, &match_list, &reply, &error);
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
+  TEST_ASSERT_EQUAL(reply.flow_count, 0);
+
+  request.table_id = 5;
+  request.cookie = 1;
+  request.cookie_mask = 1;
+
+  rv = flowdb_aggregate_stats(flowdb, &request, &match_list, &reply, &error);
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
+  TEST_ASSERT_EQUAL(reply.flow_count, 0);
+
+  request.table_id = OFPTT_ALL;
+  request.cookie = 0;
+  request.cookie_mask = 0;
+
+  rv = flowdb_aggregate_stats(flowdb, &request, &match_list, &reply, &error);
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
+  TEST_ASSERT_EQUAL(reply.flow_count, 1);
+
+  /* Cleanup. */
+  TEST_ASSERT_FLOW_DELETE_OK(bridge, &flow_mod, &match_list, &error);
+  TEST_ASSERT_TABLE_NFLOW(tablep, MISC_FLOWS, 0);
+
+  FLOWDB_DUMP(flowdb, "After cleanup", stdout);
+}
+
+void
 test_flowdb_switch_mode(void) {
   size_t i;
   enum switch_mode mode, origmode;
@@ -709,4 +944,120 @@ test_flowdb_switch_mode(void) {
 
   TEST_ASSERT_TRUE(LAGOPUS_RESULT_OK == flowdb_switch_mode_set(flowdb,
                    origmode));
+}
+
+void
+test_ofp_table_stats(void) {
+  lagopus_result_t rv;
+  struct table_stats_list list;
+  struct ofp_error error;
+
+  TAILQ_INIT(&list);
+  rv = ofp_table_stats_get(0xff00ff00, &list, &error);
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_NOT_FOUND);
+  rv = ofp_table_stats_get(dpid, &list, &error);
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
+}
+
+void
+test_ofp_table_features(void) {
+  lagopus_result_t rv;
+  struct table_features_list list;
+  struct ofp_error error;
+
+  TAILQ_INIT(&list);
+  rv = ofp_table_features_get(0xff00ff00, &list, &error);
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_NOT_FOUND);
+  rv = ofp_table_features_get(dpid, &list, &error);
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
+}
+
+void
+test_flow_dump(void) {
+  struct ofp_flow_mod flow_mod;
+  struct match_list match_list;
+  struct instruction_list instruction_list;
+  struct ofp_error error;
+  struct table **tablep;
+  FILE *fp;
+
+  TAILQ_INIT(&match_list);
+  TAILQ_INIT(&instruction_list);
+
+  flowinfo_init();
+
+  flow_mod.table_id = 0;
+  flow_mod.priority = 1;
+  flow_mod.flags = 0;
+  flow_mod.cookie = 0;
+  flow_mod.out_port = OFPP_ANY;
+
+  TABLE_GET(tablep, flowdb, flow_mod.table_id);
+  TEST_ASSERT_NOT_NULL(*tablep);
+
+  make_match(&match_list,
+             6,
+             4, OFPXMT_OFB_IN_PORT << 1, 1,
+             4, OFPXMT_OFB_IN_PHY_PORT << 1, 1,
+             2, OFPXMT_OFB_VLAN_VID << 1, 0,
+             2, OFPXMT_OFB_ETH_TYPE << 1, ETHERTYPE_MPLS,
+             4, OFPXMT_OFB_MPLS_LABEL << 1, 1,
+             1, OFPXMT_OFB_MPLS_BOS << 1, 1);
+  TEST_ASSERT_FLOW_ADD_OK(bridge, &flow_mod, &match_list,
+                          &instruction_list, &error);
+  make_match(&match_list,
+             7,
+             2, OFPXMT_OFB_ETH_TYPE << 1, ETHERTYPE_IP,
+             4, OFPXMT_OFB_IPV4_SRC << 1, 0xffffffff,
+             4, OFPXMT_OFB_IPV4_DST << 1, 0xffffffff,
+             1, OFPXMT_OFB_IP_PROTO << 1, IPPROTO_ICMP,
+             1, OFPXMT_OFB_ICMPV4_TYPE << 1, 0,
+             1, OFPXMT_OFB_ICMPV4_CODE << 1, 0);
+  TEST_ASSERT_FLOW_ADD_OK(bridge, &flow_mod, &match_list,
+                          &instruction_list, &error);
+  make_match(&match_list,
+             4,
+             2, OFPXMT_OFB_ETH_TYPE << 1, ETHERTYPE_IPV6,
+             1, OFPXMT_OFB_IP_PROTO << 1, IPPROTO_ICMPV6,
+             1, OFPXMT_OFB_ICMPV6_TYPE << 1, 0,
+             1, OFPXMT_OFB_ICMPV6_CODE << 1, 0);
+  TEST_ASSERT_FLOW_ADD_OK(bridge, &flow_mod, &match_list,
+                          &instruction_list, &error);
+  make_match(&match_list,
+             4,
+             2, OFPXMT_OFB_ETH_TYPE << 1, ETHERTYPE_IP,
+             1, OFPXMT_OFB_IP_PROTO << 1, IPPROTO_TCP,
+             2, OFPXMT_OFB_TCP_SRC << 1, 0,
+             2, OFPXMT_OFB_TCP_DST << 1, 0);
+  TEST_ASSERT_FLOW_ADD_OK(bridge, &flow_mod, &match_list,
+                          &instruction_list, &error);
+  make_match(&match_list,
+             4,
+             2, OFPXMT_OFB_ETH_TYPE << 1, ETHERTYPE_IP,
+             1, OFPXMT_OFB_IP_PROTO << 1, IPPROTO_UDP,
+             2, OFPXMT_OFB_UDP_SRC << 1, 0,
+             2, OFPXMT_OFB_UDP_DST << 1, 0);
+  TEST_ASSERT_FLOW_ADD_OK(bridge, &flow_mod, &match_list,
+                          &instruction_list, &error);
+  make_match(&match_list,
+             4,
+             2, OFPXMT_OFB_ETH_TYPE << 1, ETHERTYPE_IP,
+             1, OFPXMT_OFB_IP_PROTO << 1, IPPROTO_SCTP,
+             2, OFPXMT_OFB_SCTP_SRC << 1, 0,
+             2, OFPXMT_OFB_SCTP_DST << 1, 0);
+  add_write_metadata_instruction(&instruction_list, 0);
+  add_action_output_instruction(&instruction_list, OFPP_ALL);
+
+  /* Add. */
+  TEST_ASSERT_FLOW_ADD_OK(bridge, &flow_mod, &match_list,
+                          &instruction_list, &error);
+  TEST_ASSERT_TABLE_NFLOW(tablep, MISC_FLOWS, 6);
+  TEST_ASSERT_NOT_NULL((*tablep)->flow_list);
+  TEST_ASSERT_NOT_NULL((*tablep)->flow_list->flows);
+  TEST_ASSERT_NOT_NULL((*tablep)->flow_list->flows[0]);
+
+  fp = fopen("/dev/null", "rw");
+  TEST_ASSERT_NOT_NULL(fp);
+  flow_dump((*tablep)->flow_list->flows[0], fp);
+  fclose(fp);
 }

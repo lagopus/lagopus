@@ -18320,7 +18320,7 @@ if test "x$?" != "x0"; then
 fi
 
 # emit.
-ac_config_files="$ac_config_files mk/vars.mk mk/doxygen.conf Makefile src/include/Makefile src/include/lagopus_platform.h src/lib/Makefile src/lib/test/Makefile src/lib/check/Makefile src/agent/Makefile src/agent/test/Makefile src/cmds/Makefile src/config/lagosh/Makefile src/config/lagosh/lagosh.py src/dataplane/Makefile src/dataplane/dpdk/test/Makefile src/dataplane/ofproto/test/Makefile src/dataplane/ofproto/test/lib/Makefile src/dataplane/mgr/test/Makefile src/datastore/Makefile src/datastore/test/Makefile src/datastore/check/Makefile src/snmp/Makefile src/snmp/test/Makefile tools/Makefile tools/unity/src/Makefile debian/Makefile debian/control debian/copyright debian/lagopus-DATAPLANE.install"
+ac_config_files="$ac_config_files mk/vars.mk mk/doxygen.conf Makefile src/include/Makefile src/include/lagopus_platform.h src/lib/Makefile src/lib/test/Makefile src/lib/check/Makefile src/agent/Makefile src/agent/test/Makefile src/cmds/Makefile src/config/lagosh/Makefile src/config/lagosh/lagosh.py src/dataplane/Makefile src/dataplane/dpdk/test/Makefile src/dataplane/ofproto/test/Makefile src/dataplane/ofproto/test/lib/Makefile src/dataplane/mgr/test/Makefile src/datastore/Makefile src/datastore/test/Makefile src/datastore/check/Makefile src/snmp/Makefile src/snmp/test/Makefile test/dataplane/benchmark/Makefile tools/Makefile tools/unity/src/Makefile debian/Makefile debian/control debian/copyright debian/lagopus-DATAPLANE.install"
 
 
 # emit and set executable attribute.
@@ -19443,6 +19443,7 @@ do
     "src/datastore/check/Makefile") CONFIG_FILES="$CONFIG_FILES src/datastore/check/Makefile" ;;
     "src/snmp/Makefile") CONFIG_FILES="$CONFIG_FILES src/snmp/Makefile" ;;
     "src/snmp/test/Makefile") CONFIG_FILES="$CONFIG_FILES src/snmp/test/Makefile" ;;
+    "test/dataplane/benchmark/Makefile") CONFIG_FILES="$CONFIG_FILES test/dataplane/benchmark/Makefile" ;;
     "tools/Makefile") CONFIG_FILES="$CONFIG_FILES tools/Makefile" ;;
     "tools/unity/src/Makefile") CONFIG_FILES="$CONFIG_FILES tools/unity/src/Makefile" ;;
     "debian/Makefile") CONFIG_FILES="$CONFIG_FILES debian/Makefile" ;;

@@ -26,16 +26,16 @@
  * definition of structured flow table.
  */
 struct flowinfo {
-  int nflow;                    /*< number of entries. */
-  unsigned int nnext;           /*< number of child flowinfo. */
-  union {                       /*< entries includes type specific match. */
-    struct ptree *ptree;        /*< patricia tree entries. */
-    struct flow **flows;        /*< simple array entries. */
-    struct flowinfo **next;     /*< child flowinfo array. */
+  int nflow;                    /** number of entries. */
+  unsigned int nnext;           /** number of child flowinfo. */
+  union {                       /** entries includes type specific match. */
+    struct ptree *ptree;        /** patricia tree entries. */
+    struct flow **flows;        /** simple array entries. */
+    struct flowinfo **next;     /** child flowinfo array. */
     /* add more types if needed. */
   };
-  struct flowinfo *misc;        /*< flowinfo includes no specific match. */
-  uint64_t userdata;            /*< type specific data placeholder. */
+  struct flowinfo *misc;        /** flowinfo includes no specific match. */
+  uint64_t userdata;            /** type specific data placeholder. */
 
   lagopus_result_t (*add_func)(struct flowinfo *, struct flow *);
   struct flow *(*match_func)(struct flowinfo *, struct lagopus_packet *,
