@@ -61,10 +61,12 @@ tearDown(void) {
 
 void
 print_flowcache_stats(void) {
+  struct ofcachestat st;
 
+  get_flowcache_statistics(flowcache, &st);
   printf("flowcache stats: entry:%u, hit:%u, miss:%u, ratio %f%%\n",
-         flowcache->nentries, flowcache->hit, flowcache->miss,
-         (double)flowcache->hit / (double)(flowcache->hit + flowcache->miss));
+         st.nentries, st.hit, st.miss,
+         (double)st.hit / (double)(st.hit + st.miss));
 }
 
 void
