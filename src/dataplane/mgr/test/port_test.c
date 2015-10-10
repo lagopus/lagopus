@@ -47,47 +47,6 @@ test_ports_alloc(void) {
 }
 
 void
-test_port_add(void) {
-  struct vector *ports;
-  struct port port;
-  lagopus_result_t rv;
-
-  ports = ports_alloc();
-  TEST_ASSERT_NOT_NULL_MESSAGE(ports, "ports_alloc error");
-
-  strncpy(port.ofp_port.name, "port1", sizeof(port.ofp_port.name));
-  port.ofp_port.port_no = 1;
-  port.ifindex = 120;
-  port.type = LAGOPUS_PORT_TYPE_NULL;
-  rv = port_add(ports, &port);
-
-  TEST_ASSERT_EQUAL_MESSAGE(rv, LAGOPUS_RESULT_OK, "port_add error");
-}
-
-void
-test_port_delete(void) {
-  struct vector *ports;
-  struct port port;
-  lagopus_result_t rv;
-
-  ports = ports_alloc();
-  TEST_ASSERT_NOT_NULL_MESSAGE(ports, "ports_alloc error");
-
-  strncpy(port.ofp_port.name, "port1", sizeof(port.ofp_port.name));
-  port.ofp_port.port_no = 1;
-  port.ifindex = 120;
-  port.type = LAGOPUS_PORT_TYPE_NULL;
-  rv = port_add(ports, &port);
-
-  TEST_ASSERT_EQUAL_MESSAGE(rv, LAGOPUS_RESULT_OK, "port_add error");
-
-  rv = port_delete(ports, 5);
-  TEST_ASSERT_EQUAL_MESSAGE(rv, LAGOPUS_RESULT_NOT_FOUND, "not found error");
-  rv = port_delete(ports, 120);
-  TEST_ASSERT_EQUAL_MESSAGE(rv, LAGOPUS_RESULT_OK, "port_delete error");
-}
-
-void
 test_dp_port_create(void) {
   lagopus_result_t rv;
 

@@ -116,31 +116,6 @@ struct port *
 port_lookup_number(struct vector *v, uint32_t port_no);
 
 /**
- * Create and register port object.
- *
- * @param[in]   v               Port database.
- * @param[in]   pport_param     parameter of the port.
- *
- * @retval      LAGOPUS_RESULT_OK               Succeeded.
- * @retval      LAGOPUS_RESULT_ALREADY_EXISTS   Port is already assigned.
- * @retval      LAGOPUS_RESULT_NO_MEMORY        Memory exhausted.
- */
-lagopus_result_t
-port_add(struct vector *v, const struct port *port_param) __attribute__ ((deprecated));
-
-/**
- * Delete port.
- *
- * @param[in]   v       Port database.
- * @param[in]   port_no OpenFlow port number.
- *
- * @retval      LAGOPUS_RESULT_OK               Succeeded.
- * @retval      LAGOPUS_RESULT_NOT_FOUND        Port is not exist.
- */
-lagopus_result_t
-port_delete(struct vector *v, uint32_t port_no) __attribute__ ((deprecated));
-
-/**
  * Count number of ports.
  *
  * @param[in]   v               Port database.
