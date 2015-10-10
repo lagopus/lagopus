@@ -171,7 +171,7 @@ typedef lagopus_result_t
 
 
 /**
- * The signature of object duplication function.
+ * The signature of object duplicate function.
  *
  *	@param[in]	obj	An object
  *	@param[in]	namespace	A namespace of the duplication obj.
@@ -629,6 +629,7 @@ datastore_interp_destroy_obj(datastore_interp_t *iptr,
                              const char *namespace,
                              lagopus_dstring_t *result);
 
+
 /**
  * Enter an atomic region.
  *
@@ -703,6 +704,46 @@ datastore_interp_atomic_rollback(datastore_interp_t *iptr,
                                  lagopus_dstring_t *result,
                                  bool force);
 
+/**
+ * Enter the dry run mode.
+ *
+ *	@param[in]	iptr	An interpreter.
+ *	@param[in]	cur_namespace	A current namespace of the configurater.
+ *	@param[in]	dup_namespace	A duplicate namespace of the configurater.
+ *	@param[out]	result	A result/output string.
+ *
+ *	@retval LAGOPUS_RESULT_OK	Succeeded.
+ *	@retval LAGOPUS_RESULT_INVALID_ARGS	Failed, invalid args.
+ *	@retval LAGOPUS_RESULT_NO_MEMORY	Failed, no memory.
+ *	@retval LAGOPUS_RESULT_INVALID_STATE_TRANSITION	Failed, invalid state transition.
+ *
+ *	@retval LAGOPUS_RESULT_ANY_FAILURES	Failed.
+ */
+lagopus_result_t
+datastore_interp_dryrun_begin(datastore_interp_t *iptr,
+                              const char *cur_namespace,
+                              const char *dup_namespace,
+                              lagopus_dstring_t *result);
+
+
+/**
+ * End the dry run mode.
+ *
+ *	@param[in]	iptr	An interpreter.
+ *	@param[in]	namespace	A namespace of the configurater.
+ *	@param[out]	result	A result/output string.
+ *
+ *	@retval LAGOPUS_RESULT_OK	Succeeded.
+ *	@retval LAGOPUS_RESULT_INVALID_ARGS	Failed, invalid args.
+ *	@retval LAGOPUS_RESULT_NO_MEMORY	Failed, no memory.
+ *	@retval LAGOPUS_RESULT_INVALID_STATE_TRANSITION	Failed, invalid state transition.
+ *
+ *	@retval LAGOPUS_RESULT_ANY_FAILURES	Failed.
+ */
+lagopus_result_t
+datastore_interp_dryrun_end(datastore_interp_t *iptr,
+                            const char *namespace,
+                            lagopus_dstring_t *result);
 
 /**
  * Get the name of current configurator of the interpreter.

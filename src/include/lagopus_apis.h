@@ -29,6 +29,7 @@
 #include "lagopus_logger.h"
 #include "lagopus_perror.h"
 #include "lagopus_heapcheck.h"
+#include "lagopus_numa.h"
 #include "lagopus_dstring.h"
 #include "lagopus_hashmap.h"
 #include "lagopus_chrono.h"

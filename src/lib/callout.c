@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+
 #include "lagopus_apis.h"
 #include "lagopus_callout_internal.h"
 #include "lagopus_pipeline_stage_internal.h"
@@ -97,8 +98,8 @@ static final_task_schedule_proc_t s_final_task_sched_proc = NULL;
 
 
 
-static void s_ctors(void) __attr_constructor__(106);
-static void s_dtors(void) __attr_destructor__(106);
+static void s_ctors(void) __attr_constructor__(107);
+static void s_dtors(void) __attr_destructor__(107);
 
 
 /**
@@ -636,9 +637,12 @@ s_start_callout_main_loop(void) {
       }
 
     } else { /* s == GLOBAL_STATE_STARTED */
+      s_is_stopped = true;
       ret = LAGOPUS_RESULT_INVALID_STATE_TRANSITION;
     }
-  }
+  } else {
+    s_is_stopped = true;
+  }    
 
   return ret;
 }
@@ -867,7 +871,17 @@ void
 lagopus_callout_cancel_task(const lagopus_callout_task_t *tptr) {
   if (likely(s_is_handler_inited == true)) {
     if (likely(tptr != NULL && *tptr != NULL)) {
+#if 0
       s_cancel_task(*tptr);
+#else
+      /*
+       * FIXME:
+       *
+       * I think we need the global lock here, but It causes a deadlock.
+       * Use the no lock version of the cancel API.
+       */
+      s_cancel_task_no_lock(*tptr);
+#endif
     }
   }
 }

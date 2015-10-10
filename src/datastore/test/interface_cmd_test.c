@@ -2629,7 +2629,7 @@ test_interface_cmd_parse_create_over_mtu(void) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
   char *str = NULL;
-  const char *argv1[] = {"interface", "test_name44", "create",
+  const char *argv1[] = {"interface", "test_name45", "create",
                          "-type", "ethernet-rawsock",
                          "-port-number", "255",
                          "-device", "eth0",
@@ -2645,6 +2645,90 @@ test_interface_cmd_parse_create_over_mtu(void) {
                  &interp, state,
                  ARGV_SIZE(argv1), argv1, &tbl, interface_cmd_update,
                  &ds, str, test_str1);
+}
+
+void
+test_interface_cmd_parse_dryrun(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state1 = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  datastore_interp_state_t state2 = DATASTORE_INTERP_STATE_DRYRUN;
+  char *str = NULL;
+  const char *argv1[] = {"interface", "test_name46", "create",
+                         "-type", "ethernet-rawsock",
+                         "-port-number", "100",
+                         "-device", "eth0",
+                         NULL
+                        };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char *argv2[] = {"interface", "test_name46", "current", NULL};
+  const char test_str2[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name46\",\n"
+    "\"type\":\"ethernet-rawsock\",\n"
+    "\"port-number\":100,\n"
+    "\"device\":\"eth0\",\n"
+    "\"mtu\":1500,\n"
+    "\"ip-addr\":\"127.0.0.1\",\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+  const char *argv3[] = {"interface", "test_name46", "modified", NULL};
+  const char test_str3[] =
+    "{\"ret\":\"NOT_OPERATIONAL\",\n"
+    "\"data\":\"Not set modified.\"}";
+  const char *argv4[] = {"interface", "test_name46", "config",
+                         "-type", "ethernet-rawsock",
+                         "-port-number", "200",
+                         "-device", "eth1",
+                         NULL
+                        };
+  const char test_str4[] = "{\"ret\":\"OK\"}";
+  const char *argv5[] = {"interface", "test_name46", "current", NULL};
+  const char test_str5[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name46\",\n"
+    "\"type\":\"ethernet-rawsock\",\n"
+    "\"port-number\":200,\n"
+    "\"device\":\"eth1\",\n"
+    "\"mtu\":1500,\n"
+    "\"ip-addr\":\"127.0.0.1\",\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+  const char *argv6[] = {"interface", "test_name46", "modified", NULL};
+  const char test_str6[] =
+    "{\"ret\":\"NOT_OPERATIONAL\",\n"
+    "\"data\":\"Not set modified.\"}";
+
+  /* create cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, interface_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv1), argv1, &tbl, interface_cmd_update,
+                 &ds, str, test_str1);
+
+  /* show cmd (current). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, interface_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv2), argv2, &tbl, interface_cmd_update,
+                 &ds, str, test_str2);
+
+  /* show cmd (modified). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 interface_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv3), argv3, &tbl, interface_cmd_update,
+                 &ds, str, test_str3);
+
+  /* config cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, interface_cmd_parse, &interp, state2,
+                 ARGV_SIZE(argv4), argv4, &tbl, interface_cmd_update,
+                 &ds, str, test_str4);
+
+  /* show cmd (current). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, interface_cmd_parse, &interp, state2,
+                 ARGV_SIZE(argv5), argv5, &tbl, interface_cmd_update,
+                 &ds, str, test_str5);
+
+  /* show cmd (modified). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 interface_cmd_parse, &interp, state2,
+                 ARGV_SIZE(argv6), argv6, &tbl, interface_cmd_update,
+                 &ds, str, test_str6);
 }
 
 void

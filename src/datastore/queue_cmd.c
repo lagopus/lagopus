@@ -313,6 +313,12 @@ queue_cmd_do_destroy(queue_conf_t *conf,
       /* ignore error. */
       lagopus_msg_warning("ret = %s", lagopus_error_get_string(ret));
     }
+  } else if (state == DATASTORE_INTERP_STATE_DRYRUN) {
+    ret = queue_conf_delete(conf);
+    if (ret != LAGOPUS_RESULT_OK) {
+      /* ignore error. */
+      lagopus_msg_warning("ret = %s", lagopus_error_get_string(ret));
+    }
   } else if (conf->is_destroying == true ||
              state == DATASTORE_INTERP_STATE_AUTO_COMMIT) {
     queue_destroy(conf->name);
@@ -482,6 +488,20 @@ queue_cmd_update_internal(datastore_interp_t *iptr,
     }
     case DATASTORE_INTERP_STATE_ABORTED: {
       queue_cmd_update_aborted(conf);
+      ret = LAGOPUS_RESULT_OK;
+      break;
+    }
+    case DATASTORE_INTERP_STATE_DRYRUN: {
+      if (conf->modified_attr != NULL) {
+        if (conf->current_attr != NULL) {
+          queue_attr_destroy(conf->current_attr);
+          conf->current_attr = NULL;
+        }
+
+        conf->current_attr = conf->modified_attr;
+        conf->modified_attr = NULL;
+      }
+
       ret = LAGOPUS_RESULT_OK;
       break;
     }
@@ -1035,7 +1055,8 @@ create_sub_cmd_parse(datastore_interp_t *iptr,
     if (ret == LAGOPUS_RESULT_NOT_FOUND) {
       ret = namespace_get_namespace(name, &namespace);
       if (ret == LAGOPUS_RESULT_OK) {
-        if (namespace_exists(namespace) == true) {
+        if (namespace_exists(namespace) == true ||
+            state == DATASTORE_INTERP_STATE_DRYRUN) {
           ret = create_sub_cmd_parse_internal(iptr, state,
                                               argc, argv,
                                               name, proc,

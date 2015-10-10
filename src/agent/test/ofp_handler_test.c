@@ -21,6 +21,7 @@
 #include "lagopus/eventq_data.h"
 #include "lagopus/ofp_bridgeq_mgr.h"
 #include "handler_test_utils.h"
+#include "../channel_mgr.h"
 
 #define PUT_TIMEOUT 100LL * 1000LL * 1000LL * 1000LL
 
@@ -45,6 +46,8 @@ setUp(void) {
    * create ofp_handler
    */
   res = ofp_handler_initialize(NULL, NULL);
+  res = ofp_handler_start();
+#if 0
   if (res != LAGOPUS_RESULT_OK) {
     lagopus_perror(res);
     TEST_FAIL_MESSAGE("handler creation error");
@@ -62,10 +65,12 @@ setUp(void) {
   SLEEP_SHORT();
   res = global_state_set(GLOBAL_STATE_STARTED);
   TEST_ASSERT_EQUAL(res, LAGOPUS_RESULT_OK);
+#endif
 }
 
 void
 tearDown(void) {
+#if 0
   lagopus_result_t res = LAGOPUS_RESULT_ANY_FAILURES;
   res = ofp_handler_shutdown(SHUTDOWN_GRACEFULLY);
   if (res != LAGOPUS_RESULT_OK) {
@@ -73,6 +78,7 @@ tearDown(void) {
     TEST_FAIL_MESSAGE("handler shutdown error");
     return;
   }
+#endif
   if (s_finalize_ofp_handler == true) {
     ofp_handler_finalize();
   }
@@ -119,6 +125,23 @@ s_unregister_bridge(uint64_t dpid, lagopus_result_t required) {
                             "bridge unregister error");
 }
 
+void
+test_prologue(void) {
+  lagopus_result_t r;
+  const char *argv0 =
+      ((IS_VALID_STRING(lagopus_get_command_name()) == true) ?
+       lagopus_get_command_name() : "callout_test");
+  const char * const argv[] = {
+    argv0, NULL
+  };
+
+#define N_CALLOUT_WORKERS	1
+  (void)lagopus_mainloop_set_callout_workers_number(N_CALLOUT_WORKERS);
+  r = lagopus_mainloop_with_callout(1, argv, NULL, NULL,
+                                    false, false, true);
+  TEST_ASSERT_EQUAL(r, LAGOPUS_RESULT_OK);
+  channel_mgr_initialize();
+}
 void
 test_creation(void) {
   SLEEP_SHORT();
@@ -538,4 +561,12 @@ test_finalize_ofph(void) {
   /* this test must be executed last. */
   /* ofph will finalize in teardown(). */
   s_finalize_ofp_handler = true;
+}
+void
+test_epilogue(void) {
+  lagopus_result_t r;
+  channel_mgr_finalize();
+  r = global_state_request_shutdown(SHUTDOWN_GRACEFULLY);
+  TEST_ASSERT_EQUAL(r, LAGOPUS_RESULT_OK);
+  lagopus_mainloop_wait_thread();
 }

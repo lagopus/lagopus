@@ -80,7 +80,6 @@ dumps_sub_cmd_parse(datastore_interp_t *iptr,
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   configs_t *configs = NULL;
   (void) iptr;
-  (void) dumpe;
   (void) argc;
   (void) argv;
   (void) name;
@@ -91,9 +90,11 @@ dumps_sub_cmd_parse(datastore_interp_t *iptr,
       result != NULL) {
     configs = (configs_t *) out_configs;
     configs->is_dumps = true;
-    /* TODO:
-    ret = dp_bridge_affinition_list_get(&configs->list);
-    */
+    if (dumpe != DATASTORE_INTERP_STATE_DRYRUN) {
+      /* TODO:
+      ret = dp_bridge_affinition_list_get(&configs->list);
+      */
+    }
     ret = LAGOPUS_RESULT_OK;
     if (ret != LAGOPUS_RESULT_OK) {
       ret = datastore_json_result_string_setf(result, ret,

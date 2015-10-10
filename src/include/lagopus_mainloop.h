@@ -152,6 +152,8 @@ lagopus_mainloop_set_shutdown_timeout(lagopus_chrono_t nsec);
  *	@param[in] do_pidfile	If \b true create a pid file.
  *				The file name can be specified 
  *				by the \b lagopus_set_pidfile().
+ *	@param[in] do_thread	If \b true the main loop runs in a newly
+ *				spawned thread.
  *
  *	@retval	LAGOPUS_RESULT_OK	Succeeded.
  *	@retval <0			Any failures.
@@ -166,7 +168,7 @@ lagopus_result_t
 lagopus_mainloop(int argc, const char * const argv[],
                  lagopus_mainloop_startup_hook_proc_t pre_hook,
                  lagopus_mainloop_startup_hook_proc_t post_hook,
-                 bool do_fork, bool do_pidfile);
+                 bool do_fork, bool do_pidfile, bool do_thread);
 
 
 /**
@@ -182,6 +184,8 @@ lagopus_mainloop(int argc, const char * const argv[],
  *	@param[in] do_pidfile	If \b true create a pid file.
  *				The file name can be specified 
  *				by the \b lagopus_set_pidfile().
+ *	@param[in] do_thread	If \b true the main loop runs in a newly
+ *				spawned thread.
  *
  *	@retval	LAGOPUS_RESULT_OK	Succeeded.
  *	@retval <0			Any failures.
@@ -196,7 +200,26 @@ lagopus_result_t
 lagopus_mainloop_with_callout(int argc, const char * const argv[],
                               lagopus_mainloop_startup_hook_proc_t pre_hook,
                               lagopus_mainloop_startup_hook_proc_t post_hook,
-                              bool do_fork, bool do_pidfile);
+                              bool do_fork, bool do_pidfile,
+                              bool do_thread);
+
+
+/**
+ * Wait for the finish of the mainloop thread.
+ *
+ *	@details This API is meaningful only when the mainloop runs in
+ *	a dedicated thread that is spawned by passing \b true for the
+ *	\b do_thread parameter of the \b lagopus_mainloop() or the \b
+ *	lagopus_mainloop_with_callout().
+ *
+ *	@detail Note that it is required that the main loop itself
+ *	must be stopped by proper methodology (usually calling the \b
+ *	global_state_request_shutdown()), which should be suitable for
+ *	the each main loop. Otherwise this API blocks waiting for the
+ *	main loop finish.
+ */
+void
+lagopus_mainloop_wait_thread(void);
 
 
 /**

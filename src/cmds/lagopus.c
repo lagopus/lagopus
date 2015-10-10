@@ -228,10 +228,10 @@ main(int argc, const char *const argv[]) {
 
   if (s_debug_level == 0) {
     r = lagopus_mainloop_with_callout(argc, argv, NULL, NULL,
-                                      true, true);
+                                      true, true, false);
   } else {
     r = lagopus_mainloop_with_callout(argc, argv, NULL, NULL,
-                                      false, false);
+                                      false, false, false);
   }
 
 bailout:

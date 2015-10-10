@@ -20,6 +20,7 @@
 #include "openflow.h"
 #include "lagopus/ofp_handler.h"
 #include "lagopus/ofp_dp_apis.h"
+#include "../channel_mgr.h"
 
 uint8_t s_require_version = OPENFLOW_VERSION_0_0;
 
@@ -83,6 +84,23 @@ void
 tearDown(void) {
 }
 
+void
+test_prologue(void) {
+  lagopus_result_t r;
+  const char *argv0 =
+      ((IS_VALID_STRING(lagopus_get_command_name()) == true) ?
+       lagopus_get_command_name() : "callout_test");
+  const char * const argv[] = {
+    argv0, NULL
+  };
+
+#define N_CALLOUT_WORKERS	1
+  (void)lagopus_mainloop_set_callout_workers_number(N_CALLOUT_WORKERS);
+  r = lagopus_mainloop_with_callout(1, argv, NULL, NULL,
+                                    false, false, true);
+  TEST_ASSERT_EQUAL(r, LAGOPUS_RESULT_OK);
+  channel_mgr_initialize();
+}
 void
 test_ofp_hello_send(void) {
   lagopus_result_t res = LAGOPUS_RESULT_ANY_FAILURES;
@@ -287,4 +305,12 @@ void
 test_hello_create_null(void) {
   data_create(s_ofp_hello_create_null_wrap,
               "");
+}
+void
+test_epilogue(void) {
+  lagopus_result_t r;
+  channel_mgr_finalize();
+  r = global_state_request_shutdown(SHUTDOWN_GRACEFULLY);
+  TEST_ASSERT_EQUAL(r, LAGOPUS_RESULT_OK);
+  lagopus_mainloop_wait_thread();
 }

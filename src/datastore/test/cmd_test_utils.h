@@ -29,6 +29,10 @@
 
 #define INTERP_CREATE(_ret, _name,_interp, _tbl, _ds, _em) {            \
     if (_interp == NULL) {                                              \
+      const char *argv0 =                                               \
+         ((IS_VALID_STRING(lagopus_get_command_name()) == true) ?       \
+             lagopus_get_command_name() : "callout_test");              \
+              const char * const argv[] = { argv0, NULL };              \
       _ret = datastore_create_interp(&(_interp));                       \
       TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, _ret,                \
                                 "datastore_create_interp error.");      \
@@ -37,6 +41,11 @@
                                 "allcommands initialize error.");       \
       TEST_ASSERT_EQUAL(dp_api_init(), LAGOPUS_RESULT_OK);              \
       ofp_bridgeq_mgr_initialize(NULL);                                 \
+      (void)lagopus_mainloop_set_callout_workers_number(1);             \
+      _ret = lagopus_mainloop_with_callout(1, argv, NULL, NULL,         \
+                                            false, false, true);        \
+      TEST_ASSERT_EQUAL(_ret, LAGOPUS_RESULT_OK);                       \
+      channel_mgr_initialize();                                         \
     }                                                                   \
     if (_tbl == NULL) {                                                 \
       if (_name == NULL) {                                              \
@@ -60,17 +69,21 @@
     }                                                                   \
     if (_em == NULL) {                                                  \
       _em = event_manager_alloc();                                      \
-      channel_mgr_initialize(_em);                                      \
     }                                                                   \
   }
 
 #define INTERP_DESTROY(_name, _interp, _tbl, _ds,                       \
                        _em, _destroy) {                                 \
     if (_interp != NULL && destroy == true) {                           \
+      lagopus_result_t ret;                                             \
       datastore_destroy_interp(&(_interp));                             \
       datastore_all_commands_finalize();                                \
+      channel_mgr_finalize();                                           \
       dp_api_fini();                                                    \
       ofp_bridgeq_mgr_destroy();                                        \
+      ret = global_state_request_shutdown(SHUTDOWN_GRACEFULLY);         \
+      TEST_ASSERT_EQUAL(ret, LAGOPUS_RESULT_OK);                        \
+      lagopus_mainloop_wait_thread();                                   \
     }                                                                   \
     if (_tbl != NULL) {                                                 \
       if (_name == NULL) {                                              \
@@ -87,7 +100,6 @@
     if (_em != NULL && destroy == true) {                               \
       event_manager_free(_em);                                          \
       _em = NULL;                                                       \
-      channel_mgr_finalize();                                           \
     }                                                                   \
   }
 

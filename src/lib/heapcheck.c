@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+
 #include "lagopus_apis.h"
 
 
@@ -29,6 +30,7 @@ extern int end;
 static bool s_is_running_under_valgrind = false;
 static pthread_once_t s_once = PTHREAD_ONCE_INIT;
 static void s_ctors(void) __attr_constructor__(101);
+static void s_dtors(void) __attr_destructor__(101);
 
 
 
@@ -69,6 +71,17 @@ s_init(void) {
 static void
 s_ctors(void) {
   s_init();
+}
+
+
+static inline void
+s_final(void) {
+}
+
+
+static void
+s_dtors(void) {
+  s_final();
 }
 
 

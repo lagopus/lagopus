@@ -2835,6 +2835,130 @@ test_policer_cmd_parse_atomic_destroy_create(void) {
 }
 
 void
+test_policer_cmd_parse_dryrun(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state1 = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  datastore_interp_state_t state2 = DATASTORE_INTERP_STATE_DRYRUN;
+  char *str = NULL;
+  const char *argv1[] = {"policer", "test_name32", "create",
+                         "-action", "test_pa32",
+                         "-bandwidth-limit", "1501",
+                         "-burst-size-limit", "1502",
+                         "-bandwidth-percent", "1",
+                         NULL
+                        };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char *argv2[] = {"policer", "test_name32", "current", NULL};
+  const char test_str2[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name32\",\n"
+    "\"actions\":[\""DATASTORE_NAMESPACE_DELIMITER"test_pa32\"],\n"
+    "\"bandwidth-limit\":1501,\n"
+    "\"burst-size-limit\":1502,\n"
+    "\"bandwidth-percent\":1,\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+  const char *argv3[] = {"policer", "test_name32", "modified", NULL};
+  const char test_str3[] =
+    "{\"ret\":\"NOT_OPERATIONAL\",\n"
+    "\"data\":\"Not set modified.\"}";
+  const char *argv4[] = {"policer", "test_name32", "config",
+                         "-action", "~test_pa32",
+                         "-action", "test_pa32_2",
+                         "-bandwidth-limit", "1601",
+                         "-burst-size-limit", "1602",
+                         "-bandwidth-percent", "10",
+                         NULL
+                        };
+  const char test_str4[] = "{\"ret\":\"OK\"}";
+  const char *argv5[] = {"policer", "test_name32", "current", NULL};
+  const char test_str5[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name32\",\n"
+    "\"actions\":[\""DATASTORE_NAMESPACE_DELIMITER"test_pa32_2\"],\n"
+    "\"bandwidth-limit\":1601,\n"
+    "\"burst-size-limit\":1602,\n"
+    "\"bandwidth-percent\":10,\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+  const char *argv6[] = {"policer", "test_name32", "modified", NULL};
+  const char test_str6[] =
+    "{\"ret\":\"NOT_OPERATIONAL\",\n"
+    "\"data\":\"Not set modified.\"}";
+
+  const char *policer_action_argv1[] = {"policer-action", "test_pa32", "create",
+                                        "-type", "discard",
+                                        NULL
+                                       };
+  const char policer_action_test_str1[] = "{\"ret\":\"OK\"}";
+  const char *policer_action_argv2[] = {"policer-action", "test_pa32_2", "create",
+                                        "-type", "discard",
+                                        NULL
+                                       };
+  const char policer_action_test_str2[] = "{\"ret\":\"OK\"}";
+  const char *policer_action_argv3[] = {"policer-action", "test_pa32_2", "destroy",
+                                        NULL
+                                       };
+  const char policer_action_test_str3[] = "{\"ret\":\"OK\"}";
+
+  /* policer_action create cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, policer_action_cmd_parse, &interp,
+                 state1,
+                 ARGV_SIZE(policer_action_argv1), policer_action_argv1, &tbl,
+                 policer_action_cmd_update,
+                 &ds, str, policer_action_test_str1);
+
+  /* policer_action create cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, policer_action_cmd_parse, &interp,
+                 state1,
+                 ARGV_SIZE(policer_action_argv2), policer_action_argv2, &tbl,
+                 policer_action_cmd_update,
+                 &ds, str, policer_action_test_str2);
+
+  /* create cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, policer_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv1), argv1, &tbl, policer_cmd_update,
+                 &ds, str, test_str1);
+
+  /* show cmd (current). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, policer_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv2), argv2, &tbl, policer_cmd_update,
+                 &ds, str, test_str2);
+
+  /* show cmd (modified). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 policer_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv3), argv3, &tbl, policer_cmd_update,
+                 &ds, str, test_str3);
+
+  /* config cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, policer_cmd_parse, &interp, state2,
+                 ARGV_SIZE(argv4), argv4, &tbl, policer_cmd_update,
+                 &ds, str, test_str4);
+
+  /* show cmd (current). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, policer_cmd_parse, &interp, state2,
+                 ARGV_SIZE(argv5), argv5, &tbl, policer_cmd_update,
+                 &ds, str, test_str5);
+
+  /* show cmd (modified). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 policer_cmd_parse, &interp, state2,
+                 ARGV_SIZE(argv6), argv6, &tbl, policer_cmd_update,
+                 &ds, str, test_str6);
+
+  TEST_POLICER_DESTROY(ret, &interp, state1, &tbl, &ds, str, "test_pa32",
+                       "test_name32");
+
+  /* policer_action destroy cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, policer_action_cmd_parse, &interp,
+                 state1,
+                 ARGV_SIZE(policer_action_argv3), policer_action_argv3, &tbl,
+                 policer_action_cmd_update,
+                 &ds, str, policer_action_test_str3);
+}
+
+void
 test_destroy(void) {
   destroy = true;
 }

@@ -24,11 +24,15 @@ ns_create_fullname(const char *ns, const char *name, char **fullname) {
       full_len = delim_len + name_len;
 
       buf = (char *) malloc(sizeof(char) * (full_len + 1));
-      ret = snprintf(buf, full_len + 1, "%s%s",
-                     DATASTORE_NAMESPACE_DELIMITER, name);
-      if (ret >= 0) {
-        *fullname = buf;
-        ret = LAGOPUS_RESULT_OK;
+      if (buf != NULL) {
+        ret = snprintf(buf, full_len + 1, "%s%s",
+                       DATASTORE_NAMESPACE_DELIMITER, name);
+        if (ret >= 0) {
+          *fullname = buf;
+          ret = LAGOPUS_RESULT_OK;
+        }
+      } else {
+        ret = LAGOPUS_RESULT_NO_MEMORY;
       }
     } else {
       ns_len = strlen(ns);

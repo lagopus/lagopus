@@ -26,28 +26,176 @@ static lagopus_mutex_t lock = NULL;
 static lagopus_hashmap_t main_table = NULL;
 static lagopus_hashmap_t dp_table = NULL;
 static pthread_once_t initialized = PTHREAD_ONCE_INIT;
-static struct event_manager *em;
+static bool run = false;
+static lagopus_session_t event_w, event_r;
+static lagopus_callout_task_t channel_free_task;
 
+#define UNUSED_DPID 0
+#define MAX_CHANNELES 1024
+#define POLL_TIMEOUT  (1000) /* 1sec */
 #define MAKE_MAIN_HASH(key, ipaddr, addr, bridge_name) \
   snprintf((key), sizeof((key)), "%s:%02d:%s", (ipaddr), (addr)->family, \
            (bridge_name));
-
 #define MAIN_KEY_LEN \
-  INET6_ADDRSTRLEN+DATASTORE_BRIDGE_FULLNAME_MAX+5 /* 5 = len(":%02d") + 1 */
+  (INET6_ADDRSTRLEN+DATASTORE_BRIDGE_FULLNAME_MAX+5) /* 5 = len(":%02d") + 1 */
 
 static void
 channel_entry_free(void *arg) {
+  channel_disable(arg);
   channel_free(arg);
+}
+struct session_set {
+  int n_sessions;
+  lagopus_session_t s[MAX_CHANNELES+1]; /* +1 = a session for event trigger */
+};
+
+static bool
+channel_session_add(__UNUSED void *key, void *val, __UNUSED lagopus_hashentry_t he, void *arg) {
+  lagopus_session_t s;
+  struct channel *chan = (struct channel *) val;
+  struct session_set *ss = (struct session_set *) arg;
+
+  lagopus_msg_debug(10, "called, channel:%p.\n", chan);
+  s = channel_session_get(chan);
+  if (s != NULL && ss->n_sessions < (int) sizeof(ss->s)) {
+    bool r, w;
+    (void) session_is_read_on(s, &r);
+    (void) session_is_write_on(s, &w);
+    lagopus_msg_debug(10, "channel:%p, session:%p, r:%d, w:%d.\n", chan, s, (int) r, (int) w);
+    if (w || r) {
+      ss->s[ss->n_sessions++] = s;
+    }
+
+  } else if (ss->n_sessions >= (int) sizeof(ss->s)) {
+    lagopus_msg_warning("session set overflow %d.\n", ss->n_sessions);
+    return false;
+  }
+
+  return true;
+}
+
+static bool
+channel_process(__UNUSED void *key, void *val, __UNUSED lagopus_hashentry_t he, void *arg) {
+  int *cnt = (int *) arg;
+  lagopus_session_t s;
+  struct channel *channel = (struct channel *) val;
+
+  s = channel_session_get(channel);
+  if (s != NULL) {
+    bool r = false, w = false;
+
+    (void) session_is_readable(s, &r);
+    if (r) {
+      lagopus_msg_debug(10, "channel_read called:%p\n", channel);
+      session_read_event_unset(s);
+      channel_read(channel);
+    }
+
+    (void) session_is_writable(s, &w);
+    if (w) {
+      lagopus_msg_debug(10, "channel_write called:%p\n", channel);
+      session_write_event_unset(s);
+      channel_write(channel);
+    }
+
+    if (r | w) {
+      (*cnt)--;
+    }
+  }
+
+  if (*cnt == 0) {
+    /* all sessions were proccessed. */
+    return false;
+  }
+
+  return true;
+}
+
+lagopus_result_t
+channel_mgr_loop(__UNUSED const lagopus_thread_t *t, __UNUSED void *arg) {
+  struct session_set ss = {0, {NULL}};
+  lagopus_result_t ret;
+
+  lagopus_msg_debug(10, "called, run: %d\n", run);
+  while(run) {
+    session_read_event_set(event_r);
+    ss.s[0] = event_r;
+    ss.n_sessions = 1;
+
+    ret = lagopus_hashmap_iterate(&main_table, channel_session_add, &ss);
+    if (ret != LAGOPUS_RESULT_OK && ret != LAGOPUS_RESULT_ITERATION_HALTED) {
+      lagopus_perror(ret);
+      return ret;
+    }
+
+    lagopus_msg_debug(10, "%d sessions enabled.\n", ss.n_sessions);
+    ret = session_poll(ss.s, ss.n_sessions, POLL_TIMEOUT);
+    lagopus_msg_debug(10, "session_poll() return: %d\n", (int) ret);
+    if (ret > 0) {
+      bool readable;
+
+      (void) session_is_readable(event_r, &readable);
+      lagopus_msg_debug(10, "event readable:%d\n", readable);
+      if (readable) { /* event occured */
+        char buf[BUFSIZ];
+        /* drain event messages. */
+        session_read(event_r, buf, sizeof(buf));
+        ret--;
+      }
+
+      if (ret) {
+        (void) lagopus_hashmap_iterate(&main_table, channel_process, &ret);
+      }
+    } else if (ret == LAGOPUS_RESULT_TIMEDOUT) {
+      lagopus_msg_debug(10, "channel mgr loop timeouted.\n");
+    } else if (ret == LAGOPUS_RESULT_INTERRUPTED) {
+      lagopus_msg_info("channel mgr loop interrupted.\n");
+    } else {
+      lagopus_perror(ret);
+    }
+  }
+
+  return LAGOPUS_RESULT_OK;
+}
+
+static lagopus_result_t
+periodical_channel_entry_free(struct channel *channel, __UNUSED void *arg) {
+  lagopus_result_t ret;
+
+  lagopus_msg_debug(10, "channel free(%p)\n", channel);
+  ret = channel_free(channel);
+  if (ret != LAGOPUS_RESULT_OK) {
+    lagopus_msg_warning("can't free channel(%p), %s.\n",
+                    channel, lagopus_error_get_string(ret));
+  }
+
+  return LAGOPUS_RESULT_OK;
+}
+
+static lagopus_result_t
+periodical_channel_free(__UNUSED void *arg) {
+  channel_mgr_dpid_iterate(UNUSED_DPID, periodical_channel_entry_free, NULL);
+  return LAGOPUS_RESULT_OK;
 }
 
 static void
 channel_list_entry_free(void *arg) {
+  lagopus_result_t ret;
+
+  ret = channel_list_iterate(arg, periodical_channel_entry_free, NULL);
+  if (ret != LAGOPUS_RESULT_OK && ret != LAGOPUS_RESULT_NOT_OPERATIONAL) {
+    lagopus_msg_warning("can't freed channels:%s.\n",
+              lagopus_error_get_string(ret));
+  }
   channel_list_free(arg);
 }
 
 static void
 initialize_internal(void) {
+  void *valptr = NULL;
   lagopus_result_t ret;
+  lagopus_session_t s[2];
+  struct channel_list *channel_free_list= NULL;
 
   ret = lagopus_mutex_create(&lock);
   if (ret != LAGOPUS_RESULT_OK) {
@@ -66,11 +214,44 @@ initialize_internal(void) {
     lagopus_exit_fatal("channel_mgr_initialize:lagopus_hashmap_create");
   }
 
+  channel_free_list = channel_list_alloc();
+  if (channel_free_list == NULL) {
+    lagopus_exit_fatal("channel_mgr_initialize:channel_list_alloc()");
+  }
+
+  /* Added channel free list. */
+  valptr = channel_free_list;
+  ret = lagopus_hashmap_add(&dp_table, (void *)UNUSED_DPID, (void **)&valptr, false);
+  if (ret != LAGOPUS_RESULT_OK) {
+    lagopus_exit_fatal("channel_mgr_initialize:lagopus_hashmap_add()");
+  }
+
+  ret = lagopus_callout_create_task(&channel_free_task, 0, "channel free task", 
+                                        periodical_channel_free, NULL, NULL);
+
+  if (ret != LAGOPUS_RESULT_OK) {
+    lagopus_exit_fatal("channel_mgr_initialize:lagopus_callout_create_task()");
+  }
+
+  ret = lagopus_callout_submit_task(&channel_free_task, 0, SEC_TO_NSEC(1));
+  if (ret != LAGOPUS_RESULT_OK) {
+    lagopus_exit_fatal("channel_mgr_initialize:lagopus_callout_submit_task()");
+  }
+
+  ret = session_pair(SESSION_UNIX_DGRAM, s);
+  if (ret != LAGOPUS_RESULT_OK) {
+    lagopus_exit_fatal("channel_mgr_initialize:session_pair");
+  }
+
+  event_r = s[0];
+  event_w = s[1];
+
+  run = true;
 }
 
 void
-channel_mgr_initialize(void *arg) {
-  em = (struct event_manager *) arg;
+channel_mgr_initialize(void) {
+  lagopus_msg_debug(10, "called\n");
   pthread_once(&initialized, initialize_internal);
 }
 
@@ -78,6 +259,10 @@ void
 channel_mgr_finalize(void) {
   lagopus_result_t ret;
 
+  lagopus_msg_debug(10, "called\n");
+  run = false;
+  lagopus_callout_cancel_task(&channel_free_task);
+  channel_free_task = NULL;
   ret = lagopus_hashmap_clear(&main_table, true);
   if (ret != LAGOPUS_RESULT_OK) {
     lagopus_perror(ret);
@@ -88,27 +273,67 @@ channel_mgr_finalize(void) {
     lagopus_perror(ret);
   }
 
+  session_destroy(event_r);
+  session_destroy(event_w);
+  event_r = NULL;
+  event_w = NULL;
+
   return;
 }
 
 static lagopus_result_t
 channel_delete_internal(const char *key) {
+  uint64_t dpid;
   lagopus_result_t ret;
   struct channel *chan;
+  struct channel_list *chan_list = NULL;
 
   ret = lagopus_hashmap_find(&main_table, (void *)key, (void **)&chan);
   if (ret != LAGOPUS_RESULT_OK) {
-    return ret;
+    return LAGOPUS_RESULT_OK;
+  }
+
+  ret = lagopus_hashmap_delete(&main_table, (void *)key, NULL, false);
+  if (ret != LAGOPUS_RESULT_OK) {
+    lagopus_msg_warning("can't delete channel(%p), %s \n",
+                    chan, lagopus_error_get_string(ret));
   }
 
   channel_disable(chan);
 
-  ret = channel_free(chan);
-  if (ret != LAGOPUS_RESULT_OK) {
-    return ret;
+  dpid = channel_dpid_get(chan);
+  if (dpid != UNUSED_DPID) {
+    ret = lagopus_hashmap_find(&dp_table, (void *)dpid, (void **)&chan_list);
+    if (ret != LAGOPUS_RESULT_OK) {
+      lagopus_msg_warning("can't find channel(%p) in dp_table(%lu), %s \n",
+                      chan, dpid, lagopus_error_get_string(ret));
+    }
+
+    ret = channel_list_delete(chan_list, chan);
+    if (ret != LAGOPUS_RESULT_OK) {
+      lagopus_msg_warning("can't delete channel(%p) in channel_list(%lu), %s \n",
+                      chan, dpid, lagopus_error_get_string(ret));
+    }
+
+    ret = channel_dpid_set(chan, UNUSED_DPID);
+    if (ret != LAGOPUS_RESULT_OK) {
+      lagopus_msg_warning("can't set dpid to channel(%p), %s \n",
+                                chan, lagopus_error_get_string(ret));
+    }
   }
 
-  return lagopus_hashmap_delete(&main_table, (void *)key, NULL, false);
+  /* Get free channel list. */
+  ret = lagopus_hashmap_find(&dp_table, (void *)UNUSED_DPID, (void **)&chan_list);
+  if (ret != LAGOPUS_RESULT_OK) {
+    lagopus_exit_fatal("can't get free channel list:%s.", lagopus_error_get_string(ret));
+  }
+
+  ret = channel_list_insert(chan_list, chan);
+  if (ret != LAGOPUS_RESULT_OK) {
+    lagopus_exit_fatal("can't add channel to free channel list.");
+  }
+
+  return LAGOPUS_RESULT_OK;
 }
 
 static void
@@ -148,8 +373,7 @@ channel_add_internal(const char *channel_name, struct addrunion *addr,
     return ret;
   }
 
-#define UNUSED_DPID 0
-  chan = channel_alloc(addr, em, UNUSED_DPID);
+  chan = channel_alloc(addr, UNUSED_DPID);
   if (chan == NULL) {
     return LAGOPUS_RESULT_NO_MEMORY;
   }
@@ -295,6 +519,19 @@ channel_mgr_channel_add(const char *bridge_name, uint64_t dpid,
                         struct addrunion *addr) {
   lagopus_result_t ret;
   struct channel *chan = NULL;
+
+  if (main_table == NULL) {
+    return LAGOPUS_RESULT_ANY_FAILURES;
+  }
+
+  ret = lagopus_hashmap_size(&main_table);
+  if (ret < 0) {
+    return ret;
+  }
+
+  if (ret > MAX_CHANNELES) {
+    return LAGOPUS_RESULT_TOO_MANY_OBJECTS;
+  }
 
   ret = channel_mgr_channel_add_internal(bridge_name, dpid, addr, &chan);
   if (ret != LAGOPUS_RESULT_OK) {
@@ -567,19 +804,7 @@ fail:
 
 lagopus_result_t
 channel_mgr_channel_destroy(const char *channel_name) {
-  int i;
-  lagopus_result_t ret;
-
-  for (i = 0; i < 10; i++) {
-    ret = channel_delete_internal(channel_name);
-    if (ret == LAGOPUS_RESULT_BUSY) {
-      usleep(10000/* 10msec sleep*/);
-    } else {
-      break;
-    }
-  }
-
-  return ret;
+  return channel_delete_internal(channel_name);
 }
 
 lagopus_result_t
@@ -813,6 +1038,45 @@ channel_mgr_channel_is_alive(const char *channel_name, bool *b) {
   }
 
   *b = channel_session_is_alive(chan);
+
+  return LAGOPUS_RESULT_OK;
+}
+
+lagopus_result_t
+channel_mgr_event_upcall(void) {
+  bool w;
+  ssize_t n;
+  lagopus_result_t ret;
+  lagopus_session_t s[1] = {event_w};
+  const char *buf = "event up\n";
+
+  lagopus_msg_debug(10, "called.\n");
+  session_write_event_set(event_w);
+  ret = session_poll(s, 1, 0);
+  if (ret < 0) {
+    lagopus_msg_warning("can't write upcall events, %s.\n",
+                                lagopus_error_get_string(ret));
+    return ret;
+  }
+
+  (void) session_is_writable(event_w, &w);
+  if (w) {
+    n = session_write(event_w, (void *) buf, strlen(buf) + 1);
+    if (n < 0) {
+      lagopus_msg_warning("event upcall failed. %d\n", (int) n);
+      return LAGOPUS_RESULT_ANY_FAILURES;
+    }
+  } else {
+    return LAGOPUS_RESULT_SOCKET_ERROR;
+  }
+
+  return LAGOPUS_RESULT_OK;
+}
+
+lagopus_result_t
+channel_mgr_loop_stop(void) {
+  run = false;
+  channel_mgr_event_upcall();
 
   return LAGOPUS_RESULT_OK;
 }

@@ -2876,6 +2876,138 @@ test_controller_cmd_parse_atomic_destroy_create(void) {
 }
 
 void
+test_controller_cmd_parse_dryrun(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state1 = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  datastore_interp_state_t state2 = DATASTORE_INTERP_STATE_DRYRUN;
+  char *str = NULL;
+  const char *argv1[] = {"controller", "test_name32", "create",
+                         "-channel", "test_cha32",
+                         "-role", "equal",
+                         "-connection-type", "main",
+                         NULL
+                        };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char *argv2[] = {"controller", "test_name32", "current", NULL};
+  const char test_str2[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name32\",\n"
+    "\"channel\":\""DATASTORE_NAMESPACE_DELIMITER"test_cha32\",\n"
+    "\"role\":\"equal\",\n"
+    "\"connection-type\":\"main\",\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+  const char *argv3[] = {"controller", "test_name32", "modified", NULL};
+  const char test_str3[] =
+    "{\"ret\":\"NOT_OPERATIONAL\",\n"
+    "\"data\":\"Not set modified.\"}";
+  const char *argv4[] = {"controller", "test_name32", "config",
+                         "-channel", "test_cha32_2",
+                         "-role", "master",
+                         "-connection-type", "auxiliary",
+                         NULL
+                        };
+  const char test_str4[] = "{\"ret\":\"OK\"}";
+  const char *argv5[] = {"controller", "test_name32", "current", NULL};
+  const char test_str5[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name32\",\n"
+    "\"channel\":\""DATASTORE_NAMESPACE_DELIMITER"test_cha32_2\",\n"
+    "\"role\":\"master\",\n"
+    "\"connection-type\":\"auxiliary\",\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+  const char *argv6[] = {"controller", "test_name32", "modified", NULL};
+  const char test_str6[] =
+    "{\"ret\":\"NOT_OPERATIONAL\",\n"
+    "\"data\":\"Not set modified.\"}";
+
+
+  const char *channel_argv1[] = {"channel", "test_cha32", "create",
+                                 "-dst-addr", "127.0.0.1",
+                                 "-dst-port", "3000",
+                                 "-local-addr", "127.0.0.1",
+                                 "-local-port", "3000",
+                                 "-protocol", "tcp",
+                                 NULL
+                                };
+  const char channel_test_str1[] = "{\"ret\":\"OK\"}";
+  const char *channel_argv2[] = {"channel", "test_cha32_2", "create",
+                                 "-dst-addr", "127.0.0.1",
+                                 "-dst-port", "3000",
+                                 "-local-addr", "127.0.0.1",
+                                 "-local-port", "3000",
+                                 "-protocol", "tcp",
+                                 NULL
+                                };
+  const char channel_test_str2[] = "{\"ret\":\"OK\"}";
+  const char *channel_argv3[] = {"channel", "test_cha32", "destroy",
+                                 NULL
+                                };
+  const char channel_test_str3[] = "{\"ret\":\"OK\"}";
+  const char *channel_argv4[] = {"channel", "test_cha32_2", "destroy",
+                                 NULL
+                                };
+  const char channel_test_str4[] = "{\"ret\":\"OK\"}";
+
+  /* channel create cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, channel_cmd_parse, &interp, state1,
+                 ARGV_SIZE(channel_argv1), channel_argv1, &tbl,
+                 channel_cmd_update,
+                 &ds, str, channel_test_str1);
+
+  /* channel create cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, channel_cmd_parse, &interp, state1,
+                 ARGV_SIZE(channel_argv2), channel_argv2, &tbl,
+                 channel_cmd_update,
+                 &ds, str, channel_test_str2);
+
+  /* create cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, controller_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv1), argv1, &tbl, controller_cmd_update,
+                 &ds, str, test_str1);
+
+  /* show cmd (current). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, controller_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv2), argv2, &tbl, controller_cmd_update,
+                 &ds, str, test_str2);
+
+  /* show cmd (modified). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 controller_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv3), argv3, &tbl, controller_cmd_update,
+                 &ds, str, test_str3);
+
+  /* config cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, controller_cmd_parse, &interp, state2,
+                 ARGV_SIZE(argv4), argv4, &tbl, controller_cmd_update,
+                 &ds, str, test_str4);
+
+  /* show cmd (current). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, controller_cmd_parse, &interp, state2,
+                 ARGV_SIZE(argv5), argv5, &tbl, controller_cmd_update,
+                 &ds, str, test_str5);
+
+  /* show cmd (modified). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 controller_cmd_parse, &interp, state2,
+                 ARGV_SIZE(argv6), argv6, &tbl, controller_cmd_update,
+                 &ds, str, test_str6);
+
+  /* channel destroy cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, channel_cmd_parse, &interp, state1,
+                 ARGV_SIZE(channel_argv3), channel_argv3, &tbl,
+                 channel_cmd_update,
+                 &ds, str, channel_test_str3);
+
+  /* channel destroy cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, channel_cmd_parse, &interp, state1,
+                 ARGV_SIZE(channel_argv4), channel_argv4, &tbl,
+                 channel_cmd_update,
+                 &ds, str, channel_test_str4);
+}
+
+void
 test_destroy(void) {
   destroy = true;
 }

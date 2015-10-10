@@ -1542,3 +1542,7 @@ test_log_destroy_tables(void) {
   TEST_ASSERT_NULL(log_typ_to_str_table);
 }
 
+void
+test_destroy(void) {
+  destroy = true;
+}

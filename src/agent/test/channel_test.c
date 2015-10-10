@@ -31,22 +31,18 @@ struct channel *
 s_create_data_channel(void) {
   uint64_t dpid = 0x01;
   struct channel *channel;
-  struct event_manager *em;
   lagopus_session_t session;
   struct addrunion addr  = {0,{{0}}};
 
-  em = event_manager_alloc();
   addrunion_ipv4_set(&addr, "127.0.0.1");
-  channel = channel_alloc(&addr, em, dpid);
+  channel = channel_alloc(&addr, dpid);
 
-  session = session_create(SESSION_TCP|SESSION_ACTIVE);
+  (void) session_create(SESSION_TCP|SESSION_ACTIVE, &session);
   session_write_set(session, write_tcp);
 
   channel_version_set(channel, 0x04);
   channel_session_set(channel, session);
   channel_xid_set(channel, 0x10);
-
-  event_manager_free(em);
 
   return channel;
 }
@@ -86,7 +82,7 @@ test_channel_session_get_set(void) {
 
   channel = s_create_data_channel();
 
-  session = session_create(SESSION_TCP|SESSION_ACTIVE);
+  (void) session_create(SESSION_TCP|SESSION_ACTIVE, &session);
   TEST_ASSERT_NOT_EQUAL_MESSAGE(session, channel_session_get(channel),
                                 "session error.");
   session_destroy(channel_session_get(channel));

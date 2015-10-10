@@ -3270,6 +3270,145 @@ test_port_cmd_parse_config_delete_policer(void) {
 }
 
 void
+test_port_cmd_parse_dryrun(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state1 = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  datastore_interp_state_t state2 = DATASTORE_INTERP_STATE_DRYRUN;
+  char *str = NULL;
+  const char *argv1[] = {"port", "test_name34", "create",
+                         "-interface", "test_eth34",
+                         "-policer", "p34_1",
+                         "-queue", "q34_1",
+                         NULL
+                        };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char *argv2[] = {"port", "test_name34", "current", NULL};
+  const char test_str2[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name34\",\n"
+    "\"port-number\":0,\n"
+    "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"test_eth34\",\n"
+    "\"policer\":\""DATASTORE_NAMESPACE_DELIMITER"p34_1\",\n"
+    "\"queues\":[\""DATASTORE_NAMESPACE_DELIMITER"q34_1\"],\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+  const char *argv3[] = {"port", "test_name34", "modified", NULL};
+  const char test_str3[] =
+    "{\"ret\":\"NOT_OPERATIONAL\",\n"
+    "\"data\":\"Not set modified.\"}";
+  const char *argv4[] = {"port", "test_name34", "config",
+                         "-interface", "test_eth34_2",
+                         "-policer", "p34_2",
+                         "-queue", "q34_2",
+                         NULL
+                        };
+  const char test_str4[] = "{\"ret\":\"OK\"}";
+  const char *argv5[] = {"port", "test_name34", "current", NULL};
+  const char test_str5[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name34\",\n"
+    "\"port-number\":0,\n"
+    "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"test_eth34_2\",\n"
+    "\"policer\":\""DATASTORE_NAMESPACE_DELIMITER"p34_2\",\n"
+    "\"queues\":[\""DATASTORE_NAMESPACE_DELIMITER"q34_1\","
+                "\""DATASTORE_NAMESPACE_DELIMITER"q34_2\"],\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+  const char *argv6[] = {"port", "test_name34", "modified", NULL};
+  const char test_str6[] =
+    "{\"ret\":\"NOT_OPERATIONAL\",\n"
+    "\"data\":\"Not set modified.\"}";
+
+  const char *inter_argv1[] = {"interface", "test_eth34", "create",
+                               "-type", "ethernet-rawsock",
+                               "-port-number", "134",
+                               "-device", "eth0",
+                               NULL
+                              };
+  const char inter_test_str1[] = "{\"ret\":\"OK\"}";
+  const char *inter_argv2[] = {"interface", "test_eth34_2", "create",
+                               "-type", "ethernet-rawsock",
+                               "-port-number", "34",
+                               "-device", "eth0",
+                               NULL
+                              };
+  const char inter_test_str2[] = "{\"ret\":\"OK\"}";
+  const char *inter_argv3[] = {"interface", "test_eth34", "destroy",
+                               NULL
+                              };
+  const char inter_test_str3[] = "{\"ret\":\"OK\"}";
+  const char *inter_argv4[] = {"interface", "test_eth34_2", "destroy",
+                               NULL
+                              };
+  const char inter_test_str4[] = "{\"ret\":\"OK\"}";
+
+  TEST_QUEUE_CREATE(ret, &interp, state1, &tbl, &ds, str, "q34_1", "1");
+  TEST_QUEUE_CREATE(ret, &interp, state1, &tbl, &ds, str, "q34_2", "2");
+  TEST_POLICER_CREATE(ret, &interp, state1, &tbl, &ds, str, "pa34_1", "p34_1");
+  TEST_POLICER_CREATE(ret, &interp, state1, &tbl, &ds, str, "pa34_2", "p34_2");
+
+  /* interface create cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, interface_cmd_parse, &interp, state1,
+                 ARGV_SIZE(inter_argv1), inter_argv1, &tbl, interface_cmd_update,
+                 &ds, str, inter_test_str1);
+
+  /* interface create cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, interface_cmd_parse, &interp, state1,
+                 ARGV_SIZE(inter_argv2), inter_argv2, &tbl, interface_cmd_update,
+                 &ds, str, inter_test_str2);
+
+  /* create cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, port_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv1), argv1, &tbl, port_cmd_update,
+                 &ds, str, test_str1);
+
+  /* show cmd (current). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, port_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv2), argv2, &tbl, port_cmd_update,
+                 &ds, str, test_str2);
+
+  /* show cmd (modified). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 port_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv3), argv3, &tbl, port_cmd_update,
+                 &ds, str, test_str3);
+
+  /* config cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, port_cmd_parse, &interp, state2,
+                 ARGV_SIZE(argv4), argv4, &tbl, port_cmd_update,
+                 &ds, str, test_str4);
+
+  /* show cmd (current). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, port_cmd_parse, &interp, state2,
+                 ARGV_SIZE(argv5), argv5, &tbl, port_cmd_update,
+                 &ds, str, test_str5);
+
+  /* show cmd (modified). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 port_cmd_parse, &interp, state2,
+                 ARGV_SIZE(argv6), argv6, &tbl, port_cmd_update,
+                 &ds, str, test_str6);
+
+  /* interface destroy cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, interface_cmd_parse, &interp, state1,
+                 ARGV_SIZE(inter_argv3), inter_argv3, &tbl, interface_cmd_update,
+                 &ds, str, inter_test_str3);
+
+  /* interface destroy cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, interface_cmd_parse, &interp, state1,
+                 ARGV_SIZE(inter_argv4), inter_argv4, &tbl, interface_cmd_update,
+                 &ds, str, inter_test_str4);
+
+  TEST_PORT_DESTROY(ret, &interp, state1, &tbl, &ds, str, NULL, "test_name34");
+
+  TEST_QUEUE_DESTROY(ret, &interp, state1, &tbl, &ds, str, "q34_1");
+  TEST_QUEUE_DESTROY(ret, &interp, state1, &tbl, &ds, str, "q34_2");
+  TEST_POLICER_DESTROY(ret, &interp, state1, &tbl, &ds, str, "pa34_1", "p34_1");
+  TEST_POLICER_DESTROY(ret, &interp, state1, &tbl, &ds, str, "pa34_2", "p34_2");
+}
+
+
+void
 test_destroy(void) {
   destroy = true;
 }

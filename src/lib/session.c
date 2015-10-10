@@ -23,11 +23,8 @@
 
 #define MAX_EVENTS     1024
 
-struct pollfd pollfd[MAX_EVENTS];
-
-extern lagopus_session_t session_tcp_init(lagopus_session_t );
-extern lagopus_session_t session_tls_init(lagopus_session_t );
-extern void *session_tls_destroy(lagopus_session_t );
+extern lagopus_result_t session_tcp_init(lagopus_session_t );
+extern lagopus_result_t session_tls_init(lagopus_session_t );
 
 /* Set socket buffer size to val. */
 static void
@@ -60,9 +57,9 @@ socket_buffer_size_set(int sock, int optname, int val) {
 
   /* Logging. */
   if (optname == SO_SNDBUF) {
-    lagopus_msg_info("SO_SNDBUF buffer size is %d\n", size);
+    lagopus_msg_debug(10, "SO_SNDBUF buffer size is %d\n", size);
   } else {
-    lagopus_msg_info("SO_RCVBUF buffer size is %d\n", size);
+    lagopus_msg_debug(10, "SO_RCVBUF buffer size is %d\n", size);
   }
 }
 
@@ -100,7 +97,7 @@ bind_default(lagopus_session_t s, const char *host, const char *port) {
   struct addrinfo hints = {0,0,0,0,0,NULL,NULL,NULL}, *res = NULL;
 
   snprintf(service, sizeof(service), "%s", port);
-  lagopus_msg_info("host:%s, service:%s\n", host, service);
+  lagopus_msg_debug(10, "host:%s, service:%s\n", host, service);
   hints.ai_family = s->family;
   hints.ai_socktype = s->type;
   ret = getaddrinfo(host, service, &hints, &res);
@@ -149,7 +146,7 @@ connect_default(lagopus_session_t s, const char *host, const char *port) {
   struct addrinfo hints = {0,0,0,0,0,NULL,NULL,NULL}, *res = NULL;
 
   snprintf(service, sizeof(service), "%s", port);
-  lagopus_msg_info("host:%s, service:%s\n", host, service);
+  lagopus_msg_debug(10, "host:%s, service:%s\n", host, service);
   hints.ai_family = s->family;
   hints.ai_socktype = s->type;
   ret = getaddrinfo(host, service, &hints, &res);
@@ -213,19 +210,26 @@ writen(lagopus_session_t s, void *buf, size_t n) {
   return offset;
 }
 
-lagopus_session_t
-session_create(session_type_t t) {
+lagopus_result_t
+session_create(session_type_t t, lagopus_session_t *session) {
+  lagopus_result_t ret;
   lagopus_session_t s;
 
-  if (!(t & (SESSION_PASSIVE|SESSION_ACTIVE|SESSION_ACCEPTED))) {
+  if (!(t & (SESSION_PASSIVE | SESSION_ACTIVE |
+            SESSION_ACCEPTED | SESSION_UNIX_STREAM | SESSION_UNIX_DGRAM))) {
     lagopus_msg_warning("illegal session type: 0x%x\n", t);
-    return NULL;
+    return LAGOPUS_RESULT_INVALID_ARGS;
   }
+
+  if (session == NULL) {
+    return LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
   lagopus_msg_debug(5, "s_server_session %x.\n", t);
 
   s = malloc(sizeof(struct session));
   if (s == NULL) {
-    return NULL;
+    return LAGOPUS_RESULT_NO_MEMORY;
   }
 
   s->sock = -1;
@@ -249,7 +253,14 @@ session_create(session_type_t t) {
   } else if (t & SESSION_TCP6) {
     s->family = PF_INET6;
     s->type   = SOCK_STREAM;
+  } else if (t & SESSION_UNIX_STREAM) {
+    s->family = PF_UNIX;
+    s->type   = SOCK_STREAM;
+  } else if (t & SESSION_UNIX_DGRAM) {
+    s->family = PF_UNIX;
+    s->type   = SOCK_DGRAM;
   } else {
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
     goto err;
   }
 
@@ -257,15 +268,65 @@ session_create(session_type_t t) {
   lagopus_msg_debug(5, "lagopus_session_t s %p.\n", s);
   if (t & SESSION_TLS) {
     lagopus_msg_debug(5, "session_tls_init.\n");
-    return session_tls_init(s);
+    ret = session_tls_init(s);
+    if (ret != LAGOPUS_RESULT_OK) {
+      goto err;
+    }
+  } else if (t & (SESSION_TCP | SESSION_TCP6 | SESSION_UNIX_STREAM | SESSION_UNIX_DGRAM)) {
+    ret = session_tcp_init(s);
+    if (ret != LAGOPUS_RESULT_OK) {
+      goto err;
+    }
   } else {
-    return session_tcp_init(s);
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
+    goto err;
   }
+
+  *session = s;
+  return LAGOPUS_RESULT_OK;
 
 err:
   lagopus_msg_warning("illegal session type: 0x%x\n", t);
   free(s);
-  return NULL;
+  *session = NULL;
+  return ret;
+}
+
+lagopus_result_t
+session_pair(session_type_t t, lagopus_session_t session[2]) {
+  int ret0, sock[2];
+  lagopus_result_t ret;
+
+  if (!(t & (SESSION_UNIX_STREAM|SESSION_UNIX_DGRAM))) {
+    lagopus_msg_warning("illegal session type: 0x%x\n", t);
+    return LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  ret = session_create(t, &session[0]);
+  if (ret != LAGOPUS_RESULT_OK) {
+    lagopus_perror(ret);
+    return ret;
+  }
+
+  ret = session_create(t, &session[1]);
+  if (ret != LAGOPUS_RESULT_OK) {
+    session_destroy(session[0]);
+    lagopus_perror(ret);
+    return ret;
+  }
+
+  ret0 = socketpair(session[0]->family, session[0]->type, 0, sock);
+  if (ret0 != 0) {
+    ret = LAGOPUS_RESULT_POSIX_API_ERROR;
+    session_destroy(session[0]);
+    session_destroy(session[1]);
+    return ret;
+  }
+
+  session[0]->sock = sock[0];
+  session[1]->sock = sock[1];
+
+  return LAGOPUS_RESULT_OK;
 }
 
 void
@@ -299,8 +360,20 @@ session_is_alive(lagopus_session_t s) {
 }
 
 void
+session_event_clear(lagopus_session_t s) {
+  s->events = 0;
+  s->revents = 0;
+}
+
+void
 session_read_event_set(lagopus_session_t s) {
-  s->events = POLLIN;
+  s->events |= POLLIN;
+  s->revents = 0;
+}
+
+void
+session_read_event_unset(lagopus_session_t s) {
+  s->events = s->events & ~POLLIN;
   s->revents = 0;
 }
 
@@ -318,9 +391,26 @@ session_is_readable(lagopus_session_t s, bool *b) {
   }
 }
 
+lagopus_result_t
+session_is_read_on(lagopus_session_t s, bool *b) {
+  if (s->events & POLLIN) {
+    *b = true;
+    return LAGOPUS_RESULT_OK;
+  } else {
+    *b = false;
+    return LAGOPUS_RESULT_OK;
+  }
+}
+
 void
 session_write_event_set(lagopus_session_t s) {
-  s->events = POLLOUT;
+  s->events |= POLLOUT;
+  s->revents = 0;
+}
+
+void
+session_write_event_unset(lagopus_session_t s) {
+  s->events = s->events & ~POLLOUT;
   s->revents = 0;
 }
 
@@ -338,6 +428,17 @@ session_is_writable(lagopus_session_t s, bool *b) {
   }
 }
 
+lagopus_result_t
+session_is_write_on(lagopus_session_t s, bool *b) {
+  if (s->events & POLLOUT) {
+    *b = true;
+    return LAGOPUS_RESULT_OK;
+  } else {
+    *b = false;
+    return LAGOPUS_RESULT_OK;
+  }
+}
+
 bool
 session_is_passive(lagopus_session_t s) {
   return (s->session_type & SESSION_PASSIVE);
@@ -347,6 +448,7 @@ lagopus_result_t
 session_poll(lagopus_session_t s[], int n, int timeout) {
   int i, n_events = 0;
   lagopus_result_t ret;
+  struct pollfd pollfd[MAX_EVENTS];
 
   if (n > MAX_EVENTS) {
     return LAGOPUS_RESULT_INVALID_ARGS;
@@ -359,6 +461,7 @@ session_poll(lagopus_session_t s[], int n, int timeout) {
     } else {
       pollfd[i].fd = s[i]->sock;
       pollfd[i].events = s[i]->events;
+      pollfd[i].revents = 0;
     }
   }
 
@@ -366,11 +469,17 @@ session_poll(lagopus_session_t s[], int n, int timeout) {
     return n_events;
   }
 
+  lagopus_msg_debug(10, "%d events pollin.\n", n);
   n_events = poll(pollfd, (nfds_t) n, timeout);
+  lagopus_msg_debug(10, "%d events pollout.\n", n_events);
   if (n_events == 0) {
     ret = LAGOPUS_RESULT_TIMEDOUT;
   } else if (n_events < 0) {
-    ret = LAGOPUS_RESULT_POSIX_API_ERROR;
+    if (errno == EINTR) {
+      ret = LAGOPUS_RESULT_INTERRUPTED;
+    } else {
+      ret = LAGOPUS_RESULT_POSIX_API_ERROR;
+    }
   } else {
     ret = n_events;
   }
@@ -384,25 +493,26 @@ session_poll(lagopus_session_t s[], int n, int timeout) {
 
 lagopus_result_t
 session_accept(lagopus_session_t s1, lagopus_session_t *s2) {
-  int ret;
+  int sock;
   struct sockaddr_storage ss = {0,0,{0}};
   socklen_t ss_len = sizeof(ss);
   session_type_t t;
+  lagopus_result_t ret;
 
-  ret = accept(s1->sock, (struct sockaddr *) &ss, &ss_len);
-  if (ret < 0) {
+  sock = accept(s1->sock, (struct sockaddr *) &ss, &ss_len);
+  if (sock  < 0) {
     lagopus_msg_warning("accept error.\n");
     return LAGOPUS_RESULT_POSIX_API_ERROR;
   }
 
   t = ((s1->session_type
         & (unsigned int) ~(SESSION_PASSIVE|SESSION_ACTIVE)) | SESSION_ACCEPTED);
-  *s2 = session_create(t);
+  ret = session_create(t, s2);
   if (*s2 == NULL) {
-    close(ret);
-    return LAGOPUS_RESULT_NO_MEMORY;
+    close(sock);
+    return ret;
   }
-  (*s2)->sock = ret;
+  (*s2)->sock = sock;
 
   if (s1->accept != NULL) {
     return s1->accept(s1, s2);

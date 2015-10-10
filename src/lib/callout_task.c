@@ -708,49 +708,52 @@ s_submit_task(lagopus_callout_task_t t,
          * atomic.
          */
 
-        s_lock_task(t);
+        s_lock_task_q();
         {
-          t->m_initial_delay_time = initial_delay;
-          if (interval > 0LL) {
-            t->m_interval_time = interval;
-            t->m_do_repeat = true;
-          }
-
-          if (likely(initial_delay == 0LL)) {
-            /*
-             * An urgent task.
-             */
-            ret = lagopus_bbq_put(&s_urgent_tsk_q, (void **)&tt,
-                                  lagopus_callout_task_t, -1LL);
-          } else if (likely(initial_delay > 0LL)) {
-            /*
-             * A timed task.
-             */
-            if (likely(s_schedule_timed_task_no_lock(t) > 0)) {
-              ret = LAGOPUS_RESULT_OK;
-            } else {
-              ret = LAGOPUS_RESULT_ANY_FAILURES;
+          s_lock_task(t);
+          {
+            t->m_initial_delay_time = initial_delay;
+            if (interval > 0LL) {
+              t->m_interval_time = interval;
+              t->m_do_repeat = true;
             }
-          } else {
-            /*
-             * An idle task.
-             */
-            ret = lagopus_bbq_put(&s_idle_tsk_q, (void **)&tt,
-                                  lagopus_callout_task_t, -1LL);
-          }
 
-          if (ret == LAGOPUS_RESULT_OK && t->m_is_in_timed_q == false) {
-            /*
-             * For the tasks except the timed ones, set the task state
-             * to TASK_STATE_ENQUEUED.
-             */
-            (void)s_set_task_state_in_table(t, TASK_STATE_ENQUEUED);
-            t->m_status = TASK_STATE_ENQUEUED;
-            t->m_is_in_bbq = true;
+            if (likely(initial_delay == 0LL)) {
+              /*
+               * An urgent task.
+               */
+              ret = lagopus_bbq_put(&s_urgent_tsk_q, (void **)&tt,
+                                    lagopus_callout_task_t, -1LL);
+            } else if (likely(initial_delay > 0LL)) {
+              /*
+               * A timed task.
+               */
+              if (likely(s_schedule_timed_task_no_lock(t) > 0)) {
+                ret = LAGOPUS_RESULT_OK;
+              } else {
+                ret = LAGOPUS_RESULT_ANY_FAILURES;
+              }
+            } else {
+              /*
+               * An idle task.
+               */
+              ret = lagopus_bbq_put(&s_idle_tsk_q, (void **)&tt,
+                                    lagopus_callout_task_t, -1LL);
+            }
+
+            if (ret == LAGOPUS_RESULT_OK && t->m_is_in_timed_q == false) {
+              /*
+               * For the tasks except the timed ones, set the task state
+               * to TASK_STATE_ENQUEUED.
+               */
+              (void)s_set_task_state_in_table(t, TASK_STATE_ENQUEUED);
+              t->m_status = TASK_STATE_ENQUEUED;
+              t->m_is_in_bbq = true;
+            }
           }
+          s_unlock_task(t);
         }
-        s_unlock_task(t);
-
+        s_unlock_task_q();
       }
       s_unlock_global();
 

@@ -152,7 +152,6 @@ s_write_tcp(lagopus_session_t s, void *buf, size_t n) {
 
 static uint32_t s_xid = 0x10;
 static volatile bool s_is_init = false;
-static struct event_manager *s_event_manager = NULL;
 datastore_interface_info_t s_interface_info;
 datastore_bridge_info_t s_bridge_info;
 datastore_bridge_queue_info_t s_queue_info = {1000LL, 1000LL, 1000LL,
@@ -214,10 +213,7 @@ create_data_channel(void) {
                           bridge_name,
                           &s_bridge_info,
                           &s_queue_info));
-  }
-  if (s_event_manager == NULL) {
-    s_event_manager = event_manager_alloc();
-    channel_mgr_initialize(s_event_manager);
+    channel_mgr_initialize();
   }
 
   snprintf(buf, sizeof(buf), "127.0.0.%u", cnt++);//XXX
@@ -250,7 +246,6 @@ s_destroy_channel(struct channel *channel) {
 
 static void
 s_destroy_static_data(void) {
-  channel_mgr_finalize();
 
   if (s_is_init == true) {
     s_is_init = false;
@@ -266,10 +261,6 @@ s_destroy_static_data(void) {
 
   dp_api_fini();
 
-  if (s_event_manager != NULL) {
-    event_manager_free(s_event_manager);
-    s_event_manager = NULL;
-  }
 }
 
 void

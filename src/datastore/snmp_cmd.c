@@ -193,7 +193,8 @@ done:
 }
 
 static inline lagopus_result_t
-s_parse_snmp_internal(const char *const argv[],
+s_parse_snmp_internal(datastore_interp_state_t state,
+                      const char *const argv[],
                       lagopus_dstring_t *result) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   char *agentx_sock = NULL;
@@ -207,14 +208,17 @@ s_parse_snmp_internal(const char *const argv[],
         if ((ret = lagopus_str_unescape(*argv, "\"'", &agentx_sock))
             > 0) {
 
-          if ((ret = lagopus_snmp_set_agentx_sock(agentx_sock))
-              != LAGOPUS_RESULT_OK) {
-            ret = datastore_json_result_string_setf(result, ret,
-                                                    "Can't set %s.",
-                                                    agentx_sock);
-            goto done;
+          if (state == DATASTORE_INTERP_STATE_DRYRUN) {
+            ret = LAGOPUS_RESULT_OK;
+          } else {
+            if ((ret = lagopus_snmp_set_agentx_sock(agentx_sock))
+                != LAGOPUS_RESULT_OK) {
+              ret = datastore_json_result_string_setf(result, ret,
+                                                      "Can't set %s.",
+                                                      agentx_sock);
+              goto done;
+            }
           }
-
         } else if (ret == 0) {
           ret = datastore_json_result_string_setf(result,
                                                   LAGOPUS_RESULT_INVALID_ARGS,
@@ -261,13 +265,17 @@ s_parse_snmp_internal(const char *const argv[],
           uint16_t new_ping;
           ret = lagopus_str_parse_uint16(ping, &new_ping);
           if (ret == LAGOPUS_RESULT_OK) {
-            if ((ret = lagopus_snmp_set_ping_interval(new_ping))
-                != LAGOPUS_RESULT_OK) {
-              ret = datastore_json_result_string_setf(result, ret,
-                                                      "Can't set "
-                                                      "ping-interval.");
+            if (state == DATASTORE_INTERP_STATE_DRYRUN) {
+              ret = LAGOPUS_RESULT_OK;
+            } else {
+              if ((ret = lagopus_snmp_set_ping_interval(new_ping))
+                  != LAGOPUS_RESULT_OK) {
+                ret = datastore_json_result_string_setf(result, ret,
+                                                        "Can't set "
+                                                        "ping-interval.");
 
-              goto done;
+                goto done;
+              }
             }
           } else {
             ret = datastore_json_result_string_setf(result, ret,
@@ -304,11 +312,15 @@ s_parse_snmp_internal(const char *const argv[],
       }
 
     } else if (strcmp(*argv, "enable") == 0) {
-      if ((ret = lagopus_snmp_set_enable(true))
-          != LAGOPUS_RESULT_OK) {
-        ret = datastore_json_result_string_setf(result, ret,
-                                                "Can't set enable.");
-        goto done;
+      if (state == DATASTORE_INTERP_STATE_DRYRUN) {
+        ret = LAGOPUS_RESULT_OK;
+      } else {
+        if ((ret = lagopus_snmp_set_enable(true))
+            != LAGOPUS_RESULT_OK) {
+          ret = datastore_json_result_string_setf(result, ret,
+                                                  "Can't set enable.");
+          goto done;
+        }
       }
     } else {
       char *esc_str = NULL;
@@ -362,7 +374,6 @@ s_parse_snmp(datastore_interp_t *iptr,
   size_t i;
 
   (void)iptr;
-  (void)state;
   (void)argc;
   (void)hptr;
   (void)u_proc;
@@ -378,7 +389,7 @@ s_parse_snmp(datastore_interp_t *iptr,
   if (IS_VALID_STRING(*argv) == false) {
     ret = s_parse_snmp_show(result);
   } else {
-    ret = s_parse_snmp_internal(argv, result);
+    ret = s_parse_snmp_internal(state, argv, result);
   }
 
   return ret;

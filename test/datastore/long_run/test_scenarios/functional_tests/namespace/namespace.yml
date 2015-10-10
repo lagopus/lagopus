@@ -99,6 +99,16 @@ testcases:
             cmd: namespace delete ns02
             result: '{"ret": "OK"}'
 
+  - testcase: invalid namespace
+    test:
+      - repetition_count: 1
+        cmds:
+          - cmd_type: ds
+            cmd: namespace add dryrun
+            result: |-
+              {"ret":"INVALID_NAMESPACE",
+              "data":"Can't add = dryrun"}
+
   - testcase: invalid args
     test:
       - repetition_count: 1
@@ -168,7 +178,7 @@ testcases:
               {"ret":"OK",
               "current":"ns01", "all":["ns01", "ns02"]}
           - cmd_type: ds
-            cmd: load {{ test_home  }}/test_scenarios/functional_tests/namespace_success.dsl
+            cmd: load {{ test_home  }}/test_scenarios/functional_tests/namespace/namespace_success.dsl
             result: '{"ret": "OK"}'
           - cmd_type: ds
             cmd: interface if01
@@ -454,7 +464,7 @@ testcases:
               {"ret":"OK",
               "current":"ns01", "all":["ns01", "ns02"]}
           - cmd_type: ds
-            cmd: load {{ test_home  }}/test_scenarios/functional_tests/namespace_success.dsl
+            cmd: load {{ test_home  }}/test_scenarios/functional_tests/namespace/namespace_success.dsl
             result: '{"ret": "OK"}'
           - cmd_type: ds
             cmd: interface if01

@@ -138,6 +138,9 @@ lagopus_result_t
 agent_cmd_serialize(lagopus_dstring_t *result);
 
 lagopus_result_t
+l2_bridge_set_bridge_name(const char *name, const char *bridge_name);
+
+lagopus_result_t
 copy_mac_address(const mac_address_t src, mac_address_t dst);
 
 bool
@@ -155,6 +158,18 @@ equals_mac_address(const mac_address_t mac1, const mac_address_t mac2);
  */
 lagopus_result_t
 namespace_get_current_namespace(char **namespace);
+
+/**
+ *  Get the saved namespace.
+ *
+ *     @param[out]	namespace	A pointer to a saved namespace.
+ *
+ *     @retval	LAGOPUS_RESULT_OK	Succeeded.
+ *     @retval	LAGOPUS_RESULT_INVALID_ARGS	Failed, invalid argument(s).
+ *     @retval	LAGOPUS_RESULT_NO_MEMORY	Failed, no memory.
+ */
+lagopus_result_t
+namespace_get_saved_namespace(char **namespace);
 
 /**
  *  Get the namespace of the object.
@@ -203,6 +218,12 @@ namespace_get_fullname(const char *name, char **fullname);
  */
 lagopus_result_t
 namespace_get_search_target(const char *fullname, char **target);
+
+lagopus_result_t
+dryrun_begin(void);
+
+lagopus_result_t
+dryrun_end(void);
 
 lagopus_result_t
 datastore_all_commands_initialize(void);

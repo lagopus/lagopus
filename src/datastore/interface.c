@@ -350,8 +350,6 @@ interface_conf_duplicate(const interface_conf_t *src_conf,
     }
   } else {
     if ((len = strlen(src_conf->name)) <= DATASTORE_INTERFACE_FULLNAME_MAX) {
-      buf = (char *) malloc(sizeof(char) * (len + 1));
-
       rc = ns_replace_namespace(src_conf->name, namespace, &buf);
       if (rc == LAGOPUS_RESULT_OK) {
         rc = interface_conf_create(dst_conf, buf);

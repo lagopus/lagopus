@@ -105,6 +105,7 @@ done:
 
 static inline lagopus_result_t
 s_parse_begin(datastore_interp_t *iptr,
+              datastore_interp_state_t state,
               size_t argc, const char *const argv[],
               bool *is_show,
               lagopus_dstring_t *result) {
@@ -120,12 +121,16 @@ s_parse_begin(datastore_interp_t *iptr,
           if (*argv != NULL) {
             if (IS_VALID_STRING(*argv) == true) {
               if (strlen(*argv) < PATH_MAX) {
-                lagopus_mutex_lock(&lock);
-                strncpy(save_tmp_dir, *argv, PATH_MAX - 1);
-                lagopus_mutex_unlock(&lock);
+                if (state == DATASTORE_INTERP_STATE_DRYRUN) {
+                  ret = LAGOPUS_RESULT_OK;
+                } else {
+                  lagopus_mutex_lock(&lock);
+                  strncpy(save_tmp_dir, *argv, PATH_MAX - 1);
+                  lagopus_mutex_unlock(&lock);
 
-                /* call begin func.*/
-                ret = s_parse_begin_call(iptr, result);
+                  /* call begin func.*/
+                  ret = s_parse_begin_call(iptr, result);
+                }
               } else {
                 ret = datastore_json_result_string_setf(
                     result,
@@ -160,8 +165,12 @@ s_parse_begin(datastore_interp_t *iptr,
             *argv);
       }
     }  else {
-      /* call begin func.*/
-      ret = s_parse_begin_call(iptr, result);
+      if (state == DATASTORE_INTERP_STATE_DRYRUN) {
+        ret = LAGOPUS_RESULT_OK;
+      } else {
+        /* call begin func.*/
+        ret = s_parse_begin_call(iptr, result);
+      }
     }
   } else {
     ret = datastore_json_result_string_setf(
@@ -207,13 +216,25 @@ s_parse_atomic(datastore_interp_t *iptr,
                                      NULL);
   } else {
     if (strcmp(*argv, "begin") == 0) {
-      ret = s_parse_begin(iptr, argc, argv, &is_show, result);
+      ret = s_parse_begin(iptr, state, argc, argv, &is_show, result);
     } else if (strcmp(*argv, "abort") == 0) {
-      ret = datastore_interp_atomic_abort(iptr, result);
+      if (state == DATASTORE_INTERP_STATE_DRYRUN) {
+        ret = LAGOPUS_RESULT_OK;
+      } else {
+        ret = datastore_interp_atomic_abort(iptr, result);
+      }
     } else if (strcmp(*argv, "commit") == 0) {
-      ret = datastore_interp_atomic_commit(iptr, result);
+      if (state == DATASTORE_INTERP_STATE_DRYRUN) {
+        ret = LAGOPUS_RESULT_OK;
+      } else {
+        ret = datastore_interp_atomic_commit(iptr, result);
+      }
     } else if (strcmp(*argv, "rollback-force") == 0) {
-      ret = datastore_interp_atomic_rollback(iptr, result, true);
+      if (state == DATASTORE_INTERP_STATE_DRYRUN) {
+        ret = LAGOPUS_RESULT_OK;
+      } else {
+        ret = datastore_interp_atomic_rollback(iptr, result, true);
+      }
     } else {
       return datastore_json_result_string_setf(result,
              LAGOPUS_RESULT_INVALID_ARGS,

@@ -29,29 +29,47 @@ typedef struct session *lagopus_session_t;
  * - session_type_to_enum
  */
 typedef enum {
-  SESSION_PASSIVE  = 0x001,
-  SESSION_ACTIVE   = 0x002,
-  SESSION_ACCEPTED = 0x004,
-  SESSION_TCP      = 0x010,
-  SESSION_TCP6     = 0x020,
-  SESSION_TLS      = 0x100,
+  SESSION_PASSIVE     = 0x0001,
+  SESSION_ACTIVE      = 0x0002,
+  SESSION_ACCEPTED    = 0x0004,
+  SESSION_TCP         = 0x0010,
+  SESSION_TCP6        = 0x0020,
+  SESSION_UNIX_DGRAM  = 0x0100,
+  SESSION_UNIX_STREAM = 0x0200,
+  SESSION_TLS         = 0x1000,
 } session_type_t;
 
 
 /**
  * Create a session.
  *
- *  @param[in] session_type  A session type for creating.
+ *  @param[in]  session_type  A session type for creating.
+ *  @param[out] session       A created session.
  *
- *  @retval !NULL Succeeded, allocated new session pointer.
- *  @retval NULL  Failed, maybe no memory.
+ *  @retval LAGOPUS_RESULT_OK      Succeeded.
+ *  @retval !=LAGOPUS_RESULT_OK    Failed.
  *
  *  @details Call this function for creating a session for tcp, tcp6, tls etc.
  *  Session_type must be set socket type(SESSION_PASSIVE or SESSION_ACCEPTED)
  *  and protocol type(SESSION_TCP or SESSION_TCP6).
  */
-lagopus_session_t
-session_create(session_type_t session_type);
+lagopus_result_t
+session_create(session_type_t session_type, lagopus_session_t *session);
+
+/**
+ * Create a session pair.
+ *
+ *  @param[in]  session_type  A session type for creating but only SESSION_UNIX_DGRAM or SESSION_UNIX_STREAM are allowed.
+ *  @param[out] session[2]    created session pair.
+ *
+ *  @retval LAGOPUS_RESULT_OK      Succeeded.
+ *  @retval !=LAGOPUS_RESULT_OK    Failed.
+ *
+ *  @details Call this function for creating session pair for unix domain sockets.
+ *  Session_type must be set SESSION_UNIX_DGRAM or SESSION_UNIX_STREAM.
+ */
+lagopus_result_t
+session_pair(session_type_t session_type, lagopus_session_t session[2]);
 
 /**
  * Destroy session.
@@ -222,6 +240,16 @@ lagopus_result_t
 session_accept(lagopus_session_t s1, lagopus_session_t *s2);
 
 /**
+ * Clear a read/write event in a session.
+ *
+ *  @param[in]   s     A session.
+ *
+ *  @details Clear a read/write event in a session for polling.
+ */
+void
+session_event_clear(lagopus_session_t s);
+
+/**
  * Set a read event into a session.
  *
  *  @param[in]   s     A session.
@@ -230,6 +258,16 @@ session_accept(lagopus_session_t s1, lagopus_session_t *s2);
  */
 void
 session_read_event_set(lagopus_session_t s);
+
+/**
+ * Unset a read event into a session.
+ *
+ *  @param[in]   s     A session.
+ *
+ *  @details Unset a read event into a session for polling.
+ */
+void
+session_read_event_unset(lagopus_session_t s);
 
 /**
  * Return a session is readable or not.
@@ -244,6 +282,18 @@ lagopus_result_t
 session_is_readable(lagopus_session_t s, bool *b);
 
 /**
+ * Return a session is read on or not.
+ *
+ *  @param[in]   s     A session.
+ *  @param[out]  b     Read on or not.
+ *
+ *  @retval LAGOPUS_RESULT_OK Succeeded.
+ *
+ */
+lagopus_result_t
+session_is_read_on(lagopus_session_t s, bool *b);
+
+/**
  * Set a write event into a session.
  *
  *  @param[in]   s     A session.
@@ -252,6 +302,16 @@ session_is_readable(lagopus_session_t s, bool *b);
  */
 void
 session_write_event_set(lagopus_session_t s);
+
+/**
+ * Unset a write event into a session.
+ *
+ *  @param[in]   s     A session.
+ *
+ *  @details Unset a write event into a session for polling.
+ */
+void
+session_write_event_unset(lagopus_session_t s);
 
 /**
  * Return a session is writable or not.
@@ -266,13 +326,27 @@ lagopus_result_t
 session_is_writable(lagopus_session_t s, bool *b);
 
 /**
+ * Return a session is write on or not.
+ *
+ *  @param[in]   s     A session.
+ *  @param[out]  b     Write on or not.
+ *
+ *  @retval LAGOPUS_RESULT_OK Succeeded.
+ *
+ */
+lagopus_result_t
+session_is_write_on(lagopus_session_t s, bool *b);
+
+/**
  * Poll for sessions.
  *
  *  @param[in]  s[]      Sessions.
  *  @param[in]  n        Number of sessions.
  *  @param[in]  timeout  Timeout(msec).
  *
- *  @retval LAGOPUS_RESULT_OK              Succeeded.
+ *  @retval > 0                            Succeeded, return value is number of readable/writable session.
+ *  @retval LAGOPUS_RESULT_TIMEDOUT        Timeouted.
+ *  @retval LAGOPUS_RESULT_INTERRUPTED     Interrupted.
  *  @retval LAGOPUS_RESULT_POSIX_API_ERROR Failed, in systemcalls.
  *
  */

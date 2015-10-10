@@ -235,7 +235,8 @@ main(int argc, const char * const argv[]) {
     }
   }
 
-  ret = lagopus_mainloop_with_callout(argc, argv, NULL, NULL, false, false);
+  ret = lagopus_mainloop_with_callout(argc, argv, NULL, NULL,
+                                      false, false, false);
 
 done:
   return (ret == LAGOPUS_RESULT_OK) ? 0 : 1;

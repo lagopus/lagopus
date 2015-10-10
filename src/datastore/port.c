@@ -319,8 +319,6 @@ port_conf_duplicate(const port_conf_t *src_conf, port_conf_t **dst_conf,
     }
   } else {
     if ((len = strlen(src_conf->name)) <= DATASTORE_PORT_FULLNAME_MAX) {
-      buf = (char *) malloc(sizeof(char) * (len + 1));
-
       rc = ns_replace_namespace(src_conf->name, namespace, &buf);
       if (rc == LAGOPUS_RESULT_OK) {
         rc = port_conf_create(dst_conf, buf);

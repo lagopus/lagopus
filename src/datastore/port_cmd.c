@@ -1258,6 +1258,30 @@ port_cmd_do_destroy(port_conf_t *conf,
       /* ignore error. */
       lagopus_msg_warning("ret = %s", lagopus_error_get_string(ret));
     }
+  } else if (state == DATASTORE_INTERP_STATE_DRYRUN) {
+    /* unset is_used. */
+    if (conf->current_attr != NULL) {
+      if ((ret = ofp_port_names_used_set(conf->current_attr,
+                                         false, result)) !=
+          LAGOPUS_RESULT_OK) {
+        /* ignore error. */
+        lagopus_msg_warning("ret = %s", lagopus_error_get_string(ret));
+      }
+    }
+    if (conf->modified_attr != NULL) {
+      if ((ret = ofp_port_names_used_set(conf->modified_attr,
+                                         false, result)) !=
+          LAGOPUS_RESULT_OK) {
+        /* ignore error. */
+        lagopus_msg_warning("ret = %s", lagopus_error_get_string(ret));
+      }
+    }
+
+    ret = port_conf_delete(conf);
+    if (ret != LAGOPUS_RESULT_OK) {
+      /* ignore error. */
+      lagopus_msg_warning("ret = %s", lagopus_error_get_string(ret));
+    }
   } else if (conf->is_destroying == true ||
              state == DATASTORE_INTERP_STATE_AUTO_COMMIT) {
     /* unset is_used. */
@@ -1599,6 +1623,20 @@ port_cmd_update_internal(datastore_interp_t *iptr,
       ret = LAGOPUS_RESULT_OK;
       break;
     }
+    case DATASTORE_INTERP_STATE_DRYRUN: {
+      if (conf->modified_attr != NULL) {
+        if (conf->current_attr != NULL) {
+          port_attr_destroy(conf->current_attr);
+          conf->current_attr = NULL;
+        }
+
+        conf->current_attr = conf->modified_attr;
+        conf->modified_attr = NULL;
+      }
+
+      ret = LAGOPUS_RESULT_OK;
+      break;
+    }
     default: {
       ret = LAGOPUS_RESULT_NOT_FOUND;
       lagopus_perror(ret);
@@ -1836,20 +1874,11 @@ policer_opt_parse(const char *const *argv[],
               ret = port_set_policer_name(
                   conf->modified_attr,
                   fullname);
-              if (ret == LAGOPUS_RESULT_OK) {
-                ret = ofp_port_policer_used_set(conf->modified_attr,
-                                                true,
-                                                result);
-                if (ret != LAGOPUS_RESULT_OK) {
-                  ret = datastore_json_result_string_setf(
-                      result, ret,
-                      "policer name = %s.", fullname);
-                }
-              } else {
+              if (ret != LAGOPUS_RESULT_OK) {
                 ret = datastore_json_result_string_setf(
                     result, ret,
                     "policer name = %s.", fullname);
-                }
+              }
             } else {
               ret = datastore_json_result_string_setf(
                   result,
@@ -2273,7 +2302,8 @@ create_sub_cmd_parse(datastore_interp_t *iptr,
     if (ret == LAGOPUS_RESULT_NOT_FOUND) {
       ret = namespace_get_namespace(name, &namespace);
       if (ret == LAGOPUS_RESULT_OK) {
-        if (namespace_exists(namespace) == true) {
+        if (namespace_exists(namespace) == true ||
+            state == DATASTORE_INTERP_STATE_DRYRUN) {
           ret = create_sub_cmd_parse_internal(iptr, state,
                                               argc, argv,
                                               name, proc,

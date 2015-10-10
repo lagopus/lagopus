@@ -37,7 +37,6 @@
 
 #define SESSION_CONFIGURATOR_NAME	"lagopus.session"
 
-
 
 
 
@@ -55,6 +54,7 @@ static session_type_t s_protocol;
 static bool s_tls = false;
 
 static char s_current_namespace[DATASTORE_NAMESPACE_MAX + 1];
+static char s_saved_namespace[DATASTORE_NAMESPACE_MAX + 1];
 
 static pthread_once_t s_once = PTHREAD_ONCE_INIT;
 
@@ -281,6 +281,35 @@ s_get_current_namespace(char **namespace) {
 
 
 static inline lagopus_result_t
+s_get_saved_namespace(char **namespace) {
+  if (namespace != NULL) {
+    if (s_saved_namespace != NULL) {
+      if (s_saved_namespace[0] == '\0') {
+        *namespace = (char *) malloc(sizeof(char));
+        if (*namespace != NULL) {
+          *namespace[0] = '\0';
+          return LAGOPUS_RESULT_OK;
+        } else {
+          return LAGOPUS_RESULT_NO_MEMORY;
+        }
+      } else {
+        *namespace = strdup(s_saved_namespace);
+        if (IS_VALID_STRING(*namespace) == true) {
+          return LAGOPUS_RESULT_OK;
+        } else {
+          return LAGOPUS_RESULT_NO_MEMORY;
+        }
+      }
+    } else {
+      return LAGOPUS_RESULT_ANY_FAILURES;
+    }
+  } else {
+    return LAGOPUS_RESULT_INVALID_ARGS;
+  }
+}
+
+
+static inline lagopus_result_t
 s_get_namespace(const char *str, char **namespace) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   char *buf_ns = NULL;
@@ -412,6 +441,96 @@ s_get_search_target(const char *fullname, char **target) {
 }
 
 
+static inline lagopus_result_t
+s_save_namespace(void) {
+  if (IS_VALID_STRING(s_current_namespace) == true) {
+    snprintf(s_saved_namespace, sizeof(s_saved_namespace),
+             "%s", s_current_namespace);
+  }
+  return LAGOPUS_RESULT_OK;
+}
+
+
+static inline lagopus_result_t
+s_restore_namespace(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  if (IS_VALID_STRING(s_saved_namespace) == true) {
+    ret = s_set_current_namespace(s_saved_namespace);
+  } else {
+    ret = s_unset_current_namespace();
+  }
+
+  if (ret == LAGOPUS_RESULT_OK) {
+    snprintf(s_saved_namespace, sizeof(s_saved_namespace),
+             "%s", "");
+  }
+
+  return ret;
+}
+
+
+static inline lagopus_result_t
+s_dryrun_begin(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  lagopus_dstring_t ds;
+
+  if ((ret = lagopus_dstring_create(&ds)) == LAGOPUS_RESULT_OK) {
+    ret = datastore_interp_dryrun_begin(&s_interp,
+                                        s_current_namespace,
+                                        DATASTORE_DRYRUN_NAMESPACE,
+                                        &ds);
+
+    if (ret == LAGOPUS_RESULT_OK) {
+      ret = s_save_namespace();
+      if (ret == LAGOPUS_RESULT_OK) {
+        ret = s_set_current_namespace(DATASTORE_DRYRUN_NAMESPACE);
+        if (ret != LAGOPUS_RESULT_OK) {
+          lagopus_perror(ret);
+        }
+      } else {
+        lagopus_perror(ret);
+      }
+    } else {
+      lagopus_perror(ret);
+    }
+
+    (void)lagopus_dstring_destroy(&ds);
+  } else {
+    lagopus_perror(ret);
+  }
+
+  return ret;
+}
+
+
+static inline lagopus_result_t
+s_dryrun_end(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  lagopus_dstring_t ds;
+
+  if ((ret = lagopus_dstring_create(&ds)) == LAGOPUS_RESULT_OK) {
+    ret = datastore_interp_dryrun_end(&s_interp,
+                                      DATASTORE_DRYRUN_NAMESPACE,
+                                      &ds);
+
+    if (ret == LAGOPUS_RESULT_OK) {
+      ret = s_restore_namespace();
+      if (ret != LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+      }
+    } else {
+      lagopus_perror(ret);
+    }
+
+    (void)lagopus_dstring_destroy(&ds);
+  } else {
+    lagopus_perror(ret);
+  }
+
+  return ret;
+}
+
+
 
 
 
@@ -427,6 +546,7 @@ s_get_search_target(const char *fullname, char **target) {
 #include "destroy_all_obj_cmd.c"
 #include "shutdown_cmd.c"
 #include "agent_cmd.c"
+#include "dryrun_cmd.c"
 
 
 
@@ -538,6 +658,13 @@ s_once_proc(void) {
       LAGOPUS_RESULT_OK) {
     lagopus_perror(r);
     lagopus_msg_fatal("can't regsiter the agent command.\n");
+  }
+
+  if ((r = datastore_interp_register_command(&s_interp, CONFIGURATOR_NAME,
+           "dryrun", s_parse_dryrun)) !=
+      LAGOPUS_RESULT_OK) {
+    lagopus_perror(r);
+    lagopus_msg_fatal("can't regsiter the dryrun command.\n");
   }
 
   /*
@@ -672,9 +799,11 @@ s_datastore_thd_main(const lagopus_thread_t *tptr, void *arg) {
       s_protocol = s_protocol | SESSION_TLS;
     }
     lagopus_msg_debug(5, "s_protocol %x.\n", s_protocol);
-    session_server = session_create(s_protocol|SESSION_PASSIVE);
-    if (session_server == NULL) {
-      ret = LAGOPUS_RESULT_NO_MEMORY;
+    ret = session_create(s_protocol|SESSION_PASSIVE, &session_server);
+    if (ret != LAGOPUS_RESULT_OK) {
+      lagopus_perror(ret);
+      lagopus_msg_error("Can't create a server session."
+                        "The datastore thread exits.\n");
       goto done;
     }
 
@@ -1136,6 +1265,12 @@ namespace_get_current_namespace(char **namespace) {
 
 
 lagopus_result_t
+namespace_get_saved_namespace(char **namespace) {
+  return s_get_saved_namespace(namespace);
+}
+
+
+lagopus_result_t
 namespace_get_namespace(const char *fullname, char **namespace) {
   return s_get_namespace(fullname, namespace);
 }
@@ -1150,6 +1285,18 @@ namespace_get_fullname(const char *name, char **fullname) {
 lagopus_result_t
 namespace_get_search_target(const char *fullname, char **target) {
   return s_get_search_target(fullname, target);
+}
+
+
+lagopus_result_t
+dryrun_begin(void) {
+  return s_dryrun_begin();
+}
+
+
+lagopus_result_t
+dryrun_end(void) {
+  return s_dryrun_end();
 }
 
 

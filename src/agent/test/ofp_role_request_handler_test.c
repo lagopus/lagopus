@@ -18,8 +18,8 @@
 #include "../ofp_role_request_handler.h"
 #include "../ofp_apis.h"
 #include "../ofp_role.h"
-#include "event.h"
 #include "handler_test_utils.h"
+#include "../channel_mgr.h"
 
 
 static bool test_closed = false;
@@ -53,6 +53,23 @@ s_ofp_role_reply_create_wrap(struct channel *channel,
   return ofp_role_reply_create(channel, pbuf, xid_header, &role_request);
 }
 
+void
+test_prologue(void) {
+  lagopus_result_t r;
+  const char *argv0 =
+      ((IS_VALID_STRING(lagopus_get_command_name()) == true) ?
+       lagopus_get_command_name() : "callout_test");
+  const char * const argv[] = {
+    argv0, NULL
+  };
+
+#define N_CALLOUT_WORKERS	1
+  (void)lagopus_mainloop_set_callout_workers_number(N_CALLOUT_WORKERS);
+  r = lagopus_mainloop_with_callout(1, argv, NULL, NULL,
+                                    false, false, true);
+  TEST_ASSERT_EQUAL(r, LAGOPUS_RESULT_OK);
+  channel_mgr_initialize();
+}
 void
 test_ofp_role_request_handle_normal_pattern(void) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
@@ -155,9 +172,8 @@ test_ofp_role_request_handle_no_body(void) {
 void
 test_ofp_role_request_handle_with_null_agument(void) {
   /* Case of invlid argument.*/
-  struct event_manager *em = event_manager_alloc();
   struct channel *channel =
-    channel_alloc_ip4addr("127.0.0.1", "1000", em, 0x01);
+    channel_alloc_ip4addr("127.0.0.1", "1000", 0x01);
   struct pbuf pbuf;
   struct ofp_header xid_header;
   lagopus_result_t ret;
@@ -178,7 +194,6 @@ test_ofp_role_request_handle_with_null_agument(void) {
                             "NULL should be treated as invalid arguments");
 
   channel_free(channel);
-  event_manager_free(em);
 }
 
 void
@@ -196,9 +211,8 @@ test_ofp_role_reply_create(void) {
 void
 test_ofp_role_reply_create_with_null_agument(void) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
-  struct event_manager *em = event_manager_alloc();
   struct channel *channel =
-    channel_alloc_ip4addr("127.0.0.1", "1000", em, 0x01);
+    channel_alloc_ip4addr("127.0.0.1", "1000", 0x01);
   struct pbuf *pbuf;
   struct ofp_header xid_header;
   struct ofp_role_request role_request;
@@ -218,10 +232,17 @@ test_ofp_role_reply_create_with_null_agument(void) {
                             "NULL should be treated as invalid arguments");
 
   channel_free(channel);
-  event_manager_free(em);
 }
 
 void
 test_close(void) {
   test_closed = true;
+}
+void
+test_epilogue(void) {
+  lagopus_result_t r;
+  channel_mgr_finalize();
+  r = global_state_request_shutdown(SHUTDOWN_GRACEFULLY);
+  TEST_ASSERT_EQUAL(r, LAGOPUS_RESULT_OK);
+  lagopus_mainloop_wait_thread();
 }

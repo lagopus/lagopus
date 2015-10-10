@@ -1982,6 +1982,86 @@ test_l2_bridge_cmd_parse_clear_bad_opt(void) {
 }
 
 void
+test_l2_bridge_cmd_parse_dryrun(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state1 = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  datastore_interp_state_t state2 = DATASTORE_INTERP_STATE_DRYRUN;
+  char *str = NULL;
+  const char *argv1[] = {"l2-bridge", "test_name47", "create",
+                         "-expire", "1",
+                         "-max-entries", "1",
+                         NULL
+                        };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char *argv2[] = {"l2-bridge", "test_name47", "current", NULL};
+  const char test_str2[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name47\",\n"
+    "\"expire\":1,\n"
+    "\"max-entries\":1,\n"
+    "\"tmp-dir\":\"\\/tmp\",\n"
+    "\"bridge\":\"\",\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+  const char *argv3[] = {"l2-bridge", "test_name47", "modified", NULL};
+  const char test_str3[] =
+    "{\"ret\":\"NOT_OPERATIONAL\",\n"
+    "\"data\":\"Not set modified.\"}";
+  const char *argv4[] = {"l2-bridge", "test_name47", "config",
+                         "-expire", "10",
+                         "-max-entries", "10",
+                         NULL
+                        };
+  const char test_str4[] = "{\"ret\":\"OK\"}";
+  const char *argv5[] = {"l2-bridge", "test_name47", "current", NULL};
+  const char test_str5[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name47\",\n"
+    "\"expire\":10,\n"
+    "\"max-entries\":10,\n"
+    "\"tmp-dir\":\"\\/tmp\",\n"
+    "\"bridge\":\"\",\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+  const char *argv6[] = {"l2-bridge", "test_name47", "modified", NULL};
+  const char test_str6[] =
+    "{\"ret\":\"NOT_OPERATIONAL\",\n"
+    "\"data\":\"Not set modified.\"}";
+
+  /* create cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, l2_bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv1), argv1, &tbl, l2_bridge_cmd_update,
+                 &ds, str, test_str1);
+
+  /* show cmd (current). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, l2_bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv2), argv2, &tbl, l2_bridge_cmd_update,
+                 &ds, str, test_str2);
+
+  /* show cmd (modified). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 l2_bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv3), argv3, &tbl, l2_bridge_cmd_update,
+                 &ds, str, test_str3);
+
+  /* config cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, l2_bridge_cmd_parse, &interp, state2,
+                 ARGV_SIZE(argv4), argv4, &tbl, l2_bridge_cmd_update,
+                 &ds, str, test_str4);
+
+  /* show cmd (current). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, l2_bridge_cmd_parse, &interp, state2,
+                 ARGV_SIZE(argv5), argv5, &tbl, l2_bridge_cmd_update,
+                 &ds, str, test_str5);
+
+  /* show cmd (modified). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 l2_bridge_cmd_parse, &interp, state2,
+                 ARGV_SIZE(argv6), argv6, &tbl, l2_bridge_cmd_update,
+                 &ds, str, test_str6);
+}
+
+void
 test_destroy(void) {
   destroy = true;
 }

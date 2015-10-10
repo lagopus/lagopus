@@ -186,6 +186,7 @@ l2_bridge_conf_duplicate(const l2_bridge_conf_t *src_conf,
   l2_bridge_attr_t *dst_modified_attr = NULL;
   size_t len = 0;
   char *buf = NULL;
+  char *buf_name = NULL;
 
   if (src_conf == NULL || dst_conf == NULL) {
     return LAGOPUS_RESULT_INVALID_ARGS;
@@ -203,8 +204,6 @@ l2_bridge_conf_duplicate(const l2_bridge_conf_t *src_conf,
     }
   } else {
     if ((len = strlen(src_conf->name)) <= DATASTORE_L2_BRIDGE_FULLNAME_MAX) {
-      buf = (char *) malloc(sizeof(char) * (len + 1));
-
       rc = ns_replace_namespace(src_conf->name, namespace, &buf);
       if (rc == LAGOPUS_RESULT_OK) {
         rc = l2_bridge_conf_create(dst_conf, buf);
@@ -214,11 +213,31 @@ l2_bridge_conf_duplicate(const l2_bridge_conf_t *src_conf,
       } else {
         goto error;
       }
-      free(buf);
     } else {
       rc = LAGOPUS_RESULT_TOO_LONG;
       goto error;
     }
+
+    // duplicate bridge name
+    if (IS_VALID_STRING(src_conf->bridge_name) == true) {
+      if ((len = strlen(src_conf->bridge_name))
+          <= DATASTORE_BRIDGE_FULLNAME_MAX) {
+        rc = ns_replace_namespace(src_conf->bridge_name, namespace, &buf_name);
+        if (rc == LAGOPUS_RESULT_OK) {
+          len = strlen(buf_name);
+          strncpy((*dst_conf)->bridge_name, buf_name, len);
+          (*dst_conf)->bridge_name[len] = '\0';
+        } else {
+          goto error;
+        }
+      } else {
+        rc = LAGOPUS_RESULT_TOO_LONG;
+        goto error;
+      }
+    }
+
+    free(buf);
+    free(buf_name);
   }
 
   if (src_conf->current_attr != NULL) {
@@ -249,6 +268,7 @@ l2_bridge_conf_duplicate(const l2_bridge_conf_t *src_conf,
 
 error:
   free(buf);
+  free(buf_name);
   l2_bridge_conf_destroy(*dst_conf);
   *dst_conf = NULL;
   return rc;
@@ -642,6 +662,30 @@ l2_bridge_set_enabled(const char *name, bool is_enabled) {
     rc = l2_bridge_find(name, &conf);
     if (rc == LAGOPUS_RESULT_OK) {
       conf->is_enabled = is_enabled;
+    }
+  } else {
+    rc = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+  return rc;
+}
+
+lagopus_result_t
+l2_bridge_set_bridge_name(const char *name, const char *bridge_name) {
+  lagopus_result_t rc;
+  l2_bridge_conf_t *conf = NULL;
+  size_t len;
+
+  if (IS_VALID_STRING(name) == true && IS_VALID_STRING(bridge_name) == true) {
+    rc = l2_bridge_find(name, &conf);
+    if (rc == LAGOPUS_RESULT_OK) {
+      len = strlen(bridge_name);
+      if (len <= DATASTORE_BRIDGE_FULLNAME_MAX) {
+        strncpy(conf->bridge_name, bridge_name, len);
+        conf->bridge_name[len] = '\0';
+        rc = LAGOPUS_RESULT_OK;
+      } else {
+        rc = LAGOPUS_RESULT_TOO_LONG;
+      }
     }
   } else {
     rc = LAGOPUS_RESULT_INVALID_ARGS;

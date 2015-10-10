@@ -152,7 +152,7 @@ def run_tests(opts, confs, test_home, dir):
                 continue
             out_dir = os.path.join(
                 opts.out_dir, date,
-                root.replace(dir, "", 1))
+                root.replace(dir + os.sep, "", 1))
             file = os.path.join(root, file)
             ets += run_test(opts, confs, test_home, file, out_dir)
     return ets

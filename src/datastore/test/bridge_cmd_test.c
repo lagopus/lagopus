@@ -6347,6 +6347,188 @@ test_bridge_cmd_parse_create_bad_down_streamq_max_batches(void) {
 }
 
 void
+test_bridge_cmd_parse_dryrun(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state1 = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  datastore_interp_state_t state2 = DATASTORE_INTERP_STATE_DRYRUN;
+  char *str = NULL;
+  const char *argv1[] = {"bridge", "test_name84", "create",
+                         "-controller", "c84",
+                         "-port", "p84", "84",
+                         "-l2-bridge", "l84",
+                         "-dpid", "84",
+                         "-fail-mode", "standalone",
+                         "-flow-statistics", "false",
+                         "-group-statistics", "false",
+                         "-port-statistics", "false",
+                         "-queue-statistics", "false",
+                         "-table-statistics", "false",
+                         "-reassemble-ip-fragments", "false",
+                         "-max-buffered-packets", "65535",
+                         "-max-ports", "2048",
+                         "-max-tables", "255",
+                         "-max-flows", "4294967295",
+                         "-packet-inq-size", "65535",
+                         "-packet-inq-max-batches", "65535",
+                         "-up-streamq-size", "65535",
+                         "-up-streamq-max-batches", "65535",
+                         "-down-streamq-size", "65535",
+                         "-down-streamq-max-batches", "65535",
+                         "-block-looping-ports", "false",
+                         "-action-type", "copy-ttl-out",
+                         "-instruction-type", "apply-actions",
+                         NULL
+                        };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char *argv2[] = {"bridge", "test_name84", "current", NULL};
+  const char test_str2[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name84\",\n"
+    "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c84\"],\n"
+    "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p84\":84},\n"
+    "\"l2-bridge\":\""DATASTORE_NAMESPACE_DELIMITER"l84\",\n"
+    "\"dpid\":84,\n"
+    "\"fail-mode\":\"standalone\",\n"
+    "\"flow-statistics\":false,\n"
+    "\"group-statistics\":false,\n"
+    "\"port-statistics\":false,\n"
+    "\"queue-statistics\":false,\n"
+    "\"table-statistics\":false,\n"
+    "\"reassemble-ip-fragments\":false,\n"
+    "\"max-buffered-packets\":65535,\n"
+    "\"max-ports\":2048,\n"
+    "\"max-tables\":255,\n"
+    "\"max-flows\":4294967295,\n"
+    "\"packet-inq-size\":65535,\n"
+    "\"packet-inq-max-batches\":65535,\n"
+    "\"up-streamq-size\":65535,\n"
+    "\"up-streamq-max-batches\":65535,\n"
+    "\"down-streamq-size\":65535,\n"
+    "\"down-streamq-max-batches\":65535,\n"
+    "\"block-looping-ports\":false,\n"
+    "\"action-types\":[\"copy-ttl-out\",\"copy-ttl-in\","
+    "\"set-mpls-ttl\",\"dec-mpls-ttl\",\"push-vlan\",\"pop-vlan\","
+    "\"push-mpls\",\"pop-mpls\",\"set-queue\",\"group\",\"set-nw-ttl\","
+    "\"dec-nw-ttl\",\"set-field\"],\n"
+    "\"instruction-types\":[\"apply-actions\",\"clear-actions\","
+    "\"write-actions\",\"write-metadata\",\"goto-table\"],\n"
+    "\"reserved-port-types\":[\"all\",\"controller\",\"table\","
+    "\"inport\",\"any\",\"normal\",\"flood\"],\n"
+    "\"group-types\":[\"all\",\"select\",\"indirect\",\"fast-failover\"],\n"
+    "\"group-capabilities\":[\"select-weight\","
+    "\"select-liveness\",\"chaining\",\"chaining-check\"],\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+  const char *argv3[] = {"bridge", "test_name84", "modified", NULL};
+  const char test_str3[] =
+    "{\"ret\":\"NOT_OPERATIONAL\",\n"
+    "\"data\":\"Not set modified.\"}";
+  const char *argv4[] = {"bridge", "test_name84", "config",
+                         "-controller", "c84_2",
+                         "-port", "p84_2", "184",
+                         "-l2-bridge", "l84_2",
+                         NULL
+                        };
+  const char test_str4[] = "{\"ret\":\"OK\"}";
+  const char *argv5[] = {"bridge", "test_name84", "current", NULL};
+  const char test_str5[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name84\",\n"
+    "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c84\","
+                     "\""DATASTORE_NAMESPACE_DELIMITER"c84_2\"],\n"
+    "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p84\":84,\n"
+               "\""DATASTORE_NAMESPACE_DELIMITER"p84_2\":0},\n"
+    "\"l2-bridge\":\""DATASTORE_NAMESPACE_DELIMITER"l84_2\",\n"
+    "\"dpid\":84,\n"
+    "\"fail-mode\":\"standalone\",\n"
+    "\"flow-statistics\":false,\n"
+    "\"group-statistics\":false,\n"
+    "\"port-statistics\":false,\n"
+    "\"queue-statistics\":false,\n"
+    "\"table-statistics\":false,\n"
+    "\"reassemble-ip-fragments\":false,\n"
+    "\"max-buffered-packets\":65535,\n"
+    "\"max-ports\":2048,\n"
+    "\"max-tables\":255,\n"
+    "\"max-flows\":4294967295,\n"
+    "\"packet-inq-size\":65535,\n"
+    "\"packet-inq-max-batches\":65535,\n"
+    "\"up-streamq-size\":65535,\n"
+    "\"up-streamq-max-batches\":65535,\n"
+    "\"down-streamq-size\":65535,\n"
+    "\"down-streamq-max-batches\":65535,\n"
+    "\"block-looping-ports\":false,\n"
+    "\"action-types\":[\"copy-ttl-out\",\"copy-ttl-in\","
+    "\"set-mpls-ttl\",\"dec-mpls-ttl\",\"push-vlan\",\"pop-vlan\","
+    "\"push-mpls\",\"pop-mpls\",\"set-queue\",\"group\",\"set-nw-ttl\","
+    "\"dec-nw-ttl\",\"set-field\"],\n"
+    "\"instruction-types\":[\"apply-actions\",\"clear-actions\","
+    "\"write-actions\",\"write-metadata\",\"goto-table\"],\n"
+    "\"reserved-port-types\":[\"all\",\"controller\",\"table\","
+    "\"inport\",\"any\",\"normal\",\"flood\"],\n"
+    "\"group-types\":[\"all\",\"select\",\"indirect\",\"fast-failover\"],\n"
+    "\"group-capabilities\":[\"select-weight\","
+    "\"select-liveness\",\"chaining\",\"chaining-check\"],\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+  const char *argv6[] = {"bridge", "test_name84", "modified", NULL};
+  const char test_str6[] =
+    "{\"ret\":\"NOT_OPERATIONAL\",\n"
+    "\"data\":\"Not set modified.\"}";
+
+  TEST_CONTROLLER_CREATE(ret, &interp, state1, &tbl, &ds, str, "cha84", "c84");
+  TEST_CONTROLLER_CREATE(ret, &interp, state1, &tbl, &ds, str, "cha84_2",
+                         "c84_2");
+  TEST_PORT_CREATE(ret, &interp, state1, &tbl_port, &ds, str, "i84", "p84",
+                   "84");
+  TEST_PORT_CREATE(ret, &interp, state1, &tbl_port, &ds, str, "i84_2", "p84_2",
+                   "184");
+  TEST_L2_BRIDGE_CREATE(ret, &interp, state1, &tbl, &ds, str, "l84");
+  TEST_L2_BRIDGE_CREATE(ret, &interp, state1, &tbl, &ds, str, "l84_2");
+
+  /* create cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv1), argv1, &tbl, bridge_cmd_update,
+                 &ds, str, test_str1);
+
+  /* show cmd (current). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv2), argv2, &tbl, bridge_cmd_update,
+                 &ds, str, test_str2);
+
+  /* show cmd (modified). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv3), argv3, &tbl, bridge_cmd_update,
+                 &ds, str, test_str3);
+
+  /* config cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state2,
+                 ARGV_SIZE(argv4), argv4, &tbl, bridge_cmd_update,
+                 &ds, str, test_str4);
+
+  /* show cmd (current). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state2,
+                 ARGV_SIZE(argv5), argv5, &tbl, bridge_cmd_update,
+                 &ds, str, test_str5);
+
+  /* show cmd (modified). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 bridge_cmd_parse, &interp, state2,
+                 ARGV_SIZE(argv6), argv6, &tbl, bridge_cmd_update,
+                 &ds, str, test_str6);
+
+  TEST_BRIDGE_DESTROY(ret, &interp, state1, &tbl, &ds, str, "test_name84",
+                      "cha84", "c84", "i84", "p84")
+
+  TEST_CONTROLLER_DESTROY(ret, &interp, state1, &tbl, &ds, str, "cha84_2",
+                          "c84_2");
+  TEST_PORT_DESTROY(ret, &interp, state1, &tbl_port, &ds, str, "i84_2", "p84_2");
+  TEST_L2_BRIDGE_DESTROY(ret, &interp, state1, &tbl, &ds, str, "l84");
+  TEST_L2_BRIDGE_DESTROY(ret, &interp, state1, &tbl, &ds, str, "l84_2");
+}
+
+void
 test_destroy(void) {
   destroy = true;
 }

@@ -35,8 +35,8 @@ static lagopus_hashmap_t s_alloc_tbl;
 #ifdef HAVE_PTHREAD_SETAFFINITY_NP
 static size_t s_cpu_set_sz;
 #endif /* HAVE_PTHREAD_SETAFFINITY_NP */
-static void s_ctors(void) __attr_constructor__(105);
-static void s_dtors(void) __attr_destructor__(105);
+static void s_ctors(void) __attr_constructor__(106);
+static void s_dtors(void) __attr_destructor__(106);
 
 
 
@@ -432,7 +432,22 @@ s_pthd_entry_point(void *ptr) {
        *	modified here. How could I live like this?
        */
       ret = thd->m_main_proc(tptr, thd->m_arg);
+
+      /*
+       * FIXME:
+       *
+       *	I am not sure we need this but any threads can set the
+       *	cancel disabled. So here we set the cancel enabled and
+       *	check if someone cancelled this thread.
+       */
+      (void)pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, &o_cancel_state);
+      pthread_testcancel();
+
+      /*
+       * The thread main proc is cleanly finished without cancellation.
+       */
       is_cleanly_finished = true;
+      mbar();
     }
     pthread_cleanup_pop((is_cleanly_finished == true) ? 0 : 1);
 
@@ -448,7 +463,12 @@ s_pthd_entry_point(void *ptr) {
     }
     s_op_unlock(thd);
 
-    s_finalize(thd, false);
+    if (likely(is_cleanly_finished == true)) {
+      s_finalize(thd, false);
+    } else {
+      lagopus_msg_error("This could be fatal, but the thread itself must be "
+                        "cancelled it still be here.\n");
+    }
   }
 
   return NULL;

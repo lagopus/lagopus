@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+
 #include "lagopus_apis.h"
 #include "lagopus_thread_internal.h"
 #include "lagopus_pipeline_stage_internal.h"
@@ -31,8 +32,8 @@
 static pthread_once_t s_once = PTHREAD_ONCE_INIT;
 static lagopus_hashmap_t s_ps_name_tbl;
 static lagopus_hashmap_t s_ps_obj_tbl;
-static void	s_ctors(void) __attr_constructor__(109);
-static void	s_dtors(void) __attr_destructor__(109);
+static void	s_ctors(void) __attr_constructor__(110);
+static void	s_dtors(void) __attr_destructor__(110);
 
 static inline void	s_lock_stage(lagopus_pipeline_stage_t ps);
 static inline void	s_unlock_stage(lagopus_pipeline_stage_t ps);

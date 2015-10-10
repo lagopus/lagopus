@@ -1,3 +1,6 @@
+/* %COPYRIGHT% */
+
+
 #include "lagopus_apis.h"
 
 #include <math.h>
@@ -26,8 +29,9 @@ static lagopus_hashmap_t s_stat_tbl;
 
 
 
-static void s_ctors(void) __attr_constructor__(111);
-static void s_dtors(void) __attr_destructor__(111);
+
+static void s_ctors(void) __attr_constructor__(112);
+static void s_dtors(void) __attr_destructor__(112);
 
 static void s_destroy_stat(lagopus_statistic_t s, bool delhash);
 static void s_stat_freeup(void *arg);

@@ -2034,6 +2034,94 @@ test_channel_cmd_parse_atomic_destroy_create(void) {
 }
 
 void
+test_channel_cmd_parse_dryrun(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state1 = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  datastore_interp_state_t state2 = DATASTORE_INTERP_STATE_DRYRUN;
+  char *str = NULL;
+  const char *argv1[] = {"channel", "test_name29", "create",
+                         "-dst-addr", "127.0.0.1",
+                         "-dst-port", "65535",
+                         "-local-addr", "127.0.0.1",
+                         "-local-port", "65535",
+                         "-protocol", "tcp",
+                         NULL
+                        };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char *argv2[] = {"channel", "test_name29", "current", NULL};
+  const char test_str2[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name29\",\n"
+    "\"dst-addr\":\"127.0.0.1\",\n"
+    "\"dst-port\":65535,\n"
+    "\"local-addr\":\"127.0.0.1\",\n"
+    "\"local-port\":65535,\n"
+    "\"protocol\":\"tcp\",\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+  const char *argv3[] = {"channel", "test_name29", "modified", NULL};
+  const char test_str3[] =
+    "{\"ret\":\"NOT_OPERATIONAL\",\n"
+    "\"data\":\"Not set modified.\"}";
+  const char *argv4[] = {"channel", "test_name29", "config",
+                         "-dst-addr", "127.0.0.2",
+                         "-dst-port", "3000",
+                         "-local-addr", "127.0.0.2",
+                         "-local-port", "3000",
+                         NULL
+                        };
+  const char test_str4[] = "{\"ret\":\"OK\"}";
+  const char *argv5[] = {"channel", "test_name29", "current", NULL};
+  const char test_str5[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name29\",\n"
+    "\"dst-addr\":\"127.0.0.2\",\n"
+    "\"dst-port\":3000,\n"
+    "\"local-addr\":\"127.0.0.2\",\n"
+    "\"local-port\":3000,\n"
+    "\"protocol\":\"tcp\",\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+  const char *argv6[] = {"channel", "test_name29", "modified", NULL};
+  const char test_str6[] =
+    "{\"ret\":\"NOT_OPERATIONAL\",\n"
+    "\"data\":\"Not set modified.\"}";
+
+  /* create cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, channel_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv1), argv1, &tbl, channel_cmd_update,
+                 &ds, str, test_str1);
+
+  /* show cmd (current). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, channel_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv2), argv2, &tbl, channel_cmd_update,
+                 &ds, str, test_str2);
+
+  /* show cmd (modified). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 channel_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv3), argv3, &tbl, channel_cmd_update,
+                 &ds, str, test_str3);
+
+  /* config cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, channel_cmd_parse, &interp, state2,
+                 ARGV_SIZE(argv4), argv4, &tbl, channel_cmd_update,
+                 &ds, str, test_str4);
+
+  /* show cmd (current). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, channel_cmd_parse, &interp, state2,
+                 ARGV_SIZE(argv5), argv5, &tbl, channel_cmd_update,
+                 &ds, str, test_str5);
+
+  /* show cmd (modified). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 channel_cmd_parse, &interp, state2,
+                 ARGV_SIZE(argv6), argv6, &tbl, channel_cmd_update,
+                 &ds, str, test_str6);
+}
+
+
+void
 test_destroy(void) {
   destroy = true;
 }

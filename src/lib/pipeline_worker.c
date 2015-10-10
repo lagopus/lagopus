@@ -253,7 +253,11 @@ s_worker_main(const lagopus_thread_t *tptr, void *arg) {
              */
             ret = (w->m_proc)(w);
           } else {
-            lagopus_exit_fatal("must not happen.\n");
+            if (IS_GLOBAL_STATE_KINDA_SHUTDOWN(s) == true) {
+              ret = LAGOPUS_RESULT_NOT_OPERATIONAL;
+            } else {
+              lagopus_exit_fatal("must not happen.\n");
+            }
           }
         } else {
           /*
@@ -262,7 +266,7 @@ s_worker_main(const lagopus_thread_t *tptr, void *arg) {
            */
           lagopus_perror(ret);
           if (ret == LAGOPUS_RESULT_NOT_OPERATIONAL) {
-            if (IS_GLOBAL_STATE_SHUTDOWN(s) == false) {
+            if (IS_GLOBAL_STATE_KINDA_SHUTDOWN(s) == false) {
               lagopus_exit_fatal("must not happen.\n");
             }
           }

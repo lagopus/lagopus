@@ -563,7 +563,6 @@ test_l2_bridge_find(void) {
     rc = l2_bridge_find(name3, &actual_conf);
     TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
     TEST_ASSERT_EQUAL_STRING(name3, actual_conf->name);
-
   }
 
   // Abnormal case
@@ -953,6 +952,44 @@ test_l2_bridge_conf_public_enabled(void) {
     TEST_ASSERT_EQUAL(LAGOPUS_RESULT_INVALID_ARGS, rc);
 
     rc = datastore_l2_bridge_is_enabled(name, NULL);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_INVALID_ARGS, rc);
+  }
+
+  l2_bridge_finalize();
+}
+
+void
+test_l2_bridge_conf_private_bridge_name(void) {
+  lagopus_result_t rc;
+  l2_bridge_conf_t *conf = NULL;
+  const char *name = "l2_bridge_name";
+  const char *expected_bridge_name = "bridge_name";
+  char *actual_bridge_name = NULL;
+
+  l2_bridge_initialize();
+
+  rc = l2_bridge_conf_create(&conf, name);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+  TEST_ASSERT_NOT_NULL_MESSAGE(conf, "conf_create() will create new l2_bridge");
+
+  rc = l2_bridge_conf_add(conf);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+
+  // Normal case of getter
+  {
+    rc = l2_bridge_set_bridge_name(name, expected_bridge_name);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+    rc = datastore_l2_bridge_get_bridge_name(name, &actual_bridge_name);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+    TEST_ASSERT_EQUAL_STRING(expected_bridge_name, actual_bridge_name);
+  }
+
+  // Abnormal case of getter
+  {
+    rc = l2_bridge_set_bridge_name(NULL, expected_bridge_name);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_INVALID_ARGS, rc);
+
+    rc = l2_bridge_set_bridge_name(name, NULL);
     TEST_ASSERT_EQUAL(LAGOPUS_RESULT_INVALID_ARGS, rc);
   }
 
