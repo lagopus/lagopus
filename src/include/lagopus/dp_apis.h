@@ -557,4 +557,14 @@ dp_policer_action_start(const char *name);
 lagopus_result_t
 dp_policer_action_stop(const char *name);
 
+struct bridge;
+/**
+ * Get flow cache statistics.
+ *
+ * @param[in]   bridge   Bridge.
+ * @param[out]  st       Statistics of flow cache.
+ */
+void
+dp_get_flowcache_statistics(struct bridge *bridge, struct ofcachestat *st);
+
 #endif /* SRC_INCLUDE_LAGOPUS_DP_APIS_H_ */

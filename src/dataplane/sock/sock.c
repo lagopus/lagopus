@@ -798,7 +798,7 @@ dataplane_thread_loop(__UNUSED const lagopus_thread_t *selfptr,
 }
 
 void
-get_flowcache_statistics(struct bridge *bridge, struct ofcachestat *st) {
+dp_get_flowcache_statistics(struct bridge *bridge, struct ofcachestat *st) {
   st->nentries = 0;
   st->hit = 0;
   st->miss = 0;

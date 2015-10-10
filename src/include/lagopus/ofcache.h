@@ -29,18 +29,7 @@
 
 struct lagopus_packet;
 
-/**
- * per thread cache object.
- */
-struct flowcache {
-  int kvs_type;
-  struct ptree *ptree;
-  lagopus_hashmap_t hashmap;
-  /* statistics */
-  uint64_t nentries;
-  uint64_t hit;
-  uint64_t miss;
-};
+struct flowcache;
 
 struct ofcachestat {
   /* statistics */
@@ -105,10 +94,10 @@ struct bridge;
 /**
  * Get flow cache statistics.
  *
- * @param[in]   bridge   Bridge.
+ * @param[in]   cache    Cache.
  * @param[out]  st       Statistics of flow cache.
  */
 void
-get_flowcache_statistics(struct bridge *bridge, struct ofcachestat *st);
+get_flowcache_statistics(struct flowcache *cache, struct ofcachestat *st);
 
 #endif /* SRC_INCLUDE_LAGOPUS_FLOWCACHE_H_ */

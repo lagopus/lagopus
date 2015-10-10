@@ -336,7 +336,7 @@ clear_worker_flowcache(bool wait_flush) {
 }
 
 void
-get_flowcache_statistics(struct bridge *bridge, struct ofcachestat *st) {
+dp_get_flowcache_statistics(struct bridge *bridge, struct ofcachestat *st) {
   uint32_t lcore;
 
   (void) bridge;
@@ -349,15 +349,17 @@ get_flowcache_statistics(struct bridge *bridge, struct ofcachestat *st) {
   }
   for (lcore = 0; lcore < APP_MAX_LCORES; lcore ++) {
     struct app_lcore_params_worker *lp;
+    struct ofcachestat s;
 
     if (app.lcore_params[lcore].type != e_APP_LCORE_WORKER &&
         app.lcore_params[lcore].type != e_APP_LCORE_IO_WORKER) {
       continue;
     }
     lp = &app.lcore_params[lcore].worker;
-    st->nentries += lp->cache->nentries;
-    st->hit += lp->cache->hit;
-    st->miss += lp->cache->miss;
+    get_flowcache_statistics(lp->cache, &s);
+    st->nentries += s.nentries;
+    st->hit += s.hit;
+    st->miss += s.miss;
   }
 }
 
