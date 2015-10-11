@@ -229,6 +229,12 @@ policer_action_cmd_do_destroy(policer_action_conf_t *conf,
       /* ignore error. */
       lagopus_msg_warning("ret = %s", lagopus_error_get_string(ret));
     }
+  } else if (state == DATASTORE_INTERP_STATE_DRYRUN) {
+    ret = policer_action_conf_delete(conf);
+    if (ret != LAGOPUS_RESULT_OK) {
+      /* ignore error. */
+      lagopus_msg_warning("ret = %s", lagopus_error_get_string(ret));
+    }
   } else if (conf->is_destroying == true ||
              state == DATASTORE_INTERP_STATE_AUTO_COMMIT) {
     lagopus_msg_info("destroy policer_action. name = %s.\n", conf->name);
@@ -399,6 +405,20 @@ policer_action_cmd_update_internal(datastore_interp_t *iptr,
     }
     case DATASTORE_INTERP_STATE_ABORTED: {
       policer_action_cmd_update_aborted(conf);
+      ret = LAGOPUS_RESULT_OK;
+      break;
+    }
+    case DATASTORE_INTERP_STATE_DRYRUN: {
+      if (conf->modified_attr != NULL) {
+        if (conf->current_attr != NULL) {
+          policer_action_attr_destroy(conf->current_attr);
+          conf->current_attr = NULL;
+        }
+
+        conf->current_attr = conf->modified_attr;
+        conf->modified_attr = NULL;
+      }
+
       ret = LAGOPUS_RESULT_OK;
       break;
     }
@@ -653,7 +673,7 @@ config_sub_cmd_parse_internal(datastore_interp_t *iptr,
        * already exists. copy it.
        */
       ret = policer_action_attr_duplicate(conf->current_attr,
-                                          &conf->modified_attr);
+                                          &conf->modified_attr, NULL);
       if (ret != LAGOPUS_RESULT_OK) {
         ret = datastore_json_result_set(result, ret, NULL);
         goto done;
@@ -721,7 +741,8 @@ create_sub_cmd_parse(datastore_interp_t *iptr,
     if (ret == LAGOPUS_RESULT_NOT_FOUND) {
       ret = namespace_get_namespace(name, &namespace);
       if (ret == LAGOPUS_RESULT_OK) {
-        if (namespace_exists(namespace) == true) {
+        if (namespace_exists(namespace) == true ||
+            state == DATASTORE_INTERP_STATE_DRYRUN) {
           ret = create_sub_cmd_parse_internal(iptr, state,
                                               argc, argv,
                                               name, proc,
@@ -1353,6 +1374,27 @@ policer_action_cmd_getname(const void *obj, const char **namep) {
   return ret;
 }
 
+static lagopus_result_t
+policer_action_cmd_duplicate(const void *obj, const char *namespace) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  policer_action_conf_t *dup_obj = NULL;
+
+  if (obj != NULL) {
+    ret = policer_action_conf_duplicate(obj, &dup_obj, namespace);
+    if (ret == LAGOPUS_RESULT_OK) {
+      ret = policer_action_conf_add(dup_obj);
+
+      if (ret != LAGOPUS_RESULT_OK && dup_obj != NULL) {
+        policer_action_conf_destroy(dup_obj);
+      }
+    }
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  return ret;
+}
+
 extern datastore_interp_t datastore_get_master_interp(void);
 
 static inline lagopus_result_t
@@ -1409,7 +1451,8 @@ initialize_internal(void) {
                                       policer_action_cmd_serialize,
                                       policer_action_cmd_destroy,
                                       policer_action_cmd_compare,
-                                      policer_action_cmd_getname)) !=
+                                      policer_action_cmd_getname,
+                                      policer_action_cmd_duplicate)) !=
       LAGOPUS_RESULT_OK) {
     lagopus_perror(ret);
     goto done;

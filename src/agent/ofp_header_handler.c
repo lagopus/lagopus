@@ -232,45 +232,6 @@ ofp_header_mp_copy(struct pbuf *dst_pbuf,
 }
 
 lagopus_result_t
-ofp_header_mp_copy_pbuf_list(struct pbuf_list *pbuf_list,
-                             struct pbuf **dst_pbuf) {
-  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
-  struct pbuf *src_pbuf;
-
-  if (pbuf_list != NULL && dst_pbuf != NULL) {
-    src_pbuf = pbuf_list_last_get(pbuf_list);
-
-    if (src_pbuf != NULL) {
-      *dst_pbuf = pbuf_alloc(OFP_PACKET_MAX_SIZE);
-      if (*dst_pbuf != NULL) {
-        if (src_pbuf != *dst_pbuf) {
-          ret = ofp_header_mp_copy(*dst_pbuf, src_pbuf);
-          if (ret == LAGOPUS_RESULT_OK) {
-            pbuf_list_add(pbuf_list, *dst_pbuf);
-          } else {
-            lagopus_msg_warning("FAILED (%s).\n",
-                                lagopus_error_get_string(ret));
-          }
-        } else {
-          lagopus_msg_warning("Same src_pbuf and dst_pbuf.\n");
-          ret = LAGOPUS_RESULT_INVALID_ARGS;
-        }
-      } else {
-        lagopus_msg_warning("Can't alloc pbuf.\n");
-        ret = LAGOPUS_RESULT_NO_MEMORY;
-      }
-    } else {
-      lagopus_msg_warning("src_pbuf is NULL.\n");
-      ret = LAGOPUS_RESULT_INVALID_ARGS;
-    }
-  } else {
-    ret = LAGOPUS_RESULT_INVALID_ARGS;
-  }
-
-  return ret;
-}
-
-lagopus_result_t
 ofp_header_length_set(struct pbuf *pbuf,
                       uint16_t length) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;

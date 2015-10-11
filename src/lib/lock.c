@@ -857,8 +857,13 @@ lagopus_cond_wait(lagopus_cond_t *cndptr,
   if (mtxptr != NULL &&
       *mtxptr != NULL &&
       cndptr != NULL &&
-      *cndptr != NULL &&
-      (*mtxptr)->m_type != LAGOPUS_MUTEX_TYPE_RECURSIVE) {
+      *cndptr != NULL) {
+    /*
+     * It's kinda risky but we allow to cond-wait with recursive lock.
+     *
+     * So this condition is not checked:
+     * (*mtxptr)->m_type != LAGOPUS_MUTEX_TYPE_RECURSIVE)
+     */
     int st;
 
     errno = 0;
@@ -910,6 +915,11 @@ lagopus_cond_notify(lagopus_cond_t *cndptr,
   if (cndptr != NULL &&
       *cndptr != NULL) {
     int st;
+
+    /*
+     * I know I don't need this but:
+     */
+    mbar();
 
     errno = 0;
     if ((st = ((for_all == true) ? s_notify_all_proc : s_notify_single_proc)(

@@ -19,7 +19,7 @@
 #include "../ofp_apis.h"
 #include "handler_test_utils.h"
 #include "lagopus/pbuf.h"
-#include "event.h"
+#include "../channel_mgr.h"
 
 #define PUT_TIMEOUT 100LL * 1000LL * 1000LL * 1000LL
 #define GET_TIMEOUT 100LL * 1000LL * 1000LL * 1000LL
@@ -78,6 +78,23 @@ ofp_barrier_request_handle_wrap(struct channel *channel,
 }
 
 void
+test_prologue(void) {
+  lagopus_result_t r;
+  const char *argv0 =
+      ((IS_VALID_STRING(lagopus_get_command_name()) == true) ?
+       lagopus_get_command_name() : "callout_test");
+  const char * const argv[] = {
+    argv0, NULL
+  };
+
+#define N_CALLOUT_WORKERS	1
+  (void)lagopus_mainloop_set_callout_workers_number(N_CALLOUT_WORKERS);
+  r = lagopus_mainloop_with_callout(1, argv, NULL, NULL,
+                                    false, false, true);
+  TEST_ASSERT_EQUAL(r, LAGOPUS_RESULT_OK);
+  channel_mgr_initialize();
+}
+void
 test_ofp_barrier_request_handle_normal_pattern(void) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   struct eventq_data *eventq_data = NULL;
@@ -130,9 +147,7 @@ test_ofp_barrier_request_invalid_length_too_long(void) {
 void
 test_ofp_barrier_request_handle_null(void) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
-  struct event_manager *em = event_manager_alloc();
-  struct channel *channel = channel_alloc_ip4addr("127.0.0.1", "1000",
-                            em, 0x01);
+  struct channel *channel = channel_alloc_ip4addr("127.0.0.1", "1000", 0x01);
   struct pbuf *pbuf = pbuf_alloc(65535);
   struct ofp_header header;
   struct ofp_error error;
@@ -155,7 +170,6 @@ test_ofp_barrier_request_handle_null(void) {
 
   channel_free(channel);
   pbuf_free(pbuf);
-  event_manager_free(em);
 }
 
 static
@@ -193,9 +207,8 @@ void
 test_ofp_barrier_reply_create_null(void) {
   lagopus_result_t ret;
   struct barrier barrier;
-  struct event_manager *em = event_manager_alloc();
   struct channel *channel =
-    channel_alloc_ip4addr("127.0.0.1", "1000", em, 0x01);
+    channel_alloc_ip4addr("127.0.0.1", "1000", 0x01);
   struct pbuf *pbuf;
 
   ret = ofp_barrier_reply_create(NULL, &barrier,
@@ -214,7 +227,6 @@ test_ofp_barrier_reply_create_null(void) {
                             "ofp_barrier_reply_create error.");
   /* after. */
   channel_free(channel);
-  event_manager_free(em);
 }
 
 static lagopus_result_t
@@ -248,9 +260,8 @@ test_ofp_barrier_reply_send_null(void) {
   lagopus_result_t ret;
   struct eventq_data *ed;
   uint64_t dpid = 0x10;
-  struct event_manager *em = event_manager_alloc();
   struct channel *channel =
-    channel_alloc_ip4addr("127.0.0.1", "1000", em, 0x01);
+    channel_alloc_ip4addr("127.0.0.1", "1000", 0x01);
 
   ed = create_data(OFPT_BARRIER_REPLY);
 
@@ -265,7 +276,6 @@ test_ofp_barrier_reply_send_null(void) {
   /* after. */
   ofp_barrier_free(ed);
   channel_free(channel);
-  event_manager_free(em);
 }
 
 void
@@ -276,4 +286,19 @@ test_ofp_barrier_reply_handle_null(void) {
   ret = ofp_barrier_reply_handle(NULL, dpid);
   TEST_ASSERT_EQUAL_MESSAGE(ret, LAGOPUS_RESULT_INVALID_ARGS,
                             "ofp_barrier_reply_handle error.");
+}
+
+/* freeup ofp_handler. (for valgrind warnings.) */
+void
+test_finalize_ofph(void) {
+  ofp_handler_finalize();
+}
+
+void
+test_epilogue(void) {
+  lagopus_result_t r;
+  channel_mgr_finalize();
+  r = global_state_request_shutdown(SHUTDOWN_GRACEFULLY);
+  TEST_ASSERT_EQUAL(r, LAGOPUS_RESULT_OK);
+  lagopus_mainloop_wait_thread();
 }

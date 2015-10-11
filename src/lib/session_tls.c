@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+
 #include "lagopus_apis.h"
 #include "lagopus_session.h"
 #include "lagopus_session_tls.h"
@@ -24,10 +25,10 @@
 #include <errno.h>
 #include <stdlib.h>
 
-static void	s_ctors(void) __attr_constructor__(110);
-static void	s_dtors(void) __attr_destructor__(110);
+static void	s_ctors(void) __attr_constructor__(111);
+static void	s_dtors(void) __attr_destructor__(111);
 
-lagopus_session_t session_tls_init(lagopus_session_t s);
+lagopus_result_t session_tls_init(lagopus_session_t s);
 static lagopus_result_t connect_tls(lagopus_session_t s, const char *host,
                                     const char *port);
 static void destroy_tls(lagopus_session_t s);
@@ -573,13 +574,13 @@ valid_path(const char *path, const bool is_file) {
   }
 }
 
-lagopus_session_t
+lagopus_result_t
 session_tls_init(lagopus_session_t s) {
 
   if ((valid_path(tls.session_ca_dir, false) != LAGOPUS_RESULT_OK)
       ||  (valid_path(tls.session_cert, true) != LAGOPUS_RESULT_OK)
       ||  (valid_path(tls.private_key, true)  != LAGOPUS_RESULT_OK)) {
-    return NULL;
+    return LAGOPUS_RESULT_INVALID_ARGS;
   }
 
   pthread_once(&initialized, initialize_internal);
@@ -587,7 +588,7 @@ session_tls_init(lagopus_session_t s) {
   s->ctx = malloc(sizeof(struct tls_ctx));
   if (s->ctx == NULL) {
     lagopus_msg_warning("no memory.\n");
-    return NULL;
+    return LAGOPUS_RESULT_NO_MEMORY;
   }
 
   lagopus_mutex_lock(&lock);
@@ -600,7 +601,7 @@ session_tls_init(lagopus_session_t s) {
     lagopus_msg_warning("no memory.\n");
     free(s->ctx);
     lagopus_mutex_unlock(&lock);
-    return NULL;
+    return LAGOPUS_RESULT_NO_MEMORY;
   }
 
   if (s->session_type & SESSION_PASSIVE) {
@@ -614,7 +615,7 @@ session_tls_init(lagopus_session_t s) {
       free(GET_TLS_CTX(s)->ca_dir);
       free(s->ctx);
       lagopus_mutex_unlock(&lock);
-      return NULL;
+      return LAGOPUS_RESULT_NO_MEMORY;
     }
   } else if (s->session_type & SESSION_ACTIVE) {
     (void)lagopus_rwlock_writer_lock(&(tls.s_lck));
@@ -627,7 +628,7 @@ session_tls_init(lagopus_session_t s) {
       free(GET_TLS_CTX(s)->ca_dir);
       free(s->ctx);
       lagopus_mutex_unlock(&lock);
-      return NULL;
+      return LAGOPUS_RESULT_NO_MEMORY;
     }
   } else {
     GET_TLS_CTX(s)->key = NULL;
@@ -645,7 +646,7 @@ session_tls_init(lagopus_session_t s) {
       free(GET_TLS_CTX(s)->ca_dir);
       free(s->ctx);
       lagopus_mutex_unlock(&lock);
-      return NULL;
+      return LAGOPUS_RESULT_NO_MEMORY;
     }
   } else if (s->session_type & SESSION_ACTIVE) {
     (void)lagopus_rwlock_writer_lock(&(tls.s_lck));
@@ -659,7 +660,7 @@ session_tls_init(lagopus_session_t s) {
       free(GET_TLS_CTX(s)->ca_dir);
       free(s->ctx);
       lagopus_mutex_unlock(&lock);
-      return NULL;
+      return LAGOPUS_RESULT_NO_MEMORY;
     }
   } else {
     GET_TLS_CTX(s)->key = NULL;
@@ -675,7 +676,7 @@ session_tls_init(lagopus_session_t s) {
       free(GET_TLS_CTX(s)->cert);
       free(GET_TLS_CTX(s)->ca_dir);
       free(s->ctx);
-      return NULL;
+      return LAGOPUS_RESULT_NO_MEMORY;
     }
   } else {
     GET_TLS_CTX(s)->ctx = NULL;
@@ -692,7 +693,7 @@ session_tls_init(lagopus_session_t s) {
   s->destroy = destroy_tls;
   s->connect_check = connect_check_tls;
 
-  return s;
+  return LAGOPUS_RESULT_OK;
 }
 
 static int
@@ -754,7 +755,7 @@ connect_tls(lagopus_session_t s, const char *host, const char *port) {
   (void) host;
   (void) port;
 
-  lagopus_msg_info("tls handshake start.\n");
+  lagopus_msg_debug(10, "tls handshake start.\n");
 
   if (IS_TLS_NOT_INIT(s)) {
     SSL_CTX *ssl_ctx;

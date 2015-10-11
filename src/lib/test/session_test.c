@@ -32,43 +32,48 @@ tearDown(void) {
 
 void
 test_session_create_and_close(void) {
+  lagopus_result_t ret;
   lagopus_session_t ses;
 
-  ses = session_create(SESSION_TCP|SESSION_ACTIVE);
-  TEST_ASSERT_NOT_NULL(ses);
+  ret = session_create(SESSION_TCP|SESSION_ACTIVE, &ses);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
   session_destroy(ses);
 }
 
 void
 test_session_create_and_fail(void) {
+  lagopus_result_t ret;
   lagopus_session_t ses;
 
-  ses = session_create(SESSION_ACTIVE|SESSION_TLS);
-  TEST_ASSERT_NULL(ses);
-  ses = session_create(SESSION_TCP|SESSION_TLS);
-  TEST_ASSERT_NULL(ses);
-  ses = session_create(SESSION_TLS|SESSION_PASSIVE);
-  TEST_ASSERT_NULL(ses);
+  ret = session_create(SESSION_ACTIVE|SESSION_TLS, &ses);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_INVALID_ARGS, ret);
+  ret = session_create(SESSION_TCP|SESSION_TLS, &ses);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_INVALID_ARGS, ret);
+  ret = session_create(SESSION_TLS|SESSION_PASSIVE, &ses);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_INVALID_ARGS, ret);
+  ret = session_create(SESSION_TCP|SESSION_ACTIVE, NULL);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_INVALID_ARGS, ret);
+
 }
 
 void
 test_session_tcp(void) {
-  ssize_t ret;
+  lagopus_result_t ret;
   char cbuf[256] = {0};
   char sbuf[256] = {0};
   bool b;
   lagopus_session_t sesc, sess, sesa, sesp[3];
   struct addrunion dst, src;
 
-  sess = session_create(SESSION_TCP|SESSION_PASSIVE);
-  TEST_ASSERT_NOT_NULL(sess);
+  ret = session_create(SESSION_TCP|SESSION_PASSIVE, &sess);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
 
   addrunion_ipv4_set(&src, "0.0.0.0");
   ret = session_bind(sess, &src, 10022);
   TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
 
-  sesc = session_create(SESSION_TCP|SESSION_ACTIVE);
-  TEST_ASSERT_NOT_NULL(sesc);
+  ret = session_create(SESSION_TCP|SESSION_ACTIVE, &sesc);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
 
   addrunion_ipv4_set(&dst, "127.0.0.1");
   ret = session_connect(sesc, &dst, 10022, NULL, 0);
@@ -179,21 +184,21 @@ test_session_tcp(void) {
 
 void
 test_session_tcp6(void) {
-  ssize_t ret;
+  lagopus_result_t ret;
   char cbuf[256] = {0};
   char sbuf[256] = {0};
   lagopus_session_t sesc, sess, sesa;
   struct addrunion dst, src;
 
-  sess = session_create(SESSION_TCP6|SESSION_PASSIVE);
-  TEST_ASSERT_NOT_NULL(sess);
+  ret = session_create(SESSION_TCP6|SESSION_PASSIVE, &sess);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
 
   addrunion_ipv6_set(&src, "::0");
   ret = session_bind(sess, &src, 10023);
   TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
 
-  sesc = session_create(SESSION_TCP6|SESSION_ACTIVE);
-  TEST_ASSERT_NOT_NULL(sesc);
+  ret = session_create(SESSION_TCP6|SESSION_ACTIVE, &sesc);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
 
   addrunion_ipv6_set(&dst, "::1");
   ret = session_connect(sesc, &dst, 10023, NULL, 0);
@@ -225,6 +230,56 @@ test_session_tcp6(void) {
   session_destroy(sesc);
   session_destroy(sesa);
   session_destroy(sess);
+}
+
+void
+test_session_pair_dgram(void) {
+  lagopus_result_t ret;
+  char cbuf[256] = {0};
+  char sbuf[256] = {0};
+  lagopus_session_t s[2];
+
+  ret = session_pair(SESSION_UNIX_DGRAM, s);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
+
+  snprintf(cbuf, sizeof(cbuf), "hogehoge\n");
+  ret = session_write(s[0], cbuf, strlen(cbuf));
+  TEST_ASSERT_EQUAL(ret, strlen(cbuf));
+  ret = session_read(s[1], sbuf, sizeof(sbuf));
+  TEST_ASSERT_EQUAL(ret, strlen(sbuf));
+
+  ret = session_write(s[1], sbuf, strlen(sbuf));
+  TEST_ASSERT_EQUAL(ret, strlen(sbuf));
+  ret = session_read(s[0], cbuf, sizeof(cbuf));
+  TEST_ASSERT_EQUAL(ret, strlen(cbuf));
+
+  session_destroy(s[0]);
+  session_destroy(s[1]);
+}
+
+void
+test_session_pair_stream(void) {
+  lagopus_result_t ret;
+  char cbuf[256] = {0};
+  char sbuf[256] = {0};
+  lagopus_session_t s[2];
+
+  ret = session_pair(SESSION_UNIX_STREAM, s);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
+
+  snprintf(cbuf, sizeof(cbuf), "hogehoge\n");
+  ret = session_write(s[0], cbuf, strlen(cbuf));
+  TEST_ASSERT_EQUAL(ret, strlen(cbuf));
+  ret = session_read(s[1], sbuf, sizeof(sbuf));
+  TEST_ASSERT_EQUAL(ret, strlen(sbuf));
+
+  ret = session_write(s[1], sbuf, strlen(sbuf));
+  TEST_ASSERT_EQUAL(ret, strlen(sbuf));
+  ret = session_read(s[0], cbuf, sizeof(cbuf));
+  TEST_ASSERT_EQUAL(ret, strlen(cbuf));
+
+  session_destroy(s[0]);
+  session_destroy(s[1]);
 }
 
 /*
@@ -303,14 +358,14 @@ test_session_tls(void) {
   session_tls_set_server_key("./server1_key_nopass.pem");
   session_tls_set_client_key("./client1_key_nopass.pem");
 
-  sess = session_create(SESSION_TCP|SESSION_PASSIVE|SESSION_TLS);
-  TEST_ASSERT_NOT_NULL(sess);
+  ret = session_create(SESSION_TCP|SESSION_PASSIVE|SESSION_TLS, &sess);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
   addrunion_ipv4_set(&src, "0.0.0.0");
   ret = session_bind(sess, &src, 10024);
 
   addrunion_ipv4_set(&dst, "127.0.0.1");
-  sesc = session_create(SESSION_TCP|SESSION_TLS|SESSION_ACTIVE);
-  TEST_ASSERT_NOT_NULL(sesc);
+  ret = session_create(SESSION_TCP|SESSION_TLS|SESSION_ACTIVE, &sesc);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
 
   ret = session_connect(sesc, &dst, 10024, &dst, 0);
   if (ret == 0 || errno == EINPROGRESS)  {
@@ -362,15 +417,15 @@ test_session_fgets(void) {
   lagopus_session_t sesc, sess, sesa, sesp[1];
   struct addrunion dst, src;
 
-  sess = session_create(SESSION_TCP|SESSION_PASSIVE);
-  TEST_ASSERT_NOT_NULL(sess);
+  ret = session_create(SESSION_TCP|SESSION_PASSIVE, &sess);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
 
   addrunion_ipv4_set(&src, "0.0.0.0");
   ret = session_bind(sess, &src, 10022);
   TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
 
-  sesc = session_create(SESSION_TCP|SESSION_ACTIVE);
-  TEST_ASSERT_NOT_NULL(sesc);
+  ret = session_create(SESSION_TCP|SESSION_ACTIVE, &sesc);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
 
   addrunion_ipv4_set(&dst, "127.0.0.1");
   ret = session_connect(sesc, &dst, 10022, NULL, 0);

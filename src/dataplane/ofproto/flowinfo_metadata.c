@@ -229,7 +229,6 @@ match_flow_metadata_mask(struct flowinfo *self, struct lagopus_packet *pkt,
     .hard_timeout = 0,
     .match_list = {NULL, NULL},
     .instruction_list = {NULL, NULL},
-    .flow_type = 0,
     .field_bits = 0
   };
   unsigned int i;
@@ -298,11 +297,9 @@ add_flow_metadata(struct flowinfo *self, struct flow *flow) {
     }
     flowinfo = node->info;
     rv = flowinfo->add_func(flowinfo, flow);
-  } else {
-    rv = self->misc->add_func(self->misc, flow);
-  }
-  if (rv == LAGOPUS_RESULT_OK) {
-    self->nflow++;
+    if (rv == LAGOPUS_RESULT_OK) {
+      self->nflow++;
+    }
   }
   return rv;
 }
@@ -323,11 +320,9 @@ del_flow_metadata(struct flowinfo *self, struct flow *flow) {
     }
     flowinfo = node->info;
     rv = flowinfo->del_func(flowinfo, flow);
-  } else {
-    rv = self->misc->del_func(self->misc, flow);
-  }
-  if (rv == LAGOPUS_RESULT_OK) {
-    self->nflow--;
+    if (rv == LAGOPUS_RESULT_OK) {
+      self->nflow--;
+    }
   }
   return rv;
 }

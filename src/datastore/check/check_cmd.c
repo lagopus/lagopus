@@ -13,7 +13,6 @@ extern datastore_interp_t datastore_get_master_interp(void);
 
 static datastore_interp_t interp;
 static pthread_once_t once = PTHREAD_ONCE_INIT;
-static struct event_manager *em = NULL;
 static void	ctors(void) __attr_constructor__(CTOR_IDX);
 static void	dtors(void) __attr_destructor__(CTOR_IDX);
 
@@ -25,9 +24,6 @@ once_proc(void) {
   if (interp == NULL) {
     lagopus_exit_fatal("can't get the datastore interpretor.\n");
   }
-  if (em == NULL) {
-    em = event_manager_alloc();
-  }
 
   if ((ret = dp_api_init()) != LAGOPUS_RESULT_OK) {
     lagopus_perror(ret);
@@ -35,7 +31,7 @@ once_proc(void) {
   }
 
   ofp_bridgeq_mgr_initialize(NULL);
-  channel_mgr_initialize(em);
+  channel_mgr_initialize();
 }
 
 static inline void
@@ -54,10 +50,6 @@ static inline void
 final(void) {
   ofp_bridgeq_mgr_destroy();
   dp_api_fini();
-  if (em != NULL) {
-    event_manager_free(em);
-    em = NULL;
-  }
 }
 
 static void

@@ -35,14 +35,14 @@ test_ip_address_create_and_destroy(void) {
   const char *name1 = "127.0.0.1";
   const char *name2 = "::1";
   const char *name3 = "localhost";
-  const char *name4 = "QkwUfh2GGN9sjCx.unknown";
+  //const char *name4 = "QkwUfh2GGN9sjCx";
   const char *name5 = "127.0";
   const char *name6 = "127.0.0.0";
   const char *name7 = "127.0.0.1.1";
   lagopus_ip_address_t *ip1 = NULL;
   lagopus_ip_address_t *ip2 = NULL;
   lagopus_ip_address_t *ip3 = NULL;
-  lagopus_ip_address_t *ip4 = NULL;
+  //lagopus_ip_address_t *ip4 = NULL;
   lagopus_ip_address_t *ip5 = NULL;
   lagopus_ip_address_t *ip6 = NULL;
 
@@ -96,8 +96,8 @@ test_ip_address_create_and_destroy(void) {
     TEST_ASSERT_EQUAL(AF_INET, IS_IPV4(ip3->is_ipv4));
 
     // Normal case(IP address obtained from a host name)
-    rc = lagopus_ip_address_create(name4, true, &ip4);
-    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_ADDR_RESOLVER_FAILURE, rc);
+    //rc = lagopus_ip_address_create(name4, true, &ip4);
+    //TEST_ASSERT_EQUAL(LAGOPUS_RESULT_ADDR_RESOLVER_FAILURE, rc);
 
     // Normal case(name = IPv4, ai_family = AF_INET,
     //             name = '127.0', result addr_str = '127.0.0.0')
@@ -127,7 +127,7 @@ test_ip_address_create_and_destroy(void) {
   lagopus_ip_address_destroy(ip1);
   lagopus_ip_address_destroy(ip2);
   lagopus_ip_address_destroy(ip3);
-  lagopus_ip_address_destroy(ip4);
+  //lagopus_ip_address_destroy(ip4);
 }
 
 void

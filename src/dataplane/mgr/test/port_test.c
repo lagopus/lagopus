@@ -47,44 +47,117 @@ test_ports_alloc(void) {
 }
 
 void
-test_port_add(void) {
-  struct vector *ports;
-  struct port port;
+test_dp_port_create(void) {
   lagopus_result_t rv;
 
-  ports = ports_alloc();
-  TEST_ASSERT_NOT_NULL_MESSAGE(ports, "ports_alloc error");
-
-  strncpy(port.ofp_port.name, "port1", sizeof(port.ofp_port.name));
-  port.ofp_port.port_no = 1;
-  port.ifindex = 120;
-  port.type = LAGOPUS_PORT_TYPE_NULL;
-  rv = port_add(ports, &port);
-
-  TEST_ASSERT_EQUAL_MESSAGE(rv, LAGOPUS_RESULT_OK, "port_add error");
+  rv = dp_port_create("port0");
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
+  rv = dp_port_create("port0");
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_ALREADY_EXISTS);
+  dp_port_destroy("port0");
+  dp_port_destroy("port0");
 }
 
 void
-test_port_delete(void) {
-  struct vector *ports;
-  struct port port;
+test_dp_port_interface_set_unset(void) {
   lagopus_result_t rv;
 
-  ports = ports_alloc();
-  TEST_ASSERT_NOT_NULL_MESSAGE(ports, "ports_alloc error");
+  rv = dp_interface_create("if0");
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
+  rv = dp_port_create("port0");
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
+  rv = dp_port_interface_set("port1", "if1");
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_NOT_FOUND);
+  rv = dp_port_interface_set("port1", "if0");
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_NOT_FOUND);
+  rv = dp_port_interface_set("port0", "if1");
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_NOT_FOUND);
+  rv = dp_port_interface_set("port0", "if0");
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
+  TEST_ASSERT_NOT_EQUAL(dp_port_lookup(0), NULL);
+  rv = dp_port_interface_unset("port1");
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_NOT_FOUND);
+  rv = dp_port_interface_unset("port0");
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
+}
 
-  strncpy(port.ofp_port.name, "port1", sizeof(port.ofp_port.name));
-  port.ofp_port.port_no = 1;
-  port.ifindex = 120;
-  port.type = LAGOPUS_PORT_TYPE_NULL;
-  rv = port_add(ports, &port);
+void
+test_dp_port_count(void) {
+  lagopus_result_t rv;
 
-  TEST_ASSERT_EQUAL_MESSAGE(rv, LAGOPUS_RESULT_OK, "port_add error");
+  TEST_ASSERT_EQUAL(dp_port_count(), 0);
+  rv = dp_port_create("port0");
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
+  TEST_ASSERT_EQUAL(dp_port_count(), 0);
+  rv = dp_interface_create("if0");
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
+  rv = dp_port_interface_set("port0", "if0");
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
+  TEST_ASSERT_EQUAL(dp_port_count(), 1);
+  rv = dp_port_destroy("port0");
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
+  TEST_ASSERT_EQUAL(dp_port_count(), 0);
+}
 
-  rv = port_delete(ports, 5);
-  TEST_ASSERT_EQUAL_MESSAGE(rv, LAGOPUS_RESULT_NOT_FOUND, "not found error");
-  rv = port_delete(ports, 120);
-  TEST_ASSERT_EQUAL_MESSAGE(rv, LAGOPUS_RESULT_OK, "port_delete error");
+void
+test_dp_port_start_stop(void) {
+  lagopus_result_t rv;
+
+  rv = dp_interface_create("if0");
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
+  rv = dp_port_create("port0");
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
+  rv = dp_port_start("port0");
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_INVALID_ARGS);
+  rv = dp_port_interface_set("port0", "if0");
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
+  rv = dp_port_start("port0");
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
+  rv = dp_port_start("port1");
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_NOT_FOUND);
+  rv = dp_port_stop("port1");
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_NOT_FOUND);
+  rv = dp_port_stop("port0");
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
+}
+
+void
+test_dp_port_config(void) {
+  lagopus_result_t rv;
+  uint32_t config;
+
+  rv = dp_port_create("port0");
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
+  rv = dp_port_config_get("port0", &config);
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
+  rv = dp_port_config_get("port1", &config);
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_NOT_FOUND);
+}
+
+void
+test_dp_port_state(void) {
+  lagopus_result_t rv;
+  uint32_t state;
+
+  rv = dp_port_create("port0");
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
+  rv = dp_port_state_get("port0", &state);
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
+  rv = dp_port_state_get("port1", &state);
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_NOT_FOUND);
+}
+
+void
+test_dp_port_stats(void) {
+  datastore_port_stats_t stats;
+  lagopus_result_t rv;
+
+  rv = dp_port_create("port0");
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
+  rv = dp_port_stats_get("port0", &stats);
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
+  rv = dp_port_stats_get("port1", &stats);
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_NOT_FOUND);
 }
 
 void

@@ -18,9 +18,9 @@
 #include "../ofp_set_async_handler.h"
 #include "../ofp_apis.h"
 #include "../ofp_role.h"
-#include "event.h"
 #include "lagopus/ofp_dp_apis.h"
 #include "handler_test_utils.h"
+#include "../channel_mgr.h"
 
 void
 setUp(void) {
@@ -41,6 +41,23 @@ s_ofp_set_async_handle_wrap(struct channel *channel,
   return ret;
 }
 
+void
+test_prologue(void) {
+  lagopus_result_t r;
+  const char *argv0 =
+      ((IS_VALID_STRING(lagopus_get_command_name()) == true) ?
+       lagopus_get_command_name() : "callout_test");
+  const char * const argv[] = {
+    argv0, NULL
+  };
+
+#define N_CALLOUT_WORKERS	1
+  (void)lagopus_mainloop_set_callout_workers_number(N_CALLOUT_WORKERS);
+  r = lagopus_mainloop_with_callout(1, argv, NULL, NULL,
+                                    false, false, true);
+  TEST_ASSERT_EQUAL(r, LAGOPUS_RESULT_OK);
+  channel_mgr_initialize();
+}
 void
 test_ofp_set_async_handle_normal_pattern(void) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
@@ -118,9 +135,8 @@ test_ofp_set_async_handle_invalid_arguments(void) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   struct ofp_error error;
   struct ofp_header header;
-  struct event_manager *em = event_manager_alloc();
   struct channel *channel =
-    channel_alloc_ip4addr("127.0.0.1", "1000", em, 0x01);
+    channel_alloc_ip4addr("127.0.0.1", "1000", 0x01);
   struct pbuf *pbuf = pbuf_alloc(65535);
 
   ret = ofp_set_async_handle(NULL, pbuf, &header, &error);
@@ -141,5 +157,12 @@ test_ofp_set_async_handle_invalid_arguments(void) {
 
   channel_free(channel);
   pbuf_free(pbuf);
-  event_manager_free(em);
+}
+void
+test_epilogue(void) {
+  lagopus_result_t r;
+  channel_mgr_finalize();
+  r = global_state_request_shutdown(SHUTDOWN_GRACEFULLY);
+  TEST_ASSERT_EQUAL(r, LAGOPUS_RESULT_OK);
+  lagopus_mainloop_wait_thread();
 }

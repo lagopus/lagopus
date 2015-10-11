@@ -359,6 +359,8 @@ dp_bridge_start(const char *name);
  *
  * @retval      LAGOPUS_RESULT_OK               Succeeded.
  * @retval      LAGOPUS_RESULT_NOT_FOUND        Bridge is not exist.
+ *
+ * Stop forwarding function of the bridge.
  */
 lagopus_result_t
 dp_bridge_stop(const char *name);
@@ -435,9 +437,28 @@ lagopus_result_t
 dp_bridge_stats_get(const char *name,
                     datastore_bridge_stats_t *stats);
 
+/**
+ * Clear L2 bridge mac address learning table.
+ *
+ * @param[in]   name    Name of bridge.
+ *
+ * @retval      LAGOPUS_RESULT_OK               Succeeded.
+ * @retval      LAGOPUS_RESULT_NOT_FOUND        Bridge is not exist.
+ */
 lagopus_result_t
 dp_bridge_l2_clear(const char *name);
 
+/**
+ * Set expire value of mac address learning table.
+ *
+ * @param[in]   name    Name of bridge.
+ * @param[in]   expire  Expire value (second)
+ *
+ * @retval      LAGOPUS_RESULT_OK               Succeeded.
+ * @retval      LAGOPUS_RESULT_NOT_FOUND        Bridge is not exist.
+ *
+ * New expire value is applied to new mac address entry.
+ */
 lagopus_result_t
 dp_bridge_l2_expire_set(const char *name, uint64_t expire);
 
@@ -535,5 +556,15 @@ dp_policer_action_start(const char *name);
 
 lagopus_result_t
 dp_policer_action_stop(const char *name);
+
+struct bridge;
+/**
+ * Get flow cache statistics.
+ *
+ * @param[in]   bridge   Bridge.
+ * @param[out]  st       Statistics of flow cache.
+ */
+void
+dp_get_flowcache_statistics(struct bridge *bridge, struct ofcachestat *st);
 
 #endif /* SRC_INCLUDE_LAGOPUS_DP_APIS_H_ */

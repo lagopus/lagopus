@@ -16,6 +16,7 @@
 
 #include "lagopus/datastore.h"
 #include "datastore_internal.h"
+#include "ns_util.h"
 
 #define MINIMUM_ID 0LL
 #define MAXIMUM_ID UINT32_MAX
@@ -136,8 +137,11 @@ queue_attr_create(queue_attr_t **attr) {
 }
 
 static inline lagopus_result_t
-queue_attr_duplicate(const queue_attr_t *src_attr, queue_attr_t **dst_attr) {
+queue_attr_duplicate(const queue_attr_t *src_attr, queue_attr_t **dst_attr,
+                     const char *namespace) {
   lagopus_result_t rc;
+
+  (void)namespace;
 
   if (src_attr == NULL || dst_attr == NULL) {
     return LAGOPUS_RESULT_INVALID_ARGS;
@@ -173,7 +177,9 @@ error:
 
 static inline bool
 queue_attr_equals(queue_attr_t *attr0, queue_attr_t *attr1) {
-  if (attr0 == NULL || attr1 == NULL) {
+  if (attr0 == NULL && attr1 == NULL) {
+    return true;
+  } else if (attr0 == NULL || attr1 == NULL) {
     return false;
   }
 
@@ -245,6 +251,105 @@ queue_conf_destroy(queue_conf_t *conf) {
 }
 
 static inline lagopus_result_t
+queue_conf_duplicate(const queue_conf_t *src_conf,
+                     queue_conf_t **dst_conf,
+                     const char *namespace) {
+  lagopus_result_t rc;
+  queue_attr_t *dst_current_attr = NULL;
+  queue_attr_t *dst_modified_attr = NULL;
+  size_t len = 0;
+  char *buf = NULL;
+
+  if (src_conf == NULL || dst_conf == NULL) {
+    return LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  if (*dst_conf != NULL) {
+    queue_conf_destroy(*dst_conf);
+    *dst_conf = NULL;
+  }
+
+  if (namespace == NULL) {
+    rc = queue_conf_create(dst_conf, src_conf->name);
+    if (rc != LAGOPUS_RESULT_OK) {
+      goto error;
+    }
+  } else {
+    if ((len = strlen(src_conf->name)) <= DATASTORE_QUEUE_FULLNAME_MAX) {
+      rc = ns_replace_namespace(src_conf->name, namespace, &buf);
+      if (rc == LAGOPUS_RESULT_OK) {
+        rc = queue_conf_create(dst_conf, buf);
+        if (rc != LAGOPUS_RESULT_OK) {
+          goto error;
+        }
+      } else {
+        goto error;
+      }
+      free(buf);
+    } else {
+      rc = LAGOPUS_RESULT_TOO_LONG;
+      goto error;
+    }
+  }
+
+  if (src_conf->current_attr != NULL) {
+    rc = queue_attr_duplicate(src_conf->current_attr, &dst_current_attr,
+                              namespace);
+    if (rc != LAGOPUS_RESULT_OK) {
+      goto error;
+    }
+  }
+  (*dst_conf)->current_attr = dst_current_attr;
+
+  if (src_conf->modified_attr != NULL) {
+    rc = queue_attr_duplicate(src_conf->modified_attr, &dst_modified_attr,
+                              namespace);
+    if (rc != LAGOPUS_RESULT_OK) {
+      goto error;
+    }
+  }
+  (*dst_conf)->modified_attr = dst_modified_attr;
+
+  (*dst_conf)->is_used = src_conf->is_used;
+  (*dst_conf)->is_enabled = src_conf->is_enabled;
+  (*dst_conf)->is_destroying = src_conf->is_destroying;
+  (*dst_conf)->is_enabling = src_conf->is_enabling;
+  (*dst_conf)->is_disabling = src_conf->is_disabling;
+
+  return LAGOPUS_RESULT_OK;
+
+error:
+  free(buf);
+  queue_conf_destroy(*dst_conf);
+  *dst_conf = NULL;
+  return rc;
+}
+
+static inline bool
+queue_conf_equals(const queue_conf_t *conf0,
+                  const queue_conf_t *conf1) {
+  if (conf0 == NULL && conf1 == NULL) {
+    return true;
+  } else if (conf0 == NULL || conf1 == NULL) {
+    return false;
+  }
+
+  if ((queue_attr_equals(conf0->current_attr,
+                         conf1->current_attr) == true) &&
+      (queue_attr_equals(conf0->modified_attr,
+                         conf1->modified_attr) == true) &&
+      (conf0->is_used == conf1->is_used) &&
+      (conf0->is_enabled == conf1->is_enabled) &&
+      (conf0->is_destroying == conf1->is_destroying) &&
+      (conf0->is_enabling == conf1->is_enabling) &&
+      (conf0->is_disabling == conf1->is_disabling)) {
+    return true;
+  }
+
+  return false;
+}
+
+static inline lagopus_result_t
 queue_conf_add(queue_conf_t *conf) {
   if (queue_table != NULL) {
     if (conf != NULL && IS_VALID_STRING(conf->name) == true) {
@@ -310,12 +415,12 @@ queue_conf_iterate(void *key, void *val, lagopus_hashentry_t he,
         if (ctx->m_namespace[0] == '\0') {
           ret = lagopus_dstring_appendf(&ds,
                                         "%s",
-                                        NAMESPACE_DELIMITER);
+                                        DATASTORE_NAMESPACE_DELIMITER);
         } else {
           ret = lagopus_dstring_appendf(&ds,
                                         "%s%s",
                                         ctx->m_namespace,
-                                        NAMESPACE_DELIMITER);
+                                        DATASTORE_NAMESPACE_DELIMITER);
         }
 
         if (ret == LAGOPUS_RESULT_OK) {

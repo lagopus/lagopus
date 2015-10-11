@@ -30,7 +30,6 @@ s_parse_save(datastore_interp_t *iptr,
   char *filepath = NULL;
   char *save_data = NULL;
 
-  (void)state;
   (void)argc;
   (void)hptr;
   (void)u_proc;
@@ -48,7 +47,12 @@ s_parse_save(datastore_interp_t *iptr,
   if (ret == LAGOPUS_RESULT_OK && IS_VALID_STRING(cname) == true) {
     if (IS_VALID_STRING(*argv) == true) {
       if ((ret = lagopus_str_unescape(*argv, "\"'", &filepath)) > 0) {
-        ret = datastore_interp_save_file(iptr, cname, filepath, result);
+        if (state == DATASTORE_INTERP_STATE_DRYRUN) {
+          ret = LAGOPUS_RESULT_OK;
+        } else {
+          ret = datastore_interp_save_file(iptr, cname, filepath, result);
+        }
+
         if (ret == LAGOPUS_RESULT_OK) {
           ret = datastore_json_result_set(result, ret, NULL);
         }
@@ -59,25 +63,31 @@ s_parse_save(datastore_interp_t *iptr,
                                                 *argv);
       }
     } else {
-      ret = datastore_interp_serialize(iptr, cname, result);
-      if (ret == LAGOPUS_RESULT_OK) {
-        ret = lagopus_dstring_str_get(result, &save_data);
-        if (ret == LAGOPUS_RESULT_OK && IS_VALID_STRING(save_data) == true) {
-          ret = datastore_json_result_string_setf(result,
-                                                  LAGOPUS_RESULT_OK,
-                                                  "%s",
-                                                  save_data);
+      if (state == DATASTORE_INTERP_STATE_DRYRUN) {
+        ret = datastore_json_result_string_setf(result,
+                                                LAGOPUS_RESULT_OK,
+                                                "%s", "");
+      } else {
+        ret = datastore_interp_serialize(iptr, cname, result);
+        if (ret == LAGOPUS_RESULT_OK) {
+          ret = lagopus_dstring_str_get(result, &save_data);
+          if (ret == LAGOPUS_RESULT_OK && IS_VALID_STRING(save_data) == true) {
+            ret = datastore_json_result_string_setf(result,
+                                                    LAGOPUS_RESULT_OK,
+                                                    "%s",
+                                                    save_data);
+          } else {
+            ret = datastore_json_result_string_setf(result,
+                                                    ret,
+                                                    CMD_ERR_MSG_SAVE_FAILED,
+                                                    "internal error.");
+          }
         } else {
           ret = datastore_json_result_string_setf(result,
                                                   ret,
                                                   CMD_ERR_MSG_SAVE_FAILED,
                                                   "internal error.");
         }
-      } else {
-        ret = datastore_json_result_string_setf(result,
-                                                ret,
-                                                CMD_ERR_MSG_SAVE_FAILED,
-                                                "internal error.");
       }
     }
   } else {

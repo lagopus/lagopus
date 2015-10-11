@@ -45,7 +45,6 @@ test_match_basic_PBB_ISID(void) {
   bool rv;
 
   /* prepare packet */
-  pkt.in_port = &port;
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
@@ -64,7 +63,7 @@ test_match_basic_PBB_ISID(void) {
   add_match(&flow->match_list, 3, OFPXMT_OFB_PBB_ISID << 1,
             0x5a, 0xc3, 0x3c);
   refresh_match(flow);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "PBB_ISID mismatch(1) error.");
@@ -91,7 +90,6 @@ test_match_basic_PBB_ISID_W(void) {
   bool rv;
 
   /* prepare packet */
-  pkt.in_port = &port;
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
@@ -110,7 +108,7 @@ test_match_basic_PBB_ISID_W(void) {
   add_match(&flow->match_list, 6, (OFPXMT_OFB_PBB_ISID << 1) + 1,
             0x5a, 0xc3, 0x00, 0xff, 0xff, 0x00);
   refresh_match(flow);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "PBB_ISID_W mismatch(1) error.");

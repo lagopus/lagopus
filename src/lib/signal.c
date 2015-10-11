@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+
 #include "lagopus_apis.h"
 #include "lagopus_thread_internal.h"
 
@@ -46,8 +47,8 @@ typedef signal_thread_record 	*signal_thread_t;
 
 
 
-static void s_ctors(void) __attr_constructor__(107);
-static void s_dtors(void) __attr_destructor__(107);
+static void s_ctors(void) __attr_constructor__(108);
+static void s_dtors(void) __attr_destructor__(108);
 static void s_child_at_fork(void);
 
 static pthread_once_t s_once_init = PTHREAD_ONCE_INIT;
@@ -117,6 +118,14 @@ s_unblock_all_signals(void) {
 
 
 
+
+
+static inline void
+s_reinitialize(signal_thread_t st) {
+  if (st != NULL) {
+    (void)lagopus_mutex_reinitialize(&(st->m_lock));
+  }
+}
 
 
 static inline void
@@ -370,6 +379,8 @@ s_once_init_proc(void) {
 static void
 s_child_at_fork(void) {
   if (s_is_last == false) {
+    s_reinitialize(s_sigthd);
+
     s_lock(s_sigthd);
     {
       old_sigset = s_get_sigset(s_sigthd);
@@ -515,19 +526,24 @@ lagopus_signal(int signum, sighandler_t new, sighandler_t *oldptr) {
             break;
           }
           default: {
-            (void)sigaddset(&cur_sigset, signum);
-            s_sigthd->m_sigprocs[signum] = new;
+            if (new != SIG_CUR) {
+              (void)sigaddset(&cur_sigset, signum);
+              s_sigthd->m_sigprocs[signum] = new;
+            }
+            break;
           }
         }
 
-        s_sigthd->m_sigset = cur_sigset;
+        if (new != SIG_CUR) {
+          s_sigthd->m_sigset = cur_sigset;
 
-        /*
-         * Send myself SIGUSR2 for notification.
-         */
-        (void)kill(getpid(), SIGUSR2);
+          /*
+           * Send myself SIGUSR2 for notification.
+           */
+          (void)kill(getpid(), SIGUSR2);
 
-        lagopus_msg_debug(5, "Notify sigmask change.\n");
+          lagopus_msg_debug(5, "Notify sigmask change.\n");
+        }
 
         ret = LAGOPUS_RESULT_OK;
       }
@@ -550,5 +566,14 @@ lagopus_signal_old_school_semantics(void) {
   s_final();
   (void)sigprocmask(SIG_SETMASK, &org_proc_sigset, NULL);
   (void)signal(SIGUSR2, SIG_DFL);
+}
+
+
+
+
+
+void
+__s_I_g_C_u_R__(int sig) {
+  (void)sig;
 }
 

@@ -59,14 +59,15 @@
 #undef HAVE_NCURSES_H
 #undef HAVE_ASSERT_H
 #undef HAVE_POLL_H
-
-#undef HAVE_EXPAT_H
 #undef HAVE_GMP_H
+#undef HAVE_NUMA_H
+#undef HAVE_NUMAIF_H
 
 #undef HAVE_PRINT_FORMAT_FOR_SIZE_T
 #undef HAVE_PTHREAD_SETNAME_NP
 #undef HAVE_PTHREAD_SETAFFINITY_NP
 #undef HAVE_STRTOLD
+#undef HAVE_NUMA
 
 #undef WORDS_BIGENDIAN
 #undef SIZEOF_SHORT_INT
@@ -84,6 +85,8 @@
 #undef HAVE_STRLCAT
 #undef HAVE_VIS
 #undef HAVE_UNVIS
+
+#undef HAVE_PROCFS_SELF_EXE
 
 #include "lagopus_platform.h"
 

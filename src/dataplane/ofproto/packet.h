@@ -47,6 +47,9 @@
 #include <netinet/ip6.h>
 #include <netinet/icmp6.h>
 
+#include "lagopus/flowinfo.h"
+#include "mbtree.h"
+
 /**
  * Ethernet type for VLAN
  */
@@ -270,5 +273,35 @@ struct lagopus_packet {
 #define ICMP_CKSUM(h) ((h)->icmp_cksum)
 #define MTOD_OFS(m, offset, type)                       \
   (type)(OS_MTOD((m), unsigned char *) + (offset))
+
+/**
+ * find flow entry matching packet from the table.
+ *
+ * @param[in]   pkt     packet.
+ * @param[in]   table   flow table related with the bridge.
+ *
+ * @retval      NULL    flow is not found.
+ * @retval      !=NULL  matched flow.
+ */
+static inline struct flow *
+lagopus_find_flow(struct lagopus_packet *pkt, struct table *table) {
+#ifdef USE_MBTREE
+  return find_mbtree(pkt, table->flow_list);
+#else
+  struct flowinfo *flowinfo;
+  struct flow *flow;
+  int32_t prio;
+
+  prio = -1;
+
+  flowinfo = table->userdata;
+  if (flowinfo != NULL) {
+    flow = flowinfo->match_func(flowinfo, pkt, &prio);
+  } else {
+    flow = NULL;
+  }
+  return flow;
+#endif /* USE_MBTREE */
+}
 
 #endif /* SRC_DATAPLANE_OFPROTO_PACKET_H_ */

@@ -73,28 +73,28 @@ test_port_cmd_parse_create_01(void) {
   const char *argv3[] = {"port", NULL};
   const char test_str3[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name02\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name02\",\n"
     "\"port-number\":65535,\n"
-    "\"interface\":\""NAMESPACE_DELIMITER"test_eth\\\"1\",\n"
-    "\"policer\":\""NAMESPACE_DELIMITER"p1_2\",\n"
-    "\"queues\":[\""NAMESPACE_DELIMITER"q1_2\",\""NAMESPACE_DELIMITER"q1_3\"],\n"
+    "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"test_eth\\\"1\",\n"
+    "\"policer\":\""DATASTORE_NAMESPACE_DELIMITER"p1_2\",\n"
+    "\"queues\":[\""DATASTORE_NAMESPACE_DELIMITER"q1_2\",\""DATASTORE_NAMESPACE_DELIMITER"q1_3\"],\n"
     "\"is-used\":true,\n"
     "\"is-enabled\":true},\n"
-    "{\"name\":\""NAMESPACE_DELIMITER"test_name01\",\n"
+    "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name01\",\n"
     "\"port-number\":0,\n"
-    "\"interface\":\""NAMESPACE_DELIMITER"test_eth0\",\n"
-    "\"policer\":\""NAMESPACE_DELIMITER"p1_1\",\n"
-    "\"queues\":[\""NAMESPACE_DELIMITER"q1_1\"],\n"
+    "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"test_eth0\",\n"
+    "\"policer\":\""DATASTORE_NAMESPACE_DELIMITER"p1_1\",\n"
+    "\"queues\":[\""DATASTORE_NAMESPACE_DELIMITER"q1_1\"],\n"
     "\"is-used\":false,\n"
     "\"is-enabled\":false}]}";
   const char *argv4[] = {"port", "test_name02", NULL};
   const char test_str4[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name02\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name02\",\n"
     "\"port-number\":65535,\n"
-    "\"interface\":\""NAMESPACE_DELIMITER"test_eth\\\"1\",\n"
-    "\"policer\":\""NAMESPACE_DELIMITER"p1_2\",\n"
-    "\"queues\":[\""NAMESPACE_DELIMITER"q1_2\",\""NAMESPACE_DELIMITER"q1_3\"],\n"
+    "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"test_eth\\\"1\",\n"
+    "\"policer\":\""DATASTORE_NAMESPACE_DELIMITER"p1_2\",\n"
+    "\"queues\":[\""DATASTORE_NAMESPACE_DELIMITER"q1_2\",\""DATASTORE_NAMESPACE_DELIMITER"q1_3\"],\n"
     "\"is-used\":true,\n"
     "\"is-enabled\":true}]}";
   const char *argv5[] = {"port", "test_name02", "disable",
@@ -126,7 +126,7 @@ test_port_cmd_parse_create_01(void) {
   const char *inter_argv2[] = {"interface", "test_eth\"1", NULL};
   const char inter_test_str2[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_eth\\\"1\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_eth\\\"1\",\n"
     "\"type\":\"ethernet-rawsock\",\n"
     "\"port-number\":100,\n"
     "\"device\":\"eth0\",\n"
@@ -137,7 +137,7 @@ test_port_cmd_parse_create_01(void) {
   const char *inter_argv3[] = {"interface", "test_eth\"1", NULL};
   const char inter_test_str3[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_eth\\\"1\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_eth\\\"1\",\n"
     "\"type\":\"ethernet-rawsock\",\n"
     "\"port-number\":100,\n"
     "\"device\":\"eth0\",\n"
@@ -156,7 +156,7 @@ test_port_cmd_parse_create_01(void) {
   const char *queue_argv1[] = {"queue", "q1_2", NULL};
   const char queue_test_str1[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"q1_2\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"q1_2\",\n"
     "\"type\":\"single-rate\",\n"
     "\"id\":2,\n"
     "\"priority\":0,\n"
@@ -169,7 +169,7 @@ test_port_cmd_parse_create_01(void) {
   const char *queue_argv2[] = {"queue", "q1_3", NULL};
   const char queue_test_str2[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"q1_3\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"q1_3\",\n"
     "\"type\":\"single-rate\",\n"
     "\"id\":3,\n"
     "\"priority\":0,\n"
@@ -182,7 +182,7 @@ test_port_cmd_parse_create_01(void) {
   const char *queue_argv3[] = {"queue", "q1_2", NULL};
   const char queue_test_str3[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"q1_2\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"q1_2\",\n"
     "\"type\":\"single-rate\",\n"
     "\"id\":2,\n"
     "\"priority\":0,\n"
@@ -195,7 +195,7 @@ test_port_cmd_parse_create_01(void) {
   const char *queue_argv4[] = {"queue", "q1_3", NULL};
   const char queue_test_str4[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"q1_3\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"q1_3\",\n"
     "\"type\":\"single-rate\",\n"
     "\"id\":3,\n"
     "\"priority\":0,\n"
@@ -208,8 +208,8 @@ test_port_cmd_parse_create_01(void) {
   const char *policer_argv1[] = {"policer", "p1_2", NULL};
   const char policer_test_str1[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"p1_2\",\n"
-    "\"actions\":[\""NAMESPACE_DELIMITER"pa1_2\"],\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"p1_2\",\n"
+    "\"actions\":[\""DATASTORE_NAMESPACE_DELIMITER"pa1_2\"],\n"
     "\"bandwidth-limit\":1500,\n"
     "\"burst-size-limit\":1500,\n"
     "\"bandwidth-percent\":0,\n"
@@ -218,8 +218,8 @@ test_port_cmd_parse_create_01(void) {
   const char *policer_argv2[] = {"policer", "p1_2", NULL};
   const char policer_test_str2[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"p1_2\",\n"
-    "\"actions\":[\""NAMESPACE_DELIMITER"pa1_2\"],\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"p1_2\",\n"
+    "\"actions\":[\""DATASTORE_NAMESPACE_DELIMITER"pa1_2\"],\n"
     "\"bandwidth-limit\":1500,\n"
     "\"burst-size-limit\":1500,\n"
     "\"bandwidth-percent\":0,\n"
@@ -405,13 +405,13 @@ test_port_cmd_parse_enable_unused(void) {
                         };
   const char test_str2[] =
     "{\"ret\":\"NOT_OPERATIONAL\",\n"
-    "\"data\":\"name = "NAMESPACE_DELIMITER"test_name08. is not used.\"}";
+    "\"data\":\"name = "DATASTORE_NAMESPACE_DELIMITER"test_name08. is not used.\"}";
   const char *argv3[] = {"port", "test_name08", NULL};
   const char test_str3[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name08\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name08\",\n"
     "\"port-number\":0,\n"
-    "\"interface\":\""NAMESPACE_DELIMITER"test_eth2\",\n"
+    "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"test_eth2\",\n"
     "\"policer\":\"\",\n"
     "\"queues\":[],\n"
     "\"is-used\":false,\n"
@@ -475,7 +475,7 @@ test_port_cmd_parse_create_not_exists(void) {
                         };
   const char test_str1[] =
     "{\"ret\":\"NOT_FOUND\",\n"
-    "\"data\":\"interface name = "NAMESPACE_DELIMITER"test_eth100.\"}";
+    "\"data\":\"interface name = "DATASTORE_NAMESPACE_DELIMITER"test_eth100.\"}";
 
   /* create cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR, port_cmd_parse,
@@ -496,9 +496,9 @@ test_port_cmd_parse_config_01(void) {
   const char *argv2[] = {"port", "test_name10", NULL};
   const char test_str2[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name10\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name10\",\n"
     "\"port-number\":0,\n"
-    "\"interface\":\""NAMESPACE_DELIMITER"test_eth3\",\n"
+    "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"test_eth3\",\n"
     "\"policer\":\"\",\n"
     "\"queues\":[],\n"
     "\"is-used\":false,\n"
@@ -511,9 +511,9 @@ test_port_cmd_parse_config_01(void) {
   const char *argv4[] = {"port", "test_name10", NULL};
   const char test_str4[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name10\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name10\",\n"
     "\"port-number\":0,\n"
-    "\"interface\":\""NAMESPACE_DELIMITER"test_eth4\",\n"
+    "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"test_eth4\",\n"
     "\"policer\":\"\",\n"
     "\"queues\":[],\n"
     "\"is-used\":false,\n"
@@ -532,7 +532,7 @@ test_port_cmd_parse_config_01(void) {
   const char *inter_argv2[] = {"interface", "test_eth3", NULL};
   const char inter_test_str2[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_eth3\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_eth3\",\n"
     "\"type\":\"ethernet-rawsock\",\n"
     "\"port-number\":103,\n"
     "\"device\":\"eth0\",\n"
@@ -543,7 +543,7 @@ test_port_cmd_parse_config_01(void) {
   const char *inter_argv3[] = {"interface", "test_eth3", NULL};
   const char inter_test_str3[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_eth3\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_eth3\",\n"
     "\"type\":\"ethernet-rawsock\",\n"
     "\"port-number\":103,\n"
     "\"device\":\"eth0\",\n"
@@ -561,7 +561,7 @@ test_port_cmd_parse_config_01(void) {
   const char *inter_argv5[] = {"interface", "test_eth4", NULL};
   const char inter_test_str5[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_eth4\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_eth4\",\n"
     "\"type\":\"ethernet-rawsock\",\n"
     "\"port-number\":104,\n"
     "\"device\":\"eth1\",\n"
@@ -572,7 +572,7 @@ test_port_cmd_parse_config_01(void) {
   const char *inter_argv6[] = {"interface", "test_eth4", NULL};
   const char inter_test_str6[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_eth4\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_eth4\",\n"
     "\"type\":\"ethernet-rawsock\",\n"
     "\"port-number\":104,\n"
     "\"device\":\"eth1\",\n"
@@ -672,9 +672,9 @@ test_port_cmd_parse_config_02(void) {
   const char *argv3[] = {"port", "test_name11", NULL};
   const char test_str3[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name11\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name11\",\n"
     "\"port-number\":65535,\n"
-    "\"interface\":\""NAMESPACE_DELIMITER"test_eth5\",\n"
+    "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"test_eth5\",\n"
     "\"policer\":\"\",\n"
     "\"queues\":[],\n"
     "\"is-used\":true,\n"
@@ -687,9 +687,9 @@ test_port_cmd_parse_config_02(void) {
   const char *argv5[] = {"port", "test_name11", NULL};
   const char test_str5[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name11\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name11\",\n"
     "\"port-number\":65535,\n"
-    "\"interface\":\""NAMESPACE_DELIMITER"test_eth6\",\n"
+    "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"test_eth6\",\n"
     "\"policer\":\"\",\n"
     "\"queues\":[],\n"
     "\"is-used\":true,\n"
@@ -813,9 +813,9 @@ test_port_cmd_parse_config_show_01(void) {
   const char *argv2[] = {"port", "test_name12", NULL};
   const char test_str2[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name12\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name12\",\n"
     "\"port-number\":0,\n"
-    "\"interface\":\""NAMESPACE_DELIMITER"test_eth7\",\n"
+    "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"test_eth7\",\n"
     "\"policer\":\"\",\n"
     "\"queues\":[],\n"
     "\"is-used\":false,\n"
@@ -830,8 +830,8 @@ test_port_cmd_parse_config_show_01(void) {
                         };
   const char test_str4[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name12\",\n"
-    "\"interface\":\""NAMESPACE_DELIMITER"test_eth8\"}]}";
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name12\",\n"
+    "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"test_eth8\"}]}";
   const char *argv5[] = {"port", "test_name12", "destroy",
                          NULL
                         };
@@ -923,7 +923,7 @@ test_port_cmd_parse_destroy_used(void) {
                          NULL
                         };
   const char test_str3[] = {"{\"ret\":\"NOT_OPERATIONAL\",\n"
-                            "\"data\":\"name = "NAMESPACE_DELIMITER"test_name13: is used.\"}"
+                            "\"data\":\"name = "DATASTORE_NAMESPACE_DELIMITER"test_name13: is used.\"}"
                            };
   const char *argv4[] = {"port", "test_name13", "destroy",
                          NULL
@@ -1008,9 +1008,9 @@ test_port_cmd_parse_show_01(void) {
                         };
   const char test_str2[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name14\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name14\",\n"
     "\"port-number\":0,\n"
-    "\"interface\":\""NAMESPACE_DELIMITER"test_eth9\",\n"
+    "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"test_eth9\",\n"
     "\"policer\":\"\",\n"
     "\"queues\":[],\n"
     "\"is-used\":false,\n"
@@ -1042,9 +1042,9 @@ test_port_cmd_parse_show_01(void) {
                         };
   const char test_str7[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name14\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name14\",\n"
     "\"port-number\":0,\n"
-    "\"interface\":\""NAMESPACE_DELIMITER"test_eth11\",\n"
+    "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"test_eth11\",\n"
     "\"policer\":\"\",\n"
     "\"queues\":[],\n"
     "\"is-used\":false,\n"
@@ -1165,11 +1165,11 @@ test_port_cmd_serialize_01(void) {
   char *str = NULL;
   void *conf = NULL;
   const char serialize_str1[] =
-    "port "NAMESPACE_DELIMITER"test_name15 create "
-    "-interface "NAMESPACE_DELIMITER"test_eth15 "
-    "-policer "NAMESPACE_DELIMITER"p15_1 "
-    "-queue "NAMESPACE_DELIMITER"q15_1 "
-    "-queue "NAMESPACE_DELIMITER"q15_2\n";
+    "port "DATASTORE_NAMESPACE_DELIMITER"test_name15 create "
+    "-interface "DATASTORE_NAMESPACE_DELIMITER"test_eth15 "
+    "-policer "DATASTORE_NAMESPACE_DELIMITER"p15_1 "
+    "-queue "DATASTORE_NAMESPACE_DELIMITER"q15_1 "
+    "-queue "DATASTORE_NAMESPACE_DELIMITER"q15_2\n";
   const char *argv1[] = {"port", "test_name15", "create",
                          "-interface", "test_eth15",
                          "-policer", "p15_1",
@@ -1214,7 +1214,7 @@ test_port_cmd_serialize_01(void) {
 
   /* TEST : serialize. */
   TEST_CMD_PROC(ret, LAGOPUS_RESULT_OK, port_cmd_serialize, &interp, state, &tbl,
-                NAMESPACE_DELIMITER"test_name15", conf, &ds, str, serialize_str1);
+                DATASTORE_NAMESPACE_DELIMITER"test_name15", conf, &ds, str, serialize_str1);
 
   /* disable cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, port_cmd_parse, &interp, state,
@@ -1243,8 +1243,8 @@ test_port_cmd_serialize_escape(void) {
   char *str = NULL;
   void *conf = NULL;
   const char serialize_str1[] =
-    "port \""NAMESPACE_DELIMITER"test_\\\"name16\" create "
-    "-interface \""NAMESPACE_DELIMITER"test_\\\"eth16\"\n";
+    "port \""DATASTORE_NAMESPACE_DELIMITER"test_\\\"name16\" create "
+    "-interface \""DATASTORE_NAMESPACE_DELIMITER"test_\\\"eth16\"\n";
   const char *argv1[] = {"port", "test_\"name16", "create",
                          "-interface", "test_\"eth16",
                          NULL
@@ -1282,7 +1282,7 @@ test_port_cmd_serialize_escape(void) {
 
   /* TEST : serialize. */
   TEST_CMD_PROC(ret, LAGOPUS_RESULT_OK, port_cmd_serialize, &interp, state, &tbl,
-                NAMESPACE_DELIMITER"test_\"name16", conf, &ds, str, serialize_str1);
+                DATASTORE_NAMESPACE_DELIMITER"test_\"name16", conf, &ds, str, serialize_str1);
 
   /* disable cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, port_cmd_parse, &interp, state,
@@ -1307,8 +1307,8 @@ test_port_cmd_serialize_escape_white_space(void) {
   char *str = NULL;
   void *conf = NULL;
   const char serialize_str1[] =
-    "port \""NAMESPACE_DELIMITER"test name17\" create "
-    "-interface \""NAMESPACE_DELIMITER"test eth17\"\n";
+    "port \""DATASTORE_NAMESPACE_DELIMITER"test name17\" create "
+    "-interface \""DATASTORE_NAMESPACE_DELIMITER"test eth17\"\n";
   const char *argv1[] = {"port", "test name17", "create",
                          "-interface", "test eth17",
                          NULL
@@ -1346,7 +1346,7 @@ test_port_cmd_serialize_escape_white_space(void) {
 
   /* TEST : serialize. */
   TEST_CMD_PROC(ret, LAGOPUS_RESULT_OK, port_cmd_serialize, &interp, state, &tbl,
-                NAMESPACE_DELIMITER"test name17", conf, &ds, str, serialize_str1);
+                DATASTORE_NAMESPACE_DELIMITER"test name17", conf, &ds, str, serialize_str1);
 
   /* disable cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, port_cmd_parse, &interp, state,
@@ -1371,7 +1371,7 @@ test_port_cmd_serialize_none_opts(void) {
   char *str = NULL;
   void *conf = NULL;
   const char serialize_str1[] =
-    "port "NAMESPACE_DELIMITER"test_name18 create\n";
+    "port "DATASTORE_NAMESPACE_DELIMITER"test_name18 create\n";
   const char *argv1[] = {"port", "test_name18", "create",
                          NULL
                         };
@@ -1392,7 +1392,7 @@ test_port_cmd_serialize_none_opts(void) {
 
   /* TEST : serialize. */
   TEST_CMD_PROC(ret, LAGOPUS_RESULT_OK, port_cmd_serialize, &interp, state, &tbl,
-                NAMESPACE_DELIMITER"test_name18", conf, &ds, str, serialize_str1);
+                DATASTORE_NAMESPACE_DELIMITER"test_name18", conf, &ds, str, serialize_str1);
 
   /* disable cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, port_cmd_parse, &interp, state,
@@ -1428,11 +1428,11 @@ test_port_cmd_parse_atomic_commit(void) {
   const char *argv3[] = {"port", "test_name19", "modified", NULL};
   const char test_str3[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name19\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name19\",\n"
     "\"port-number\":0,\n"
-    "\"interface\":\""NAMESPACE_DELIMITER"test_eth19\",\n"
-    "\"policer\":\""NAMESPACE_DELIMITER"p19_1\",\n"
-    "\"queues\":[\""NAMESPACE_DELIMITER"q19_1\"],\n"
+    "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"test_eth19\",\n"
+    "\"policer\":\""DATASTORE_NAMESPACE_DELIMITER"p19_1\",\n"
+    "\"queues\":[\""DATASTORE_NAMESPACE_DELIMITER"q19_1\"],\n"
     "\"is-used\":false,\n"
     "\"is-enabled\":false}]}";
   const char *argv4[] = {"port", "test_name19", "config",
@@ -1449,21 +1449,21 @@ test_port_cmd_parse_atomic_commit(void) {
   const char *argv6[] = {"port", "test_name19", "modified", NULL};
   const char test_str6[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name19\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name19\",\n"
     "\"port-number\":0,\n"
-    "\"interface\":\""NAMESPACE_DELIMITER"test_eth19_2\",\n"
-    "\"policer\":\""NAMESPACE_DELIMITER"p19_2\",\n"
-    "\"queues\":[\""NAMESPACE_DELIMITER"q19_1\",\""NAMESPACE_DELIMITER"q19_2\"],\n"
+    "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"test_eth19_2\",\n"
+    "\"policer\":\""DATASTORE_NAMESPACE_DELIMITER"p19_2\",\n"
+    "\"queues\":[\""DATASTORE_NAMESPACE_DELIMITER"q19_1\",\""DATASTORE_NAMESPACE_DELIMITER"q19_2\"],\n"
     "\"is-used\":false,\n"
     "\"is-enabled\":false}]}";
   const char *argv7[] = {"port", "test_name19", NULL};
   const char test_str7[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name19\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name19\",\n"
     "\"port-number\":0,\n"
-    "\"interface\":\""NAMESPACE_DELIMITER"test_eth19_2\",\n"
-    "\"policer\":\""NAMESPACE_DELIMITER"p19_2\",\n"
-    "\"queues\":[\""NAMESPACE_DELIMITER"q19_1\",\""NAMESPACE_DELIMITER"q19_2\"],\n"
+    "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"test_eth19_2\",\n"
+    "\"policer\":\""DATASTORE_NAMESPACE_DELIMITER"p19_2\",\n"
+    "\"queues\":[\""DATASTORE_NAMESPACE_DELIMITER"q19_1\",\""DATASTORE_NAMESPACE_DELIMITER"q19_2\"],\n"
     "\"is-used\":false,\n"
     "\"is-enabled\":false}]}";
   const char *argv8[] = {"port", "test_name19", "modified", NULL};
@@ -1546,11 +1546,11 @@ test_port_cmd_parse_atomic_commit(void) {
 
   /* commiting. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, port_cmd_update, &interp, state2, &tbl,
-            NAMESPACE_DELIMITER"test_name19", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name19", conf, &ds);
 
   /* commited. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, port_cmd_update, &interp, state3, &tbl,
-            NAMESPACE_DELIMITER"test_name19", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name19", conf, &ds);
 
   /* show cmd (current). */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, port_cmd_parse, &interp, state1,
@@ -1607,11 +1607,11 @@ test_port_cmd_parse_atomic_rollback(void) {
   const char *argv3[] = {"port", "test_name20", "modified", NULL};
   const char test_str3[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name20\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name20\",\n"
     "\"port-number\":0,\n"
-    "\"interface\":\""NAMESPACE_DELIMITER"test_eth20\",\n"
-    "\"policer\":\""NAMESPACE_DELIMITER"p20_1\",\n"
-    "\"queues\":[\""NAMESPACE_DELIMITER"q20_1\"],\n"
+    "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"test_eth20\",\n"
+    "\"policer\":\""DATASTORE_NAMESPACE_DELIMITER"p20_1\",\n"
+    "\"queues\":[\""DATASTORE_NAMESPACE_DELIMITER"q20_1\"],\n"
     "\"is-used\":false,\n"
     "\"is-enabled\":false}]}";
   const char *argv4[] = {"port", "test_name20", "config",
@@ -1628,11 +1628,11 @@ test_port_cmd_parse_atomic_rollback(void) {
   const char *argv6[] = {"port", "test_name20", "modified", NULL};
   const char test_str6[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name20\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name20\",\n"
     "\"port-number\":0,\n"
-    "\"interface\":\""NAMESPACE_DELIMITER"test_eth20_2\",\n"
-    "\"policer\":\""NAMESPACE_DELIMITER"p20_2\",\n"
-    "\"queues\":[\""NAMESPACE_DELIMITER"q20_1\",\""NAMESPACE_DELIMITER"q20_2\"],\n"
+    "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"test_eth20_2\",\n"
+    "\"policer\":\""DATASTORE_NAMESPACE_DELIMITER"p20_2\",\n"
+    "\"queues\":[\""DATASTORE_NAMESPACE_DELIMITER"q20_1\",\""DATASTORE_NAMESPACE_DELIMITER"q20_2\"],\n"
     "\"is-used\":false,\n"
     "\"is-enabled\":false}]}";
   const char *argv7[] = {"port", "test_name20", NULL};
@@ -1711,11 +1711,11 @@ test_port_cmd_parse_atomic_rollback(void) {
 
   /* rollbacking. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, port_cmd_update, &interp, state2, &tbl,
-            NAMESPACE_DELIMITER"test_name20", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name20", conf, &ds);
 
   /* rollbacked. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, port_cmd_update, &interp, state3, &tbl,
-            NAMESPACE_DELIMITER"test_name20", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name20", conf, &ds);
 
   /* show cmd (current). */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
@@ -1762,9 +1762,9 @@ test_port_cmd_parse_atomic_delay_enable(void) {
   const char *argv4[] = {"port", "test_name21", "modified", NULL};
   const char test_str4[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name21\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name21\",\n"
     "\"port-number\":65535,\n"
-    "\"interface\":\""NAMESPACE_DELIMITER"test_eth21\",\n"
+    "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"test_eth21\",\n"
     "\"policer\":\"\",\n"
     "\"queues\":[],\n"
     "\"is-used\":true,\n"
@@ -1776,9 +1776,9 @@ test_port_cmd_parse_atomic_delay_enable(void) {
   const char *argv6[] = {"port", "test_name21", "modified", NULL};
   const char test_str6[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name21\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name21\",\n"
     "\"port-number\":65535,\n"
-    "\"interface\":\""NAMESPACE_DELIMITER"test_eth21\",\n"
+    "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"test_eth21\",\n"
     "\"policer\":\"\",\n"
     "\"queues\":[],\n"
     "\"is-used\":true,\n"
@@ -1786,9 +1786,9 @@ test_port_cmd_parse_atomic_delay_enable(void) {
   const char *argv7[] = {"port", "test_name21", NULL};
   const char test_str7[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name21\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name21\",\n"
     "\"port-number\":65535,\n"
-    "\"interface\":\""NAMESPACE_DELIMITER"test_eth21\",\n"
+    "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"test_eth21\",\n"
     "\"policer\":\"\",\n"
     "\"queues\":[],\n"
     "\"is-used\":true,\n"
@@ -1855,7 +1855,7 @@ test_port_cmd_parse_atomic_delay_enable(void) {
 
   /* commiting. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, port_cmd_update, &interp, state2, &tbl,
-            NAMESPACE_DELIMITER"test_name21", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name21", conf, &ds);
 
   /* show cmd (current). */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
@@ -1870,7 +1870,7 @@ test_port_cmd_parse_atomic_delay_enable(void) {
 
   /* commited. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, port_cmd_update, &interp, state3, &tbl,
-            NAMESPACE_DELIMITER"test_name21", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name21", conf, &ds);
 
   /* show cmd (current). */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, port_cmd_parse, &interp, state1,
@@ -1920,9 +1920,9 @@ test_port_cmd_parse_atomic_delay_disable(void) {
   const char *argv4[] = {"port", "test_name22", NULL};
   const char test_str4[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name22\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name22\",\n"
     "\"port-number\":65535,\n"
-    "\"interface\":\""NAMESPACE_DELIMITER"test_eth22\",\n"
+    "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"test_eth22\",\n"
     "\"policer\":\"\",\n"
     "\"queues\":[],\n"
     "\"is-used\":true,\n"
@@ -1930,9 +1930,9 @@ test_port_cmd_parse_atomic_delay_disable(void) {
   const char *argv5[] = {"port", "test_name22", NULL};
   const char test_str5[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name22\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name22\",\n"
     "\"port-number\":65535,\n"
-    "\"interface\":\""NAMESPACE_DELIMITER"test_eth22\",\n"
+    "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"test_eth22\",\n"
     "\"policer\":\"\",\n"
     "\"queues\":[],\n"
     "\"is-used\":true,\n"
@@ -1940,9 +1940,9 @@ test_port_cmd_parse_atomic_delay_disable(void) {
   const char *argv6[] = {"port", "test_name22", NULL};
   const char test_str6[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name22\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name22\",\n"
     "\"port-number\":65535,\n"
-    "\"interface\":\""NAMESPACE_DELIMITER"test_eth22\",\n"
+    "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"test_eth22\",\n"
     "\"policer\":\"\",\n"
     "\"queues\":[],\n"
     "\"is-used\":true,\n"
@@ -2004,7 +2004,7 @@ test_port_cmd_parse_atomic_delay_disable(void) {
 
   /* commiting. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, port_cmd_update, &interp, state2, &tbl,
-            NAMESPACE_DELIMITER"test_name22", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name22", conf, &ds);
 
   /* show cmd (current). */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, port_cmd_parse, &interp, state1,
@@ -2013,7 +2013,7 @@ test_port_cmd_parse_atomic_delay_disable(void) {
 
   /* commited. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, port_cmd_update, &interp, state3, &tbl,
-            NAMESPACE_DELIMITER"test_name22", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name22", conf, &ds);
 
   /* show cmd (current). */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, port_cmd_parse, &interp, state1,
@@ -2057,29 +2057,29 @@ test_port_cmd_parse_atomic_delay_destroy(void) {
   const char *argv3[] = {"port", "test_name23", NULL};
   const char test_str3[] =
     "{\"ret\":\"NOT_FOUND\",\n"
-    "\"data\":\"name = "NAMESPACE_DELIMITER"test_name23\"}";
+    "\"data\":\"name = "DATASTORE_NAMESPACE_DELIMITER"test_name23\"}";
   const char *argv4[] = {"port", "test_name23", "enable",
                          NULL
                         };
   const char test_str4[] =
     "{\"ret\":\"INVALID_OBJECT\",\n"
-    "\"data\":\"name = "NAMESPACE_DELIMITER"test_name23\"}";
+    "\"data\":\"name = "DATASTORE_NAMESPACE_DELIMITER"test_name23\"}";
   const char *argv5[] = {"port", "test_name23", "disable",
                          NULL
                         };
   const char test_str5[] =
     "{\"ret\":\"INVALID_OBJECT\",\n"
-    "\"data\":\"name = "NAMESPACE_DELIMITER"test_name23\"}";
+    "\"data\":\"name = "DATASTORE_NAMESPACE_DELIMITER"test_name23\"}";
   const char *argv6[] = {"port", "test_name23", "destroy",
                          NULL
                         };
   const char test_str6[] =
     "{\"ret\":\"INVALID_OBJECT\",\n"
-    "\"data\":\"name = "NAMESPACE_DELIMITER"test_name23\"}";
+    "\"data\":\"name = "DATASTORE_NAMESPACE_DELIMITER"test_name23\"}";
   const char *argv7[] = {"port", "test_name23", NULL};
   const char test_str7[] =
     "{\"ret\":\"NOT_FOUND\",\n"
-    "\"data\":\"name = "NAMESPACE_DELIMITER"test_name23\"}";
+    "\"data\":\"name = "DATASTORE_NAMESPACE_DELIMITER"test_name23\"}";
   const char *inter_argv1[] = {"interface", "test_eth23", "create",
                                "-type", "ethernet-rawsock",
                                "-port-number", "123",
@@ -2133,11 +2133,11 @@ test_port_cmd_parse_atomic_delay_destroy(void) {
 
   /* commiting. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, port_cmd_update, &interp, state2, &tbl,
-            NAMESPACE_DELIMITER"test_name23", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name23", conf, &ds);
 
   /* commited. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, port_cmd_update, &interp, state3, &tbl,
-            NAMESPACE_DELIMITER"test_name23", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name23", conf, &ds);
 
   /* show cmd (current). */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
@@ -2174,11 +2174,11 @@ test_port_cmd_parse_atomic_abort_01(void) {
   const char *argv3[] = {"port", "test_name24", "modified", NULL};
   const char test_str3[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name24\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name24\",\n"
     "\"port-number\":0,\n"
-    "\"interface\":\""NAMESPACE_DELIMITER"test_eth24\",\n"
-    "\"policer\":\""NAMESPACE_DELIMITER"p24_1\",\n"
-    "\"queues\":[\""NAMESPACE_DELIMITER"q24_1\"],\n"
+    "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"test_eth24\",\n"
+    "\"policer\":\""DATASTORE_NAMESPACE_DELIMITER"p24_1\",\n"
+    "\"queues\":[\""DATASTORE_NAMESPACE_DELIMITER"q24_1\"],\n"
     "\"is-used\":false,\n"
     "\"is-enabled\":false}]}";
   const char *argv4[] = {"port", "test_name24", "config",
@@ -2195,11 +2195,11 @@ test_port_cmd_parse_atomic_abort_01(void) {
   const char *argv6[] = {"port", "test_name24", "modified", NULL};
   const char test_str6[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name24\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name24\",\n"
     "\"port-number\":0,\n"
-    "\"interface\":\""NAMESPACE_DELIMITER"test_eth24_2\",\n"
-    "\"policer\":\""NAMESPACE_DELIMITER"p24_2\",\n"
-    "\"queues\":[\""NAMESPACE_DELIMITER"q24_1\",\""NAMESPACE_DELIMITER"q24_2\"],\n"
+    "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"test_eth24_2\",\n"
+    "\"policer\":\""DATASTORE_NAMESPACE_DELIMITER"p24_2\",\n"
+    "\"queues\":[\""DATASTORE_NAMESPACE_DELIMITER"q24_1\",\""DATASTORE_NAMESPACE_DELIMITER"q24_2\"],\n"
     "\"is-used\":false,\n"
     "\"is-enabled\":false}]}";
   const char *argv7[] = {"port", "test_name24", NULL};
@@ -2209,17 +2209,17 @@ test_port_cmd_parse_atomic_abort_01(void) {
   const char *argv8[] = {"port", "test_name24", "modified", NULL};
   const char test_str8[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name24\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name24\",\n"
     "\"port-number\":0,\n"
-    "\"interface\":\""NAMESPACE_DELIMITER"test_eth24_2\",\n"
-    "\"policer\":\""NAMESPACE_DELIMITER"p24_2\",\n"
-    "\"queues\":[\""NAMESPACE_DELIMITER"q24_1\",\""NAMESPACE_DELIMITER"q24_2\"],\n"
+    "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"test_eth24_2\",\n"
+    "\"policer\":\""DATASTORE_NAMESPACE_DELIMITER"p24_2\",\n"
+    "\"queues\":[\""DATASTORE_NAMESPACE_DELIMITER"q24_1\",\""DATASTORE_NAMESPACE_DELIMITER"q24_2\"],\n"
     "\"is-used\":false,\n"
     "\"is-enabled\":false}]}";
   const char *argv9[] = {"port", "test_name24", NULL};
   const char test_str9[] =
     "{\"ret\":\"NOT_FOUND\",\n"
-    "\"data\":\"name = "NAMESPACE_DELIMITER"test_name24\"}";
+    "\"data\":\"name = "DATASTORE_NAMESPACE_DELIMITER"test_name24\"}";
   const char *inter_argv1[] = {"interface", "test_eth24", "create",
                                "-type", "ethernet-rawsock",
                                "-port-number", "124",
@@ -2292,7 +2292,7 @@ test_port_cmd_parse_atomic_abort_01(void) {
 
   /* aborting. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, port_cmd_update, &interp, state2, &tbl,
-            NAMESPACE_DELIMITER"test_name24", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name24", conf, &ds);
 
   /* show cmd (current). */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
@@ -2307,7 +2307,7 @@ test_port_cmd_parse_atomic_abort_01(void) {
 
   /* aborted. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, port_cmd_update, &interp, state3, &tbl,
-            NAMESPACE_DELIMITER"test_name24", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name24", conf, &ds);
 
   /* show cmd (current). */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
@@ -2350,11 +2350,11 @@ test_port_cmd_parse_atomic_abort_02(void) {
   const char *argv2[] = {"port", "test_name25", NULL};
   const char test_str2[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name25\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name25\",\n"
     "\"port-number\":0,\n"
-    "\"interface\":\""NAMESPACE_DELIMITER"test_eth25\",\n"
-    "\"policer\":\""NAMESPACE_DELIMITER"p25_1\",\n"
-    "\"queues\":[\""NAMESPACE_DELIMITER"q25_1\"],\n"
+    "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"test_eth25\",\n"
+    "\"policer\":\""DATASTORE_NAMESPACE_DELIMITER"p25_1\",\n"
+    "\"queues\":[\""DATASTORE_NAMESPACE_DELIMITER"q25_1\"],\n"
     "\"is-used\":false,\n"
     "\"is-enabled\":false}]}";
   const char *argv3[] = {"port", "test_name25", "modified", NULL};
@@ -2371,51 +2371,51 @@ test_port_cmd_parse_atomic_abort_02(void) {
   const char *argv5[] = {"port", "test_name25", NULL};
   const char test_str5[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name25\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name25\",\n"
     "\"port-number\":0,\n"
-    "\"interface\":\""NAMESPACE_DELIMITER"test_eth25\",\n"
-    "\"policer\":\""NAMESPACE_DELIMITER"p25_1\",\n"
-    "\"queues\":[\""NAMESPACE_DELIMITER"q25_1\"],\n"
+    "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"test_eth25\",\n"
+    "\"policer\":\""DATASTORE_NAMESPACE_DELIMITER"p25_1\",\n"
+    "\"queues\":[\""DATASTORE_NAMESPACE_DELIMITER"q25_1\"],\n"
     "\"is-used\":false,\n"
     "\"is-enabled\":false}]}";
   const char *argv6[] = {"port", "test_name25", "modified", NULL};
   const char test_str6[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name25\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name25\",\n"
     "\"port-number\":0,\n"
-    "\"interface\":\""NAMESPACE_DELIMITER"test_eth25_2\",\n"
-    "\"policer\":\""NAMESPACE_DELIMITER"p25_2\",\n"
-    "\"queues\":[\""NAMESPACE_DELIMITER"q25_1\",\""NAMESPACE_DELIMITER"q25_2\"],\n"
+    "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"test_eth25_2\",\n"
+    "\"policer\":\""DATASTORE_NAMESPACE_DELIMITER"p25_2\",\n"
+    "\"queues\":[\""DATASTORE_NAMESPACE_DELIMITER"q25_1\",\""DATASTORE_NAMESPACE_DELIMITER"q25_2\"],\n"
     "\"is-used\":false,\n"
     "\"is-enabled\":false}]}";
   const char *argv7[] = {"port", "test_name25", NULL};
   const char test_str7[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name25\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name25\",\n"
     "\"port-number\":0,\n"
-    "\"interface\":\""NAMESPACE_DELIMITER"test_eth25\",\n"
-    "\"policer\":\""NAMESPACE_DELIMITER"p25_1\",\n"
-    "\"queues\":[\""NAMESPACE_DELIMITER"q25_1\"],\n"
+    "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"test_eth25\",\n"
+    "\"policer\":\""DATASTORE_NAMESPACE_DELIMITER"p25_1\",\n"
+    "\"queues\":[\""DATASTORE_NAMESPACE_DELIMITER"q25_1\"],\n"
     "\"is-used\":false,\n"
     "\"is-enabled\":false}]}";
   const char *argv8[] = {"port", "test_name25", "modified", NULL};
   const char test_str8[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name25\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name25\",\n"
     "\"port-number\":0,\n"
-    "\"interface\":\""NAMESPACE_DELIMITER"test_eth25_2\",\n"
-    "\"policer\":\""NAMESPACE_DELIMITER"p25_2\",\n"
-    "\"queues\":[\""NAMESPACE_DELIMITER"q25_1\",\""NAMESPACE_DELIMITER"q25_2\"],\n"
+    "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"test_eth25_2\",\n"
+    "\"policer\":\""DATASTORE_NAMESPACE_DELIMITER"p25_2\",\n"
+    "\"queues\":[\""DATASTORE_NAMESPACE_DELIMITER"q25_1\",\""DATASTORE_NAMESPACE_DELIMITER"q25_2\"],\n"
     "\"is-used\":false,\n"
     "\"is-enabled\":false}]}";
   const char *argv9[] = {"port", "test_name25", NULL};
   const char test_str9[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name25\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name25\",\n"
     "\"port-number\":0,\n"
-    "\"interface\":\""NAMESPACE_DELIMITER"test_eth25\",\n"
-    "\"policer\":\""NAMESPACE_DELIMITER"p25_1\",\n"
-    "\"queues\":[\""NAMESPACE_DELIMITER"q25_1\"],\n"
+    "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"test_eth25\",\n"
+    "\"policer\":\""DATASTORE_NAMESPACE_DELIMITER"p25_1\",\n"
+    "\"queues\":[\""DATASTORE_NAMESPACE_DELIMITER"q25_1\"],\n"
     "\"is-used\":false,\n"
     "\"is-enabled\":false}]}";
   const char *argv10[] = {"port", "test_name25", "modified", NULL};
@@ -2497,7 +2497,7 @@ test_port_cmd_parse_atomic_abort_02(void) {
 
   /* aborting. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, port_cmd_update, &interp, state2, &tbl,
-            NAMESPACE_DELIMITER"test_name25", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name25", conf, &ds);
 
   /* show cmd (current). */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, port_cmd_parse, &interp, state1,
@@ -2511,7 +2511,7 @@ test_port_cmd_parse_atomic_abort_02(void) {
 
   /* aborted. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, port_cmd_update, &interp, state3, &tbl,
-            NAMESPACE_DELIMITER"test_name25", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name25", conf, &ds);
 
   /* show cmd (current). */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, port_cmd_parse, &interp, state1,
@@ -2568,7 +2568,7 @@ test_port_cmd_parse_atomic_destroy_create(void) {
   const char *argv3[] = {"port", "test_name26", NULL};
   const char test_str3[] =
     "{\"ret\":\"NOT_FOUND\",\n"
-    "\"data\":\"name = "NAMESPACE_DELIMITER"test_name26\"}";
+    "\"data\":\"name = "DATASTORE_NAMESPACE_DELIMITER"test_name26\"}";
   const char *argv4[] = {"port", "test_name26", "create",
                          "-interface", "test_eth26_2",
                          "-policer", "p26_2",
@@ -2579,31 +2579,31 @@ test_port_cmd_parse_atomic_destroy_create(void) {
   const char *argv5[] = {"port", "test_name26", NULL};
   const char test_str5[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name26\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name26\",\n"
     "\"port-number\":0,\n"
-    "\"interface\":\""NAMESPACE_DELIMITER"test_eth26\",\n"
-    "\"policer\":\""NAMESPACE_DELIMITER"p26_1\",\n"
-    "\"queues\":[\""NAMESPACE_DELIMITER"q26_1\"],\n"
+    "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"test_eth26\",\n"
+    "\"policer\":\""DATASTORE_NAMESPACE_DELIMITER"p26_1\",\n"
+    "\"queues\":[\""DATASTORE_NAMESPACE_DELIMITER"q26_1\"],\n"
     "\"is-used\":false,\n"
     "\"is-enabled\":false}]}";
   const char *argv6[] = {"port", "test_name26", "modified", NULL};
   const char test_str6[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name26\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name26\",\n"
     "\"port-number\":0,\n"
-    "\"interface\":\""NAMESPACE_DELIMITER"test_eth26_2\",\n"
-    "\"policer\":\""NAMESPACE_DELIMITER"p26_2\",\n"
-    "\"queues\":[\""NAMESPACE_DELIMITER"q26_1\",\""NAMESPACE_DELIMITER"q26_2\"],\n"
+    "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"test_eth26_2\",\n"
+    "\"policer\":\""DATASTORE_NAMESPACE_DELIMITER"p26_2\",\n"
+    "\"queues\":[\""DATASTORE_NAMESPACE_DELIMITER"q26_1\",\""DATASTORE_NAMESPACE_DELIMITER"q26_2\"],\n"
     "\"is-used\":false,\n"
     "\"is-enabled\":false}]}";
   const char *argv7[] = {"port", "test_name26", NULL};
   const char test_str7[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name26\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name26\",\n"
     "\"port-number\":0,\n"
-    "\"interface\":\""NAMESPACE_DELIMITER"test_eth26_2\",\n"
-    "\"policer\":\""NAMESPACE_DELIMITER"p26_2\",\n"
-    "\"queues\":[\""NAMESPACE_DELIMITER"q26_1\",\""NAMESPACE_DELIMITER"q26_2\"],\n"
+    "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"test_eth26_2\",\n"
+    "\"policer\":\""DATASTORE_NAMESPACE_DELIMITER"p26_2\",\n"
+    "\"queues\":[\""DATASTORE_NAMESPACE_DELIMITER"q26_1\",\""DATASTORE_NAMESPACE_DELIMITER"q26_2\"],\n"
     "\"is-used\":false,\n"
     "\"is-enabled\":false}]}";
   const char *argv8[] = {"port", "test_name26", "modified", NULL};
@@ -2685,11 +2685,11 @@ test_port_cmd_parse_atomic_destroy_create(void) {
 
   /* commiting. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, port_cmd_update, &interp, state2, &tbl,
-            NAMESPACE_DELIMITER"test_name26", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name26", conf, &ds);
 
   /* commited. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, port_cmd_update, &interp, state3, &tbl,
-            NAMESPACE_DELIMITER"test_name26", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name26", conf, &ds);
 
   /* show cmd (current). */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, port_cmd_parse, &interp, state4,
@@ -2738,7 +2738,7 @@ test_port_cmd_parse_stats_01(void) {
                         };
   const char test_str2[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name27\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name27\",\n"
     "\"config\":[\"port-down\"],\n"
     "\"state\":[],\n"
     "\"curr-features\":[],\n"
@@ -2804,7 +2804,7 @@ test_port_cmd_parse_stats_02(void) {
                         };
   const char test_str3[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name28\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name28\",\n"
     "\"config\":[],\n"
     "\"state\":[],\n"
     "\"curr-features\":[],\n"
@@ -2903,7 +2903,7 @@ test_port_cmd_parse_create_bad_queue_name_val(void) {
                        };
   const char test_str[] =
     "{\"ret\":\"NOT_FOUND\",\n"
-    "\"data\":\"queue name = "NAMESPACE_DELIMITER"hoge.\"}";
+    "\"data\":\"queue name = "DATASTORE_NAMESPACE_DELIMITER"hoge.\"}";
 
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR, port_cmd_parse,
                  &interp, state, ARGV_SIZE(argv), argv,
@@ -2928,11 +2928,11 @@ test_port_cmd_parse_config_delete_queue(void) {
   const char *argv3[] = {"port", "test_name30", NULL};
   const char test_str3[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name30\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name30\",\n"
     "\"port-number\":65535,\n"
-    "\"interface\":\""NAMESPACE_DELIMITER"test_eth30\",\n"
+    "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"test_eth30\",\n"
     "\"policer\":\"\",\n"
-    "\"queues\":[\""NAMESPACE_DELIMITER"q30_1\"],\n"
+    "\"queues\":[\""DATASTORE_NAMESPACE_DELIMITER"q30_1\"],\n"
     "\"is-used\":true,\n"
     "\"is-enabled\":true}]}";
   const char *argv4[] = {"port", "test_name30", "config",
@@ -2943,9 +2943,9 @@ test_port_cmd_parse_config_delete_queue(void) {
   const char *argv5[] = {"port", "test_name30", NULL};
   const char test_str5[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name30\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name30\",\n"
     "\"port-number\":65535,\n"
-    "\"interface\":\""NAMESPACE_DELIMITER"test_eth30\",\n"
+    "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"test_eth30\",\n"
     "\"policer\":\"\",\n"
     "\"queues\":[],\n"
     "\"is-used\":true,\n"
@@ -2972,7 +2972,7 @@ test_port_cmd_parse_config_delete_queue(void) {
   const char *queue_argv1[] = {"queue", "q30_1", NULL};
   const char queue_test_str1[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"q30_1\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"q30_1\",\n"
     "\"type\":\"single-rate\",\n"
     "\"id\":30,\n"
     "\"priority\":0,\n"
@@ -2985,7 +2985,7 @@ test_port_cmd_parse_config_delete_queue(void) {
   const char *queue_argv2[] = {"queue", "q30_1", NULL};
   const char queue_test_str2[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"q30_1\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"q30_1\",\n"
     "\"type\":\"single-rate\",\n"
     "\"id\":30,\n"
     "\"priority\":0,\n"
@@ -3103,7 +3103,7 @@ test_port_cmd_parse_create_bad_policer_name_val(void) {
                        };
   const char test_str[] =
     "{\"ret\":\"NOT_FOUND\",\n"
-    "\"data\":\"policer name = "NAMESPACE_DELIMITER"hoge.\"}";
+    "\"data\":\"policer name = "DATASTORE_NAMESPACE_DELIMITER"hoge.\"}";
 
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR, port_cmd_parse,
                  &interp, state, ARGV_SIZE(argv), argv,
@@ -3128,10 +3128,10 @@ test_port_cmd_parse_config_delete_policer(void) {
   const char *argv3[] = {"port", "test_name33", NULL};
   const char test_str3[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name33\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name33\",\n"
     "\"port-number\":65535,\n"
-    "\"interface\":\""NAMESPACE_DELIMITER"test_eth33\",\n"
-    "\"policer\":\""NAMESPACE_DELIMITER"p33_1\",\n"
+    "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"test_eth33\",\n"
+    "\"policer\":\""DATASTORE_NAMESPACE_DELIMITER"p33_1\",\n"
     "\"queues\":[],\n"
     "\"is-used\":true,\n"
     "\"is-enabled\":true}]}";
@@ -3143,9 +3143,9 @@ test_port_cmd_parse_config_delete_policer(void) {
   const char *argv5[] = {"port", "test_name33", NULL};
   const char test_str5[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name33\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name33\",\n"
     "\"port-number\":65535,\n"
-    "\"interface\":\""NAMESPACE_DELIMITER"test_eth33\",\n"
+    "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"test_eth33\",\n"
     "\"policer\":\"\",\n"
     "\"queues\":[],\n"
     "\"is-used\":true,\n"
@@ -3172,8 +3172,8 @@ test_port_cmd_parse_config_delete_policer(void) {
   const char *policer_argv1[] = {"policer", "p33_1", NULL};
   const char policer_test_str1[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"p33_1\",\n"
-    "\"actions\":[\""NAMESPACE_DELIMITER"pa33_1\"],\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"p33_1\",\n"
+    "\"actions\":[\""DATASTORE_NAMESPACE_DELIMITER"pa33_1\"],\n"
     "\"bandwidth-limit\":1500,\n"
     "\"burst-size-limit\":1500,\n"
     "\"bandwidth-percent\":0,\n"
@@ -3182,8 +3182,8 @@ test_port_cmd_parse_config_delete_policer(void) {
   const char *policer_argv2[] = {"queue", "p33_1", NULL};
   const char policer_test_str2[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"p33_1\",\n"
-    "\"actions\":[\""NAMESPACE_DELIMITER"pa33_1\"],\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"p33_1\",\n"
+    "\"actions\":[\""DATASTORE_NAMESPACE_DELIMITER"pa33_1\"],\n"
     "\"bandwidth-limit\":1500,\n"
     "\"burst-size-limit\":1500,\n"
     "\"bandwidth-percent\":0,\n"
@@ -3268,6 +3268,145 @@ test_port_cmd_parse_config_delete_policer(void) {
 
   TEST_POLICER_DESTROY(ret, &interp, state, &tbl, &ds, str, "pa33_1", "p33_1");
 }
+
+void
+test_port_cmd_parse_dryrun(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state1 = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  datastore_interp_state_t state2 = DATASTORE_INTERP_STATE_DRYRUN;
+  char *str = NULL;
+  const char *argv1[] = {"port", "test_name34", "create",
+                         "-interface", "test_eth34",
+                         "-policer", "p34_1",
+                         "-queue", "q34_1",
+                         NULL
+                        };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char *argv2[] = {"port", "test_name34", "current", NULL};
+  const char test_str2[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name34\",\n"
+    "\"port-number\":0,\n"
+    "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"test_eth34\",\n"
+    "\"policer\":\""DATASTORE_NAMESPACE_DELIMITER"p34_1\",\n"
+    "\"queues\":[\""DATASTORE_NAMESPACE_DELIMITER"q34_1\"],\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+  const char *argv3[] = {"port", "test_name34", "modified", NULL};
+  const char test_str3[] =
+    "{\"ret\":\"NOT_OPERATIONAL\",\n"
+    "\"data\":\"Not set modified.\"}";
+  const char *argv4[] = {"port", "test_name34", "config",
+                         "-interface", "test_eth34_2",
+                         "-policer", "p34_2",
+                         "-queue", "q34_2",
+                         NULL
+                        };
+  const char test_str4[] = "{\"ret\":\"OK\"}";
+  const char *argv5[] = {"port", "test_name34", "current", NULL};
+  const char test_str5[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name34\",\n"
+    "\"port-number\":0,\n"
+    "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"test_eth34_2\",\n"
+    "\"policer\":\""DATASTORE_NAMESPACE_DELIMITER"p34_2\",\n"
+    "\"queues\":[\""DATASTORE_NAMESPACE_DELIMITER"q34_1\","
+                "\""DATASTORE_NAMESPACE_DELIMITER"q34_2\"],\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+  const char *argv6[] = {"port", "test_name34", "modified", NULL};
+  const char test_str6[] =
+    "{\"ret\":\"NOT_OPERATIONAL\",\n"
+    "\"data\":\"Not set modified.\"}";
+
+  const char *inter_argv1[] = {"interface", "test_eth34", "create",
+                               "-type", "ethernet-rawsock",
+                               "-port-number", "134",
+                               "-device", "eth0",
+                               NULL
+                              };
+  const char inter_test_str1[] = "{\"ret\":\"OK\"}";
+  const char *inter_argv2[] = {"interface", "test_eth34_2", "create",
+                               "-type", "ethernet-rawsock",
+                               "-port-number", "34",
+                               "-device", "eth0",
+                               NULL
+                              };
+  const char inter_test_str2[] = "{\"ret\":\"OK\"}";
+  const char *inter_argv3[] = {"interface", "test_eth34", "destroy",
+                               NULL
+                              };
+  const char inter_test_str3[] = "{\"ret\":\"OK\"}";
+  const char *inter_argv4[] = {"interface", "test_eth34_2", "destroy",
+                               NULL
+                              };
+  const char inter_test_str4[] = "{\"ret\":\"OK\"}";
+
+  TEST_QUEUE_CREATE(ret, &interp, state1, &tbl, &ds, str, "q34_1", "1");
+  TEST_QUEUE_CREATE(ret, &interp, state1, &tbl, &ds, str, "q34_2", "2");
+  TEST_POLICER_CREATE(ret, &interp, state1, &tbl, &ds, str, "pa34_1", "p34_1");
+  TEST_POLICER_CREATE(ret, &interp, state1, &tbl, &ds, str, "pa34_2", "p34_2");
+
+  /* interface create cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, interface_cmd_parse, &interp, state1,
+                 ARGV_SIZE(inter_argv1), inter_argv1, &tbl, interface_cmd_update,
+                 &ds, str, inter_test_str1);
+
+  /* interface create cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, interface_cmd_parse, &interp, state1,
+                 ARGV_SIZE(inter_argv2), inter_argv2, &tbl, interface_cmd_update,
+                 &ds, str, inter_test_str2);
+
+  /* create cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, port_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv1), argv1, &tbl, port_cmd_update,
+                 &ds, str, test_str1);
+
+  /* show cmd (current). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, port_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv2), argv2, &tbl, port_cmd_update,
+                 &ds, str, test_str2);
+
+  /* show cmd (modified). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 port_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv3), argv3, &tbl, port_cmd_update,
+                 &ds, str, test_str3);
+
+  /* config cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, port_cmd_parse, &interp, state2,
+                 ARGV_SIZE(argv4), argv4, &tbl, port_cmd_update,
+                 &ds, str, test_str4);
+
+  /* show cmd (current). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, port_cmd_parse, &interp, state2,
+                 ARGV_SIZE(argv5), argv5, &tbl, port_cmd_update,
+                 &ds, str, test_str5);
+
+  /* show cmd (modified). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 port_cmd_parse, &interp, state2,
+                 ARGV_SIZE(argv6), argv6, &tbl, port_cmd_update,
+                 &ds, str, test_str6);
+
+  /* interface destroy cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, interface_cmd_parse, &interp, state1,
+                 ARGV_SIZE(inter_argv3), inter_argv3, &tbl, interface_cmd_update,
+                 &ds, str, inter_test_str3);
+
+  /* interface destroy cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, interface_cmd_parse, &interp, state1,
+                 ARGV_SIZE(inter_argv4), inter_argv4, &tbl, interface_cmd_update,
+                 &ds, str, inter_test_str4);
+
+  TEST_PORT_DESTROY(ret, &interp, state1, &tbl, &ds, str, NULL, "test_name34");
+
+  TEST_QUEUE_DESTROY(ret, &interp, state1, &tbl, &ds, str, "q34_1");
+  TEST_QUEUE_DESTROY(ret, &interp, state1, &tbl, &ds, str, "q34_2");
+  TEST_POLICER_DESTROY(ret, &interp, state1, &tbl, &ds, str, "pa34_1", "p34_1");
+  TEST_POLICER_DESTROY(ret, &interp, state1, &tbl, &ds, str, "pa34_2", "p34_2");
+}
+
 
 void
 test_destroy(void) {

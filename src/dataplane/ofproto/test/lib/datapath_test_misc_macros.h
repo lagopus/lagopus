@@ -285,7 +285,7 @@
   do {							\
     TEST_ASSERT_NOT_NULL_MESSAGE(*(_tp),				\
                                  "table_get: table not found");		\
-    TEST_ASSERT_EQUAL_MESSAGE((*(_tp))->flow_list.nflow, (_expected),   \
+    TEST_ASSERT_EQUAL_MESSAGE((*(_tp))->flow_list->nflow, (_expected),  \
                               "entry count error");			\
   } while (0)
 

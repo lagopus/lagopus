@@ -85,15 +85,14 @@ test_match_flow_eth_type(void) {
   m->data[13] = 0x00;
 
   prio = 0;
-  lagopus_set_in_port(&pkt, &port);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   flow = flowinfo->match_func(flowinfo, &pkt, &prio);
   TEST_ASSERT_NULL_MESSAGE(flow, "match_flow_eth_type mismatch error");
 
   prio = 0;
   m->data[12] = 0x12;
   m->data[13] = 0x34;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   flow = flowinfo->match_func(flowinfo, &pkt, &prio);
   TEST_ASSERT_EQUAL_MESSAGE(flow, test_flow[0],
                             "match_flow_eth_type[0] match flow error.");
@@ -102,7 +101,7 @@ test_match_flow_eth_type(void) {
   prio = 0;
   m->data[12] = 0x08;
   m->data[13] = 0x00;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   flow = flowinfo->match_func(flowinfo, &pkt, &prio);
   TEST_ASSERT_EQUAL_MESSAGE(flow, test_flow[1],
                             "match_flow_eth_type[1] match flow error.");
@@ -111,7 +110,7 @@ test_match_flow_eth_type(void) {
   prio = 0;
   m->data[12] = 0x88;
   m->data[13] = 0x47;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   flow = flowinfo->match_func(flowinfo, &pkt, &prio);
   TEST_ASSERT_EQUAL_MESSAGE(flow, test_flow[2],
                             "match_flow_eth_type[2] match flow error.");
@@ -146,15 +145,14 @@ test_match_basic_ETH_DST(void) {
   m->data[3] = 0x44;
   m->data[4] = 0x55;
   m->data[5] = 0x60;
-  lagopus_set_in_port(&pkt, &port);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, true,
                             "ETH_DST wildcard match error.");
   add_match(&flow->match_list, 6, OFPXMT_OFB_ETH_DST << 1,
             0x11, 0x22, 0x33, 0x44, 0x55, 0x66);
   refresh_match(flow);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "ETH_DST mismatch error.");
@@ -164,7 +162,7 @@ test_match_basic_ETH_DST(void) {
   m->data[3] = 0x44;
   m->data[4] = 0x55;
   m->data[5] = 0x66;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, true,
                             "ETH_DST match error.");
@@ -200,8 +198,7 @@ test_match_basic_ETH_DST_W(void) {
             0x11, 0x22, 0x33, 0x00, 0x00, 0x00,
             0xff, 0xff, 0xff, 0x00, 0x00, 0x00);
   refresh_match(flow);
-  lagopus_set_in_port(&pkt, &port);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "ETH_DST_W mismatch error.");
@@ -211,7 +208,7 @@ test_match_basic_ETH_DST_W(void) {
   m->data[3] = 0x44;
   m->data[4] = 0x55;
   m->data[5] = 0x66;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, true,
                             "ETH_DST_W match error.");
@@ -244,15 +241,14 @@ test_match_basic_ETH_SRC(void) {
   m->data[9] = 0xa0;
   m->data[10] = 0xa0;
   m->data[11] = 0xa0;
-  lagopus_set_in_port(&pkt, &port);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, true,
                             "ETH_SRC wildcard match error.");
   add_match(&flow->match_list, 6, OFPXMT_OFB_ETH_SRC << 1,
             0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff);
   refresh_match(flow);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "ETH_SRC mismatch error.");
@@ -262,7 +258,7 @@ test_match_basic_ETH_SRC(void) {
   m->data[9] = 0xdd;
   m->data[10] = 0xee;
   m->data[11] = 0xff;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, true,
                             "ETH_SRC match error.");
@@ -298,8 +294,7 @@ test_match_basic_ETH_SRC_W(void) {
             0xaa, 0xbb, 0xcc, 0x00, 0x00, 0x00,
             0xff, 0xff, 0xff, 0x00, 0x00, 0x00);
   refresh_match(flow);
-  lagopus_set_in_port(&pkt, &port);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "ETH_SRC_W mismatch error.");
@@ -309,7 +304,7 @@ test_match_basic_ETH_SRC_W(void) {
   m->data[9] = 0xdd;
   m->data[10] = 0xee;
   m->data[11] = 0xff;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, true,
                             "ETH_SRC_W match error.");

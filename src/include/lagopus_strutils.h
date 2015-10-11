@@ -30,8 +30,11 @@
 
 
 lagopus_result_t
-lagopus_str_tokenize(char *buf, char **tokens,
-                     size_t max, const char *delm);
+lagopus_str_tokenize_with_limit(char *buf, char **tokens,
+                                size_t max, size_t limit, const char *delm);
+
+#define lagopus_str_tokenize(_buf, _tokens, _max, _delm) \
+  lagopus_str_tokenize_with_limit((_buf), (_tokens), (_max), 0, (_delm))
 
 lagopus_result_t
 lagopus_str_tokenize_quote(char *buf, char **tokens,
@@ -48,6 +51,14 @@ lagopus_str_escape(const char *in_str, const char *escape_chars,
 lagopus_result_t
 lagopus_str_trim_right(const char *org, const char *trim_chars,
                        char **retptr);
+
+lagopus_result_t
+lagopus_str_trim_left(const char *org, const char *trimchars,
+                      char **retptr);
+
+lagopus_result_t
+lagopus_str_trim(const char *org, const char *trimchars,
+                 char **retptr);
 
 
 
@@ -115,6 +126,10 @@ lagopus_str_parse_bool(const char *buf, bool *val);
 
 
 
+
+
+lagopus_result_t
+lagopus_str_indexof(const char *str1, const char *str2);
 
 
 #endif /* ! __LAGOPUS_STRUTILS_H__ */

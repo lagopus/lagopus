@@ -47,7 +47,6 @@ test_match_basic_IPV6_IP_DSCP(void) {
   bool rv;
 
   /* prepare packet */
-  pkt.in_port = &port;
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
@@ -66,13 +65,13 @@ test_match_basic_IPV6_IP_DSCP(void) {
   m->data[14] = 0x00;
   m->data[15] = 0x00;
   refresh_match(flow);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "IPV6_IP_DSCP mismatch error.");
   m->data[14] = 0x0f;
   m->data[15] = 0xc0;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, true,
                             "IPV6_IP_DSCP match error.");
@@ -87,7 +86,6 @@ test_match_basic_IPV6_IP_ECN(void) {
   bool rv;
 
   /* prepare packet */
-  pkt.in_port = &port;
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
@@ -105,12 +103,12 @@ test_match_basic_IPV6_IP_ECN(void) {
             0x03);
   m->data[15] = 0x00;
   refresh_match(flow);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "IPV6_IP_ECN mismatch error.");
   m->data[15] = 0x30;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, true,
                             "IPV6_IP_ECN match error.");
@@ -125,7 +123,6 @@ test_match_basic_IPV6_PROTO(void) {
   bool rv;
 
   /* prepare packet */
-  pkt.in_port = &port;
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
@@ -147,24 +144,24 @@ test_match_basic_IPV6_PROTO(void) {
   m->data[13] = 0xdd;
 
   m->data[20] = IPPROTO_UDP;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "IPV6_IP_PROTO mismatch error.");
   m->data[20] = IPPROTO_TCP;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, true,
                             "IPV6_IP_PROTO match error.");
   m->data[20] = IPPROTO_DSTOPTS;
   m->data[54] = IPPROTO_UDP;
   m->data[55] = 0;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "IPV6_IP_PROTO mismatch(next hdr) error.");
   m->data[54] = IPPROTO_TCP;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, true,
                             "IPV6_IP_PROTO match(next hdr) error.");
@@ -181,7 +178,6 @@ test_match_basic_IPV6_SRC(void) {
   int i;
 
   /* prepare packet */
-  pkt.in_port = &port;
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
@@ -212,7 +208,7 @@ test_match_basic_IPV6_SRC(void) {
   m->data[i++] = 0xc6;
   m->data[i++] = 0x43;
   m->data[i++] = 0x11;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   add_match(&flow->match_list, 16, OFPXMT_OFB_IPV6_SRC << 1,
             0x20, 0x01, 0x00, 0x00, 0xe0, 0x45, 0x22, 0xeb,
             0x09, 0x00, 0x00, 0x08, 0xdc, 0x18, 0x94, 0xad);
@@ -252,7 +248,6 @@ test_match_basic_IPV6_SRC_W(void) {
   int i;
 
   /* prepare packet */
-  pkt.in_port = &port;
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
@@ -283,7 +278,7 @@ test_match_basic_IPV6_SRC_W(void) {
   m->data[i++] = 0xc6;
   m->data[i++] = 0x43;
   m->data[i++] = 0x11;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   add_match(&flow->match_list, 32, (OFPXMT_OFB_IPV6_SRC << 1) + 1,
             0x20, 0x01, 0x00, 0x00, 0xe0, 0x45, 0x22, 0xeb,
             0x09, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00, 0x00,
@@ -325,7 +320,6 @@ test_match_basic_IPV6_DST(void) {
   int i;
 
   /* prepare packet */
-  pkt.in_port = &port;
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
@@ -356,7 +350,7 @@ test_match_basic_IPV6_DST(void) {
   m->data[i++] = 0xc6;
   m->data[i++] = 0x43;
   m->data[i++] = 0x11;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   add_match(&flow->match_list, 16, OFPXMT_OFB_IPV6_DST << 1,
             0x20, 0x01, 0x00, 0x00, 0xe0, 0x45, 0x22, 0xeb,
             0x09, 0x00, 0x00, 0x08, 0xdc, 0x18, 0x94, 0xad);
@@ -396,7 +390,6 @@ test_match_basic_IPV6_DST_W(void) {
   int i;
 
   /* prepare packet */
-  pkt.in_port = &port;
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
@@ -427,7 +420,7 @@ test_match_basic_IPV6_DST_W(void) {
   m->data[i++] = 0xc6;
   m->data[i++] = 0x43;
   m->data[i++] = 0x11;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   add_match(&flow->match_list, 32, (OFPXMT_OFB_IPV6_DST << 1) + 1,
             0x20, 0x01, 0x00, 0x00, 0xe0, 0x45, 0x22, 0xeb,
             0x09, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00, 0x00,
@@ -468,7 +461,6 @@ test_match_basic_IPV6_FLABEL(void) {
   bool rv;
 
   /* prepare packet */
-  pkt.in_port = &port;
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
@@ -488,14 +480,14 @@ test_match_basic_IPV6_FLABEL(void) {
   add_match(&flow->match_list, 4, OFPXMT_OFB_IPV6_FLABEL << 1,
             0x00, 0x01, 0x23, 0x45);
   refresh_match(flow);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "IPV6_FLABEL mismatch error.");
   m->data[15] = 0x01;
   m->data[16] = 0x23;
   m->data[17] = 0x45;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, true,
                             "IPV6_FLABEL match error.");
@@ -510,7 +502,6 @@ test_match_basic_IPV6_TCP_SRC(void) {
   bool rv;
 
   /* prepare packet */
-  pkt.in_port = &port;
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
@@ -533,7 +524,7 @@ test_match_basic_IPV6_TCP_SRC(void) {
   m->data[54] = 0;
   m->data[55] = 0xf0;
   refresh_match(flow);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "IPV6_TCP_SRC mismatch error.");
@@ -547,7 +538,7 @@ test_match_basic_IPV6_TCP_SRC(void) {
   m->data[55] = 0;
   m->data[62] = 0x00;
   m->data[63] = 0xf0;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "IPV6_TCP_SRC mismatch(next hdr) error.");
@@ -568,7 +559,6 @@ test_match_basic_IPV6_TCP_DST(void) {
   bool rv;
 
   /* prepare packet */
-  pkt.in_port = &port;
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
@@ -591,7 +581,7 @@ test_match_basic_IPV6_TCP_DST(void) {
   m->data[56] = 0;
   m->data[57] = 0xf0;
   refresh_match(flow);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "IPV6_TCP_DST mismatch error.");
@@ -605,7 +595,7 @@ test_match_basic_IPV6_TCP_DST(void) {
   m->data[55] = 0;
   m->data[64] = 0x00;
   m->data[65] = 0xf0;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "IPV6_TCP_DST mismatch(next hdr) error.");
@@ -626,7 +616,6 @@ test_match_basic_IPV6_UDP_SRC(void) {
   bool rv;
 
   /* prepare packet */
-  pkt.in_port = &port;
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
@@ -649,7 +638,7 @@ test_match_basic_IPV6_UDP_SRC(void) {
   m->data[54] = 0;
   m->data[55] = 0xf0;
   refresh_match(flow);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "IPV6_UDP_SRC mismatch error.");
@@ -663,7 +652,7 @@ test_match_basic_IPV6_UDP_SRC(void) {
   m->data[55] = 0;
   m->data[62] = 0x00;
   m->data[63] = 0xf0;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "IPV6_UDP_SRC mismatch(next hdr) error.");
@@ -684,7 +673,6 @@ test_match_basic_IPV6_UDP_DST(void) {
   bool rv;
 
   /* prepare packet */
-  pkt.in_port = &port;
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
@@ -707,7 +695,7 @@ test_match_basic_IPV6_UDP_DST(void) {
   m->data[56] = 0;
   m->data[57] = 0xf0;
   refresh_match(flow);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "IPV6_UDP_DST mismatch error.");
@@ -721,7 +709,7 @@ test_match_basic_IPV6_UDP_DST(void) {
   m->data[55] = 0;
   m->data[64] = 0x00;
   m->data[65] = 0xf0;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "IPV6_UDP_DST mismatch(next hdr) error.");
@@ -742,7 +730,6 @@ test_match_basic_IPV6_SCTP_SRC(void) {
   bool rv;
 
   /* prepare packet */
-  pkt.in_port = &port;
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
@@ -765,7 +752,7 @@ test_match_basic_IPV6_SCTP_SRC(void) {
   m->data[54] = 0;
   m->data[55] = 0xf0;
   refresh_match(flow);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "IPV6_SCTP_SRC mismatch error.");
@@ -779,7 +766,7 @@ test_match_basic_IPV6_SCTP_SRC(void) {
   m->data[55] = 0;
   m->data[62] = 0x00;
   m->data[63] = 0xf0;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "IPV6_SCTP_SRC mismatch(next hdr) error.");
@@ -800,7 +787,6 @@ test_match_basic_IPV6_SCTP_DST(void) {
   bool rv;
 
   /* prepare packet */
-  pkt.in_port = &port;
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
@@ -823,7 +809,7 @@ test_match_basic_IPV6_SCTP_DST(void) {
   m->data[56] = 0;
   m->data[57] = 0xf0;
   refresh_match(flow);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "IPV6_SCTP_DST mismatch error.");
@@ -835,7 +821,7 @@ test_match_basic_IPV6_SCTP_DST(void) {
   m->data[20] = IPPROTO_DSTOPTS;
   m->data[54] = IPPROTO_SCTP;
   m->data[55] = 0;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   m->data[64] = 0x00;
   m->data[65] = 0xf0;
@@ -858,7 +844,6 @@ test_match_basic_IPV6_ICMPV6_TYPE(void) {
   bool rv;
 
   /* prepare packet */
-  pkt.in_port = &port;
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
@@ -883,7 +868,7 @@ test_match_basic_IPV6_ICMPV6_TYPE(void) {
             ICMP6_ECHO_REPLY);
   m->data[54] = ICMP6_ECHO_REQUEST;
   refresh_match(flow);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "ICMPV6_TYPE mismatch error.");
@@ -895,12 +880,12 @@ test_match_basic_IPV6_ICMPV6_TYPE(void) {
   m->data[54] = IPPROTO_ICMPV6;
   m->data[55] = 0;
   m->data[62] = ICMP6_ECHO_REQUEST;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "ICMPV6_TYPE mismatch(next hdr) error.");
   m->data[62] = ICMP6_ECHO_REPLY;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, true,
                             "ICMPV6_TYPE match(next hdr) error.");
@@ -915,7 +900,6 @@ test_match_basic_IPV6_ICMPV6_CODE(void) {
   bool rv;
 
   /* prepare packet */
-  pkt.in_port = &port;
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
@@ -940,7 +924,7 @@ test_match_basic_IPV6_ICMPV6_CODE(void) {
             ICMP6_DST_UNREACH_ADDR);
   m->data[55] = ICMP6_DST_UNREACH_ADMIN;
   refresh_match(flow);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "ICMPV6_CODE mismatch error.");
@@ -952,12 +936,12 @@ test_match_basic_IPV6_ICMPV6_CODE(void) {
   m->data[54] = IPPROTO_ICMPV6;
   m->data[55] = 0;
   m->data[63] = ICMP6_DST_UNREACH_ADMIN;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "ICMPV6_CODE mismatch(next hdr) error.");
   m->data[63] = ICMP6_DST_UNREACH_ADDR;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, true,
                             "ICMPV6_CODE match(next hdr) error.");
@@ -972,7 +956,6 @@ test_match_basic_IPV6_EXTHDR(void) {
   bool rv;
 
   /* prepare packet */
-  pkt.in_port = &port;
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
@@ -996,7 +979,7 @@ test_match_basic_IPV6_EXTHDR(void) {
             OFPIEH_NONEXT|OFPIEH_ESP|OFPIEH_AUTH|OFPIEH_DEST|OFPIEH_FRAG|
             OFPIEH_ROUTER|OFPIEH_HOP|OFPIEH_UNREP);
   refresh_match(flow);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "IPV6_EXTHDR mismatch error.");
@@ -1023,7 +1006,7 @@ test_match_basic_IPV6_EXTHDR(void) {
   m->data[142] = IPPROTO_NONE;
   m->data[143] = 0;
   m->data[150] = IPPROTO_TCP;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, true,
                             "IPV6_EXTHDR match error.");
@@ -1038,7 +1021,6 @@ test_match_basic_IPV6_EXTHDR_W(void) {
   bool rv;
 
   /* prepare packet */
-  pkt.in_port = &port;
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
@@ -1061,7 +1043,7 @@ test_match_basic_IPV6_EXTHDR_W(void) {
             OFPIEH_UNSEQ >> 8, 0,
             OFPIEH_UNSEQ >> 8, OFPIEH_UNREP);
   refresh_match(flow);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "IPV6_EXTHDR_W mismatch error.");
@@ -1077,7 +1059,7 @@ test_match_basic_IPV6_EXTHDR_W(void) {
   m->data[94] = IPPROTO_NONE;
   m->data[95] = 0;
   m->data[102] = IPPROTO_TCP;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, true,
                             "IPV6_EXTHDR_W match error.");

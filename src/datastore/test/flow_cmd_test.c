@@ -142,7 +142,7 @@ test_flow_cmd_parse_dump_not_bridge(void) {
                         };
   const char test_str1[] =
     "{\"ret\":\"NOT_FOUND\",\n"
-    "\"data\":\"name = "NAMESPACE_DELIMITER"bridge01\"}";
+    "\"data\":\"name = "DATASTORE_NAMESPACE_DELIMITER"bridge01\"}";
 
   /* dump cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,

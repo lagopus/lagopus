@@ -58,18 +58,6 @@ typedef lagopus_result_t	(*lagopus_callout_task_proc_t)(void *arg);
 
 
 /**
- * The signature of callout task's outstanding events count
- * acquisition function.
- *
- *	@param[in]	arg	An argument.
- *
- *	@returns	0	No outstanding events to process for the task.
- *	@returns	>0	# of the outstanding events to process for the task.
- */
-typedef size_t	(*lagopus_callout_task_get_event_n_proc_t)(void *arg);
-
-
-/**
  * The signature of task argument freeup functions.
  *
  *	@param[in]	arg	An argument.

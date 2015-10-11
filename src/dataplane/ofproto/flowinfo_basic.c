@@ -163,7 +163,7 @@ destroy_flowinfo_basic(struct flowinfo *self) {
 
 #define MAKE_BYTEOFF(field, off, base)                                \
   case FIELD(field):                                                  \
-  byteoff[base].bits |= BYTEBITS(match->oxm_length, off);           \
+  byteoff[base].bits |= (uint32_t)BYTEBITS(match->oxm_length, off);           \
   memcpy(BYTEPTR(base, off), match->oxm_value, match->oxm_length);  \
   memset(MASKPTR(base, off), 0xff, match->oxm_length);              \
   break;
@@ -172,7 +172,7 @@ destroy_flowinfo_basic(struct flowinfo *self) {
   case FIELD_WITH_MASK(field):                                  \
   {                                                           \
     size_t len = match->oxm_length >> 1;                      \
-    byteoff[base].bits |= BYTEBITS(len, off);                 \
+    byteoff[base].bits |= (uint32_t)BYTEBITS(len, off);               \
     memcpy(BYTEPTR(base, off), match->oxm_value, len);        \
     memcpy(MASKPTR(base, off), match->oxm_value + len, len);  \
   }                                                           \
@@ -204,7 +204,7 @@ flow_make_match(struct flow *flow) {
       case FIELD(OFPXMT_OFB_VLAN_VID): {
         uint8_t val8[2];
         int off = offsetof(struct oob_data, vlan_tci);
-        byteoff[OOB_BASE].bits |= BYTEBITS(2, off);
+        byteoff[OOB_BASE].bits |= (uint32_t)BYTEBITS(2, off);
         memcpy(val8, match->oxm_value, 2);
         BYTEPTR(OOB_BASE, off)[0] &= 0xe0;
         BYTEPTR(OOB_BASE, off)[0] |= val8[0] | 0x10;
@@ -217,7 +217,7 @@ flow_make_match(struct flow *flow) {
       case FIELD_WITH_MASK(OFPXMT_OFB_VLAN_VID): {
         uint8_t val8[4];
         int off = offsetof(struct oob_data, vlan_tci);
-        byteoff[OOB_BASE].bits |= BYTEBITS(2, off);
+        byteoff[OOB_BASE].bits |= (uint32_t)BYTEBITS(2, off);
         memcpy(val8, match->oxm_value, 4);
         BYTEPTR(OOB_BASE, off)[0] &= 0xe0;
         BYTEPTR(OOB_BASE, off)[0] |= val8[0] | (0x10 & val8[2]);
@@ -230,7 +230,7 @@ flow_make_match(struct flow *flow) {
 
       case FIELD(OFPXMT_OFB_VLAN_PCP): {
         int off = offsetof(struct oob_data, vlan_tci);
-        byteoff[OOB_BASE].bits |= BYTEBITS(1, off);
+        byteoff[OOB_BASE].bits |= (uint32_t)BYTEBITS(1, off);
         BYTEPTR(OOB_BASE, off)[0] &= 0x1f;
         BYTEPTR(OOB_BASE, off)[0] |= (uint8_t)(match->oxm_value[0] << 5);
         MASKPTR(OOB_BASE, off)[0] |= 0xe0;
@@ -312,7 +312,7 @@ flow_make_match(struct flow *flow) {
         if (l3_ether_type == ETHERTYPE_IPV6) {
           uint8_t val;
           int off = 0;
-          byteoff[L3_BASE].bits |= BYTEBITS(2, off);
+          byteoff[L3_BASE].bits |= (uint32_t)BYTEBITS(2, off);
           memcpy(&val, match->oxm_value, 1);
           BYTEPTR(L3_BASE, off)[0] &= 0xf0;
           BYTEPTR(L3_BASE, off)[0] |= val >> 2;
@@ -323,7 +323,7 @@ flow_make_match(struct flow *flow) {
         } else {
           uint8_t val;
           int off = offsetof(struct ip, ip_tos);
-          byteoff[L3_BASE].bits |= BYTEBITS(1, off);
+          byteoff[L3_BASE].bits |= (uint32_t)BYTEBITS(1, off);
           memcpy(&val, match->oxm_value, 1);
           BYTEPTR(L3_BASE, off)[0] &= 0x03;
           BYTEPTR(L3_BASE, off)[0] |= (uint8_t)(val << 2);
@@ -335,7 +335,7 @@ flow_make_match(struct flow *flow) {
         if (l3_ether_type == ETHERTYPE_IPV6) {
           uint8_t val;
           int off = 1;
-          byteoff[L3_BASE].bits |= BYTEBITS(1, off);
+          byteoff[L3_BASE].bits |= (uint32_t)BYTEBITS(1, off);
           memcpy(&val, match->oxm_value, 1);
           BYTEPTR(L3_BASE, off)[0] &= 0xcf;
           BYTEPTR(L3_BASE, off)[0] |= (uint8_t)(val << 4);
@@ -343,7 +343,7 @@ flow_make_match(struct flow *flow) {
         } else {
           uint8_t val;
           int off = offsetof(struct ip, ip_tos);
-          byteoff[L3_BASE].bits |= BYTEBITS(1, off);
+          byteoff[L3_BASE].bits |= (uint32_t)BYTEBITS(1, off);
           memcpy(&val, match->oxm_value, 1);
           BYTEPTR(L3_BASE, off)[0] &= 0xfc;
           BYTEPTR(L3_BASE, off)[0] |= val;
@@ -356,7 +356,7 @@ flow_make_match(struct flow *flow) {
       {
         uint8_t val8[4];
         int off = 1;
-        byteoff[L3_BASE].bits |= BYTEBITS(3, off);
+        byteoff[L3_BASE].bits |= (uint32_t)BYTEBITS(3, off);
         memcpy(val8, match->oxm_value, match->oxm_length);
         BYTEPTR(L3_BASE, off)[0] &= 0xf0;
         BYTEPTR(L3_BASE, off)[0] |= val8[1];
@@ -373,7 +373,7 @@ flow_make_match(struct flow *flow) {
       {
         uint8_t val8[4];
         int off = 1;
-        byteoff[L3_BASE].bits |= BYTEBITS(3, off);
+        byteoff[L3_BASE].bits |= (uint32_t)BYTEBITS(3, off);
         memcpy(val8, match->oxm_value, 4);
         BYTEPTR(L3_BASE, off)[0] &= 0xf0;
         BYTEPTR(L3_BASE, off)[0] |= val8[1];
@@ -395,7 +395,7 @@ flow_make_match(struct flow *flow) {
           uint8_t val8[4];
         } val;
         int off = 0;
-        byteoff[MPLS_BASE].bits |= BYTEBITS(3, off);
+        byteoff[MPLS_BASE].bits |= (uint32_t)BYTEBITS(3, off);
         memcpy(&val, match->oxm_value, 4);
         val.val32 = ntohl(val.val32) << 12;
         val.val32 = htonl(val.val32);
@@ -414,7 +414,7 @@ flow_make_match(struct flow *flow) {
       {
         uint8_t val;
         int off = 2;
-        byteoff[MPLS_BASE].bits |= BYTEBITS(1, off);
+        byteoff[MPLS_BASE].bits |= (uint32_t)BYTEBITS(1, off);
         memcpy(&val, match->oxm_value, 1);
         BYTEPTR(MPLS_BASE, off)[0] &= 0xf1;
         BYTEPTR(MPLS_BASE, off)[0] |= (uint8_t)(val << 1);
@@ -427,7 +427,7 @@ flow_make_match(struct flow *flow) {
       {
         uint8_t val;
         int off = 2;
-        byteoff[MPLS_BASE].bits |= BYTEBITS(1, off);
+        byteoff[MPLS_BASE].bits |= (uint32_t)BYTEBITS(1, off);
         memcpy(&val, match->oxm_value, 1);
         BYTEPTR(MPLS_BASE, off)[0] &= 0xfe;
         BYTEPTR(MPLS_BASE, off)[0] |= val;

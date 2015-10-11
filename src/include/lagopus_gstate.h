@@ -47,6 +47,8 @@ typedef enum {
     ((int)(s) <= (int)GLOBAL_STATE_FINALIZED)) ? true : false)
 #define IS_GLOBAL_STATE_SHUTDOWN(s)                                     \
   (((int)(s) >= (int)GLOBAL_STATE_ACCEPT_SHUTDOWN) ? true : false)
+#define IS_GLOBAL_STATE_KINDA_SHUTDOWN(s)                               \
+  (((int)(s) >= (int)GLOBAL_STATE_REQUEST_SHUTDOWN) ? true : false)
 
 
 typedef enum {

@@ -29,6 +29,7 @@
 
 
 
+#include "lagopus_callout_task_state.h"
 #include "lagopus_callout_task_funcs.h"
 #include "lagopus_runnable.h"
 
@@ -45,18 +46,29 @@ typedef struct lagopus_callout_task_record 	*lagopus_callout_task_t;
 
 
 
+
+
+
+
+
 /**
  * The signature of the callout handler idle function.
  *
  *	@param[in]	arg	An argument.
+ *
+ *	@retval	LAGOPUS_RESULT_OK	Succeeded and the callout master
+ *					scheduler carries on.
+ *	@retval <0			Failed and the callout master
+ *					sceduler stops.
  */
-typedef void	(*lagopus_callout_idle_proc_t)(void *arg);
+typedef lagopus_result_t	(*lagopus_callout_idle_proc_t)(void *arg);
 
 
 /**
  * The signature of callout handler idle function argument freeup functions.
  *
  *	@param[in]	arg	An argument.
+ *
  */
 typedef void	(*lagopus_callout_idle_arg_freeup_proc_t)(void *arg);
 
@@ -134,6 +146,7 @@ lagopus_callout_stop_main_loop(void);
  * Create a callout task.
  *
  *	@param[out]	tptr	A pointer to a created task.
+ *	@param[in]	sz	A memory allocation size for this object (in bytes, zero allowed.)
  *	@param[in]	name	A name of the task (NULL allowed.)
  *	@param[in]	proc	A task main function.
  *	@param[in]	arg	An argument for the \b proc (NULL allowed.)
@@ -150,6 +163,7 @@ lagopus_callout_stop_main_loop(void);
  */
 lagopus_result_t
 lagopus_callout_create_task(lagopus_callout_task_t *tptr,
+                            size_t sz,
                             const char *name,
                             lagopus_callout_task_proc_t proc,
                             void *arg,
@@ -161,16 +175,11 @@ lagopus_callout_create_task(lagopus_callout_task_t *tptr,
  *	@param[in]	tptr	A pointer to a task.
  *	@param[in]	delay	A (relative) time when the task supposed to be initially executed: \b 0 : right now; \b <0 : "idle" time; \b >0 : within after the \b delay (in nsec.)
  *	@param[in]	interval	A (relative) time when the task supposed to be re-executed: \b >0 : within after the \b interval (in nsec.)
- *	@param[in]	repeat	\b true : the task is executed repeatedly; \b false : the task is executed only once.
  *
  *	@retval	LAGOPUS_RESULT_OK		Succeeded.
  *      @retval LAGOPUS_RESULT_NO_MEMORY        Failed, no memory.
  *      @retval LAGOPUS_RESULT_INVALID_ARGS     Failed, invalid args.
  *      @retval LAGOPUS_RESULT_ANY_FAILURES     Failed.
- *
- * @details If the \b interval is not greater than zero and the \b
- * repeat is \b true, the function always returns \b
- * LAGOPUS_RESULT_INVALID_ARGS.
  *
  * @details the \b *tptr (the task itself), and the argument if
  * specified with non-NULL \b freearg for the
@@ -185,12 +194,11 @@ lagopus_callout_create_task(lagopus_callout_task_t *tptr,
 lagopus_result_t
 lagopus_callout_submit_task(const lagopus_callout_task_t *tptr,
                             lagopus_chrono_t delay,
-                            lagopus_chrono_t interval,
-                            bool repeat);
+                            lagopus_chrono_t interval);
 
 
 /**
- * cancel a submitted task.
+ * Cancel a submitted task.
  *
  *	@param[in]	tptr	A pointer to a task.
  *
@@ -200,6 +208,49 @@ lagopus_callout_submit_task(const lagopus_callout_task_t *tptr,
  */
 void
 lagopus_callout_cancel_task(const lagopus_callout_task_t *tptr);
+
+
+/**
+ * Execute the sumitted task forcibly.
+ *
+ *	@param[in]	tptr	A pointer to a task.
+ *
+ *	@retval	LAGOPUS_RESULT_OK		Succeeded.
+ *	@retval <0				Failure.
+ */
+lagopus_result_t
+lagopus_callout_exec_task_forcibly(const lagopus_callout_task_t *tptr);
+
+
+/**
+ * Reset task execution interval.
+ *
+ *	@param[in]	tptr	A pointer to a task.
+ *	@paran[in]	interval	An interval (in nsec.)
+ *
+ *	@retval	LAGOPUS_RESULT_OK		Succeeded.
+ *	@retval <0				Failure.
+ *
+ *	@details This API only useable when it is isssued in an
+ *	execution task. Otherwise the API returns an error.
+ */
+lagopus_result_t
+lagopus_callout_task_reset_interval(lagopus_callout_task_t *tptr,
+                                    lagopus_chrono_t interval);
+
+
+/**
+ * Acquire a task state.
+ *
+ *	@param[in]	tptr	A pointer to a task.
+ *	@paran[out]	sptr	A pointer to a task state returns.
+ *
+ *	@retval	LAGOPUS_RESULT_OK		Succeeded.
+ *	@retval <0				Failure.
+ */
+lagopus_result_t
+lagopus_callout_task_state(lagopus_callout_task_t *tptr,
+                           lagopus_callout_task_state_t *sptr);
 
 
 

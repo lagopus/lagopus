@@ -52,7 +52,6 @@ test_match_flow_mpls(void) {
   int i, nflow;
 
   /* prepare packet */
-  pkt.in_port = &port;
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
@@ -90,7 +89,7 @@ test_match_flow_mpls(void) {
   m->data[15] = 0xff;
   m->data[16] = 0xff;
   m->data[17] = 0xff;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   flow = flowinfo->match_func(flowinfo, &pkt, &prio);
   TEST_ASSERT_NULL_MESSAGE(flow, "match_flow_mpls mismatch error");
   m->data[14] = 0x00;
@@ -113,7 +112,6 @@ test_match_basic_MPLS_LABEL(void) {
   bool rv;
 
   /* prepare packet */
-  pkt.in_port = &port;
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
@@ -136,7 +134,7 @@ test_match_basic_MPLS_LABEL(void) {
   m->data[16] = 0xff;
   m->data[17] = 0xff;
   refresh_match(flow);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "MPLS_LABEL mismatch(1) error.");
@@ -144,7 +142,7 @@ test_match_basic_MPLS_LABEL(void) {
   m->data[15] = 0x1f;
   m->data[16] = 0x00;
   m->data[17] = 0x00;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "MPLS_LABEL mismatch(2) error.");
@@ -152,7 +150,7 @@ test_match_basic_MPLS_LABEL(void) {
   m->data[15] = 0x00;
   m->data[16] = 0x1f;
   m->data[17] = 0xff;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, true,
                             "MPLS_LABEL match error.");
@@ -167,7 +165,6 @@ test_match_basic_MPLS_TC(void) {
   bool rv;
 
   /* prepare packet */
-  pkt.in_port = &port;
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
@@ -190,7 +187,7 @@ test_match_basic_MPLS_TC(void) {
   m->data[16] = 0xff;
   m->data[17] = 0xff;
   refresh_match(flow);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "MPLS_TC mismatch(1) error.");
@@ -198,7 +195,7 @@ test_match_basic_MPLS_TC(void) {
   m->data[15] = 0xf4;
   m->data[16] = 0xff;
   m->data[17] = 0xff;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "MPLS_TC mismatch(2) error.");
@@ -206,7 +203,7 @@ test_match_basic_MPLS_TC(void) {
   m->data[15] = 0xff;
   m->data[16] = 0xf4;
   m->data[17] = 0xff;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, true,
                             "MPLS_TC match error.");
@@ -221,7 +218,6 @@ test_match_basic_MPLS_BOS(void) {
   bool rv;
 
   /* prepare packet */
-  pkt.in_port = &port;
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
@@ -244,7 +240,7 @@ test_match_basic_MPLS_BOS(void) {
   m->data[16] = 0xfe;
   m->data[17] = 0xff;
   refresh_match(flow);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "MPLS_BOS mismatch(1) error.");
@@ -252,7 +248,7 @@ test_match_basic_MPLS_BOS(void) {
   m->data[15] = 0x01;
   m->data[16] = 0x00;
   m->data[17] = 0x00;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "MPLS_BOS mismatch(2) error.");
@@ -260,7 +256,7 @@ test_match_basic_MPLS_BOS(void) {
   m->data[15] = 0x00;
   m->data[16] = 0x01;
   m->data[17] = 0x00;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, true,
                             "MPLS_BOS match error.");
@@ -275,7 +271,6 @@ test_match_basic_MPLSMC_LABEL(void) {
   bool rv;
 
   /* prepare packet */
-  pkt.in_port = &port;
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
@@ -298,7 +293,7 @@ test_match_basic_MPLSMC_LABEL(void) {
   m->data[16] = 0xff;
   m->data[17] = 0xff;
   refresh_match(flow);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "MPLSMC_LABEL mismatch(1) error.");
@@ -306,7 +301,7 @@ test_match_basic_MPLSMC_LABEL(void) {
   m->data[15] = 0x1f;
   m->data[16] = 0x00;
   m->data[17] = 0x00;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "MPLSMC_LABEL mismatch(2) error.");
@@ -314,7 +309,7 @@ test_match_basic_MPLSMC_LABEL(void) {
   m->data[15] = 0x00;
   m->data[16] = 0x1f;
   m->data[17] = 0xff;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, true,
                             "MPLSMC_LABEL match error.");
@@ -329,7 +324,6 @@ test_match_basic_MPLSMC_TC(void) {
   bool rv;
 
   /* prepare packet */
-  pkt.in_port = &port;
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
@@ -352,7 +346,7 @@ test_match_basic_MPLSMC_TC(void) {
   m->data[16] = 0xff;
   m->data[17] = 0xff;
   refresh_match(flow);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "MPLSMC_TC mismatch(1) error.");
@@ -360,7 +354,7 @@ test_match_basic_MPLSMC_TC(void) {
   m->data[15] = 0xf4;
   m->data[16] = 0xff;
   m->data[17] = 0xff;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "MPLSMC_TC mismatch(2) error.");
@@ -368,7 +362,7 @@ test_match_basic_MPLSMC_TC(void) {
   m->data[15] = 0xff;
   m->data[16] = 0xf4;
   m->data[17] = 0xff;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, true,
                             "MPLSMC_TC match error.");
@@ -383,7 +377,6 @@ test_match_basic_MPLSMC_BOS(void) {
   bool rv;
 
   /* prepare packet */
-  pkt.in_port = &port;
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
@@ -406,7 +399,7 @@ test_match_basic_MPLSMC_BOS(void) {
   m->data[16] = 0xfe;
   m->data[17] = 0xff;
   refresh_match(flow);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "MPLSMC_BOS mismatch(1) error.");
@@ -414,7 +407,7 @@ test_match_basic_MPLSMC_BOS(void) {
   m->data[15] = 0x01;
   m->data[16] = 0x00;
   m->data[17] = 0x00;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "MPLSMC_BOS mismatch(2) error.");
@@ -422,7 +415,7 @@ test_match_basic_MPLSMC_BOS(void) {
   m->data[15] = 0x00;
   m->data[16] = 0x01;
   m->data[17] = 0x00;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, true,
                             "MPLSMC_BOS match error.");

@@ -30,14 +30,35 @@
 #include "pktbuf.h"
 #include "packet.h"
 
-#define FLOWCACHE_BITLEN 32
-
 #undef CACHE_DEBUG
 #ifdef CACHE_DEBUG
 #define DPRINTF(...) printf(__VA_ARGS__)
 #else
 #define DPRINTF(...)
 #endif
+
+#define NBANK   2
+#define FLOWCACHE_BITLEN 32
+#define FLOWCACHE_MAX_ENTRIES 100000
+
+struct flowcache_bank {
+  int kvs_type;
+  struct ptree *ptree;
+  lagopus_hashmap_t hashmap;
+  /* statistics */
+  uint64_t nentries;
+  uint64_t hit;
+  uint64_t miss;
+};
+
+/**
+ * per thread cache object.
+ */
+struct flowcache {
+  int used_bank;
+  uint64_t max_entries;
+  struct flowcache_bank *bank[NBANK];
+};
 
 TAILQ_HEAD(cache_entry_list, cache_entry);
 
@@ -46,11 +67,11 @@ struct cache_list {
   struct cache_entry_list entries;
 };
 
-struct flowcache *
-init_flowcache(int kvs_type) {
-  struct flowcache *cache;
+static struct flowcache_bank *
+init_flowcache_bank(int kvs_type) {
+  struct flowcache_bank *cache;
 
-  cache = calloc(1, sizeof(struct flowcache));
+  cache = calloc(1, sizeof(struct flowcache_bank));
   if (cache == NULL) {
     return NULL;
   }
@@ -71,11 +92,11 @@ init_flowcache(int kvs_type) {
   return cache;
 }
 
-void
-register_cache(struct flowcache *cache,
-               uint64_t hash64,
-               unsigned nmatched,
-               const struct flow **flow) {
+static void
+register_cache_bank(struct flowcache_bank *cache,
+                    uint64_t hash64,
+                    unsigned nmatched,
+                    const struct flow **flow) {
   struct cache_entry *cache_entry, *remove_entry;
   struct cache_list *list;
   uint32_t hash32_h;
@@ -172,8 +193,8 @@ register_cache(struct flowcache *cache,
   cache->nentries++;
 }
 
-void
-clear_all_cache(struct flowcache *cache) {
+static void
+clear_all_cache_bank(struct flowcache_bank *cache) {
   struct cache_entry *cache_entry;
   struct ptree_node *node;
 
@@ -198,9 +219,11 @@ clear_all_cache(struct flowcache *cache) {
       }
       break;
     case  FLOWCACHE_HASHMAP:
+      lagopus_hashmap_clear(&cache->hashmap, true);
+      break;
     case  FLOWCACHE_HASHMAP_NOLOCK:
     default:
-      lagopus_hashmap_clear(&cache->hashmap, true);
+      lagopus_hashmap_clear_no_lock(&cache->hashmap, true);
       break;
   }
   cache->nentries = 0;
@@ -208,8 +231,8 @@ clear_all_cache(struct flowcache *cache) {
   cache->miss = 0;
 }
 
-struct cache_entry *
-cache_lookup(struct flowcache *cache, struct lagopus_packet *pkt) {
+static struct cache_entry *
+cache_lookup_bank(struct flowcache_bank *cache, struct lagopus_packet *pkt) {
   struct cache_entry *cache_entry;
   struct cache_list *list;
   struct ptree_node *node;
@@ -257,9 +280,9 @@ cache_lookup(struct flowcache *cache, struct lagopus_packet *pkt) {
   return NULL;
 }
 
-void
-fini_flowcache(struct flowcache *cache) {
-  clear_all_cache(cache);
+static void
+fini_flowcache_bank(struct flowcache_bank *cache) {
+  clear_all_cache_bank(cache);
 
   switch (cache->kvs_type) {
     case  FLOWCACHE_PTREE:
@@ -271,6 +294,94 @@ fini_flowcache(struct flowcache *cache) {
       break;
     default:
       break;
+  }
+  free(cache);
+}
+
+struct flowcache *
+init_flowcache(int kvs_type) {
+  struct flowcache *cache;
+  int bank;
+
+  cache = calloc(1, sizeof(struct flowcache));
+  if (cache == NULL) {
+    return NULL;
+  }
+  for (bank = 0; bank < NBANK; bank++) {
+    cache->bank[bank] = init_flowcache_bank(kvs_type);
+    if (cache->bank[bank] == NULL) {
+      free(cache);
+      return NULL;
+    }
+  }
+  cache->max_entries = FLOWCACHE_MAX_ENTRIES;
+  return cache;
+}
+
+void
+register_cache(struct flowcache *cache,
+               uint64_t hash64,
+               unsigned nmatched,
+               const struct flow **flow) {
+  struct flowcache_bank *bank, *alt_bank;
+
+  bank = cache->bank[0];
+  register_cache_bank(bank, hash64, nmatched, flow);
+  if (bank->nentries >= cache->max_entries / 2) {
+    alt_bank = init_flowcache_bank(bank->kvs_type);
+    alt_bank->hit = cache->bank[1]->hit;
+    alt_bank->miss = cache->bank[1]->miss;
+    fini_flowcache_bank(cache->bank[1]);
+    cache->bank[0] = alt_bank;
+    cache->bank[1] = bank;
+  }
+}
+
+void
+clear_all_cache(struct flowcache *cache) {
+  int bank;
+
+  for (bank = 0; bank < NBANK; bank++) {
+    clear_all_cache_bank(cache->bank[bank]);
+  }
+}
+
+struct cache_entry *
+cache_lookup(struct flowcache *cache, struct lagopus_packet *pkt) {
+  struct cache_entry *rv;
+
+  if (cache == NULL) {
+    return NULL;
+  }
+  rv = cache_lookup_bank(cache->bank[0], pkt);
+  if (rv == NULL) {
+    rv = cache_lookup_bank(cache->bank[1], pkt);
+  }
+  return rv;
+}
+
+void
+get_flowcache_statistics(struct flowcache *cache, struct ofcachestat *st) {
+  struct flowcache_bank *bank;
+  int i;
+
+  st->nentries = 0;
+  st->hit = 0;
+  st->miss = 0;
+  for (i = 0; i < NBANK; i++) {
+    bank = cache->bank[i];
+    st->nentries += bank->nentries;
+    st->hit += bank->hit;
+    st->miss += bank->miss;
+  }
+}
+
+void
+fini_flowcache(struct flowcache *cache) {
+  int bank;
+
+  for (bank = 0; bank < NBANK; bank++) {
+    fini_flowcache_bank(cache->bank[bank]);
   }
   free(cache);
 }

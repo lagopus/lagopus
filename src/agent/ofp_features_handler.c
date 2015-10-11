@@ -19,32 +19,10 @@
 #include "lagopus_apis.h"
 #include "openflow.h"
 #include "openflow13packet.h"
-#include "lagopus/datastore.h"
 #include "lagopus/ofp_handler.h"
 #include "lagopus/ofp_pdump.h"
 #include "lagopus/ofp_bridgeq_mgr.h"
 #include "ofp_apis.h"
-
-typedef struct capability_proc_info {
-  uint32_t features_capability;
-  uint64_t ds_capability;
-} capability_proc_info_t;
-
-static const capability_proc_info_t capabilities[] = {
-  {OFPC_FLOW_STATS, DATASTORE_BRIDGE_BIT_CAPABILITY_FLOW_STATS},
-  {OFPC_TABLE_STATS, DATASTORE_BRIDGE_BIT_CAPABILITY_TABLE_STATS},
-  {OFPC_PORT_STATS, DATASTORE_BRIDGE_BIT_CAPABILITY_PORT_STATS},
-  {OFPC_GROUP_STATS, DATASTORE_BRIDGE_BIT_CAPABILITY_GROUP_STATS},
-  {OFPC_IP_REASM, DATASTORE_BRIDGE_BIT_CAPABILITY_REASSEMBLE_IP_FRGS},
-  {OFPC_QUEUE_STATS, DATASTORE_BRIDGE_BIT_CAPABILITY_QUEUE_STATS},
-  {OFPC_PORT_BLOCKED, DATASTORE_BRIDGE_BIT_CAPABILITY_BLOCK_LOOPING_PORTS}
-};
-
-static const size_t capabilities_size =
-    sizeof(capabilities) / sizeof(capability_proc_info_t);
-
-typedef lagopus_result_t
-(*capability_set_proc_t)(const char *name, bool current, bool *b);
 
 static void
 features_request_trace(struct ofp_header *header) {
@@ -55,24 +33,10 @@ features_request_trace(struct ofp_header *header) {
 }
 
 static lagopus_result_t
-features_reply_features_capability_set(uint64_t ds_capability,
-                                       size_t i,
-                                       uint32_t *flags) {
-  if ((ds_capability & capabilities[i].ds_capability) == 0) {
-    *flags &= ~capabilities[i].features_capability;
-  } else {
-    *flags |= capabilities[i].features_capability;
-  }
-
-  return LAGOPUS_RESULT_OK;
-}
-
-static lagopus_result_t
 features_reply_features_get(struct channel *channel,
                             struct ofp_switch_features *features) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   datastore_bridge_info_t info;
-  size_t i;
 
   /* set ids/reserved. */
   features->datapath_id = channel_dpid_get(channel);
@@ -93,15 +57,12 @@ features_reply_features_get(struct channel *channel,
 
   /* set capabilities. */
   features->capabilities = 0;
-  for (i = 0; i < capabilities_size; i++) {
-    if ((ret = features_reply_features_capability_set(
-            info.capabilities,
-            i,
-            &features->capabilities)) != LAGOPUS_RESULT_OK) {
-      lagopus_msg_warning("FAILED (%s).\n",
-                          lagopus_error_get_string(ret));
-      goto done;
-    }
+  if ((ret = ofp_features_capabilities_convert(
+          info.capabilities,
+          &features->capabilities)) != LAGOPUS_RESULT_OK) {
+    lagopus_msg_warning("FAILED (%s).\n",
+                        lagopus_error_get_string(ret));
+    goto done;
   }
 
 done:

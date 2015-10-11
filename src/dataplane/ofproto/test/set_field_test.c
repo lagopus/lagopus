@@ -80,8 +80,7 @@ test_push_MPLS_and_set_field_ETH_DST_SRC(void) {
   m->data[14] = 0x45;
   m->data[22] = 240;
 
-  lagopus_set_in_port(&pkt, &port);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   execute_action(&pkt, &action_list);
   TEST_ASSERT_EQUAL_MESSAGE(OS_M_PKTLEN(m), 64 + 4,
                             "PUSH_MPLS length error.");

@@ -27,6 +27,7 @@
 
 #include "lagopus_apis.h"
 #include "lagopus/dp_apis.h"
+#include "lagopus/dataplane.h"
 
 struct dp_bridge_iter {
   struct flowdb *flowdb;
@@ -46,11 +47,8 @@ static lagopus_hashmap_t queueid_hashmap;
  */
 static struct vector *port_vector;
 
-static struct bridge_list bridge_list;
-
 static void dp_port_interface_unset_internal(struct port *port);
-static void
-dp_queue_free(void *queue);
+static void dp_queue_free(void *queue);
 
 lagopus_result_t
 dp_api_init(void) {
@@ -60,7 +58,6 @@ dp_api_init(void) {
   if (port_vector == NULL) {
     return LAGOPUS_RESULT_NO_MEMORY;
   }
-  TAILQ_INIT(&bridge_list);
   rv = lagopus_hashmap_create(&interface_hashmap,
                               LAGOPUS_HASHMAP_TYPE_STRING,
                               dp_interface_free);
@@ -117,8 +114,11 @@ dp_interface_create(const char *name) {
   struct interface *ifp;
   lagopus_result_t rv;
 
+  if (name == NULL) {
+    return LAGOPUS_RESULT_INVALID_ARGS;
+  }
   flowdb_wrlock(NULL);
-  rv = lagopus_hashmap_find(&interface_hashmap, name, (void **)&ifp);
+  rv = lagopus_hashmap_find(&interface_hashmap, (void *)name, (void **)&ifp);
   if (rv == LAGOPUS_RESULT_OK) {
     rv = LAGOPUS_RESULT_ALREADY_EXISTS;
     goto out;
@@ -129,7 +129,8 @@ dp_interface_create(const char *name) {
     goto out;
   }
   ifp->name = strdup(name);
-  rv = lagopus_hashmap_add(&interface_hashmap, name, (void **)&ifp, false);
+  rv = lagopus_hashmap_add(&interface_hashmap,
+                           (void *)name, (void **)&ifp, false);
   if (rv != LAGOPUS_RESULT_OK) {
     dp_interface_free(ifp);
     goto out;
@@ -145,9 +146,15 @@ dp_interface_destroy(const char *name) {
   lagopus_result_t rv;
 
   rv = dp_interface_stop(name);
+  if (rv != LAGOPUS_RESULT_OK) {
+    return rv;
+  }
   rv = dp_interface_info_set(name, NULL);
+  if (rv != LAGOPUS_RESULT_OK) {
+    return rv;
+  }
   flowdb_wrlock(NULL);
-  rv = lagopus_hashmap_find(&interface_hashmap, name, (void **)&ifp);
+  rv = lagopus_hashmap_find(&interface_hashmap, (void *)name, (void **)&ifp);
   if (rv != LAGOPUS_RESULT_OK) {
     goto out;
   }
@@ -157,7 +164,7 @@ dp_interface_destroy(const char *name) {
   if (ifp->name != NULL) {
     free(ifp->name);
   }
-  lagopus_hashmap_delete(&interface_hashmap, name, NULL, true);
+  lagopus_hashmap_delete(&interface_hashmap, (void *)name, NULL, true);
 out:
   flowdb_wrunlock(NULL);
   return rv;
@@ -169,15 +176,63 @@ dp_interface_info_set(const char *name,
   struct interface *ifp;
   lagopus_result_t rv;
 
-  rv = lagopus_hashmap_find(&interface_hashmap, name, (void **)&ifp);
+  rv = lagopus_hashmap_find(&interface_hashmap, (void *)name, (void **)&ifp);
   if (rv != LAGOPUS_RESULT_OK) {
     return rv;
   }
   if (interface_info == NULL) {
     rv = dp_interface_unconfigure_internal(ifp);
+    if (rv != LAGOPUS_RESULT_OK) {
+      return rv;
+    }
+    /* Before clear ifp->info, free some pointers */
+    switch (ifp->info.type) {
+      case DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_PHY:
+        if (ifp->info.eth_dpdk_phy.device) {
+          free(ifp->info.eth_dpdk_phy.device);
+        }
+        if (ifp->info.eth_dpdk_phy.ip_addr) {
+          free(ifp->info.eth_dpdk_phy.ip_addr);
+        }
+        break;
+      case DATASTORE_INTERFACE_TYPE_ETHERNET_RAWSOCK:
+        if (ifp->info.eth_rawsock.device) {
+          free(ifp->info.eth_rawsock.device);
+        }
+        if (ifp->info.eth_rawsock.ip_addr) {
+          free(ifp->info.eth_rawsock.ip_addr);
+        }
+        break;
+      case DATASTORE_INTERFACE_TYPE_VXLAN:
+        if (ifp->info.vxlan.dst_addr) {
+          free(ifp->info.vxlan.dst_addr);
+        }
+        if (ifp->info.vxlan.mcast_group) {
+          free(ifp->info.vxlan.mcast_group);
+        }
+        if (ifp->info.vxlan.src_addr) {
+          free(ifp->info.vxlan.src_addr);
+        }
+        if (ifp->info.vxlan.ip_addr) {
+          free(ifp->info.vxlan.ip_addr);
+        }
+        break;
+      case DATASTORE_INTERFACE_TYPE_UNKNOWN:
+      default:
+        break;
+    }
     memset(&ifp->info, 0, sizeof(ifp->info));
     return rv;
   } else {
+    switch (ifp->info.type) {
+      case DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_PHY:
+      case DATASTORE_INTERFACE_TYPE_ETHERNET_RAWSOCK:
+      case DATASTORE_INTERFACE_TYPE_VXLAN:
+      case DATASTORE_INTERFACE_TYPE_UNKNOWN:
+        break;
+      default:
+        return LAGOPUS_RESULT_INVALID_ARGS;
+    }
     ifp->info = *interface_info;
     return dp_interface_configure_internal(ifp);
   }
@@ -200,6 +255,9 @@ dp_interface_stop(const char *name) {
   struct interface *ifp;
   lagopus_result_t rv;
 
+  if (name == NULL) {
+    return LAGOPUS_RESULT_INVALID_ARGS;
+  }
   rv = lagopus_hashmap_find(&interface_hashmap, (void *)name, (void **)&ifp);
   if (rv != LAGOPUS_RESULT_OK) {
     return rv;
@@ -264,7 +322,7 @@ dp_port_create(const char *name) {
   }
   strncpy(port->ofp_port.name, name, sizeof(port->ofp_port.name));
   port->ofp_port.config |= OFPPC_PORT_DOWN;
-  rv = lagopus_hashmap_add(&port_hashmap, name, (void **)&port, false);
+  rv = lagopus_hashmap_add(&port_hashmap, (void *)name, (void **)&port, false);
   if (rv != LAGOPUS_RESULT_OK) {
     port_free(port);
   }
@@ -277,7 +335,7 @@ dp_port_destroy(const char *name) {
   /* XXX relation? */
   dp_port_stop(name);
   dp_port_interface_unset(name);
-  lagopus_hashmap_delete(&port_hashmap, name, NULL, true);
+  lagopus_hashmap_delete(&port_hashmap, (void *)name, NULL, true);
   return LAGOPUS_RESULT_OK;
 }
 
@@ -383,8 +441,7 @@ dp_port_interface_unset_internal(struct port *port) {
 #ifdef HAVE_DPDK
     dpdk_queue_unconfigure(port->interface);
 #endif /* HAVE_DPDK */
-    vector_set_index(port_vector,
-                     port->interface->info.eth.port_number, NULL);
+    vector_set_index(port_vector, port->ifindex, NULL);
     port->interface->port = NULL;
     port->interface->stats = NULL;
     port->interface = NULL;
@@ -537,13 +594,12 @@ dp_bridge_create(const char *name,
       goto uout;
   }
   /* other parameter is just ignored. */
-  TAILQ_INSERT_TAIL(&bridge_list, bridge, entry);
   rv = lagopus_hashmap_add(&bridge_hashmap, name, (void **)&bridge, false);
   if (rv == LAGOPUS_RESULT_OK) {
     rv = lagopus_hashmap_find(&bridge_hashmap, (void *)name, (void **)&bridge);
     if (rv == LAGOPUS_RESULT_OK) {
       rv = lagopus_hashmap_add(&dpid_hashmap,
-                               info->dpid, (void **)&bridge, false);
+                               (void *)info->dpid, (void **)&bridge, false);
     }
   }
 uout:
@@ -562,8 +618,7 @@ dp_bridge_destroy(const char *name) {
   /* Lookup bridge by name. */
   bridge = dp_bridge_lookup(name);
   if (bridge != NULL) {
-    TAILQ_REMOVE(&bridge_list, bridge, entry);
-    lagopus_hashmap_delete(&dpid_hashmap, bridge->dpid, NULL, true);
+    lagopus_hashmap_delete(&dpid_hashmap, (void *)bridge->dpid, NULL, true);
     lagopus_hashmap_delete(&bridge_hashmap, name, NULL, true);
     rv = LAGOPUS_RESULT_OK;
   } else {
@@ -794,7 +849,7 @@ dp_bridge_flow_iter_get(dp_bridge_iter_t iter, struct flow **flowp) {
 
   table = iter->flowdb->tables[iter->table_id];
   if (table != NULL) {
-    flow_list = &table->flow_list;
+    flow_list = table->flow_list;
     if (iter->flow_idx < flow_list->nflow) {
       *flowp = flow_list->flows[iter->flow_idx++];
       return LAGOPUS_RESULT_OK;
@@ -844,8 +899,8 @@ dp_bridge_stats_get(const char *name,
       free(table_stats);
     }
   }
-  get_flowcache_statistics(bridge, &cache_stats);
-  stats->flowcache_entries = cache_stats.hit + cache_stats.miss;
+  dp_get_flowcache_statistics(bridge, &cache_stats);
+  stats->flowcache_entries = cache_stats.nentries;
   stats->flowcache_hit = cache_stats.hit;
   stats->flowcache_miss = cache_stats.miss;
 
@@ -1034,7 +1089,7 @@ lagopus_result_t
 dp_queue_create(const char *name,
                 datastore_queue_info_t *queue_info) {
   datastore_queue_info_t *queue;
-  uint32_t id;
+  uint64_t id;
   lagopus_result_t rv;
 
   rv = lagopus_hashmap_find(&queue_hashmap, (void *)name, (void **)&queue);
@@ -1054,9 +1109,12 @@ dp_queue_create(const char *name,
     goto out;
   }
   memcpy(queue, queue_info, sizeof(datastore_queue_info_t));
-  rv = lagopus_hashmap_add(&queue_hashmap, name, (void **)&queue, false);
+  rv = lagopus_hashmap_add(&queue_hashmap, (void *)name, (void **)&queue, false);
   if (rv == LAGOPUS_RESULT_OK) {
     rv = lagopus_hashmap_find(&queue_hashmap, (void *)name, (void **)&queue);
+    if (rv != LAGOPUS_RESULT_OK) {
+      goto out;
+    }
     id = queue_info->id;
     rv = lagopus_hashmap_add(&queueid_hashmap, (void *)id,
                              (void **)&queue, false);
@@ -1074,12 +1132,14 @@ void
 dp_queue_destroy(const char *name) {
   datastore_queue_info_t *queue;
   lagopus_result_t rv;
+  uint64_t id;
 
   dp_queue_stop(name);
   rv = lagopus_hashmap_find(&queue_hashmap, (void *)name, (void **)&queue);
   if (rv == LAGOPUS_RESULT_OK) {
-    lagopus_hashmap_delete(&queueid_hashmap, queue->id, NULL, false);
-    lagopus_hashmap_delete(&queue_hashmap, name, NULL, true);
+    id = queue->id;
+    lagopus_hashmap_delete(&queueid_hashmap, (void *)id, NULL, false);
+    lagopus_hashmap_delete(&queue_hashmap, (void *)name, NULL, true);
   }
 }
 

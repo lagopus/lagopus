@@ -26,12 +26,10 @@ struct channel_list;
 /**
  * Initialize a channel manager.
  *
- *  @param[in] arg  A event manager porinter.
- *
  *  @details Call this function for initializing a channel manager singleton object.
  *  pthread_once() is used in this function.
  */
-void channel_mgr_initialize(void *arg);
+void channel_mgr_initialize(void);
 
 /**
  * Finalize a channel manager.
@@ -238,5 +236,33 @@ channel_mgr_ofp_version_get(const char *channel_name, uint8_t *version);
 
 lagopus_result_t
 channel_mgr_channel_is_alive(const char *channel_name, bool *b);
+
+/**
+ * Upcall to channel mgr main event loop.
+ *
+ *  @retval LAGOPUS_RESULT_OK Succeeded.
+ *  @retval LAGOPUS_RESULT_ANY_FAILURES Fail, can't write socketpair fd.
+ *
+ */
+lagopus_result_t
+channel_mgr_event_upcall(void);
+
+/**
+ * Channel mgr main event loop.
+ *
+ *  @retval LAGOPUS_RESULT_OK Succeeded.
+ *
+ */
+lagopus_result_t
+channel_mgr_loop(__UNUSED const lagopus_thread_t *t, __UNUSED void *arg);
+
+/**
+ * Stop channel mgr main event loop.
+ *
+ *  @retval LAGOPUS_RESULT_OK Succeeded.
+ *
+ */
+lagopus_result_t
+channel_mgr_loop_stop(void);
 
 #endif /* __CHANNEL_MGR_H__ */

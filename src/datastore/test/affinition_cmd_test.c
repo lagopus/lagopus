@@ -77,3 +77,8 @@ test_affinition_cmd_parse_bat_opt_01(void) {
                  ARGV_SIZE(argv1), argv1, &tbl, NULL,
                  &ds, str, test_str1);
 }
+
+void
+test_destroy(void) {
+  destroy = true;
+}

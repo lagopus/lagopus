@@ -47,7 +47,11 @@ s_parse_destroy_all_obj(datastore_interp_t *iptr,
            "Unknown option '%s'",
            *argv);
   } else {
-    ret = datastore_interp_destroy_obj(iptr, NULL, result);
+    if (state == DATASTORE_INTERP_STATE_DRYRUN) {
+      ret = LAGOPUS_RESULT_OK;
+    } else {
+      ret = datastore_interp_destroy_obj(iptr, NULL, result);
+    }
     return datastore_json_result_set(result, ret, NULL);
   }
 }

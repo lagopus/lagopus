@@ -16,6 +16,7 @@
 
 #include "lagopus/datastore.h"
 #include "datastore_internal.h"
+#include "ns_util.h"
 
 #define MINIMUM_BUFFERED_PACKETS 0
 #define MAXIMUM_BUFFERED_PACKETS UINT16_MAX
@@ -42,7 +43,7 @@ typedef struct bridge_attr {
   uint64_t dpid;
   datastore_name_info_t *controller_names;
   datastore_name_info_t *port_names;
-  char l2_bridge_name[DATASTORE_L2_BRIDGE_NAME_MAX + 1];
+  char l2_bridge_name[DATASTORE_L2_BRIDGE_FULLNAME_MAX + 1];
   datastore_bridge_fail_mode_t fail_mode;
   bool flow_statistics;
   bool group_statistics;
@@ -252,9 +253,11 @@ error:
 
 static inline lagopus_result_t
 bridge_attr_duplicate(const bridge_attr_t *src_attr,
-                      bridge_attr_t **dst_attr) {
+                      bridge_attr_t **dst_attr,
+                      const char *namespace) {
   lagopus_result_t rc;
   size_t len = 0;
+  char *buf = NULL;
 
   if (src_attr == NULL || dst_attr == NULL) {
     return LAGOPUS_RESULT_INVALID_ARGS;
@@ -273,24 +276,44 @@ bridge_attr_duplicate(const bridge_attr_t *src_attr,
   (*dst_attr)->dpid = src_attr->dpid;
 
   rc = datastore_names_duplicate(src_attr->controller_names,
-                                 &((*dst_attr)->controller_names));
+                                 &((*dst_attr)->controller_names),
+                                 namespace);
   if (rc != LAGOPUS_RESULT_OK) {
     goto error;
   }
 
   rc = datastore_names_duplicate(src_attr->port_names,
-                                 &((*dst_attr)->port_names));
+                                 &((*dst_attr)->port_names),
+                                 namespace);
   if (rc != LAGOPUS_RESULT_OK) {
     goto error;
   }
 
-  if ((len = strlen(src_attr->l2_bridge_name))
-      <= DATASTORE_L2_BRIDGE_NAME_MAX) {
-    strncpy((*dst_attr)->l2_bridge_name, src_attr->l2_bridge_name, len);
-    (*dst_attr)->l2_bridge_name[len] = '\0';
-  } else {
-    rc = LAGOPUS_RESULT_TOO_LONG;
-    goto error;
+  if (src_attr->l2_bridge_name[0] != '\0') {
+    if ((len = strlen(src_attr->l2_bridge_name))
+        <= DATASTORE_L2_BRIDGE_FULLNAME_MAX) {
+      if (namespace == NULL) {
+        strncpy((*dst_attr)->l2_bridge_name, src_attr->l2_bridge_name, len);
+        (*dst_attr)->l2_bridge_name[len] = '\0';
+      } else {
+        rc = ns_replace_namespace(src_attr->l2_bridge_name, namespace, &buf);
+        if (rc == LAGOPUS_RESULT_OK) {
+          if ((len = strlen(buf)) <= DATASTORE_L2_BRIDGE_FULLNAME_MAX) {
+            strncpy((*dst_attr)->l2_bridge_name, buf, len);
+            (*dst_attr)->l2_bridge_name[len] = '\0';
+          } else {
+            rc = LAGOPUS_RESULT_TOO_LONG;
+            goto error;
+          }
+        } else {
+          goto error;
+        }
+        free(buf);
+      }
+    } else {
+      rc = LAGOPUS_RESULT_TOO_LONG;
+      goto error;
+    }
   }
 
   (*dst_attr)->fail_mode = src_attr->fail_mode;
@@ -320,6 +343,7 @@ bridge_attr_duplicate(const bridge_attr_t *src_attr,
   return LAGOPUS_RESULT_OK;
 
 error:
+  free(buf);
   bridge_attr_destroy(*dst_attr);
   *dst_attr = NULL;
   return rc;
@@ -344,7 +368,9 @@ bridge_attr_port_name_exists(const bridge_attr_t *attr, const char *name) {
 
 static inline bool
 bridge_attr_equals(bridge_attr_t *attr0, bridge_attr_t *attr1) {
-  if (attr0 == NULL || attr1 == NULL) {
+  if (attr0 == NULL && attr1 == NULL) {
+    return true;
+  } else if (attr0 == NULL || attr1 == NULL) {
     return false;
   }
 
@@ -558,6 +584,104 @@ bridge_conf_destroy(bridge_conf_t *conf) {
 }
 
 static inline lagopus_result_t
+bridge_conf_duplicate(const bridge_conf_t *src_conf,
+                      bridge_conf_t **dst_conf, const char *namespace) {
+  lagopus_result_t rc;
+  bridge_attr_t *dst_current_attr = NULL;
+  bridge_attr_t *dst_modified_attr = NULL;
+  size_t len = 0;
+  char *buf = NULL;
+
+  if (src_conf == NULL || dst_conf == NULL) {
+    return LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  if (*dst_conf != NULL) {
+    bridge_conf_destroy(*dst_conf);
+    *dst_conf = NULL;
+  }
+
+  if (namespace == NULL) {
+    rc = bridge_conf_create(dst_conf, src_conf->name);
+    if (rc != LAGOPUS_RESULT_OK) {
+      goto error;
+    }
+  } else {
+    if ((len = strlen(src_conf->name)) <= DATASTORE_BRIDGE_FULLNAME_MAX) {
+      rc = ns_replace_namespace(src_conf->name, namespace, &buf);
+      if (rc == LAGOPUS_RESULT_OK) {
+        rc = bridge_conf_create(dst_conf, buf);
+        if (rc != LAGOPUS_RESULT_OK) {
+          goto error;
+        }
+      } else {
+        goto error;
+      }
+      free(buf);
+    } else {
+      rc = LAGOPUS_RESULT_TOO_LONG;
+      goto error;
+    }
+  }
+
+  if (src_conf->current_attr != NULL) {
+    rc = bridge_attr_duplicate(src_conf->current_attr,
+                               &dst_current_attr, namespace);
+    if (rc != LAGOPUS_RESULT_OK) {
+      goto error;
+    }
+  }
+  (*dst_conf)->current_attr = dst_current_attr;
+
+  if (src_conf->modified_attr != NULL) {
+    rc = bridge_attr_duplicate(src_conf->modified_attr,
+                               &dst_modified_attr, namespace);
+    if (rc != LAGOPUS_RESULT_OK) {
+      goto error;
+    }
+  }
+  (*dst_conf)->modified_attr = dst_modified_attr;
+
+  (*dst_conf)->is_used = src_conf->is_used;
+  (*dst_conf)->is_enabled = src_conf->is_enabled;
+  (*dst_conf)->is_destroying = src_conf->is_destroying;
+  (*dst_conf)->is_enabling = src_conf->is_enabling;
+  (*dst_conf)->is_disabling = src_conf->is_disabling;
+
+  return LAGOPUS_RESULT_OK;
+
+error:
+  free(buf);
+  bridge_conf_destroy(*dst_conf);
+  *dst_conf = NULL;
+  return rc;
+}
+
+static inline bool
+bridge_conf_equals(const bridge_conf_t *conf0,
+                   const bridge_conf_t *conf1) {
+  if (conf0 == NULL && conf1 == NULL) {
+    return true;
+  } else if (conf0 == NULL || conf1 == NULL) {
+    return false;
+  }
+
+  if ((bridge_attr_equals(conf0->current_attr,
+                          conf1->current_attr) == true) &&
+      (bridge_attr_equals(conf0->modified_attr,
+                          conf1->modified_attr) == true) &&
+      (conf0->is_used == conf1->is_used) &&
+      (conf0->is_enabled == conf1->is_enabled) &&
+      (conf0->is_destroying == conf1->is_destroying) &&
+      (conf0->is_enabling == conf1->is_enabling) &&
+      (conf0->is_disabling == conf1->is_disabling)) {
+    return true;
+  }
+
+  return false;
+}
+
+static inline lagopus_result_t
 bridge_conf_add(bridge_conf_t *conf) {
   if (bridge_table != NULL) {
     if (conf != NULL && IS_VALID_STRING(conf->name) == true) {
@@ -623,12 +747,12 @@ bridge_conf_iterate(void *key, void *val, lagopus_hashentry_t he,
         if (ctx->m_namespace[0] == '\0') {
           ret = lagopus_dstring_appendf(&ds,
                                         "%s",
-                                        NAMESPACE_DELIMITER);
+                                        DATASTORE_NAMESPACE_DELIMITER);
         } else {
           ret = lagopus_dstring_appendf(&ds,
                                         "%s%s",
                                         ctx->m_namespace,
-                                        NAMESPACE_DELIMITER);
+                                        DATASTORE_NAMESPACE_DELIMITER);
         }
 
         if (ret == LAGOPUS_RESULT_OK) {
@@ -1007,7 +1131,7 @@ bridge_get_controller_names(const bridge_attr_t *attr,
   if (attr != NULL && attr->controller_names != NULL &&
       controller_names != NULL) {
     return datastore_names_duplicate(attr->controller_names,
-                                     controller_names);
+                                     controller_names, NULL);
   }
   return LAGOPUS_RESULT_INVALID_ARGS;
 }
@@ -1017,7 +1141,7 @@ bridge_get_port_names(const bridge_attr_t *attr,
                       datastore_name_info_t **port_names) {
   if (attr != NULL && port_names != NULL) {
     return datastore_names_duplicate(attr->port_names,
-                                     port_names);
+                                     port_names, NULL);
   }
   return LAGOPUS_RESULT_INVALID_ARGS;
 }
@@ -1353,7 +1477,7 @@ bridge_set_controller_names(bridge_attr_t *attr,
                             const datastore_name_info_t *controller_names) {
   if (attr != NULL && controller_names != NULL) {
     return datastore_names_duplicate(controller_names,
-                                     &(attr->controller_names));
+                                     &(attr->controller_names), NULL);
   }
   return LAGOPUS_RESULT_INVALID_ARGS;
 }
@@ -1363,7 +1487,7 @@ bridge_set_port_names(bridge_attr_t *attr,
                       const datastore_name_info_t *port_names) {
   if (attr != NULL && port_names != NULL) {
     return datastore_names_duplicate(port_names,
-                                     &(attr->port_names));
+                                     &(attr->port_names), NULL);
   }
   return LAGOPUS_RESULT_INVALID_ARGS;
 }
@@ -1372,7 +1496,7 @@ static inline lagopus_result_t
 bridge_set_l2_bridge_name(bridge_attr_t *attr, const char *l2_bridge_name) {
   if (attr != NULL && l2_bridge_name != NULL) {
     size_t len = strlen(l2_bridge_name);
-    if (len <= DATASTORE_L2_BRIDGE_NAME_MAX) {
+    if (len <= DATASTORE_L2_BRIDGE_FULLNAME_MAX) {
       strncpy(attr->l2_bridge_name, l2_bridge_name, len);
       attr->l2_bridge_name[len] = '\0';
       return LAGOPUS_RESULT_OK;

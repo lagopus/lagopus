@@ -59,9 +59,6 @@ static int ifindex[256];
 #define TIMEOUT_SHUTDOWN_RIGHT_NOW     (100*1000*1000) /* 100msec */
 #define TIMEOUT_SHUTDOWN_GRACEFULLY    (1500*1000*1000) /* 1.5sec */
 
-static bool no_cache = true;
-static int kvs_type = FLOWCACHE_HASHMAP_NOLOCK;
-static int hashtype = HASH_TYPE_INTEL64;
 static bool volatile clear_cache = false;
 
 static ssize_t
@@ -141,7 +138,7 @@ rawsock_configure_interface(struct interface *ifp) {
   unsigned int mtu;
   int fd, on;
 
-  fd = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
+  fd = socket(PF_PACKET, SOCK_RAW | SOCK_NONBLOCK, htons(ETH_P_ALL));
   if (fd == -1) {
     lagopus_msg_error("%s: %s\n",
                       ifp->info.eth_rawsock.device, strerror(errno));
@@ -256,9 +253,17 @@ rawsock_get_hwaddr(struct interface *ifp, uint8_t *hw_addr) {
 int
 rawsock_send_packet_physical(struct lagopus_packet *pkt, uint32_t portid) {
   if (pollfd[portid].fd != 0) {
+    OS_MBUF *m;
+    uint32_t plen;
+
+    m = pkt->mbuf;
+    plen = OS_M_PKTLEN(m);
+    if (plen < 60) {
+      memset(OS_M_APPEND(m, 60 - plen), 0, (uint32_t)(60 - plen));
+    }
     (void)write(pollfd[portid].fd,
-                OS_MTOD(pkt->mbuf, char *),
-                OS_M_PKTLEN(pkt->mbuf));
+                OS_MTOD(m, char *),
+                OS_M_PKTLEN(m));
   }
   lagopus_packet_free(pkt);
   return 0;
@@ -503,8 +508,8 @@ rawsock_change_config(struct interface *ifp,
  * dataplane thread (raw socket I/O)
  */
 lagopus_result_t
-rawsocket_thread_loop(__UNUSED const lagopus_thread_t *selfptr, void *arg) {
-  struct dataplane_arg *dparg;
+rawsocket_thread_loop(__UNUSED const lagopus_thread_t *selfptr,
+                      __UNUSED void *arg) {
   struct lagopus_packet *pkt;
   struct port_stats *stats;
   ssize_t len;
@@ -522,11 +527,8 @@ rawsocket_thread_loop(__UNUSED const lagopus_thread_t *selfptr, void *arg) {
     return rv;
   }
 
-  dparg = arg;
-
   for (;;) {
     struct port *port;
-    struct flowdb *flowdb;
 
     nb_ports = dp_port_count() + 1;
 
@@ -570,13 +572,11 @@ rawsocket_thread_loop(__UNUSED const lagopus_thread_t *selfptr, void *arg) {
           }
         }
         (void)OS_M_APPEND(pkt->mbuf, len);
-        flowdb = port->bridge->flowdb;
-        lagopus_set_in_port(pkt, port);
-        lagopus_packet_init(pkt, pkt->mbuf);
+        lagopus_packet_init(pkt, pkt->mbuf, port);
         if (port->bridge->flowdb->switch_mode == SWITCH_MODE_STANDALONE) {
           lagopus_forward_packet_to_port(pkt, OFPP_NORMAL);
         } else {
-          lagopus_receive_packet(pkt);
+          lagopus_match_and_action(pkt);
         }
         lagopus_packet_free(pkt);
       }

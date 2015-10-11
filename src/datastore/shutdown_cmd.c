@@ -44,7 +44,6 @@ s_parse_shutdown(datastore_interp_t *iptr,
                  lagopus_dstring_t *result) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   size_t i;
-  (void)state;
   (void)argc;
   (void)hptr;
   (void)u_proc;
@@ -64,12 +63,16 @@ s_parse_shutdown(datastore_interp_t *iptr,
         argv++;
         if (IS_VALID_STRING(*argv) == true) {
           if (strcmp(*argv, OPT_GRACE_LEVEL_RIGHT_NOW) == 0) {
-            /* shutdown (right_now) */
-            s_shutdown(SHUTDOWN_RIGHT_NOW);
+            if (state != DATASTORE_INTERP_STATE_DRYRUN) {
+              /* shutdown (right_now) */
+              s_shutdown(SHUTDOWN_RIGHT_NOW);
+            }
             ret = LAGOPUS_RESULT_OK;
           } else if (strcmp(*argv, OPT_GRACE_LEVEL_GRACEFULLY) == 0) {
-            /* shutdown (gracefully) */
-            s_shutdown(SHUTDOWN_GRACEFULLY);
+            if (state != DATASTORE_INTERP_STATE_DRYRUN) {
+              /* shutdown (gracefully) */
+              s_shutdown(SHUTDOWN_GRACEFULLY);
+            }
             ret = LAGOPUS_RESULT_OK;
           } else {
             ret = LAGOPUS_RESULT_INVALID_ARGS;
@@ -97,8 +100,11 @@ s_parse_shutdown(datastore_interp_t *iptr,
       }
     } else {
       if (*argv == NULL) {
-        /* shutdown (default) */
-        s_shutdown(GRACE_LEVEL_DEFAULT);
+        if (state != DATASTORE_INTERP_STATE_DRYRUN) {
+          /* shutdown (default) */
+          s_shutdown(GRACE_LEVEL_DEFAULT);
+        }
+        ret = LAGOPUS_RESULT_OK;
       } else {
         ret = LAGOPUS_RESULT_INVALID_ARGS;
         lagopus_msg_warning(

@@ -133,7 +133,6 @@ read_packet(int fd, uint8_t *buf, size_t buflen) {
 
 lagopus_result_t
 rawsock_get_stats(struct interface *ifp, datastore_interface_stats_t *stats) {
-  struct sockaddr_nl sa;
   struct {
     struct nlmsghdr nlh;
     struct ifinfomsg ifinfo;
@@ -281,7 +280,7 @@ rawsock_configure_interface(struct interface *ifp) {
   unsigned int mtu;
   int fd, on;
 
-  fd = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
+  fd = socket(PF_PACKET, SOCK_RAW | SOCK_NONBLOCK, htons(ETH_P_ALL));
   if (fd == -1) {
     lagopus_msg_error("%s: %s\n",
                       ifp->info.eth_rawsock.device, strerror(errno));
@@ -455,13 +454,6 @@ lagopus_unconfigure_physical_port(struct port *port) {
   return LAGOPUS_RESULT_OK;
 }
 
-lagopus_result_t
-lagopus_change_physical_port(struct port *port) {
-
-  send_port_status(port, OFPPR_MODIFY);
-  return LAGOPUS_RESULT_OK;
-}
-
 bool
 lagopus_is_port_enabled(__UNUSED const struct port *port) {
   return true;
@@ -475,6 +467,14 @@ lagopus_packet_free(struct lagopus_packet *pkt) {
 int
 rawsock_send_packet_physical(struct lagopus_packet *pkt, uint32_t portid) {
   if (pollfd[portid].fd != 0) {
+    OS_MBUF *m;
+    uint32_t plen;
+
+    m = pkt->mbuf;
+    plen = OS_M_PKTLEN(m);
+    if (plen < 60) {
+      memset(OS_M_APPEND(m, 60 - plen), 0, (uint32_t)(60 - plen));
+    }
     (void)write(pollfd[portid].fd, pkt->mbuf->data, OS_M_PKTLEN(pkt->mbuf));
   }
   lagopus_packet_free(pkt);
@@ -571,17 +571,6 @@ lagopus_dataplane_init(int argc, const char *const argv[]) {
   return 0;
 }
 
-void
-clear_worker_flowcache(bool wait_flush) {
-
-  (void) wait_flush;
-
-  if (no_cache == true) {
-    return;
-  }
-  clear_cache = true;
-}
-
 static struct port_stats *
 port_stats(struct port *port) {
   struct {
@@ -603,6 +592,8 @@ port_stats(struct port *port) {
   struct timespec ts;
   struct port_stats *stats;
   int fd, len, rta_len;
+
+  link_stats = NULL;
 
   stats = calloc(1, sizeof(struct port_stats));
   if (stats == NULL) {
@@ -714,8 +705,8 @@ found:
  * dataplane thread
  */
 lagopus_result_t
-dataplane_thread_loop(__UNUSED const lagopus_thread_t *selfptr, void *arg) {
-  struct dataplane_arg *dparg;
+dataplane_thread_loop(__UNUSED const lagopus_thread_t *selfptr,
+                      __UNUSED void *arg) {
   struct lagopus_packet pkt;
   struct sock_buf *m;
   struct port_stats *stats;
@@ -734,8 +725,6 @@ dataplane_thread_loop(__UNUSED const lagopus_thread_t *selfptr, void *arg) {
     return rv;
   }
 
-  dparg = arg;
-
   if (no_cache == false) {
     pkt.cache = init_flowcache(kvs_type);
   } else {
@@ -744,7 +733,6 @@ dataplane_thread_loop(__UNUSED const lagopus_thread_t *selfptr, void *arg) {
 
   for (;;) {
     struct port *port;
-    struct flowdb *flowdb;
 
     nb_ports = dp_port_count() + 1;
 
@@ -796,14 +784,18 @@ dataplane_thread_loop(__UNUSED const lagopus_thread_t *selfptr, void *arg) {
         }
         m->len = (size_t)len;
 
-        flowdb = port->bridge->flowdb;
-        lagopus_set_in_port(&pkt, port);
-        lagopus_packet_init(&pkt, m);
+        lagopus_packet_init(&pkt, m, port);
         if (port->bridge->flowdb->switch_mode == SWITCH_MODE_STANDALONE) {
           pkt.in_port = port;
           lagopus_forward_packet_to_port(&pkt, OFPP_NORMAL);
         } else {
-          lagopus_receive_packet(&pkt);
+#ifdef PACKET_CAPTURE
+          /* capture received packet */
+          if (port->pcap_queue != NULL) {
+            lagopus_pcap_enqueue(pkt->in_port, pkt);
+          }
+#endif /* PACKET_CAPTURE */
+          lagopus_match_and_action(&pkt);
         }
       }
       flowdb_rdunlock(NULL);
@@ -814,7 +806,7 @@ dataplane_thread_loop(__UNUSED const lagopus_thread_t *selfptr, void *arg) {
 }
 
 void
-get_flowcache_statistics(struct bridge *bridge, struct ofcachestat *st) {
+dp_get_flowcache_statistics(struct bridge *bridge, struct ofcachestat *st) {
   st->nentries = 0;
   st->hit = 0;
   st->miss = 0;

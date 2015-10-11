@@ -1,0 +1,66 @@
+use:
+  - lagopus
+
+setup:
+  - repetition_count: 1
+    cmds:
+      - cmd_type: ds
+        cmd: log -debuglevel 10000
+        result: '{"ret": "OK"}'
+      - cmd_type: ds
+        cmd: destroy-all-obj
+        result: '{"ret": "OK"}'
+      - cmd_type: shell
+        cmd: "{{ shell_dir }}/dummy_eth_up.sh lago_eth 2"
+        result: "0"
+
+teardown:
+  - repetition_count: 1
+    cmds:
+      - cmd_type: ds
+        cmd: destroy-all-obj
+        result: '{"ret": "OK"}'
+      - cmd_type: shell
+        cmd: "{{ shell_dir }}/dummy_eth_down.sh lago_eth 2"
+        result: "0"
+
+testcases:
+  - testcase: add flows (from load file)
+    test:
+      - repetition_count: 1
+        cmds:
+          # load
+          - cmd_type: ds
+            cmd: load {{ test_home  }}/test_scenarios/functional_tests/flow/flow.dsl
+            result: '{"ret": "OK"}'
+          # load (add flow)
+          - cmd_type: ds
+            cmd: load {{ test_home  }}/test_scenarios/functional_tests/flow/flow_load.dsl
+            result: '{"ret": "OK"}'
+          # dump flow
+          - cmd_type: ds
+            cmd: flow
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":":bridge01",
+              "tables":[{"table":0,
+              "flows":[{"priority":0,
+              "idle_timeout":0,
+              "hard_timeout":0,
+              "cookie":0,
+              "in_port":0,
+              "in_phy_port":1,
+              "actions":[{"write_metadata":"3"},
+              {"apply_actions":[{"dl_type":2},
+              {"nw_proto":3},
+              {"output":"controller"}]}]},
+              {"priority":0,
+              "idle_timeout":0,
+              "hard_timeout":0,
+              "cookie":0,
+              "in_port":0,
+              "in_phy_port":2,
+              "actions":[{"write_metadata":"4"},
+              {"apply_actions":[{"dl_type":5},
+              {"nw_proto":6},
+              {"output":"local"}]}]}]}]}]}

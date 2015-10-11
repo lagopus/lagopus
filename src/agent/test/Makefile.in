@@ -26,7 +26,8 @@ TESTS =	channel_test  \
 	ofp_experimenter_mp_handler_test ofp_table_features_handler_test \
 	ofp_bucket_test ofp_band_stats_test ofp_meter_features_handler_test \
 	openflow13packet_test ofp_padding_test \
-	ofp_oxm_test ofp_bridgeq_mgr_test ofp_meter_test ofp_trace_test
+	ofp_oxm_test ofp_bridgeq_mgr_test ofp_meter_test ofp_trace_test \
+	ofp_features_capabilities_test
 
 SRCS =	channel_test.c \
 	ofp_instruction_test.c ofp_match_test.c \
@@ -53,7 +54,8 @@ SRCS =	channel_test.c \
 	ofp_experimenter_mp_handler_test.c ofp_table_features_handler_test.c \
 	ofp_bucket_test.c ofp_band_stats_test.c ofp_meter_features_handler_test.c \
 	openflow13packet_test.c ofp_padding_test.c \
-	ofp_oxm_test.c ofp_bridgeq_mgr_test.c ofp_meter_test.c ofp_trace_test.c
+	ofp_oxm_test.c ofp_bridgeq_mgr_test.c ofp_meter_test.c ofp_trace_test.c \
+	ofp_features_capabilities_test.c
 
 SRCS	+=	dp_stub.c handler_test_utils.c
 DATAPATH_STUB_OBJS	=	dp_stub.lo

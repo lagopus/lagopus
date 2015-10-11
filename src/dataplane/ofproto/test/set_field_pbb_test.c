@@ -58,8 +58,7 @@ test_set_field_PBB_ISID(void) {
   m->data[12] = 0x88;
   m->data[13] = 0xe7;
 
-  lagopus_set_in_port(&pkt, &port);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   set_match(action_set->field, 3, OFPXMT_OFB_PBB_ISID << 1,
             0xa5, 0x5a, 0xc3);
   execute_action(&pkt, &action_list);

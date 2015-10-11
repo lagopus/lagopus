@@ -35,6 +35,7 @@
 #include "lagopus/ofcache.h"
 #include "lagopus/ofp_bridge.h"
 #include "lagopus/ofp_bridgeq_mgr.h"
+#include "lagopus/dp_apis.h"
 
 #include "pktbuf.h"
 #include "packet.h"
@@ -120,8 +121,7 @@ process_event_dataq_entry(struct flowcache *cache,
 
           (void)OS_M_APPEND(pkt->mbuf, data_len);
           DECODE_GET(OS_MTOD(pkt->mbuf, char *), data_len);
-          lagopus_set_in_port(pkt, port);
-          lagopus_packet_init(pkt, pkt->mbuf);
+          lagopus_packet_init(pkt, pkt->mbuf, port);
           pkt->cache = NULL;
           pkt->hash64 = 0;
           if (lagopus_register_action_hook != NULL) {
@@ -151,8 +151,8 @@ process_event_dataq_entry(struct flowcache *cache,
             for (i = 0; i < flowdb->table_size; i++) {
               table = flowdb->tables[i];
               if (table != NULL) {
-                cleanup_mbtree(&table->flow_list);
-                build_mbtree(&table->flow_list);
+                cleanup_mbtree(table->flow_list);
+                build_mbtree(table->flow_list);
               }
             }
           }
@@ -163,8 +163,10 @@ process_event_dataq_entry(struct flowcache *cache,
           /* clear my own cache */
           clear_all_cache(cache);
         }
+#ifdef HAVE_DPDK
         /* and worker cache */
         clear_worker_flowcache(true);
+#endif /* HAVE_DPDK */
         reply = malloc(sizeof(*reply));
         if (reply == NULL) {
           break;
@@ -411,7 +413,7 @@ static lagopus_mutex_t comm_lock = NULL;
 lagopus_result_t
 dpcomm_initialize(int argc,
                   const char *const argv[],
-                  void *extarg,
+                  __UNUSED void *extarg,
                   lagopus_thread_t **thdptr) {
   lagopus_result_t rv = LAGOPUS_RESULT_ANY_FAILURES;
   static struct dataplane_arg commarg;

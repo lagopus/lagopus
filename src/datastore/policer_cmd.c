@@ -858,6 +858,30 @@ policer_cmd_do_destroy(policer_conf_t *conf,
       /* ignore error. */
       lagopus_msg_warning("ret = %s", lagopus_error_get_string(ret));
     }
+  } else if (state == DATASTORE_INTERP_STATE_DRYRUN) {
+    /* unset is_used. */
+    if (conf->current_attr != NULL) {
+      if ((ret = poli_names_used_set(conf->current_attr,
+                                     false, result)) !=
+          LAGOPUS_RESULT_OK) {
+        /* ignore error. */
+        lagopus_msg_warning("ret = %s", lagopus_error_get_string(ret));
+      }
+    }
+    if (conf->modified_attr != NULL) {
+      if ((ret = poli_names_used_set(conf->modified_attr,
+                                     false, result)) !=
+          LAGOPUS_RESULT_OK) {
+        /* ignore error. */
+        lagopus_msg_warning("ret = %s", lagopus_error_get_string(ret));
+      }
+    }
+
+    ret = policer_conf_delete(conf);
+    if (ret != LAGOPUS_RESULT_OK) {
+      /* ignore error. */
+      lagopus_msg_warning("ret = %s", lagopus_error_get_string(ret));
+    }
   } else if (conf->is_destroying == true ||
              state == DATASTORE_INTERP_STATE_AUTO_COMMIT) {
     /* unset is_used. */
@@ -1186,6 +1210,20 @@ policer_cmd_update_internal(datastore_interp_t *iptr,
       ret = LAGOPUS_RESULT_OK;
       break;
     }
+    case DATASTORE_INTERP_STATE_DRYRUN: {
+      if (conf->modified_attr != NULL) {
+        if (conf->current_attr != NULL) {
+          policer_attr_destroy(conf->current_attr);
+          conf->current_attr = NULL;
+        }
+
+        conf->current_attr = conf->modified_attr;
+        conf->modified_attr = NULL;
+      }
+
+      ret = LAGOPUS_RESULT_OK;
+      break;
+    }
     default: {
       ret = LAGOPUS_RESULT_NOT_FOUND;
       lagopus_perror(ret);
@@ -1313,83 +1351,89 @@ action_opt_parse(const char *const *argv[],
               is_exists =
                 policer_attr_action_name_exists(conf->modified_attr,
                                                 fullname);
-              if (is_added == true) {
-                /* add. */
-                if (is_exists == false) {
-                  /* check exists. */
-                  if (policer_action_exists(fullname) == true) {
-                    /* check is_used. */
-                    if ((ret =
-                           datastore_policer_action_is_used(fullname, &is_used)) ==
-                        LAGOPUS_RESULT_OK) {
-                      if (is_used == false) {
-                        ret = policer_attr_add_action_name(
-                                conf->modified_attr,
-                                fullname);
-                        if (ret != LAGOPUS_RESULT_OK) {
-                          ret = datastore_json_result_string_setf(
-                                  result, ret,
-                                  "action name = %s.", fullname);
-                        }
-                      } else {
-                        ret = datastore_json_result_string_setf(
-                                result,
-                                LAGOPUS_RESULT_NOT_OPERATIONAL,
-                                "action name = %s.", fullname);
-                      }
-                    } else {
-                      ret = datastore_json_result_string_setf(
-                              result, ret,
-                              "action name = %s.", fullname);
-                    }
-                  } else {
-                    ret = datastore_json_result_string_setf(
-                            result,
-                            LAGOPUS_RESULT_NOT_FOUND,
-                            "action name = %s.", fullname);
-                  }
-                } else {
-                  ret = datastore_json_result_string_setf(
-                          result,
-                          LAGOPUS_RESULT_ALREADY_EXISTS,
-                          "action name = %s.", fullname);
-                }
-              } else {
-                /* delete. */
-                if (is_exists == true) {
-                  ret = policer_attr_remove_action_name(conf->modified_attr,
-                                                        fullname);
-
-                  if (ret == LAGOPUS_RESULT_OK) {
-                    /* unset is_used. */
-                    ret = poli_action_used_set_internal(fullname,
-                                                        false,
-                                                        result);
-                  } else {
-                    ret = datastore_json_result_string_setf(
-                            result, ret,
-                            "action name = %s.", fullname);
-                  }
-                } else {
-                  ret = datastore_json_result_string_setf(
-                          result, LAGOPUS_RESULT_NOT_FOUND,
-                          "action name = %s.", fullname);
-                }
-              }
             } else {
               ret = datastore_json_result_string_setf(result,
                                                       ret,
                                                       "Can't get fullname %s.",
                                                       name);
+              goto done;
             }
           } else {
             ret = datastore_json_result_string_setf(result, ret,
                                                     "Can't get action_name.");
+            goto done;
           }
         } else {
           ret = datastore_json_result_string_setf(result, ret,
                                                   "action name = %s.",
                                                   *(*argv));
+          goto done;
+        }
+
+        if (is_added == true) {
+          /* add. */
+          /* check exists. */
+          if (is_exists == true) {
+            ret = datastore_json_result_string_setf(
+                result,
+                LAGOPUS_RESULT_ALREADY_EXISTS,
+                "action name = %s.", fullname);
+            goto done;
+          }
+
+          if (policer_action_exists(fullname) == false) {
+            ret = datastore_json_result_string_setf(
+                result,
+                LAGOPUS_RESULT_NOT_FOUND,
+                "action name = %s.", fullname);
+            goto done;
+          }
+
+          /* check is_used. */
+          if ((ret =
+               datastore_policer_action_is_used(fullname, &is_used)) ==
+              LAGOPUS_RESULT_OK) {
+            if (is_used == false) {
+              ret = policer_attr_add_action_name(
+                  conf->modified_attr,
+                  fullname);
+              if (ret != LAGOPUS_RESULT_OK) {
+                ret = datastore_json_result_string_setf(
+                    result, ret,
+                    "action name = %s.", fullname);
+              }
+            } else {
+              ret = datastore_json_result_string_setf(
+                  result,
+                  LAGOPUS_RESULT_NOT_OPERATIONAL,
+                  "action name = %s.", fullname);
+            }
+          } else {
+             ret = datastore_json_result_string_setf(
+                result, ret,
+                "action name = %s.", fullname);
+          }
+        } else {
+          /* delete. */
+          if (is_exists == false) {
+            ret = datastore_json_result_string_setf(
+                result, LAGOPUS_RESULT_NOT_FOUND,
+                "action name = %s.", fullname);
+            goto done;
+          }
+
+          ret = policer_attr_remove_action_name(conf->modified_attr,
+                                                fullname);
+          if (ret == LAGOPUS_RESULT_OK) {
+            /* unset is_used. */
+            ret = poli_action_used_set_internal(fullname,
+                                                false,
+                                                result);
+          } else {
+            ret = datastore_json_result_string_setf(
+                result, ret,
+                "action name = %s.", fullname);
+          }
         }
       } else {
         if (*(*argv) == NULL) {
@@ -1417,6 +1461,7 @@ action_opt_parse(const char *const *argv[],
                                     NULL);
   }
 
+done:
   free(name);
   free(name_str);
   free(fullname);
@@ -1574,7 +1619,7 @@ policer_attr_dup_modified(policer_conf_t *conf,
        * already exists. copy it.
        */
       ret = policer_attr_duplicate(conf->current_attr,
-                                   &conf->modified_attr);
+                                   &conf->modified_attr, NULL);
       if (ret != LAGOPUS_RESULT_OK) {
         ret = datastore_json_result_set(result, ret, NULL);
       }
@@ -1659,7 +1704,8 @@ create_sub_cmd_parse(datastore_interp_t *iptr,
     if (ret == LAGOPUS_RESULT_NOT_FOUND) {
       ret = namespace_get_namespace(name, &namespace);
       if (ret == LAGOPUS_RESULT_OK) {
-        if (namespace_exists(namespace) == true) {
+        if (namespace_exists(namespace) == true ||
+            state == DATASTORE_INTERP_STATE_DRYRUN) {
           ret = create_sub_cmd_parse_internal(iptr, state,
                                               argc, argv,
                                               name, proc,
@@ -2710,6 +2756,27 @@ policer_cmd_getname(const void *obj, const char **namep) {
   return ret;
 }
 
+static lagopus_result_t
+policer_cmd_duplicate(const void *obj, const char *namespace) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  policer_conf_t *dup_obj = NULL;
+
+  if (obj != NULL) {
+    ret = policer_conf_duplicate(obj, &dup_obj, namespace);
+    if (ret == LAGOPUS_RESULT_OK) {
+      ret = policer_conf_add(dup_obj);
+
+      if (ret != LAGOPUS_RESULT_OK && dup_obj != NULL) {
+        policer_conf_destroy(dup_obj);
+      }
+    }
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  return ret;
+}
+
 extern datastore_interp_t datastore_get_master_interp(void);
 
 static inline lagopus_result_t
@@ -2777,7 +2844,8 @@ initialize_internal(void) {
                                       policer_cmd_serialize,
                                       policer_cmd_destroy,
                                       policer_cmd_compare,
-                                      policer_cmd_getname)) !=
+                                      policer_cmd_getname,
+                                      policer_cmd_duplicate)) !=
       LAGOPUS_RESULT_OK) {
     lagopus_perror(ret);
     goto done;

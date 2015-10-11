@@ -112,19 +112,6 @@ ofp_header_mp_copy(struct pbuf *dst_pbuf,
                    struct pbuf *src_pbuf);
 
 /**
- * Copy ofp_header and multipart header for list.
- *
- *     @param[in,out]	pbuf_list	A pointer to list of \e pbuf structures.
- *     @param[in,out]	dst_pbuf	A pointer to \e pbuf structure.
- *
- *     @retval	LAGOPUS_RESULT_OK	Succeeded.
- *     @retval	LAGOPUS_RESULT_ANY_FAILURES Failed.
- */
-lagopus_result_t
-ofp_header_mp_copy_pbuf_list(struct pbuf_list *pbuf_list,
-                             struct pbuf **dst_pbuf);
-
-/**
  * Check ofp_version in ofp_header.
  *
  *     @param[in]	channel	A pointer to \e channel structure.

@@ -127,3 +127,7 @@ test_load_cmd_parse(void) {
   }
 }
 
+void
+test_destroy(void) {
+  destroy = true;
+}

@@ -1,0 +1,74 @@
+<!-- -*- mode: markdown ; coding: us-ascii-unix -*- -->
+
+How to add/modify/delete/dump flows
+======================================
+
+Add flow
+---------------------------
+## Usage
+
+```
+ flow <NAME> add <MATCH_FIELD> [<ACTONS> ...]
+```
+
+## Options
+TODO.
+
+## Example
+
+```
+ flow bridge01 add in_port=1 apply_actions=output:2
+ flow bridge01 add vlan_vid=1 dl_dst=ff:ff:ff:ff:ff:ff apply_actions=strip_vlan,output:2
+ flow bridge01 add vlan_vid=2 dl_dst=ff:ff:ff:ff:ff:ff apply_actions=strip_vlan goto_table=1
+```
+
+Modify flow
+---------------------------
+## Usage
+
+```
+ flow <NAME> mod [-strict] <MATCH_FIELD> [<ACTONS> ...]
+```
+
+## Options
+TODO.
+
+## Example
+
+```
+ flow bridge01 mod in_port=1 apply_actions=output:3
+ flow bridge01 mod vlan_vid=1 dl_dst=ff:ff:ff:ff:ff:ff apply_actions=strip_vlan,output:3
+ flow bridge01 mod -strict vlan_vid=2 dl_dst=ff:ff:ff:ff:ff:ff apply_actions=strip_vlan goto_table=2
+```
+
+Delete flow
+---------------------------
+## Usage
+
+```
+ flow <NAME> del [-strict] [<MATCH_FIELD>]
+```
+
+## Options
+TODO.
+
+## Example
+
+```
+ flow bridge01 del in_port=1
+ flow bridge01 del -strict vlan_vid=1 dl_dst=ff:ff:ff:ff:ff:ff
+
+ # Delete all flows.
+ flow bridge01 del
+```
+
+Dump flow
+---------------------------
+## Usage
+
+```
+ flow <NAME> [-table-id <TABLE_ID>] [-with-stats]
+```
+
+## Options
+TODO.
