@@ -60,8 +60,7 @@ test_set_field_IPV6_IP_DSCP(void) {
   OS_M_PKTLEN(m) = 64;
   m->data[12] = 0x86;
   m->data[13] = 0xdd;
-  lagopus_set_in_port(&pkt, &port);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   set_match(action_set->field, 1, OFPXMT_OFB_IP_DSCP << 1,
             0x3f);
   execute_action(&pkt, &action_list);
@@ -95,8 +94,7 @@ test_set_field_IPV6_IP_ECN(void) {
   OS_M_PKTLEN(m) = 64;
   m->data[12] = 0x86;
   m->data[13] = 0xdd;
-  lagopus_set_in_port(&pkt, &port);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   set_match(action_set->field, 1, OFPXMT_OFB_IP_ECN << 1,
             0x03);
   execute_action(&pkt, &action_list);
@@ -131,8 +129,7 @@ test_set_field_IPV6_IP_PROTO(void) {
   m->data[12] = 0x86;
   m->data[13] = 0xdd;
   m->data[20] = IPPROTO_TCP;
-  lagopus_set_in_port(&pkt, &port);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   set_match(action_set->field, 1, OFPXMT_OFB_IP_PROTO << 1,
             IPPROTO_ICMPV6);
   execute_action(&pkt, &action_list);
@@ -141,7 +138,7 @@ test_set_field_IPV6_IP_PROTO(void) {
   m->data[20] = IPPROTO_DSTOPTS;
   m->data[54] = IPPROTO_TCP;
   m->data[55] = 0;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   execute_action(&pkt, &action_list);
   TEST_ASSERT_EQUAL_MESSAGE(m->data[20], IPPROTO_DSTOPTS,
                             "SET_FIELD IPV6_IP_PROTO(next hdr) opt error");
@@ -173,8 +170,7 @@ test_set_field_IPV6_SRC(void) {
   OS_M_PKTLEN(m) = 64;
   m->data[12] = 0x86;
   m->data[13] = 0xdd;
-  lagopus_set_in_port(&pkt, &port);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   set_match(action_set->field, 16, OFPXMT_OFB_IPV6_SRC << 1,
             0x20, 0x01, 0x00, 0x00, 0xe0, 0x45, 0x22, 0xeb,
             0x09, 0x00, 0x00, 0x08, 0xdc, 0x18, 0x94, 0xad);
@@ -238,8 +234,7 @@ test_set_field_IPV6_DST(void) {
   m->data[12] = 0x86;
   m->data[13] = 0xdd;
 
-  lagopus_set_in_port(&pkt, &port);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   set_match(action_set->field, 16, OFPXMT_OFB_IPV6_DST << 1,
             0x20, 0x01, 0x00, 0x00, 0xe0, 0x45, 0x22, 0xeb,
             0x09, 0x00, 0x00, 0x08, 0xdc, 0x18, 0x94, 0xad);
@@ -303,8 +298,7 @@ test_set_field_IPV6_FLABEL(void) {
   m->data[12] = 0x86;
   m->data[13] = 0xdd;
   m->data[14] = 0x6f;
-  lagopus_set_in_port(&pkt, &port);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   set_match(action_set->field, 4, OFPXMT_OFB_IPV6_FLABEL << 1,
             0x00, 0x0e, 0xab, 0xcd);
   execute_action(&pkt, &action_list);
@@ -344,8 +338,7 @@ test_set_field_IPV6_TCP_SRC(void) {
   m->data[13] = 0xdd;
   m->data[20] = IPPROTO_TCP;
 
-  lagopus_set_in_port(&pkt, &port);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   set_match(action_set->field, 2, OFPXMT_OFB_TCP_SRC << 1,
             0x80, 0x21);
   execute_action(&pkt, &action_list);
@@ -356,7 +349,7 @@ test_set_field_IPV6_TCP_SRC(void) {
   m->data[20] = IPPROTO_DSTOPTS;
   m->data[54] = IPPROTO_TCP;
   m->data[55] = 0;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   execute_action(&pkt, &action_list);
   TEST_ASSERT_EQUAL_MESSAGE(m->data[54], IPPROTO_TCP,
                             "SET_FIELD IPV6_TCP_SRC proto error.");
@@ -392,8 +385,7 @@ test_set_field_IPV6_TCP_DST(void) {
   m->data[13] = 0xdd;
   m->data[20] = IPPROTO_TCP;
 
-  lagopus_set_in_port(&pkt, &port);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   set_match(action_set->field, 2, OFPXMT_OFB_TCP_DST << 1,
             0x80, 0x21);
   execute_action(&pkt, &action_list);
@@ -404,7 +396,7 @@ test_set_field_IPV6_TCP_DST(void) {
   m->data[20] = IPPROTO_DSTOPTS;
   m->data[54] = IPPROTO_TCP;
   m->data[55] = 0;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   execute_action(&pkt, &action_list);
   TEST_ASSERT_EQUAL_MESSAGE(m->data[54], IPPROTO_TCP,
                             "SET_FIELD IPV6_TCP_DST proto error.");
@@ -440,8 +432,7 @@ test_set_field_IPV6_UDP_SRC(void) {
   m->data[13] = 0xdd;
   m->data[20] = IPPROTO_UDP;
 
-  lagopus_set_in_port(&pkt, &port);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   set_match(action_set->field, 2, OFPXMT_OFB_UDP_SRC << 1,
             0x80, 0x21);
   execute_action(&pkt, &action_list);
@@ -452,7 +443,7 @@ test_set_field_IPV6_UDP_SRC(void) {
   m->data[20] = IPPROTO_DSTOPTS;
   m->data[54] = IPPROTO_UDP;
   m->data[55] = 0;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   execute_action(&pkt, &action_list);
   TEST_ASSERT_EQUAL_MESSAGE(m->data[54], IPPROTO_UDP,
                             "SET_FIELD IPV6_UDP_SRC proto error.");
@@ -488,8 +479,7 @@ test_set_field_IPV6_UDP_DST(void) {
   m->data[13] = 0xdd;
   m->data[20] = IPPROTO_UDP;
 
-  lagopus_set_in_port(&pkt, &port);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   set_match(action_set->field, 2, OFPXMT_OFB_UDP_DST << 1,
             0x80, 0x21);
   execute_action(&pkt, &action_list);
@@ -500,7 +490,7 @@ test_set_field_IPV6_UDP_DST(void) {
   m->data[20] = IPPROTO_DSTOPTS;
   m->data[54] = IPPROTO_UDP;
   m->data[55] = 0;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   execute_action(&pkt, &action_list);
   TEST_ASSERT_EQUAL_MESSAGE(m->data[54], IPPROTO_UDP,
                             "SET_FIELD IPV6_UDP_DST proto error.");
@@ -536,8 +526,7 @@ test_set_field_IPV6_SCTP_SRC(void) {
   m->data[13] = 0xdd;
   m->data[20] = IPPROTO_SCTP;
 
-  lagopus_set_in_port(&pkt, &port);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   set_match(action_set->field, 2, OFPXMT_OFB_SCTP_SRC << 1,
             0x80, 0x21);
   execute_action(&pkt, &action_list);
@@ -548,7 +537,7 @@ test_set_field_IPV6_SCTP_SRC(void) {
   m->data[20] = IPPROTO_DSTOPTS;
   m->data[54] = IPPROTO_SCTP;
   m->data[55] = 0;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   execute_action(&pkt, &action_list);
   TEST_ASSERT_EQUAL_MESSAGE(m->data[54], IPPROTO_SCTP,
                             "SET_FIELD IPV6_SCTP_SRC proto error.");
@@ -584,8 +573,7 @@ test_set_field_IPV6_SCTP_DST(void) {
   m->data[13] = 0xdd;
   m->data[20] = IPPROTO_SCTP;
 
-  lagopus_set_in_port(&pkt, &port);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   set_match(action_set->field, 2, OFPXMT_OFB_SCTP_DST << 1,
             0x80, 0x21);
   execute_action(&pkt, &action_list);
@@ -596,7 +584,7 @@ test_set_field_IPV6_SCTP_DST(void) {
   m->data[20] = IPPROTO_DSTOPTS;
   m->data[54] = IPPROTO_SCTP;
   m->data[55] = 0;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   execute_action(&pkt, &action_list);
   TEST_ASSERT_EQUAL_MESSAGE(m->data[54], IPPROTO_SCTP,
                             "SET_FIELD IPV6_SCTP_DST proto error.");
@@ -632,8 +620,7 @@ test_set_field_ICMPV6_TYPE(void) {
   m->data[13] = 0xdd;
   m->data[20] = IPPROTO_ICMPV6;
 
-  lagopus_set_in_port(&pkt, &port);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   set_match(action_set->field, 2, OFPXMT_OFB_ICMPV6_TYPE << 1,
             ICMP6_ECHO_REQUEST);
   execute_action(&pkt, &action_list);
@@ -642,7 +629,7 @@ test_set_field_ICMPV6_TYPE(void) {
   m->data[20] = IPPROTO_DSTOPTS;
   m->data[54] = IPPROTO_ICMPV6;
   m->data[55] = 0;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   execute_action(&pkt, &action_list);
   TEST_ASSERT_EQUAL_MESSAGE(m->data[54], IPPROTO_ICMPV6,
                             "SET_FIELD ICMPV6_TYPE proto error.");
@@ -675,8 +662,7 @@ test_set_field_ICMPV6_CODE(void) {
   m->data[13] = 0xdd;
   m->data[20] = IPPROTO_ICMPV6;
 
-  lagopus_set_in_port(&pkt, &port);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   set_match(action_set->field, 2, OFPXMT_OFB_ICMPV6_CODE << 1,
             ICMP6_DST_UNREACH_NOPORT);
   execute_action(&pkt, &action_list);
@@ -685,7 +671,7 @@ test_set_field_ICMPV6_CODE(void) {
   m->data[20] = IPPROTO_DSTOPTS;
   m->data[54] = IPPROTO_ICMPV6;
   m->data[55] = 0;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   execute_action(&pkt, &action_list);
   TEST_ASSERT_EQUAL_MESSAGE(m->data[54], IPPROTO_ICMPV6,
                             "SET_FIELD ICMPV6_CODE proto error.");

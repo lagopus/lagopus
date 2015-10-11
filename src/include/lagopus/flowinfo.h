@@ -23,19 +23,19 @@
 #define SRC_INCLUDE_LAGOPUS_FLOWINFO_H_
 
 /**
- * definition of structured flow table.
+ * @brief Structured flow table.
  */
 struct flowinfo {
-  int nflow;                    /*< number of entries. */
-  unsigned int nnext;           /*< number of child flowinfo. */
-  union {                       /*< entries includes type specific match. */
-    struct ptree *ptree;        /*< patricia tree entries. */
-    struct flow **flows;        /*< simple array entries. */
-    struct flowinfo **next;     /*< child flowinfo array. */
+  int nflow;                    /** number of entries. */
+  unsigned int nnext;           /** number of child flowinfo. */
+  union {                       /** entries includes type specific match. */
+    struct ptree *ptree;        /** patricia tree entries. */
+    struct flow **flows;        /** simple array entries. */
+    struct flowinfo **next;     /** child flowinfo array. */
     /* add more types if needed. */
   };
-  struct flowinfo *misc;        /*< flowinfo includes no specific match. */
-  uint64_t userdata;            /*< type specific data placeholder. */
+  struct flowinfo *misc;        /** flowinfo includes no specific match. */
+  uint64_t userdata;            /** type specific data placeholder. */
 
   lagopus_result_t (*add_func)(struct flowinfo *, struct flow *);
   struct flow *(*match_func)(struct flowinfo *, struct lagopus_packet *,
@@ -100,6 +100,22 @@ struct flowinfo *new_flowinfo_ipv4_dst_mask(void);
  *              ==NULL  failed to create flowinfo.
  */
 struct flowinfo *new_flowinfo_ipv4_dst(void);
+
+/**
+ * Allocate and initialize flowinfo for IPv4 source address with mask.
+ *
+ * @retval      !=NULL  Created flowinfo.
+ *              ==NULL  failed to create flowinfo.
+ */
+struct flowinfo *new_flowinfo_ipv4_src_mask(void);
+
+/**
+ * Allocate and initialize flowinfo for IPv4 source address.
+ *
+ * @retval      !=NULL  Created flowinfo.
+ *              ==NULL  failed to create flowinfo.
+ */
+struct flowinfo *new_flowinfo_ipv4_src(void);
 
 /**
  * Allocate and initialize flowinfo for IPv4 packets.

@@ -206,3 +206,54 @@ bridge_ofp_features_get(struct bridge *bridge,
   *features = bridge->features;
   return LAGOPUS_RESULT_OK;
 }
+
+/**
+ * Set switch configuration.
+ */
+lagopus_result_t
+ofp_switch_config_set(uint64_t dpid,
+                      struct ofp_switch_config *switch_config,
+                      struct ofp_error *error) {
+  struct bridge *bridge;
+
+  bridge = dp_bridge_lookup_by_dpid(dpid);
+  if (bridge == NULL) {
+    return LAGOPUS_RESULT_NOT_FOUND;
+  }
+  /* Reassemble fragmented packet is not supported */
+  if ((switch_config->flags & OFPC_FRAG_REASM) != 0) {
+    ofp_error_set(error, OFPET_SWITCH_CONFIG_FAILED, OFPSCFC_BAD_FLAGS);
+    return LAGOPUS_RESULT_OFP_ERROR;
+  }
+  if (switch_config->miss_send_len < 64) {
+    ofp_error_set(error, OFPET_SWITCH_CONFIG_FAILED, OFPSCFC_BAD_LEN);
+    return LAGOPUS_RESULT_OFP_ERROR;
+  }
+  bridge->switch_config = *switch_config;
+
+  return LAGOPUS_RESULT_OK;
+}
+
+/*
+ * Get switch configuration. (Agent/DP API)
+ */
+lagopus_result_t
+ofp_switch_config_get(uint64_t dpid,
+                      struct ofp_switch_config *switch_config,
+                      struct ofp_error *error) {
+  struct bridge *bridge;
+
+  (void) error;
+
+  bridge = dp_bridge_lookup_by_dpid(dpid);
+  if (bridge == NULL) {
+    return LAGOPUS_RESULT_NOT_FOUND;
+  }
+
+  if (bridge == NULL || switch_config == NULL) {
+    return LAGOPUS_RESULT_INVALID_ARGS;
+  }
+  *switch_config = bridge->switch_config;
+
+  return LAGOPUS_RESULT_OK;
+}

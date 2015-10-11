@@ -66,6 +66,7 @@ typedef struct objtbl_record {
   datastore_destroy_proc_t m_dty_proc;
   datastore_compare_proc_t m_cmp_proc;
   datastore_getname_proc_t m_gnm_proc;
+  datastore_duplicate_proc_t m_dup_proc;
 } objtbl_record;
 typedef objtbl_record *objtbl_t;
 
@@ -308,25 +309,19 @@ s_add_tbl(const char *name,
           datastore_serialize_proc_t s_proc,
           datastore_destroy_proc_t d_proc,
           datastore_compare_proc_t c_proc,
-          datastore_getname_proc_t n_proc) {
+          datastore_getname_proc_t n_proc,
+          datastore_duplicate_proc_t dup_proc) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
 
   if (IS_VALID_STRING(name) == true &&
       hptr != NULL && *hptr != NULL &&
-#ifdef IT_MUST_BE_LIKE_THIS
       u_proc != NULL &&
       e_proc != NULL &&
       s_proc != NULL &&
       d_proc != NULL &&
-      n_prpc != NULL) {
-#else
-      /*
-       * FIXME:
-       *	Need to check all the funcs are properly
-       *	specified. This is a temporary solution.
-       */
-      u_proc != NULL) {
-#endif
+      c_proc != NULL &&
+      n_proc != NULL &&
+      dup_proc != NULL) {
     objtbl_t o = (objtbl_t)malloc(sizeof(*o));
     if (o != NULL) {
       const char *cpname = strdup(name);
@@ -340,6 +335,7 @@ s_add_tbl(const char *name,
         o->m_dty_proc = d_proc;
         o->m_cmp_proc = c_proc;
         o->m_gnm_proc = n_proc;
+        o->m_dup_proc = dup_proc;
         if ((ret = lagopus_hashmap_add(&s_obj_tbl, (void *)(o->m_name),
                                        &val, false)) != LAGOPUS_RESULT_OK) {
           free((void *)(o->m_name));
@@ -778,8 +774,7 @@ s_atomic_begin(datastore_interp_t *iptr,
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
 
   if (iptr != NULL && *iptr != NULL) {
-    if ((*iptr)->m_status == DATASTORE_INTERP_STATE_AUTO_COMMIT ||
-        (*iptr)->m_status == DATASTORE_INTERP_STATE_DRYRUN) {
+    if ((*iptr)->m_status == DATASTORE_INTERP_STATE_AUTO_COMMIT) {
       /*
        * Save the current state.
        */
@@ -1001,6 +996,48 @@ s_atomic_commit(datastore_interp_t *iptr, lagopus_dstring_t *result) {
 
       /* unlink save file. */
       s_unlink_atomic_auto_save_file(iptr);
+    } else {
+      ret = LAGOPUS_RESULT_INVALID_STATE_TRANSITION;
+    }
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  return ret;
+}
+
+
+static inline lagopus_result_t
+s_dryrun_begin(datastore_interp_t *iptr) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+
+  if (iptr != NULL && *iptr != NULL) {
+    if ((*iptr)->m_status == DATASTORE_INTERP_STATE_AUTO_COMMIT) {
+      /*
+       * Save the current state.
+       */
+      s_save_interp_state(*iptr);
+      s_set_interp_state(*iptr, DATASTORE_INTERP_STATE_DRYRUN);
+      ret = LAGOPUS_RESULT_OK;
+    } else {
+      ret = LAGOPUS_RESULT_INVALID_STATE_TRANSITION;
+    }
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  return ret;
+}
+
+
+static inline lagopus_result_t
+s_dryrun_end(datastore_interp_t *iptr) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+
+  if (iptr != NULL && *iptr != NULL) {
+    if ((*iptr)->m_status == DATASTORE_INTERP_STATE_DRYRUN) {
+      s_restore_interp_state(*iptr);
+      ret = LAGOPUS_RESULT_OK;
     } else {
       ret = LAGOPUS_RESULT_INVALID_STATE_TRANSITION;
     }
@@ -1935,7 +1972,7 @@ s_eval_file(datastore_interp_t *iptr,
 
 
 static inline lagopus_result_t
-s_destroy_obj(datastore_interp_t *iptr,const char *namespace,
+s_destroy_obj(datastore_interp_t *iptr, const char *namespace,
               lagopus_dstring_t *result) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   objlist_t *ol = NULL;
@@ -1953,7 +1990,7 @@ s_destroy_obj(datastore_interp_t *iptr,const char *namespace,
       const char *objname = NULL;
 
       if (namespace != NULL) {
-        delim_len = strlen(NAMESPACE_DELIMITER);
+        delim_len = strlen(DATASTORE_NAMESPACE_DELIMITER);
 
         if (namespace[0] == '\0') {
           target_len = delim_len;
@@ -1965,7 +2002,7 @@ s_destroy_obj(datastore_interp_t *iptr,const char *namespace,
 
         if (target != NULL) {
           ret = snprintf(target, target_len + 1, "%s%s",
-                         namespace, NAMESPACE_DELIMITER);
+                         namespace, DATASTORE_NAMESPACE_DELIMITER);
           if (ret < 0) {
             lagopus_msg_warning("target namespace create failed.\n");
             ret = LAGOPUS_RESULT_ANY_FAILURES;
@@ -2000,11 +2037,104 @@ s_destroy_obj(datastore_interp_t *iptr,const char *namespace,
                 lagopus_msg_warning("get object name failed.\n");
                 goto end;
               }
+
+              lagopus_msg_debug(10, "destroy object name: %s\n", objname);
             }
 
             if ((ret = o->m_dty_proc(iptr, (*iptr)->m_status,
                                      objs[j - 1],
                                      result)) != LAGOPUS_RESULT_OK) {
+              goto end;
+            }
+          }
+        }
+      }
+
+      ret = LAGOPUS_RESULT_OK;
+    }
+
+  end:
+    s_destroy_all_objs_list(ol);
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  free(target);
+
+  return ret;
+}
+
+
+static inline lagopus_result_t
+s_duplicate_obj(datastore_interp_t *iptr, const char *cur_namespace,
+                const char *dup_namespace, lagopus_dstring_t *result) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  objlist_t *ol = NULL;
+  char *target = NULL;
+
+  if (iptr != NULL && *iptr != NULL && result != NULL &&
+      cur_namespace != NULL && dup_namespace != NULL) {
+    if ((ret = s_create_all_objs_list(&ol)) >= 0) {
+      size_t i, j;
+      objtbl_t o;
+      void **objs = NULL;
+      size_t n_objs = 0;
+      size_t n_ol = (size_t)ret;
+      size_t delim_len = 0;
+      size_t target_len = 0;
+      const char *objname = NULL;
+
+      delim_len = strlen(DATASTORE_NAMESPACE_DELIMITER);
+
+      if (cur_namespace[0] == '\0') {
+        target_len = delim_len;
+      } else {
+        target_len = strlen(cur_namespace) + delim_len;
+      }
+
+      target = (char *) malloc(sizeof(char) * (target_len + 1));
+
+      if (target != NULL) {
+        ret = snprintf(target, target_len + 1, "%s%s",
+                       cur_namespace, DATASTORE_NAMESPACE_DELIMITER);
+        if (ret < 0) {
+          lagopus_msg_warning("target namespace create failed.\n");
+          ret = LAGOPUS_RESULT_ANY_FAILURES;
+          goto end;
+        }
+      } else {
+        ret = LAGOPUS_RESULT_NO_MEMORY;
+        goto end;
+      }
+
+      /*
+       * duplicate the object if namespace matches.
+       */
+      for (i = n_ol; i > 0; i--) {
+        o = ol[i - 1].m_o;
+        objs = ol[i - 1].m_objs;
+        n_objs = ol[i - 1].m_n_objs;
+
+        if (o != NULL && o->m_dup_proc != NULL &&
+            n_objs > 0 && objs != NULL) {
+
+          for (j = n_objs; j > 0; j--) {
+            ret = o->m_gnm_proc(objs[j - 1], &objname);
+            if (ret != LAGOPUS_RESULT_OK) {
+              lagopus_msg_warning("get object name failed.\n");
+              goto end;
+            }
+
+            if (strstr(objname, target) == NULL) {
+              /* namespace not matched. */
+              continue;
+            }
+
+            lagopus_msg_debug(10, "duplicate object name: %s\n", objname);
+
+            if ((ret = o->m_dup_proc(objs[j - 1],
+                                     dup_namespace)) != LAGOPUS_RESULT_OK) {
+              lagopus_msg_warning("object duplicate failed.\n");
               goto end;
             }
           }
@@ -2037,9 +2167,11 @@ datastore_register_table(const char *argv0,
                          datastore_serialize_proc_t s_proc,
                          datastore_destroy_proc_t d_proc,
                          datastore_compare_proc_t c_proc,
-                         datastore_getname_proc_t n_proc) {
+                         datastore_getname_proc_t n_proc,
+                         datastore_duplicate_proc_t dup_proc) {
   return s_add_tbl(argv0,
-                   tptr, u_proc, e_proc, s_proc, d_proc, c_proc, n_proc);
+                   tptr, u_proc, e_proc, s_proc, d_proc, c_proc, n_proc,
+                   dup_proc);
 }
 
 
@@ -2051,7 +2183,8 @@ datastore_find_table(const char *argv0,
                      datastore_serialize_proc_t *s_pptr,
                      datastore_destroy_proc_t *d_pptr,
                      datastore_compare_proc_t *c_pptr,
-                     datastore_getname_proc_t *n_pptr) {
+                     datastore_getname_proc_t *n_pptr,
+                     datastore_duplicate_proc_t *dup_pptr) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
 
   if (IS_VALID_STRING(argv0) == true) {
@@ -2078,6 +2211,9 @@ datastore_find_table(const char *argv0,
       }
       if (n_pptr != NULL) {
         *n_pptr = o->m_gnm_proc;
+      }
+      if (dup_pptr != NULL) {
+        *dup_pptr = o->m_dup_proc;
       }
       ret = LAGOPUS_RESULT_OK;
     } else {
@@ -2108,6 +2244,7 @@ datastore_create_interp(datastore_interp_t *iptr) {
     datastore_interp_t ip = NULL;
     if (*iptr == NULL) {
       if ((ip = (datastore_interp_t)malloc(sizeof(*ip))) != NULL) {
+        memset(ip, 0, sizeof(*ip));
         ip->m_is_allocd = true;
         *iptr = ip;
       } else {
@@ -2604,6 +2741,56 @@ datastore_interp_atomic_rollback(datastore_interp_t *iptr,
       s_is_interp_locked(*iptr) == true &&
       s_is_interp_functional(*iptr) == true) {
     ret = s_atomic_rollback(iptr, result, force);
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  return ret;
+}
+
+lagopus_result_t
+datastore_interp_dryrun_begin(datastore_interp_t *iptr,
+                              const char *cur_namespace,
+                              const char *dup_namespace,
+                              lagopus_dstring_t *result) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+
+  if (iptr != NULL && *iptr != NULL &&
+      s_is_interp_locked(*iptr) == true &&
+      s_is_interp_functional(*iptr) == true) {
+    ret = s_dryrun_begin(iptr);
+    if (ret == LAGOPUS_RESULT_OK) {
+      ret = s_duplicate_obj(iptr, cur_namespace, dup_namespace, result);
+      if (ret != LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        ret = s_destroy_obj(iptr, dup_namespace, result);
+      }
+    }
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  return ret;
+}
+
+lagopus_result_t
+datastore_interp_dryrun_end(datastore_interp_t *iptr,
+                            const char *namespace,
+                            lagopus_dstring_t *result) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+
+  if (iptr != NULL && *iptr != NULL &&
+      s_is_interp_locked(*iptr) == true &&
+      s_is_interp_functional(*iptr) == true) {
+    ret = s_destroy_obj(iptr, namespace, result);
+    if (ret == LAGOPUS_RESULT_OK) {
+      ret = s_dryrun_end(iptr);
+      if (ret != LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+      }
+    } else {
+      lagopus_perror(ret);
+    }
   } else {
     ret = LAGOPUS_RESULT_INVALID_ARGS;
   }

@@ -37,7 +37,6 @@ s_parse_load(datastore_interp_t *iptr,
   const char *cname = NULL;
   char *filepath = NULL;
 
-  (void)state;
   (void)argc;
   (void)hptr;
   (void)u_proc;
@@ -61,7 +60,12 @@ s_parse_load(datastore_interp_t *iptr,
         if (s_is_readable(filepath) == LAGOPUS_RESULT_OK) {
           ret = datastore_interp_get_current_configurater(iptr, &cname);
           if (ret == LAGOPUS_RESULT_OK && IS_VALID_STRING(cname) == true) {
-            ret = datastore_interp_load_file(iptr, cname, filepath, result);
+            if (state == DATASTORE_INTERP_STATE_DRYRUN) {
+              ret = LAGOPUS_RESULT_OK;
+            } else {
+              ret = datastore_interp_load_file(iptr, cname, filepath, result);
+            }
+
             if (ret == LAGOPUS_RESULT_OK) {
               ret = datastore_json_result_set(result, ret, NULL);
             }

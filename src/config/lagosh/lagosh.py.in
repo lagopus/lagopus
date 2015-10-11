@@ -32,10 +32,13 @@ import pydoc
 
 
 class DSLError(Exception):
+
     def __init__(self, value):
         self.value = value
+
     def __str__(self):
         return repr(self.value)
+
 
 class dsl:
 
@@ -65,14 +68,15 @@ class dsl:
             words.pop(0)
             # identifier
             if (words[0])[0] != '-':
-                result += '\t' + words.pop(0).replace(':', '', 1) + ' {\n'
+                result += '\t'
+                result += re.sub(r'^:([^:])', r'\1', words.pop(0)) + ' {\n'
                 tab = '\t'
             else:
                 tab = ''
             # params
             fmt = ''
             while words != []:
-                word = words.pop(0).replace(':', '', 1)
+                word = re.sub(r'^:([^:])', r'\1', words.pop(0))
                 if word == 'create':
                     continue
                 if word[0] == '-':
@@ -173,7 +177,7 @@ class ds_client:
         if isinstance(arg, dict):
             for a in arg.iterkeys():
                 if isinstance(arg[a], unicode):
-                    arg[a] = arg[a].replace(':', '', 1)
+                    arg[a] = re.sub(r'^:([^:])', r'\1', arg[a]);
                 elif isinstance(arg[a], dict):
                     self.remove_namespace(arg[a])
                 elif isinstance(arg[a], list):
@@ -247,6 +251,7 @@ class ds_client:
         except:
             return
 
+
 class Cmd(cmd.Cmd):
 
     pager = False
@@ -263,7 +268,7 @@ class Cmd(cmd.Cmd):
     def completenames(self, text, *ignored):
         dotext = 'do_' + text
         return [a[3:] for a in self.get_names()
-                if a.startswith(dotext) and a != 'do_shell' ]
+                if a.startswith(dotext) and a != 'do_shell']
 
     def precmd(self, line):
         args = line.split()
@@ -337,6 +342,7 @@ class Cmd(cmd.Cmd):
 
     def do_quit(self, _line):
         return True
+
 
 class Configure(Cmd):
 
@@ -485,9 +491,7 @@ class Configure(Cmd):
                 os.system('cd ' + confdir +
                           '; git commit --allow-empty-message -m ""')
         # Edit
-        editor = os.environ.get('EDITOR')
-        if editor == '':
-            editor = 'vi'
+        editor = os.environ.get('EDITOR', 'vi')
         try:
             st = os.system('cd ' + confdir + ';' + editor + ' ' + conffile)
             if st != 0:
@@ -561,6 +565,7 @@ class Configure(Cmd):
 
 
 class Topcmd(Cmd):
+
     def __init__(self, *args, **kwargs):
         self._in_onecmd = False
         self.prompt = 'Lagosh> '
@@ -569,7 +574,7 @@ class Topcmd(Cmd):
     def complete_configure(self, text, line, begidx, endidx):
         dotext = 'do_' + text
         return [a[3:] for a in Configure().get_names()
-                if a.startswith(dotext) and a != 'do_shell' ]
+                if a.startswith(dotext) and a != 'do_shell']
 
     def do_configure(self, line):
         """
@@ -602,16 +607,16 @@ class Topcmd(Cmd):
             return
 
         if subcmd == 'bridge':
-            odata = ''
+            odata = []
             data = ds_client().call('bridge\n')
             try:
-                data.sort()
                 for ifdata in data:
-                    odata += ifdata['name'].encode() + ':\n'
                     req = 'bridge ' + ifdata['name'].encode() + ' stats\n'
-                    res = ds_client().call(req)
-                    odata += json.dumps(res, indent=4) + '\n'
-                self.output(odata)
+                    res = ds_client().call(req)[0]
+                    res['name'] = ifdata['name']
+                    res['is-enabled'] = ifdata['is-enabled']
+                    odata.append(res)
+                self.output(json.dumps(odata, indent=4) + '\n')
             except:
                 return
 
@@ -624,72 +629,64 @@ class Topcmd(Cmd):
             self.output(json.dumps(data, indent=4))
 
         elif subcmd == 'flow':
-            odata = ''
+            odata = []
             data = ds_client().call('bridge\n')
             try:
-                data.sort()
                 for ifdata in data:
-                    odata += ifdata['name'].encode() + ':\n'
                     req = 'flow ' + ifdata['name'].encode() + '\n'
-                    res = ds_client().call(req)
-                    odata += json.dumps(res, indent=4) + '\n'
-                self.output(odata)
+                    res = ds_client().call(req)[0]
+                    odata.append(res)
+                self.output(json.dumps(odata, indent=4) + '\n')
             except:
                 return
 
         elif subcmd == 'group':
-            odata = ''
+            odata = []
             data = ds_client().call('bridge\n')
             try:
-                data.sort()
                 for ifdata in data:
-                    odata += ifdata['name'].encode() + ':\n'
                     req = 'group ' + ifdata['name'].encode() + ' stats\n'
-                    res = ds_client().call(req)
-                    odata += json.dumps(res, indent=4) + '\n'
-                self.output(odata)
+                    res = ds_client().call(req)[0]
+                    odata.append(res)
+                self.output(json.dumps(odata, indent=4) + '\n')
             except:
                 return
 
         elif subcmd == 'interface':
-            odata = ''
+            odata = []
             data = ds_client().call('interface\n')
             try:
-                data.sort()
                 for ifdata in data:
-                    odata += ifdata['name'].encode() + ':\n'
                     req = 'interface ' + ifdata['name'].encode() + ' stats\n'
-                    res = ds_client().call(req)
-                    odata += json.dumps(res, indent=4) + '\n'
-                self.output(odata)
+                    res = ds_client().call(req)[0]
+                    res['name'] = ifdata['name']
+                    odata.append(res)
+                self.output(json.dumps(odata, indent=4) + '\n')
             except:
                 return
 
         elif subcmd == 'meter':
-            odata = ''
+            odata = []
             data = ds_client().call('bridge\n')
             try:
-                data.sort()
                 for ifdata in data:
-                    odata += ifdata['name'].encode() + ':\n'
                     req = 'meter ' + ifdata['name'].encode() + ' stats\n'
-                    res = ds_client().call(req)
-                    odata += json.dumps(res, indent=4) + '\n'
-                self.output(odata)
+                    res = ds_client().call(req)[0]
+                    odata.append(res)
+                self.output(json.dumps(odata, indent=4) + '\n')
             except:
                 return
 
         elif subcmd == 'port':
-            odata = ''
+            odata = []
             data = ds_client().call('port\n')
             try:
-                data.sort()
                 for ifdata in data:
-                    odata += ifdata['name'].encode() + ':\n'
                     req = 'port ' + ifdata['name'].encode() + ' stats\n'
-                    res = ds_client().call(req)
-                    odata += json.dumps(res, indent=4) + '\n'
-                self.output(odata)
+                    res = ds_client().call(req)[0]
+                    res['name'] = ifdata['name']
+                    odata.append(res)
+                self.output(json.dumps(odata, indent=4) + '\n')
             except:
                 return
 

@@ -30,6 +30,10 @@ static uint16_t s_dbg_level = 0;
 static uint32_t s_trace_flags = 0LL;
 static uint32_t s_trace_packet_flag = false;
 static bool s_is_fork_initialized = false;
+#ifdef HAVE_PROCFS_SELF_EXE
+static char s_exefile[PATH_MAX];
+#endif /* HAVE_PROCFS_SELF_EXE */
+
 
 static const char *const s_log_level_strs[] = {
   "",
@@ -676,6 +680,14 @@ s_once_proc(void) {
   if (d > 0) {
     lagopus_msg_debug(d, "Logger debug level is set to: %d.\n", d);
   }
+
+#ifdef HAVE_PROCFS_SELF_EXE
+  if (readlink("/proc/self/exe", s_exefile, PATH_MAX) != -1) {
+    (void)lagopus_set_command_name(s_exefile);
+    lagopus_msg_debug(10, "set the command name '%s'.\n",
+                      lagopus_get_command_name());
+  }
+#endif /* HAVE_PROCFS_SELF_EXE */
 }
 
 

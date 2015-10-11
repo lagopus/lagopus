@@ -167,6 +167,24 @@ lagopus_hashmap_clear(lagopus_hashmap_t *hmptr,
 
 
 /**
+ * Clear a hash map (no lock).
+ *
+ *	@param[in]	hmptr		A pointer to a hash map.
+ *	@param[in]	free_values	If \b true, all the values
+ *	remaining in the hash map are freed if the value free up
+ *	function given by the calling of the lagopus_hashmap_create()
+ *	is not \b NULL.
+ *
+ *	@retval LAGOPUS_RESULT_OK		Succeeded.
+ *	@retval LAGOPUS_RESULT_INVALID_ARGS	Failed, invalid argument(s).
+ *	@retval LAGOPUS_RESULT_ANY_FAILURES	Failed.
+ */
+lagopus_result_t
+lagopus_hashmap_clear_no_lock(lagopus_hashmap_t *hmptr,
+                              bool free_values);
+
+
+/**
  * Find a value corresponding to a given key from a hash map.
  *
  *	@param[in]	hmptr		A pointer to a hash map.

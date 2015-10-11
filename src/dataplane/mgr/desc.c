@@ -52,7 +52,7 @@ get_dmi_string(const char *param) {
 
 static void
 copy_hw_info(char *buf, size_t len) {
-  int i;
+  unsigned i;
 
   buf[0] = '\0';
   for (i = 0; i < sizeof(dmidecode_param) / sizeof(dmidecode_param[0]); i++) {
@@ -64,7 +64,7 @@ copy_hw_info(char *buf, size_t len) {
 }
 
 static void
-copy_os_info(char *buf, int len) {
+copy_os_info(char *buf, size_t len) {
   struct utsname ubuf;
 
   if (uname(&ubuf) < 0) {

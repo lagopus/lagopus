@@ -41,7 +41,9 @@ struct port;
 #define BRIDGE_N_BUFFERS_DEFAULT BRIDGE_N_BUFFERS_MAX
 #define BRIDGE_N_TABLES_DEFAULT BRIDGE_N_TABLES_MAX
 
-/* Fail mode of the openflow bridge. */
+/**
+ * @brief Fail mode of the openflow bridge.
+ */
 enum fail_mode {
   FAIL_SECURE_MODE = 0,
   FAIL_STANDALONE_MODE = 1
@@ -50,51 +52,24 @@ enum fail_mode {
 struct dp_bridge_iter;
 typedef struct dp_bridge_iter *dp_bridge_iter_t;
 
-/* Bridge list. */
-TAILQ_HEAD(bridge_list, bridge);
-
+/**
+ * @brief Bridge internal object.
+ */
 struct bridge {
-  /* Linked list. */
-  TAILQ_ENTRY(bridge) entry;
-
-  /* Bridge name. */
-  char name[BRIDGE_MAX_NAME_LEN];
-
-  /* Datapath ID. */
-  uint64_t dpid;
-
-  /* Lost connection behavior. */
-  enum fail_mode fail_mode;
-
-  /* Running status. */
-  bool running;
-
-  /* Wire protocol version. */
-  uint8_t version;
-
-  /* Wire protocol version bitmap. */
-  uint32_t version_bitmap;
-
-  /* OpenFlow features. */
-  struct ofp_switch_features features;
-
-  /* Ports. */
-  struct vector *ports;
-
-  /* FlowDB. */
-  struct flowdb *flowdb;
-
-  /* Group table. */
-  struct group_table *group_table;
-
-  /* Meter table. */
-  struct meter_table *meter_table;
-
-  /* Controller port config. */
-  struct ofp_port controller_port;
-
-  /* Switch config. */
-  struct ofp_switch_config switch_config;
+  TAILQ_ENTRY(bridge) entry;            /** Linked list. */
+  char name[BRIDGE_MAX_NAME_LEN];       /** Bridge name. */
+  uint64_t dpid;                        /** Datapath ID. */
+  enum fail_mode fail_mode;             /** Lost connection behavior. */
+  bool running;                         /** Running status. */
+  uint8_t version;                      /** Wire protocol version. */
+  uint32_t version_bitmap;              /** Wire protocol version bitmap. */
+  struct ofp_switch_features features;  /** OpenFlow features. */
+  struct vector *ports;                 /** Ports. */
+  struct flowdb *flowdb;                /** Flow database. */
+  struct group_table *group_table;      /** Group table. */
+  struct meter_table *meter_table;      /** Meter table. */
+  struct ofp_port controller_port;      /** Controller port config. */
+  struct ofp_switch_config switch_config;  /** Switch config. */
 };
 
 /**
@@ -237,17 +212,5 @@ bridge_ofp_version_bitmap_unset(struct bridge *bridge, uint8_t version) __attrib
 lagopus_result_t
 bridge_ofp_features_get(struct bridge *bridge,
                         struct ofp_switch_features *features) __attribute__ ((deprecated));
-
-/**
- * Get datapath id owned by bridge.
- *
- * @param[in]   bridge                  Bridge.
- *
- * @retval      Datapath id.
- */
-static inline uint64_t
-bridge_dpid(struct bridge *bridge) {
-  return bridge->dpid;
-}
 
 #endif /* SRC_INCLUDE_LAGOPUS_BRIDGE_H_ */

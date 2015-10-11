@@ -25,42 +25,30 @@
 
 
 int s4 = -1, s6 = -1;
-static struct event_manager *em;
 static datastore_interface_info_t interface_info;
 static datastore_bridge_info_t bridge_info;
 static bool run;
-static pthread_t p;
-static pthread_mutex_t cond_lock = PTHREAD_MUTEX_INITIALIZER;
-static pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
 static uint64_t dpid = 0xabc;
 static const char *bridge_name = "test_bridge01";
 static const char *port_name = "test_port01";
 static const char *interface_name = "test_if01";
 
-void *
-loop(void *arg) {
-  struct event *event;
+#define N_CALLOUT_WORKERS	1
 
-  (void) arg;
+void
+test_prologue(void) {
+  lagopus_result_t r;
+  const char *argv0 =
+      ((IS_VALID_STRING(lagopus_get_command_name()) == true) ?
+       lagopus_get_command_name() : "callout_test");
+  const char * const argv[] = {
+    argv0, NULL
+  };
 
-  lagopus_msg_info("****** cond_waint in\n");
-  pthread_mutex_lock(&cond_lock);
-  if (run == false) {
-    pthread_cond_wait(&cond, &cond_lock);
-  }
-  pthread_mutex_unlock(&cond_lock);
-  lagopus_msg_info("****** cond_waint out\n");
-  /* Event loop. */
-  while (run && (event = event_fetch(em)) != NULL) {
-    lagopus_msg_info("****** event %p\n", event);
-    event_call(event);
-    event = NULL;
-  }
-
-  pthread_mutex_destroy(&cond_lock);
-  pthread_cond_destroy(&cond);
-  lagopus_msg_info("****** NULL out %p\n", event);
-  return NULL;
+  (void)lagopus_mainloop_set_callout_workers_number(N_CALLOUT_WORKERS);
+  r = lagopus_mainloop_with_callout(1, argv, NULL, NULL,
+                                    false, false, true);
+  TEST_ASSERT_EQUAL(r, LAGOPUS_RESULT_OK);
 }
 
 void
@@ -114,13 +102,6 @@ setUp(void) {
     exit(1);
   }
 
-  /* Event manager allocation. */
-  em = event_manager_alloc();
-  if (em == NULL) {
-    fprintf(stderr, "event_manager_alloc fail.");
-    exit(1);
-  }
-
   /* init datapath. */
   TEST_ASSERT_EQUAL(dp_api_init(), LAGOPUS_RESULT_OK);
 
@@ -159,33 +140,11 @@ setUp(void) {
   TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK,
                     dp_bridge_port_set(bridge_name, port_name, 0));
 
-  pthread_cond_init(&cond, NULL);
-
-  pthread_create(&p, NULL, &loop, NULL);
 
   printf("setup end\n");
 }
 void
 tearDown(void) {
-  run = false;
-
-  close(s4);
-  close(s6);
-  event_manager_stop(em);
-
-  pthread_join(p, NULL);
-
-  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK,
-                    dp_bridge_destroy(bridge_name));
-  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK,
-                    dp_port_destroy(port_name));
-  free((void *)interface_info.eth_dpdk_phy.device);
-  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK,
-                    dp_interface_destroy(interface_name));
-
-  channel_mgr_finalize();
-  event_manager_free(em);
-  dp_api_fini();
 }
 
 
@@ -209,7 +168,7 @@ test_channel_tcp(void) {
   int cnt;
 
   printf("test_channel_tcp in\n");
-  channel_mgr_initialize(em);
+  channel_mgr_initialize();
   ret = channel_mgr_channels_lookup_by_dpid(dpid, &chan_list );
   TEST_ASSERT_EQUAL(LAGOPUS_RESULT_NOT_FOUND, ret);
   TEST_ASSERT_EQUAL(NULL, chan_list );
@@ -220,10 +179,9 @@ test_channel_tcp(void) {
   TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
   ret = channel_mgr_channel_add(bridge_name, dpid, &addr6);
   TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
-  channel_mgr_finalize();
 
   ret = channel_mgr_channel_add(bridge_name, dpid, &addr4);
-  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_ALREADY_EXISTS, ret);
   ret = channel_mgr_channel_lookup(bridge_name, &addr4, &chan4);
   TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
   TEST_ASSERT_EQUAL(0, channel_id_get(chan4));
@@ -235,7 +193,7 @@ test_channel_tcp(void) {
   TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
 
   ret = channel_mgr_channel_add(bridge_name, dpid, &addr6);
-  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_ALREADY_EXISTS, ret);
   ret = channel_mgr_channel_lookup(bridge_name, &addr6, &chan6);
   TEST_ASSERT_EQUAL(1, channel_id_get(chan6));
   TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
@@ -265,11 +223,7 @@ test_channel_tcp(void) {
   TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
   TEST_ASSERT_EQUAL(2, cnt);
 
-  pthread_mutex_lock(&cond_lock);
-  printf("cond broadcast\n");
   run = true;
-  pthread_cond_broadcast(&cond);
-  pthread_mutex_unlock(&cond_lock);
   size = sizeof(sin);
   printf("accept in\n");
   sock4 = accept(s4, (struct sockaddr *)&sin, &size);
@@ -285,27 +239,51 @@ test_channel_tcp(void) {
   channel_refs_get(chan4);
 
   ret = channel_mgr_channel_delete(bridge_name, &addr4);
-  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_BUSY, ret);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
 
   channel_refs_put(chan4);
-  do {
-    ret = channel_mgr_channel_delete(bridge_name, &addr4);
-  } while (ret == LAGOPUS_RESULT_BUSY);
+  ret = channel_mgr_channel_delete(bridge_name, &addr4);
 
   TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
 
   ret = channel_mgr_channel_lookup(bridge_name, &addr4, &chan4);
   TEST_ASSERT_EQUAL(LAGOPUS_RESULT_NOT_FOUND, ret);
 
-  do {
-    ret = channel_mgr_channel_delete(bridge_name, &addr6);
-  } while (ret == LAGOPUS_RESULT_BUSY);
-
+  ret = channel_mgr_channel_delete(bridge_name, &addr6);
   TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
   ret = channel_mgr_channel_lookup(bridge_name, &addr6, &chan6);
   TEST_ASSERT_EQUAL(LAGOPUS_RESULT_NOT_FOUND, ret);
 
   TEST_ASSERT_FALSE(channel_mgr_has_alive_channel_by_dpid(dpid));
+
+  ret = channel_mgr_event_upcall();
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
+
   close(sock4);
   close(sock6);
 }
+
+void
+test_epilogue(void) {
+  lagopus_result_t r;
+
+  run = false;
+  channel_mgr_finalize();
+  r = global_state_request_shutdown(SHUTDOWN_GRACEFULLY);
+  TEST_ASSERT_EQUAL(r, LAGOPUS_RESULT_OK);
+  lagopus_mainloop_wait_thread();
+
+  close(s4);
+  close(s6);
+
+
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK,
+                    dp_bridge_destroy(bridge_name));
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK,
+                    dp_port_destroy(port_name));
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK,
+                    dp_interface_destroy(interface_name));
+
+  dp_api_fini();
+}
+

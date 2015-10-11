@@ -16,7 +16,6 @@
 
 #include <sys/queue.h>
 #include "unity.h"
-#include "event.h"
 #include "lagopus_apis.h"
 #include "lagopus_session.h"
 #include "lagopus/pbuf.h"
@@ -24,6 +23,7 @@
 #include "openflow13.h"
 #include "handler_test_utils.h"
 #include "../ofp_bucket_counter.h"
+#include "../channel_mgr.h"
 
 void
 setUp(void) {
@@ -33,6 +33,23 @@ void
 tearDown(void) {
 }
 
+void
+test_prologue(void) {
+  lagopus_result_t r;
+  const char *argv0 =
+      ((IS_VALID_STRING(lagopus_get_command_name()) == true) ?
+       lagopus_get_command_name() : "callout_test");
+  const char * const argv[] = {
+    argv0, NULL
+  };
+
+#define N_CALLOUT_WORKERS	1
+  (void)lagopus_mainloop_set_callout_workers_number(N_CALLOUT_WORKERS);
+  r = lagopus_mainloop_with_callout(1, argv, NULL, NULL,
+                                    false, false, true);
+  TEST_ASSERT_EQUAL(r, LAGOPUS_RESULT_OK);
+  channel_mgr_initialize();
+}
 void
 test_bucket_counter_alloc_list_free(void) {
   struct bucket_counter_list bucket_counter_list;
@@ -165,4 +182,12 @@ test_ofp_bucket_counter_list_encode_null(void) {
                                        NULL);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS, ret,
                             "ofp_bucket_counter_list_encode(NULL) error.");
+}
+void
+test_epilogue(void) {
+  lagopus_result_t r;
+  channel_mgr_finalize();
+  r = global_state_request_shutdown(SHUTDOWN_GRACEFULLY);
+  TEST_ASSERT_EQUAL(r, LAGOPUS_RESULT_OK);
+  lagopus_mainloop_wait_thread();
 }

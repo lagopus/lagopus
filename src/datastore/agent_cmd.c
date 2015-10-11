@@ -92,7 +92,8 @@ agent_cmd_current_channelq_max_batches(lagopus_dstring_t *result) {
 }
 
 static inline lagopus_result_t
-agent_cmd_opt_parse_channelq_size(const char *const argv[],
+agent_cmd_opt_parse_channelq_size(datastore_interp_state_t state,
+                                  const char *const argv[],
                                   lagopus_dstring_t *result) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   uint16_t val = 0;
@@ -100,7 +101,9 @@ agent_cmd_opt_parse_channelq_size(const char *const argv[],
   if (IS_VALID_STRING(*argv) == true) {
     if ((ret = lagopus_str_parse_uint16(*argv, &val)) ==
         LAGOPUS_RESULT_OK) {
-      ofp_handler_channelq_size_set(val);
+      if (state != DATASTORE_INTERP_STATE_DRYRUN) {
+        ofp_handler_channelq_size_set(val);
+      }
       ret = LAGOPUS_RESULT_OK;
     } else {
       ret = datastore_json_result_string_setf(result,
@@ -119,7 +122,8 @@ agent_cmd_opt_parse_channelq_size(const char *const argv[],
 }
 
 static inline lagopus_result_t
-agent_cmd_opt_parse_channelq_max_batches(const char *const argv[],
+agent_cmd_opt_parse_channelq_max_batches(datastore_interp_state_t state,
+                                         const char *const argv[],
                                          lagopus_dstring_t *result) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   uint16_t val = 0;
@@ -127,7 +131,9 @@ agent_cmd_opt_parse_channelq_max_batches(const char *const argv[],
   if (IS_VALID_STRING(*argv) == true) {
     if ((ret = lagopus_str_parse_uint16(*argv, &val)) ==
         LAGOPUS_RESULT_OK) {
-      ofp_handler_channelq_max_batches_set(val);
+      if (state != DATASTORE_INTERP_STATE_DRYRUN) {
+        ofp_handler_channelq_max_batches_set(val);
+      }
       ret = LAGOPUS_RESULT_OK;
     } else {
       ret = datastore_json_result_string_setf(result,
@@ -159,7 +165,6 @@ s_parse_agent(datastore_interp_t *iptr,
   size_t i;
 
   (void)iptr;
-  (void)state;
   (void)argc;
   (void)hptr;
   (void)u_proc;
@@ -184,7 +189,7 @@ s_parse_agent(datastore_interp_t *iptr,
         if (strcmp(*argv, OPT_CHANNELQ_SIZE) == 0) {
           argv++;
           if (IS_VALID_STRING(*argv) == true) {
-            ret = agent_cmd_opt_parse_channelq_size(argv, result);
+            ret = agent_cmd_opt_parse_channelq_size(state, argv, result);
             if (ret != LAGOPUS_RESULT_OK) {
               return ret;
             }
@@ -194,7 +199,7 @@ s_parse_agent(datastore_interp_t *iptr,
         } else if (strcmp(*argv, OPT_CHANNELQ_MAX_BATCHES) == 0) {
           argv++;
           if (IS_VALID_STRING(*argv) == true) {
-            ret = agent_cmd_opt_parse_channelq_max_batches(argv, result);
+            ret = agent_cmd_opt_parse_channelq_max_batches(state, argv, result);
             if (ret != LAGOPUS_RESULT_OK) {
               return ret;
             }

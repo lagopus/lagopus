@@ -62,8 +62,7 @@ test_push_mpls(void) {
   m->data[14] = 0x45;
   m->data[22] = 240;
 
-  lagopus_set_in_port(&pkt, &port);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   execute_action(&pkt, &action_list);
   TEST_ASSERT_EQUAL_MESSAGE(OS_M_PKTLEN(m), 64 + 4,
                             "PUSH_MPLS length error.");
@@ -132,8 +131,7 @@ test_push_vlan(void) {
   m->data[13] = 0x00;
   m->data[14] = 0x45;
 
-  lagopus_set_in_port(&pkt, &port);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   execute_action(&pkt, &action_list);
   TEST_ASSERT_EQUAL_MESSAGE(OS_M_PKTLEN(m), 64 + 4,
                             "PUSH_VLAN length error.");
@@ -195,8 +193,7 @@ test_push_pbb(void) {
   OS_MEMCPY(&m->data[0], dhost, ETH_ALEN);
   OS_MEMCPY(&m->data[6], shost, ETH_ALEN);
 
-  lagopus_set_in_port(&pkt, &port);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   execute_action(&pkt, &action_list);
   TEST_ASSERT_EQUAL_MESSAGE(OS_M_PKTLEN(m), 64 + 18,
                             "PUSH_PBB length error.");
@@ -265,8 +262,7 @@ test_pop_mpls(void) {
   m->data[22] = 0x45;
   m->data[30] = 240;
 
-  lagopus_set_in_port(&pkt, &port);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   action_pop->ethertype = 0x8847;
   execute_action(&pkt, &action_list);
   TEST_ASSERT_EQUAL_MESSAGE(OS_M_PKTLEN(m), 64 + 4,
@@ -324,8 +320,7 @@ test_pop_vlan(void) {
   m->data[18] = 0x45;
   m->data[26] = 240;
 
-  lagopus_set_in_port(&pkt, &port);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   execute_action(&pkt, &action_list);
   TEST_ASSERT_EQUAL_MESSAGE(OS_M_PKTLEN(m), 64,
                             "POP_VLAN length error.");
@@ -379,8 +374,7 @@ test_pop_pbb(void) {
   m->data[31] = 0x00;
   m->data[32] = 0x45;
 
-  lagopus_set_in_port(&pkt, &port);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   execute_action(&pkt, &action_list);
   TEST_ASSERT_EQUAL_MESSAGE(OS_M_PKTLEN(m), 64,
                             "POP_PBB length error.");

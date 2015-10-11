@@ -45,7 +45,6 @@ test_match_basic_VLAN_VID(void) {
   bool rv;
 
   /* prepare packet */
-  pkt.in_port = &port;
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
@@ -59,7 +58,7 @@ test_match_basic_VLAN_VID(void) {
   add_match(&flow->match_list, 2, OFPXMT_OFB_VLAN_VID << 1,
             0x10, 0x01);
   refresh_match(flow);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "VLAN_VID mismatch error.");
@@ -67,7 +66,7 @@ test_match_basic_VLAN_VID(void) {
   m->data[13] = 0x00;
   m->data[14] = 0x00;
   m->data[15] = 0x01;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, true,
                             "VLAN VID match error.");
@@ -83,7 +82,6 @@ test_match_basic_VLAN_VID_W(void) {
   bool rv;
 
   /* prepare packet */
-  pkt.in_port = &port;
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
@@ -99,7 +97,7 @@ test_match_basic_VLAN_VID_W(void) {
   refresh_match(flow);
   m->data[12] = 0x08;
   m->data[13] = 0x00;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "VLAN_VID_W mismatch error.");
@@ -107,7 +105,7 @@ test_match_basic_VLAN_VID_W(void) {
   m->data[13] = 0x00;
   m->data[14] = 0x00;
   m->data[15] = 0xff;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, true,
                             "VLAN VID_W match error.");

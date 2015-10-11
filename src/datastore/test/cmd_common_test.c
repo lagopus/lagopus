@@ -349,36 +349,3 @@ test_cmd_uint_parse_invalid_args(void) {
                             "cmd_uint_parse error (invalid_args).");
 }
 
-void
-test_cmd_string_indexof(void) {
-  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
-
-  ret = cmd_string_indexof("abcdefg", "abcd");
-  TEST_ASSERT_EQUAL_MESSAGE(0, ret,
-                            "cmd_string_indexof error (invalid_args).");
-
-  ret = cmd_string_indexof("abcdefg", "cde");
-  TEST_ASSERT_EQUAL_MESSAGE(2, ret,
-                            "cmd_string_indexof error (invalid_args).");
-
-  ret = cmd_string_indexof("abcdefg", "efg");
-  TEST_ASSERT_EQUAL_MESSAGE(4, ret,
-                            "cmd_string_indexof error (invalid_args).");
-
-  ret = cmd_string_indexof("abcdefg", "zabc");
-  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_NOT_FOUND, ret,
-                            "cmd_string_indexof error (invalid_args).");
-
-  ret = cmd_string_indexof("abcdefg", "efgh");
-  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_NOT_FOUND, ret,
-                            "cmd_string_indexof error (invalid_args).");
-
-  ret = cmd_string_indexof(NULL, "abcdefg");
-  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS, ret,
-                            "cmd_string_indexof error (invalid_args).");
-
-  ret = cmd_string_indexof("abcdefg", NULL);
-  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS, ret,
-                            "cmd_string_indexof error (invalid_args).");
-}
-

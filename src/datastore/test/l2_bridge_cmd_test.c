@@ -71,14 +71,14 @@ test_l2_bridge_cmd_parse_create_01(void) {
   const char *argv3[] = {"l2-bridge", NULL};
   const char test_str3[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name02\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name02\",\n"
     "\"expire\":18446744073709551615,\n"
     "\"max-entries\":18446744073709551615,\n"
     "\"tmp-dir\":\"\\/tmp\",\n"
-    "\"bridge\":\""NAMESPACE_DELIMITER"b1\",\n"
+    "\"bridge\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
     "\"is-used\":true,\n"
     "\"is-enabled\":true},\n"
-    "{\"name\":\""NAMESPACE_DELIMITER"test_name01\",\n"
+    "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name01\",\n"
     "\"expire\":18446744073709551615,\n"
     "\"max-entries\":18446744073709551615,\n"
     "\"tmp-dir\":\"\\/hoge\\/foo\",\n"
@@ -88,11 +88,11 @@ test_l2_bridge_cmd_parse_create_01(void) {
   const char *argv4[] = {"l2-bridge", "test_name02", NULL};
   const char test_str4[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name02\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name02\",\n"
     "\"expire\":18446744073709551615,\n"
     "\"max-entries\":18446744073709551615,\n"
     "\"tmp-dir\":\"\\/tmp\",\n"
-    "\"bridge\":\""NAMESPACE_DELIMITER"b1\",\n"
+    "\"bridge\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
     "\"is-used\":true,\n"
     "\"is-enabled\":true}]}";
   const char *argv5[] = {"l2-bridge", "test_name02", "disable",
@@ -222,11 +222,11 @@ test_l2_bridge_cmd_parse_enable_unused(void) {
                         };
   const char test_str2[] =
     "{\"ret\":\"NOT_OPERATIONAL\",\n"
-    "\"data\":\"name = "NAMESPACE_DELIMITER"test_name09. is not used.\"}";
+    "\"data\":\"name = "DATASTORE_NAMESPACE_DELIMITER"test_name09. is not used.\"}";
   const char *argv3[] = {"l2-bridge", "test_name09", NULL};
   const char test_str3[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name09\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name09\",\n"
     "\"expire\":1,\n"
     "\"max-entries\":1,\n"
     "\"tmp-dir\":\"\\/tmp\",\n"
@@ -274,7 +274,7 @@ test_l2_bridge_cmd_parse_config_01(void) {
   const char *argv2[] = {"l2-bridge", "test_name10", NULL};
   const char test_str2[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name10\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name10\",\n"
     "\"expire\":1,\n"
     "\"max-entries\":1,\n"
     "\"tmp-dir\":\"\\/tmp\",\n"
@@ -290,7 +290,7 @@ test_l2_bridge_cmd_parse_config_01(void) {
   const char *argv4[] = {"l2-bridge", "test_name10", NULL};
   const char test_str4[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name10\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name10\",\n"
     "\"expire\":2,\n"
     "\"max-entries\":2,\n"
     "\"tmp-dir\":\"\\/tmp\",\n"
@@ -346,11 +346,11 @@ test_l2_bridge_cmd_parse_config_02(void) {
   const char *argv3[] = {"l2-bridge", "test_name11", NULL};
   const char test_str3[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name11\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name11\",\n"
     "\"expire\":1,\n"
     "\"max-entries\":1,\n"
     "\"tmp-dir\":\"\\/tmp\",\n"
-    "\"bridge\":\""NAMESPACE_DELIMITER"b11\",\n"
+    "\"bridge\":\""DATASTORE_NAMESPACE_DELIMITER"b11\",\n"
     "\"is-used\":true,\n"
     "\"is-enabled\":true}]}";
   const char *argv4[] = {"l2-bridge", "test_name11", "config",
@@ -362,11 +362,11 @@ test_l2_bridge_cmd_parse_config_02(void) {
   const char *argv5[] = {"l2-bridge", "test_name11", NULL};
   const char test_str5[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name11\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name11\",\n"
     "\"expire\":2,\n"
     "\"max-entries\":2,\n"
     "\"tmp-dir\":\"\\/tmp\",\n"
-    "\"bridge\":\""NAMESPACE_DELIMITER"b11\",\n"
+    "\"bridge\":\""DATASTORE_NAMESPACE_DELIMITER"b11\",\n"
     "\"is-used\":true,\n"
     "\"is-enabled\":true}]}";
   const char *argv6[] = {"l2-bridge", "test_name11", "disable",
@@ -437,7 +437,7 @@ test_l2_bridge_cmd_parse_config_show_01(void) {
   const char *argv2[] = {"l2-bridge", "test_name12", NULL};
   const char test_str2[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name12\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name12\",\n"
     "\"expire\":1,\n"
     "\"max-entries\":1,\n"
     "\"tmp-dir\":\"\\/tmp\",\n"
@@ -455,14 +455,14 @@ test_l2_bridge_cmd_parse_config_show_01(void) {
                         };
   const char test_str4[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name12\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name12\",\n"
     "\"expire\":2}]}";
   const char *argv5[] = {"l2-bridge", "test_name12", "config",
                          "-max-entries", NULL
                         };
   const char test_str5[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name12\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name12\",\n"
     "\"max-entries\":2}]}";
   const char *argv6[] = {"l2-bridge", "test_name12", "destroy",
                          NULL
@@ -519,7 +519,7 @@ test_l2_bridge_cmd_parse_destroy_used(void) {
                          NULL
                         };
   const char test_str3[] = {"{\"ret\":\"NOT_OPERATIONAL\",\n"
-                            "\"data\":\"name = "NAMESPACE_DELIMITER"test_name13: is used.\"}"
+                            "\"data\":\"name = "DATASTORE_NAMESPACE_DELIMITER"test_name13: is used.\"}"
                            };
   const char *argv4[] = {"l2-bridge", "test_name13", "destroy",
                          NULL
@@ -573,7 +573,7 @@ test_l2_bridge_cmd_parse_show_01(void) {
                         };
   const char test_str2[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name14\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name14\",\n"
     "\"expire\":1,\n"
     "\"max-entries\":1,\n"
     "\"tmp-dir\":\"\\/tmp\",\n"
@@ -609,7 +609,7 @@ test_l2_bridge_cmd_parse_show_01(void) {
                         };
   const char test_str7[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name14\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name14\",\n"
     "\"expire\":3,\n"
     "\"max-entries\":3,\n"
     "\"tmp-dir\":\"\\/tmp\",\n"
@@ -679,7 +679,7 @@ test_l2_bridge_cmd_serialize_default_opt(void) {
 
   /* serialize result str. */
   const char serialize_str1[] =
-    "l2-bridge "NAMESPACE_DELIMITER"test_name27 create "
+    "l2-bridge "DATASTORE_NAMESPACE_DELIMITER"test_name27 create "
     "-expire 300 "
     "-max-entries 1000000 "
     "-tmp-dir /tmp\n";
@@ -692,7 +692,7 @@ test_l2_bridge_cmd_serialize_default_opt(void) {
   /* TEST : serialize. */
   TEST_CMD_PROC(ret, LAGOPUS_RESULT_OK, l2_bridge_cmd_serialize, &interp, state,
                 &tbl,
-                NAMESPACE_DELIMITER"test_name27", conf, &ds, str, serialize_str1);
+                DATASTORE_NAMESPACE_DELIMITER"test_name27", conf, &ds, str, serialize_str1);
 
   /* destroy cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, l2_bridge_cmd_parse,
@@ -717,7 +717,7 @@ test_l2_bridge_cmd_serialize_default_opt_escape(void) {
 
   /* serialize result str. */
   const char serialize_str1[] =
-    "l2-bridge \""NAMESPACE_DELIMITER"test_\\\"name28\" create "
+    "l2-bridge \""DATASTORE_NAMESPACE_DELIMITER"test_\\\"name28\" create "
     "-expire 300 "
     "-max-entries 1000000 "
     "-tmp-dir /tmp\n";
@@ -730,7 +730,7 @@ test_l2_bridge_cmd_serialize_default_opt_escape(void) {
   /* TEST : serialize. */
   TEST_CMD_PROC(ret, LAGOPUS_RESULT_OK, l2_bridge_cmd_serialize, &interp, state,
                 &tbl,
-                NAMESPACE_DELIMITER"test_\"name28", conf, &ds, str, serialize_str1);
+                DATASTORE_NAMESPACE_DELIMITER"test_\"name28", conf, &ds, str, serialize_str1);
 
   /* destroy cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, l2_bridge_cmd_parse,
@@ -755,7 +755,7 @@ test_l2_bridge_cmd_serialize_default_opt_escape_white_space(void) {
 
   /* serialize result str. */
   const char serialize_str1[] =
-    "l2-bridge \""NAMESPACE_DELIMITER"test name29\" create "
+    "l2-bridge \""DATASTORE_NAMESPACE_DELIMITER"test name29\" create "
     "-expire 300 "
     "-max-entries 1000000 "
     "-tmp-dir /tmp\n";
@@ -768,7 +768,7 @@ test_l2_bridge_cmd_serialize_default_opt_escape_white_space(void) {
   /* TEST : serialize. */
   TEST_CMD_PROC(ret, LAGOPUS_RESULT_OK, l2_bridge_cmd_serialize, &interp, state,
                 &tbl,
-                NAMESPACE_DELIMITER"test name29", conf, &ds, str, serialize_str1);
+                DATASTORE_NAMESPACE_DELIMITER"test name29", conf, &ds, str, serialize_str1);
 
   /* destroy cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, l2_bridge_cmd_parse,
@@ -800,7 +800,7 @@ test_l2_bridge_cmd_serialize_all_opts(void) {
 
   /* serialize result str. */
   const char serialize_str1[] = "l2-bridge "
-                                NAMESPACE_DELIMITER"test_name30 create "
+                                DATASTORE_NAMESPACE_DELIMITER"test_name30 create "
                                 "-expire 1 "
                                 "-max-entries 1 "
                                 "-tmp-dir /hoge/foo\n";
@@ -814,7 +814,7 @@ test_l2_bridge_cmd_serialize_all_opts(void) {
   /* TEST : serialize. */
   TEST_CMD_PROC(ret, LAGOPUS_RESULT_OK, l2_bridge_cmd_serialize, &interp, state,
                 &tbl,
-                NAMESPACE_DELIMITER"test_name30", conf, &ds, str, serialize_str1);
+                DATASTORE_NAMESPACE_DELIMITER"test_name30", conf, &ds, str, serialize_str1);
 
   /* destroy cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, l2_bridge_cmd_parse,
@@ -838,7 +838,7 @@ test_l2_bridge_cmd_parse_stats_01(void) {
                         };
   const char test_str2[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name33\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name33\",\n"
     "\"entries\":0}]}";
   const char *argv3[] = {"l2-bridge", "test_name33", "destroy",
                          NULL
@@ -924,7 +924,7 @@ test_l2_bridge_cmd_parse_atomic_commit(void) {
   const char *argv3[] = {"l2-bridge", "test_name36", "modified", NULL};
   const char test_str3[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name36\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name36\",\n"
     "\"expire\":1,\n"
     "\"max-entries\":1,\n"
     "\"tmp-dir\":\"\\/tmp\",\n"
@@ -944,7 +944,7 @@ test_l2_bridge_cmd_parse_atomic_commit(void) {
   const char *argv6[] = {"l2-bridge", "test_name36", "modified", NULL};
   const char test_str6[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name36\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name36\",\n"
     "\"expire\":2,\n"
     "\"max-entries\":2,\n"
     "\"tmp-dir\":\"\\/tmp\",\n"
@@ -954,7 +954,7 @@ test_l2_bridge_cmd_parse_atomic_commit(void) {
   const char *argv7[] = {"l2-bridge", "test_name36", NULL};
   const char test_str7[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name36\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name36\",\n"
     "\"expire\":2,\n"
     "\"max-entries\":2,\n"
     "\"tmp-dir\":\"\\/tmp\",\n"
@@ -1004,11 +1004,11 @@ test_l2_bridge_cmd_parse_atomic_commit(void) {
 
   /* commiting. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, l2_bridge_cmd_update, &interp, state2, &tbl,
-            NAMESPACE_DELIMITER"test_name36", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name36", conf, &ds);
 
   /* commited. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, l2_bridge_cmd_update, &interp, state3, &tbl,
-            NAMESPACE_DELIMITER"test_name36", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name36", conf, &ds);
 
   /* show cmd (current). */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, l2_bridge_cmd_parse, &interp, state1,
@@ -1048,7 +1048,7 @@ test_l2_bridge_cmd_parse_atomic_rollback(void) {
   const char *argv3[] = {"l2-bridge", "test_name37", "modified", NULL};
   const char test_str3[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name37\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name37\",\n"
     "\"expire\":1,\n"
     "\"max-entries\":1,\n"
     "\"tmp-dir\":\"\\/tmp\",\n"
@@ -1068,7 +1068,7 @@ test_l2_bridge_cmd_parse_atomic_rollback(void) {
   const char *argv6[] = {"l2-bridge", "test_name37", "modified", NULL};
   const char test_str6[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name37\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name37\",\n"
     "\"expire\":2,\n"
     "\"max-entries\":2,\n"
     "\"tmp-dir\":\"\\/tmp\",\n"
@@ -1078,7 +1078,7 @@ test_l2_bridge_cmd_parse_atomic_rollback(void) {
   const char *argv7[] = {"l2-bridge", "test_name37", NULL};
   const char test_str7[] =
     "{\"ret\":\"NOT_FOUND\",\n"
-    "\"data\":\"name = "NAMESPACE_DELIMITER"test_name37\"}";
+    "\"data\":\"name = "DATASTORE_NAMESPACE_DELIMITER"test_name37\"}";
 
   /* create cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, l2_bridge_cmd_parse, &interp, state1,
@@ -1114,11 +1114,11 @@ test_l2_bridge_cmd_parse_atomic_rollback(void) {
 
   /* rollbacking. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, l2_bridge_cmd_update, &interp, state2, &tbl,
-            NAMESPACE_DELIMITER"test_name37", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name37", conf, &ds);
 
   /* rollbacked. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, l2_bridge_cmd_update, &interp, state3, &tbl,
-            NAMESPACE_DELIMITER"test_name37", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name37", conf, &ds);
 
   /* show cmd (current). */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
@@ -1151,11 +1151,11 @@ test_l2_bridge_cmd_parse_atomic_delay_enable(void) {
   const char *argv4[] = {"l2-bridge", "test_name38", "modified", NULL};
   const char test_str4[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name38\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name38\",\n"
     "\"expire\":1,\n"
     "\"max-entries\":1,\n"
     "\"tmp-dir\":\"\\/tmp\",\n"
-    "\"bridge\":\""NAMESPACE_DELIMITER"b38\",\n"
+    "\"bridge\":\""DATASTORE_NAMESPACE_DELIMITER"b38\",\n"
     "\"is-used\":true,\n"
     "\"is-enabled\":false}]}";
   const char *argv5[] = {"l2-bridge", "test_name38", NULL};
@@ -1165,21 +1165,21 @@ test_l2_bridge_cmd_parse_atomic_delay_enable(void) {
   const char *argv6[] = {"l2-bridge", "test_name38", "modified", NULL};
   const char test_str6[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name38\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name38\",\n"
     "\"expire\":1,\n"
     "\"max-entries\":1,\n"
     "\"tmp-dir\":\"\\/tmp\",\n"
-    "\"bridge\":\""NAMESPACE_DELIMITER"b38\",\n"
+    "\"bridge\":\""DATASTORE_NAMESPACE_DELIMITER"b38\",\n"
     "\"is-used\":true,\n"
     "\"is-enabled\":true}]}";
   const char *argv7[] = {"l2-bridge", "test_name38", NULL};
   const char test_str7[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name38\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name38\",\n"
     "\"expire\":1,\n"
     "\"max-entries\":1,\n"
     "\"tmp-dir\":\"\\/tmp\",\n"
-    "\"bridge\":\""NAMESPACE_DELIMITER"b38\",\n"
+    "\"bridge\":\""DATASTORE_NAMESPACE_DELIMITER"b38\",\n"
     "\"is-used\":true,\n"
     "\"is-enabled\":true}]}";
   const char *argv8[] = {"l2-bridge", "test_name38", "modified", NULL};
@@ -1219,7 +1219,7 @@ test_l2_bridge_cmd_parse_atomic_delay_enable(void) {
 
   /* commiting. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, l2_bridge_cmd_update, &interp, state2, &tbl,
-            NAMESPACE_DELIMITER"test_name38", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name38", conf, &ds);
 
   /* show cmd (current). */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
@@ -1234,7 +1234,7 @@ test_l2_bridge_cmd_parse_atomic_delay_enable(void) {
 
   /* commited. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, l2_bridge_cmd_update, &interp, state3, &tbl,
-            NAMESPACE_DELIMITER"test_name38", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name38", conf, &ds);
 
   /* show cmd (current). */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, l2_bridge_cmd_parse, &interp, state1,
@@ -1279,31 +1279,31 @@ test_l2_bridge_cmd_parse_atomic_delay_disable(void) {
   const char *argv4[] = {"l2-bridge", "test_name39", NULL};
   const char test_str4[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name39\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name39\",\n"
     "\"expire\":1,\n"
     "\"max-entries\":1,\n"
     "\"tmp-dir\":\"\\/tmp\",\n"
-    "\"bridge\":\""NAMESPACE_DELIMITER"b39\",\n"
+    "\"bridge\":\""DATASTORE_NAMESPACE_DELIMITER"b39\",\n"
     "\"is-used\":true,\n"
     "\"is-enabled\":true}]}";
   const char *argv5[] = {"l2-bridge", "test_name39", NULL};
   const char test_str5[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name39\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name39\",\n"
     "\"expire\":1,\n"
     "\"max-entries\":1,\n"
     "\"tmp-dir\":\"\\/tmp\",\n"
-    "\"bridge\":\""NAMESPACE_DELIMITER"b39\",\n"
+    "\"bridge\":\""DATASTORE_NAMESPACE_DELIMITER"b39\",\n"
     "\"is-used\":true,\n"
     "\"is-enabled\":false}]}";
   const char *argv6[] = {"l2-bridge", "test_name39", NULL};
   const char test_str6[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name39\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name39\",\n"
     "\"expire\":1,\n"
     "\"max-entries\":1,\n"
     "\"tmp-dir\":\"\\/tmp\",\n"
-    "\"bridge\":\""NAMESPACE_DELIMITER"b39\",\n"
+    "\"bridge\":\""DATASTORE_NAMESPACE_DELIMITER"b39\",\n"
     "\"is-used\":true,\n"
     "\"is-enabled\":false}]}";
   const char *argv7[] = {"l2-bridge", "test_name39", "destroy",
@@ -1338,7 +1338,7 @@ test_l2_bridge_cmd_parse_atomic_delay_disable(void) {
 
   /* commiting. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, l2_bridge_cmd_update, &interp, state2, &tbl,
-            NAMESPACE_DELIMITER"test_name39", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name39", conf, &ds);
 
   /* show cmd (current). */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, l2_bridge_cmd_parse, &interp, state1,
@@ -1347,7 +1347,7 @@ test_l2_bridge_cmd_parse_atomic_delay_disable(void) {
 
   /* commited. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, l2_bridge_cmd_update, &interp, state3, &tbl,
-            NAMESPACE_DELIMITER"test_name39", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name39", conf, &ds);
 
   /* show cmd (current). */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, l2_bridge_cmd_parse, &interp, state1,
@@ -1386,29 +1386,29 @@ test_l2_bridge_cmd_parse_atomic_delay_destroy(void) {
   const char *argv3[] = {"l2-bridge", "test_name40", NULL};
   const char test_str3[] =
     "{\"ret\":\"NOT_FOUND\",\n"
-    "\"data\":\"name = "NAMESPACE_DELIMITER"test_name40\"}";
+    "\"data\":\"name = "DATASTORE_NAMESPACE_DELIMITER"test_name40\"}";
   const char *argv4[] = {"l2-bridge", "test_name40", "enable",
                          NULL
                         };
   const char test_str4[] =
     "{\"ret\":\"INVALID_OBJECT\",\n"
-    "\"data\":\"name = "NAMESPACE_DELIMITER"test_name40\"}";
+    "\"data\":\"name = "DATASTORE_NAMESPACE_DELIMITER"test_name40\"}";
   const char *argv5[] = {"l2-bridge", "test_name40", "disable",
                          NULL
                         };
   const char test_str5[] =
     "{\"ret\":\"INVALID_OBJECT\",\n"
-    "\"data\":\"name = "NAMESPACE_DELIMITER"test_name40\"}";
+    "\"data\":\"name = "DATASTORE_NAMESPACE_DELIMITER"test_name40\"}";
   const char *argv6[] = {"l2-bridge", "test_name40", "destroy",
                          NULL
                         };
   const char test_str6[] =
     "{\"ret\":\"INVALID_OBJECT\",\n"
-    "\"data\":\"name = "NAMESPACE_DELIMITER"test_name40\"}";
+    "\"data\":\"name = "DATASTORE_NAMESPACE_DELIMITER"test_name40\"}";
   const char *argv7[] = {"l2-bridge", "test_name40", NULL};
   const char test_str7[] =
     "{\"ret\":\"NOT_FOUND\",\n"
-    "\"data\":\"name = "NAMESPACE_DELIMITER"test_name40\"}";
+    "\"data\":\"name = "DATASTORE_NAMESPACE_DELIMITER"test_name40\"}";
 
   /* create cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, l2_bridge_cmd_parse, &interp, state4,
@@ -1446,11 +1446,11 @@ test_l2_bridge_cmd_parse_atomic_delay_destroy(void) {
 
   /* commiting. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, l2_bridge_cmd_update, &interp, state2, &tbl,
-            NAMESPACE_DELIMITER"test_name40", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name40", conf, &ds);
 
   /* commited. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, l2_bridge_cmd_update, &interp, state3, &tbl,
-            NAMESPACE_DELIMITER"test_name40", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name40", conf, &ds);
 
   /* show cmd (current). */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
@@ -1480,7 +1480,7 @@ test_l2_bridge_cmd_parse_atomic_abort_01(void) {
   const char *argv3[] = {"l2-bridge", "test_name41", "modified", NULL};
   const char test_str3[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name41\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name41\",\n"
     "\"expire\":1,\n"
     "\"max-entries\":1,\n"
     "\"tmp-dir\":\"\\/tmp\",\n"
@@ -1500,7 +1500,7 @@ test_l2_bridge_cmd_parse_atomic_abort_01(void) {
   const char *argv6[] = {"l2-bridge", "test_name41", "modified", NULL};
   const char test_str6[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name41\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name41\",\n"
     "\"expire\":1,\n"
     "\"max-entries\":1,\n"
     "\"tmp-dir\":\"\\/tmp\",\n"
@@ -1514,7 +1514,7 @@ test_l2_bridge_cmd_parse_atomic_abort_01(void) {
   const char *argv8[] = {"l2-bridge", "test_name41", "modified", NULL};
   const char test_str8[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name41\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name41\",\n"
     "\"expire\":1,\n"
     "\"max-entries\":1,\n"
     "\"tmp-dir\":\"\\/tmp\",\n"
@@ -1524,7 +1524,7 @@ test_l2_bridge_cmd_parse_atomic_abort_01(void) {
   const char *argv9[] = {"l2-bridge", "test_name41", NULL};
   const char test_str9[] =
     "{\"ret\":\"NOT_FOUND\",\n"
-    "\"data\":\"name = "NAMESPACE_DELIMITER"test_name41\"}";
+    "\"data\":\"name = "DATASTORE_NAMESPACE_DELIMITER"test_name41\"}";
 
   /* create cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, l2_bridge_cmd_parse, &interp, state1,
@@ -1560,7 +1560,7 @@ test_l2_bridge_cmd_parse_atomic_abort_01(void) {
 
   /* aborting. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, l2_bridge_cmd_update, &interp, state2, &tbl,
-            NAMESPACE_DELIMITER"test_name41", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name41", conf, &ds);
 
   /* show cmd (current). */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
@@ -1575,7 +1575,7 @@ test_l2_bridge_cmd_parse_atomic_abort_01(void) {
 
   /* aborted. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, l2_bridge_cmd_update, &interp, state3, &tbl,
-            NAMESPACE_DELIMITER"test_name41", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name41", conf, &ds);
 
   /* show cmd (current). */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
@@ -1602,7 +1602,7 @@ test_l2_bridge_cmd_parse_atomic_abort_02(void) {
   const char *argv2[] = {"l2-bridge", "test_name42", NULL};
   const char test_str2[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name42\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name42\",\n"
     "\"expire\":1,\n"
     "\"max-entries\":1,\n"
     "\"tmp-dir\":\"\\/tmp\",\n"
@@ -1622,7 +1622,7 @@ test_l2_bridge_cmd_parse_atomic_abort_02(void) {
   const char *argv5[] = {"l2-bridge", "test_name42", NULL};
   const char test_str5[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name42\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name42\",\n"
     "\"expire\":1,\n"
     "\"max-entries\":1,\n"
     "\"tmp-dir\":\"\\/tmp\",\n"
@@ -1632,7 +1632,7 @@ test_l2_bridge_cmd_parse_atomic_abort_02(void) {
   const char *argv6[] = {"l2-bridge", "test_name42", "modified", NULL};
   const char test_str6[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name42\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name42\",\n"
     "\"expire\":2,\n"
     "\"max-entries\":2,\n"
     "\"tmp-dir\":\"\\/tmp\",\n"
@@ -1642,7 +1642,7 @@ test_l2_bridge_cmd_parse_atomic_abort_02(void) {
   const char *argv7[] = {"l2-bridge", "test_name42", NULL};
   const char test_str7[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name42\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name42\",\n"
     "\"expire\":1,\n"
     "\"max-entries\":1,\n"
     "\"tmp-dir\":\"\\/tmp\",\n"
@@ -1652,7 +1652,7 @@ test_l2_bridge_cmd_parse_atomic_abort_02(void) {
   const char *argv8[] = {"l2-bridge", "test_name42", "modified", NULL};
   const char test_str8[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name42\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name42\",\n"
     "\"expire\":2,\n"
     "\"max-entries\":2,\n"
     "\"tmp-dir\":\"\\/tmp\",\n"
@@ -1662,7 +1662,7 @@ test_l2_bridge_cmd_parse_atomic_abort_02(void) {
   const char *argv9[] = {"l2-bridge", "test_name42", NULL};
   const char test_str9[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name42\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name42\",\n"
     "\"expire\":1,\n"
     "\"max-entries\":1,\n"
     "\"tmp-dir\":\"\\/tmp\",\n"
@@ -1711,7 +1711,7 @@ test_l2_bridge_cmd_parse_atomic_abort_02(void) {
 
   /*  aborting. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, l2_bridge_cmd_update, &interp, state2, &tbl,
-            NAMESPACE_DELIMITER"test_name42", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name42", conf, &ds);
 
   /* show cmd (current). */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, l2_bridge_cmd_parse, &interp, state1,
@@ -1725,7 +1725,7 @@ test_l2_bridge_cmd_parse_atomic_abort_02(void) {
 
   /*  aborted. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, l2_bridge_cmd_update, &interp, state3, &tbl,
-            NAMESPACE_DELIMITER"test_name42", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name42", conf, &ds);
 
   /* show cmd (current). */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, l2_bridge_cmd_parse, &interp, state1,
@@ -1767,7 +1767,7 @@ test_l2_bridge_cmd_parse_atomic_destroy_create(void) {
   const char *argv3[] = {"l2-bridge", "test_name43", NULL};
   const char test_str3[] =
     "{\"ret\":\"NOT_FOUND\",\n"
-    "\"data\":\"name = "NAMESPACE_DELIMITER"test_name43\"}";
+    "\"data\":\"name = "DATASTORE_NAMESPACE_DELIMITER"test_name43\"}";
   const char *argv4[] = {"l2-bridge", "test_name43", "create",
                          "-expire", "2",
                          "-max-entries", "2",
@@ -1777,7 +1777,7 @@ test_l2_bridge_cmd_parse_atomic_destroy_create(void) {
   const char *argv5[] = {"l2-bridge", "test_name43", NULL};
   const char test_str5[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name43\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name43\",\n"
     "\"expire\":1,\n"
     "\"max-entries\":1,\n"
     "\"tmp-dir\":\"\\/tmp\",\n"
@@ -1787,7 +1787,7 @@ test_l2_bridge_cmd_parse_atomic_destroy_create(void) {
   const char *argv6[] = {"l2-bridge", "test_name43", "modified", NULL};
   const char test_str6[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name43\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name43\",\n"
     "\"expire\":2,\n"
     "\"max-entries\":2,\n"
     "\"tmp-dir\":\"\\/tmp\",\n"
@@ -1797,7 +1797,7 @@ test_l2_bridge_cmd_parse_atomic_destroy_create(void) {
   const char *argv7[] = {"l2-bridge", "test_name43", NULL};
   const char test_str7[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name43\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name43\",\n"
     "\"expire\":2,\n"
     "\"max-entries\":2,\n"
     "\"tmp-dir\":\"\\/tmp\",\n"
@@ -1846,11 +1846,11 @@ test_l2_bridge_cmd_parse_atomic_destroy_create(void) {
 
   /* commiting. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, l2_bridge_cmd_update, &interp, state2, &tbl,
-            NAMESPACE_DELIMITER"test_name43", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name43", conf, &ds);
 
   /* commited. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, l2_bridge_cmd_update, &interp, state3, &tbl,
-            NAMESPACE_DELIMITER"test_name43", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name43", conf, &ds);
 
   /* show cmd (current). */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, l2_bridge_cmd_parse, &interp, state4,
@@ -1979,6 +1979,86 @@ test_l2_bridge_cmd_parse_clear_bad_opt(void) {
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, l2_bridge_cmd_parse, &interp, state,
                  ARGV_SIZE(argv3), argv3, &tbl, l2_bridge_cmd_update,
                  &ds, str, test_str3);
+}
+
+void
+test_l2_bridge_cmd_parse_dryrun(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state1 = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  datastore_interp_state_t state2 = DATASTORE_INTERP_STATE_DRYRUN;
+  char *str = NULL;
+  const char *argv1[] = {"l2-bridge", "test_name47", "create",
+                         "-expire", "1",
+                         "-max-entries", "1",
+                         NULL
+                        };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char *argv2[] = {"l2-bridge", "test_name47", "current", NULL};
+  const char test_str2[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name47\",\n"
+    "\"expire\":1,\n"
+    "\"max-entries\":1,\n"
+    "\"tmp-dir\":\"\\/tmp\",\n"
+    "\"bridge\":\"\",\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+  const char *argv3[] = {"l2-bridge", "test_name47", "modified", NULL};
+  const char test_str3[] =
+    "{\"ret\":\"NOT_OPERATIONAL\",\n"
+    "\"data\":\"Not set modified.\"}";
+  const char *argv4[] = {"l2-bridge", "test_name47", "config",
+                         "-expire", "10",
+                         "-max-entries", "10",
+                         NULL
+                        };
+  const char test_str4[] = "{\"ret\":\"OK\"}";
+  const char *argv5[] = {"l2-bridge", "test_name47", "current", NULL};
+  const char test_str5[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name47\",\n"
+    "\"expire\":10,\n"
+    "\"max-entries\":10,\n"
+    "\"tmp-dir\":\"\\/tmp\",\n"
+    "\"bridge\":\"\",\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+  const char *argv6[] = {"l2-bridge", "test_name47", "modified", NULL};
+  const char test_str6[] =
+    "{\"ret\":\"NOT_OPERATIONAL\",\n"
+    "\"data\":\"Not set modified.\"}";
+
+  /* create cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, l2_bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv1), argv1, &tbl, l2_bridge_cmd_update,
+                 &ds, str, test_str1);
+
+  /* show cmd (current). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, l2_bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv2), argv2, &tbl, l2_bridge_cmd_update,
+                 &ds, str, test_str2);
+
+  /* show cmd (modified). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 l2_bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv3), argv3, &tbl, l2_bridge_cmd_update,
+                 &ds, str, test_str3);
+
+  /* config cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, l2_bridge_cmd_parse, &interp, state2,
+                 ARGV_SIZE(argv4), argv4, &tbl, l2_bridge_cmd_update,
+                 &ds, str, test_str4);
+
+  /* show cmd (current). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, l2_bridge_cmd_parse, &interp, state2,
+                 ARGV_SIZE(argv5), argv5, &tbl, l2_bridge_cmd_update,
+                 &ds, str, test_str5);
+
+  /* show cmd (modified). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 l2_bridge_cmd_parse, &interp, state2,
+                 ARGV_SIZE(argv6), argv6, &tbl, l2_bridge_cmd_update,
+                 &ds, str, test_str6);
 }
 
 void

@@ -242,6 +242,26 @@ lagopus_hashmap_destroy(lagopus_hashmap_t *hmptr, bool free_values) {
 }
 
 
+
+
+
+static inline lagopus_result_t
+s_clear(lagopus_hashmap_t *hmptr, bool free_values) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+
+  if ((*hmptr)->m_is_operational == true) {
+    (*hmptr)->m_is_operational = false;
+    s_reinit(*hmptr, free_values);
+    (*hmptr)->m_is_operational = true;
+    ret = LAGOPUS_RESULT_OK;
+  } else {
+    ret = LAGOPUS_RESULT_NOT_OPERATIONAL;
+  }
+
+  return ret;
+}
+
+
 lagopus_result_t
 lagopus_hashmap_clear(lagopus_hashmap_t *hmptr, bool free_values) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
@@ -252,17 +272,25 @@ lagopus_hashmap_clear(lagopus_hashmap_t *hmptr, bool free_values) {
 
     s_write_lock(*hmptr, &cstate);
     {
-      if ((*hmptr)->m_is_operational == true) {
-        (*hmptr)->m_is_operational = false;
-        s_reinit(*hmptr, free_values);
-        (*hmptr)->m_is_operational = true;
-        ret = LAGOPUS_RESULT_OK;
-      } else {
-        ret = LAGOPUS_RESULT_NOT_OPERATIONAL;
-      }
+      ret = s_clear(hmptr, free_values);
     }
     s_unlock(*hmptr, cstate);
 
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  return ret;
+}
+
+
+lagopus_result_t
+lagopus_hashmap_clear_no_lock(lagopus_hashmap_t *hmptr, bool free_values) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+
+  if (hmptr != NULL &&
+      *hmptr != NULL) {
+    ret = s_clear(hmptr, free_values);
   } else {
     ret = LAGOPUS_RESULT_INVALID_ARGS;
   }

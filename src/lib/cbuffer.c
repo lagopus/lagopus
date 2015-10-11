@@ -238,12 +238,25 @@ s_wait_io_ready(lagopus_cbuffer_t cb,
                 lagopus_cond_t *cptr,
                 lagopus_chrono_t nsec) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  size_t n_waiters;
 
   if (cb != NULL && cptr != NULL) {
     if (nsec != 0LL) {
-      cb->m_n_waiters++;
+
+      lagopus_msg_debug(5, "wait " PF64(d) " nsec.\n",
+                        nsec);
+
+      (void)__sync_fetch_and_add(&(cb->m_n_waiters), 1);
       ret = lagopus_cond_wait(cptr, &(cb->m_lock), nsec);
-      cb->m_n_waiters--;
+      n_waiters = __sync_sub_and_fetch(&(cb->m_n_waiters), 1);
+
+      if (cb->m_is_awakened == true) {
+        lagopus_msg_debug(5, "awakened while sleeping " PF64(d) " nsec.\n",
+                          nsec);
+      } else {
+        lagopus_msg_debug(5, "wait " PF64(d) " nsec done.\n",
+                          nsec);
+      }
 
       if (ret == LAGOPUS_RESULT_OK &&
           cb->m_is_awakened == true) {
@@ -253,10 +266,14 @@ s_wait_io_ready(lagopus_cbuffer_t cb,
          * waiters are awakened and leave this function.
          */
         if (cb->m_is_operational == true) {
-          if (cb->m_n_waiters == 0) {
+          if (n_waiters == 0) {
+
             /*
              * All the waiters are gone. Wake the waker up.
              */
+
+            lagopus_msg_debug(5, "sync wakeup who woke me up.\n");
+
             cb->m_is_awakened = false;
             (void)lagopus_cond_notify(&(cb->m_cond_awakened), true);
           }
@@ -280,13 +297,13 @@ s_wait_io_ready(lagopus_cbuffer_t cb,
 
 
 static inline lagopus_result_t
-s_wait_putable(lagopus_cbuffer_t cb, lagopus_chrono_t nsec) {
+s_wait_puttable(lagopus_cbuffer_t cb, lagopus_chrono_t nsec) {
   return s_wait_io_ready(cb, &(cb->m_cond_put), nsec);
 }
 
 
 static inline lagopus_result_t
-s_wait_getable(lagopus_cbuffer_t cb, lagopus_chrono_t nsec) {
+s_wait_gettable(lagopus_cbuffer_t cb, lagopus_chrono_t nsec) {
   return s_wait_io_ready(cb, &(cb->m_cond_get), nsec);
 }
 
@@ -335,6 +352,7 @@ s_put_n(lagopus_cbuffer_t *cbptr,
            * Repeat putting until all the data are put.
            */
         check_inf:
+          mbar();
           if (cb->m_is_operational == true) {
             n_copyin += s_copyin(cb,
                                  (void *)((char *)valptr +
@@ -349,7 +367,7 @@ s_put_n(lagopus_cbuffer_t *cbptr,
                  * No vacancy. Need to wait for someone get data from
                  * the buffer.
                  */
-                if ((ret = s_wait_putable(cb, -1LL)) ==
+                if ((ret = s_wait_puttable(cb, -1LL)) ==
                     LAGOPUS_RESULT_OK) {
                   goto check_inf;
                 } else {
@@ -398,6 +416,7 @@ s_put_n(lagopus_cbuffer_t *cbptr,
           lagopus_chrono_t to = nsec;
 
         check_to:
+          mbar();
           if (cb->m_is_operational == true) {
             WHAT_TIME_IS_IT_NOW_IN_NSEC(copy_start);
             n_copyin += s_copyin(cb,
@@ -413,7 +432,7 @@ s_put_n(lagopus_cbuffer_t *cbptr,
                  * No vacancy. Need to wait for someone get data from
                  * the buffer.
                  */
-                if ((ret = s_wait_putable(cb, to)) ==
+                if ((ret = s_wait_puttable(cb, to)) ==
                     LAGOPUS_RESULT_OK) {
                   WHAT_TIME_IS_IT_NOW_IN_NSEC(wait_end);
                   to -= (wait_end - copy_start);
@@ -513,6 +532,7 @@ s_get_n(lagopus_cbuffer_t *cbptr,
            * Repeat getting until all the required # of the data are got.
            */
         check_inf:
+          mbar();
           if (cb->m_is_operational == true) {
             n_copyout += s_copyout(cb,
                                    (void *)((char *)valptr +
@@ -528,7 +548,7 @@ s_get_n(lagopus_cbuffer_t *cbptr,
                  * No data. Need to wait for someone put data to the
                  * buffer.
                  */
-                if ((ret = s_wait_getable(cb, -1LL)) ==
+                if ((ret = s_wait_gettable(cb, -1LL)) ==
                     LAGOPUS_RESULT_OK) {
                   goto check_inf;
                 } else {
@@ -577,6 +597,7 @@ s_get_n(lagopus_cbuffer_t *cbptr,
           lagopus_chrono_t to = nsec;
 
         check_to:
+          mbar();
           if (cb->m_is_operational == true) {
             WHAT_TIME_IS_IT_NOW_IN_NSEC(copy_start);
             n_copyout += s_copyout(cb,
@@ -593,7 +614,7 @@ s_get_n(lagopus_cbuffer_t *cbptr,
                  * No data. Need to wait for someone put data to the
                  * buffer.
                  */
-                if ((ret = s_wait_getable(cb, to)) ==
+                if ((ret = s_wait_gettable(cb, to)) ==
                     LAGOPUS_RESULT_OK) {
                   WHAT_TIME_IS_IT_NOW_IN_NSEC(wait_end);
                   to -= (wait_end - copy_start);
@@ -779,45 +800,118 @@ lagopus_cbuffer_wakeup(lagopus_cbuffer_t *cbptr, lagopus_chrono_t nsec) {
 
   if (cbptr != NULL &&
       *cbptr != NULL) {
+    size_t n_waiters;
 
     s_lock(*cbptr);
     {
+      n_waiters = __sync_fetch_and_add(&((*cbptr)->m_n_waiters), 0);
 
-      if ((*cbptr)->m_is_operational == true) {
-        if ((*cbptr)->m_is_awakened == false &&
-	    (*cbptr)->m_n_waiters > 0) {
-          /*
-           * Wake all the waiters up.
-           */
-          (*cbptr)->m_is_awakened = true;
-          (void)lagopus_cond_notify(&((*cbptr)->m_cond_get), true);
-          (void)lagopus_cond_notify(&((*cbptr)->m_cond_put), true);
+      if (n_waiters > 0) {
+        if ((*cbptr)->m_is_operational == true) {
+          if ((*cbptr)->m_is_awakened == false) {
+            /*
+             * Wake all the waiters up.
+             */
+            (*cbptr)->m_is_awakened = true;
+            (void)lagopus_cond_notify(&((*cbptr)->m_cond_get), true);
+            (void)lagopus_cond_notify(&((*cbptr)->m_cond_put), true);
 
-          /*
-           * Then wait for one of the waiters wakes this thread up.
-           */
-        recheck:
-          if ((*cbptr)->m_is_operational == true) {
-            if ((*cbptr)->m_is_awakened == true) {
-            recheck2:
-              if ((ret = lagopus_cond_wait(&((*cbptr)->m_cond_awakened),
-                                           &((*cbptr)->m_lock), nsec)) ==
-                  LAGOPUS_RESULT_OK) {
-                goto recheck;
+            if (nsec != 0LL) {
+              /*
+               * Then wait for one of the waiters wakes this thread up.
+               */
+           recheck:
+              mbar();
+              if ((*cbptr)->m_is_operational == true) {
+                if ((*cbptr)->m_is_awakened == true) {
+
+                  lagopus_msg_debug(5, "sync wait a waiter wake me up...\n");
+
+                  if ((ret = lagopus_cond_wait(&((*cbptr)->m_cond_awakened),
+                                               &((*cbptr)->m_lock), nsec)) ==
+                      LAGOPUS_RESULT_OK) {
+                    goto recheck;
+                  }
+
+                  lagopus_msg_debug(5, "a waiter woke me up.\n");
+
+                } else {
+                  ret = LAGOPUS_RESULT_OK;
+                }
+              } else {
+                ret = LAGOPUS_RESULT_NOT_OPERATIONAL;
               }
             } else {
               ret = LAGOPUS_RESULT_OK;
             }
           } else {
-            ret = LAGOPUS_RESULT_NOT_OPERATIONAL;
+            ret = LAGOPUS_RESULT_OK;
           }
         } else {
-          goto recheck2;
+          ret = LAGOPUS_RESULT_NOT_OPERATIONAL;
         }
       } else {
-        ret = LAGOPUS_RESULT_NOT_OPERATIONAL;
+        ret = LAGOPUS_RESULT_OK;
       }
 
+    }
+    s_unlock(*cbptr);
+
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  return ret;
+}
+
+
+lagopus_result_t
+lagopus_cbuffer_wait_gettable(lagopus_cbuffer_t *cbptr,
+                              lagopus_chrono_t nsec) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+
+  if (cbptr != NULL && *cbptr != NULL) {
+
+    s_lock(*cbptr);
+    {
+      if ((*cbptr)->m_n_elements > 0) {
+        ret = (*cbptr)->m_n_elements;
+      } else {
+        ret = s_wait_gettable(*cbptr, nsec);
+        if (ret == LAGOPUS_RESULT_OK) {
+          ret = (*cbptr)->m_n_elements;
+        }
+      }
+    }
+    s_unlock(*cbptr);
+
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  return ret;
+}
+
+
+lagopus_result_t
+lagopus_cbuffer_wait_puttable(lagopus_cbuffer_t *cbptr,
+                              lagopus_chrono_t nsec) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  int64_t remains;
+
+  if (cbptr != NULL && *cbptr != NULL) {
+
+    s_lock(*cbptr);
+    {
+      remains = (*cbptr)->m_n_max_elements - (*cbptr)->m_n_elements;
+      if (remains > 0) {
+        ret = (lagopus_result_t)remains;
+      } else {
+        ret = s_wait_puttable(*cbptr, nsec);
+        if (ret == LAGOPUS_RESULT_OK) {
+          ret = (*cbptr)->m_n_max_elements - (*cbptr)->m_n_elements;
+        }
+      }
     }
     s_unlock(*cbptr);
 

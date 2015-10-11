@@ -114,7 +114,7 @@ typedef lagopus_cbuffer_t lagopus_bbq_t;
 /**
  * Wake up all the waiters in a bounded blocking queue.
  *
- *     @param[in]  cbptr	A pointer to a queue
+ *     @param[in]  bbqptr	A pointer to a queue
  *     @param[in]  nsec		Wait time (nanosec).
  *
  *     @retval LAGOPUS_RESULT_OK                Succeeded.
@@ -126,6 +126,40 @@ typedef lagopus_cbuffer_t lagopus_bbq_t;
  */
 #define lagopus_bbq_wakeup(bbqptr, nsec) \
   lagopus_cbuffer_wakeup((bbqptr), (nsec))
+
+
+/**
+ * Wait for gettable.
+ *
+ *     @param[in]  bbqptr	A pointer to a queue.
+ *     @param[in]  nsec		Wait time (nanosec).
+ *
+ *     @retval >0				# of the gettable elements.
+ *     @retval LAGOPUS_RESULT_NOT_OPERATIONAL   Failed, not operational.
+ *     @retval LAGOPUS_RESULT_POSIX_API_ERROR   Failed, posix API error.
+ *     @retval LAGOPUS_RESULT_TIMEDOUT          Failed, timedout.
+ *     @retval LAGOPUS_RESULT_INVALID_ARGS	Failed, invalid argument(s).
+ *     @retval LAGOPUS_RESULT_ANY_FAILURES      Failed.
+ */
+#define lagopus_bbq_wait_gettable(bbqptr, nsec) \
+  lagopus_cbuffer_wait_gettable((bbqptr), (nsec))
+
+
+/**
+ * Wait for puttable.
+ *
+ *     @param[in]  bbqptr	A pointer to a queue.
+ *     @param[in]  nsec		Wait time (nanosec).
+ *
+ *     @retval >0				# of the puttable elements.
+ *     @retval LAGOPUS_RESULT_NOT_OPERATIONAL   Failed, not operational.
+ *     @retval LAGOPUS_RESULT_POSIX_API_ERROR   Failed, posix API error.
+ *     @retval LAGOPUS_RESULT_TIMEDOUT          Failed, timedout.
+ *     @retval LAGOPUS_RESULT_INVALID_ARGS	Failed, invalid argument(s).
+ *     @retval LAGOPUS_RESULT_ANY_FAILURES      Failed.
+ */
+#define lagopus_bbq_wait_puttable(bbqptr, nsec) \
+  lagopus_cbuffer_wait_puttable((bbqptr), (nsec))
 
 
 

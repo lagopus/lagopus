@@ -19,7 +19,6 @@
 #include "lagopus/dpmgr.h"
 #include "lagopus/flowdb.h"
 #include "lagopus/ethertype.h"
-#include "lagopus/port.h"
 #include "lagopus/flowinfo.h"
 #include "lagopus/dataplane.h"
 #include "lagopus/dp_apis.h"
@@ -61,56 +60,6 @@ tearDown(void) {
 }
 
 void
-test_lagopus_set_in_port(void) {
-  struct lagopus_packet pkt;
-  struct port port;
-
-  lagopus_set_in_port(&pkt, &port);
-  TEST_ASSERT_EQUAL_MESSAGE(pkt.in_port, &port,
-                            "port error.");
-}
-
-void
-test_lagopus_receive_packet(void) {
-  struct lagopus_packet pkt;
-  struct bridge *bridge;
-  struct port *port;
-  OS_MBUF *m;
-  lagopus_result_t rv;
-
-  bridge = dp_bridge_lookup("br0");
-  TEST_ASSERT_NOT_NULL(bridge);
-
-  /* prepare packet */
-  m = calloc(1, sizeof(*m));
-  TEST_ASSERT_NOT_NULL_MESSAGE(m, "m: calloc error.");
-  m->data = &m->dat[128];
-
-  m->data[12] = 0x08;
-  m->data[13] = 0x00;
-  m->data[14] = 0x45;
-  m->data[23] = IPPROTO_TCP;
-  m->refcnt = 2;
-
-  pkt.cache = NULL;
-  pkt.table_id = 0;
-  pkt.flags = 0;
-
-  port = port_lookup(bridge->ports, 1);
-  TEST_ASSERT_NOT_NULL_MESSAGE(port, "port lookup error.");
-  lagopus_set_in_port(&pkt, port);
-  TEST_ASSERT_EQUAL_MESSAGE(pkt.in_port, port, "port error.");
-  TEST_ASSERT_EQUAL(pkt.in_port->bridge, bridge);
-
-  lagopus_packet_init(&pkt, m);
-  lagopus_receive_packet(&pkt);
-  TEST_ASSERT_NOT_EQUAL_MESSAGE(pkt.in_port, NULL,
-                                "port error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->refcnt, 1,
-                            "m->refcnt error.");
-}
-
-void
 test_action_OUTPUT(void) {
   struct action_list action_list;
   struct bridge *bridge;
@@ -136,9 +85,8 @@ test_action_OUTPUT(void) {
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
 
-  lagopus_set_in_port(&pkt, port_lookup(bridge->ports, 1));
+  lagopus_packet_init(&pkt, m, port_lookup(bridge->ports, 1));
   TEST_ASSERT_NOT_NULL(pkt.in_port);
-  lagopus_packet_init(&pkt, m);
 
   /* output action always decrement reference count. */
   m->refcnt = 2;
@@ -229,12 +177,11 @@ test_lagopus_match_and_action(void) {
 
   port = port_lookup(bridge->ports, 1);
   TEST_ASSERT_NOT_NULL(port);
-  lagopus_set_in_port(&pkt, port);
-  TEST_ASSERT_EQUAL(pkt.in_port, port);
-  TEST_ASSERT_EQUAL(pkt.in_port->bridge, bridge);
   pkt.table_id = 0;
   pkt.cache = NULL;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, port);
+  TEST_ASSERT_EQUAL(pkt.in_port, port);
+  TEST_ASSERT_EQUAL(pkt.in_port->bridge, bridge);
   lagopus_match_and_action(&pkt);
   TEST_ASSERT_EQUAL_MESSAGE(m->refcnt, 1,
                             "match_and_action refcnt error.");

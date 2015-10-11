@@ -15,7 +15,10 @@
  */
 
 #include "unity.h"
+#include "lagopus_apis.h"
+#include "cmd_test_utils.h"
 #include "../policer.c"
+#include "../ns_util.h"
 #define CAST_UINT64(x) (uint64_t) x
 
 void
@@ -116,6 +119,180 @@ test_policer_conf_create_and_destroy(void) {
   }
 
   policer_conf_destroy(conf);
+
+  policer_finalize();
+}
+
+void
+test_policer_conf_duplicate(void) {
+  lagopus_result_t rc;
+  const char *ns1 = "ns1";
+  const char *ns2 = "ns2";
+  const char *name = "policer";
+  char *policer_fullname = NULL;
+  bool result = false;
+  policer_conf_t *src_conf = NULL;
+  policer_conf_t *dst_conf = NULL;
+  policer_conf_t *actual_conf = NULL;
+
+  policer_initialize();
+
+  // Normal case1(no namespace)
+  {
+    // create src conf
+    {
+      rc = ns_create_fullname(ns1, name, &policer_fullname);
+      TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK,
+                                rc, "cmd_ns_get_fullname error.");
+      rc = policer_conf_create(&src_conf, policer_fullname);
+      TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+      TEST_ASSERT_NOT_NULL_MESSAGE(src_conf,
+                                   "conf_create() will create new policer_action");
+      free(policer_fullname);
+      policer_fullname = NULL;
+    }
+
+    rc = policer_conf_duplicate(src_conf, &dst_conf, NULL);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+
+    // create actual conf
+    {
+      rc = ns_create_fullname(ns1, name, &policer_fullname);
+      TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK,
+                                rc, "cmd_ns_get_fullname error.");
+      rc = policer_conf_create(&actual_conf, policer_fullname);
+      TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+      TEST_ASSERT_NOT_NULL_MESSAGE(src_conf,
+                                   "conf_create() will create new policer_action");
+      free(policer_fullname);
+      policer_fullname = NULL;
+    }
+
+    result = policer_conf_equals(dst_conf, actual_conf);
+    TEST_ASSERT_TRUE(result);
+
+    policer_conf_destroy(src_conf);
+    src_conf = NULL;
+    policer_conf_destroy(dst_conf);
+    dst_conf = NULL;
+    policer_conf_destroy(actual_conf);
+    actual_conf = NULL;
+  }
+
+  // Normal case2
+  {
+    // create src conf
+    {
+      rc = ns_create_fullname(ns1, name, &policer_fullname);
+      TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK,
+                                rc, "cmd_ns_get_fullname error.");
+      rc = policer_conf_create(&src_conf, policer_fullname);
+      TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+      TEST_ASSERT_NOT_NULL_MESSAGE(src_conf,
+                                   "conf_create() will create new policer_action");
+      free(policer_fullname);
+      policer_fullname = NULL;
+    }
+
+    rc = policer_conf_duplicate(src_conf, &dst_conf, ns2);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+
+    // create actual conf
+    {
+      rc = ns_create_fullname(ns2, name, &policer_fullname);
+      TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK,
+                                rc, "cmd_ns_get_fullname error.");
+      rc = policer_conf_create(&actual_conf, policer_fullname);
+      TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+      TEST_ASSERT_NOT_NULL_MESSAGE(src_conf,
+                                   "conf_create() will create new policer_action");
+      free(policer_fullname);
+      policer_fullname = NULL;
+    }
+
+    result = policer_conf_equals(dst_conf, actual_conf);
+    TEST_ASSERT_TRUE(result);
+
+    policer_conf_destroy(src_conf);
+    src_conf = NULL;
+    policer_conf_destroy(dst_conf);
+    dst_conf = NULL;
+    policer_conf_destroy(actual_conf);
+    actual_conf = NULL;
+  }
+
+  // Abnormal case
+  {
+    rc = policer_conf_duplicate(NULL, &dst_conf, NULL);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_INVALID_ARGS, rc);
+  }
+
+  policer_finalize();
+}
+
+void
+test_policer_conf_equals(void) {
+  lagopus_result_t rc;
+  bool result = false;
+  policer_conf_t *conf1 = NULL;
+  policer_conf_t *conf2 = NULL;
+  policer_conf_t *conf3 = NULL;
+  const char *fullname1 = "conf1";
+  const char *fullname2 = "conf2";
+  const char *fullname3 = "conf3";
+
+  policer_initialize();
+
+  rc = policer_conf_create(&conf1, fullname1);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+  TEST_ASSERT_NOT_NULL_MESSAGE(conf1, "conf_create() will create new policer");
+  rc = policer_conf_add(conf1);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+
+  rc = policer_conf_create(&conf2, fullname2);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+  TEST_ASSERT_NOT_NULL_MESSAGE(conf2, "conf_create() will create new policer");
+  rc = policer_conf_add(conf2);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+
+  rc = policer_conf_create(&conf3, fullname3);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+  TEST_ASSERT_NOT_NULL_MESSAGE(conf3, "conf_create() will create new policer");
+  rc = policer_conf_add(conf3);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+  rc = policer_set_enabled(fullname3, true);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+
+  // Normal case
+  {
+    result = policer_conf_equals(conf1, conf2);
+    TEST_ASSERT_TRUE(result);
+
+    result = policer_conf_equals(NULL, NULL);
+    TEST_ASSERT_TRUE(result);
+
+    result = policer_conf_equals(conf1, conf3);
+    TEST_ASSERT_FALSE(result);
+
+    result = policer_conf_equals(conf2, conf3);
+    TEST_ASSERT_FALSE(result);
+  }
+
+  // Abnormal case
+  {
+    result = policer_conf_equals(conf1, NULL);
+    TEST_ASSERT_FALSE(result);
+
+    result = policer_conf_equals(NULL, conf2);
+    TEST_ASSERT_FALSE(result);
+  }
+
+  rc = policer_conf_delete(conf1);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+  rc = policer_conf_delete(conf2);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+  rc = policer_conf_delete(conf3);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
 
   policer_finalize();
 }
@@ -230,15 +407,15 @@ void
 test_policer_conf_list(void) {
   lagopus_result_t rc;
   policer_conf_t *conf1 = NULL;
-  const char *name1 = "namespace1"NAMESPACE_DELIMITER"policer_name1";
+  const char *name1 = "namespace1"DATASTORE_NAMESPACE_DELIMITER"policer_name1";
   policer_conf_t *conf2 = NULL;
-  const char *name2 = "namespace1"NAMESPACE_DELIMITER"policer_name2";
+  const char *name2 = "namespace1"DATASTORE_NAMESPACE_DELIMITER"policer_name2";
   policer_conf_t *conf3 = NULL;
-  const char *name3 = "namespace2"NAMESPACE_DELIMITER"policer_name3";
+  const char *name3 = "namespace2"DATASTORE_NAMESPACE_DELIMITER"policer_name3";
   policer_conf_t *conf4 = NULL;
-  const char *name4 = NAMESPACE_DELIMITER"policer_name4";
+  const char *name4 = DATASTORE_NAMESPACE_DELIMITER"policer_name4";
   policer_conf_t *conf5 = NULL;
-  const char *name5 = NAMESPACE_DELIMITER"policer_name5";
+  const char *name5 = DATASTORE_NAMESPACE_DELIMITER"policer_name5";
   policer_conf_t **actual_list = NULL;
   size_t i;
 
@@ -292,15 +469,15 @@ test_policer_conf_list(void) {
 
     for (i = 0; i < (size_t) rc; i++) {
       if (strcasecmp(actual_list[i]->name,
-                     "namespace1"NAMESPACE_DELIMITER"policer_name1") != 0 &&
+                     "namespace1"DATASTORE_NAMESPACE_DELIMITER"policer_name1") != 0 &&
           strcasecmp(actual_list[i]->name,
-                     "namespace1"NAMESPACE_DELIMITER"policer_name2") != 0 &&
+                     "namespace1"DATASTORE_NAMESPACE_DELIMITER"policer_name2") != 0 &&
           strcasecmp(actual_list[i]->name,
-                     "namespace2"NAMESPACE_DELIMITER"policer_name3") != 0 &&
+                     "namespace2"DATASTORE_NAMESPACE_DELIMITER"policer_name3") != 0 &&
           strcasecmp(actual_list[i]->name,
-                     NAMESPACE_DELIMITER"policer_name4") != 0 &&
+                     DATASTORE_NAMESPACE_DELIMITER"policer_name4") != 0 &&
           strcasecmp(actual_list[i]->name,
-                     NAMESPACE_DELIMITER"policer_name5") != 0) {
+                     DATASTORE_NAMESPACE_DELIMITER"policer_name5") != 0) {
         TEST_FAIL_MESSAGE("invalid list entry.");
       }
     }
@@ -315,9 +492,9 @@ test_policer_conf_list(void) {
 
     for (i = 0; i < (size_t) rc; i++) {
       if (strcasecmp(actual_list[i]->name,
-                     NAMESPACE_DELIMITER"policer_name4") != 0 &&
+                     DATASTORE_NAMESPACE_DELIMITER"policer_name4") != 0 &&
           strcasecmp(actual_list[i]->name,
-                     NAMESPACE_DELIMITER"policer_name5") != 0) {
+                     DATASTORE_NAMESPACE_DELIMITER"policer_name5") != 0) {
         TEST_FAIL_MESSAGE("invalid list entry.");
       }
     }
@@ -332,9 +509,9 @@ test_policer_conf_list(void) {
 
     for (i = 0; i < (size_t) rc; i++) {
       if (strcasecmp(actual_list[i]->name,
-                     "namespace1"NAMESPACE_DELIMITER"policer_name1") != 0 &&
+                     "namespace1"DATASTORE_NAMESPACE_DELIMITER"policer_name1") != 0 &&
           strcasecmp(actual_list[i]->name,
-                     "namespace1"NAMESPACE_DELIMITER"policer_name2") != 0) {
+                     "namespace1"DATASTORE_NAMESPACE_DELIMITER"policer_name2") != 0) {
         TEST_FAIL_MESSAGE("invalid list entry.");
       }
     }
@@ -526,36 +703,116 @@ test_policer_attr_create_and_destroy(void) {
 void
 test_policer_attr_duplicate(void) {
   lagopus_result_t rc;
+  const char *ns1 = "ns1";
+  const char *ns2 = "ns2";
+  const char *name = "policer-action";
+  char *policer_action_fullname = NULL;
   bool result = false;
   policer_attr_t *src_attr = NULL;
   policer_attr_t *dst_attr = NULL;
+  policer_attr_t *actual_attr = NULL;
 
   policer_initialize();
 
-  rc = policer_attr_create(&src_attr);
-  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
-  TEST_ASSERT_NOT_NULL_MESSAGE(src_attr,
-                               "attr_create() will create new policer");
-
-  // Normal case
+  // Normal case1(no namespace)
   {
-    rc = policer_attr_duplicate(src_attr, &dst_attr);
+    // create src attribute
+    {
+      rc = policer_attr_create(&src_attr);
+      TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+      TEST_ASSERT_NOT_NULL_MESSAGE(src_attr,
+                                   "attr_create() will create new policer");
+      rc = ns_create_fullname(ns1, name, &policer_action_fullname);
+      TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK,
+                                rc, "cmd_ns_get_fullname error.");
+      rc = policer_attr_add_action_name(src_attr, policer_action_fullname);
+      TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+      free(policer_action_fullname);
+      policer_action_fullname = NULL;
+    }
+
+    // duplicate
+    rc = policer_attr_duplicate(src_attr, &dst_attr, NULL);
     TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
-    result = policer_attr_equals(src_attr, dst_attr);
+
+    // create actual attribute
+    {
+      rc = policer_attr_create(&actual_attr);
+      TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+      TEST_ASSERT_NOT_NULL_MESSAGE(actual_attr,
+                                   "attr_create() will create new policer");
+      rc = ns_create_fullname(ns1, name, &policer_action_fullname);
+      TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK,
+                                rc, "cmd_ns_get_fullname error.");
+      rc = policer_attr_add_action_name(actual_attr, policer_action_fullname);
+      TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+      free(policer_action_fullname);
+      policer_action_fullname = NULL;
+    }
+
+    result = policer_attr_equals(dst_attr, actual_attr);
     TEST_ASSERT_TRUE(result);
+
+    policer_attr_destroy(src_attr);
+    src_attr = NULL;
+    policer_attr_destroy(dst_attr);
+    dst_attr = NULL;
+    policer_attr_destroy(actual_attr);
+    actual_attr = NULL;
+  }
+
+  // Normal case2
+  {
+    // create src attribute
+    {
+      rc = policer_attr_create(&src_attr);
+      TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+      TEST_ASSERT_NOT_NULL_MESSAGE(src_attr,
+                                   "attr_create() will create new policer");
+      rc = ns_create_fullname(ns1, name, &policer_action_fullname);
+      TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK,
+                                rc, "cmd_ns_get_fullname error.");
+      rc = policer_attr_add_action_name(src_attr, policer_action_fullname);
+      TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+      free(policer_action_fullname);
+      policer_action_fullname = NULL;
+    }
+
+    // duplicate
+    rc = policer_attr_duplicate(src_attr, &dst_attr, ns2);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+
+    // create actual attribute
+    {
+      rc = policer_attr_create(&actual_attr);
+      TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+      TEST_ASSERT_NOT_NULL_MESSAGE(actual_attr,
+                                   "attr_create() will create new policer");
+      rc = ns_create_fullname(ns2, name, &policer_action_fullname);
+      TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK,
+                                rc, "cmd_ns_get_fullname error.");
+      rc = policer_attr_add_action_name(actual_attr, policer_action_fullname);
+      TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+      free(policer_action_fullname);
+      policer_action_fullname = NULL;
+    }
+
+    result = policer_attr_equals(dst_attr, actual_attr);
+    TEST_ASSERT_TRUE(result);
+
+    policer_attr_destroy(src_attr);
+    src_attr = NULL;
+    policer_attr_destroy(dst_attr);
+    dst_attr = NULL;
+    policer_attr_destroy(actual_attr);
+    actual_attr = NULL;
   }
 
   // Abnormal case
   {
-    result = policer_attr_equals(src_attr, NULL);
-    TEST_ASSERT_FALSE(result);
-
-    result = policer_attr_equals(NULL, dst_attr);
-    TEST_ASSERT_FALSE(result);
+    rc = policer_attr_duplicate(NULL, &dst_attr, NULL);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_INVALID_ARGS, rc);
   }
-
-  policer_attr_destroy(src_attr);
-  policer_attr_destroy(dst_attr);
 
   policer_finalize();
 }
@@ -587,6 +844,9 @@ test_policer_attr_equals(void) {
   // Normal case
   {
     result = policer_attr_equals(attr1, attr2);
+    TEST_ASSERT_TRUE(result);
+
+    result = policer_attr_equals(NULL, NULL);
     TEST_ASSERT_TRUE(result);
 
     result = policer_attr_equals(attr1, attr3);

@@ -238,3 +238,8 @@ test_agent_cmd_parse_serialize(void) {
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, ret, "agent_cmd_serialize error.");
   TEST_DSTRING_NO_JSON(ret, &ds, str, serialize_str1, true);
 }
+
+void
+test_destroy(void) {
+  destroy = true;
+}

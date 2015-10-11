@@ -277,7 +277,7 @@ symlink-clean::
 	@find ./ -type l | xargs ${RM}
 
 beautify-for-py::
-	@find . -type f -name '*.py' | \
+	@find . -type f -name '*.py' -o -name '*.py.in'| \
 	egrep -v 'src/wip-or-deprecate|test/AutomaticVerificationTool' | \
 	xargs sh $(MKRULESDIR)/beautify_for_py
 
@@ -525,9 +525,9 @@ check:: gcov
 		./$${runner} > ./$${runner}.testresult; \
 		ret=$$?; \
 		if test $$ret -ge 128; then \
-			echo "$${runner}:FAIL: exit status $$ret" >> ./$${runner}.testresult; \
+			echo "$${runner}:::FAIL: exit status $$ret" >> ./$${runner}.testresult; \
 			testcount=`cat ./$${runner}.testresult|wc -l`; \
-			failcount=`grep FAILED ./$${runner}.testresult|wc -l`; \
+			failcount=`grep ':FAIL' ./$${runner}.testresult|wc -l`; \
 			echo "-----------------------" >> ./$${runner}.testresult; \
 			echo "$$testcount Tests $$failcount Failures 0 Ignored" >> ./$${runner}.testresult; \
 			echo "FAIL" >> ./$${runner}.testresult; \

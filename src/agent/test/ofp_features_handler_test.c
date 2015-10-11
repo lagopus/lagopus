@@ -17,6 +17,7 @@
 #include "unity.h"
 #include "../ofp_features_handler.h"
 #include "handler_test_utils.h"
+#include "../channel_mgr.h"
 
 void
 setUp(void) {
@@ -33,6 +34,23 @@ s_ofp_features_reply_create_wrap(struct channel *channel,
   return ofp_features_reply_create(channel, pbuf, xid_header);
 }
 
+void
+test_prologue(void) {
+  lagopus_result_t r;
+  const char *argv0 =
+      ((IS_VALID_STRING(lagopus_get_command_name()) == true) ?
+       lagopus_get_command_name() : "callout_test");
+  const char * const argv[] = {
+    argv0, NULL
+  };
+
+#define N_CALLOUT_WORKERS	1
+  (void)lagopus_mainloop_set_callout_workers_number(N_CALLOUT_WORKERS);
+  r = lagopus_mainloop_with_callout(1, argv, NULL, NULL,
+                                    false, false, true);
+  TEST_ASSERT_EQUAL(r, LAGOPUS_RESULT_OK);
+  channel_mgr_initialize();
+}
 void
 test_ofp_features_handle_normal_pattern(void) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
@@ -78,4 +96,12 @@ test_ofp_features_reply_create(void) {
                             "00 00 01 6f 00 00 00 00");
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, ret,
                             "ofp_features_reply_create(normal) error.");
+}
+void
+test_epilogue(void) {
+  lagopus_result_t r;
+  channel_mgr_finalize();
+  r = global_state_request_shutdown(SHUTDOWN_GRACEFULLY);
+  TEST_ASSERT_EQUAL(r, LAGOPUS_RESULT_OK);
+  lagopus_mainloop_wait_thread();
 }

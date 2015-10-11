@@ -140,11 +140,17 @@ s_current_tls(lagopus_dstring_t *result) {
 }
 
 static inline lagopus_result_t
-s_opt_parse_addr(const char *const argv[], lagopus_dstring_t *result) {
+s_opt_parse_addr(datastore_interp_state_t state,
+                 const char *const argv[], lagopus_dstring_t *result) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
 
   if (IS_VALID_STRING(*argv) == true) {
-    ret = s_set_addr(*argv);
+    if (state == DATASTORE_INTERP_STATE_DRYRUN) {
+      ret = LAGOPUS_RESULT_OK;
+    } else {
+      ret = s_set_addr(*argv);
+    }
+
     if (ret != LAGOPUS_RESULT_OK) {
       ret = datastore_json_result_string_setf(result,
                                               LAGOPUS_RESULT_INVALID_ARGS,
@@ -161,14 +167,17 @@ s_opt_parse_addr(const char *const argv[], lagopus_dstring_t *result) {
 }
 
 static inline lagopus_result_t
-s_opt_parse_port(const char *const argv[], lagopus_dstring_t *result) {
+s_opt_parse_port(datastore_interp_state_t state,
+                 const char *const argv[], lagopus_dstring_t *result) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   uint16_t tmp = 0;
 
   if (IS_VALID_STRING(*argv) == true) {
     if ((ret = lagopus_str_parse_uint16(*argv, &tmp)) ==
         LAGOPUS_RESULT_OK) {
-      s_port = tmp;
+      if (state != DATASTORE_INTERP_STATE_DRYRUN) {
+        s_port = tmp;
+      }
       ret = LAGOPUS_RESULT_OK;
     } else {
       ret = datastore_json_result_string_setf(result,
@@ -187,16 +196,21 @@ s_opt_parse_port(const char *const argv[], lagopus_dstring_t *result) {
 }
 
 static inline lagopus_result_t
-s_opt_parse_protocol(const char *const argv[], lagopus_dstring_t *result) {
+s_opt_parse_protocol(datastore_interp_state_t state,
+                     const char *const argv[], lagopus_dstring_t *result) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
 
   if (IS_VALID_STRING(*argv) == true) {
-    ret = s_set_protocol(*argv);
-    if (ret != LAGOPUS_RESULT_OK) {
-      ret = datastore_json_result_string_setf(result,
-                                              LAGOPUS_RESULT_INVALID_ARGS,
-                                              "Bad opt value = %s",
-                                              *argv);
+    if (state == DATASTORE_INTERP_STATE_DRYRUN) {
+      ret = LAGOPUS_RESULT_OK;
+    } else {
+      ret = s_set_protocol(*argv);
+      if (ret != LAGOPUS_RESULT_OK) {
+        ret = datastore_json_result_string_setf(result,
+                                                LAGOPUS_RESULT_INVALID_ARGS,
+                                                "Bad opt value = %s",
+                                                *argv);
+      }
     }
   } else {
     ret = datastore_json_result_string_setf(result,
@@ -208,19 +222,24 @@ s_opt_parse_protocol(const char *const argv[], lagopus_dstring_t *result) {
 }
 
 static inline lagopus_result_t
-s_opt_parse_tls(const char *const argv[], lagopus_dstring_t *result) {
+s_opt_parse_tls(datastore_interp_state_t state,
+                const char *const argv[], lagopus_dstring_t *result) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   bool tls = false;
 
   if (IS_VALID_STRING(*argv) == true) {
-    ret = lagopus_str_parse_bool(*argv, &tls);
-    if (ret == LAGOPUS_RESULT_OK) {
-      s_set_tls(tls);
+    if (state == DATASTORE_INTERP_STATE_DRYRUN) {
+      ret = LAGOPUS_RESULT_OK;
     } else {
-      ret = datastore_json_result_string_setf(result,
-                                              LAGOPUS_RESULT_INVALID_ARGS,
-                                              "Bad opt value = %s",
-                                              *argv);
+      ret = lagopus_str_parse_bool(*argv, &tls);
+      if (ret == LAGOPUS_RESULT_OK) {
+        s_set_tls(tls);
+      } else {
+        ret = datastore_json_result_string_setf(result,
+                                                LAGOPUS_RESULT_INVALID_ARGS,
+                                                "Bad opt value = %s",
+                                                *argv);
+      }
     }
   } else {
     ret = datastore_json_result_string_setf(result,
@@ -245,7 +264,6 @@ s_parse_datastore(datastore_interp_t *iptr,
   size_t i;
 
   (void)iptr;
-  (void)state;
   (void)argc;
   (void)hptr;
   (void)u_proc;
@@ -266,7 +284,7 @@ s_parse_datastore(datastore_interp_t *iptr,
       if (strcmp(*argv, "-addr") == 0) {
         argv++;
         if (IS_VALID_STRING(*argv) == true) {
-          ret = s_opt_parse_addr(argv, result);
+          ret = s_opt_parse_addr(state, argv, result);
           if (ret != LAGOPUS_RESULT_OK) {
             return ret;
           }
@@ -276,7 +294,7 @@ s_parse_datastore(datastore_interp_t *iptr,
       } else if (strcmp(*argv, "-port") == 0) {
         argv++;
         if (IS_VALID_STRING(*argv) == true) {
-          ret = s_opt_parse_port(argv, result);
+          ret = s_opt_parse_port(state, argv, result);
           if (ret != LAGOPUS_RESULT_OK) {
             return ret;
           }
@@ -286,7 +304,7 @@ s_parse_datastore(datastore_interp_t *iptr,
       } else if (strcmp(*argv, "-protocol") == 0) {
         argv++;
         if (IS_VALID_STRING(*argv) == true) {
-          ret = s_opt_parse_protocol(argv, result);
+          ret = s_opt_parse_protocol(state, argv, result);
           if (ret != LAGOPUS_RESULT_OK) {
             return ret;
           }
@@ -296,7 +314,7 @@ s_parse_datastore(datastore_interp_t *iptr,
       } else if (strcmp(*argv, "-tls") == 0) {
         argv++;
         if (IS_VALID_STRING(*argv) == true) {
-          ret = s_opt_parse_tls(argv, result);
+          ret = s_opt_parse_tls(state, argv, result);
           if (ret != LAGOPUS_RESULT_OK) {
             return ret;
           }

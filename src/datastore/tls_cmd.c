@@ -131,7 +131,8 @@ done:
 }
 
 static inline lagopus_result_t
-s_parse_tls_internal(const char *const argv[],
+s_parse_tls_internal(datastore_interp_state_t state,
+                     const char *const argv[],
                      lagopus_dstring_t *result) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   char *session_cert = NULL;
@@ -151,12 +152,16 @@ s_parse_tls_internal(const char *const argv[],
         argv++;
         ret = lagopus_str_unescape(*argv, "\"'", &session_cert);
         if (ret > 0) {
-          if ((ret = lagopus_session_tls_set_server_cert(session_cert))
-              != LAGOPUS_RESULT_OK) {
-            ret = datastore_json_result_string_setf(result, ret,
-                                                    "Can't set %s.",
-                                                    session_cert);
-            goto done;
+          if (state == DATASTORE_INTERP_STATE_DRYRUN) {
+            ret = LAGOPUS_RESULT_OK;
+          } else {
+            if ((ret = lagopus_session_tls_set_server_cert(session_cert))
+                != LAGOPUS_RESULT_OK) {
+              ret = datastore_json_result_string_setf(result, ret,
+                                                      "Can't set %s.",
+                                                      session_cert);
+              goto done;
+            }
           }
         } else if (ret == 0) {
           ret = datastore_json_result_string_setf(result,
@@ -200,12 +205,16 @@ s_parse_tls_internal(const char *const argv[],
       if (IS_VALID_STRING(*(argv + 1)) == true) {
         argv++;
         if ((ret = lagopus_str_unescape(*argv, "\"'", &private_key)) > 0) {
-          if ((ret = lagopus_session_tls_set_server_key(private_key))
-              == LAGOPUS_RESULT_OK) {
+          if (state == DATASTORE_INTERP_STATE_DRYRUN) {
+            ret = LAGOPUS_RESULT_OK;
           } else {
-            ret = datastore_json_result_string_setf(result, ret,
-                                                    "Can't set private_key.");
-            goto done;
+            if ((ret = lagopus_session_tls_set_server_key(private_key))
+                == LAGOPUS_RESULT_OK) {
+            } else {
+              ret = datastore_json_result_string_setf(result, ret,
+                                                      "Can't set private_key.");
+              goto done;
+            }
           }
         } else if (ret == 0) {
           ret = datastore_json_result_string_setf(result,
@@ -248,13 +257,17 @@ s_parse_tls_internal(const char *const argv[],
         argv++;
         ret = lagopus_str_unescape(*argv, "\"'", &session_ca_dir);
         if (ret > 0) {
-          if ((ret = lagopus_session_tls_set_ca_dir(session_ca_dir))
-              == LAGOPUS_RESULT_OK) {
+          if (state == DATASTORE_INTERP_STATE_DRYRUN) {
+            ret = LAGOPUS_RESULT_OK;
           } else {
-            ret = datastore_json_result_string_setf(result, ret,
-                                                    "Can't set "
-                                                    "certificate-store.");
-            goto done;
+            if ((ret = lagopus_session_tls_set_ca_dir(session_ca_dir))
+                == LAGOPUS_RESULT_OK) {
+            } else {
+              ret = datastore_json_result_string_setf(result, ret,
+                                                      "Can't set "
+                                                      "certificate-store.");
+              goto done;
+            }
           }
         } else if (ret == 0) {
           ret = datastore_json_result_string_setf(result,
@@ -298,13 +311,17 @@ s_parse_tls_internal(const char *const argv[],
         argv++;
         ret = lagopus_str_unescape(*argv, "\"'", &trust_point_conf);
         if (ret > 0) {
-          if ((ret = lagopus_session_tls_set_trust_point_conf(trust_point_conf))
-              == LAGOPUS_RESULT_OK) {
+          if (state == DATASTORE_INTERP_STATE_DRYRUN) {
+            ret = LAGOPUS_RESULT_OK;
           } else {
-            ret = datastore_json_result_string_setf(result, ret,
-                                                    "Can't set "
-                                                    "trust-point-conf.");
-            goto done;
+            if ((ret = lagopus_session_tls_set_trust_point_conf(trust_point_conf))
+                == LAGOPUS_RESULT_OK) {
+            } else {
+              ret = datastore_json_result_string_setf(result, ret,
+                                                      "Can't set "
+                                                      "trust-point-conf.");
+              goto done;
+            }
           }
         } else if (ret == 0) {
           ret = datastore_json_result_string_setf(result,
@@ -404,7 +421,6 @@ s_parse_tls(datastore_interp_t *iptr,
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   size_t i;
   (void)iptr;
-  (void)state;
   (void)argc;
   (void)hptr;
   (void)u_proc;
@@ -420,7 +436,7 @@ s_parse_tls(datastore_interp_t *iptr,
   if (IS_VALID_STRING(*argv) == false) {
     ret = s_parse_tls_show(result);
   } else {
-    ret = s_parse_tls_internal(argv, result);
+    ret = s_parse_tls_internal(state, argv, result);
   }
 
   return ret;

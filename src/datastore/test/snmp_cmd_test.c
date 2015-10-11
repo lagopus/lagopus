@@ -648,3 +648,7 @@ test_snmp_cmd_serialize_ping_interval(void) {
   TEST_DSTRING_NO_JSON(ret, &result, str1, test_str1, true);
 }
 
+void
+test_destroy(void) {
+  destroy = true;
+}

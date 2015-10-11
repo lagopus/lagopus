@@ -122,6 +122,180 @@ test_port_conf_create_and_destroy(void) {
 }
 
 void
+test_port_conf_duplicate(void) {
+  lagopus_result_t rc;
+  const char *ns1 = "ns1";
+  const char *ns2 = "ns2";
+  const char *name = "port";
+  char *port_fullname = NULL;
+  bool result = false;
+  port_conf_t *src_conf = NULL;
+  port_conf_t *dst_conf = NULL;
+  port_conf_t *actual_conf = NULL;
+
+  port_initialize();
+
+  // Normal case1(no namespace)
+  {
+    // create src conf
+    {
+      rc = ns_create_fullname(ns1, name, &port_fullname);
+      TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK,
+                                rc, "cmd_ns_get_fullname error.");
+      rc = port_conf_create(&src_conf, port_fullname);
+      TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+      TEST_ASSERT_NOT_NULL_MESSAGE(src_conf,
+                                   "conf_create() will create new port_action");
+      free(port_fullname);
+      port_fullname = NULL;
+    }
+
+    rc = port_conf_duplicate(src_conf, &dst_conf, NULL);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+
+    // create actual conf
+    {
+      rc = ns_create_fullname(ns1, name, &port_fullname);
+      TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK,
+                                rc, "cmd_ns_get_fullname error.");
+      rc = port_conf_create(&actual_conf, port_fullname);
+      TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+      TEST_ASSERT_NOT_NULL_MESSAGE(src_conf,
+                                   "conf_create() will create new port_action");
+      free(port_fullname);
+      port_fullname = NULL;
+    }
+
+    result = port_conf_equals(dst_conf, actual_conf);
+    TEST_ASSERT_TRUE(result);
+
+    port_conf_destroy(src_conf);
+    src_conf = NULL;
+    port_conf_destroy(dst_conf);
+    dst_conf = NULL;
+    port_conf_destroy(actual_conf);
+    actual_conf = NULL;
+  }
+
+  // Normal case2
+  {
+    // create src conf
+    {
+      rc = ns_create_fullname(ns1, name, &port_fullname);
+      TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK,
+                                rc, "cmd_ns_get_fullname error.");
+      rc = port_conf_create(&src_conf, port_fullname);
+      TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+      TEST_ASSERT_NOT_NULL_MESSAGE(src_conf,
+                                   "conf_create() will create new port_action");
+      free(port_fullname);
+      port_fullname = NULL;
+    }
+
+    rc = port_conf_duplicate(src_conf, &dst_conf, ns2);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+
+    // create actual conf
+    {
+      rc = ns_create_fullname(ns2, name, &port_fullname);
+      TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK,
+                                rc, "cmd_ns_get_fullname error.");
+      rc = port_conf_create(&actual_conf, port_fullname);
+      TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+      TEST_ASSERT_NOT_NULL_MESSAGE(src_conf,
+                                   "conf_create() will create new port_action");
+      free(port_fullname);
+      port_fullname = NULL;
+    }
+
+    result = port_conf_equals(dst_conf, actual_conf);
+    TEST_ASSERT_TRUE(result);
+
+    port_conf_destroy(src_conf);
+    src_conf = NULL;
+    port_conf_destroy(dst_conf);
+    dst_conf = NULL;
+    port_conf_destroy(actual_conf);
+    actual_conf = NULL;
+  }
+
+  // Abnormal case
+  {
+    rc = port_conf_duplicate(NULL, &dst_conf, NULL);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_INVALID_ARGS, rc);
+  }
+
+  port_finalize();
+}
+
+void
+test_port_conf_equals(void) {
+  lagopus_result_t rc;
+  bool result = false;
+  port_conf_t *conf1 = NULL;
+  port_conf_t *conf2 = NULL;
+  port_conf_t *conf3 = NULL;
+  const char *fullname1 = "conf1";
+  const char *fullname2 = "conf2";
+  const char *fullname3 = "conf3";
+
+  port_initialize();
+
+  rc = port_conf_create(&conf1, fullname1);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+  TEST_ASSERT_NOT_NULL_MESSAGE(conf1, "conf_create() will create new port");
+  rc = port_conf_add(conf1);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+
+  rc = port_conf_create(&conf2, fullname2);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+  TEST_ASSERT_NOT_NULL_MESSAGE(conf2, "conf_create() will create new port");
+  rc = port_conf_add(conf2);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+
+  rc = port_conf_create(&conf3, fullname3);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+  TEST_ASSERT_NOT_NULL_MESSAGE(conf3, "conf_create() will create new port");
+  rc = port_conf_add(conf3);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+  rc = port_set_enabled(fullname3, true);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+
+  // Normal case
+  {
+    result = port_conf_equals(conf1, conf2);
+    TEST_ASSERT_TRUE(result);
+
+    result = port_conf_equals(NULL, NULL);
+    TEST_ASSERT_TRUE(result);
+
+    result = port_conf_equals(conf1, conf3);
+    TEST_ASSERT_FALSE(result);
+
+    result = port_conf_equals(conf2, conf3);
+    TEST_ASSERT_FALSE(result);
+  }
+
+  // Abnormal case
+  {
+    result = port_conf_equals(conf1, NULL);
+    TEST_ASSERT_FALSE(result);
+
+    result = port_conf_equals(NULL, conf2);
+    TEST_ASSERT_FALSE(result);
+  }
+
+  rc = port_conf_delete(conf1);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+  rc = port_conf_delete(conf2);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+  rc = port_conf_delete(conf3);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+
+  port_finalize();
+}
+
+void
 test_port_conf_add(void) {
   lagopus_result_t rc;
   port_conf_t *conf = NULL;
@@ -231,15 +405,15 @@ void
 test_port_conf_list(void) {
   lagopus_result_t rc;
   port_conf_t *conf1 = NULL;
-  const char *name1 = "namespace1"NAMESPACE_DELIMITER"port_name1";
+  const char *name1 = "namespace1"DATASTORE_NAMESPACE_DELIMITER"port_name1";
   port_conf_t *conf2 = NULL;
-  const char *name2 = "namespace1"NAMESPACE_DELIMITER"port_name2";
+  const char *name2 = "namespace1"DATASTORE_NAMESPACE_DELIMITER"port_name2";
   port_conf_t *conf3 = NULL;
-  const char *name3 = "namespace2"NAMESPACE_DELIMITER"port_name3";
+  const char *name3 = "namespace2"DATASTORE_NAMESPACE_DELIMITER"port_name3";
   port_conf_t *conf4 = NULL;
-  const char *name4 = NAMESPACE_DELIMITER"port_name4";
+  const char *name4 = DATASTORE_NAMESPACE_DELIMITER"port_name4";
   port_conf_t *conf5 = NULL;
-  const char *name5 = NAMESPACE_DELIMITER"port_name5";
+  const char *name5 = DATASTORE_NAMESPACE_DELIMITER"port_name5";
   port_conf_t **actual_list = NULL;
   size_t i;
 
@@ -293,15 +467,15 @@ test_port_conf_list(void) {
 
     for (i = 0; i < (size_t) rc; i++) {
       if (strcasecmp(actual_list[i]->name,
-                     "namespace1"NAMESPACE_DELIMITER"port_name1") != 0 &&
+                     "namespace1"DATASTORE_NAMESPACE_DELIMITER"port_name1") != 0 &&
           strcasecmp(actual_list[i]->name,
-                     "namespace1"NAMESPACE_DELIMITER"port_name2") != 0 &&
+                     "namespace1"DATASTORE_NAMESPACE_DELIMITER"port_name2") != 0 &&
           strcasecmp(actual_list[i]->name,
-                     "namespace2"NAMESPACE_DELIMITER"port_name3") != 0 &&
+                     "namespace2"DATASTORE_NAMESPACE_DELIMITER"port_name3") != 0 &&
           strcasecmp(actual_list[i]->name,
-                     NAMESPACE_DELIMITER"port_name4") != 0 &&
+                     DATASTORE_NAMESPACE_DELIMITER"port_name4") != 0 &&
           strcasecmp(actual_list[i]->name,
-                     NAMESPACE_DELIMITER"port_name5") != 0) {
+                     DATASTORE_NAMESPACE_DELIMITER"port_name5") != 0) {
         TEST_FAIL_MESSAGE("invalid list entry.");
       }
     }
@@ -316,9 +490,9 @@ test_port_conf_list(void) {
 
     for (i = 0; i < (size_t) rc; i++) {
       if (strcasecmp(actual_list[i]->name,
-                     NAMESPACE_DELIMITER"port_name4") != 0 &&
+                     DATASTORE_NAMESPACE_DELIMITER"port_name4") != 0 &&
           strcasecmp(actual_list[i]->name,
-                     NAMESPACE_DELIMITER"port_name5") != 0) {
+                     DATASTORE_NAMESPACE_DELIMITER"port_name5") != 0) {
         TEST_FAIL_MESSAGE("invalid list entry.");
       }
     }
@@ -333,9 +507,9 @@ test_port_conf_list(void) {
 
     for (i = 0; i < (size_t) rc; i++) {
       if (strcasecmp(actual_list[i]->name,
-                     "namespace1"NAMESPACE_DELIMITER"port_name1") != 0 &&
+                     "namespace1"DATASTORE_NAMESPACE_DELIMITER"port_name1") != 0 &&
           strcasecmp(actual_list[i]->name,
-                     "namespace1"NAMESPACE_DELIMITER"port_name2") != 0) {
+                     "namespace1"DATASTORE_NAMESPACE_DELIMITER"port_name2") != 0) {
         TEST_FAIL_MESSAGE("invalid list entry.");
       }
     }
@@ -523,35 +697,176 @@ test_port_attr_create_and_destroy(void) {
 void
 test_port_attr_duplicate(void) {
   lagopus_result_t rc;
+  const char *ns1 = "ns1";
+  const char *ns2 = "ns2";
+  const char *policer_name = "policer";
+  const char *queue_name = "queue";
+  const char *interface_name = "interface";
+  char *policer_fullname = NULL;
+  char *queue_fullname = NULL;
+  char *interface_fullname = NULL;
   bool result = false;
   port_attr_t *src_attr = NULL;
   port_attr_t *dst_attr = NULL;
+  port_attr_t *actual_attr = NULL;
 
   port_initialize();
 
-  rc = port_attr_create(&src_attr);
-  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
-  TEST_ASSERT_NOT_NULL_MESSAGE(src_attr, "attr_create() will create new port");
-
-  // Normal case
+  // Normal case1(no namespace)
   {
-    rc = port_attr_duplicate(src_attr, &dst_attr);
+    // create src attribute
+    {
+      rc = port_attr_create(&src_attr);
+      TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+      TEST_ASSERT_NOT_NULL_MESSAGE(src_attr,
+                                   "attr_create() will create new policer");
+      rc = ns_create_fullname(ns1, policer_name, &policer_fullname);
+      TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK,
+                                rc, "cmd_ns_get_fullname error.");
+      rc = port_set_policer_name(src_attr, policer_fullname);
+      TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+      free(policer_fullname);
+      policer_fullname = NULL;
+      rc = ns_create_fullname(ns1, queue_name, &queue_fullname);
+      TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK,
+                                rc, "cmd_ns_get_fullname error.");
+      rc = port_attr_add_queue_name(src_attr, queue_fullname);
+      TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+      free(queue_fullname);
+      queue_fullname = NULL;
+      rc = ns_create_fullname(ns1, interface_name, &interface_fullname);
+      TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK,
+                                rc, "cmd_ns_get_fullname error.");
+      rc = port_set_policer_name(src_attr, interface_fullname);
+      TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+      free(interface_fullname);
+      interface_fullname = NULL;
+    }
+
+    // duplicate
+    rc = port_attr_duplicate(src_attr, &dst_attr, NULL);
     TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
-    result = port_attr_equals(src_attr, dst_attr);
+
+    // create actual attribute
+    {
+      rc = port_attr_create(&actual_attr);
+      TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+      TEST_ASSERT_NOT_NULL_MESSAGE(actual_attr,
+                                   "attr_create() will create new policer");
+      rc = ns_create_fullname(ns1, policer_name, &policer_fullname);
+      TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK,
+                                rc, "cmd_ns_get_fullname error.");
+      rc = port_set_policer_name(actual_attr, policer_fullname);
+      TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+      free(policer_fullname);
+      policer_fullname = NULL;
+      rc = ns_create_fullname(ns1, queue_name, &queue_fullname);
+      TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK,
+                                rc, "cmd_ns_get_fullname error.");
+      rc = port_attr_add_queue_name(actual_attr, queue_fullname);
+      TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+      free(queue_fullname);
+      queue_fullname = NULL;
+      rc = ns_create_fullname(ns1, interface_name, &interface_fullname);
+      TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK,
+                                rc, "cmd_ns_get_fullname error.");
+      rc = port_set_policer_name(actual_attr, interface_fullname);
+      TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+      free(interface_fullname);
+      interface_fullname = NULL;
+    }
+
+    result = port_attr_equals(dst_attr, actual_attr);
     TEST_ASSERT_TRUE(result);
+
+    port_attr_destroy(src_attr);
+    src_attr = NULL;
+    port_attr_destroy(dst_attr);
+    dst_attr = NULL;
+    port_attr_destroy(actual_attr);
+    actual_attr = NULL;
+  }
+
+  // Normal case2
+  {
+    // create src attribute
+    {
+      rc = port_attr_create(&src_attr);
+      TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+      TEST_ASSERT_NOT_NULL_MESSAGE(src_attr,
+                                   "attr_create() will create new policer");
+      rc = ns_create_fullname(ns1, policer_name, &policer_fullname);
+      TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK,
+                                rc, "cmd_ns_get_fullname error.");
+      rc = port_set_policer_name(src_attr, policer_fullname);
+      TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+      free(policer_fullname);
+      policer_fullname = NULL;
+      rc = ns_create_fullname(ns1, queue_name, &queue_fullname);
+      TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK,
+                                rc, "cmd_ns_get_fullname error.");
+      rc = port_attr_add_queue_name(src_attr, queue_fullname);
+      TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+      free(queue_fullname);
+      queue_fullname = NULL;
+      rc = ns_create_fullname(ns1, interface_name, &interface_fullname);
+      TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK,
+                                rc, "cmd_ns_get_fullname error.");
+      rc = port_set_interface_name(src_attr, interface_fullname);
+      TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+      free(interface_fullname);
+      interface_fullname = NULL;
+    }
+
+    // duplicate
+    rc = port_attr_duplicate(src_attr, &dst_attr, ns2);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+
+    // create actual attribute
+    {
+      rc = port_attr_create(&actual_attr);
+      TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+      TEST_ASSERT_NOT_NULL_MESSAGE(actual_attr,
+                                   "attr_create() will create new policer");
+      rc = ns_create_fullname(ns2, policer_name, &policer_fullname);
+      TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK,
+                                rc, "cmd_ns_get_fullname error.");
+      rc = port_set_policer_name(actual_attr, policer_fullname);
+      TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+      free(policer_fullname);
+      policer_fullname = NULL;
+      rc = ns_create_fullname(ns2, queue_name, &queue_fullname);
+      TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK,
+                                rc, "cmd_ns_get_fullname error.");
+      rc = port_attr_add_queue_name(actual_attr, queue_fullname);
+      TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+      free(queue_fullname);
+      queue_fullname = NULL;
+      rc = ns_create_fullname(ns2, interface_name, &interface_fullname);
+      TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK,
+                                rc, "cmd_ns_get_fullname error.");
+      rc = port_set_interface_name(actual_attr, interface_fullname);
+      TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+      free(interface_fullname);
+      interface_fullname = NULL;
+    }
+
+    result = port_attr_equals(dst_attr, actual_attr);
+    TEST_ASSERT_TRUE(result);
+
+    port_attr_destroy(src_attr);
+    src_attr = NULL;
+    port_attr_destroy(dst_attr);
+    dst_attr = NULL;
+    port_attr_destroy(actual_attr);
+    actual_attr = NULL;
   }
 
   // Abnormal case
   {
-    result = port_attr_equals(src_attr, NULL);
-    TEST_ASSERT_FALSE(result);
-
-    result = port_attr_equals(NULL, dst_attr);
-    TEST_ASSERT_FALSE(result);
+    rc = port_attr_duplicate(NULL, &dst_attr, NULL);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_INVALID_ARGS, rc);
   }
-
-  port_attr_destroy(src_attr);
-  port_attr_destroy(dst_attr);
 
   port_finalize();
 }
@@ -583,6 +898,9 @@ test_port_attr_equals(void) {
   // Normal case
   {
     result = port_attr_equals(attr1, attr2);
+    TEST_ASSERT_TRUE(result);
+
+    result = port_attr_equals(NULL, NULL);
     TEST_ASSERT_TRUE(result);
 
     result = port_attr_equals(attr1, attr3);
@@ -1018,7 +1336,7 @@ test_port_attr_private_interface_name(void) {
     TEST_ASSERT_EQUAL_STRING(expected_set_interface_name1,
                              actual_set_interface_name1);
 
-    create_str(&set_interface_name2, DATASTORE_INTERFACE_NAME_MAX + 1);
+    create_str(&set_interface_name2, DATASTORE_INTERFACE_FULLNAME_MAX + 1);
     rc = port_set_interface_name(attr, set_interface_name2);
     TEST_ASSERT_EQUAL(LAGOPUS_RESULT_TOO_LONG, rc);
     rc = port_get_interface_name(attr, &actual_set_interface_name2);
@@ -1135,7 +1453,7 @@ test_port_attr_private_policer_name(void) {
     TEST_ASSERT_EQUAL_STRING(expected_set_policer_name1,
                              actual_set_policer_name1);
 
-    create_str(&set_policer_name2, DATASTORE_POLICER_NAME_MAX + 1);
+    create_str(&set_policer_name2, DATASTORE_POLICER_FULLNAME_MAX + 1);
     rc = port_set_policer_name(attr, set_policer_name2);
     TEST_ASSERT_EQUAL(LAGOPUS_RESULT_TOO_LONG, rc);
     rc = port_get_policer_name(attr, &actual_set_policer_name2);

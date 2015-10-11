@@ -29,8 +29,10 @@ s_namespace_add(const char *namespace) {
     return LAGOPUS_RESULT_NOT_STARTED;
   } else if (namespace == NULL) {
     return LAGOPUS_RESULT_INVALID_ARGS;
-  } else if (strstr(namespace, NAMESPACE_DELIMITER) != NULL) {
+  } else if (strstr(namespace, DATASTORE_NAMESPACE_DELIMITER) != NULL) {
     return LAGOPUS_RESULT_INVALID_ARGS;
+  } else if (strcmp(namespace, DATASTORE_DRYRUN_NAMESPACE) == 0) {
+    return LAGOPUS_RESULT_INVALID_NAMESPACE;
   } else if (strlen(namespace) > DATASTORE_NAMESPACE_MAX) {
     return LAGOPUS_RESULT_TOO_LONG;
   }
@@ -204,7 +206,8 @@ s_namespace_val_freeup(void *val) {
 }
 
 static inline lagopus_result_t
-s_namespace_current_namespace_opt_parse(lagopus_dstring_t *result) {
+s_namespace_current_namespace_opt_parse(datastore_interp_state_t state,
+                                        lagopus_dstring_t *result) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   char *namespace = NULL;
   char *escaped_namespace = NULL;
@@ -214,7 +217,12 @@ s_namespace_current_namespace_opt_parse(lagopus_dstring_t *result) {
 
   (void)lagopus_dstring_clear(result);
 
-  ret = namespace_get_current_namespace(&namespace);
+  if (state == DATASTORE_INTERP_STATE_DRYRUN) {
+    ret = namespace_get_saved_namespace(&namespace);
+  } else {
+    ret = namespace_get_current_namespace(&namespace);
+  }
+
   if (ret == LAGOPUS_RESULT_OK && namespace != NULL) {
     if (namespace[0] == '\0') {
       ret = lagopus_dstring_appendf(result,
@@ -287,6 +295,7 @@ done:
 
 static inline lagopus_result_t
 s_namespace_add_opt_parse(const char *const argv[],
+                          datastore_interp_state_t state,
                           lagopus_dstring_t *result) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   char *namespace = NULL;
@@ -294,16 +303,21 @@ s_namespace_add_opt_parse(const char *const argv[],
   if (s_namespace_table != NULL) {
     if (IS_VALID_STRING(*argv) == true) {
       if ((ret = lagopus_str_unescape(*argv, "\"'", &namespace)) >= 0) {
-        ret = s_namespace_add(namespace);
-
-        if (ret == LAGOPUS_RESULT_OK) {
+        if (state == DATASTORE_INTERP_STATE_DRYRUN) {
+          ret = LAGOPUS_RESULT_OK;
           return datastore_json_result_set(result, ret, NULL);
         } else {
-          ret = datastore_json_result_string_setf(result,
-                                                  ret,
-                                                  "Can't add = %s",
-                                                  *argv);
-          goto error;
+          ret = s_namespace_add(namespace);
+
+          if (ret == LAGOPUS_RESULT_OK) {
+            return datastore_json_result_set(result, ret, NULL);
+          } else {
+            ret = datastore_json_result_string_setf(result,
+                                                    ret,
+                                                    "Can't add = %s",
+                                                    *argv);
+            goto error;
+          }
         }
       } else {
         ret = datastore_json_result_string_setf(result,
@@ -331,6 +345,7 @@ error:
 
 static inline lagopus_result_t
 s_namespace_set_opt_parse(const char *const argv[],
+                          datastore_interp_state_t state,
                           lagopus_dstring_t *result) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   char *namespace = NULL;
@@ -347,15 +362,20 @@ s_namespace_set_opt_parse(const char *const argv[],
                                  (void *) namespace, &val);
 
       if (ret == LAGOPUS_RESULT_OK) {
-        ret = s_set_current_namespace(namespace);
-
-        if (ret == LAGOPUS_RESULT_OK) {
-          ret = datastore_json_result_set(result, ret, NULL);
+        if (state == DATASTORE_INTERP_STATE_DRYRUN) {
+          ret = LAGOPUS_RESULT_OK;
+          return datastore_json_result_set(result, ret, NULL);
         } else {
-          ret = datastore_json_result_string_setf(result,
-                                                  LAGOPUS_RESULT_INVALID_ARGS,
-                                                  "Bad opt value = %s",
-                                                  *argv);
+          ret = s_set_current_namespace(namespace);
+
+          if (ret == LAGOPUS_RESULT_OK) {
+            ret = datastore_json_result_set(result, ret, NULL);
+          } else {
+            ret = datastore_json_result_string_setf(result,
+                                                    LAGOPUS_RESULT_INVALID_ARGS,
+                                                    "Bad opt value = %s",
+                                                    *argv);
+          }
         }
       } else if (ret == LAGOPUS_RESULT_NOT_FOUND) {
         ret = datastore_json_result_string_setf(result,
@@ -383,6 +403,7 @@ s_namespace_set_opt_parse(const char *const argv[],
 
 static inline lagopus_result_t
 s_namespace_delete_opt_parse(datastore_interp_t *iptr,
+                             datastore_interp_state_t state,
                              const char *const argv[],
                              lagopus_dstring_t *result) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
@@ -400,53 +421,57 @@ s_namespace_delete_opt_parse(datastore_interp_t *iptr,
       ret = lagopus_hashmap_find(&s_namespace_table,
                                  (void *) namespace, &val);
 
-      if (ret == LAGOPUS_RESULT_OK) {
-        ret = namespace_get_current_namespace(&current_namespace);
-        if (ret != LAGOPUS_RESULT_OK) {
-          ret = datastore_json_result_setf(result,
-                                           LAGOPUS_RESULT_ANY_FAILURES,
-                                           "Can't get namespace.");
-          goto done;
-        }
+      if (state == DATASTORE_INTERP_STATE_DRYRUN) {
+        ret = LAGOPUS_RESULT_OK;
+        return datastore_json_result_set(result, ret, NULL);
+      } else {
+        if (ret == LAGOPUS_RESULT_OK) {
+          ret = namespace_get_current_namespace(&current_namespace);
+          if (ret != LAGOPUS_RESULT_OK) {
+            ret = datastore_json_result_setf(result,
+                                             LAGOPUS_RESULT_ANY_FAILURES,
+                                             "Can't get namespace.");
+            goto done;
+          }
 
-        if (strcmp(namespace, current_namespace) == 0) {
-          if ((ret = s_unset_current_namespace()) == LAGOPUS_RESULT_OK) {
-            lagopus_msg_info("unset %s.", namespace);
+          if (strcmp(namespace, current_namespace) == 0) {
+            if ((ret = s_unset_current_namespace()) == LAGOPUS_RESULT_OK) {
+              lagopus_msg_info("unset %s.", namespace);
+            } else {
+              ret = datastore_json_result_string_setf(result, ret,
+                                                    "Unset processing failed.");
+              goto done;
+            }
+          }
+
+          ret = datastore_interp_destroy_obj(iptr, namespace, result);
+          if (ret == LAGOPUS_RESULT_OK) {
+            lagopus_msg_info("destroy %s objects.", namespace);
           } else {
             ret = datastore_json_result_string_setf(result,
                                                     ret,
-                                                    "Unset processing failed.");
+                                                    "destroy object failed.");
             goto done;
           }
-        }
 
-        ret = datastore_interp_destroy_obj(iptr, namespace, result);
-        if (ret == LAGOPUS_RESULT_OK) {
-          lagopus_msg_info("destroy %s objects.", namespace);
-        } else {
+          ret = lagopus_hashmap_delete(&s_namespace_table, (void *) namespace,
+                                       NULL, true);
+          if (ret == LAGOPUS_RESULT_OK) {
+            ret = datastore_json_result_set(result, ret, NULL);
+          } else {
+            ret = datastore_json_result_string_setf(result,
+                                                    LAGOPUS_RESULT_INVALID_ARGS,
+                                                    "Bad opt value = %s",
+                                                    *argv);
+          }
+        } else if (ret == LAGOPUS_RESULT_NOT_FOUND) {
           ret = datastore_json_result_string_setf(result,
-                                                  ret,
-                                                  "destroy object failed.");
-          goto done;
-        }
-
-        ret = lagopus_hashmap_delete(&s_namespace_table, (void *) namespace,
-                                     NULL, true);
-        if (ret == LAGOPUS_RESULT_OK) {
-          ret = datastore_json_result_set(result, ret, NULL);
-        } else {
-          ret = datastore_json_result_string_setf(result,
-                                                  LAGOPUS_RESULT_INVALID_ARGS,
+                                                  LAGOPUS_RESULT_NOT_FOUND,
                                                   "Bad opt value = %s",
                                                   *argv);
+        } else {
+          ret = datastore_json_result_setf(result, ret, NULL);
         }
-      } else if (ret == LAGOPUS_RESULT_NOT_FOUND) {
-        ret = datastore_json_result_string_setf(result,
-                                                LAGOPUS_RESULT_NOT_FOUND,
-                                                "Bad opt value = %s",
-                                                *argv);
-      } else {
-        ret = datastore_json_result_setf(result, ret, NULL);
       }
     } else {
       ret = datastore_json_result_string_setf(result,
@@ -467,10 +492,15 @@ done:
 }
 
 static inline lagopus_result_t
-s_namespace_unset_opt_parse(lagopus_dstring_t *result) {
+s_namespace_unset_opt_parse(datastore_interp_state_t state,
+                            lagopus_dstring_t *result) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
 
-  ret = s_unset_current_namespace();
+  if (state == DATASTORE_INTERP_STATE_DRYRUN) {
+    ret = LAGOPUS_RESULT_OK;
+  } else {
+    ret = s_unset_current_namespace();
+  }
 
   return datastore_json_result_set(result, ret, NULL);
 }
@@ -488,7 +518,6 @@ s_parse_namespace(datastore_interp_t *iptr,
   size_t i;
 
   (void)iptr;
-  (void)state;
   (void)argc;
   (void)hptr;
   (void)u_proc;
@@ -507,7 +536,7 @@ s_parse_namespace(datastore_interp_t *iptr,
       if (strcmp(*argv, "add") == 0) {
         if (argc == 3) {
           argv++;
-          return s_namespace_add_opt_parse(argv, result);
+          return s_namespace_add_opt_parse(argv, state, result);
         } else {
           return datastore_json_result_string_setf(result,
                  LAGOPUS_RESULT_INVALID_ARGS,
@@ -516,7 +545,7 @@ s_parse_namespace(datastore_interp_t *iptr,
       } else if (strcmp(*argv, "set") == 0) {
         if (argc == 3) {
           argv++;
-          return s_namespace_set_opt_parse(argv, result);
+          return s_namespace_set_opt_parse(argv, state, result);
         } else {
           return datastore_json_result_string_setf(result,
                  LAGOPUS_RESULT_INVALID_ARGS,
@@ -525,7 +554,7 @@ s_parse_namespace(datastore_interp_t *iptr,
       } else if (strcmp(*argv, "delete") == 0) {
         if (argc == 3) {
           argv++;
-          return s_namespace_delete_opt_parse(iptr, argv, result);
+          return s_namespace_delete_opt_parse(iptr, state, argv, result);
         } else {
           return datastore_json_result_string_setf(result,
                  LAGOPUS_RESULT_INVALID_ARGS,
@@ -534,7 +563,7 @@ s_parse_namespace(datastore_interp_t *iptr,
       } else if (strcmp(*argv, "unset") == 0) {
         if (argc == 2) {
           argv++;
-          return s_namespace_unset_opt_parse(result);
+          return s_namespace_unset_opt_parse(state, result);
         } else {
           return datastore_json_result_string_setf(result,
                  LAGOPUS_RESULT_INVALID_ARGS,
@@ -548,7 +577,7 @@ s_parse_namespace(datastore_interp_t *iptr,
            "Unknown option '%s'",
            *argv);
   } else {
-    return s_namespace_current_namespace_opt_parse(result);
+    return s_namespace_current_namespace_opt_parse(state, result);
   }
 }
 

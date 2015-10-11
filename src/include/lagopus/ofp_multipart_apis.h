@@ -25,7 +25,6 @@
 #include "openflow.h"
 #include "lagopus/flowdb.h"
 #include "lagopus/meter.h"
-#include "lagopus/group.h"
 #include "lagopus/bridge.h"
 #include "lagopus/pbuf.h"
 

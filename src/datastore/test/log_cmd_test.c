@@ -156,12 +156,16 @@ test_log_cmd_parse_syslog_and_ident(void) {
 
   // Normal case
   {
-    // Return error
+    // Return error other than Linux.
     if ((ret = lagopus_dstring_clear(&result)) == LAGOPUS_RESULT_OK) {
       ret = s_parse_log(&interp, state, ARGV_SIZE(argv_err1), argv_err1, &tbl,
                         proc, NULL, NULL, NULL,
                         &result);
+#ifdef HAVE_PROCFS_SELF_EXE
+      TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
+#else
       TEST_ASSERT_EQUAL(LAGOPUS_RESULT_DATASTORE_INTERP_ERROR, ret);
+#endif /* HAVE_PROCFS_SELF_EXE */
     }
 
 
@@ -169,7 +173,11 @@ test_log_cmd_parse_syslog_and_ident(void) {
       ret = s_parse_log(&interp, state, ARGV_SIZE(argv_err2), argv_err2, &tbl,
                         proc, NULL, NULL, NULL,
                         &result);
+#ifdef HAVE_PROCFS_SELF_EXE
+      TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
+#else
       TEST_ASSERT_EQUAL(LAGOPUS_RESULT_DATASTORE_INTERP_ERROR, ret);
+#endif /* HAVE_PROCFS_SELF_EXE */
     }
 
 
@@ -177,7 +185,11 @@ test_log_cmd_parse_syslog_and_ident(void) {
       ret = s_parse_log(&interp, state, ARGV_SIZE(argv_err3), argv_err3, &tbl,
                         proc, NULL, NULL, NULL,
                         &result);
+#ifdef HAVE_PROCFS_SELF_EXE
+      TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
+#else
       TEST_ASSERT_EQUAL(LAGOPUS_RESULT_DATASTORE_INTERP_ERROR, ret);
+#endif /* HAVE_PROCFS_SELF_EXE */
     }
 
 
@@ -1530,3 +1542,7 @@ test_log_destroy_tables(void) {
   TEST_ASSERT_NULL(log_typ_to_str_table);
 }
 
+void
+test_destroy(void) {
+  destroy = true;
+}

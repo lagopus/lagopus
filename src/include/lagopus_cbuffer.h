@@ -130,6 +130,42 @@ lagopus_result_t
 lagopus_cbuffer_wakeup(lagopus_cbuffer_t *cbptr, lagopus_chrono_t nsec);
 
 
+/**
+ * Wait for gettable.
+ *
+ *     @param[in]  cbptr	A pointer to a circular buffer.
+ *     @param[in]  nsec		Wait time (nanosec).
+ *
+ *     @retval >0				# of the gettable elements.
+ *     @retval LAGOPUS_RESULT_NOT_OPERATIONAL   Failed, not operational.
+ *     @retval LAGOPUS_RESULT_POSIX_API_ERROR   Failed, posix API error.
+ *     @retval LAGOPUS_RESULT_TIMEDOUT          Failed, timedout.
+ *     @retval LAGOPUS_RESULT_INVALID_ARGS	Failed, invalid argument(s).
+ *     @retval LAGOPUS_RESULT_ANY_FAILURES      Failed.
+ */
+lagopus_result_t
+lagopus_cbuffer_wait_gettable(lagopus_cbuffer_t *cbptr, 
+                              lagopus_chrono_t nsec);
+
+
+/**
+ * Wait for puttable.
+ *
+ *     @param[in]  cbptr	A pointer to a circular buffer.
+ *     @param[in]  nsec		Wait time (nanosec).
+ *
+ *     @retval >0				# of the puttable elements.
+ *     @retval LAGOPUS_RESULT_NOT_OPERATIONAL   Failed, not operational.
+ *     @retval LAGOPUS_RESULT_POSIX_API_ERROR   Failed, posix API error.
+ *     @retval LAGOPUS_RESULT_TIMEDOUT          Failed, timedout.
+ *     @retval LAGOPUS_RESULT_INVALID_ARGS	Failed, invalid argument(s).
+ *     @retval LAGOPUS_RESULT_ANY_FAILURES      Failed.
+ */
+lagopus_result_t
+lagopus_cbuffer_wait_puttable(lagopus_cbuffer_t *cbptr, 
+                              lagopus_chrono_t nsec);
+
+
 
 
 

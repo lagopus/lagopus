@@ -51,9 +51,7 @@ test_classify_packet_IPV4_TCP(void) {
   m->data[14] = 0x45;
   m->data[23] = IPPROTO_TCP;
 
-  pkt.mbuf = (OS_MBUF *)m;
-  lagopus_set_in_port(&pkt, &port);
-  classify_packet(&pkt);
+  lagopus_packet_init(&pkt, m, &port);
   TEST_ASSERT_EQUAL_MESSAGE(pkt.ether_type, ETHERTYPE_IP,
                             "ether_type error.");
   TEST_ASSERT_EQUAL_MESSAGE(pkt.l3_hdr, &m->data[14],
@@ -68,9 +66,7 @@ test_classify_packet_IPV4_TCP(void) {
   m->data[18] = 0x45;
   m->data[27] = IPPROTO_TCP;
 
-  pkt.mbuf = (OS_MBUF *)m;
-  lagopus_set_in_port(&pkt, &port);
-  classify_packet(&pkt);
+  lagopus_packet_init(&pkt, m, &port);
   TEST_ASSERT_EQUAL_MESSAGE(pkt.ether_type, ETHERTYPE_IP,
                             "ether_type(vlan) error.");
   TEST_ASSERT_EQUAL_MESSAGE(pkt.l3_hdr, &m->data[18],
@@ -96,9 +92,7 @@ test_classify_packet_IPV4_UDP(void) {
   m->data[14] = 0x45;
   m->data[23] = IPPROTO_UDP;
 
-  pkt.mbuf = (OS_MBUF *)m;
-  lagopus_set_in_port(&pkt, &port);
-  classify_packet(&pkt);
+  lagopus_packet_init(&pkt, m, &port);
   TEST_ASSERT_EQUAL_MESSAGE(pkt.ether_type, ETHERTYPE_IP,
                             "ether_type error.");
   TEST_ASSERT_EQUAL_MESSAGE(pkt.l3_hdr, &m->data[14],
@@ -140,9 +134,7 @@ test_classify_packet_IPV4_SCTP(void) {
   m->data[14] = 0x45;
   m->data[23] = IPPROTO_SCTP;
 
-  pkt.mbuf = (OS_MBUF *)m;
-  lagopus_set_in_port(&pkt, &port);
-  classify_packet(&pkt);
+  lagopus_packet_init(&pkt, m, &port);
   TEST_ASSERT_EQUAL_MESSAGE(pkt.ether_type, ETHERTYPE_IP,
                             "ether_type error.");
   TEST_ASSERT_EQUAL_MESSAGE(pkt.l3_hdr, &m->data[14],
@@ -184,9 +176,7 @@ test_classify_packet_IPV4_ICMP(void) {
   m->data[14] = 0x45;
   m->data[23] = IPPROTO_ICMP;
 
-  pkt.mbuf = (OS_MBUF *)m;
-  lagopus_set_in_port(&pkt, &port);
-  classify_packet(&pkt);
+  lagopus_packet_init(&pkt, m, &port);
   TEST_ASSERT_EQUAL_MESSAGE(pkt.ether_type, ETHERTYPE_IP,
                             "ether_type error.");
   TEST_ASSERT_EQUAL_MESSAGE(pkt.l3_hdr, &m->data[14],
@@ -227,9 +217,7 @@ test_classify_packet_IPV4_other(void) {
   m->data[14] = 0x45;
   m->data[23] = IPPROTO_RSVP;
 
-  pkt.mbuf = (OS_MBUF *)m;
-  lagopus_set_in_port(&pkt, &port);
-  classify_packet(&pkt);
+  lagopus_packet_init(&pkt, m, &port);
   TEST_ASSERT_EQUAL_MESSAGE(pkt.ether_type, ETHERTYPE_IP,
                             "ether_type error.");
   /* with VLAN */
@@ -260,9 +248,7 @@ test_classify_packet_ARP(void) {
   m->data[12] = 0x08;
   m->data[13] = 0x06;
 
-  pkt.mbuf = (OS_MBUF *)m;
-  lagopus_set_in_port(&pkt, &port);
-  classify_packet(&pkt);
+  lagopus_packet_init(&pkt, m, &port);
   TEST_ASSERT_EQUAL_MESSAGE(pkt.ether_type, ETHERTYPE_ARP,
                             "ether_type error.");
   /* with VLAN */
@@ -292,9 +278,7 @@ test_classify_packet_IPV6_TCP(void) {
   m->data[13] = 0xdd;
   m->data[20] = IPPROTO_TCP;
 
-  pkt.mbuf = (OS_MBUF *)m;
-  lagopus_set_in_port(&pkt, &port);
-  classify_packet(&pkt);
+  lagopus_packet_init(&pkt, m, &port);
   TEST_ASSERT_EQUAL_MESSAGE(pkt.ether_type, ETHERTYPE_IPV6,
                             "ether_type error.");
   /* with exthdr */
@@ -337,9 +321,7 @@ test_classify_packet_IPV6_UDP(void) {
   m->data[13] = 0xdd;
   m->data[20] = IPPROTO_UDP;
 
-  pkt.mbuf = (OS_MBUF *)m;
-  lagopus_set_in_port(&pkt, &port);
-  classify_packet(&pkt);
+  lagopus_packet_init(&pkt, m, &port);
   TEST_ASSERT_EQUAL_MESSAGE(pkt.ether_type, ETHERTYPE_IPV6,
                             "ether_type error.");
   /* with exthdr */
@@ -382,9 +364,7 @@ test_classify_packet_IPV6_SCTP(void) {
   m->data[13] = 0xdd;
   m->data[20] = IPPROTO_SCTP;
 
-  pkt.mbuf = (OS_MBUF *)m;
-  lagopus_set_in_port(&pkt, &port);
-  classify_packet(&pkt);
+  lagopus_packet_init(&pkt, m, &port);
   TEST_ASSERT_EQUAL_MESSAGE(pkt.ether_type, ETHERTYPE_IPV6,
                             "ether_type error.");
   /* with exthdr */
@@ -427,9 +407,7 @@ test_classify_packet_IPV6_ICMPV6(void) {
   m->data[13] = 0xdd;
   m->data[20] = IPPROTO_ICMPV6;
 
-  pkt.mbuf = (OS_MBUF *)m;
-  lagopus_set_in_port(&pkt, &port);
-  classify_packet(&pkt);
+  lagopus_packet_init(&pkt, m, &port);
   TEST_ASSERT_EQUAL_MESSAGE(pkt.ether_type, ETHERTYPE_IPV6,
                             "ether_type error.");
   /* with exthdr */
@@ -472,9 +450,7 @@ test_classify_packet_IPV6_other(void) {
   m->data[13] = 0xdd;
   m->data[20] = IPPROTO_RSVP;
 
-  pkt.mbuf = (OS_MBUF *)m;
-  lagopus_set_in_port(&pkt, &port);
-  classify_packet(&pkt);
+  lagopus_packet_init(&pkt, m, &port);
   TEST_ASSERT_EQUAL_MESSAGE(pkt.ether_type, ETHERTYPE_IPV6,
                             "ether_type error.");
   /* with exthdr */
@@ -516,9 +492,7 @@ test_classify_packet_MPLS(void) {
   m->data[12] = 0x88;
   m->data[13] = 0x47;
 
-  pkt.mbuf = (OS_MBUF *)m;
-  lagopus_set_in_port(&pkt, &port);
-  classify_packet(&pkt);
+  lagopus_packet_init(&pkt, m, &port);
   TEST_ASSERT_EQUAL_MESSAGE(pkt.ether_type, ETHERTYPE_MPLS,
                             "ether_type error.");
   /* with VLAN */
@@ -547,9 +521,7 @@ test_classify_packet_MPLSMC(void) {
   m->data[12] = 0x88;
   m->data[13] = 0x48;
 
-  pkt.mbuf = (OS_MBUF *)m;
-  lagopus_set_in_port(&pkt, &port);
-  classify_packet(&pkt);
+  lagopus_packet_init(&pkt, m, &port);
   TEST_ASSERT_EQUAL_MESSAGE(pkt.ether_type, ETHERTYPE_MPLS_MCAST,
                             "ether_type error.");
   /* with VLAN */
@@ -581,9 +553,7 @@ test_classify_packet_PBB(void) {
   m->data[30] = 0x08;
   m->data[31] = 0x00;
 
-  pkt.mbuf = (OS_MBUF *)m;
-  lagopus_set_in_port(&pkt, &port);
-  classify_packet(&pkt);
+  lagopus_packet_init(&pkt, m, &port);
   TEST_ASSERT_EQUAL_MESSAGE(pkt.ether_type, ETHERTYPE_IP,
                             "ether_type error.");
   /* with VLAN */
@@ -602,9 +572,7 @@ test_classify_packet_PBB(void) {
   m->data[12] = 0x88;
   m->data[13] = 0xe7;
 
-  pkt.mbuf = (OS_MBUF *)m;
-  lagopus_set_in_port(&pkt, &port);
-  classify_packet(&pkt);
+  lagopus_packet_init(&pkt, m, &port);
   TEST_ASSERT_EQUAL_MESSAGE(pkt.ether_type, ETHERTYPE_PBB,
                             "ether_type error.");
   /* with VLAN */

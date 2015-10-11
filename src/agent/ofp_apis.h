@@ -60,5 +60,6 @@
 #include "ofp_meter_handler.h"
 #include "ofp_experimenter_mp_handler.h"
 #include "ofp_table_features_handler.h"
+#include "ofp_features_capabilities.h"
 
 #endif /* __OFP_APIS_H__ */
