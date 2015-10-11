@@ -16,18 +16,25 @@
 
 #include <sys/queue.h>
 #include "unity.h"
+
 #include "lagopus_apis.h"
 #include "lagopus/pbuf.h"
 #include "lagopus/meter.h"
 #include "openflow13.h"
 #include "ofp_band.h"
 
+static struct meter_table *meter_table;
+
 void
 setUp(void) {
+  meter_table = meter_table_alloc();
+  TEST_ASSERT_NOT_NULL(meter_table);
 }
 
 void
 tearDown(void) {
+  meter_table_free(meter_table);
+  meter_table = NULL;
 }
 
 void
@@ -53,4 +60,53 @@ test_ofp_meter_band_list_elem_free(void) {
 
   TEST_ASSERT_EQUAL_MESSAGE(TAILQ_EMPTY(&band_list),
                             true, "band_list error.");
+}
+
+void
+test_meter_add_modify_delete(void) {
+  struct ofp_meter_mod meter_mod;
+  struct meter_band_list list;
+  struct ofp_error error;
+  lagopus_result_t rv;
+
+  TAILQ_INIT(&list);
+  meter_mod.meter_id = 0;
+  meter_mod.flags = 0;
+
+  rv = meter_table_meter_add(meter_table, &meter_mod, &list, &error);
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
+  rv = meter_table_meter_add(meter_table, &meter_mod, &list, &error);
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OFP_ERROR);
+  rv = meter_table_meter_modify(meter_table, &meter_mod, &list, &error);
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
+  meter_mod.meter_id = 1;
+  rv = meter_table_meter_modify(meter_table, &meter_mod, &list, &error);
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OFP_ERROR);
+  meter_mod.meter_id = 0;
+  rv = meter_table_meter_delete(meter_table, &meter_mod, &error);
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
+}
+
+void
+test_meter_lookup(void) {
+  struct ofp_meter_mod meter_mod;
+  struct meter_band_list list;
+  struct ofp_error error;
+  struct meter *meter;
+  lagopus_result_t rv;
+
+  TAILQ_INIT(&list);
+  meter_mod.meter_id = 0;
+  meter_mod.flags = 0;
+
+  rv = meter_table_meter_add(meter_table, &meter_mod, &list, &error);
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
+
+  meter = meter_table_lookup(meter_table, 0);
+  TEST_ASSERT_NOT_NULL(meter);
+  meter = meter_table_lookup(meter_table, 1);
+  TEST_ASSERT_NULL(meter);
+
+  rv = meter_table_meter_delete(meter_table, &meter_mod, &error);
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
 }

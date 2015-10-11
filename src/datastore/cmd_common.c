@@ -219,8 +219,6 @@ cmd_uint_parse(const char *const str,
             ret = LAGOPUS_RESULT_OK;
             break;
         }
-      } else {
-        lagopus_perror(ret);
       }
     } else {
       ret = LAGOPUS_RESULT_NO_MEMORY;
@@ -232,25 +230,6 @@ cmd_uint_parse(const char *const str,
 
   /* free. */
   free(num_str);
-
-  return ret;
-}
-
-lagopus_result_t
-cmd_string_indexof(const char *str1, const char *str2) {
-  char *addr = NULL;
-  int64_t ret = 0;
-
-  if (str1 != NULL && str2 != NULL) {
-    addr = strstr(str1, str2);
-    if (addr != NULL) {
-      ret = addr - str1;
-    } else {
-      ret = LAGOPUS_RESULT_NOT_FOUND;
-    }
-  } else {
-    ret = LAGOPUS_RESULT_INVALID_ARGS;
-  }
 
   return ret;
 }

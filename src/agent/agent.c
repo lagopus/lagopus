@@ -27,32 +27,15 @@
 #include "channel_mgr.h"
 
 static bool running = false;
-static bool is_gone = false;
-static struct event_manager *em;
-struct channel *channel = NULL;
 static lagopus_thread_t agent_thread = NULL;
 static lagopus_mutex_t lock = NULL;
 static pthread_once_t initialized = PTHREAD_ONCE_INIT;
-
-static lagopus_result_t
-loop(__UNUSED const lagopus_thread_t *t, __UNUSED void *arg) {
-  struct event *event;
-
-  while (running && (event = event_fetch(em)) != NULL) {
-    event_call(event);
-  }
-
-  is_gone = true;
-
-  return LAGOPUS_RESULT_OK;
-}
-
 
 static void
 initialize_internal(void) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
 
-  ret = lagopus_thread_create(&agent_thread, loop, NULL, NULL,
+  ret = lagopus_thread_create(&agent_thread, channel_mgr_loop, NULL, NULL,
                               "agent", NULL);
   if (ret != LAGOPUS_RESULT_OK) {
     lagopus_perror(ret);
@@ -60,14 +43,8 @@ initialize_internal(void) {
   }
   lagopus_msg_info("agent thread is created %p\n", agent_thread);
 
-  /* Event manager allocation. */
-  em = event_manager_alloc();
-  if (em == NULL) {
-    lagopus_exit_fatal("event manager allocate fail.");
-  }
-
   /* Initialize channel manager. */
-  channel_mgr_initialize((void *) em);
+  channel_mgr_initialize();
 
   /* Create lagopus_mutex_create.  */
   ret = lagopus_mutex_create(&lock);
@@ -108,11 +85,7 @@ agent_finalize(void) {
     return;
   }
 
-  channel_free(channel);
-  channel = NULL;
-  event_manager_free(em);
-  em = NULL;
-
+  channel_mgr_finalize();
   lagopus_mutex_destroy(&lock);
   lagopus_thread_destroy(&agent_thread);
   agent_thread = NULL;
@@ -144,7 +117,7 @@ done:
 }
 
 lagopus_result_t
-agent_shutdown(shutdown_grace_level_t level) {
+agent_shutdown(__UNUSED shutdown_grace_level_t level) {
   bool is_valid = false;
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
 
@@ -158,16 +131,10 @@ agent_shutdown(shutdown_grace_level_t level) {
   lagopus_mutex_lock(&lock);
 
   running = false;
-
   if (level == SHUTDOWN_RIGHT_NOW) {
-    event_manager_stop(em);
+    channel_mgr_loop_stop();
   }
 
-  if (is_gone == false) {
-    goto done;
-  }
-
-done:
   lagopus_mutex_unlock(&lock);
 
   return ret;

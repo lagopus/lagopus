@@ -20,6 +20,7 @@
 #include "flow_cmd.h"
 #include "flow_cmd_internal.h"
 #include "conv_json.h"
+#include "flow_cmd_type.h"
 
 /* command name. */
 #define CMD_NAME "flow"
@@ -29,6 +30,7 @@ enum flow_opts {
   OPT_NAME = 0,
   OPT_TABLE_ID,
   OPT_TMP_DIR,
+  OPT_WITH_STATS,
 
   OPT_MAX,
 };
@@ -38,6 +40,7 @@ static const char *const opt_strs[OPT_MAX] = {
   "*name",               /* OPT_NAME (not option) */
   "-table-id",           /* OPT_TABLE_ID */
   "-tmp-dir",            /* OPT_TMP_DIR */
+  "-with-stats",         /* OPT_WITH_STATS */
 };
 
 typedef struct flow_conf {
@@ -47,6 +50,7 @@ typedef struct flow_conf {
 
 typedef struct configs {
   bool is_dump;
+  bool is_with_stats;
 } configs_t;
 
 static lagopus_hashmap_t sub_cmd_table = NULL;
@@ -55,6 +59,7 @@ static lagopus_hashmap_t dump_opt_table = NULL;
 static lagopus_hashmap_t config_opt_table = NULL;
 
 #include "flow_cmd_dump.c"
+#include "flow_cmd_mod.c"
 
 static lagopus_result_t
 table_id_opt_parse(const char *const *argv[],
@@ -84,6 +89,27 @@ table_id_opt_parse(const char *const *argv[],
                                               LAGOPUS_RESULT_INVALID_ARGS,
                                               "Bad opt value.");
     }
+  } else {
+    ret = datastore_json_result_set(result,
+                                    LAGOPUS_RESULT_INVALID_ARGS,
+                                    NULL);
+  }
+
+  return ret;
+}
+
+static lagopus_result_t
+with_stats_opt_parse(const char *const *argv[],
+                     void *c, void *out_configs,
+                     lagopus_dstring_t *result) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  configs_t *configs = NULL;
+
+  if (argv != NULL && c != NULL &&
+      out_configs != NULL && result != NULL) {
+    configs = (configs_t *) out_configs;
+    configs->is_with_stats = true;
+    ret = LAGOPUS_RESULT_OK;
   } else {
     ret = datastore_json_result_set(result,
                                     LAGOPUS_RESULT_INVALID_ARGS,
@@ -296,6 +322,7 @@ dump_sub_cmd_parse(datastore_interp_t *iptr,
     if (ret == LAGOPUS_RESULT_OK) {
       /* dump flow. */
       if ((ret = flow_cmd_dump_thread_start(conf,
+                                            configs,
                                             iptr,
                                             result)) !=
           LAGOPUS_RESULT_OK) {
@@ -312,6 +339,144 @@ dump_sub_cmd_parse(datastore_interp_t *iptr,
 
 done:
   free(str);
+
+  return ret;
+}
+
+static lagopus_result_t
+add_sub_cmd_parse(datastore_interp_t *iptr,
+                  datastore_interp_state_t state,
+                  size_t argc, const char *const argv[],
+                  char *name,
+                  lagopus_hashmap_t *hptr,
+                  datastore_update_proc_t proc,
+                  void *out_configs,
+                  lagopus_dstring_t *result) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  uint64_t dpid;
+  (void) state;
+  (void) argc;
+  (void) hptr;
+  (void) proc;
+
+  if (iptr != NULL && argv != NULL && name != NULL &&
+      out_configs != NULL && result != NULL) {
+    if (bridge_exists(name) == true) {
+      if ((ret = datastore_bridge_get_dpid(name, true,
+                                           &dpid)) ==
+          LAGOPUS_RESULT_OK) {
+        ret = flow_cmd_mod_add_cmd_parse(iptr, state,
+                                         argc, argv,
+                                         name, out_configs,
+                                         dpid, result);
+      } else {
+        ret = datastore_json_result_string_setf(result,
+                                                ret,
+                                                "Can't get dpid.");
+      }
+    } else {
+      ret = datastore_json_result_string_setf(result,
+                                              LAGOPUS_RESULT_NOT_FOUND,
+                                              "Not found. name = %s.",
+                                              name);
+    }
+  } else {
+    ret = datastore_json_result_set(result,
+                                    LAGOPUS_RESULT_INVALID_ARGS,
+                                    NULL);
+  }
+
+  return ret;
+}
+
+static lagopus_result_t
+mod_sub_cmd_parse(datastore_interp_t *iptr,
+                  datastore_interp_state_t state,
+                  size_t argc, const char *const argv[],
+                  char *name,
+                  lagopus_hashmap_t *hptr,
+                  datastore_update_proc_t proc,
+                  void *out_configs,
+                  lagopus_dstring_t *result) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  uint64_t dpid;
+  (void) state;
+  (void) argc;
+  (void) hptr;
+  (void) proc;
+
+  if (iptr != NULL && argv != NULL && name != NULL &&
+      out_configs != NULL && result != NULL) {
+    if (bridge_exists(name) == true) {
+      if ((ret = datastore_bridge_get_dpid(name, true,
+                                           &dpid)) ==
+          LAGOPUS_RESULT_OK) {
+        ret = flow_cmd_mod_mod_cmd_parse(iptr, state,
+                                         argc, argv,
+                                         name, out_configs,
+                                         dpid, result);
+      } else {
+        ret = datastore_json_result_string_setf(result,
+                                                ret,
+                                                "Can't get dpid.");
+      }
+    } else {
+      ret = datastore_json_result_string_setf(result,
+                                              LAGOPUS_RESULT_NOT_FOUND,
+                                              "Not found. name = %s.",
+                                              name);
+    }
+  } else {
+    ret = datastore_json_result_set(result,
+                                    LAGOPUS_RESULT_INVALID_ARGS,
+                                    NULL);
+  }
+
+  return ret;
+}
+
+static lagopus_result_t
+del_sub_cmd_parse(datastore_interp_t *iptr,
+                  datastore_interp_state_t state,
+                  size_t argc, const char *const argv[],
+                  char *name,
+                  lagopus_hashmap_t *hptr,
+                  datastore_update_proc_t proc,
+                  void *out_configs,
+                  lagopus_dstring_t *result) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  uint64_t dpid;
+  (void) state;
+  (void) argc;
+  (void) hptr;
+  (void) proc;
+
+  if (iptr != NULL && argv != NULL && name != NULL &&
+      out_configs != NULL && result != NULL) {
+    if (bridge_exists(name) == true) {
+      if ((ret = datastore_bridge_get_dpid(name, true,
+                                           &dpid)) ==
+          LAGOPUS_RESULT_OK) {
+        ret = flow_cmd_mod_del_cmd_parse(iptr, state,
+                                         argc, argv,
+                                         name, out_configs,
+                                         dpid, result);
+      } else {
+        ret = datastore_json_result_string_setf(result,
+                                                ret,
+                                                "Can't get dpid.");
+      }
+    } else {
+      ret = datastore_json_result_string_setf(result,
+                                              LAGOPUS_RESULT_NOT_FOUND,
+                                              "Not found. name = %s.",
+                                              name);
+    }
+  } else {
+    ret = datastore_json_result_set(result,
+                                    LAGOPUS_RESULT_INVALID_ARGS,
+                                    NULL);
+  }
 
   return ret;
 }
@@ -334,7 +499,7 @@ flow_cmd_parse(datastore_interp_t *iptr,
   char *fullname = NULL;
   char *str = NULL;
   flow_conf_t conf = {NULL, OFPTT_ALL};
-  configs_t out_configs = {false};
+  configs_t out_configs = {false, false};
   lagopus_dstring_t conf_result = NULL;
   (void) u_proc;
   (void) e_proc;
@@ -465,6 +630,21 @@ initialize_internal(void) {
     goto done;
   }
 
+  if (((ret = sub_cmd_add(ADD_SUB_CMD,
+                          add_sub_cmd_parse,
+                          &sub_cmd_table)) !=
+       LAGOPUS_RESULT_OK) ||
+      ((ret = sub_cmd_add(MOD_SUB_CMD,
+                          mod_sub_cmd_parse,
+                          &sub_cmd_table)) !=
+       LAGOPUS_RESULT_OK) ||
+      ((ret = sub_cmd_add(DEL_SUB_CMD,
+                          del_sub_cmd_parse,
+                          &sub_cmd_table)) !=
+       LAGOPUS_RESULT_OK)) {
+    goto done;
+  }
+
   /* create hashmap for sub cmds (not name). */
   if ((ret = lagopus_hashmap_create(&sub_cmd_not_name_table,
                                     LAGOPUS_HASHMAP_TYPE_STRING,
@@ -487,9 +667,12 @@ initialize_internal(void) {
     goto done;
   }
 
-  if ((ret = opt_add(opt_strs[OPT_TABLE_ID], table_id_opt_parse,
+  if (((ret = opt_add(opt_strs[OPT_TABLE_ID], table_id_opt_parse,
                      &dump_opt_table)) !=
-      LAGOPUS_RESULT_OK) {
+       LAGOPUS_RESULT_OK) ||
+      ((ret = opt_add(opt_strs[OPT_WITH_STATS], with_stats_opt_parse,
+                      &dump_opt_table)) !=
+       LAGOPUS_RESULT_OK)) {
     goto done;
   }
 
@@ -503,6 +686,11 @@ initialize_internal(void) {
 
   if ((ret = opt_add(opt_strs[OPT_TMP_DIR], tmp_dir_opt_parse,
                      &config_opt_table)) !=
+      LAGOPUS_RESULT_OK) {
+    goto done;
+  }
+
+  if ((ret = flow_cmd_mod_initialize()) !=
       LAGOPUS_RESULT_OK) {
     goto done;
   }
@@ -534,6 +722,7 @@ flow_cmd_initialize(void) {
 void
 flow_cmd_finalize(void) {
   flow_cmd_dump_finalize();
+  flow_cmd_mod_finalize();
   lagopus_hashmap_destroy(&sub_cmd_table, true);
   sub_cmd_table = NULL;
   lagopus_hashmap_destroy(&sub_cmd_not_name_table, true);

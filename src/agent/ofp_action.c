@@ -574,9 +574,6 @@ ofp_set_field_encode_list(struct pbuf_list *pbuf_list, struct pbuf **pbuf,
     pbuf_plen_set(*pbuf, OFP_PACKET_MAX_SIZE);
     ret = ofp_header_mp_copy(*pbuf, before_pbuf);
     if (ret != LAGOPUS_RESULT_OK) {
-      if (*pbuf != NULL) {
-        pbuf_free(*pbuf);
-      }
       return ret;
     }
     pbuf_list_add(pbuf_list, *pbuf);

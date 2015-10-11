@@ -268,7 +268,7 @@ lagopus_dataplane_init(int argc, const char *const argv[]) {
       break;
     }
   }
-  if (i == argv) {
+  if (i == argc) {
     /* "--" is not found in argv */
     memcpy(copy_argv, argv, argsize);
   } else {

@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+
 #include "lagopus_apis.h"
 
 
@@ -27,8 +28,8 @@ static lagopus_cond_t s_cond = NULL;
 static global_state_t s_gs = GLOBAL_STATE_UNKNOWN;
 static shutdown_grace_level_t s_gl = SHUTDOWN_UNKNOWN;
 
-static void s_ctors(void) __attr_constructor__(108);
-static void s_dtors(void) __attr_destructor__(108);
+static void s_ctors(void) __attr_constructor__(109);
+static void s_dtors(void) __attr_destructor__(109);
 
 
 

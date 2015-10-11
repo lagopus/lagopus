@@ -16,14 +16,15 @@
 
 #include "lagopus/datastore.h"
 #include "datastore_internal.h"
+#include "ns_util.h"
 
 #define MINIMUM_PORT_NUMBER 0
 #define MAXIMUM_PORT_NUMBER UINT32_MAX
 
 typedef struct port_attr {
   uint32_t port_number;
-  char interface_name[DATASTORE_INTERFACE_NAME_MAX + 1];
-  char policer_name[DATASTORE_POLICER_NAME_MAX + 1];
+  char interface_name[DATASTORE_INTERFACE_FULLNAME_MAX + 1];
+  char policer_name[DATASTORE_POLICER_FULLNAME_MAX + 1];
   datastore_name_info_t *queue_names;
 } port_attr_t;
 
@@ -85,9 +86,11 @@ error:
 }
 
 static inline lagopus_result_t
-port_attr_duplicate(const port_attr_t *src_attr, port_attr_t **dst_attr) {
+port_attr_duplicate(const port_attr_t *src_attr,
+                    port_attr_t **dst_attr, const char *namespace) {
   lagopus_result_t rc;
   size_t len = 0;
+  char *buf = NULL;
 
   if (src_attr == NULL || dst_attr == NULL) {
     return LAGOPUS_RESULT_INVALID_ARGS;
@@ -105,26 +108,63 @@ port_attr_duplicate(const port_attr_t *src_attr, port_attr_t **dst_attr) {
 
   (*dst_attr)->port_number = src_attr->port_number;
 
-  if ((len = strlen(src_attr->interface_name))
-      <= DATASTORE_INTERFACE_NAME_MAX) {
-    strncpy((*dst_attr)->interface_name, src_attr->interface_name, len);
-    (*dst_attr)->interface_name[len] = '\0';
-  } else {
-    rc = LAGOPUS_RESULT_TOO_LONG;
-    goto error;
+  if (src_attr->interface_name[0] != '\0') {
+    if ((len = strlen(src_attr->interface_name))
+        <= DATASTORE_INTERFACE_FULLNAME_MAX) {
+      if (namespace == NULL) {
+        strncpy((*dst_attr)->interface_name, src_attr->interface_name, len);
+        (*dst_attr)->interface_name[len] = '\0';
+      } else {
+        rc = ns_replace_namespace(src_attr->interface_name, namespace, &buf);
+        if (rc == LAGOPUS_RESULT_OK) {
+          if ((len = strlen(buf)) <= DATASTORE_INTERFACE_FULLNAME_MAX) {
+            strncpy((*dst_attr)->interface_name, buf, len);
+            (*dst_attr)->interface_name[len] = '\0';
+          } else {
+            rc = LAGOPUS_RESULT_TOO_LONG;
+            goto error;
+          }
+        } else {
+          goto error;
+        }
+        free(buf);
+      }
+    } else {
+      rc = LAGOPUS_RESULT_TOO_LONG;
+      goto error;
+    }
   }
 
-  if ((len = strlen(src_attr->policer_name))
-      <= DATASTORE_POLICER_NAME_MAX) {
-    strncpy((*dst_attr)->policer_name, src_attr->policer_name, len);
-    (*dst_attr)->policer_name[len] = '\0';
-  } else {
-    rc = LAGOPUS_RESULT_TOO_LONG;
-    goto error;
+  if (src_attr->policer_name[0] != '\0') {
+    if ((len = strlen(src_attr->policer_name))
+        <= DATASTORE_POLICER_FULLNAME_MAX) {
+      if (namespace == NULL) {
+        strncpy((*dst_attr)->policer_name, src_attr->policer_name, len);
+        (*dst_attr)->policer_name[len] = '\0';
+      } else {
+        rc = ns_replace_namespace(src_attr->policer_name, namespace, &buf);
+        if (rc == LAGOPUS_RESULT_OK) {
+          if ((len = strlen(buf)) <= DATASTORE_POLICER_FULLNAME_MAX) {
+            strncpy((*dst_attr)->policer_name, buf, len);
+            (*dst_attr)->policer_name[len] = '\0';
+          } else {
+            rc = LAGOPUS_RESULT_TOO_LONG;
+            goto error;
+          }
+        } else {
+          goto error;
+        }
+        free(buf);
+      }
+    } else {
+      rc = LAGOPUS_RESULT_TOO_LONG;
+      goto error;
+    }
   }
 
   rc = datastore_names_duplicate(src_attr->queue_names,
-                                 &((*dst_attr)->queue_names));
+                                 &((*dst_attr)->queue_names),
+                                 namespace);
   if (rc != LAGOPUS_RESULT_OK) {
     goto error;
   }
@@ -132,6 +172,7 @@ port_attr_duplicate(const port_attr_t *src_attr, port_attr_t **dst_attr) {
   return LAGOPUS_RESULT_OK;
 
 error:
+  free(buf);
   port_attr_destroy(*dst_attr);
   *dst_attr = NULL;
   return rc;
@@ -147,7 +188,9 @@ port_attr_queue_name_exists(const port_attr_t *attr, const char *name) {
 
 static inline bool
 port_attr_equals(port_attr_t *attr0, port_attr_t *attr1) {
-  if (attr0 == NULL || attr1 == NULL) {
+  if (attr0 == NULL && attr1 == NULL) {
+    return true;
+  } else if (attr0 == NULL || attr1 == NULL) {
     return false;
   }
 
@@ -252,6 +295,104 @@ port_conf_destroy(port_conf_t *conf) {
 }
 
 static inline lagopus_result_t
+port_conf_duplicate(const port_conf_t *src_conf, port_conf_t **dst_conf,
+                    const char *namespace) {
+  lagopus_result_t rc;
+  port_attr_t *dst_current_attr = NULL;
+  port_attr_t *dst_modified_attr = NULL;
+  size_t len = 0;
+  char *buf = NULL;
+
+  if (src_conf == NULL || dst_conf == NULL) {
+    return LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  if (*dst_conf != NULL) {
+    port_conf_destroy(*dst_conf);
+    *dst_conf = NULL;
+  }
+
+  if (namespace == NULL) {
+    rc = port_conf_create(dst_conf, src_conf->name);
+    if (rc != LAGOPUS_RESULT_OK) {
+      goto error;
+    }
+  } else {
+    if ((len = strlen(src_conf->name)) <= DATASTORE_PORT_FULLNAME_MAX) {
+      rc = ns_replace_namespace(src_conf->name, namespace, &buf);
+      if (rc == LAGOPUS_RESULT_OK) {
+        rc = port_conf_create(dst_conf, buf);
+        if (rc != LAGOPUS_RESULT_OK) {
+          goto error;
+        }
+      } else {
+        goto error;
+      }
+      free(buf);
+    } else {
+      rc = LAGOPUS_RESULT_TOO_LONG;
+      goto error;
+    }
+  }
+
+  if (src_conf->current_attr != NULL) {
+    rc = port_attr_duplicate(src_conf->current_attr,
+                             &dst_current_attr, namespace);
+    if (rc != LAGOPUS_RESULT_OK) {
+      goto error;
+    }
+  }
+  (*dst_conf)->current_attr = dst_current_attr;
+
+  if (src_conf->modified_attr != NULL) {
+    rc = port_attr_duplicate(src_conf->modified_attr,
+                             &dst_modified_attr, namespace);
+    if (rc != LAGOPUS_RESULT_OK) {
+      goto error;
+    }
+  }
+  (*dst_conf)->modified_attr = dst_modified_attr;
+
+  (*dst_conf)->is_used = src_conf->is_used;
+  (*dst_conf)->is_enabled = src_conf->is_enabled;
+  (*dst_conf)->is_destroying = src_conf->is_destroying;
+  (*dst_conf)->is_enabling = src_conf->is_enabling;
+  (*dst_conf)->is_disabling = src_conf->is_disabling;
+
+  return LAGOPUS_RESULT_OK;
+
+error:
+  free(buf);
+  port_conf_destroy(*dst_conf);
+  *dst_conf = NULL;
+  return rc;
+}
+
+static inline bool
+port_conf_equals(const port_conf_t *conf0,
+                 const port_conf_t *conf1) {
+  if (conf0 == NULL && conf1 == NULL) {
+    return true;
+  } else if (conf0 == NULL || conf1 == NULL) {
+    return false;
+  }
+
+  if ((port_attr_equals(conf0->current_attr,
+                        conf1->current_attr) == true) &&
+      (port_attr_equals(conf0->modified_attr,
+                        conf1->modified_attr) == true) &&
+      (conf0->is_used == conf1->is_used) &&
+      (conf0->is_enabled == conf1->is_enabled) &&
+      (conf0->is_destroying == conf1->is_destroying) &&
+      (conf0->is_enabling == conf1->is_enabling) &&
+      (conf0->is_disabling == conf1->is_disabling)) {
+    return true;
+  }
+
+  return false;
+}
+
+static inline lagopus_result_t
 port_conf_add(port_conf_t *conf) {
   if (port_table != NULL) {
     if (conf != NULL && IS_VALID_STRING(conf->name) == true) {
@@ -317,12 +458,12 @@ port_conf_iterate(void *key, void *val, lagopus_hashentry_t he,
         if (ctx->m_namespace[0] == '\0') {
           ret = lagopus_dstring_appendf(&ds,
                                         "%s",
-                                        NAMESPACE_DELIMITER);
+                                        DATASTORE_NAMESPACE_DELIMITER);
         } else {
           ret = lagopus_dstring_appendf(&ds,
                                         "%s%s",
                                         ctx->m_namespace,
-                                        NAMESPACE_DELIMITER);
+                                        DATASTORE_NAMESPACE_DELIMITER);
         }
 
         if (ret == LAGOPUS_RESULT_OK) {
@@ -514,7 +655,7 @@ port_get_queue_names(const port_attr_t *attr,
                      datastore_name_info_t **queue_names) {
   if (attr != NULL && queue_names != NULL) {
     return datastore_names_duplicate(attr->queue_names,
-                                     queue_names);
+                                     queue_names, NULL);
   }
   return LAGOPUS_RESULT_INVALID_ARGS;
 }
@@ -540,7 +681,7 @@ static inline lagopus_result_t
 port_set_interface_name(port_attr_t *attr, const char *interface_name) {
   if (attr != NULL && interface_name != NULL) {
     size_t len = strlen(interface_name);
-    if (len <= DATASTORE_INTERFACE_NAME_MAX) {
+    if (len <= DATASTORE_INTERFACE_FULLNAME_MAX) {
       strncpy(attr->interface_name, interface_name, len);
       attr->interface_name[len] = '\0';
       return LAGOPUS_RESULT_OK;
@@ -555,7 +696,7 @@ static inline lagopus_result_t
 port_set_policer_name(port_attr_t *attr, const char *policer_name) {
   if (attr != NULL && policer_name != NULL) {
     size_t len = strlen(policer_name);
-    if (len <= DATASTORE_POLICER_NAME_MAX) {
+    if (len <= DATASTORE_POLICER_FULLNAME_MAX) {
       strncpy(attr->policer_name, policer_name, len);
       attr->policer_name[len] = '\0';
       return LAGOPUS_RESULT_OK;
@@ -571,7 +712,7 @@ port_set_queue_names(port_attr_t *attr,
                      const datastore_name_info_t *queue_names) {
   if (attr != NULL && queue_names != NULL) {
     return datastore_names_duplicate(queue_names,
-                                     &(attr->queue_names));
+                                     &(attr->queue_names), NULL);
   }
   return LAGOPUS_RESULT_INVALID_ARGS;
 }

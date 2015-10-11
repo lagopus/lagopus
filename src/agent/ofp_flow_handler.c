@@ -60,7 +60,7 @@ s_flow_stats_list_encode(struct pbuf_list *pbuf_list,
       res = ofp_flow_stats_encode_list(pbuf_list, pbuf, &(flow_stats->ofp));
       if (res == LAGOPUS_RESULT_OK) {
         /* encode match */
-        res = ofp_match_list_encode(pbuf_list, *pbuf, &(flow_stats->match_list),
+        res = ofp_match_list_encode(pbuf_list, pbuf, &(flow_stats->match_list),
                                     &match_total_len);
         if (res == LAGOPUS_RESULT_OK) {
           /* encode instruction */

@@ -146,10 +146,16 @@ datastore_json_result_set_with_log(lagopus_dstring_t *ds,
                                    const char *func,
                                    const char *val) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
-  char *str = NULL;
 
   if (ds != NULL && *ds != NULL &&
       file != NULL && func != NULL) {
+    /* put log. */
+    if (result_code < LAGOPUS_RESULT_OK) {
+      lagopus_log_emit(LAGOPUS_LOG_LEVEL_ERROR, 0LL, file, line, func,
+                       "set datastore json err: %s\n",
+                       datastore_json_result_string_get(result_code));
+    }
+
     ret = lagopus_dstring_clear(ds);
 
     if (ret == LAGOPUS_RESULT_OK) {
@@ -170,13 +176,6 @@ datastore_json_result_set_with_log(lagopus_dstring_t *ds,
             if (ret == LAGOPUS_RESULT_OK) {
               if (result_code != LAGOPUS_RESULT_OK) {
                 ret = LAGOPUS_RESULT_DATASTORE_INTERP_ERROR;
-
-                /* put log. */
-                (void) lagopus_dstring_str_get(ds, &str);
-                lagopus_log_emit(LAGOPUS_LOG_LEVEL_ERROR, 0LL, file, line, func,
-                                 "set datastore json err: %s\n",
-                                 datastore_json_result_string_get(result_code));
-                free(str);
               }
             } else {
               lagopus_perror(ret);
@@ -240,12 +239,21 @@ datastore_json_result_setf_with_log(lagopus_dstring_t *ds,
                                     const char *func,
                                     const char *format, ...) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
-  char *str = NULL;
   va_list args;
 
   if (ds != NULL && *ds != NULL && file != NULL &&
       func != NULL &&format != NULL) {
     va_start(args, format);
+
+    /* put log. */
+    if (result_code < LAGOPUS_RESULT_OK) {
+      lagopus_log_emit(
+          LAGOPUS_LOG_LEVEL_ERROR, 0LL,
+          file, line, func,
+          "set datastore json err: %s\n",
+          datastore_json_result_string_get(result_code));
+    }
+
     ret = lagopus_dstring_clear(ds);
 
     if (ret == LAGOPUS_RESULT_OK) {
@@ -270,15 +278,6 @@ datastore_json_result_setf_with_log(lagopus_dstring_t *ds,
               if (ret == LAGOPUS_RESULT_OK) {
                 if (result_code != LAGOPUS_RESULT_OK) {
                   ret = LAGOPUS_RESULT_DATASTORE_INTERP_ERROR;
-
-                  /* put log. */
-                  (void) lagopus_dstring_str_get(ds, &str);
-                  lagopus_log_emit(
-                    LAGOPUS_LOG_LEVEL_ERROR, 0LL,
-                    file, line, func,
-                    "set datastore json err: %s\n",
-                    datastore_json_result_string_get(result_code));
-                  free(str);
                 }
               } else {
                 lagopus_perror(ret);

@@ -17,7 +17,7 @@
 #include "unity.h"
 #include "../ofp_experimenter_handler.h"
 #include "handler_test_utils.h"
-#include "event.h"
+#include "../channel_mgr.h"
 
 void
 setUp(void) {
@@ -45,6 +45,23 @@ ofp_experimenter_reply_create_wrap(struct channel *channel,
 }
 
 void
+test_prologue(void) {
+  lagopus_result_t r;
+  const char *argv0 =
+      ((IS_VALID_STRING(lagopus_get_command_name()) == true) ?
+       lagopus_get_command_name() : "callout_test");
+  const char * const argv[] = {
+    argv0, NULL
+  };
+
+#define N_CALLOUT_WORKERS	1
+  (void)lagopus_mainloop_set_callout_workers_number(N_CALLOUT_WORKERS);
+  r = lagopus_mainloop_with_callout(1, argv, NULL, NULL,
+                                    false, false, true);
+  TEST_ASSERT_EQUAL(r, LAGOPUS_RESULT_OK);
+  channel_mgr_initialize();
+}
+void
 test_ofp_experimenter_reply_create(void) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   ret = check_packet_create(ofp_experimenter_reply_create_wrap,
@@ -59,9 +76,7 @@ test_ofp_experimenter_reply_create_null(void) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   struct pbuf *pbuf = pbuf_alloc(65535);
   struct ofp_header xid_header;
-  struct event_manager *em = event_manager_alloc();
-  struct channel *channel = channel_alloc_ip4addr("127.0.0.1", "1000",
-                            em, 0x01);
+  struct channel *channel = channel_alloc_ip4addr("127.0.0.1", "1000", 0x01);
   struct ofp_experimenter_header exper_req;
 
   ret = ofp_experimenter_reply_create(NULL, &pbuf, &xid_header, &exper_req);
@@ -82,7 +97,6 @@ test_ofp_experimenter_reply_create_null(void) {
 
   /* after. */
   channel_free(channel);
-  event_manager_free(em);
   pbuf_free(pbuf);
 }
 
@@ -110,9 +124,7 @@ test_ofp_experimenter_request_handle_null(void) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   struct pbuf *pbuf = pbuf_alloc(65535);
   struct ofp_header xid_header;
-  struct event_manager *em = event_manager_alloc();
-  struct channel *channel = channel_alloc_ip4addr("127.0.0.1", "1000",
-                            em, 0x01);
+  struct channel *channel = channel_alloc_ip4addr("127.0.0.1", "1000", 0x01);
 
   ret = ofp_experimenter_request_handle(NULL, pbuf, &xid_header);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS, ret,
@@ -128,6 +140,13 @@ test_ofp_experimenter_request_handle_null(void) {
 
   /* after. */
   channel_free(channel);
-  event_manager_free(em);
   pbuf_free(pbuf);
+}
+void
+test_epilogue(void) {
+  lagopus_result_t r;
+  channel_mgr_finalize();
+  r = global_state_request_shutdown(SHUTDOWN_GRACEFULLY);
+  TEST_ASSERT_EQUAL(r, LAGOPUS_RESULT_OK);
+  lagopus_mainloop_wait_thread();
 }

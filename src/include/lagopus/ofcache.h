@@ -28,47 +28,55 @@
 #define CACHE_NODE_MAX_ENTRIES 256
 
 struct lagopus_packet;
+struct flowcache;
 
 /**
- * per thread cache object.
+ * @brief Flow cache statistics.
  */
-struct flowcache {
-  int kvs_type;
-  struct ptree *ptree;
-  lagopus_hashmap_t hashmap;
-  /* statistics */
-  uint64_t nentries;
-  uint64_t hit;
-  uint64_t miss;
-};
-
 struct ofcachestat {
-  /* statistics */
-  uint64_t nentries;
-  uint64_t hit;
-  uint64_t miss;
+  uint64_t nentries;                    /** number of cache entry */
+  uint64_t hit;                         /** cache hit count */
+  uint64_t miss;                        /** cache miss count */
 };
 
+/**
+ * @brief Flow cache entry.
+ */
 struct cache_entry {
-  TAILQ_ENTRY(cache_entry) next;
+  TAILQ_ENTRY(cache_entry) next;        /** link for next entry */
   union {
-    uint64_t hash64;
+    uint64_t hash64;                    /** 64bit hash value */
     struct {
-      uint32_t hash32_h;
-      uint32_t hash32_l;
+      uint32_t hash32_h;                /** higher 32bit of hash value */
+      uint32_t hash32_l;                /** lower 32bit of hash value */
     };
   };
-  unsigned nmatched;
-  struct flow *flow[0];
+  unsigned nmatched;                    /** number of flow. */
+  struct flow *flow[0];                 /** flow entries. */
 };
 
 /**
- * Initialie cache.
+ * Initialize cache.
+ *
+ * @param[in]   kvs_type        Key Value Store type.
+ *
+ * @retval      !=NULL          flow cache object.
+ *              ==NULL          kvs_type is invalid, or memory exhausted.
+ *
+ * kvs_type is one of below:
+ *      FLOWCACHE_HASHMAP_NOLOCK
+ *      FLOWCACHE_HASHMAP
+ *      FLOWCACHE_PTREE
  */
 struct flowcache *init_flowcache(int kvs_type);
 
 /**
  * Register cache entry.
+ *
+ * @param[in]   cache           Flow cache object.
+ * @param[in]   hash64          Hash value for lookup cache entry.
+ * @param[in]   nmatched        Number of flows.
+ * @param[in]   flow            Flow entries.
  */
 void
 register_cache(struct flowcache *cache,
@@ -78,13 +86,15 @@ register_cache(struct flowcache *cache,
 
 /**
  * Clear all cache entry.
+ *
+ * @param[in]   cache           Flow cache object.
  */
 void clear_all_cache(struct flowcache *cache);
 
 /**
  * Lookup cache.
  *
- * @param[in]   cache   Cache.
+ * @param[in]   cache   Flow cache object.
  * @param[in]   pkt     Packet.
  *
  * @retval      !=NULL  Cache entry.
@@ -96,7 +106,7 @@ cache_lookup(struct flowcache *cache, struct lagopus_packet *pkt);
 /**
  * Finalize cache.
  *
- * @param[in]   cache   Cache.
+ * @param[in]   cache   Flow cache object.
  */
 void
 fini_flowcache(struct flowcache *cache);
@@ -105,10 +115,10 @@ struct bridge;
 /**
  * Get flow cache statistics.
  *
- * @param[in]   bridge   Bridge.
+ * @param[in]   cache    Flow cache object.
  * @param[out]  st       Statistics of flow cache.
  */
 void
-get_flowcache_statistics(struct bridge *bridge, struct ofcachestat *st);
+get_flowcache_statistics(struct flowcache *cache, struct ofcachestat *st);
 
 #endif /* SRC_INCLUDE_LAGOPUS_FLOWCACHE_H_ */

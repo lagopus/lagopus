@@ -49,11 +49,47 @@ test_dp_queue_create_and_destroy(void) {
 }
 
 void
-test_dp_port_queue_add(void) {
+test_dp_port_queue_add_delete(void) {
   datastore_queue_info_t qinfo;
+  lagopus_result_t rv;
 
   qinfo.id = 0;
   TEST_ASSERT_EQUAL(dp_queue_create("queue01", &qinfo), LAGOPUS_RESULT_OK);
   TEST_ASSERT_EQUAL(dp_port_interface_set("port1", "if1"), LAGOPUS_RESULT_OK);
-  TEST_ASSERT_EQUAL(dp_port_queue_add("port1", "queue01"), LAGOPUS_RESULT_OK);
+  rv = dp_port_queue_add("portX", "queue0X");
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_NOT_FOUND);
+  rv = dp_port_queue_add("portX", "queue01");
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_NOT_FOUND);
+  rv = dp_port_queue_add("port1", "queue0X");
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_NOT_FOUND);
+  rv = dp_port_queue_add("port1", "queue01");
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
+  rv = dp_port_queue_delete("portX", "queue0X");
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_NOT_FOUND);
+  rv = dp_port_queue_delete("portX", "queue01");
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_NOT_FOUND);
+  rv = dp_port_queue_delete("port1", "queue0X");
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_NOT_FOUND);
+  rv = dp_port_queue_delete("port1", "queue01");
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
+}
+
+void
+test_dp_port_queue_start_stop(void) {
+  datastore_queue_info_t qinfo;
+
+  qinfo.id = 0;
+  TEST_ASSERT_EQUAL(dp_queue_create("queue01", &qinfo), LAGOPUS_RESULT_OK);
+  TEST_ASSERT_EQUAL(dp_queue_start("queue01"), LAGOPUS_RESULT_OK);
+  TEST_ASSERT_EQUAL(dp_queue_stop("queue01"), LAGOPUS_RESULT_OK);
+}
+
+void
+test_dp_queue_stats(void) {
+  datastore_queue_info_t qinfo;
+  datastore_queue_stats_t stats;
+
+  qinfo.id = 0;
+  TEST_ASSERT_EQUAL(dp_queue_create("queue01", &qinfo), LAGOPUS_RESULT_OK);
+  TEST_ASSERT_EQUAL(dp_queue_stats_get("queue01", &stats), LAGOPUS_RESULT_OK);
 }

@@ -75,3 +75,8 @@ test_shutdown_cmd_parse_bad_opts(void) {
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS, ret,
                             "s_parse_shutdown() error.");
 }
+
+void
+test_destroy(void) {
+  destroy = true;
+}

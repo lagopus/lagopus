@@ -77,6 +77,180 @@ test_channel_conf_create_and_destroy(void) {
 }
 
 void
+test_channel_conf_duplicate(void) {
+  lagopus_result_t rc;
+  const char *ns1 = "ns1";
+  const char *ns2 = "ns2";
+  const char *name = "channel";
+  char *channel_fullname = NULL;
+  bool result = false;
+  channel_conf_t *src_conf = NULL;
+  channel_conf_t *dst_conf = NULL;
+  channel_conf_t *actual_conf = NULL;
+
+  channel_initialize();
+
+  // Normal case1(no namespace)
+  {
+    // create src conf
+    {
+      rc = ns_create_fullname(ns1, name, &channel_fullname);
+      TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK,
+                                rc, "cmd_ns_get_fullname error.");
+      rc = channel_conf_create(&src_conf, channel_fullname);
+      TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+      TEST_ASSERT_NOT_NULL_MESSAGE(src_conf,
+                                   "conf_create() will create new channel_action");
+      free(channel_fullname);
+      channel_fullname = NULL;
+    }
+
+    rc = channel_conf_duplicate(src_conf, &dst_conf, NULL);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+
+    // create actual conf
+    {
+      rc = ns_create_fullname(ns1, name, &channel_fullname);
+      TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK,
+                                rc, "cmd_ns_get_fullname error.");
+      rc = channel_conf_create(&actual_conf, channel_fullname);
+      TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+      TEST_ASSERT_NOT_NULL_MESSAGE(src_conf,
+                                   "conf_create() will create new channel_action");
+      free(channel_fullname);
+      channel_fullname = NULL;
+    }
+
+    result = channel_conf_equals(dst_conf, actual_conf);
+    TEST_ASSERT_TRUE(result);
+
+    channel_conf_destroy(src_conf);
+    src_conf = NULL;
+    channel_conf_destroy(dst_conf);
+    dst_conf = NULL;
+    channel_conf_destroy(actual_conf);
+    actual_conf = NULL;
+  }
+
+  // Normal case2
+  {
+    // create src conf
+    {
+      rc = ns_create_fullname(ns1, name, &channel_fullname);
+      TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK,
+                                rc, "cmd_ns_get_fullname error.");
+      rc = channel_conf_create(&src_conf, channel_fullname);
+      TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+      TEST_ASSERT_NOT_NULL_MESSAGE(src_conf,
+                                   "conf_create() will create new channel_action");
+      free(channel_fullname);
+      channel_fullname = NULL;
+    }
+
+    rc = channel_conf_duplicate(src_conf, &dst_conf, ns2);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+
+    // create actual conf
+    {
+      rc = ns_create_fullname(ns2, name, &channel_fullname);
+      TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK,
+                                rc, "cmd_ns_get_fullname error.");
+      rc = channel_conf_create(&actual_conf, channel_fullname);
+      TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+      TEST_ASSERT_NOT_NULL_MESSAGE(src_conf,
+                                   "conf_create() will create new channel_action");
+      free(channel_fullname);
+      channel_fullname = NULL;
+    }
+
+    result = channel_conf_equals(dst_conf, actual_conf);
+    TEST_ASSERT_TRUE(result);
+
+    channel_conf_destroy(src_conf);
+    src_conf = NULL;
+    channel_conf_destroy(dst_conf);
+    dst_conf = NULL;
+    channel_conf_destroy(actual_conf);
+    actual_conf = NULL;
+  }
+
+  // Abnormal case
+  {
+    rc = channel_conf_duplicate(NULL, &dst_conf, NULL);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_INVALID_ARGS, rc);
+  }
+
+  channel_finalize();
+}
+
+void
+test_channel_conf_equals(void) {
+  lagopus_result_t rc;
+  bool result = false;
+  channel_conf_t *conf1 = NULL;
+  channel_conf_t *conf2 = NULL;
+  channel_conf_t *conf3 = NULL;
+  const char *fullname1 = "conf1";
+  const char *fullname2 = "conf2";
+  const char *fullname3 = "conf3";
+
+  channel_initialize();
+
+  rc = channel_conf_create(&conf1, fullname1);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+  TEST_ASSERT_NOT_NULL_MESSAGE(conf1, "conf_create() will create new channel");
+  rc = channel_conf_add(conf1);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+
+  rc = channel_conf_create(&conf2, fullname2);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+  TEST_ASSERT_NOT_NULL_MESSAGE(conf2, "conf_create() will create new channel");
+  rc = channel_conf_add(conf2);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+
+  rc = channel_conf_create(&conf3, fullname3);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+  TEST_ASSERT_NOT_NULL_MESSAGE(conf3, "conf_create() will create new channel");
+  rc = channel_conf_add(conf3);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+  rc = channel_set_enabled(fullname3, true);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+
+  // Normal case
+  {
+    result = channel_conf_equals(conf1, conf2);
+    TEST_ASSERT_TRUE(result);
+
+    result = channel_conf_equals(NULL, NULL);
+    TEST_ASSERT_TRUE(result);
+
+    result = channel_conf_equals(conf1, conf3);
+    TEST_ASSERT_FALSE(result);
+
+    result = channel_conf_equals(conf2, conf3);
+    TEST_ASSERT_FALSE(result);
+  }
+
+  // Abnormal case
+  {
+    result = channel_conf_equals(conf1, NULL);
+    TEST_ASSERT_FALSE(result);
+
+    result = channel_conf_equals(NULL, conf2);
+    TEST_ASSERT_FALSE(result);
+  }
+
+  rc = channel_conf_delete(conf1);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+  rc = channel_conf_delete(conf2);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+  rc = channel_conf_delete(conf3);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+
+  channel_finalize();
+}
+
+void
 test_channel_conf_add(void) {
   lagopus_result_t rc;
   channel_conf_t *conf = NULL;
@@ -191,15 +365,15 @@ void
 test_channel_conf_list(void) {
   lagopus_result_t rc;
   channel_conf_t *conf1 = NULL;
-  const char *name1 = "namespace1"NAMESPACE_DELIMITER"channel_name1";
+  const char *name1 = "namespace1"DATASTORE_NAMESPACE_DELIMITER"channel_name1";
   channel_conf_t *conf2 = NULL;
-  const char *name2 = "namespace1"NAMESPACE_DELIMITER"channel_name2";
+  const char *name2 = "namespace1"DATASTORE_NAMESPACE_DELIMITER"channel_name2";
   channel_conf_t *conf3 = NULL;
-  const char *name3 = "namespace2"NAMESPACE_DELIMITER"channel_name3";
+  const char *name3 = "namespace2"DATASTORE_NAMESPACE_DELIMITER"channel_name3";
   channel_conf_t *conf4 = NULL;
-  const char *name4 = NAMESPACE_DELIMITER"channel_name4";
+  const char *name4 = DATASTORE_NAMESPACE_DELIMITER"channel_name4";
   channel_conf_t *conf5 = NULL;
-  const char *name5 = NAMESPACE_DELIMITER"channel_name5";
+  const char *name5 = DATASTORE_NAMESPACE_DELIMITER"channel_name5";
   channel_conf_t **actual_list = NULL;
   size_t i;
 
@@ -258,15 +432,15 @@ test_channel_conf_list(void) {
 
     for (i = 0; i < (size_t) rc; i++) {
       if (strcasecmp(actual_list[i]->name,
-                     "namespace1"NAMESPACE_DELIMITER"channel_name1") != 0 &&
+                     "namespace1"DATASTORE_NAMESPACE_DELIMITER"channel_name1") != 0 &&
           strcasecmp(actual_list[i]->name,
-                     "namespace1"NAMESPACE_DELIMITER"channel_name2") != 0 &&
+                     "namespace1"DATASTORE_NAMESPACE_DELIMITER"channel_name2") != 0 &&
           strcasecmp(actual_list[i]->name,
-                     "namespace2"NAMESPACE_DELIMITER"channel_name3") != 0 &&
+                     "namespace2"DATASTORE_NAMESPACE_DELIMITER"channel_name3") != 0 &&
           strcasecmp(actual_list[i]->name,
-                     NAMESPACE_DELIMITER"channel_name4") != 0 &&
+                     DATASTORE_NAMESPACE_DELIMITER"channel_name4") != 0 &&
           strcasecmp(actual_list[i]->name,
-                     NAMESPACE_DELIMITER"channel_name5") != 0) {
+                     DATASTORE_NAMESPACE_DELIMITER"channel_name5") != 0) {
         TEST_FAIL_MESSAGE("invalid list entry.");
       }
     }
@@ -281,9 +455,9 @@ test_channel_conf_list(void) {
 
     for (i = 0; i < (size_t) rc; i++) {
       if (strcasecmp(actual_list[i]->name,
-                     NAMESPACE_DELIMITER"channel_name4") != 0 &&
+                     DATASTORE_NAMESPACE_DELIMITER"channel_name4") != 0 &&
           strcasecmp(actual_list[i]->name,
-                     NAMESPACE_DELIMITER"channel_name5") != 0) {
+                     DATASTORE_NAMESPACE_DELIMITER"channel_name5") != 0) {
         TEST_FAIL_MESSAGE("invalid list entry.");
       }
     }
@@ -298,9 +472,9 @@ test_channel_conf_list(void) {
 
     for (i = 0; i < (size_t) rc; i++) {
       if (strcasecmp(actual_list[i]->name,
-                     "namespace1"NAMESPACE_DELIMITER"channel_name1") != 0 &&
+                     "namespace1"DATASTORE_NAMESPACE_DELIMITER"channel_name1") != 0 &&
           strcasecmp(actual_list[i]->name,
-                     "namespace1"NAMESPACE_DELIMITER"channel_name2") != 0) {
+                     "namespace1"DATASTORE_NAMESPACE_DELIMITER"channel_name2") != 0) {
         TEST_FAIL_MESSAGE("invalid list entry.");
       }
     }
@@ -495,10 +669,19 @@ test_channel_attr_duplicate(void) {
 
   // Normal case
   {
-    rc = channel_attr_duplicate(src_attr, &dst_attr);
+    rc = channel_attr_duplicate(src_attr, &dst_attr, "namespace");
     TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
     result = channel_attr_equals(src_attr, dst_attr);
     TEST_ASSERT_TRUE(result);
+    channel_attr_destroy(dst_attr);
+    dst_attr = NULL;
+
+    rc = channel_attr_duplicate(src_attr, &dst_attr, NULL);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+    result = channel_attr_equals(src_attr, dst_attr);
+    TEST_ASSERT_TRUE(result);
+    channel_attr_destroy(dst_attr);
+    dst_attr = NULL;
   }
 
   // Abnormal case
@@ -506,12 +689,16 @@ test_channel_attr_duplicate(void) {
     result = channel_attr_equals(src_attr, NULL);
     TEST_ASSERT_FALSE(result);
 
+    rc = channel_attr_duplicate(src_attr, &dst_attr, NULL);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
     result = channel_attr_equals(NULL, dst_attr);
     TEST_ASSERT_FALSE(result);
+    channel_attr_destroy(dst_attr);
+    dst_attr = NULL;
   }
 
   channel_attr_destroy(src_attr);
-  channel_attr_destroy(dst_attr);
+
   channel_finalize();
 }
 
@@ -543,6 +730,9 @@ test_channel_attr_equals(void) {
   // Normal case
   {
     result = channel_attr_equals(attr1, attr2);
+    TEST_ASSERT_TRUE(result);
+
+    result = channel_attr_equals(NULL, NULL);
     TEST_ASSERT_TRUE(result);
 
     result = channel_attr_equals(attr1, attr3);

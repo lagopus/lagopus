@@ -645,6 +645,7 @@ PKG_MAINTAINER
 PKG_REVISION
 PKG_VERSION
 PKG_NAME
+NUMA_LIBS
 SSE42_CPPFLAGS
 MBTREE_FLAGS
 RTE_MBUF_HAS_PKT
@@ -659,6 +660,7 @@ NETSNMP_AGENT_LIBS
 SNMP_CPPFLAGS
 SNMP_DIR
 PCAP_LIBS
+HYBRID_CPPFLAGS
 UNITY_SRC_DIR
 HAVE_UNITY
 HAVE_GCOVR
@@ -785,11 +787,13 @@ with_gnu_ld
 with_sysroot
 enable_libtool_lock
 enable_developer
+enable_hybrid
 enable_snmp
 enable_jumbo_frame
 with_dpdk_dir
 enable_mbtree
 enable_sse4_2
+enable_numa
 '
       ac_precious_vars='build_alias
 host_alias
@@ -1426,12 +1430,15 @@ Optional Features:
   --enable-developer      enable build for developers, like unit tests
                           [default is no]
 
+  --enable-hybrid         enable build as hybrid switch [default is no]
+
   --enable-snmp           build with snmp feature [default is no]
 
   --enable-jumbo-frame    enable jumbo frame [default is no]
 
   --enable-mbtree         use multiple branch tree lookup [default is no]
   --enable-sse4.2         build with SSE4.2 instruction [default is yes]
+  --enable-numa           Support NUMA (if supported).
 
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
@@ -16043,6 +16050,31 @@ fi
 
 
 
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking /proc/self/exe" >&5
+$as_echo_n "checking /proc/self/exe... " >&6; }
+if test -h /proc/self/exe; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: exists." >&5
+$as_echo "exists." >&6; }
+  $as_echo "#define HAVE_PROCFS_SELF_EXE 1" >>confdefs.h
+
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: does noe exists." >&5
+$as_echo "does noe exists." >&6; }
+fi
+
+# Check whether --enable-hybrid was given.
+if test "${enable_hybrid+set}" = set; then :
+  enableval=$enable_hybrid; hybrid="$enableval"
+else
+  hybrid=no
+fi
+
+
+if test "X${hybrid}" != "Xno"; then
+   HYBRID_CPPFLAGS=-DHYBRID
+fi
+
+
 # headers/macros
 
 oLIBS=${LIBS}
@@ -18278,6 +18310,97 @@ fi
 CFLAGS=${oCFLAGS}
 LDFLAGS="${oLDFLAGS} ${LIBS}"
 
+# numa
+ac_fn_c_check_header_mongrel "$LINENO" "numa.h" "ac_cv_header_numa_h" "$ac_includes_default"
+if test "x$ac_cv_header_numa_h" = xyes; then :
+  $as_echo "#define HAVE_NUMA_H 1" >>confdefs.h
+
+fi
+
+
+ac_fn_c_check_header_mongrel "$LINENO" "numaif.h" "ac_cv_header_numaif_h" "$ac_includes_default"
+if test "x$ac_cv_header_numaif_h" = xyes; then :
+  $as_echo "#define HAVE_NUMAIF_H 1" >>confdefs.h
+
+fi
+
+
+
+numa_supported=no
+oCFLAGS=${CFLAGS}
+oLDFLAGS=${LDFLAGS}
+oLIBS=${LIBS}
+CFLAGS="${CFLAGS} -Wall -Werror -D_REENTRANT -D_GNU_SOURCE -pthread"
+LDFLAGS="${LDFLAGS} -lpthread"
+LIBS="${LIBS} -lnuma"
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking NUMA support" >&5
+$as_echo_n "checking NUMA support... " >&6; }
+if test "$cross_compiling" = yes; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: not checkable since cross-compilation." >&5
+$as_echo "not checkable since cross-compilation." >&6; }
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include <stdio.h>
+		 #include <stddef.h>
+		 #include <stdlib.h>
+		 #include <string.h>
+		 #include <numa.h>
+		 #include <numaif.h>
+int
+main ()
+{
+int node;
+		 struct bitmask *bmp;
+		 node = numa_node_of_cpu(0);
+		 bmp = numa_allocate_nodemask();
+		 numa_bitmask_setbit(bmp, node);
+		 (void)set_mempolicy(MPOL_BIND, bmp->maskp, bmp->size + 1);
+		 (void)numa_alloc_onnode(1024, node);
+		 return 0;
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_run "$LINENO"; then :
+  numa_supported=yes
+	 { $as_echo "$as_me:${as_lineno-$LINENO}: result: available." >&5
+$as_echo "available." >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: not available." >&5
+$as_echo "not available." >&6; }
+fi
+rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
+  conftest.$ac_objext conftest.beam conftest.$ac_ext
+fi
+
+CFLAGS=${oCFLAGS}
+LDFLAGS=${oLDFLAGS}
+LIBS=${oLIBS}
+
+NUMA_LIBS=''
+do_numa=${numa_supported}
+# Check whether --enable-numa was given.
+if test "${enable_numa+set}" = set; then :
+  enableval=$enable_numa; do_numa=${enableval}
+else
+  do_numa=${numa_supported}
+fi
+
+if test "X${do_numa}" = "Xyes"; then
+  if test "X${numa_supported}" != "Xyes"; then
+    as_fn_error $? "The NUMA support library is not usable." "$LINENO" 5
+    exit 1
+  else
+    $as_echo "#define HAVE_NUMA 1" >>confdefs.h
+
+    NUMA_LIBS='-lnuma'
+    LIBS="${LIBS} ${NUMA_LIBS}"
+    OS_LIBS="${OS_LIBS} ${NUMA_LIBS}"
+  fi
+fi
+
+
 # packaging
 PKG_CONFFILE="mk/pkg_param.conf"
 if test -f "${PKG_CONFFILE}"; then
@@ -18308,7 +18431,7 @@ if test "x$?" != "x0"; then
 fi
 
 # emit.
-ac_config_files="$ac_config_files mk/vars.mk mk/doxygen.conf Makefile src/include/Makefile src/include/lagopus_platform.h src/lib/Makefile src/lib/test/Makefile src/lib/check/Makefile src/agent/Makefile src/agent/test/Makefile src/cmds/Makefile src/config/lagosh/Makefile src/config/lagosh/lagosh.py src/dataplane/Makefile src/dataplane/dpdk/test/Makefile src/dataplane/ofproto/test/Makefile src/dataplane/ofproto/test/lib/Makefile src/dataplane/mgr/test/Makefile src/datastore/Makefile src/datastore/test/Makefile src/datastore/check/Makefile src/snmp/Makefile src/snmp/test/Makefile tools/Makefile tools/unity/src/Makefile debian/Makefile debian/control debian/copyright debian/lagopus-DATAPLANE.install"
+ac_config_files="$ac_config_files mk/vars.mk mk/doxygen.conf Makefile src/include/Makefile src/include/lagopus_platform.h src/lib/Makefile src/lib/test/Makefile src/lib/check/Makefile src/agent/Makefile src/agent/test/Makefile src/cmds/Makefile src/config/lagosh/Makefile src/config/lagosh/lagosh.py src/dataplane/Makefile src/dataplane/dpdk/test/Makefile src/dataplane/ofproto/test/Makefile src/dataplane/ofproto/test/lib/Makefile src/dataplane/mgr/test/Makefile src/datastore/Makefile src/datastore/test/Makefile src/datastore/check/Makefile src/snmp/Makefile src/snmp/test/Makefile test/dataplane/benchmark/Makefile tools/Makefile tools/unity/src/Makefile debian/Makefile debian/control debian/copyright debian/lagopus-DATAPLANE.install"
 
 
 # emit and set executable attribute.
@@ -19431,6 +19554,7 @@ do
     "src/datastore/check/Makefile") CONFIG_FILES="$CONFIG_FILES src/datastore/check/Makefile" ;;
     "src/snmp/Makefile") CONFIG_FILES="$CONFIG_FILES src/snmp/Makefile" ;;
     "src/snmp/test/Makefile") CONFIG_FILES="$CONFIG_FILES src/snmp/test/Makefile" ;;
+    "test/dataplane/benchmark/Makefile") CONFIG_FILES="$CONFIG_FILES test/dataplane/benchmark/Makefile" ;;
     "tools/Makefile") CONFIG_FILES="$CONFIG_FILES tools/Makefile" ;;
     "tools/unity/src/Makefile") CONFIG_FILES="$CONFIG_FILES tools/unity/src/Makefile" ;;
     "debian/Makefile") CONFIG_FILES="$CONFIG_FILES debian/Makefile" ;;

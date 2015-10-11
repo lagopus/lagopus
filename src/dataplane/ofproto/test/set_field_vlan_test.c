@@ -61,8 +61,7 @@ test_set_field_VLAN_VID(void) {
   m->data[14] = 0x20;
   m->data[15] = 0x01;
 
-  lagopus_set_in_port(&pkt, &port);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   set_match(action_set->field, 2, OFPXMT_OFB_VLAN_VID << 1,
             0x0f, 0xfe);
   execute_action(&pkt, &action_list);
@@ -98,8 +97,7 @@ test_set_field_VLAN_PCP(void) {
   m->data[14] = 0x0f;
   m->data[15] = 0xfe;
 
-  lagopus_set_in_port(&pkt, &port);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   set_match(action_set->field, 1, OFPXMT_OFB_VLAN_PCP << 1,
             0x2);
   execute_action(&pkt, &action_list);

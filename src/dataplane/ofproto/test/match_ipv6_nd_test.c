@@ -49,7 +49,6 @@ test_match_basic_IPV6_ND_TARGET(void) {
   int i;
 
   /* prepare packet */
-  pkt.in_port = &port;
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
@@ -91,7 +90,7 @@ test_match_basic_IPV6_ND_TARGET(void) {
   m->data[i++] = 0xc6;
   m->data[i++] = 0x43;
   m->data[i++] = 0x11;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "IPV6_ND_TARGET mismatch error.");
@@ -127,7 +126,6 @@ test_match_basic_IPV6_ND_SLL(void) {
   int i;
 
   /* prepare packet */
-  pkt.in_port = &port;
   m = calloc(1, sizeof(*m));
   TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
   m->data = &m->dat[128];
@@ -156,7 +154,7 @@ test_match_basic_IPV6_ND_SLL(void) {
   add_match(&flow->match_list, ETH_ALEN, OFPXMT_OFB_IPV6_ND_SLL << 1,
             0xe0, 0x4d, 0x01, 0x34, 0x56, 0x78);
   refresh_match(flow);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "IPV6_ND_SLL mismatch error.");
@@ -210,8 +208,7 @@ test_match_basic_IPV6_ND_TLL(void) {
   add_match(&flow->match_list, ETH_ALEN, OFPXMT_OFB_IPV6_ND_TLL << 1,
             0xe0, 0x4d, 0x01, 0x34, 0x56, 0x78);
   refresh_match(flow);
-  lagopus_set_in_port(&pkt, &port);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   rv = match_basic(&pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "IPV6_ND_TLL mismatch error.");

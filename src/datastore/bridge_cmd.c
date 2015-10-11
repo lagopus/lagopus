@@ -2033,6 +2033,32 @@ bridge_cmd_do_destroy(bridge_conf_t *conf,
       /* ignore error. */
       lagopus_msg_warning("ret = %s", lagopus_error_get_string(ret));
     }
+  } else if (state == DATASTORE_INTERP_STATE_DRYRUN) {
+    /* unset is_used. */
+    if (conf->current_attr != NULL) {
+      if ((ret = bri_names_used_set(conf->name,
+                                    conf->current_attr,
+                                    false, result)) !=
+          LAGOPUS_RESULT_OK) {
+        /* ignore error. */
+        lagopus_msg_warning("ret = %s", lagopus_error_get_string(ret));
+      }
+    }
+    if (conf->modified_attr != NULL) {
+      if ((ret = bri_names_used_set(conf->name,
+                                    conf->modified_attr,
+                                    false, result)) !=
+          LAGOPUS_RESULT_OK) {
+        /* ignore error. */
+        lagopus_msg_warning("ret = %s", lagopus_error_get_string(ret));
+      }
+    }
+
+    ret = bridge_conf_delete(conf);
+    if (ret != LAGOPUS_RESULT_OK) {
+      /* ignore error. */
+      lagopus_msg_warning("ret = %s", lagopus_error_get_string(ret));
+    }
   } else if (conf->is_destroying == true ||
              state == DATASTORE_INTERP_STATE_AUTO_COMMIT) {
     /* unset is_used. */
@@ -2399,8 +2425,20 @@ bridge_cmd_update_internal(datastore_interp_t *iptr,
       ret = LAGOPUS_RESULT_OK;
       break;
     }
+    case DATASTORE_INTERP_STATE_DRYRUN: {
+      if (conf->modified_attr != NULL) {
+        if (conf->current_attr != NULL) {
+          bridge_attr_destroy(conf->current_attr);
+          conf->current_attr = NULL;
+        }
 
+        conf->current_attr = conf->modified_attr;
+        conf->modified_attr = NULL;
+      }
 
+      ret = LAGOPUS_RESULT_OK;
+      break;
+    }
     default: {
       ret = LAGOPUS_RESULT_NOT_FOUND;
       lagopus_perror(ret);
@@ -2603,29 +2641,32 @@ controller_opt_parse(const char *const *argv[],
 
         if (is_added == true) {
           /* add. */
-          if (is_exists == false) {
-            /* check exists. */
-            if (controller_exists(fullname) == true) {
-              /* check is_used. */
-              if ((ret =
-                   datastore_controller_is_used(fullname, &is_used)) ==
-                  LAGOPUS_RESULT_OK) {
-                if (is_used == false) {
-                  ret = bridge_attr_add_controller_name(
-                      conf->modified_attr,
-                      fullname);
-                  if (ret != LAGOPUS_RESULT_OK) {
-                    ret = datastore_json_result_string_setf(
-                        result, ret,
-                        "controller name = %s.", fullname);
-                  }
-                } else {
-                  ret = datastore_json_result_string_setf(
-                      result,
-                      LAGOPUS_RESULT_NOT_OPERATIONAL,
-                      "controller name = %s.", fullname);
-                }
-              } else {
+          /* check exists. */
+          if (is_exists == true) {
+            ret = datastore_json_result_string_setf(
+                result,
+                LAGOPUS_RESULT_ALREADY_EXISTS,
+                "controller name = %s.", fullname);
+            goto done;
+          }
+
+          if (controller_exists(fullname) == false) {
+            ret = datastore_json_result_string_setf(
+                result,
+                LAGOPUS_RESULT_NOT_FOUND,
+                "controller name = %s.", fullname);
+            goto done;
+          }
+
+          /* check is_used. */
+          if ((ret =
+               datastore_controller_is_used(fullname, &is_used)) ==
+              LAGOPUS_RESULT_OK) {
+            if (is_used == false) {
+              ret = bridge_attr_add_controller_name(
+                  conf->modified_attr,
+                  fullname);
+              if (ret != LAGOPUS_RESULT_OK) {
                 ret = datastore_json_result_string_setf(
                     result, ret,
                     "controller name = %s.", fullname);
@@ -2633,34 +2674,33 @@ controller_opt_parse(const char *const *argv[],
             } else {
               ret = datastore_json_result_string_setf(
                   result,
-                  LAGOPUS_RESULT_NOT_FOUND,
+                  LAGOPUS_RESULT_NOT_OPERATIONAL,
                   "controller name = %s.", fullname);
             }
           } else {
             ret = datastore_json_result_string_setf(
-                result,
-                LAGOPUS_RESULT_ALREADY_EXISTS,
+                result, ret,
                 "controller name = %s.", fullname);
           }
         } else {
           /* delete. */
-          if (is_exists == true) {
-            ret = bridge_attr_remove_controller_name(conf->modified_attr,
-                                                     fullname);
-
-            if (ret == LAGOPUS_RESULT_OK) {
-              /* unset is_used. */
-              ret = bri_controller_used_set_internal(fullname,
-                                                     false,
-                                                     result);
-            } else {
-              ret = datastore_json_result_string_setf(
-                  result, ret,
-                  "controller name = %s.", fullname);
-            }
-          } else {
+          if (is_exists == false) {
             ret = datastore_json_result_string_setf(
                 result, LAGOPUS_RESULT_NOT_FOUND,
+                "controller name = %s.", fullname);
+            goto done;
+          }
+
+          ret = bridge_attr_remove_controller_name(conf->modified_attr,
+                                                   fullname);
+          if (ret == LAGOPUS_RESULT_OK) {
+            /* unset is_used. */
+            ret = bri_controller_used_set_internal(fullname,
+                                                   false,
+                                                   result);
+          } else {
+            ret = datastore_json_result_string_setf(
+                result, ret,
                 "controller name = %s.", fullname);
           }
         }
@@ -2808,125 +2848,133 @@ port_opt_parse(const char *const *argv[],
 
         if (is_added == true) {
           /* add. */
-          if (is_exists == false) {
-            /* check exists. */
-            if (port_exists(fullname) == true) {
-              /* parse port number. */
-              if (*(*argv + 1) != NULL) {
-                if (IS_VALID_OPT(*(*argv + 1)) == false) {
-                  if ((ret = cmd_uint_parse(*(++(*argv)), CMD_UINT32,
-                                            &cmd_uint)) ==
-                      LAGOPUS_RESULT_OK) {
-                    if (port_opt_number_is_exists(conf,
-                                                  cmd_uint.uint32) ==
-                        false) {
-                      if (cmd_uint.uint32 != 0) {
-                        ret = port_cmd_set_port_number(fullname,
-                                                       cmd_uint.uint32,
-                                                       result);
-
-                        if (ret == LAGOPUS_RESULT_OK) {
-                          /* check is_used. */
-                          if ((ret = datastore_port_is_used(fullname,
-                                                            &is_used)) ==
-                              LAGOPUS_RESULT_OK) {
-                            if (is_used == false) {
-                              /* add name. */
-                              ret = bridge_attr_add_port_name(
-                                  conf->modified_attr, fullname);
-
-                              if (ret != LAGOPUS_RESULT_OK) {
-                                      ret = datastore_json_result_string_setf(
-                                          result, ret,
-                                          "port name = %s.", fullname);
-                              }
-                            } else {
-                              ret = datastore_json_result_string_setf(
-                                  result,
-                                  LAGOPUS_RESULT_NOT_OPERATIONAL,
-                                  "port name = %s.", fullname);
-                            }
-                          } else {
-                            ret = datastore_json_result_string_setf(
-                                result, ret,
-                                "port name = %s.",
-                                fullname);
-                          }
-                        } else if (ret !=
-                                   LAGOPUS_RESULT_DATASTORE_INTERP_ERROR) {
-                          ret = datastore_json_result_string_setf(
-                              result, ret,
-                              "Can't add port_number.");
-                        }
-                      } else {
-                        ret = datastore_json_result_string_setf(
-                            result, LAGOPUS_RESULT_OUT_OF_RANGE,
-                            "port name = %s, port number = %"PRIu32".",
-                            fullname, cmd_uint.uint32);
-                      }
-                    } else {
-                      ret = datastore_json_result_string_setf(
-                          result, LAGOPUS_RESULT_ALREADY_EXISTS,
-                          "port name = %s, port number = %"PRIu32".",
-                          fullname, cmd_uint.uint32);
-                    }
-                  } else {
-                    ret = datastore_json_result_string_setf(
-                        result, ret,
-                        "Bad opt value = %s.",
-                        *(*argv));
-                  }
-                } else {
-                  /* argv + 1 equals option string(-XXX). */
-                  ret = datastore_json_result_string_setf(
-                      result, ret,
-                      "Bad opt value = %s.",
-                      *(*argv + 1));
-                }
-              } else {
-                ret = datastore_json_result_string_setf(
-                    result,
-                    LAGOPUS_RESULT_INVALID_ARGS,
-                    "Bad opt value.");
-              }
-            } else {
-              ret = datastore_json_result_string_setf(
-                  result,
-                  LAGOPUS_RESULT_NOT_FOUND,
-                  "port name = %s.", fullname);
-            }
-          } else {
+          /* check exists. */
+          if (is_exists == true) {
             ret = datastore_json_result_string_setf(
                 result,
                 LAGOPUS_RESULT_ALREADY_EXISTS,
                 "port name = %s.", fullname);
+            goto done;
+          }
+
+          if (port_exists(fullname) == false) {
+            ret = datastore_json_result_string_setf(
+                result,
+                LAGOPUS_RESULT_NOT_FOUND,
+                "port name = %s.", fullname);
+            goto done;
+          }
+
+          /* parse port number. */
+          if (*(*argv + 1) == NULL) {
+            ret = datastore_json_result_string_setf(
+                result,
+                LAGOPUS_RESULT_INVALID_ARGS,
+                "Bad opt value.");
+            goto done;
+          }
+
+          if (IS_VALID_OPT(*(*argv + 1)) == true) {
+            /* argv + 1 equals option string(-XXX). */
+            ret = datastore_json_result_string_setf(
+                result, ret,
+                "Bad opt value = %s.",
+                *(*argv + 1));
+            goto done;
+          }
+
+          if ((ret = cmd_uint_parse(*(++(*argv)), CMD_UINT32,
+                                    &cmd_uint)) !=
+              LAGOPUS_RESULT_OK) {
+            ret = datastore_json_result_string_setf(
+                result, ret,
+                "Bad opt value = %s.",
+                *(*argv));
+            goto done;
+          }
+
+          if (port_opt_number_is_exists(conf,
+                                        cmd_uint.uint32) ==
+              true) {
+            ret = datastore_json_result_string_setf(
+                result, LAGOPUS_RESULT_ALREADY_EXISTS,
+                "port name = %s, port number = %"PRIu32".",
+                fullname, cmd_uint.uint32);
+            goto done;
+          }
+
+          if (cmd_uint.uint32 == 0) {
+            ret = datastore_json_result_string_setf(
+                result, LAGOPUS_RESULT_OUT_OF_RANGE,
+                "port name = %s, port number = %"PRIu32".",
+                fullname, cmd_uint.uint32);
+            goto done;
+          }
+
+          /* set port. */
+          ret = port_cmd_set_port_number(fullname,
+                                         cmd_uint.uint32,
+                                         result);
+          if (ret == LAGOPUS_RESULT_OK) {
+            /* check is_used. */
+            if ((ret = datastore_port_is_used(fullname,
+                                              &is_used)) ==
+                LAGOPUS_RESULT_OK) {
+              if (is_used == false) {
+                /* add name. */
+                ret = bridge_attr_add_port_name(
+                    conf->modified_attr, fullname);
+
+                if (ret != LAGOPUS_RESULT_OK) {
+                  ret = datastore_json_result_string_setf(
+                      result, ret,
+                      "port name = %s.", fullname);
+                }
+              } else {
+                ret = datastore_json_result_string_setf(
+                    result,
+                    LAGOPUS_RESULT_NOT_OPERATIONAL,
+                    "port name = %s.", fullname);
+              }
+            } else {
+              ret = datastore_json_result_string_setf(
+                  result, ret,
+                  "port name = %s.",
+                  fullname);
+            }
+          } else if (ret !=
+                     LAGOPUS_RESULT_DATASTORE_INTERP_ERROR) {
+            ret = datastore_json_result_string_setf(
+                result, ret,
+                "Can't add port_number.");
           }
         } else {
           /* delete. */
-          if (is_exists == true) {
-            /* 0 means unassigned port. */
-            ret = port_cmd_set_port_number(fullname, 0, result);
-            if (ret == LAGOPUS_RESULT_OK) {
-              ret = bridge_attr_remove_port_name(conf->modified_attr,
-                                                 fullname);
-              if (ret == LAGOPUS_RESULT_OK) {
-                /* unset is_used. */
-                ret = bri_port_used_set_internal(
-                    fullname, false, result);
-              } else {
-                ret = datastore_json_result_string_setf(result, ret,
-                                                        "port name = %s.",
-                                                        fullname);
-              }
-            } else if (ret != LAGOPUS_RESULT_DATASTORE_INTERP_ERROR) {
-              ret = datastore_json_result_string_setf(
-                  result, ret,
-                  "Can't delete port_number.");
-            }
-          } else {
+          if (is_exists == false) {
             ret = datastore_json_result_string_setf(
                 result, LAGOPUS_RESULT_NOT_FOUND,
                 "port name = %s.", fullname);
+            goto done;
+          }
+
+          /* 0 means unassigned port. */
+          ret = port_cmd_set_port_number(fullname, 0, result);
+          if (ret == LAGOPUS_RESULT_OK) {
+            ret = bridge_attr_remove_port_name(conf->modified_attr,
+                                               fullname);
+            if (ret == LAGOPUS_RESULT_OK) {
+              /* unset is_used. */
+              ret = bri_port_used_set_internal(
+                  fullname, false, result);
+            } else {
+              ret = datastore_json_result_string_setf(result, ret,
+                                                      "port name = %s.",
+                                                      fullname);
+            }
+          } else if (ret != LAGOPUS_RESULT_DATASTORE_INTERP_ERROR) {
+            ret = datastore_json_result_string_setf(
+                result, ret,
+                "Can't delete port_number.");
           }
         }
       } else {
@@ -3029,6 +3077,7 @@ l2_bridge_opt_parse(const char *const *argv[],
               goto done;
             }
           }
+
           if (conf->modified_attr != NULL) {
             if ((ret = bri_l2_bridge_used_set(conf->name,
                                               conf->modified_attr,
@@ -3334,39 +3383,42 @@ action_type_opt_parse(const char *const *argv[],
     if (*(*argv + 1) != NULL) {
       (*argv)++;
       if (IS_VALID_STRING(*(*argv)) == true) {
-        if ((ret = cmd_opt_type_get(*(*argv), &type_str, &is_added)) ==
+        if ((ret = cmd_opt_type_get(*(*argv), &type_str, &is_added)) !=
             LAGOPUS_RESULT_OK) {
-          if ((ret = bridge_action_type_to_enum(type_str, &type)) ==
-              LAGOPUS_RESULT_OK) {
-            if ((ret = bridge_get_action_types(conf->modified_attr,
-                                               &types)) ==
-                LAGOPUS_RESULT_OK) {
-              if (is_added == true) {
-                /* add type. */
-                types |= (uint64_t) OPT_BIT_GET(type);
-              } else {
-                /* delete type. */
-                types &= (uint64_t) ~OPT_BIT_GET(type);
-              }
-              ret = bridge_set_action_types(conf->modified_attr,
-                                            types);
-              if (ret != LAGOPUS_RESULT_OK) {
-                ret = datastore_json_result_string_setf(result, ret,
-                                                        "Can't add action_types.");
-              }
-            } else {
-              ret = datastore_json_result_string_setf(result, ret,
-                                                      "Can't get action_types.");
-            }
-          } else {
-            ret = datastore_json_result_string_setf(
-                    result,
-                    LAGOPUS_RESULT_INVALID_ARGS,
-                    "Bad opt value = %s.", *(*argv));
-          }
-        } else {
           ret = datastore_json_result_string_setf(result, ret,
                                                   "Can't get type.");
+          goto done;
+        }
+
+        if ((ret = bridge_action_type_to_enum(type_str, &type)) !=
+            LAGOPUS_RESULT_OK) {
+          ret = datastore_json_result_string_setf(
+              result,
+              LAGOPUS_RESULT_INVALID_ARGS,
+              "Bad opt value = %s.", *(*argv));
+          goto done;
+        }
+
+        if ((ret = bridge_get_action_types(conf->modified_attr,
+                                           &types)) !=
+              LAGOPUS_RESULT_OK) {
+          ret = datastore_json_result_string_setf(result, ret,
+                                                  "Can't get action_types.");
+          goto done;
+        }
+
+        if (is_added == true) {
+          /* add type. */
+          types |= (uint64_t) OPT_BIT_GET(type);
+        } else {
+          /* delete type. */
+          types &= (uint64_t) ~OPT_BIT_GET(type);
+        }
+        ret = bridge_set_action_types(conf->modified_attr,
+                                      types);
+        if (ret != LAGOPUS_RESULT_OK) {
+          ret = datastore_json_result_string_setf(result, ret,
+                                                  "Can't add action_types.");
         }
       } else {
         if (*(*argv) == NULL) {
@@ -3394,6 +3446,7 @@ action_type_opt_parse(const char *const *argv[],
                                     NULL);
   }
 
+done:
   free(type_str);
 
   return ret;
@@ -3419,41 +3472,44 @@ instruction_type_opt_parse(const char *const *argv[],
     if (*(*argv + 1) != NULL) {
       (*argv)++;
       if (IS_VALID_STRING(*(*argv)) == true) {
-        if ((ret = cmd_opt_type_get(*(*argv), &type_str, &is_added)) ==
+        if ((ret = cmd_opt_type_get(*(*argv), &type_str, &is_added)) !=
             LAGOPUS_RESULT_OK) {
-          if ((ret = bridge_instruction_type_to_enum(type_str, &type)) ==
-              LAGOPUS_RESULT_OK) {
-            if ((ret = bridge_get_instruction_types(conf->modified_attr,
-                                                    &types)) ==
-                LAGOPUS_RESULT_OK) {
-              if (is_added == true) {
-                /* add type. */
-                types |= (uint64_t) OPT_BIT_GET(type);
-              } else {
-                /* delete type. */
-                types &= (uint64_t) ~OPT_BIT_GET(type);
-              }
-              ret = bridge_set_instruction_types(conf->modified_attr,
-                                                 types);
-              if (ret != LAGOPUS_RESULT_OK) {
-                ret = datastore_json_result_string_setf(
-                        result, ret,
-                        "Can't add instruction_types.");
-              }
-            } else {
-              ret = datastore_json_result_string_setf(
-                      result, ret,
-                      "Can't get instruction_types.");
-            }
-          } else {
-            ret = datastore_json_result_string_setf(
-                    result,
-                    LAGOPUS_RESULT_INVALID_ARGS,
-                    "Bad opt value = %s.", *(*argv));
-          }
-        } else {
           ret = datastore_json_result_string_setf(result, ret,
                                                   "Can't get type.");
+          goto done;
+        }
+
+        if ((ret = bridge_instruction_type_to_enum(type_str, &type)) !=
+            LAGOPUS_RESULT_OK) {
+          ret = datastore_json_result_string_setf(
+              result,
+              LAGOPUS_RESULT_INVALID_ARGS,
+              "Bad opt value = %s.", *(*argv));
+          goto done;
+        }
+
+        if ((ret = bridge_get_instruction_types(conf->modified_attr,
+                                                &types)) !=
+            LAGOPUS_RESULT_OK) {
+          ret = datastore_json_result_string_setf(
+              result, ret,
+              "Can't get instruction_types.");
+          goto done;
+        }
+
+        if (is_added == true) {
+          /* add type. */
+          types |= (uint64_t) OPT_BIT_GET(type);
+        } else {
+          /* delete type. */
+          types &= (uint64_t) ~OPT_BIT_GET(type);
+        }
+        ret = bridge_set_instruction_types(conf->modified_attr,
+                                           types);
+        if (ret != LAGOPUS_RESULT_OK) {
+          ret = datastore_json_result_string_setf(
+              result, ret,
+              "Can't add instruction_types.");
         }
       } else {
         if (*(*argv) == NULL) {
@@ -3481,6 +3537,7 @@ instruction_type_opt_parse(const char *const *argv[],
                                     NULL);
   }
 
+done:
   free(type_str);
 
   return ret;
@@ -3506,41 +3563,44 @@ reserved_port_type_opt_parse(const char *const *argv[],
     if (*(*argv + 1) != NULL) {
       (*argv)++;
       if (IS_VALID_STRING(*(*argv)) == true) {
-        if ((ret = cmd_opt_type_get(*(*argv), &type_str, &is_added)) ==
+        if ((ret = cmd_opt_type_get(*(*argv), &type_str, &is_added)) !=
             LAGOPUS_RESULT_OK) {
-          if ((ret = bridge_reserved_port_type_to_enum(type_str, &type)) ==
-              LAGOPUS_RESULT_OK) {
-            if ((ret = bridge_get_reserved_port_types(conf->modified_attr,
-                       &types)) ==
-                LAGOPUS_RESULT_OK) {
-              if (is_added == true) {
-                /* add type. */
-                types |= (uint64_t) OPT_BIT_GET(type);
-              } else {
-                /* delete type. */
-                types &= (uint64_t) ~OPT_BIT_GET(type);
-              }
-              ret = bridge_set_reserved_port_types(conf->modified_attr,
-                                                   types);
-              if (ret != LAGOPUS_RESULT_OK) {
-                ret = datastore_json_result_string_setf(
-                        result, ret,
-                        "Can't add reserved_port_types.");
-              }
-            } else {
-              ret = datastore_json_result_string_setf(
-                      result, ret,
-                      "Can't get reserved_port_types.");
-            }
-          } else {
-            ret = datastore_json_result_string_setf(
-                    result,
-                    LAGOPUS_RESULT_INVALID_ARGS,
-                    "Bad opt value = %s.", *(*argv));
-          }
-        } else {
           ret = datastore_json_result_string_setf(result, ret,
                                                   "Can't get type.");
+          goto done;
+        }
+
+        if ((ret = bridge_reserved_port_type_to_enum(type_str, &type)) !=
+            LAGOPUS_RESULT_OK) {
+          ret = datastore_json_result_string_setf(
+              result,
+              LAGOPUS_RESULT_INVALID_ARGS,
+              "Bad opt value = %s.", *(*argv));
+          goto done;
+        }
+
+        if ((ret = bridge_get_reserved_port_types(conf->modified_attr,
+                                                  &types)) !=
+            LAGOPUS_RESULT_OK) {
+          ret = datastore_json_result_string_setf(
+              result, ret,
+              "Can't get reserved_port_types.");
+          goto done;
+        }
+
+        if (is_added == true) {
+          /* add type. */
+          types |= (uint64_t) OPT_BIT_GET(type);
+        } else {
+          /* delete type. */
+          types &= (uint64_t) ~OPT_BIT_GET(type);
+        }
+        ret = bridge_set_reserved_port_types(conf->modified_attr,
+                                             types);
+        if (ret != LAGOPUS_RESULT_OK) {
+          ret = datastore_json_result_string_setf(
+              result, ret,
+              "Can't add reserved_port_types.");
         }
       } else {
         if (*(*argv) == NULL) {
@@ -3568,6 +3628,7 @@ reserved_port_type_opt_parse(const char *const *argv[],
                                     NULL);
   }
 
+done:
   free(type_str);
 
   return ret;
@@ -3593,41 +3654,44 @@ group_type_opt_parse(const char *const *argv[],
     if (*(*argv + 1) != NULL) {
       (*argv)++;
       if (IS_VALID_STRING(*(*argv)) == true) {
-        if ((ret = cmd_opt_type_get(*(*argv), &type_str, &is_added)) ==
+        if ((ret = cmd_opt_type_get(*(*argv), &type_str, &is_added)) !=
             LAGOPUS_RESULT_OK) {
-          if ((ret = bridge_group_type_to_enum(type_str, &type)) ==
-              LAGOPUS_RESULT_OK) {
-            if ((ret = bridge_get_group_types(conf->modified_attr,
-                                              &types)) ==
-                LAGOPUS_RESULT_OK) {
-              if (is_added == true) {
-                /* add type. */
-                types |= (uint64_t) OPT_BIT_GET(type);
-              } else {
-                /* delete type. */
-                types &= (uint64_t) ~OPT_BIT_GET(type);
-              }
-              ret = bridge_set_group_types(conf->modified_attr,
-                                           types);
-              if (ret != LAGOPUS_RESULT_OK) {
-                ret = datastore_json_result_string_setf(
-                        result, ret,
-                        "Can't add group_types.");
-              }
-            } else {
-              ret = datastore_json_result_string_setf(
-                      result, ret,
-                      "Can't get group_types.");
-            }
-          } else {
-            ret = datastore_json_result_string_setf(
-                    result,
-                    LAGOPUS_RESULT_INVALID_ARGS,
-                    "Bad opt value = %s.", *(*argv));
-          }
-        } else {
           ret = datastore_json_result_string_setf(result, ret,
                                                   "Can't get type.");
+          goto done;
+        }
+
+        if ((ret = bridge_group_type_to_enum(type_str, &type)) !=
+            LAGOPUS_RESULT_OK) {
+          ret = datastore_json_result_string_setf(
+              result,
+              LAGOPUS_RESULT_INVALID_ARGS,
+              "Bad opt value = %s.", *(*argv));
+          goto done;
+        }
+
+        if ((ret = bridge_get_group_types(conf->modified_attr,
+                                          &types)) !=
+            LAGOPUS_RESULT_OK) {
+          ret = datastore_json_result_string_setf(
+              result, ret,
+              "Can't get group_types.");
+          goto done;
+        }
+
+        if (is_added == true) {
+          /* add type. */
+          types |= (uint64_t) OPT_BIT_GET(type);
+        } else {
+          /* delete type. */
+          types &= (uint64_t) ~OPT_BIT_GET(type);
+        }
+        ret = bridge_set_group_types(conf->modified_attr,
+                                     types);
+        if (ret != LAGOPUS_RESULT_OK) {
+          ret = datastore_json_result_string_setf(
+              result, ret,
+              "Can't add group_types.");
         }
       } else {
         if (*(*argv) == NULL) {
@@ -3655,6 +3719,7 @@ group_type_opt_parse(const char *const *argv[],
                                     NULL);
   }
 
+done:
   free(type_str);
 
   return ret;
@@ -3680,41 +3745,44 @@ group_capability_opt_parse(const char *const *argv[],
     if (*(*argv + 1) != NULL) {
       (*argv)++;
       if (IS_VALID_STRING(*(*argv)) == true) {
-        if ((ret = cmd_opt_type_get(*(*argv), &type_str, &is_added)) ==
+        if ((ret = cmd_opt_type_get(*(*argv), &type_str, &is_added)) !=
             LAGOPUS_RESULT_OK) {
-          if ((ret = bridge_group_capability_to_enum(type_str, &type)) ==
-              LAGOPUS_RESULT_OK) {
-            if ((ret = bridge_get_group_capabilities(conf->modified_attr,
-                       &types)) ==
-                LAGOPUS_RESULT_OK) {
-              if (is_added == true) {
-                /* add type. */
-                types |= (uint64_t) OPT_BIT_GET(type);
-              } else {
-                /* delete type. */
-                types &= (uint64_t) ~OPT_BIT_GET(type);
-              }
-              ret = bridge_set_group_capabilities(conf->modified_attr,
-                                                  types);
-              if (ret != LAGOPUS_RESULT_OK) {
-                ret = datastore_json_result_string_setf(
-                        result, ret,
-                        "Can't add group_capabilities.");
-              }
-            } else {
-              ret = datastore_json_result_string_setf(
-                      result, ret,
-                      "Can't get group_capabilities.");
-            }
-          } else {
-            ret = datastore_json_result_string_setf(
-                    result,
-                    LAGOPUS_RESULT_INVALID_ARGS,
-                    "Bad opt value = %s.", *(*argv));
-          }
-        } else {
           ret = datastore_json_result_string_setf(result, ret,
                                                   "Can't get type.");
+          goto done;
+        }
+
+        if ((ret = bridge_group_capability_to_enum(type_str, &type)) !=
+            LAGOPUS_RESULT_OK) {
+          ret = datastore_json_result_string_setf(
+              result,
+              LAGOPUS_RESULT_INVALID_ARGS,
+              "Bad opt value = %s.", *(*argv));
+          goto done;
+        }
+
+        if ((ret = bridge_get_group_capabilities(conf->modified_attr,
+                       &types)) !=
+            LAGOPUS_RESULT_OK) {
+          ret = datastore_json_result_string_setf(
+              result, ret,
+              "Can't get group_capabilities.");
+          goto done;
+        }
+
+        if (is_added == true) {
+          /* add type. */
+          types |= (uint64_t) OPT_BIT_GET(type);
+        } else {
+          /* delete type. */
+          types &= (uint64_t) ~OPT_BIT_GET(type);
+        }
+        ret = bridge_set_group_capabilities(conf->modified_attr,
+                                            types);
+        if (ret != LAGOPUS_RESULT_OK) {
+          ret = datastore_json_result_string_setf(
+              result, ret,
+              "Can't add group_capabilities.");
         }
       } else {
         if (*(*argv) == NULL) {
@@ -3742,6 +3810,7 @@ group_capability_opt_parse(const char *const *argv[],
                                     NULL);
   }
 
+done:
   free(type_str);
 
   return ret;
@@ -3927,7 +3996,7 @@ config_sub_cmd_parse_internal(datastore_interp_t *iptr,
        * already exists. copy it.
        */
       ret = bridge_attr_duplicate(conf->current_attr,
-                                  &conf->modified_attr);
+                                  &conf->modified_attr, NULL);
       if (ret != LAGOPUS_RESULT_OK) {
         ret = datastore_json_result_set(result, ret, NULL);
         goto done;
@@ -3995,7 +4064,8 @@ create_sub_cmd_parse(datastore_interp_t *iptr,
     if (ret == LAGOPUS_RESULT_NOT_FOUND) {
       ret = namespace_get_namespace(name, &namespace);
       if (ret == LAGOPUS_RESULT_OK) {
-        if (namespace_exists(namespace) == true) {
+        if (namespace_exists(namespace) == true ||
+            state == DATASTORE_INTERP_STATE_DRYRUN) {
           ret = create_sub_cmd_parse_internal(iptr, state,
                                               argc, argv,
                                               name, proc,
@@ -6744,6 +6814,27 @@ bridge_cmd_getname(const void *obj, const char **namep) {
   return ret;
 }
 
+static lagopus_result_t
+bridge_cmd_duplicate(const void *obj, const char *namespace) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  bridge_conf_t *dup_obj = NULL;
+
+  if (obj != NULL) {
+    ret = bridge_conf_duplicate(obj, &dup_obj, namespace);
+    if (ret == LAGOPUS_RESULT_OK) {
+      ret = bridge_conf_add(dup_obj);
+
+      if (ret != LAGOPUS_RESULT_OK && dup_obj != NULL) {
+        bridge_conf_destroy(dup_obj);
+      }
+    }
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  return ret;
+}
+
 extern datastore_interp_t datastore_get_master_interp(void);
 
 static inline lagopus_result_t
@@ -6890,7 +6981,8 @@ initialize_internal(void) {
                                       bridge_cmd_serialize,
                                       bridge_cmd_destroy,
                                       bridge_cmd_compare,
-                                      bridge_cmd_getname)) !=
+                                      bridge_cmd_getname,
+                                      bridge_cmd_duplicate)) !=
       LAGOPUS_RESULT_OK) {
     lagopus_perror(ret);
     goto done;

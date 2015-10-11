@@ -22,7 +22,7 @@ SRCS =	agent.c channel.c openflow13packet.c \
 	ofp_experimenter_handler.c ofp_meter_config_handler.c ofp_band_stats.c \
 	ofp_meter_handler.c ofp_experimenter_mp_handler.c ofp_table_features_handler.c \
 	ofp_padding.c ofp_oxm.c \
-	ofp_bridgeq_mgr.c ofp_pdump.c ofp_meter.c
+	ofp_bridgeq_mgr.c ofp_pdump.c ofp_meter.c ofp_features_capabilities.c
 
 GENERATE_OUTPUT_FILE	= openflow13packet
 SRCS_GENERATE = $(GENERATE_OUTPUT_FILE).h

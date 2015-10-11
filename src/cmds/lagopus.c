@@ -24,89 +24,6 @@
 
 
 
-#define ONE_SEC		1000LL * 1000LL * 1000LL
-#define REQ_TIMEDOUT	ONE_SEC
-
-#define DEFAULT_PIDFILE_DIR	"/var/run/"
-
-
-
-
-
-static lagopus_chrono_t s_to = 1000LL * 1000LL * 1000LL * 5;
-
-
-
-
-
-static inline pid_t
-s_setsid(void) {
-  pid_t ret = (pid_t)-1;
-  int fd = open("/dev/tty", O_RDONLY);
-
-  if (fd >= 0) {
-    (void)close(fd);
-    if ((ret = setsid()) < 0) {
-#ifdef TIOCNOTTY
-      int one = 1;
-      fd = open("/dev/tty", O_RDONLY);
-      if (fd >= 0) {
-        (void)ioctl(fd, TIOCNOTTY, &one);
-      }
-#endif /* TIOCNOTTY */
-      (void)close(fd);
-      ret = getpid();
-      (void)setpgid(0, ret);
-    }
-  } else {
-    if ((ret = setsid()) < 0) {
-      ret = getpid();
-      (void)setpgid(0, ret);
-    }
-  }
-
-  return ret;
-}
-
-
-static inline void
-s_daemonize(int exclude_fd) {
-  int i;
-
-  (void)s_setsid();
-
-  for (i = 0; i < 1024; i++) {
-    if (i != exclude_fd) {
-      (void)close(i);
-    }
-  }
-
-  i = open("/dev/zero", O_RDONLY);
-  if (i > 0) {
-    (void)dup2(0, i);
-    (void)close(i);
-  }
-
-  i = open("/dev/null", O_WRONLY);
-  if (i > 1) {
-    (void)dup2(1, i);
-    (void)close(i);
-  }
-
-  i = open("/dev/null", O_WRONLY);
-  if (i > 2) {
-    (void)dup2(2, i);
-    (void)close(i);
-  }
-}
-
-
-
-
-
-static volatile bool s_got_term_sig = false;
-
-
 static void
 s_term_handler(int sig) {
   lagopus_result_t r = LAGOPUS_RESULT_ANY_FAILURES;
@@ -136,7 +53,7 @@ s_term_handler(int sig) {
 
     } else if ((int)gs < (int)GLOBAL_STATE_STARTED) {
       if (sig == SIGTERM || sig == SIGINT || sig == SIGQUIT) {
-        s_got_term_sig = true;
+        lagopus_abort_before_mainloop();
       }
     } else {
       lagopus_msg_debug(5, "The system is already shutting down.\n");
@@ -165,7 +82,6 @@ static const char *s_progname;
 static const char *s_logfile;
 static const char *s_pidfile;
 static const char *s_configfile;
-static char s_pidfile_buf[PATH_MAX];
 
 static uint16_t s_debug_level = 0;
 
@@ -254,127 +170,6 @@ parse_args(int argc, const char *const argv[]) {
 }
 
 
-static inline void
-s_gen_pidfile(void) {
-  FILE *fd = NULL;
-
-  if (IS_VALID_STRING(s_pidfile) == true) {
-    snprintf(s_pidfile_buf, sizeof(s_pidfile_buf), "%s", s_pidfile);
-  } else {
-    snprintf(s_pidfile_buf, sizeof(s_pidfile_buf),
-             DEFAULT_PIDFILE_DIR "%s.pid",
-             s_progname);
-  }
-
-  fd = fopen(s_pidfile_buf, "w");
-  if (fd != NULL) {
-    fprintf(fd, "%d\n", (int)getpid());
-    fflush(fd);
-    (void)fclose(fd);
-  } else {
-    lagopus_perror(LAGOPUS_RESULT_POSIX_API_ERROR);
-    lagopus_msg_error("can't create a pidfile \"%s\".\n",
-                      s_pidfile_buf);
-  }
-}
-
-
-static inline void
-s_del_pidfile(void) {
-  if (IS_VALID_STRING(s_pidfile_buf) == true) {
-    struct stat st;
-
-    if (stat(s_pidfile_buf, &st) == 0) {
-      if (S_ISREG(st.st_mode)) {
-        (void)unlink(s_pidfile_buf);
-      }
-    }
-  }
-}
-
-
-static inline int
-s_do_main(int argc, const char *const argv[], int ipcfd) {
-  lagopus_result_t st = LAGOPUS_RESULT_ANY_FAILURES;
-  shutdown_grace_level_t l = SHUTDOWN_UNKNOWN;
-
-  lagopus_msg_info("Initializing all the modules.\n");
-
-  (void)global_state_set(GLOBAL_STATE_INITIALIZING);
-
-  if ((st = lagopus_module_initialize_all(argc,
-                                          (const char * const *)argv)) ==
-      LAGOPUS_RESULT_OK &&
-      s_got_term_sig == false) {
-
-    lagopus_msg_info("All the modules are initialized.\n");
-    lagopus_msg_info("Starting all the modules.\n");
-
-    (void)global_state_set(GLOBAL_STATE_STARTING);
-    if ((st = lagopus_module_start_all()) ==
-        LAGOPUS_RESULT_OK &&
-        s_got_term_sig == false) {
-
-      lagopus_msg_info("All the modules are started and ready to go.\n");
-
-      (void)global_state_set(GLOBAL_STATE_STARTED);
-
-      if (ipcfd >= 0) {
-        int zero = 0;
-        (void)write(ipcfd, (void *)&zero, sizeof(int));
-        (void)close(ipcfd);
-        ipcfd = -1;
-      }
-
-      lagopus_msg_info("The Lagopus is a go.\n");
-
-      s_gen_pidfile();
-
-      while ((st = global_state_wait_for_shutdown_request(&l,
-                   REQ_TIMEDOUT)) ==
-             LAGOPUS_RESULT_TIMEDOUT) {
-        lagopus_msg_debug(10, "Waiting for the shutdown request...\n");
-      }
-      if (st == LAGOPUS_RESULT_OK) {
-        (void)global_state_set(GLOBAL_STATE_ACCEPT_SHUTDOWN);
-        if ((st = lagopus_module_shutdown_all(l)) == LAGOPUS_RESULT_OK) {
-          if ((st = lagopus_module_wait_all(s_to)) == LAGOPUS_RESULT_OK) {
-            lagopus_msg_info("Shutdown succeeded.\n");
-          } else if (st == LAGOPUS_RESULT_TIMEDOUT) {
-          do_cancel:
-            lagopus_msg_warning("Trying to stop forcibly...\n");
-            if ((st = lagopus_module_stop_all()) == LAGOPUS_RESULT_OK) {
-              if ((st = lagopus_module_wait_all(s_to)) ==
-                  LAGOPUS_RESULT_OK) {
-                lagopus_msg_warning("Stopped forcibly.\n");
-              }
-            }
-          }
-        } else if (st == LAGOPUS_RESULT_TIMEDOUT) {
-          goto do_cancel;
-        }
-      }
-    }
-  }
-
-  lagopus_module_finalize_all();
-
-  if (st != LAGOPUS_RESULT_OK) {
-    lagopus_msg_warning("Bailed out, anyway. The latest result status is:"
-                        "%s\n", lagopus_error_get_string(st));
-    if (ipcfd >= 0) {
-      int one = 1;
-      (void)write(ipcfd, (void *)&one, sizeof(int));
-      (void)close(ipcfd);
-    }
-  }
-
-  s_del_pidfile();
-
-  return (st == LAGOPUS_RESULT_OK) ? 0 : 1;
-}
-
-
 
 
 
@@ -384,13 +179,12 @@ main(int argc, const char *const argv[]) {
   lagopus_log_destination_t dst = LAGOPUS_LOG_EMIT_TO_UNKNOWN;
   const char *logarg;
   uint16_t cur_debug_level = 0;
-  int ipcfds[2];
 
-  ipcfds[0] = -1;
-  ipcfds[1] = -1;
-
-  (void)lagopus_set_command_name(argv[0]);
   s_progname = lagopus_get_command_name();
+  if (IS_VALID_STRING(s_progname) == false) {
+    (void)lagopus_set_command_name(argv[0]);
+    s_progname = lagopus_get_command_name();
+  }
 
   parse_args(argc, argv);
 
@@ -405,14 +199,6 @@ main(int argc, const char *const argv[]) {
   s_configfile = NULL;
   (void)datastore_get_config_file(&s_configfile);
 
-  r = datastore_preload_config();
-  if (r != LAGOPUS_RESULT_OK) {
-    lagopus_perror(r);
-    lagopus_msg_error("can't load the minimum configuration parameters "
-                      "from '%s'.\n", s_configfile);
-    goto bailout;
-  }
-
   if (IS_VALID_STRING(s_logfile) == true) {
     dst = LAGOPUS_LOG_EMIT_TO_FILE;
     logarg = s_logfile;
@@ -423,6 +209,10 @@ main(int argc, const char *const argv[]) {
       dst = LAGOPUS_LOG_EMIT_TO_SYSLOG;
       logarg = s_progname;
     }
+  }
+
+  if (IS_VALID_STRING(s_pidfile) == true) {
+    lagopus_set_pidfile(s_pidfile);
   }
 
   cur_debug_level = lagopus_log_get_debug_level();
@@ -437,40 +227,12 @@ main(int argc, const char *const argv[]) {
   (void)lagopus_signal(SIGQUIT, s_term_handler, NULL);
 
   if (s_debug_level == 0) {
-    pid_t pid = (pid_t)-1;
-
-    if (pipe(ipcfds) != 0) {
-      lagopus_perror(LAGOPUS_RESULT_POSIX_API_ERROR);
-      return 1;
-    }
-
-    pid = fork();
-    if (pid > 0) {
-      int exit_code;
-      ssize_t st;
-
-      (void)close(ipcfds[1]);
-      if ((st = read(ipcfds[0], (void *)&exit_code, sizeof(int))) !=
-          sizeof(int)) {
-        lagopus_perror(LAGOPUS_RESULT_POSIX_API_ERROR);
-        return 1;
-      }
-
-      return exit_code;
-
-    } else if (pid == 0) {
-      s_daemonize(ipcfds[1]);
-      if (lagopus_log_get_destination(NULL) == LAGOPUS_LOG_EMIT_TO_FILE) {
-        (void)lagopus_log_reinitialize();
-      }
-    } else {
-      lagopus_perror(LAGOPUS_RESULT_POSIX_API_ERROR);
-      lagopus_msg_error("can' be a daemon.\n");
-      return 1;
-    }
+    r = lagopus_mainloop_with_callout(argc, argv, NULL, NULL,
+                                      true, true, false);
+  } else {
+    r = lagopus_mainloop_with_callout(argc, argv, NULL, NULL,
+                                      false, false, false);
   }
-
-  return s_do_main(argc, argv, ipcfds[1]);
 
 bailout:
   return (r == LAGOPUS_RESULT_OK) ? 0 : 1;

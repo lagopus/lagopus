@@ -72,6 +72,9 @@ enum {
 #define MAKE_MATCH_IDX(base, type, member,  mask, shift)        \
   { base, offsetof(struct type, member), sizeof(((struct type *)0)->member), mask, shift }
 #define OXM_FIELD_TYPE(field) ((field) >> 1)
+#define OXM_FIELD_HAS_MASK(field) (((field) & 1) != 0)
+#define OXM_MATCH_VALUE_LEN(match) \
+  ((match)->oxm_length >> ((match)->oxm_field & 1))
 
 #define BRANCH8i(val, t)        (((val) - flows->min8) / (t))
 #define BRANCH16i(val, t)       (((val) - flows->min16) / (t))
@@ -172,11 +175,13 @@ build_mbtree(struct flow_list *flows) {
       childp = &flows->flows_dontcare;
     }
     if (*childp == NULL) {
-      *childp = calloc(1, sizeof(struct flow_list));
+      *childp = calloc(1, sizeof(struct flow_list)
+                       + sizeof(void *) * BRANCH_NUM);
+      (*childp)->nbranch = BRANCH_NUM;
     }
     flow_add_sub(flow, *childp);
   }
-  for (i = 0; i < 0xffff; i++) {
+  for (i = 0; i < flows->nbranch; i++) {
     if (flows->branch[i] != NULL) {
       build_mbtree_child(flows->branch[i]);
     }
@@ -217,7 +222,8 @@ build_mbtree_decision8(struct flow_list *flows,
       DPRINTF("flows[%d] = %d -> branch[%d]\n",
               i, val8, BRANCH8i(val8, flows->threshold8));
       if (BRANCH8(val8) == NULL) {
-        BRANCH8(val8) = calloc(1, sizeof(struct flow_list));
+        BRANCH8(val8) = calloc(1, sizeof(struct flow_list)
+                               + sizeof(void *) * BRANCH_NUM);
       }
       if (flow_add_sub(flow, BRANCH8(val8)) != LAGOPUS_RESULT_OK) {
         DPRINTF("true: flow_add_sub error\n");
@@ -257,7 +263,8 @@ build_mbtree_decision16(struct flow_list *flows,
       DPRINTF("flows[%d] = %d -> branch[%d]\n",
               i, val16, BRANCH16i(val16, flows->threshold16));
       if (BRANCH16(val16) == NULL) {
-        BRANCH16(val16) = calloc(1, sizeof(struct flow_list));
+        BRANCH16(val16) = calloc(1, sizeof(struct flow_list)
+                                 + sizeof(void *) * BRANCH_NUM);
       }
       if (flow_add_sub(flow, BRANCH16(val16)) != LAGOPUS_RESULT_OK) {
         DPRINTF("true: flow_add_sub error\n");
@@ -297,7 +304,8 @@ build_mbtree_decision32(struct flow_list *flows,
       DPRINTF("flows[%d] = %d -> branch[%d]\n",
               i, val32, BRANCH32i(val32, flows->threshold32));
       if (BRANCH32(val32) == NULL) {
-        BRANCH32(val32) = calloc(1, sizeof(struct flow_list));
+        BRANCH32(val32) = calloc(1, sizeof(struct flow_list)
+                                 + sizeof(void *) * BRANCH_NUM);
       }
       if (flow_add_sub(flow, BRANCH32(val32)) != LAGOPUS_RESULT_OK) {
         DPRINTF("true: flow_add_sub error\n");
@@ -337,7 +345,8 @@ build_mbtree_decision64(struct flow_list *flows,
       DPRINTF("flows[%d] = %qd -> branch[%d]\n",
               i, val64, BRANCH64i(val64, flows->threshold64));
       if (BRANCH64(val64) == NULL) {
-        BRANCH64(val64) = calloc(1, sizeof(struct flow_list));
+        BRANCH64(val64) = calloc(1, sizeof(struct flow_list)
+                                 + sizeof(void *) * BRANCH_NUM);
       }
       if (flow_add_sub(flow, BRANCH64(val64)) != LAGOPUS_RESULT_OK) {
         DPRINTF("true: flow_add_sub error\n");
@@ -359,40 +368,45 @@ struct match_stats {
 static void
 count_match(struct match *match, struct match_list *match_stats_list) {
   struct match *match_stats;
-  uint64_t value;
+  uint64_t value, length;
   int i;
 
   TAILQ_FOREACH(match_stats, match_stats_list, entry) {
     if (match->oxm_field == match_stats->oxm_field) {
-      if ((match->oxm_field & 1) == 0 ||
-          !memcmp(&match->oxm_value[match->oxm_length],
-                  &match_stats->oxm_value[match->oxm_length],
-                  match->oxm_length)) {
-        /* found exist match_stats */
-        if (match->oxm_length <= sizeof(uint64_t)) {
-          value = 0;
-          for (i = 0; i < match->oxm_length; i++) {
-            value <<= 8;
-            value |= match->oxm_value[i];
-          }
-          if (((struct match_stats *)match_stats)->min_value > value) {
-            ((struct match_stats *)match_stats)->min_value = value;
-          }
-          if (((struct match_stats *)match_stats)->max_value < value) {
-            ((struct match_stats *)match_stats)->max_value = value;
-          }
+      length = match->oxm_length;
+      if (OXM_FIELD_HAS_MASK(match->oxm_field)) {
+        length >>= 1;
+        if (memcmp(&match->oxm_value[length],
+                   &match_stats->oxm_value[length],
+                   length) != 0) {
+          continue;
         }
-        ((struct match_stats *)match_stats)->count++;
-        return;
       }
+      /* found exist match_stats */
+      if (length <= sizeof(uint64_t)) {
+        value = 0;
+        for (i = 0; i < length; i++) {
+          value <<= 8;
+          value |= match->oxm_value[i];
+        }
+        if (((struct match_stats *)match_stats)->min_value > value) {
+          ((struct match_stats *)match_stats)->min_value = value;
+        }
+        if (((struct match_stats *)match_stats)->max_value < value) {
+          ((struct match_stats *)match_stats)->max_value = value;
+        }
+      }
+      ((struct match_stats *)match_stats)->count++;
+      return;
     }
   }
+  /* new match_stats add to the list */
   match_stats = calloc(1, sizeof(struct match_stats));
   memcpy(match_stats, match, sizeof(struct match) + match->oxm_length);
   ((struct match_stats *)match_stats)->count = 1;
   value = 0;
-  if (match->oxm_length <= sizeof(uint64_t)) {
-    for (i = 0; i < match->oxm_length; i++) {
+  if (OXM_MATCH_VALUE_LEN(match) <= sizeof(uint64_t)) {
+    for (i = 0; i < OXM_MATCH_VALUE_LEN(match); i++) {
       value <<= 8;
       value |= match->oxm_value[i];
     }
@@ -412,7 +426,7 @@ count_flow_list_match(struct flow_list *flow_list,
   for (i = 0; i < flow_list->nflow; i++) {
     flow = flow_list->flows[i];
     TAILQ_FOREACH(match, &flow->match_list, entry) {
-      if (match->oxm_field >> 1 == OFPXMT_OFB_ETH_TYPE) {
+      if (OXM_FIELD_TYPE(match->oxm_field) == OFPXMT_OFB_ETH_TYPE) {
         continue;
       }
       count_match(match, match_stats_list);
@@ -422,7 +436,7 @@ count_flow_list_match(struct flow_list *flow_list,
 
 static struct match_stats *
 get_most_match(struct flow_list *flow_list) {
-  struct match_stats nullmatch = { };
+  struct match_stats nullmatch = { { } };
   struct match_list match_stats_list;
   struct match *match;
   struct match_stats *most_match;
@@ -446,7 +460,7 @@ get_most_match(struct flow_list *flow_list) {
   if (most_match == &nullmatch) {
     return NULL;
   }
-  threshold = (most_match->max_value -most_match->min_value) / BRANCH_NUM;
+  threshold = (most_match->max_value - most_match->min_value) / BRANCH_NUM;
   if (threshold == 0) {
     threshold = 1;
   }
@@ -464,10 +478,10 @@ get_match_field(struct match_list *match_list, struct match *match_stats) {
         /* field match.  match has no mask. */
         break;
       }
-      if (!memcmp(&match->oxm_value[match->oxm_length],
-                  &match_stats->oxm_value[match->oxm_length],
-                  match->oxm_length)) {
-        /* field ans mask match. */
+      if (!memcmp(&match->oxm_value[match->oxm_length >> 1],
+                  &match_stats->oxm_value[match->oxm_length >> 1],
+                  match->oxm_length >> 1)) {
+        /* field and mask match. */
         break;
       }
     }
@@ -515,7 +529,8 @@ get_child_flow_list(struct flow_list *flow_list,
   struct ptree_node *node;
   void *child;
 
-  get_shifted_value(match->oxm_value, match->oxm_length,
+  get_shifted_value(match->oxm_value,
+                    OXM_MATCH_VALUE_LEN(match),
                     flow_list->shift, flow_list->keylen >> 3, key);
   switch (flow_list->type) {
     case DECISION8:
@@ -553,7 +568,11 @@ get_child_flow_list(struct flow_list *flow_list,
       }
       node = ptree_node_get(child_array[0], key, flow_list->keylen);
       if (node->info == NULL) {
-        node->info = calloc(1, sizeof(struct flow_list));
+        node->info = calloc(1, sizeof(struct flow_list)
+                            + sizeof(void *) * BRANCH_NUM);
+        DPRINTF("key %d,%d,%d,%d, new node %p\n",
+                key[0], key[1], key[2], key[3],
+                node->info);
       }
       child = node->info;
       break;
@@ -571,7 +590,7 @@ set_flow_list_desc(struct flow_list *flow_list,
   int idx;
 
   flow_list->type = RADIXTREE;
-  idx = match_stats->match.oxm_field >> 1;
+  idx = OXM_FIELD_TYPE(match_stats->match.oxm_field);
   flow_list->base = match_idx[idx].base;
   flow_list->match_off = match_idx[idx].off;
   flow_list->shift = match_idx[idx].shift;
@@ -654,15 +673,28 @@ build_mbtree_child(struct flow_list *flow_list) {
   }
   /* distribute flow entries */
   if (flow_list->flows_dontcare == NULL) {
-    flow_list->flows_dontcare = calloc(1, sizeof(struct flow_list));
+    flow_list->flows_dontcare = calloc(1, sizeof(struct flow_list)
+                                       + sizeof(void *) * BRANCH_NUM);
   }
 
   /* set flow_list type and related values */
   set_flow_list_desc(flow_list, most_match);
 
+  DPRINTF("most_match: oxm_field %d\n", most_match->match.oxm_field);
+  DPRINTF("most_match: oxm_length %d\n", most_match->match.oxm_length);
+  DPRINTF("most_match: min_value %llu\n", most_match->min_value);
+  DPRINTF("most_match: max_value %llu\n", most_match->max_value);
+  DPRINTF("most_match: shift %d\n", most_match->shift);
+  DPRINTF("most_match: count %d\n", most_match->count);
+  DPRINTF("flow_list: nflow %d\n", flow_list->nflow);
+  DPRINTF("flow_list: shift %d\n", flow_list->shift);
+  DPRINTF("flow_list: match_off %d\n", flow_list->match_off);
+  DPRINTF("flow_list: keylen %d\n", flow_list->keylen);
+
   for (i = 0; i < flow_list->nflow; i++) {
     distribute_flow_to_child(flow_list->flows[i], most_match, flow_list);
   }
+  DPRINTF("dontcare: nflow %d\n", flow_list->flows_dontcare->nflow);
   /* build child flow list */
   switch (flow_list->type) {
     case DECISION8:
@@ -693,48 +725,49 @@ build_mbtree_child(struct flow_list *flow_list) {
 }
 
 static void
-free_mbtree(int type, struct flow_list *flow_list) {
-  if (flow_list != NULL) {
-    int i;
+free_mbtree(int type, void *arg) {
+  struct flow_list *flow_list;
+  struct ptree_node *node;
+  int i;
 
-    for (i = 0; i < BRANCH_NUM + 1; i++) {
-      struct ptree_node *node;
-
-      if (flow_list->branch[i] == NULL) {
-        continue;
-      }
-      switch (type) {
-        case DECISION8:
-        case DECISION16:
-        case DECISION32:
-        case DECISION64:
-          cleanup_mbtree(flow_list->branch[i]);
-          break;
-
-        case RADIXTREE:
-          node = ptree_top(flow_list->branch[0]);
-          while (node != NULL) {
-            if (node->info != NULL) {
-              cleanup_mbtree(node->info);
-            }
-            node = ptree_next(node);
+  if (arg != NULL) {
+    switch (type) {
+      case DECISION8:
+      case DECISION16:
+      case DECISION32:
+      case DECISION64:
+        flow_list = arg;
+        for (i = 0; i < BRANCH_NUM + 1; i++) {
+          if (flow_list->branch[i] == NULL) {
+            continue;
           }
-          ptree_free(flow_list->branch[0]);
-          break;
+          cleanup_mbtree(flow_list->branch[i]);
+        }
+        if (flow_list->flows_dontcare != NULL) {
+          cleanup_mbtree(flow_list->flows_dontcare);
+        }
+        free(flow_list);
+        break;
 
-        case SEQUENCIAL:
-          free(flow_list->branch[i]);
-          break;
-      }
-      flow_list->branch[i] = NULL;
+      case RADIXTREE:
+        for (node = ptree_top(arg);
+             node != NULL;
+             node = ptree_next(node)) {
+          if (node->info != NULL) {
+            cleanup_mbtree(node->info);
+          }
+        }
+        ptree_free(arg);
+        break;
+
+      case SEQUENCIAL:
+        flow_list = arg;
+        if (flow_list->basic != NULL) {
+          flow_list->basic->destroy_func(flow_list->basic);
+        }
+        free(flow_list);
+        break;
     }
-
-    if (flow_list->flows_dontcare != NULL) {
-      cleanup_mbtree(flow_list->flows_dontcare);
-      flow_list->flows_dontcare = NULL;
-    }
-
-    free(flow_list);
   }
 }
 
@@ -747,7 +780,7 @@ cleanup_mbtree(struct flow_list *flows) {
   }
   type = flows->type;
   flows->type = SEQUENCIAL;
-  for (i = 0; i < 0xffff; i++) {
+  for (i = 0; i < flows->nbranch; i++) {
     if (flows->branch[i] != NULL) {
       free_mbtree(type, flows->branch[i]);
       flows->branch[i] = NULL;

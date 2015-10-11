@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+
 #include "lagopus_apis.h"
 #include "lagopus_thread_internal.h"
 #include "lagopus_pipeline_stage_internal.h"
@@ -31,8 +32,8 @@
 static pthread_once_t s_once = PTHREAD_ONCE_INIT;
 static lagopus_hashmap_t s_ps_name_tbl;
 static lagopus_hashmap_t s_ps_obj_tbl;
-static void	s_ctors(void) __attr_constructor__(109);
-static void	s_dtors(void) __attr_destructor__(109);
+static void	s_ctors(void) __attr_constructor__(110);
+static void	s_dtors(void) __attr_destructor__(110);
 
 static inline void	s_lock_stage(lagopus_pipeline_stage_t ps);
 static inline void	s_unlock_stage(lagopus_pipeline_stage_t ps);
@@ -907,7 +908,12 @@ lagopus_pipeline_stage_wait(const lagopus_pipeline_stage_t *sptr,
               lagopus_exit_fatal("must not happen, waiting for all the worker "
                                  "exit succeeded but the number of the exited "
                                  "workers and the number of succeeded API "
-                                 "calls differ on stage '%s'\n", ps->m_name);
+                                 "calls differ on stage '%s', "
+                                 "workers " PFSZ(u) ", "
+                                 "shutdown " PFSZ(u) ", "
+                                 "cancel " PFSZ(u) "\n",
+                                 ps->m_name,
+                                 ps->m_n_workers, n_shutdown, n_canceled);
             }
 
             ps->m_do_loop = false;

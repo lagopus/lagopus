@@ -60,8 +60,7 @@ test_copy_ttl_out_IPV4_to_MPLS(void) {
   m->data[18] = 0x45;
   m->data[26] = 10;   /* IPv4 TTL */
 
-  lagopus_set_in_port(&pkt, &port);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   execute_action(&pkt, &action_list);
   TEST_ASSERT_EQUAL_MESSAGE(m->data[26], 10,
                             "COPY_TTL_OUT_IPv4_to_MPLS(inner) error.");
@@ -95,8 +94,7 @@ test_copy_ttl_out_IPV6_to_MPLS(void) {
   m->data[18] = 0x60;
   m->data[25] = 10;   /* IPv6 TTL */
 
-  lagopus_set_in_port(&pkt, &port);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   execute_action(&pkt, &action_list);
   TEST_ASSERT_EQUAL_MESSAGE(m->data[25], 10,
                             "COPY_TTL_OUT_IPv6_to_MPLS(inner) error.");
@@ -129,8 +127,7 @@ test_copy_ttl_out_MPLS_to_MPLS(void) {
   m->data[17] = 100; /* outer MPLS TTL */
   m->data[21] = 10;  /* inner MPLS TTL */
 
-  lagopus_set_in_port(&pkt, &port);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   execute_action(&pkt, &action_list);
   TEST_ASSERT_EQUAL_MESSAGE(m->data[21], 10,
                             "COPY_TTL_OUT_MPLS_to_MPLS(inner) error.");
@@ -165,8 +162,7 @@ test_copy_ttl_in_MPLS_to_IPV4(void) {
   m->data[18] = 0x45;
   m->data[26] = 10;   /* IPv4 TTL */
 
-  lagopus_set_in_port(&pkt, &port);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   execute_action(&pkt, &action_list);
   TEST_ASSERT_EQUAL_MESSAGE(m->data[17], 100,
                             "COPY_TTL_IN_MPLS_to_IPv4(outer) error.");
@@ -201,8 +197,7 @@ test_copy_ttl_in_MPLS_to_IPV6(void) {
   m->data[18] = 0x60;
   m->data[25] = 10;   /* IPv6 TTL */
 
-  lagopus_set_in_port(&pkt, &port);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   execute_action(&pkt, &action_list);
   TEST_ASSERT_EQUAL_MESSAGE(m->data[17], 100,
                             "COPY_TTL_IN_MPLS_to_IPv6(outer) error.");
@@ -234,8 +229,7 @@ test_copy_ttl_in_MPLS_to_MPLS(void) {
   m->data[17] = 100; /* outer MPLS TTL */
   m->data[21] = 10;  /* inner MPLS TTL */
 
-  lagopus_set_in_port(&pkt, &port);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   execute_action(&pkt, &action_list);
   TEST_ASSERT_EQUAL_MESSAGE(m->data[17], 100,
                             "COPY_TTL_IN_MPLS_to_MPLS(inner) error.");
@@ -268,8 +262,7 @@ test_set_mpls_ttl(void) {
   m->data[12] = 0x88;
   m->data[13] = 0x47;
 
-  lagopus_set_in_port(&pkt, &port);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   action_set->mpls_ttl = 240;
   execute_action(&pkt, &action_list);
   TEST_ASSERT_EQUAL_MESSAGE(m->data[17], 240,
@@ -300,8 +293,7 @@ test_dec_mpls_ttl(void) {
   m->data[13] = 0x47;
   m->data[17] = 100;
 
-  lagopus_set_in_port(&pkt, &port);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   execute_action(&pkt, &action_list);
   TEST_ASSERT_EQUAL_MESSAGE(m->data[17], 99,
                             "DEC_MPLS_TTL error.");
@@ -310,7 +302,7 @@ test_dec_mpls_ttl(void) {
   m->data[13] = 0x48;
   m->data[17] = 0;
 
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   pkt.in_port = NULL;
   execute_action(&pkt, &action_list);
   TEST_ASSERT_EQUAL_MESSAGE(m->data[17], 0,
@@ -343,8 +335,7 @@ test_set_nw_ttl_IPV4(void) {
   m->data[13] = 0x00;
   m->data[14] = 0x45;
 
-  lagopus_set_in_port(&pkt, &port);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   action_set->nw_ttl = 240;
   execute_action(&pkt, &action_list);
   TEST_ASSERT_EQUAL_MESSAGE(m->data[22], 240,
@@ -376,8 +367,7 @@ test_set_nw_ttl_IPV6(void) {
   m->data[13] = 0xdd;
   m->data[20] = IPPROTO_TCP;
 
-  lagopus_set_in_port(&pkt, &port);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   action_set->nw_ttl = 240;
   execute_action(&pkt, &action_list);
   TEST_ASSERT_EQUAL_MESSAGE(m->data[21], 240,
@@ -407,8 +397,7 @@ test_dec_nw_ttl_IPV4(void) {
   m->data[13] = 0x00;
   m->data[22] = 100;
 
-  lagopus_set_in_port(&pkt, &port);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   execute_action(&pkt, &action_list);
   TEST_ASSERT_EQUAL_MESSAGE(m->data[22], 99,
                             "DEC_NW_TTL_IPV4 error.");
@@ -417,7 +406,7 @@ test_dec_nw_ttl_IPV4(void) {
   m->data[13] = 0x00;
   m->data[22] = 0;
 
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   pkt.in_port = NULL;
   execute_action(&pkt, &action_list);
   TEST_ASSERT_EQUAL_MESSAGE(m->data[22], 0,
@@ -447,8 +436,7 @@ test_dec_nw_ttl_IPV6(void) {
   m->data[13] = 0xdd;
   m->data[21] = 100;
 
-  lagopus_set_in_port(&pkt, &port);
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   execute_action(&pkt, &action_list);
   TEST_ASSERT_EQUAL_MESSAGE(m->data[21], 99,
                             "DEC_NW_TTL_IPV6 error.");
@@ -457,7 +445,7 @@ test_dec_nw_ttl_IPV6(void) {
   m->data[13] = 0xdd;
   m->data[21] = 0;
 
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   pkt.in_port = NULL;
   execute_action(&pkt, &action_list);
   TEST_ASSERT_EQUAL_MESSAGE(m->data[21], 0,

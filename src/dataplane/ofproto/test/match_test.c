@@ -66,10 +66,9 @@ test_lagopus_find_flow(void) {
 
   bridge = dp_bridge_lookup("br0");
   TEST_ASSERT_NOT_NULL(bridge);
-  lagopus_set_in_port(&pkt, port_lookup(bridge->ports, 1));
+  lagopus_packet_init(&pkt, m, port_lookup(bridge->ports, 1));
   table = table_get(pkt.in_port->bridge->flowdb, 0);
   table->userdata = new_flowinfo_eth_type();
-  lagopus_packet_init(&pkt, m);
   flow = lagopus_find_flow(&pkt, table);
   TEST_ASSERT_EQUAL_MESSAGE(table->lookup_count, 0,
                             "lookup_count(misc) error.");
@@ -77,7 +76,7 @@ test_lagopus_find_flow(void) {
                            "flow(misc) error.");
   m->data[14] = 0x08;
   m->data[15] = 0x06;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   flow = lagopus_find_flow(&pkt, table);
   TEST_ASSERT_EQUAL_MESSAGE(table->lookup_count, 0,
                             "lookup_count(arp) error.");
@@ -85,7 +84,7 @@ test_lagopus_find_flow(void) {
                            "flow(arp) error.");
   m->data[14] = 0x08;
   m->data[15] = 0x00;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, port_lookup(bridge->ports, 1));
   flow = lagopus_find_flow(&pkt, table);
   TEST_ASSERT_EQUAL_MESSAGE(table->lookup_count, 0,
                             "lookup_count(ipv4) error.");
@@ -94,7 +93,7 @@ test_lagopus_find_flow(void) {
   m->data[14] = 0x86;
   m->data[15] = 0xdd;
   m->data[20] = IPPROTO_TCP;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, port_lookup(bridge->ports, 1));
   flow = lagopus_find_flow(&pkt, table);
   TEST_ASSERT_EQUAL_MESSAGE(table->lookup_count, 0,
                             "lookup_count(ipv6) error.");
@@ -102,7 +101,7 @@ test_lagopus_find_flow(void) {
                            "flow(ipv6) error.");
   m->data[14] = 0x88;
   m->data[15] = 0x47;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, port_lookup(bridge->ports, 1));
   flow = lagopus_find_flow(&pkt, table);
   TEST_ASSERT_EQUAL_MESSAGE(table->lookup_count, 0,
                             "lookup_count(mpls) error.");
@@ -110,7 +109,7 @@ test_lagopus_find_flow(void) {
                            "flow(mpls) error.");
   m->data[14] = 0x88;
   m->data[15] = 0x48;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, port_lookup(bridge->ports, 1));
   flow = lagopus_find_flow(&pkt, table);
   TEST_ASSERT_EQUAL_MESSAGE(table->lookup_count, 0,
                             "lookup_count(mpls-mc) error.");
@@ -118,7 +117,7 @@ test_lagopus_find_flow(void) {
                            "flow(mpls-mc) error.");
   m->data[14] = 0x88;
   m->data[15] = 0xe7;
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, port_lookup(bridge->ports, 1));
   flow = lagopus_find_flow(&pkt, table);
   TEST_ASSERT_EQUAL_MESSAGE(table->lookup_count, 0,
                             "lookup_count(pbb) error.");

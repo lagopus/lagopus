@@ -188,6 +188,24 @@ AC_SUBST(UNITY_SRC_DIR)
 AC_SUBST(HAVE_NKF)
 AC_SUBST(HAVE_GCOVR)
 
+AC_MSG_CHECKING([/proc/self/exe])
+if test -h /proc/self/exe; then
+  AC_MSG_RESULT([exists.])
+  AC_DEFINE(HAVE_PROCFS_SELF_EXE)
+else
+  AC_MSG_RESULT([does noe exists.])
+fi
+
+AC_ARG_ENABLE([hybrid],
+	[AC_HELP_STRING([--enable-hybrid],
+	 [enable build as hybrid switch [default is no]])]
+	 ,[hybrid="$enableval"], [hybrid=no])
+
+if test "X${hybrid}" != "Xno"; then
+   HYBRID_CPPFLAGS=-DHYBRID
+fi
+AC_SUBST(HYBRID_CPPFLAGS)
+
 # headers/macros
 
 oLIBS=${LIBS}
@@ -572,6 +590,61 @@ AC_RUN_IFELSE(
 CFLAGS=${oCFLAGS}
 LDFLAGS="${oLDFLAGS} ${LIBS}"
 
+# numa
+AC_CHECK_HEADER(numa.h, [AC_DEFINE(HAVE_NUMA_H)])
+AC_CHECK_HEADER(numaif.h, [AC_DEFINE(HAVE_NUMAIF_H)])
+
+numa_supported=no
+oCFLAGS=${CFLAGS}
+oLDFLAGS=${LDFLAGS}
+oLIBS=${LIBS}
+CFLAGS="${CFLAGS} -Wall -Werror -D_REENTRANT -D_GNU_SOURCE -pthread"
+LDFLAGS="${LDFLAGS} -lpthread"
+LIBS="${LIBS} -lnuma"
+AC_MSG_CHECKING([NUMA support])
+AC_RUN_IFELSE(
+	[AC_LANG_PROGRAM(
+		[[#include <stdio.h>]
+		 [#include <stddef.h>]
+		 [#include <stdlib.h>]
+		 [#include <string.h>]
+		 [#include <numa.h>]
+		 [#include <numaif.h>]],
+		[[int node;]
+		 [struct bitmask *bmp;]
+		 [node = numa_node_of_cpu(0);]
+		 [bmp = numa_allocate_nodemask();]
+		 [numa_bitmask_setbit(bmp, node);]
+		 [(void)set_mempolicy(MPOL_BIND, bmp->maskp, bmp->size + 1);]
+		 [(void)numa_alloc_onnode(1024, node);]
+		 [return 0;]])],
+	[numa_supported=yes
+	 AC_MSG_RESULT([available.])],
+	[AC_MSG_RESULT([not available.])],
+	[AC_MSG_RESULT([not checkable since cross-compilation.])])
+CFLAGS=${oCFLAGS}
+LDFLAGS=${oLDFLAGS}
+LIBS=${oLIBS}
+
+NUMA_LIBS=''
+do_numa=${numa_supported}
+AC_ARG_ENABLE([numa],
+	[AC_HELP_STRING([--enable-numa],
+	 [Support NUMA (if supported).])],
+	[do_numa=${enableval}], [do_numa=${numa_supported}])
+if test "X${do_numa}" = "Xyes"; then
+  if test "X${numa_supported}" != "Xyes"; then
+    AC_MSG_ERROR([The NUMA support library is not usable.])
+    exit 1
+  else
+    AC_DEFINE(HAVE_NUMA)
+    NUMA_LIBS='-lnuma'
+    LIBS="${LIBS} ${NUMA_LIBS}"
+    OS_LIBS="${OS_LIBS} ${NUMA_LIBS}"
+  fi
+fi
+AC_SUBST(NUMA_LIBS)
+
 # packaging
 PKG_CONFFILE="mk/pkg_param.conf"
 if test -f "${PKG_CONFFILE}"; then
@@ -626,6 +699,7 @@ AC_CONFIG_FILES(
 	src/datastore/check/Makefile
 	src/snmp/Makefile
 	src/snmp/test/Makefile
+	test/dataplane/benchmark/Makefile
 	tools/Makefile
 	tools/unity/src/Makefile
 	debian/Makefile

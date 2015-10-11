@@ -26,7 +26,6 @@
 #include <errno.h>
 #include <execinfo.h>
 
-#include "event.h"
 #include "openflow.h"
 #include "openflow13packet.h"
 #include "lagopus/dpmgr.h"
@@ -46,6 +45,7 @@
 
 /* OFP max packet size. */
 #define OFP_PBUF_SIZE (64*1024) /* 64KB */
+
 
 /* Channel events. */
 enum channel_event {
@@ -127,13 +127,8 @@ struct channel {
   enum channel_status status;
   enum channel_event event;
 
-  /* Event manager and events. */
-  struct event_manager *em;
-  struct event *read_ev;
-  struct event *write_ev;
-  struct event *start_timer;
-  struct event *ping_ev;
-  struct event *expire_ev;
+  /* Callout task */
+  lagopus_callout_task_t callout;
 
   /* Start timer interval in seconds. */
 #define CHANNEL_CONNECT_INTERVAL_DEFAULT   1
@@ -155,6 +150,9 @@ struct channel {
 
   /* reference counter */
   int refs;
+
+  /* channel alive */
+  bool is_alive;
 
   /* channel set with same dpid */
 #define IS_USED_DPID_ENTRY(a) ((a)->dpid_entry.le_prev != NULL)
@@ -181,14 +179,11 @@ struct channel_list {
 /* Prototypes. */
 static void channel_event_nolock(struct channel *channel,
                                  enum channel_event cevent);
-static void channel_read(struct event *event);
 static void channel_write_nolock(struct channel *channel);
-static void channel_write(struct event *event);
 static bool channel_packet_ready(struct pbuf *pbuf, struct ofp_header *sneak);
 static void channel_event(struct channel *channel, enum channel_event cevent);
 static void channel_lock(struct channel *channel);
 static void channel_unlock(struct channel *channel);
-static void channel_do_expire(struct event *event);
 
 
 /* Non-blocking connect result check. */
@@ -196,10 +191,6 @@ static void channel_do_expire(struct event *event);
 static int
 channel_connect_check(struct channel *channel) {
   lagopus_result_t ret;
-
-  /* Cancel read and write event. */
-  event_cancel(&channel->read_ev);
-  event_cancel(&channel->write_ev);
 
   if (channel->status == Disable) {
     channel_event_nolock(channel, Channel_Expired);
@@ -225,22 +216,18 @@ channel_connect_check(struct channel *channel) {
 /* Assume channel locked. */
 static void
 channel_read_on(struct channel *channel) {
-  if (channel->read_ev == NULL) {
-    channel->read_ev = event_register_read(channel->em,
-                                           session_sockfd_get(channel->session),
-                                           channel_read, channel);
-  }
+  lagopus_msg_debug(10, "read enable:%p\n", channel);
+  session_read_event_set(channel->session);
+  channel_mgr_event_upcall();
 }
 
 /* Channel write on. */
 /* Assume channel locked. */
 static void
 channel_write_on(struct channel *channel) {
-  if (channel->write_ev == NULL) {
-    channel->write_ev = event_register_write(channel->em,
-                        session_sockfd_get(channel->session),
-                        channel_write, channel);
-  }
+  lagopus_msg_debug(10, "write enable:%p\n", channel);
+  session_write_event_set(channel->session);
+  channel_mgr_event_upcall();
 }
 
 /* Assume channel locked. */
@@ -299,18 +286,14 @@ channel_xid_get(struct channel *channel) {
 }
 
 /* Socket read function. */
-static void
-channel_read(struct event *event) {
+void
+channel_read(struct channel *channel) {
   lagopus_result_t rc = LAGOPUS_RESULT_ANY_FAILURES;
   channelq_t *channelq;
   struct channelq_data *cdata;
-  struct channel *channel;
   ssize_t nbytes;
 
-  /* Channel read event clear. */
-  channel = event_get_arg(event);
   channel_lock(channel);
-  channel->read_ev = NULL;
 
   /* Non-blocking connect check. */
   if (channel->status == Connect || channel->status == Disable) {
@@ -395,6 +378,7 @@ channel_write_nolock(struct channel *channel) {
     return;
   }
 
+  lagopus_msg_debug(10, "write_on\n");
   /* Write packet to the socket. */
   nbytes = pbuf_list_session_write(channel->out, channel->session);
 
@@ -423,16 +407,10 @@ channel_write_nolock(struct channel *channel) {
 }
 
 /* Socket write function. */
-static void
-channel_write(struct event *event) {
-  struct channel *channel;
-
-  /* Get channel. */
-  channel = event_get_arg(event);
-
+void
+channel_write(struct channel *channel) {
   channel_lock(channel);
   /* Clear event pointer. */
-  channel->write_ev = NULL;
   channel_write_nolock(channel);
   channel_unlock(channel);
   return;
@@ -495,19 +473,29 @@ channel_send_packet_list(struct channel *channel,
   return res;
 }
 
-static void
-channel_timer(struct event *event) {
-  struct channel *channel = event_get_arg(event);
+static lagopus_result_t
+channel_timer(void *arg) {
+  struct channel *channel = (struct channel *) arg;
 
-  channel_lock(channel);
-  event_cancel(&channel->start_timer);
-  channel_event_nolock(channel, Channel_Start);
-  channel_unlock(channel);
+  lagopus_msg_debug(10, "called %p\n", channel);
+  channel_event(channel, Channel_Start);
+
+  return 0;
+}
+
+static void
+channel_callout_free(void *arg) {
+  struct channel *channel = (struct channel *) arg;
+
+  lagopus_msg_debug(10, "called %p\n", channel);
+  channel->callout = NULL;
 }
 
 /* Update channel timer according to channel status. */
 static void
 channel_update(struct channel *channel, enum channel_status next) {
+  lagopus_result_t ret;
+
   lagopus_msg_debug(10, "%p: %s -> %s\n", channel,
                     channel_status_str[channel->status], channel_status_str[next]);
 
@@ -517,18 +505,26 @@ channel_update(struct channel *channel, enum channel_status next) {
 
   switch (channel->status) {
     case Idle:
-      if (channel->start_timer == NULL)
-        channel->start_timer = event_register_timer(channel->em,
-                               channel_timer,
-                               channel, channel->interval);
+      if (channel->callout == NULL) {
+        ret = lagopus_callout_create_task(&channel->callout, 0,
+                "channel start", channel_timer, channel, channel_callout_free);
+        if (ret != LAGOPUS_RESULT_OK) {
+          lagopus_perror(ret);
+          return;
+        }
+        ret = lagopus_callout_submit_task(&channel->callout,
+                SEC_TO_NSEC(channel->interval), 0);
+        if (ret != LAGOPUS_RESULT_OK) {
+          lagopus_perror(ret);
+          return;
+        }
+      }
       break;
     case Connect:
       break;
     case HelloSent:
-      event_cancel(&channel->start_timer);
       break;
     case Established:
-      event_cancel(&channel->start_timer);
       break;
     default:
       break;
@@ -564,8 +560,8 @@ channel_start(struct channel *channel) {
     return -1;
   }
 
-  /* Increment channel reference count. */
-  channel->refs++;
+  /* Channel is alive */
+  channel->is_alive = true;
 
   /* Register read and write event. */
   channel_read_on(channel);
@@ -612,43 +608,28 @@ channel_stop(struct channel *channel) {
     /* TODO: close all auxiliary connections if existed */
   }
 
-  if (channel->refs > 1) {
-    channel->refs--;
+  if (channel->callout != NULL) {
+    /*
+     * This lock order is channel_lock -> callout_task_lock.
+     * But channel_timer() lock order is callout_task_lock -> channel_lock.
+     * Therefore should unlock channel.
+     */
+    channel_unlock(channel);
+    lagopus_callout_cancel_task(&channel->callout);
+    channel_lock(channel);
+    channel->callout = NULL;
   }
-
-  event_cancel(&channel->read_ev);
-  event_cancel(&channel->write_ev);
-  event_cancel(&channel->start_timer);
-  event_cancel(&channel->ping_ev);
-  event_cancel(&channel->expire_ev);
 
   return 0;
 }
 
-static void
-channel_do_expire(struct event *event) {
-  struct channel *channel;
-  channel = event_get_arg(event);
-
-  channel_lock(channel);
-  channel->expire_ev = NULL;
-  channel_event_nolock(channel, Channel_Expired);
-  channel_unlock(channel);
-}
-
 static int
 channel_expire(struct channel *channel) {
-  lagopus_msg_debug(10, "channel_expire(%p) is called\n", channel);
-
-  if (channel->refs == 1 || channel->refs == 0) {
-    channel_stop(channel);
-    channel->refs = 0;
-    lagopus_msg_debug(10, "channel_expire(%p) refs:%d\n",
+  lagopus_msg_debug(10, "channel_expire(%p) is called, refs:%d\n",
                       channel, channel->refs);
-  } else {
-    /* fake channel event for rescheduling do_expire. */
-    channel->event = Channel_Start;
-  }
+  channel_stop(channel);
+  lagopus_msg_debug(10, "channel_expire(%p) refs:%d\n",
+                      channel, channel->refs);
 
   return 0;
 }
@@ -657,7 +638,7 @@ channel_expire(struct channel *channel) {
 static int
 channel_ignore(struct channel *channel) {
   /* Nothing to do. */
-  lagopus_msg_info("channel_ignore is called %p\n", channel);
+  lagopus_msg_debug(10,"channel_ignore is called %p\n", channel);
   return 0;
 }
 
@@ -693,21 +674,18 @@ channel_connect_fail(struct channel *channel) {
 }
 
 /* Debug ping timer. */
-static void
-ping_timer(struct event *event) {
-  struct channel *channel;
+static lagopus_result_t
+ping_timer(void *arg) {
+  lagopus_result_t ret;
+  struct channel *channel = (struct channel *) arg;
 
-  channel = event_get_arg(event);
-  channel_lock(channel);
-  channel->ping_ev = NULL;
-  channel_unlock(channel);
+  lagopus_msg_debug(10, "called %p\n", channel);
+  ret = ofp_echo_request_send(channel);
+  if (ret != LAGOPUS_RESULT_OK) {
+    lagopus_perror(ret);
+  }
 
-  ofp_echo_request_send(channel);
-
-  channel_lock(channel);
-  channel->ping_ev = event_register_timer(channel->em, ping_timer,
-                                          channel, 1);
-  channel_unlock(channel);
+  return ret;
 }
 
 static int
@@ -722,7 +700,26 @@ channel_hello_confirm(struct channel *channel) {
   if (ret != LAGOPUS_RESULT_OK) {
     lagopus_perror(ret);
   }
-  channel->ping_ev = event_register_timer(channel->em, ping_timer, channel, 1);
+  if (channel->callout != NULL) {
+      /* avoid dead lock. */
+      channel_unlock(channel);
+      lagopus_callout_cancel_task(&channel->callout);
+      channel_lock(channel);
+      channel->callout = NULL;
+  }
+  ret = lagopus_callout_create_task(&channel->callout, 0,
+            "ping echo", ping_timer, channel, channel_callout_free);
+  if (ret != LAGOPUS_RESULT_OK) {
+    lagopus_perror(ret);
+    return -1;
+  }
+  ret = lagopus_callout_submit_task(&channel->callout,
+              0, SEC_TO_NSEC(1));
+  if (ret != LAGOPUS_RESULT_OK) {
+    lagopus_perror(ret);
+    return -1;
+  }
+
   return 0;
 }
 
@@ -733,6 +730,33 @@ channel_process(struct channel *channel) {
 }
 
 /* Finite State Machine. */
+/*
+ *                                   Event
+ *                +-------------+    func()      +-------------+
+ *                |     Idle    |--------------->|   Connect   |
+ *                +-------------+ Channel_Start  +-------------+
+ *                       ^        channel_start         |
+ *                       |                              | TCP_Connection_Open
+ * TCP_Connection_Closed |                              | channel_connect_success
+ *     channel_stop      |     OpenFlow_Hello_Received  |
+ *                       |      channel_hello_confirm   V
+ *                +-------------+                +-------------+
+ *                | Established |<---------------|  HelloSent  |
+ *                +-------------+                +-------------+
+ *
+ *                                       -
+ *                +-------------+ channel_enable +-------------+
+ *                |   Disable   |--------------->|     Idle    |
+ *                +-------------+                +-------------+
+ *                      ^
+ *                      | Channel_Expired
+ *                      | channel_expire
+ *                      |
+ *                +-------------+
+ *                |  Any State  |
+ *                +-------------+
+ *
+ */
 struct {
   int (*func)(struct channel *);
   int next;
@@ -783,14 +807,14 @@ struct {
   },
   {
     /* Disable */
-    {channel_expire,          Disable},      /* Channel_Start */
-    {channel_expire,          Disable},      /* Channel_Stop */
+    {channel_ignore,          Disable},      /* Channel_Start */
+    {channel_ignore,          Disable},      /* Channel_Stop */
     {channel_expire,          Disable},      /* Channel_Expired */
-    {channel_expire,          Disable},      /* TCP_Connection_Open */
-    {channel_expire,          Disable},      /* TCP_Connection_Closed */
-    {channel_expire,          Disable},      /* TCP_Connection_Failed */
-    {channel_expire,          Disable},      /* OpenFlow_Hello_Received */
-    {channel_expire,          Disable},      /* OpenFlow_Message_Received */
+    {channel_ignore,          Disable},      /* TCP_Connection_Open */
+    {channel_ignore,          Disable},      /* TCP_Connection_Closed */
+    {channel_ignore,          Disable},      /* TCP_Connection_Failed */
+    {channel_ignore,          Disable},      /* OpenFlow_Hello_Received */
+    {channel_ignore,          Disable},      /* OpenFlow_Message_Received */
   },
 };
 
@@ -837,6 +861,8 @@ channel_event(struct channel *channel, enum channel_event cevent) {
 /* Assume channel locked. */
 static lagopus_result_t
 session_set(struct channel *channel) {
+  lagopus_result_t ret;
+
   if (session_is_alive(channel->session) == true) {
     lagopus_msg_info("session is alive.\n");
     return LAGOPUS_RESULT_ALREADY_EXISTS;
@@ -846,30 +872,27 @@ session_set(struct channel *channel) {
 
   switch (channel->protocol) {
     case PROTOCOL_TCP:
-      channel->session =
-        session_create(SESSION_TCP|SESSION_ACTIVE);
+      ret =
+        session_create(SESSION_TCP|SESSION_ACTIVE, &channel->session);
       break;
     case PROTOCOL_TLS:
-      channel->session =
-        session_create(SESSION_TLS|SESSION_TCP|SESSION_ACTIVE);
+      ret =
+        session_create(SESSION_TLS|SESSION_TCP|SESSION_ACTIVE, &channel->session);
       break;
     case PROTOCOL_TCP6:
-      channel->session =
-        session_create(SESSION_TCP6|SESSION_ACTIVE);
+      ret =
+        session_create(SESSION_TCP6|SESSION_ACTIVE, &channel->session);
       break;
     case PROTOCOL_TLS6:
-      channel->session =
-        session_create(SESSION_TLS|SESSION_TCP6|SESSION_ACTIVE);
+      ret = 
+        session_create(SESSION_TLS|SESSION_TCP6|SESSION_ACTIVE, &channel->session);
       break;
     default:
       lagopus_msg_warning("unknown protocol %d\n", channel->protocol);
       break;
   }
-  if (channel->session == NULL) {
-    return LAGOPUS_RESULT_ANY_FAILURES;
-  } else {
-    return LAGOPUS_RESULT_OK;
-  }
+
+  return ret;
 }
 
 /* Multipart object init. */
@@ -880,8 +903,7 @@ multipart_init(struct multipart *m) {
 
 /* Channel allocation. */
 static struct channel *
-channel_alloc_internal(struct addrunion *controller,
-                       struct event_manager *em) {
+channel_alloc_internal(struct addrunion *controller) {
   int i;
   lagopus_result_t ret;
   struct channel *channel;
@@ -901,7 +923,6 @@ channel_alloc_internal(struct addrunion *controller,
     case AF_INET:
       addrunion_ipv4_set(&channel->local_addr, "0.0.0.0");
       channel->protocol = PROTOCOL_TCP;
-      //  channel->protocol = PROTOCOL_TLS;
       break;
     case AF_INET6:
       addrunion_ipv6_set(&channel->local_addr, "::0");
@@ -941,7 +962,6 @@ channel_alloc_internal(struct addrunion *controller,
   }
 
   /* Set channel status. */
-  channel->em = em;
   channel->status = Disable;
   channel->interval = CHANNEL_CONNECT_INTERVAL_DEFAULT;
   /* Init multipart objects. */
@@ -957,6 +977,7 @@ channel_alloc_internal(struct addrunion *controller,
   }
 
   channel->refs = 0;
+  channel->is_alive = false;
   channel->dpid_entry.le_prev = NULL;
 
   ofp_role_channel_mask_init(&channel->role_mask);
@@ -968,12 +989,11 @@ channel_alloc_internal(struct addrunion *controller,
 }
 
 struct channel *
-channel_alloc(struct addrunion *controller, struct event_manager *em,
-              uint64_t dpid) {
+channel_alloc(struct addrunion *controller, uint64_t dpid) {
   lagopus_result_t ret;
   struct channel *channel;
 
-  channel = channel_alloc_internal(controller, em);
+  channel = channel_alloc_internal(controller);
   if (channel != NULL) {
     ret = channel_dpid_set(channel, dpid);
     if (ret != LAGOPUS_RESULT_OK) {
@@ -985,14 +1005,13 @@ channel_alloc(struct addrunion *controller, struct event_manager *em,
 }
 
 struct channel *
-channel_alloc_ip4addr(const char *ipaddr, const char *port,
-                      struct event_manager *em, uint64_t dpid) {
+channel_alloc_ip4addr(const char *ipaddr, const char *port, uint64_t dpid) {
   struct addrunion addr;
   struct channel *channel;
 
   addrunion_ipv4_set(&addr, ipaddr);
 
-  channel = channel_alloc_internal(&addr, em);
+  channel = channel_alloc_internal(&addr);
   if (channel != NULL) {
     channel->port = (uint16_t) atoi(port);
     channel_dpid_set(channel, dpid);
@@ -1023,6 +1042,7 @@ channel_refs_get(struct channel *channel) {
   channel_lock(channel);
   channel->refs++;
   channel_unlock(channel);
+  lagopus_msg_debug(10, "channel(%p), refs:%d\n", channel, channel->refs);
 }
 
 void
@@ -1031,6 +1051,7 @@ channel_refs_put(struct channel *channel) {
   assert(channel->refs > 0);
   channel->refs--;
   channel_unlock(channel);
+  lagopus_msg_debug(10, "channel(%p), refs:%d\n", channel, channel->refs);
 }
 
 /* Free channel. */
@@ -1041,11 +1062,8 @@ channel_free(struct channel *channel) {
     int i;
     lagopus_result_t ret = LAGOPUS_RESULT_OK;
 
-    if (channel->lock != NULL) {
-      channel_lock(channel);
-    }
-
-    if (channel->refs > 0 || channel->status != Disable) {
+    channel_lock(channel);
+    if (channel->refs > 0 || channel->is_alive == true) {
       ret = LAGOPUS_RESULT_BUSY;
       channel_unlock(channel);
       lagopus_msg_debug(10, "%p: refs: %d, return busy\n", channel, channel->refs);
@@ -1053,11 +1071,14 @@ channel_free(struct channel *channel) {
     }
 
     assert(channel->refs == 0);
-    event_cancel(&channel->read_ev);
-    event_cancel(&channel->write_ev);
-    event_cancel(&channel->start_timer);
-    event_cancel(&channel->ping_ev);
-    event_cancel(&channel->expire_ev);
+
+    if (channel->callout != NULL) {
+      /* avoid dead lock. */
+      channel_unlock(channel);
+      lagopus_callout_cancel_task(&channel->callout);
+      channel_lock(channel);
+      channel->callout = NULL;
+    }
 
     session_destroy(channel->session);
     channel->session = NULL;
@@ -1168,7 +1189,7 @@ channel_dpid_set(struct channel *channel, uint64_t dpid) {
   lagopus_result_t ret = LAGOPUS_RESULT_BUSY;
 
   channel_lock(channel);
-  if (session_is_alive(channel->session) == false) {
+  if (channel_is_alive(channel) == false) {
     channel->dpid = dpid;
     ret = LAGOPUS_RESULT_OK;
   }
@@ -1618,11 +1639,17 @@ channel_list_delete(struct channel_list *channel_list,
   return LAGOPUS_RESULT_OK;
 }
 
+#ifndef LIST_FOREACH_SAFE
+#define LIST_FOREACH_SAFE(var, head, field, tvar)                       \
+        for ((var) = LIST_FIRST((head));                                \
+            (var) && ((tvar) = LIST_NEXT((var), field), 1);             \
+            (var) = (tvar))
+#endif  /* LIST_FOREACH_SAFE */
 lagopus_result_t
 channel_list_iterate(struct channel_list *channel_list,
                      lagopus_result_t (*func)(struct channel *channel, void *val), void *val) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
-  struct channel *channel;
+  struct channel *channel, *tmp;
 
   if (channel_list == NULL || func == NULL) {
     return LAGOPUS_RESULT_INVALID_ARGS;
@@ -1630,7 +1657,7 @@ channel_list_iterate(struct channel_list *channel_list,
 
   lagopus_mutex_lock(&channel_list->lock);
   if (LIST_EMPTY(&channel_list->channel_h) == false) {
-    LIST_FOREACH(channel, &channel_list->channel_h, dpid_entry) {
+    LIST_FOREACH_SAFE(channel, &channel_list->channel_h, dpid_entry, tmp) {
       ret = func(channel, val);
       if (ret != LAGOPUS_RESULT_OK) {
         break;
@@ -1658,6 +1685,10 @@ channel_list_channel_id_get(struct channel_list *channel_list) {
 bool
 channel_is_alive(struct channel *channel) {
   if (channel == NULL) {
+    return false;
+  }
+
+  if (channel->is_alive == false) {
     return false;
   }
 
@@ -1787,12 +1818,11 @@ channel_hello_received_set(struct channel *channel) {
 
 void
 channel_disable(struct channel *channel) {
+  lagopus_msg_debug(10, "disable(%p)\n", channel);
   channel_lock(channel);
-  if (channel->expire_ev == NULL
-      && channel->event != Channel_Expired) {
+  if (channel->is_alive) {
+    channel->is_alive = false;
     channel_update(channel, Disable);
-    channel->expire_ev =
-      event_register_event(channel->em, channel_do_expire, channel);
   }
   channel_unlock(channel);
 }

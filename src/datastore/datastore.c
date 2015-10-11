@@ -34,6 +34,7 @@
 #include "queue_cmd.h"
 #include "policer_cmd.h"
 #include "policer_action_cmd.h"
+#include "ns_util.h"
 
 lagopus_result_t
 copy_mac_address(const mac_address_t src, mac_address_t dst) {
@@ -92,7 +93,8 @@ datastore_names_create(datastore_name_info_t **names) {
 
 lagopus_result_t
 datastore_names_duplicate(const datastore_name_info_t *src_names,
-                          datastore_name_info_t **dst_names) {
+                          datastore_name_info_t **dst_names,
+                          const char *namespace) {
   struct datastore_name_entry *src_entry = NULL;
   struct datastore_name_entry *dst_entry = NULL;
 
@@ -120,7 +122,16 @@ datastore_names_duplicate(const datastore_name_info_t *src_names,
       goto error;
     }
     TAILQ_INSERT_TAIL(&((*dst_names)->head), dst_entry, name_entries);
-    dst_entry->str = strdup(src_entry->str);
+    if (namespace == NULL) {
+      dst_entry->str = strdup(src_entry->str);
+    } else {
+      if (ns_replace_namespace(src_entry->str,
+                               namespace,
+                               &(dst_entry->str)) != LAGOPUS_RESULT_OK) {
+        goto error;
+      }
+    }
+
     if (IS_VALID_STRING(dst_entry->str) == true) {
       (*dst_names)->size++;
     } else {

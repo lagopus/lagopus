@@ -51,6 +51,36 @@ tearDown(void) {
 }
 
 void
+test_bridge_fail_mode(void) {
+  enum fail_mode mode;
+  lagopus_result_t rv;
+
+  rv = bridge_fail_mode_get(bridge, &mode);
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
+  rv = bridge_fail_mode_set(bridge, 12345);
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_INVALID_ARGS);
+  rv = bridge_fail_mode_set(bridge, FAIL_SECURE_MODE);
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
+  rv = bridge_fail_mode_set(bridge, FAIL_STANDALONE_MODE);
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
+}
+
+void
+test_bridge_ofp_version(void) {
+  uint8_t ver;
+  lagopus_result_t rv;
+
+  rv = bridge_ofp_version_get(bridge, &ver);
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
+  rv = bridge_ofp_version_set(bridge, 0);
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_INVALID_ARGS);
+  rv = bridge_ofp_version_set(bridge, OPENFLOW_VERSION_1_3);
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
+  rv = bridge_ofp_version_set(bridge, OPENFLOW_VERSION_1_4);
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
+}
+
+void
 test_bridge_table_id_iter(void) {
   dp_bridge_iter_t iter;
   uint8_t ids[] = { 0, 5, 10 };
@@ -120,4 +150,104 @@ test_ofp_version_bitmap(void) {
                      &bitmap));
     TEST_ASSERT_TRUE(0 == (bitmap & (1 << version)));
   }
+}
+
+void
+test_dp_bridge_stats(void) {
+  datastore_bridge_stats_t stats;
+  lagopus_result_t rv;
+
+  rv = dp_bridge_stats_get("bad", &stats);
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_NOT_FOUND);
+  rv = dp_bridge_stats_get(bridge_name, &stats);
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
+}
+
+void
+test_dp_bridge_meter_list(void) {
+  datastore_bridge_meter_info_list_t list;
+  lagopus_result_t rv;
+
+  TAILQ_INIT(&list);
+  rv = dp_bridge_meter_list_get("bad", &list);
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_NOT_FOUND);
+  rv = dp_bridge_meter_list_get(bridge_name, &list);
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
+}
+
+void
+test_dp_bridge_meter_stats(void) {
+  datastore_bridge_meter_stats_list_t list;
+  lagopus_result_t rv;
+
+  TAILQ_INIT(&list);
+  rv = dp_bridge_meter_stats_list_get("bad", &list);
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_NOT_FOUND);
+  rv = dp_bridge_meter_stats_list_get(bridge_name, &list);
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
+}
+
+void
+test_dp_bridge_group_list(void) {
+  datastore_bridge_group_info_list_t list;
+  lagopus_result_t rv;
+
+  TAILQ_INIT(&list);
+  rv = dp_bridge_group_list_get("bad", &list);
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_NOT_FOUND);
+  rv = dp_bridge_group_list_get(bridge_name, &list);
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
+}
+
+void
+test_dp_bridge_group_stats(void) {
+  datastore_bridge_group_stats_list_t list;
+  lagopus_result_t rv;
+
+  TAILQ_INIT(&list);
+  rv = dp_bridge_group_stats_list_get("bad", &list);
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_NOT_FOUND);
+  rv = dp_bridge_group_stats_list_get(bridge_name, &list);
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
+}
+
+void
+test_dp_bridge_l2_clear(void) {
+  lagopus_result_t rv;
+
+  rv = dp_bridge_l2_clear("bad");
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_NOT_FOUND);
+  rv = dp_bridge_l2_clear(bridge_name);
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
+}
+
+void
+test_dp_bridge_l2_expire_set(void) {
+  lagopus_result_t rv;
+
+  rv = dp_bridge_l2_expire_set("bad", 600);
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_NOT_FOUND);
+  rv = dp_bridge_l2_expire_set(bridge_name, 600);
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
+}
+
+void
+test_dp_bridge_l2_max_entries_set(void) {
+  lagopus_result_t rv;
+
+  rv = dp_bridge_l2_max_entries_set("bad", 600);
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_NOT_FOUND);
+  rv = dp_bridge_l2_max_entries_set(bridge_name, 600);
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
+}
+
+void
+test_dp_bridge_l2_entries_get(void) {
+  uint64_t nentries;
+  lagopus_result_t rv;
+
+  rv = dp_bridge_l2_entries_get("bad", &nentries);
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_NOT_FOUND);
+  rv = dp_bridge_l2_entries_get(bridge_name, &nentries);
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
 }

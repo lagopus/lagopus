@@ -360,6 +360,7 @@ done:
 
 static inline lagopus_result_t
 s_parse_log_internal(datastore_interp_t *iptr,
+                     datastore_interp_state_t state,
                      const char *const argv[],
                      const char *cur_arg,
                      lagopus_log_destination_t cur_dst,
@@ -548,8 +549,11 @@ s_parse_log_internal(datastore_interp_t *iptr,
           }
           argv++;
         }
-        lagopus_log_unset_trace_flags(TRACE_FULL);
-        lagopus_log_set_trace_flags(trace_flags);
+
+        if (state != DATASTORE_INTERP_STATE_DRYRUN) {
+          lagopus_log_unset_trace_flags(TRACE_FULL);
+          lagopus_log_set_trace_flags(trace_flags);
+        }
 
         ret = lagopus_dstring_appendf(result, "{\"ret\":\"OK\"}");
         if (ret != LAGOPUS_RESULT_OK) {
@@ -594,23 +598,25 @@ s_parse_log_internal(datastore_interp_t *iptr,
         goto done;
       }
 
-      if (datastore_interp_get_current_file_context(iptr,
-                                                    &filename,
-                                                    &lineno,
-                                                    NULL,
-                                                    NULL,
-                                                    NULL,
-                                                    NULL,
-                                                    &type) ==
-          LAGOPUS_RESULT_OK &&
-          type == DATASTORE_CONFIG_TYPE_FILE) {
-        if (IS_VALID_STRING(filename) == true) {
-          lagopus_msg("%s: line " PFSZ(u) ": %s\n", filename, lineno, msg);
+      if (state != DATASTORE_INTERP_STATE_DRYRUN) {
+        if (datastore_interp_get_current_file_context(iptr,
+                                                      &filename,
+                                                      &lineno,
+                                                      NULL,
+                                                      NULL,
+                                                      NULL,
+                                                      NULL,
+                                                      &type) ==
+            LAGOPUS_RESULT_OK &&
+            type == DATASTORE_CONFIG_TYPE_FILE) {
+          if (IS_VALID_STRING(filename) == true) {
+            lagopus_msg("%s: line " PFSZ(u) ": %s\n", filename, lineno, msg);
+          } else {
+            lagopus_msg("%s\n", msg);
+          }
         } else {
           lagopus_msg("%s\n", msg);
         }
-      } else {
-        lagopus_msg("%s\n", msg);
       }
       ret = LAGOPUS_RESULT_OK;
 
@@ -669,17 +675,21 @@ s_parse_log_internal(datastore_interp_t *iptr,
     /*
      * For now, the parsed result always causes side effects immediately.
      */
-    if ((cur_dst != new_dst) ||
-        (cur_arg != NULL && new_arg != NULL &&
-         strcmp(cur_arg, new_arg) != 0) ||
-        (cur_dbglvl != new_dbglvl)) {
-      ret = lagopus_log_initialize(new_dst, new_arg,
-                                   false, true, new_dbglvl);
-      if (ret != LAGOPUS_RESULT_OK) {
-        ret = datastore_json_result_string_setf(result, ret,
-                                                "Can't (re-)initialize the "
-                                                "logger.");
-        goto done;
+    if (state == DATASTORE_INTERP_STATE_DRYRUN) {
+      ret = LAGOPUS_RESULT_OK;
+    } else {
+      if ((cur_dst != new_dst) ||
+          (cur_arg != NULL && new_arg != NULL &&
+           strcmp(cur_arg, new_arg) != 0) ||
+          (cur_dbglvl != new_dbglvl)) {
+        ret = lagopus_log_initialize(new_dst, new_arg,
+                                     false, true, new_dbglvl);
+        if (ret != LAGOPUS_RESULT_OK) {
+          ret = datastore_json_result_string_setf(result, ret,
+                                                  "Can't (re-)initialize the "
+                                                  "logger.");
+          goto done;
+        }
       }
     }
   }
@@ -717,7 +727,6 @@ s_parse_log(datastore_interp_t *iptr,
   uint16_t cur_dbglvl = lagopus_log_get_debug_level();
   size_t i;
   (void)iptr;
-  (void)state;
   (void)hptr;
   (void)u_proc;
   (void)e_proc;
@@ -735,7 +744,8 @@ s_parse_log(datastore_interp_t *iptr,
      */
     ret = s_parse_log_show(cur_arg, cur_dst, cur_dbglvl, result);
   } else {
-    ret = s_parse_log_internal(iptr, argv, cur_arg, cur_dst, cur_dbglvl, result);
+    ret = s_parse_log_internal(iptr, state, argv, cur_arg,
+                               cur_dst, cur_dbglvl, result);
   }
 
   return ret;

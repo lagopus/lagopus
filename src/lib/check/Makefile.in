@@ -4,11 +4,12 @@ MKRULESDIR	= @MKRULESDIR@
 SRCS =	check0.c check1.c check2.c check3.c check4.c check5.c check6.c \
 	check7.c check8.c check1-a.c check9.c check10.c check10-a.c \
 	dummy-module.c dummy-main.c check10-b.c check5-a.c check5-b.c \
-	check11.c check12.c check13.c
+	check11.c check12.c check13.c check-co.c check-div.c check-ml.c
 
 TARGETS	= check0 check1 check2 check3 check4 check5 check6 \
 	check7 check8 check1-a check9 check10 check10-a modtest \
-	check10-b check5-a check5-b check11 check12 check13
+	check10-b check5-a check5-b check11 check12 check13 check-co \
+	check-div check-ml
 
 DEP_LIBS	+=	-lm @OS_LIBS@
 
@@ -96,6 +97,18 @@ check12::	check12.lo $(DEP_LAGOPUS_UTIL_LIB)
 check13::	check13.lo $(DEP_LAGOPUS_UTIL_LIB)
 	$(LTCLEAN) $@
 	$(LTLINK_CC) -o $@ check13.lo $(DEP_LAGOPUS_UTIL_LIB) $(DEP_LIBS)
+
+check-co::	check-co.lo $(DEP_LAGOPUS_UTIL_LIB)
+	$(LTCLEAN) $@
+	$(LTLINK_CC) -o $@ check-co.lo $(DEP_LAGOPUS_UTIL_LIB) $(DEP_LIBS)
+
+check-div::	check-div.lo $(DEP_LAGOPUS_UTIL_LIB)
+	$(LTCLEAN) $@
+	$(LTLINK_CC) -o $@ check-div.lo $(DEP_LAGOPUS_UTIL_LIB) $(DEP_LIBS)
+
+check-ml::	check-ml.lo $(DEP_LAGOPUS_UTIL_LIB)
+	$(LTCLEAN) $@
+	$(LTLINK_CC) -o $@ check-ml.lo $(DEP_LAGOPUS_UTIL_LIB) $(DEP_LIBS)
 
 clean::
 	$(LTCLEAN) ./testlog.txt

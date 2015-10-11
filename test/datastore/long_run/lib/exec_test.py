@@ -169,7 +169,10 @@ class ExecTest(object):
             "test_home": test_home,  # this test home path.
             "shell_dir": os.path.join(test_home, SH_DIR),
             "lagopus_path": self.confs.get(CONF_SEC_LAGOPUS, CONF_SEC_LAGOPUS_PATH),
-            "lagopus_opts": self.confs.get(CONF_SEC_LAGOPUS, CONF_SEC_LAGOPUS_OPTS),
+            "lagopus_opts": "\"-C %s %s\"" % (
+                os.path.join(test_home,
+                             self.confs.get(CONF_SEC_LAGOPUS, CONF_SEC_LAGOPUS_CONF)),
+                self.confs.get(CONF_SEC_LAGOPUS, CONF_SEC_LAGOPUS_OPTS)),
             "lagopus_log": LAGOPUS_LOG,
             "ryu_path": self.confs.get(CONF_SEC_RYU, CONF_SEC_RYU_PATH),
             "ryu_opts": self.confs.get(CONF_SEC_RYU, CONF_SEC_RYU_OPTS),

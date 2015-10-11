@@ -66,8 +66,11 @@ class DataStoreCmd(object):
             data += part
 
             if not self.is_read_more():
-                data = json.loads(data)
-                break
+                try:
+                    data = json.loads(data)
+                    break
+                except ValueError:
+                    continue
 
         if timeout:
             self.sock.settimeout(old_timeout)

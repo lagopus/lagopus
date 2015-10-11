@@ -47,6 +47,7 @@ typedef struct lagopus_thread_record {
   lagopus_mutex_t m_op_lock;
   lagopus_mutex_t m_wait_lock;
   lagopus_mutex_t m_cancel_lock;
+  lagopus_mutex_t m_finalize_lock;
 
   lagopus_cond_t m_wait_cond;
   lagopus_cond_t m_startup_cond;
@@ -59,7 +60,10 @@ typedef struct lagopus_thread_record {
   volatile bool m_is_finalized;
   volatile bool m_is_destroying;
 
-  bool m_do_autodelete;
+  volatile bool m_do_autodelete;
+  volatile bool m_startup_sync_done;
+  volatile size_t m_n_finalized_count;
+
 } lagopus_thread_record;
 
 

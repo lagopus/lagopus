@@ -29,7 +29,6 @@
 #include "lagopus/addrunion.h"
 
 struct ofp_header;
-struct event_manager;
 struct channel;
 struct channel_list;
 enum channel_event;
@@ -48,6 +47,8 @@ struct channelq_data {
   struct channel *channel;
   struct pbuf *pbuf;
 };
+
+#define SEC_TO_NSEC(a)  ((a) * 1000LL * 1000LL * 1000LL)
 
 typedef LAGOPUS_BOUND_BLOCK_Q_DECL(channelq,
                                    struct channelq_data *) channelq_t;
@@ -69,7 +70,6 @@ channelq_data_destroy(struct channelq_data *cdata);
  * Allocate a channel object.
  *
  *  @param[in] controller  A controller address.
- *  @param[in] em          An event manager.
  *  @param[in] dpid        Datapath id.
  *
  *  @retval !NULL Succeeded, allocated new channel pointer.
@@ -78,8 +78,7 @@ channelq_data_destroy(struct channelq_data *cdata);
  *  @details Call this function for getting a new channel object.
  */
 struct channel *
-channel_alloc(struct addrunion *controller, struct event_manager *em,
-              uint64_t dpid);
+channel_alloc(struct addrunion *controller, uint64_t dpid);
 
 /**
  * Free a channel object.
@@ -583,15 +582,13 @@ channel_multipart_used_count_get(struct channel *channel);
  *
  *  @param[in]  ipaddr  IP address.
  *  @param[in]  port    A port number.
- *  @param[in]  em      Event manager.
  *  @param[in]  dpid    Data path ID.
  *
  *  @retval A channel.
  *
  */
 struct channel *
-channel_alloc_ip4addr(const char *ipaddr, const char *port,
-                      struct event_manager *em, uint64_t dpid);
+channel_alloc_ip4addr(const char *ipaddr, const char *port, uint64_t dpid);
 
 /**
  * Increment a channel reference counter.
@@ -871,5 +868,26 @@ channel_auxiliary_set(struct channel *channel, bool is_auxiliary);
  */
 lagopus_result_t
 channel_auxiliary_get(struct channel *channel, bool *is_auxiliary);
+
+#ifndef USE_EVENT
+/**
+ * Read packets from channel and process.
+ *
+ *  @param[in] channel  A channel pointer.
+ *
+ */
+void
+channel_read(struct channel *channel);
+
+/**
+ * Write packets to channel.
+ *
+ *  @param[in] channel  A channel pointer.
+ *
+ */
+void
+channel_write(struct channel *channel);
+
+#endif
 
 #endif /*__CHANNEL_H__ */

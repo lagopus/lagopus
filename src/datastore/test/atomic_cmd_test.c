@@ -127,3 +127,8 @@ test_atomic_cmd_parse_tmp_dir(void) {
                    &result, str, test_str4);
   }
 }
+
+void
+test_destroy(void) {
+  destroy = true;
+}

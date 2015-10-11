@@ -38,6 +38,9 @@ typedef datastore_queue_info_t dp_queue_info_t;
 
 #define DP_MAX_QUEUES     4
 
+/**
+ * @brief Output queues associated with interface.
+ */
 struct dp_ifqueue {
   int nqueue;
   dp_queue_info_t *queues[DP_MAX_QUEUES];
@@ -46,6 +49,9 @@ struct dp_ifqueue {
 #endif /* HAVE_DPDK */
 };
 
+/**
+ * @brief Interface structure.
+ */
 struct interface {
   datastore_interface_info_t info;
   char *name;

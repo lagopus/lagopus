@@ -21,12 +21,15 @@
 #include "lagopus/eventq_data.h"
 #include "lagopus/ofp_bridgeq_mgr.h"
 #include "handler_test_utils.h"
+#include "../channel_mgr.h"
 
 #define PUT_TIMEOUT 100LL * 1000LL * 1000LL * 1000LL
+#define SHUTDOWN_TIMEOUT 100LL * 1000LL * 1000LL * 1000LL
 
 #define SLEEP_SHORT()  usleep(10000)
 
 static bool s_finalize_ofp_handler = false;
+static lagopus_thread_t *th = NULL;
 
 struct eventq_data *
 new_eventq_data(void) {
@@ -44,7 +47,9 @@ setUp(void) {
   /*
    * create ofp_handler
    */
-  res = ofp_handler_initialize(NULL, NULL);
+  res = ofp_handler_initialize(NULL, &th);
+  res = ofp_handler_start();
+#if 0
   if (res != LAGOPUS_RESULT_OK) {
     lagopus_perror(res);
     TEST_FAIL_MESSAGE("handler creation error");
@@ -62,10 +67,12 @@ setUp(void) {
   SLEEP_SHORT();
   res = global_state_set(GLOBAL_STATE_STARTED);
   TEST_ASSERT_EQUAL(res, LAGOPUS_RESULT_OK);
+#endif
 }
 
 void
 tearDown(void) {
+#if 0
   lagopus_result_t res = LAGOPUS_RESULT_ANY_FAILURES;
   res = ofp_handler_shutdown(SHUTDOWN_GRACEFULLY);
   if (res != LAGOPUS_RESULT_OK) {
@@ -73,6 +80,7 @@ tearDown(void) {
     TEST_FAIL_MESSAGE("handler shutdown error");
     return;
   }
+#endif
   if (s_finalize_ofp_handler == true) {
     ofp_handler_finalize();
   }
@@ -120,6 +128,23 @@ s_unregister_bridge(uint64_t dpid, lagopus_result_t required) {
 }
 
 void
+test_prologue(void) {
+  lagopus_result_t r;
+  const char *argv0 =
+      ((IS_VALID_STRING(lagopus_get_command_name()) == true) ?
+       lagopus_get_command_name() : "callout_test");
+  const char * const argv[] = {
+    argv0, NULL
+  };
+
+#define N_CALLOUT_WORKERS	1
+  (void)lagopus_mainloop_set_callout_workers_number(N_CALLOUT_WORKERS);
+  r = lagopus_mainloop_with_callout(1, argv, NULL, NULL,
+                                    false, false, true);
+  TEST_ASSERT_EQUAL(r, LAGOPUS_RESULT_OK);
+  channel_mgr_initialize();
+}
+void
 test_creation(void) {
   SLEEP_SHORT();
 }
@@ -160,10 +185,13 @@ test_start_shutdown_loop(void) {
     // shutdown
     lagopus_msg_debug(10, "%lu stop\n", i);
     ofp_handler_shutdown(SHUTDOWN_GRACEFULLY);
+    res = lagopus_thread_wait((lagopus_thread_t *) th,
+                              SHUTDOWN_TIMEOUT);
+    TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, res, "wait error");
     SLEEP_SHORT();
     // create
     lagopus_msg_debug(10, "%lu initialize\n", i);
-    res = ofp_handler_initialize(NULL, NULL);
+    res = ofp_handler_initialize(NULL, &th);
     TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, res, "init error");
     SLEEP_SHORT();
     // start
@@ -191,7 +219,7 @@ test_start_stop_loop(void) {
     SLEEP_SHORT();
     // create
     lagopus_msg_debug(10, "%lu initialize\n", i);
-    res = ofp_handler_initialize(NULL, NULL);
+    res = ofp_handler_initialize(NULL, &th);
     TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, res, "init error");
     SLEEP_SHORT();
     // start
@@ -203,6 +231,7 @@ test_start_stop_loop(void) {
 
 void
 test_register_bridge(void) {
+  lagopus_result_t res = LAGOPUS_RESULT_ANY_FAILURES;
   uint64_t i;
   struct ofp_bridge *ofpb[3];
   for (i = 0; i < 3; i++) {
@@ -215,10 +244,14 @@ test_register_bridge(void) {
   }
   SLEEP_SHORT();
   ofp_handler_shutdown(SHUTDOWN_GRACEFULLY);
+  res = lagopus_thread_wait((lagopus_thread_t *) th,
+                            SHUTDOWN_TIMEOUT);
+  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, res, "wait error");
 }
 
 void
 test_unregister_bridge(void) {
+  lagopus_result_t res = LAGOPUS_RESULT_ANY_FAILURES;
   uint64_t i;
   struct ofp_bridge *ofpb[3];
   for (i = 0; i < 3; i++) {
@@ -238,6 +271,9 @@ test_unregister_bridge(void) {
   }
   SLEEP_SHORT();
   ofp_handler_shutdown(SHUTDOWN_GRACEFULLY);
+  res = lagopus_thread_wait((lagopus_thread_t *) th,
+                            SHUTDOWN_TIMEOUT);
+  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, res, "wait error");
 }
 
 #define TIME_OUT_COUNTER 100
@@ -273,7 +309,9 @@ test_put_eventq(void) {
 
     /* wait */
     while (1) {
-      if (lagopus_bbq_size(&(ofpb0->eventq)) != 0) {
+      if ((lagopus_bbq_size(&(ofpb0->eventq)) != 0) ||
+          (lagopus_bbq_size(&(ofpb1->eventq)) != 0) ||
+          (lagopus_bbq_size(&(ofpb2->eventq)) != 0)) {
         if (j < TIME_OUT_COUNTER) {
           SLEEP_SHORT();
           j++;
@@ -294,6 +332,9 @@ test_put_eventq(void) {
     TEST_ASSERT_EQUAL_MESSAGE(0, res, "eventq2 polling error");
   }
   ofp_handler_shutdown(SHUTDOWN_GRACEFULLY);
+  res = lagopus_thread_wait((lagopus_thread_t *) th,
+                            SHUTDOWN_TIMEOUT);
+  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, res, "wait error");
 }
 
 void
@@ -327,7 +368,9 @@ test_put_dataq(void) {
 
     /* wait */
     while (1) {
-      if (lagopus_bbq_size(&(ofpb0->dataq)) != 0) {
+      if ((lagopus_bbq_size(&(ofpb0->dataq)) != 0) ||
+          (lagopus_bbq_size(&(ofpb1->dataq)) != 0) ||
+          (lagopus_bbq_size(&(ofpb2->dataq)) != 0)) {
         if (j < TIME_OUT_COUNTER) {
           SLEEP_SHORT();
           j++;
@@ -348,6 +391,9 @@ test_put_dataq(void) {
     TEST_ASSERT_EQUAL_MESSAGE(0, res, "dataq2 polling error");
   }
   ofp_handler_shutdown(SHUTDOWN_GRACEFULLY);
+  res = lagopus_thread_wait((lagopus_thread_t *) th,
+                            SHUTDOWN_TIMEOUT);
+  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, res, "wait error");
 }
 
 void
@@ -384,6 +430,9 @@ test_put_event_dataq(void) {
     TEST_ASSERT_EQUAL_MESSAGE((i+1)*3, res, "event_dataq2 polling error");
   }
   ofp_handler_shutdown(SHUTDOWN_GRACEFULLY);
+  res = lagopus_thread_wait((lagopus_thread_t *) th,
+                            SHUTDOWN_TIMEOUT);
+  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, res, "wait error");
 }
 
 void
@@ -465,9 +514,12 @@ test_put_channelq_packet_out(void) {
   TEST_ASSERT_EQUAL_MESSAGE(0, res, "channelq length error");
   res = lagopus_bbq_size(&(ofpb->event_dataq));
   TEST_ASSERT_EQUAL_MESSAGE(0, res, "event_dataq length error");
-
-  destroy_data_channel(channel);
   ofp_packet_out_free(edata);
+
+  ofp_handler_shutdown(SHUTDOWN_GRACEFULLY);
+  res = lagopus_thread_wait((lagopus_thread_t *) th,
+                            SHUTDOWN_TIMEOUT);
+  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, res, "wait error");
 }
 
 #define TIMEOUT 100LL * 1000LL * 1000LL
@@ -538,4 +590,12 @@ test_finalize_ofph(void) {
   /* this test must be executed last. */
   /* ofph will finalize in teardown(). */
   s_finalize_ofp_handler = true;
+}
+void
+test_epilogue(void) {
+  lagopus_result_t r;
+  channel_mgr_finalize();
+  r = global_state_request_shutdown(SHUTDOWN_GRACEFULLY);
+  TEST_ASSERT_EQUAL(r, LAGOPUS_RESULT_OK);
+  lagopus_mainloop_wait_thread();
 }

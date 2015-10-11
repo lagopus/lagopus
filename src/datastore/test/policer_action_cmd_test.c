@@ -64,18 +64,18 @@ test_policer_action_cmd_parse_create_01(void) {
   const char *argv3[] = {"policer-action", NULL};
   const char test_str3[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name02\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name02\",\n"
     "\"type\":\"discard\",\n"
     "\"is-used\":true,\n"
     "\"is-enabled\":true},\n"
-    "{\"name\":\""NAMESPACE_DELIMITER"test_name01\",\n"
+    "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name01\",\n"
     "\"type\":\"discard\",\n"
     "\"is-used\":false,\n"
     "\"is-enabled\":false}]}";
   const char *argv4[] = {"policer-action", "test_name02", NULL};
   const char test_str4[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name02\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name02\",\n"
     "\"type\":\"discard\",\n"
     "\"is-used\":true,\n"
     "\"is-enabled\":true}]}";
@@ -243,11 +243,11 @@ test_policer_action_cmd_parse_enable_unused(void) {
                         };
   const char test_str2[] =
     "{\"ret\":\"NOT_OPERATIONAL\",\n"
-    "\"data\":\"name = "NAMESPACE_DELIMITER"test_name09. is not used.\"}";
+    "\"data\":\"name = "DATASTORE_NAMESPACE_DELIMITER"test_name09. is not used.\"}";
   const char *argv3[] = {"policer-action", "test_name09", NULL};
   const char test_str3[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name09\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name09\",\n"
     "\"type\":\"discard\",\n"
     "\"is-used\":false,\n"
     "\"is-enabled\":false}]}";
@@ -294,7 +294,7 @@ test_policer_action_cmd_parse_config_01(void) {
   const char *argv2[] = {"policer-action", "test_name10", NULL};
   const char test_str2[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name10\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name10\",\n"
     "\"type\":\"discard\",\n"
     "\"is-used\":false,\n"
     "\"is-enabled\":false}]}";
@@ -306,7 +306,7 @@ test_policer_action_cmd_parse_config_01(void) {
   const char *argv4[] = {"policer-action", "test_name10", NULL};
   const char test_str4[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name10\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name10\",\n"
     "\"type\":\"discard\",\n"
     "\"is-used\":false,\n"
     "\"is-enabled\":false}]}";
@@ -363,7 +363,7 @@ test_policer_action_cmd_parse_config_02(void) {
   const char *argv3[] = {"policer-action", "test_name11", NULL};
   const char test_str3[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name11\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name11\",\n"
     "\"type\":\"discard\",\n"
     "\"is-used\":true,\n"
     "\"is-enabled\":true}]}";
@@ -375,7 +375,7 @@ test_policer_action_cmd_parse_config_02(void) {
   const char *argv5[] = {"policer-action", "test_name11", NULL};
   const char test_str5[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name11\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name11\",\n"
     "\"type\":\"discard\",\n"
     "\"is-used\":true,\n"
     "\"is-enabled\":true}]}";
@@ -463,7 +463,7 @@ test_policer_action_cmd_parse_config_show_01(void) {
   const char *argv2[] = {"policer-action", "test_name12", NULL};
   const char test_str2[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name12\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name12\",\n"
     "\"type\":\"discard\",\n"
     "\"is-used\":false,\n"
     "\"is-enabled\":false}]}";
@@ -477,7 +477,7 @@ test_policer_action_cmd_parse_config_show_01(void) {
                         };
   const char test_str4[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name12\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name12\",\n"
     "\"type\":\"discard\"}]}";
   const char *argv5[] = {"policer-action", "test_name12", "destroy",
                          NULL
@@ -533,7 +533,7 @@ test_policer_action_cmd_parse_destroy_used(void) {
                          NULL
                         };
   const char test_str3[] = {"{\"ret\":\"NOT_OPERATIONAL\",\n"
-                            "\"data\":\"name = "NAMESPACE_DELIMITER"test_name13: is used.\"}"
+                            "\"data\":\"name = "DATASTORE_NAMESPACE_DELIMITER"test_name13: is used.\"}"
                            };
   const char *policer_argv1[] = {"policer", "test_policer13", "create",
                                  "-action", "test_name13",
@@ -581,7 +581,7 @@ test_policer_action_cmd_parse_show_01(void) {
                         };
   const char test_str2[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name14\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name14\",\n"
     "\"type\":\"discard\",\n"
     "\"is-used\":false,\n"
     "\"is-enabled\":false}]}";
@@ -601,7 +601,7 @@ test_policer_action_cmd_parse_show_01(void) {
                         };
   const char test_str5[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name14\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name14\",\n"
     "\"type\":\"discard\",\n"
     "\"is-used\":false,\n"
     "\"is-enabled\":false}]}";
@@ -615,7 +615,7 @@ test_policer_action_cmd_parse_show_01(void) {
                         };
   const char test_str7[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name14\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name14\",\n"
     "\"type\":\"discard\",\n"
     "\"is-used\":false,\n"
     "\"is-enabled\":false}]}";
@@ -690,7 +690,7 @@ test_policer_action_cmd_serialize_default_opt(void) {
 
   /* serialize result str. */
   const char serialize_str1[] =
-    "policer-action "NAMESPACE_DELIMITER"test_name27 create "
+    "policer-action "DATASTORE_NAMESPACE_DELIMITER"test_name27 create "
     "-type discard\n";
 
   /* create cmd. */
@@ -703,7 +703,7 @@ test_policer_action_cmd_serialize_default_opt(void) {
   TEST_CMD_PROC(ret, LAGOPUS_RESULT_OK, policer_action_cmd_serialize, &interp,
                 state,
                 &tbl,
-                NAMESPACE_DELIMITER"test_name27", conf, &ds, str, serialize_str1);
+                DATASTORE_NAMESPACE_DELIMITER"test_name27", conf, &ds, str, serialize_str1);
 
   /* destroy cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, policer_action_cmd_parse,
@@ -731,7 +731,7 @@ test_policer_action_cmd_serialize_default_opt_escape(void) {
 
   /* serialize result str. */
   const char serialize_str1[] =
-    "policer-action \""NAMESPACE_DELIMITER"test_\\\"name28\" create "
+    "policer-action \""DATASTORE_NAMESPACE_DELIMITER"test_\\\"name28\" create "
     "-type discard\n";
 
   /* create cmd. */
@@ -744,7 +744,7 @@ test_policer_action_cmd_serialize_default_opt_escape(void) {
   TEST_CMD_PROC(ret, LAGOPUS_RESULT_OK, policer_action_cmd_serialize, &interp,
                 state,
                 &tbl,
-                NAMESPACE_DELIMITER"test_\"name28", conf, &ds, str, serialize_str1);
+                DATASTORE_NAMESPACE_DELIMITER"test_\"name28", conf, &ds, str, serialize_str1);
 
   /* destroy cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, policer_action_cmd_parse,
@@ -772,7 +772,7 @@ test_policer_action_cmd_serialize_default_opt_escape_white_space(void) {
 
   /* serialize result str. */
   const char serialize_str1[] =
-    "policer-action \""NAMESPACE_DELIMITER"test name29\" create "
+    "policer-action \""DATASTORE_NAMESPACE_DELIMITER"test name29\" create "
     "-type discard\n";
 
   /* create cmd. */
@@ -785,7 +785,7 @@ test_policer_action_cmd_serialize_default_opt_escape_white_space(void) {
   TEST_CMD_PROC(ret, LAGOPUS_RESULT_OK, policer_action_cmd_serialize, &interp,
                 state,
                 &tbl,
-                NAMESPACE_DELIMITER"test name29", conf, &ds, str, serialize_str1);
+                DATASTORE_NAMESPACE_DELIMITER"test name29", conf, &ds, str, serialize_str1);
 
   /* destroy cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, policer_action_cmd_parse,
@@ -814,7 +814,7 @@ test_policer_action_cmd_parse_atomic_commit(void) {
   const char *argv3[] = {"policer-action", "test_name36", "modified", NULL};
   const char test_str3[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name36\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name36\",\n"
     "\"type\":\"discard\",\n"
     "\"is-used\":false,\n"
     "\"is-enabled\":false}]}";
@@ -830,14 +830,14 @@ test_policer_action_cmd_parse_atomic_commit(void) {
   const char *argv6[] = {"policer-action", "test_name36", "modified", NULL};
   const char test_str6[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name36\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name36\",\n"
     "\"type\":\"discard\",\n"
     "\"is-used\":false,\n"
     "\"is-enabled\":false}]}";
   const char *argv7[] = {"policer-action", "test_name36", NULL};
   const char test_str7[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name36\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name36\",\n"
     "\"type\":\"discard\",\n"
     "\"is-used\":false,\n"
     "\"is-enabled\":false}]}";
@@ -889,12 +889,12 @@ test_policer_action_cmd_parse_atomic_commit(void) {
   /* commiting. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, policer_action_cmd_update, &interp, state2,
             &tbl,
-            NAMESPACE_DELIMITER"test_name36", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name36", conf, &ds);
 
   /* commited. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, policer_action_cmd_update, &interp, state3,
             &tbl,
-            NAMESPACE_DELIMITER"test_name36", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name36", conf, &ds);
 
   /* show cmd (current). */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, policer_action_cmd_parse, &interp,
@@ -935,7 +935,7 @@ test_policer_action_cmd_parse_atomic_rollback(void) {
   const char *argv3[] = {"policer-action", "test_name37", "modified", NULL};
   const char test_str3[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name37\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name37\",\n"
     "\"type\":\"discard\",\n"
     "\"is-used\":false,\n"
     "\"is-enabled\":false}]}";
@@ -951,14 +951,14 @@ test_policer_action_cmd_parse_atomic_rollback(void) {
   const char *argv6[] = {"policer-action", "test_name37", "modified", NULL};
   const char test_str6[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name37\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name37\",\n"
     "\"type\":\"discard\",\n"
     "\"is-used\":false,\n"
     "\"is-enabled\":false}]}";
   const char *argv7[] = {"policer-action", "test_name37", NULL};
   const char test_str7[] =
     "{\"ret\":\"NOT_FOUND\",\n"
-    "\"data\":\"name = "NAMESPACE_DELIMITER"test_name37\"}";
+    "\"data\":\"name = "DATASTORE_NAMESPACE_DELIMITER"test_name37\"}";
 
   /* create cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, policer_action_cmd_parse, &interp,
@@ -999,12 +999,12 @@ test_policer_action_cmd_parse_atomic_rollback(void) {
   /* rollbacking. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, policer_action_cmd_update, &interp, state2,
             &tbl,
-            NAMESPACE_DELIMITER"test_name37", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name37", conf, &ds);
 
   /* rollbacked. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, policer_action_cmd_update, &interp, state3,
             &tbl,
-            NAMESPACE_DELIMITER"test_name37", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name37", conf, &ds);
 
   /* show cmd (current). */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
@@ -1036,7 +1036,7 @@ test_policer_action_cmd_parse_atomic_delay_enable(void) {
   const char *argv4[] = {"policer-action", "test_name38", "modified", NULL};
   const char test_str4[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name38\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name38\",\n"
     "\"type\":\"discard\",\n"
     "\"is-used\":true,\n"
     "\"is-enabled\":false}]}";
@@ -1047,14 +1047,14 @@ test_policer_action_cmd_parse_atomic_delay_enable(void) {
   const char *argv6[] = {"policer-action", "test_name38", "modified", NULL};
   const char test_str6[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name38\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name38\",\n"
     "\"type\":\"discard\",\n"
     "\"is-used\":true,\n"
     "\"is-enabled\":true}]}";
   const char *argv7[] = {"policer-action", "test_name38", NULL};
   const char test_str7[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name38\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name38\",\n"
     "\"type\":\"discard\",\n"
     "\"is-used\":true,\n"
     "\"is-enabled\":true}]}";
@@ -1108,7 +1108,7 @@ test_policer_action_cmd_parse_atomic_delay_enable(void) {
   /* commiting. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, policer_action_cmd_update, &interp, state2,
             &tbl,
-            NAMESPACE_DELIMITER"test_name38", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name38", conf, &ds);
 
   /* show cmd (current). */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
@@ -1125,7 +1125,7 @@ test_policer_action_cmd_parse_atomic_delay_enable(void) {
   /* commited. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, policer_action_cmd_update, &interp, state3,
             &tbl,
-            NAMESPACE_DELIMITER"test_name38", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name38", conf, &ds);
 
   /* show cmd (current). */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, policer_action_cmd_parse, &interp,
@@ -1172,21 +1172,21 @@ test_policer_action_cmd_parse_atomic_delay_disable(void) {
   const char *argv4[] = {"policer-action", "test_name39", NULL};
   const char test_str4[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name39\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name39\",\n"
     "\"type\":\"discard\",\n"
     "\"is-used\":true,\n"
     "\"is-enabled\":true}]}";
   const char *argv5[] = {"policer-action", "test_name39", NULL};
   const char test_str5[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name39\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name39\",\n"
     "\"type\":\"discard\",\n"
     "\"is-used\":true,\n"
     "\"is-enabled\":false}]}";
   const char *argv6[] = {"policer-action", "test_name39", NULL};
   const char test_str6[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name39\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name39\",\n"
     "\"type\":\"discard\",\n"
     "\"is-used\":true,\n"
     "\"is-enabled\":false}]}";
@@ -1236,7 +1236,7 @@ test_policer_action_cmd_parse_atomic_delay_disable(void) {
   /* commiting. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, policer_action_cmd_update, &interp, state2,
             &tbl,
-            NAMESPACE_DELIMITER"test_name39", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name39", conf, &ds);
 
   /* show cmd (current). */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, policer_action_cmd_parse, &interp,
@@ -1247,7 +1247,7 @@ test_policer_action_cmd_parse_atomic_delay_disable(void) {
   /* commited. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, policer_action_cmd_update, &interp, state3,
             &tbl,
-            NAMESPACE_DELIMITER"test_name39", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name39", conf, &ds);
 
   /* show cmd (current). */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, policer_action_cmd_parse, &interp,
@@ -1288,29 +1288,29 @@ test_policer_action_cmd_parse_atomic_delay_destroy(void) {
   const char *argv3[] = {"policer-action", "test_name40", NULL};
   const char test_str3[] =
     "{\"ret\":\"NOT_FOUND\",\n"
-    "\"data\":\"name = "NAMESPACE_DELIMITER"test_name40\"}";
+    "\"data\":\"name = "DATASTORE_NAMESPACE_DELIMITER"test_name40\"}";
   const char *argv4[] = {"policer-action", "test_name40", "enable",
                          NULL
                         };
   const char test_str4[] =
     "{\"ret\":\"INVALID_OBJECT\",\n"
-    "\"data\":\"name = "NAMESPACE_DELIMITER"test_name40\"}";
+    "\"data\":\"name = "DATASTORE_NAMESPACE_DELIMITER"test_name40\"}";
   const char *argv5[] = {"policer-action", "test_name40", "disable",
                          NULL
                         };
   const char test_str5[] =
     "{\"ret\":\"INVALID_OBJECT\",\n"
-    "\"data\":\"name = "NAMESPACE_DELIMITER"test_name40\"}";
+    "\"data\":\"name = "DATASTORE_NAMESPACE_DELIMITER"test_name40\"}";
   const char *argv6[] = {"policer-action", "test_name40", "destroy",
                          NULL
                         };
   const char test_str6[] =
     "{\"ret\":\"INVALID_OBJECT\",\n"
-    "\"data\":\"name = "NAMESPACE_DELIMITER"test_name40\"}";
+    "\"data\":\"name = "DATASTORE_NAMESPACE_DELIMITER"test_name40\"}";
   const char *argv7[] = {"policer-action", "test_name40", NULL};
   const char test_str7[] =
     "{\"ret\":\"NOT_FOUND\",\n"
-    "\"data\":\"name = "NAMESPACE_DELIMITER"test_name40\"}";
+    "\"data\":\"name = "DATASTORE_NAMESPACE_DELIMITER"test_name40\"}";
 
   /* create cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, policer_action_cmd_parse, &interp,
@@ -1351,12 +1351,12 @@ test_policer_action_cmd_parse_atomic_delay_destroy(void) {
   /* commiting. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, policer_action_cmd_update, &interp, state2,
             &tbl,
-            NAMESPACE_DELIMITER"test_name40", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name40", conf, &ds);
 
   /* commited. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, policer_action_cmd_update, &interp, state3,
             &tbl,
-            NAMESPACE_DELIMITER"test_name40", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name40", conf, &ds);
 
   /* show cmd (current). */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
@@ -1385,7 +1385,7 @@ test_policer_action_cmd_parse_atomic_abort_01(void) {
   const char *argv3[] = {"policer-action", "test_name41", "modified", NULL};
   const char test_str3[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name41\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name41\",\n"
     "\"type\":\"discard\",\n"
     "\"is-used\":false,\n"
     "\"is-enabled\":false}]}";
@@ -1401,7 +1401,7 @@ test_policer_action_cmd_parse_atomic_abort_01(void) {
   const char *argv6[] = {"policer-action", "test_name41", "modified", NULL};
   const char test_str6[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name41\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name41\",\n"
     "\"type\":\"discard\",\n"
     "\"is-used\":false,\n"
     "\"is-enabled\":false}]}";
@@ -1412,14 +1412,14 @@ test_policer_action_cmd_parse_atomic_abort_01(void) {
   const char *argv8[] = {"policer-action", "test_name41", "modified", NULL};
   const char test_str8[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name41\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name41\",\n"
     "\"type\":\"discard\",\n"
     "\"is-used\":false,\n"
     "\"is-enabled\":false}]}";
   const char *argv9[] = {"policer-action", "test_name41", NULL};
   const char test_str9[] =
     "{\"ret\":\"NOT_FOUND\",\n"
-    "\"data\":\"name = "NAMESPACE_DELIMITER"test_name41\"}";
+    "\"data\":\"name = "DATASTORE_NAMESPACE_DELIMITER"test_name41\"}";
 
   /* create cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, policer_action_cmd_parse, &interp,
@@ -1460,7 +1460,7 @@ test_policer_action_cmd_parse_atomic_abort_01(void) {
   /* aborting. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, policer_action_cmd_update, &interp, state2,
             &tbl,
-            NAMESPACE_DELIMITER"test_name41", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name41", conf, &ds);
 
   /* show cmd (current). */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
@@ -1477,7 +1477,7 @@ test_policer_action_cmd_parse_atomic_abort_01(void) {
   /* aborted. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, policer_action_cmd_update, &interp, state3,
             &tbl,
-            NAMESPACE_DELIMITER"test_name41", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name41", conf, &ds);
 
   /* show cmd (current). */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
@@ -1503,7 +1503,7 @@ test_policer_action_cmd_parse_atomic_abort_02(void) {
   const char *argv2[] = {"policer-action", "test_name42", NULL};
   const char test_str2[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name42\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name42\",\n"
     "\"type\":\"discard\",\n"
     "\"is-used\":false,\n"
     "\"is-enabled\":false}]}";
@@ -1519,35 +1519,35 @@ test_policer_action_cmd_parse_atomic_abort_02(void) {
   const char *argv5[] = {"policer-action", "test_name42", NULL};
   const char test_str5[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name42\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name42\",\n"
     "\"type\":\"discard\",\n"
     "\"is-used\":false,\n"
     "\"is-enabled\":false}]}";
   const char *argv6[] = {"policer-action", "test_name42", "modified", NULL};
   const char test_str6[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name42\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name42\",\n"
     "\"type\":\"discard\",\n"
     "\"is-used\":false,\n"
     "\"is-enabled\":false}]}";
   const char *argv7[] = {"policer-action", "test_name42", NULL};
   const char test_str7[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name42\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name42\",\n"
     "\"type\":\"discard\",\n"
     "\"is-used\":false,\n"
     "\"is-enabled\":false}]}";
   const char *argv8[] = {"policer-action", "test_name42", "modified", NULL};
   const char test_str8[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name42\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name42\",\n"
     "\"type\":\"discard\",\n"
     "\"is-used\":false,\n"
     "\"is-enabled\":false}]}";
   const char *argv9[] = {"policer-action", "test_name42", NULL};
   const char test_str9[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name42\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name42\",\n"
     "\"type\":\"discard\",\n"
     "\"is-used\":false,\n"
     "\"is-enabled\":false}]}";
@@ -1599,7 +1599,7 @@ test_policer_action_cmd_parse_atomic_abort_02(void) {
   /*  aborting. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, policer_action_cmd_update, &interp, state2,
             &tbl,
-            NAMESPACE_DELIMITER"test_name42", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name42", conf, &ds);
 
   /* show cmd (current). */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, policer_action_cmd_parse, &interp,
@@ -1616,7 +1616,7 @@ test_policer_action_cmd_parse_atomic_abort_02(void) {
   /*  aborted. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, policer_action_cmd_update, &interp, state3,
             &tbl,
-            NAMESPACE_DELIMITER"test_name42", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name42", conf, &ds);
 
   /* show cmd (current). */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, policer_action_cmd_parse, &interp,
@@ -1659,7 +1659,7 @@ test_policer_action_cmd_parse_atomic_destroy_create(void) {
   const char *argv3[] = {"policer-action", "test_name43", NULL};
   const char test_str3[] =
     "{\"ret\":\"NOT_FOUND\",\n"
-    "\"data\":\"name = "NAMESPACE_DELIMITER"test_name43\"}";
+    "\"data\":\"name = "DATASTORE_NAMESPACE_DELIMITER"test_name43\"}";
   const char *argv4[] = {"policer-action", "test_name43", "create",
                          "-type", "discard",
                          NULL
@@ -1668,21 +1668,21 @@ test_policer_action_cmd_parse_atomic_destroy_create(void) {
   const char *argv5[] = {"policer-action", "test_name43", NULL};
   const char test_str5[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name43\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name43\",\n"
     "\"type\":\"discard\",\n"
     "\"is-used\":false,\n"
     "\"is-enabled\":false}]}";
   const char *argv6[] = {"policer-action", "test_name43", "modified", NULL};
   const char test_str6[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name43\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name43\",\n"
     "\"type\":\"discard\",\n"
     "\"is-used\":false,\n"
     "\"is-enabled\":false}]}";
   const char *argv7[] = {"policer-action", "test_name43", NULL};
   const char test_str7[] =
     "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""NAMESPACE_DELIMITER"test_name43\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name43\",\n"
     "\"type\":\"discard\",\n"
     "\"is-used\":false,\n"
     "\"is-enabled\":false}]}";
@@ -1734,12 +1734,12 @@ test_policer_action_cmd_parse_atomic_destroy_create(void) {
   /* commiting. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, policer_action_cmd_update, &interp, state2,
             &tbl,
-            NAMESPACE_DELIMITER"test_name43", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name43", conf, &ds);
 
   /* commited. */
   TEST_PROC(ret, LAGOPUS_RESULT_OK, policer_action_cmd_update, &interp, state3,
             &tbl,
-            NAMESPACE_DELIMITER"test_name43", conf, &ds);
+            DATASTORE_NAMESPACE_DELIMITER"test_name43", conf, &ds);
 
   /* show cmd (current). */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, policer_action_cmd_parse, &interp,
@@ -1758,6 +1758,105 @@ test_policer_action_cmd_parse_atomic_destroy_create(void) {
                  state4,
                  ARGV_SIZE(argv9), argv9, &tbl, policer_action_cmd_update,
                  &ds, str, test_str9);
+}
+
+void
+test_policer_action_cmd_parse_dryrun(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state1 = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  datastore_interp_state_t state2 = DATASTORE_INTERP_STATE_DRYRUN;
+  char *str = NULL;
+  const char *argv1[] = {"policer-action", "test_name44", "create",
+                         "-type", "discard",
+                         NULL
+                        };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char *argv2[] = {"policer-action", "test_name44", "current", NULL};
+  const char test_str2[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name44\",\n"
+    "\"type\":\"discard\",\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+  const char *argv3[] = {"policer-action", "test_name44", "modified", NULL};
+  const char test_str3[] =
+    "{\"ret\":\"NOT_OPERATIONAL\",\n"
+    "\"data\":\"Not set modified.\"}";
+  const char *argv4[] = {"policer-action", "test_name44", "config",
+                         "-type", "discard",
+                         NULL
+                        };
+  const char test_str4[] = "{\"ret\":\"OK\"}";
+  const char *argv5[] = {"policer-action", "test_name44", "current", NULL};
+  const char test_str5[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name44\",\n"
+    "\"type\":\"discard\",\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+  const char *argv6[] = {"policer-action", "test_name44", "modified", NULL};
+  const char test_str6[] =
+    "{\"ret\":\"NOT_OPERATIONAL\",\n"
+    "\"data\":\"Not set modified.\"}";
+  const char *argv7[] = {"policer-action", "test_name44", "current", NULL};
+  const char test_str7[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name44\",\n"
+    "\"type\":\"discard\",\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+  const char *argv8[] = {"policer-action", "test_name44", "modified", NULL};
+  const char test_str8[] =
+    "{\"ret\":\"NOT_OPERATIONAL\",\n"
+    "\"data\":\"Not set modified.\"}";
+
+  /* create cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, policer_action_cmd_parse, &interp,
+                 state1,
+                 ARGV_SIZE(argv1), argv1, &tbl, policer_action_cmd_update,
+                 &ds, str, test_str1);
+
+  /* show cmd (current). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, policer_action_cmd_parse, &interp,
+                 state1,
+                 ARGV_SIZE(argv2), argv2, &tbl, policer_action_cmd_update,
+                 &ds, str, test_str2);
+
+  /* show cmd (modified). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 policer_action_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv3), argv3, &tbl, policer_action_cmd_update,
+                 &ds, str, test_str3);
+
+  /* config cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, policer_action_cmd_parse, &interp,
+                 state2,
+                 ARGV_SIZE(argv4), argv4, &tbl, policer_action_cmd_update,
+                 &ds, str, test_str4);
+
+  /* show cmd (current). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, policer_action_cmd_parse, &interp,
+                 state2,
+                 ARGV_SIZE(argv5), argv5, &tbl, policer_action_cmd_update,
+                 &ds, str, test_str5);
+
+  /* show cmd (modified). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 policer_action_cmd_parse, &interp, state2,
+                 ARGV_SIZE(argv6), argv6, &tbl, policer_action_cmd_update,
+                 &ds, str, test_str6);
+
+  /* show cmd (current). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, policer_action_cmd_parse, &interp,
+                 state1,
+                 ARGV_SIZE(argv7), argv7, &tbl, policer_action_cmd_update,
+                 &ds, str, test_str7);
+
+  /* show cmd (modified). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 policer_action_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv8), argv8, &tbl, policer_action_cmd_update,
+                 &ds, str, test_str8);
 }
 
 void

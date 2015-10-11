@@ -956,3 +956,7 @@ test_tls_cmd_serialize_trust_point_conf(void) {
   TEST_DSTRING_NO_JSON(ret, &result, str1, test_str1, true);
 }
 
+void
+test_destroy(void) {
+  destroy = true;
+}

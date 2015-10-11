@@ -42,6 +42,34 @@ lagopus_chrono_nanosleep(lagopus_chrono_t nsec,
                          lagopus_chrono_t *remptr);
 
 
+#ifdef __GNUC__
+#if defined(LAGOPUS_CPU_X86_64) || defined(LAGOPUS_CPU_I386)
+static inline uint64_t
+lagopus_rdtsc(void) {
+  uint32_t eax, edx;
+  __asm__ volatile ("rdtsc" : "=a" (eax), "=d" (edx));
+  return (((uint64_t)edx) << 32) | ((uint64_t)eax);
+}
+#else
+#warning reading TSC thingies is not supported on this platform.
+static inline uint64_t
+lagopus_rdtsc(void) {
+  lagopus_msg_warning("reading TSC thingies is not supported on this "
+                      "platform.\n");
+  return 0LL;
+}
+#endif /* LAGOPUS_CPU_X86_64 || LAGOPUS_CPU_I386 */
+#else
+#warning reading TSC thingies is not supported with this compiler.
+static inline uint64_t
+lagopus_rdtsc(void) {
+  lagopus_msg_warning("reading TSC thingies is not supported with "
+                      "this compiler.\n");
+  return 0LL;
+}
+#endif /* __GNUC__ */
+
+
 
 
 

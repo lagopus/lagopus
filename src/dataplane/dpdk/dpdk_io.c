@@ -88,6 +88,7 @@
 #include <rte_ethdev.h>
 #include <rte_ring.h>
 #include <rte_mempool.h>
+#include <rte_pci.h>
 #ifdef __SSE4_2__
 #include <rte_hash_crc.h>
 #else
@@ -647,7 +648,7 @@ app_lcore_io_tx_kni(struct app_lcore_params_io *lp, uint32_t bsz) {
 #endif /* __linux__ */
 
 static inline void
-app_lcore_io_tx_flush(struct app_lcore_params_io *lp, void *arg) {
+app_lcore_io_tx_flush(struct app_lcore_params_io *lp, __UNUSED void *arg) {
   uint8_t portid, i;
 
   for (i = 0; i < lp->tx.n_nic_ports; i++) {
@@ -997,6 +998,55 @@ app_init_rings_tx(void) {
   }
 }
 
+#if defined(RTE_VERSION_NUM) && RTE_VERSION >= RTE_VERSION_NUM(2, 0, 0, 4)
+static inline uint8_t
+dpdk_get_detachable_portid_by_name(const char *name) {
+  uint8_t portid;
+  struct rte_eth_dev *dev;
+  struct rte_pci_addr *addr;
+  char devname[RTE_ETH_NAME_MAX_LEN];
+
+  for (portid = 0; portid < RTE_MAX_ETHPORTS; portid++) {
+    dev = &rte_eth_devices[portid];
+    if ((dev->attached) &&
+        (dev->pci_dev->driver->drv_flags & RTE_PCI_DRV_DETACHABLE)) {
+      switch (dev->dev_type) {
+        case RTE_ETH_DEV_PCI:
+          addr = &dev->pci_dev->addr;
+          snprintf(devname, RTE_ETH_NAME_MAX_LEN,
+                   "%04x:%02x:%02x.%d",
+                   addr->domain, addr->bus,
+                   addr->devid, addr->function);
+          if (strcmp(name, devname) == 0) {
+            goto out;
+          }
+          break;
+        case RTE_ETH_DEV_VIRTUAL:
+          if (strncmp(name, dev->data->name, RTE_ETH_NAME_MAX_LEN) == 0) {
+            goto out;
+          }
+          break;
+        default:
+          break;
+      }
+    }
+  }
+out:
+  return portid;
+}
+#endif
+
+static inline const char *
+dpdk_remove_namespace(const char *device) {
+  char *p;
+
+  p = strchr(device, ':');
+  if (p == NULL) {
+    return device;
+  }
+  return p+1;
+}
+
 lagopus_result_t
 dpdk_configure_interface(struct interface *ifp) {
   unsigned socket;
@@ -1007,7 +1057,20 @@ dpdk_configure_interface(struct interface *ifp) {
   uint8_t portid;
   struct rte_mempool *pool;
 
-  portid = ifp->info.eth.port_number;
+#if defined(RTE_VERSION_NUM) && RTE_VERSION >= RTE_VERSION_NUM(2, 0, 0, 4)
+  if (strlen(ifp->info.eth_dpdk_phy.device) > 0) {
+    uint8_t actual_portid;
+    const char *name;
+
+    name = dpdk_remove_namespace(ifp->info.eth_dpdk_phy.device);
+    if (rte_eth_dev_attach(name, &actual_portid)) {
+      return LAGOPUS_RESULT_NOT_FOUND;
+    }
+    /* whenever 'device' is specified, overwrite portid by actual portid. */
+    ifp->info.eth.port_number = (uint32_t)actual_portid;
+  }
+#endif
+  portid = (uint8_t)ifp->info.eth.port_number;
 
   n_rx_queues = app_get_nic_rx_queues_per_port(portid);
   n_tx_queues = app.nic_tx_port_mask[portid];
@@ -1036,10 +1099,16 @@ dpdk_configure_interface(struct interface *ifp) {
   }
   ret = rte_eth_dev_set_mtu(portid, ifp->info.eth_dpdk_phy.mtu);
   if (ret < 0) {
-    rte_panic("Cannot set MTU(%d) for port %d (%d)\n",
-              ifp->info.eth_dpdk_phy.mtu,
-              portid,
-              ret);
+    if (ret != -ENOTSUP) {
+      rte_panic("Cannot set MTU(%d) for port %d (%d)\n",
+                ifp->info.eth_dpdk_phy.mtu,
+                portid,
+                ret);
+    } else {
+      lagopus_msg_notice("Cannot set MTU(%d) for port %d, not supporetd\n",
+                         ifp->info.eth_dpdk_phy.mtu,
+                         portid);
+    }
   }
   rte_eth_promiscuous_enable(portid);
 
@@ -1118,7 +1187,22 @@ lagopus_result_t
 dpdk_unconfigure_interface(struct interface *ifp) {
   uint8_t portid, queue;
 
-  portid = ifp->info.eth.port_number;
+#if defined(RTE_VERSION_NUM) && RTE_VERSION >= RTE_VERSION_NUM(2, 0, 0, 4)
+  if (strlen(ifp->info.eth_dpdk_phy.device) > 0) {
+    uint8_t actual_portid;
+    const char *name;
+
+    name = dpdk_remove_namespace(ifp->info.eth_dpdk_phy.device);
+    actual_portid = dpdk_get_detachable_portid_by_name(name);
+    if (actual_portid == RTE_MAX_ETHPORTS) {
+      return LAGOPUS_RESULT_NOT_FOUND;
+    }
+    /* whenever 'device' is specified, overwrite portid by actual portid. */
+    ifp->info.eth.port_number = (uint32_t)actual_portid;
+  }
+#endif
+  portid = (uint8_t)ifp->info.eth.port_number;
+
   dpdk_stop_interface(portid);
   for (queue = 0; queue < APP_MAX_RX_QUEUES_PER_NIC_PORT; queue ++) {
     struct app_lcore_params_io *lp;
@@ -1139,6 +1223,14 @@ dpdk_unconfigure_interface(struct interface *ifp) {
       break;
     }
   }
+#if defined(RTE_VERSION_NUM) && RTE_VERSION >= RTE_VERSION_NUM(2, 0, 0, 4)
+  if (strlen(ifp->info.eth_dpdk_phy.device) > 0) {
+    char detached_devname[RTE_ETH_NAME_MAX_LEN];
+
+    rte_eth_dev_close(portid);
+    rte_eth_dev_detach(portid, detached_devname);
+  }
+#endif
   dpdk_interface_unset_index(ifp);
   return LAGOPUS_RESULT_OK;
 }
@@ -1256,9 +1348,15 @@ port_stats(struct port *port) {
 lagopus_result_t
 update_port_link_status(struct port *port) {
   struct rte_eth_link link;
+  struct interface *ifp;
   uint8_t portid;
   bool changed = false;
 
+  ifp = port->interface;
+  if (ifp == NULL ||
+      ifp->info.type != DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_PHY) {
+    return LAGOPUS_RESULT_OK;
+  }
   portid = (uint8_t)port->ifindex;
   /* ofp_port.config is configured by the controller. */
 

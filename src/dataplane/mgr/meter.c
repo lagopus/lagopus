@@ -21,6 +21,7 @@
 
 #include "lagopus/meter.h"
 #include "lagopus/ofp_dp_apis.h"
+#include "lagopus/dp_apis.h"
 
 static inline void
 meter_table_lock_init(struct meter_table *meter_table) {

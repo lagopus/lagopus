@@ -35,8 +35,8 @@ static lagopus_hashmap_t s_alloc_tbl;
 #ifdef HAVE_PTHREAD_SETAFFINITY_NP
 static size_t s_cpu_set_sz;
 #endif /* HAVE_PTHREAD_SETAFFINITY_NP */
-static void s_ctors(void) __attr_constructor__(105);
-static void s_dtors(void) __attr_destructor__(105);
+static void s_ctors(void) __attr_constructor__(106);
+static void s_dtors(void) __attr_destructor__(106);
 
 
 
@@ -227,6 +227,8 @@ s_initialize(lagopus_thread_t thd,
          LAGOPUS_RESULT_OK) &&
         ((ret = lagopus_mutex_create(&(thd->m_cancel_lock))) ==
          LAGOPUS_RESULT_OK) &&
+        ((ret = lagopus_mutex_create(&(thd->m_finalize_lock))) ==
+         LAGOPUS_RESULT_OK) &&
         ((ret = lagopus_cond_create(&(thd->m_wait_cond))) ==
          LAGOPUS_RESULT_OK) &&
         ((ret = lagopus_cond_create(&(thd->m_startup_cond))) ==
@@ -250,6 +252,8 @@ s_initialize(lagopus_thread_t thd,
       thd->m_is_destroying = false;
 
       thd->m_do_autodelete = false;
+      thd->m_startup_sync_done = false;
+      thd->m_n_finalized_count = 0LL;
 
       ret = LAGOPUS_RESULT_OK;
     }
@@ -262,31 +266,76 @@ s_initialize(lagopus_thread_t thd,
 
 
 static inline void
-s_finalize(lagopus_thread_t thd, bool is_canceled) {
-  bool do_autodelete = false;
+s_finalize(lagopus_thread_t thd, bool is_canceled,
+           lagopus_result_t rcode) {
+  if (likely(thd != NULL)) {
+    lagopus_thread_t cthd = thd;
+    bool is_valid = false;
+    lagopus_result_t r = lagopus_thread_is_valid(&cthd, &is_valid);
 
-  lagopus_msg_debug(1, "enter: %s\n",
-                    (is_canceled == true) ? "canceled" : "exit");
+    if (likely(r == LAGOPUS_RESULT_OK && is_valid == true)) {
+      bool do_autodelete = false;
+      int o_cancel_state;
 
-  s_wait_lock(thd);
-  {
-    if (thd->m_final_proc != NULL) {
-      thd->m_final_proc(&thd, is_canceled, thd->m_arg);
+      (void)lagopus_mutex_enter_critical(&(thd->m_finalize_lock),
+                                         &o_cancel_state);
+      {
+
+        lagopus_msg_debug(5, "enter: %s\n",
+                          (is_canceled == true) ? "canceled" : "exit");
+
+        s_cancel_lock(thd);
+        {
+          thd->m_is_canceled = is_canceled;
+        }
+        s_cancel_unlock(thd);
+
+        s_op_lock(thd);
+        {
+          thd->m_result_code = rcode;
+        }
+        s_op_unlock(thd);
+
+        s_wait_lock(thd);
+        {
+          if (thd->m_final_proc != NULL) {
+            if (likely(thd->m_n_finalized_count == 0)) {
+              thd->m_final_proc(&thd, is_canceled, thd->m_arg);
+            } else {
+              lagopus_msg_warning("the thread is already %s, count "
+                                  PFSZ(u) " (now %s)\n",
+                                  (thd->m_is_canceled == false) ?
+                                  "exit" : "canceled",
+                                  thd->m_n_finalized_count,
+                                  (is_canceled == false) ?
+                                  "exit" : "canceled");
+            }
+          }
+          thd->m_pthd = LAGOPUS_INVALID_THREAD;
+          do_autodelete = thd->m_do_autodelete;
+          thd->m_is_finalized = true;
+          thd->m_is_activated = false;
+          thd->m_n_finalized_count++;
+          (void)lagopus_cond_notify(&(thd->m_wait_cond), true);
+        }
+        s_wait_unlock(thd);
+
+      }
+      (void)lagopus_mutex_leave_critical(&(thd->m_finalize_lock),
+                                         o_cancel_state);
+
+      if (do_autodelete == true) {
+        lagopus_thread_destroy(&thd);
+      }
+
+      /*
+       * NOTE:
+       *
+       *	Don't call pthread_exit() at here because now it
+       *	triggers the cancel handler as of current cancellation
+       *	handling.
+       */
     }
-    thd->m_pthd = LAGOPUS_INVALID_THREAD;
-    do_autodelete = thd->m_do_autodelete;
-    thd->m_is_finalized = true;
-    thd->m_is_activated = false;
-    (void)lagopus_cond_notify(&(thd->m_wait_cond), true);
-  }
-  s_wait_unlock(thd);
-
-  if (do_autodelete == true) {
-    lagopus_thread_destroy(&thd);
-  }
-
-  if (is_canceled == false) {
-    pthread_exit(NULL);
   }
 }
 
@@ -351,6 +400,10 @@ s_destroy(lagopus_thread_t *thdptr, bool is_clean_finish) {
         (void)lagopus_mutex_destroy(&((*thdptr)->m_cancel_lock));
         (*thdptr)->m_cancel_lock = NULL;
       }
+      if ((*thdptr)->m_finalize_lock != NULL) {
+        (void)lagopus_mutex_destroy(&((*thdptr)->m_finalize_lock));
+        (*thdptr)->m_finalize_lock = NULL;
+      }
       if ((*thdptr)->m_wait_cond != NULL) {
         (void)lagopus_cond_destroy(&((*thdptr)->m_wait_cond));
         (*thdptr)->m_wait_cond = NULL;
@@ -379,76 +432,85 @@ static void
 s_pthd_cancel_handler(void *ptr) {
   if (ptr != NULL) {
     lagopus_thread_t thd = (lagopus_thread_t)ptr;
-
-    s_cancel_lock(thd);
-    {
-      thd->m_is_canceled = true;
-    }
-    s_cancel_unlock(thd);
-
-    s_finalize(thd, true);
+    s_finalize(thd, true, LAGOPUS_RESULT_INTERRUPTED);
   }
 }
 
 
 static void *
 s_pthd_entry_point(void *ptr) {
-  if (ptr != NULL) {
-    lagopus_thread_t thd = (lagopus_thread_t)ptr;
-    int o_cancel_state;
-    lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
-    volatile bool is_cleanly_finished = false;
+  if (likely(ptr != NULL)) {
 
     pthread_cleanup_push(s_pthd_cancel_handler, ptr);
     {
+      int o_cancel_state;
+      lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+      lagopus_thread_t thd = (lagopus_thread_t)ptr;
       const lagopus_thread_t *tptr =
         (const lagopus_thread_t *)&thd;
 
-      (void)pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, &o_cancel_state);
+      (void)lagopus_mutex_enter_critical(&(thd->m_wait_lock), &o_cancel_state);
       {
 
-        s_wait_lock(thd);
+        s_cancel_lock(thd);
         {
-          s_cancel_lock(thd);
-          {
-            thd->m_is_canceled = false;
-          }
-          s_cancel_unlock(thd);
-
-          thd->m_is_finalized = false;
-          thd->m_is_activated = true;
-          thd->m_is_started = true;
-          (void)lagopus_cond_notify(&(thd->m_startup_cond), true);
+          thd->m_is_canceled = false;
         }
-        s_wait_unlock(thd);
+        s_cancel_unlock(thd);
+
+        thd->m_is_finalized = false;
+        thd->m_is_activated = true;
+        thd->m_is_started = true;
+        (void)lagopus_cond_notify(&(thd->m_startup_cond), true);
+
+        /*
+         * The notifiction is done and then the parent thread send us
+         * "an ACK". Wait for it.
+         */
+     sync_done_check:
+        mbar();
+        if (thd->m_startup_sync_done == false) {
+          ret = lagopus_cond_wait(&(thd->m_startup_cond),
+                                  &(thd->m_wait_lock),
+                                  -1);
+
+          if (ret == LAGOPUS_RESULT_OK) {
+            goto sync_done_check;
+          } else {
+            lagopus_perror(ret);
+            lagopus_msg_error("startup synchronization failed with the"
+                              "parent thread.\n");
+          }
+        }
 
       }
-      (void)pthread_setcancelstate(o_cancel_state, NULL);
+      (void)lagopus_mutex_leave_critical(&(thd->m_wait_lock), o_cancel_state);
 
-      /*
-       * A BOGUS ALERT:
-       *
-       *	OMG, according to clang/scan-build, the thd is
-       *	modified here. How could I live like this?
-       */
       ret = thd->m_main_proc(tptr, thd->m_arg);
-      is_cleanly_finished = true;
-    }
-    pthread_cleanup_pop((is_cleanly_finished == true) ? 0 : 1);
 
-    s_op_lock(thd);
-    {
       /*
-       * A BOGUS ALERT:
+       * NOTE:
        *
-       *	OMG, also according to clang/scan-build, the thd could
-       *	be NULL. How could I live like this?
+       *	This very moment this thread could be cancelled and no
+       *	correct result is set. Even it is impossible to
+       *	prevent it completely, try to prevent it anyway.
        */
-      thd->m_result_code = ret;
-    }
-    s_op_unlock(thd);
+      (void)pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, &o_cancel_state);
 
-    s_finalize(thd, false);
+      /*
+       * We got through anyhow.
+       */
+      s_finalize(thd, false, ret);
+
+      /*
+       * NOTE
+       *
+       *	Don't call pthread_exit() at here or the cancellation
+       *	handler will be called.
+       */
+    }
+    pthread_cleanup_pop(0);
+
   }
 
   return NULL;
@@ -560,12 +622,16 @@ lagopus_thread_start(const lagopus_thread_t *thdptr,
             (*thdptr)->m_is_destroying = false;
             (*thdptr)->m_is_canceled = false;
             (*thdptr)->m_is_started = false;
+            (*thdptr)->m_startup_sync_done = false;
+            (*thdptr)->m_n_finalized_count = 0LL;
+            mbar();
 
             /*
              * Wait the spawned thread starts.
              */
 
           startcheck:
+            mbar();
             if ((*thdptr)->m_is_started == false) {
 
               /*
@@ -585,6 +651,14 @@ lagopus_thread_start(const lagopus_thread_t *thdptr,
                 goto unlock;
               }
             }
+
+            /*
+             * The newly created thread notified its start. Then "send
+             * an ACK" to the thread to notify that the thread can do
+             * anything, including its deletion.
+             */
+            (*thdptr)->m_startup_sync_done = true;
+            (void)lagopus_cond_notify(&((*thdptr)->m_startup_cond), true);
 
             ret = LAGOPUS_RESULT_OK;
 
@@ -681,6 +755,7 @@ lagopus_thread_wait(const lagopus_thread_t *thdptr,
           s_wait_lock(*thdptr);
           {
           waitcheck:
+            mbar();
             if ((*thdptr)->m_is_activated == true) {
               ret = lagopus_cond_wait(&((*thdptr)->m_wait_cond),
                                       &((*thdptr)->m_wait_lock),
@@ -992,6 +1067,7 @@ lagopus_thread_atfork_child(const lagopus_thread_t *thdptr) {
       (void)lagopus_mutex_reinitialize(&((*thdptr)->m_op_lock));
       (void)lagopus_mutex_reinitialize(&((*thdptr)->m_wait_lock));
       (void)lagopus_mutex_reinitialize(&((*thdptr)->m_cancel_lock));
+      (void)lagopus_mutex_reinitialize(&((*thdptr)->m_finalize_lock));
     }
   }
 }

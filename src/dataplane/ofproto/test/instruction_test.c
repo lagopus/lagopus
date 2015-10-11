@@ -33,8 +33,6 @@ static struct lagopus_packet pkt;
 void
 setUp(void) {
   TEST_ASSERT_EQUAL(dp_api_init(), LAGOPUS_RESULT_OK);
-  lagopus_set_in_port(&pkt, &port);
-  TEST_ASSERT_NOT_NULL_MESSAGE(pkt.in_port, "port assign error.");
 }
 
 void
@@ -66,7 +64,7 @@ test_execute_instruction_GOTO_TABLE(void) {
   memset(insns, 0, sizeof(insns));
   insns[INSTRUCTION_INDEX_GOTO_TABLE] = insn;
 
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   execute_instruction(&pkt, (const struct instruction **)insns);
 }
 
@@ -140,7 +138,7 @@ test_execute_instruction_WRITE_ACTIONS(void) {
   memset(insns, 0, sizeof(insns));
   insns[INSTRUCTION_INDEX_WRITE_ACTIONS] = &insn;
 
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   execute_instruction(&pkt, (const struct instruction **)insns);
   TEST_ASSERT_NOT_NULL_MESSAGE(TAILQ_FIRST(&pkt.actions[2]),
                                "WRITE_ACTIONS(push_mpls) error.");
@@ -166,7 +164,7 @@ test_execute_instruction_CLEAR_ACTIONS(void) {
   memset(insns, 0, sizeof(insns));
   insns[INSTRUCTION_INDEX_CLEAR_ACTIONS] = &insn;
 
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   action = calloc(1, sizeof(*action) +
                   sizeof(*action_push) - sizeof(struct ofp_action_header));
   TEST_ASSERT_NOT_NULL_MESSAGE(action, "action: calloc error.");
@@ -215,7 +213,7 @@ test_execute_instruction_APPLY_ACTIONS(void) {
   memset(insns, 0, sizeof(insns));
   insns[INSTRUCTION_INDEX_APPLY_ACTIONS] = &insn;
 
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   execute_instruction(&pkt, (const struct instruction **)insns);
   TEST_ASSERT_EQUAL_MESSAGE(OS_M_PKTLEN(m), 64 + 4,
                             "APPLY_ACTIONS length error.");
@@ -256,7 +254,7 @@ test_execute_instruction_EXPERIMENTER(void) {
   memset(insns, 0, sizeof(insns));
   /* insns[INSTRUCTION_INDEX_EXPERIMENTER] = insn; */
 
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   execute_instruction(&pkt, (const struct instruction **)insns);
   free(m);
 }
@@ -286,7 +284,7 @@ test_execute_instruction_METER(void) {
   memset(insns, 0, sizeof(insns));
   insns[INSTRUCTION_INDEX_METER] = insn;
 
-  lagopus_packet_init(&pkt, m);
+  lagopus_packet_init(&pkt, m, &port);
   execute_instruction(&pkt, (const struct instruction **)insns);
   TEST_ASSERT_EQUAL_MESSAGE(m->refcnt, 1,
                             "METER refcnt error.");

@@ -76,6 +76,180 @@ test_controller_conf_create_and_destroy(void) {
 }
 
 void
+test_controller_conf_duplicate(void) {
+  lagopus_result_t rc;
+  const char *ns1 = "ns1";
+  const char *ns2 = "ns2";
+  const char *name = "controller";
+  char *controller_fullname = NULL;
+  bool result = false;
+  controller_conf_t *src_conf = NULL;
+  controller_conf_t *dst_conf = NULL;
+  controller_conf_t *actual_conf = NULL;
+
+  controller_initialize();
+
+  // Normal case1(no namespace)
+  {
+    // create src conf
+    {
+      rc = ns_create_fullname(ns1, name, &controller_fullname);
+      TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK,
+                                rc, "cmd_ns_get_fullname error.");
+      rc = controller_conf_create(&src_conf, controller_fullname);
+      TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+      TEST_ASSERT_NOT_NULL_MESSAGE(src_conf,
+                                   "conf_create() will create new controller_action");
+      free(controller_fullname);
+      controller_fullname = NULL;
+    }
+
+    rc = controller_conf_duplicate(src_conf, &dst_conf, NULL);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+
+    // create actual conf
+    {
+      rc = ns_create_fullname(ns1, name, &controller_fullname);
+      TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK,
+                                rc, "cmd_ns_get_fullname error.");
+      rc = controller_conf_create(&actual_conf, controller_fullname);
+      TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+      TEST_ASSERT_NOT_NULL_MESSAGE(src_conf,
+                                   "conf_create() will create new controller_action");
+      free(controller_fullname);
+      controller_fullname = NULL;
+    }
+
+    result = controller_conf_equals(dst_conf, actual_conf);
+    TEST_ASSERT_TRUE(result);
+
+    controller_conf_destroy(src_conf);
+    src_conf = NULL;
+    controller_conf_destroy(dst_conf);
+    dst_conf = NULL;
+    controller_conf_destroy(actual_conf);
+    actual_conf = NULL;
+  }
+
+  // Normal case2
+  {
+    // create src conf
+    {
+      rc = ns_create_fullname(ns1, name, &controller_fullname);
+      TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK,
+                                rc, "cmd_ns_get_fullname error.");
+      rc = controller_conf_create(&src_conf, controller_fullname);
+      TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+      TEST_ASSERT_NOT_NULL_MESSAGE(src_conf,
+                                   "conf_create() will create new controller_action");
+      free(controller_fullname);
+      controller_fullname = NULL;
+    }
+
+    rc = controller_conf_duplicate(src_conf, &dst_conf, ns2);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+
+    // create actual conf
+    {
+      rc = ns_create_fullname(ns2, name, &controller_fullname);
+      TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK,
+                                rc, "cmd_ns_get_fullname error.");
+      rc = controller_conf_create(&actual_conf, controller_fullname);
+      TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+      TEST_ASSERT_NOT_NULL_MESSAGE(src_conf,
+                                   "conf_create() will create new controller_action");
+      free(controller_fullname);
+      controller_fullname = NULL;
+    }
+
+    result = controller_conf_equals(dst_conf, actual_conf);
+    TEST_ASSERT_TRUE(result);
+
+    controller_conf_destroy(src_conf);
+    src_conf = NULL;
+    controller_conf_destroy(dst_conf);
+    dst_conf = NULL;
+    controller_conf_destroy(actual_conf);
+    actual_conf = NULL;
+  }
+
+  // Abnormal case
+  {
+    rc = controller_conf_duplicate(NULL, &dst_conf, NULL);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_INVALID_ARGS, rc);
+  }
+
+  controller_finalize();
+}
+
+void
+test_controller_conf_equals(void) {
+  lagopus_result_t rc;
+  bool result = false;
+  controller_conf_t *conf1 = NULL;
+  controller_conf_t *conf2 = NULL;
+  controller_conf_t *conf3 = NULL;
+  const char *fullname1 = "conf1";
+  const char *fullname2 = "conf2";
+  const char *fullname3 = "conf3";
+
+  controller_initialize();
+
+  rc = controller_conf_create(&conf1, fullname1);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+  TEST_ASSERT_NOT_NULL_MESSAGE(conf1, "conf_create() will create new controller");
+  rc = controller_conf_add(conf1);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+
+  rc = controller_conf_create(&conf2, fullname2);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+  TEST_ASSERT_NOT_NULL_MESSAGE(conf2, "conf_create() will create new controller");
+  rc = controller_conf_add(conf2);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+
+  rc = controller_conf_create(&conf3, fullname3);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+  TEST_ASSERT_NOT_NULL_MESSAGE(conf3, "conf_create() will create new controller");
+  rc = controller_conf_add(conf3);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+  rc = controller_set_enabled(fullname3, true);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+
+  // Normal case
+  {
+    result = controller_conf_equals(conf1, conf2);
+    TEST_ASSERT_TRUE(result);
+
+    result = controller_conf_equals(NULL, NULL);
+    TEST_ASSERT_TRUE(result);
+
+    result = controller_conf_equals(conf1, conf3);
+    TEST_ASSERT_FALSE(result);
+
+    result = controller_conf_equals(conf2, conf3);
+    TEST_ASSERT_FALSE(result);
+  }
+
+  // Abnormal case
+  {
+    result = controller_conf_equals(conf1, NULL);
+    TEST_ASSERT_FALSE(result);
+
+    result = controller_conf_equals(NULL, conf2);
+    TEST_ASSERT_FALSE(result);
+  }
+
+  rc = controller_conf_delete(conf1);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+  rc = controller_conf_delete(conf2);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+  rc = controller_conf_delete(conf3);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+
+  controller_finalize();
+}
+
+void
 test_controller_conf_add(void) {
   lagopus_result_t rc;
   controller_conf_t *conf = NULL;
@@ -185,15 +359,15 @@ void
 test_controller_conf_list(void) {
   lagopus_result_t rc;
   controller_conf_t *conf1 = NULL;
-  const char *name1 = "namespace1"NAMESPACE_DELIMITER"controller_name1";
+  const char *name1 = "namespace1"DATASTORE_NAMESPACE_DELIMITER"controller_name1";
   controller_conf_t *conf2 = NULL;
-  const char *name2 = "namespace1"NAMESPACE_DELIMITER"controller_name2";
+  const char *name2 = "namespace1"DATASTORE_NAMESPACE_DELIMITER"controller_name2";
   controller_conf_t *conf3 = NULL;
-  const char *name3 = "namespace2"NAMESPACE_DELIMITER"controller_name3";
+  const char *name3 = "namespace2"DATASTORE_NAMESPACE_DELIMITER"controller_name3";
   controller_conf_t *conf4 = NULL;
-  const char *name4 = NAMESPACE_DELIMITER"controller_name4";
+  const char *name4 = DATASTORE_NAMESPACE_DELIMITER"controller_name4";
   controller_conf_t *conf5 = NULL;
-  const char *name5 = NAMESPACE_DELIMITER"controller_name5";
+  const char *name5 = DATASTORE_NAMESPACE_DELIMITER"controller_name5";
   controller_conf_t **actual_list = NULL;
   size_t i;
 
@@ -252,15 +426,15 @@ test_controller_conf_list(void) {
 
     for (i = 0; i < (size_t) rc; i++) {
       if (strcasecmp(actual_list[i]->name,
-                     "namespace1"NAMESPACE_DELIMITER"controller_name1") != 0 &&
+                     "namespace1"DATASTORE_NAMESPACE_DELIMITER"controller_name1") != 0 &&
           strcasecmp(actual_list[i]->name,
-                     "namespace1"NAMESPACE_DELIMITER"controller_name2") != 0 &&
+                     "namespace1"DATASTORE_NAMESPACE_DELIMITER"controller_name2") != 0 &&
           strcasecmp(actual_list[i]->name,
-                     "namespace2"NAMESPACE_DELIMITER"controller_name3") != 0 &&
+                     "namespace2"DATASTORE_NAMESPACE_DELIMITER"controller_name3") != 0 &&
           strcasecmp(actual_list[i]->name,
-                     NAMESPACE_DELIMITER"controller_name4") != 0 &&
+                     DATASTORE_NAMESPACE_DELIMITER"controller_name4") != 0 &&
           strcasecmp(actual_list[i]->name,
-                     NAMESPACE_DELIMITER"controller_name5") != 0) {
+                     DATASTORE_NAMESPACE_DELIMITER"controller_name5") != 0) {
         TEST_FAIL_MESSAGE("invalid list entry.");
       }
     }
@@ -275,9 +449,9 @@ test_controller_conf_list(void) {
 
     for (i = 0; i < (size_t) rc; i++) {
       if (strcasecmp(actual_list[i]->name,
-                     NAMESPACE_DELIMITER"controller_name4") != 0 &&
+                     DATASTORE_NAMESPACE_DELIMITER"controller_name4") != 0 &&
           strcasecmp(actual_list[i]->name,
-                     NAMESPACE_DELIMITER"controller_name5") != 0) {
+                     DATASTORE_NAMESPACE_DELIMITER"controller_name5") != 0) {
         TEST_FAIL_MESSAGE("invalid list entry.");
       }
     }
@@ -292,9 +466,9 @@ test_controller_conf_list(void) {
 
     for (i = 0; i < (size_t) rc; i++) {
       if (strcasecmp(actual_list[i]->name,
-                     "namespace1"NAMESPACE_DELIMITER"controller_name1") != 0 &&
+                     "namespace1"DATASTORE_NAMESPACE_DELIMITER"controller_name1") != 0 &&
           strcasecmp(actual_list[i]->name,
-                     "namespace1"NAMESPACE_DELIMITER"controller_name2") != 0) {
+                     "namespace1"DATASTORE_NAMESPACE_DELIMITER"controller_name2") != 0) {
         TEST_FAIL_MESSAGE("invalid list entry.");
       }
     }
@@ -475,36 +649,116 @@ test_controller_attr_create_and_destroy(void) {
 void
 test_controller_attr_duplicate(void) {
   lagopus_result_t rc;
+  const char *ns1 = "ns1";
+  const char *ns2 = "ns2";
+  const char *name = "channel";
+  char *controller_fullname = NULL;
   bool result = false;
   controller_attr_t *src_attr = NULL;
   controller_attr_t *dst_attr = NULL;
+  controller_attr_t *actual_attr = NULL;
 
   controller_initialize();
 
-  rc = controller_attr_create(&src_attr);
-  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
-  TEST_ASSERT_NOT_NULL_MESSAGE(src_attr,
-                               "attr_create() will create new controller");
-
-  // Normal case
+  // Normal case1(no namespace)
   {
-    rc = controller_attr_duplicate(src_attr, &dst_attr);
+    // create src attribute
+    {
+      rc = controller_attr_create(&src_attr);
+      TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+      TEST_ASSERT_NOT_NULL_MESSAGE(src_attr,
+                                   "attr_create() will create new controller");
+      rc = ns_create_fullname(ns1, name, &controller_fullname);
+      TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK,
+                                rc, "cmd_ns_get_fullname error.");
+      rc = controller_set_channel_name(src_attr, controller_fullname);
+      TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+      free(controller_fullname);
+      controller_fullname = NULL;
+    }
+
+    // duplicate
+    rc = controller_attr_duplicate(src_attr, &dst_attr, NULL);
     TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
-    result = controller_attr_equals(src_attr, dst_attr);
+
+    // create actual attribute
+    {
+      rc = controller_attr_create(&actual_attr);
+      TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+      TEST_ASSERT_NOT_NULL_MESSAGE(actual_attr,
+                                   "attr_create() will create new policer");
+      rc = ns_create_fullname(ns1, name, &controller_fullname);
+      TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK,
+                                rc, "cmd_ns_get_fullname error.");
+      rc = controller_set_channel_name(actual_attr, controller_fullname);
+      TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+      free(controller_fullname);
+      controller_fullname = NULL;
+    }
+
+    result = controller_attr_equals(dst_attr, actual_attr);
     TEST_ASSERT_TRUE(result);
+
+    controller_attr_destroy(src_attr);
+    src_attr = NULL;
+    controller_attr_destroy(dst_attr);
+    dst_attr = NULL;
+    controller_attr_destroy(actual_attr);
+    actual_attr = NULL;
+  }
+
+  // Normal case2
+  {
+    // create src attribute
+    {
+      rc = controller_attr_create(&src_attr);
+      TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+      TEST_ASSERT_NOT_NULL_MESSAGE(src_attr,
+                                   "attr_create() will create new controller");
+      rc = ns_create_fullname(ns1, name, &controller_fullname);
+      TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK,
+                                rc, "cmd_ns_get_fullname error.");
+      rc = controller_set_channel_name(src_attr, controller_fullname);
+      TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+      free(controller_fullname);
+      controller_fullname = NULL;
+    }
+
+    // duplicate
+    rc = controller_attr_duplicate(src_attr, &dst_attr, ns2);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+
+    // create actual attribute
+    {
+      rc = controller_attr_create(&actual_attr);
+      TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+      TEST_ASSERT_NOT_NULL_MESSAGE(actual_attr,
+                                   "attr_create() will create new policer");
+      rc = ns_create_fullname(ns2, name, &controller_fullname);
+      TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK,
+                                rc, "cmd_ns_get_fullname error.");
+      rc = controller_set_channel_name(actual_attr, controller_fullname);
+      TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+      free(controller_fullname);
+      controller_fullname = NULL;
+    }
+
+    result = controller_attr_equals(dst_attr, actual_attr);
+    TEST_ASSERT_TRUE(result);
+
+    controller_attr_destroy(src_attr);
+    src_attr = NULL;
+    controller_attr_destroy(dst_attr);
+    dst_attr = NULL;
+    controller_attr_destroy(actual_attr);
+    actual_attr = NULL;
   }
 
   // Abnormal case
   {
-    result = controller_attr_equals(src_attr, NULL);
-    TEST_ASSERT_FALSE(result);
-
-    result = controller_attr_equals(NULL, dst_attr);
-    TEST_ASSERT_FALSE(result);
+    rc = controller_attr_duplicate(NULL, &dst_attr, NULL);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_INVALID_ARGS, rc);
   }
-
-  controller_attr_destroy(src_attr);
-  controller_attr_destroy(dst_attr);
 
   controller_finalize();
 }
@@ -522,21 +776,24 @@ test_controller_attr_equals(void) {
 
   rc = controller_attr_create(&attr1);
   TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
-  TEST_ASSERT_NOT_NULL_MESSAGE(attr1, "attr_create() will create new channel");
+  TEST_ASSERT_NOT_NULL_MESSAGE(attr1, "attr_create() will create new controller");
 
   rc = controller_attr_create(&attr2);
   TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
-  TEST_ASSERT_NOT_NULL_MESSAGE(attr2, "attr_create() will create new channel");
+  TEST_ASSERT_NOT_NULL_MESSAGE(attr2, "attr_create() will create new controller");
 
   rc = controller_attr_create(&attr3);
   TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
-  TEST_ASSERT_NOT_NULL_MESSAGE(attr3, "attr_create() will create new channel");
+  TEST_ASSERT_NOT_NULL_MESSAGE(attr3, "attr_create() will create new controller");
   rc = controller_set_channel_name(attr3, channel_name);
   TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
 
   // Normal case
   {
     result = controller_attr_equals(attr1, attr2);
+    TEST_ASSERT_TRUE(result);
+
+    result = controller_attr_equals(NULL, NULL);
     TEST_ASSERT_TRUE(result);
 
     result = controller_attr_equals(attr1, attr3);
@@ -998,7 +1255,7 @@ test_controller_attr_private_channel_name(void) {
     TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
     TEST_ASSERT_EQUAL_STRING(expected_set_channel_name1, actual_set_channel_name1);
 
-    create_str(&set_channel_name2, DATASTORE_CHANNEL_NAME_MAX + 1);
+    create_str(&set_channel_name2, DATASTORE_CHANNEL_FULLNAME_MAX + 1);
     rc = controller_set_channel_name(attr, set_channel_name2);
     TEST_ASSERT_EQUAL(LAGOPUS_RESULT_TOO_LONG, rc);
     rc = controller_get_channel_name(attr, &actual_set_channel_name2);

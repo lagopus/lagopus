@@ -17,8 +17,8 @@
 #include "unity.h"
 #include "../ofp_apis.h"
 #include "handler_test_utils.h"
-#include "event.h"
 #include "lagopus/pbuf.h"
+#include "../channel_mgr.h"
 
 void
 setUp(void) {
@@ -59,6 +59,23 @@ s_ofp_port_reply_create_wrap(struct channel *channel,
 }
 
 
+void
+test_prologue(void) {
+  lagopus_result_t r;
+  const char *argv0 =
+      ((IS_VALID_STRING(lagopus_get_command_name()) == true) ?
+       lagopus_get_command_name() : "callout_test");
+  const char * const argv[] = {
+    argv0, NULL
+  };
+
+#define N_CALLOUT_WORKERS	1
+  (void)lagopus_mainloop_set_callout_workers_number(N_CALLOUT_WORKERS);
+  r = lagopus_mainloop_with_callout(1, argv, NULL, NULL,
+                                    false, false, true);
+  TEST_ASSERT_EQUAL(r, LAGOPUS_RESULT_OK);
+  channel_mgr_initialize();
+}
 void
 test_ofp_port_stats_handle_normal_pattern(void) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
@@ -125,9 +142,7 @@ test_ofp_port_stats_handle_error_invalid_length2(void) {
 void
 test_ofp_port_stats_handle_null(void) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
-  struct event_manager *em = event_manager_alloc();
-  struct channel *channel = channel_alloc_ip4addr("127.0.0.1", "1000",
-                            em, 0x01);
+  struct channel *channel = channel_alloc_ip4addr("127.0.0.1", "1000", 0x01);
   struct pbuf *pbuf = pbuf_alloc(65535);
   struct ofp_header xid_header;
   struct ofp_error error;
@@ -153,7 +168,6 @@ test_ofp_port_stats_handle_null(void) {
                             "NULL-check error. (ofp_error)");
   channel_free(channel);
   pbuf_free(pbuf);
-  event_manager_free(em);
 }
 
 void
@@ -218,9 +232,7 @@ test_ofp_port_stats_reply_create(void) {
 void
 test_ofp_port_stats_reply_create_null(void) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
-  struct event_manager *em = event_manager_alloc();
-  struct channel *channel = channel_alloc_ip4addr("127.0.0.1", "1000",
-                            em, 0x01);
+  struct channel *channel = channel_alloc_ip4addr("127.0.0.1", "1000", 0x01);
   struct pbuf_list *pbuf_list = NULL;
   struct port_stats_list port_stats_list;
   struct ofp_header xid_header;
@@ -255,5 +267,12 @@ test_ofp_port_stats_reply_create_null(void) {
                             ret,
                             "NULL-check error. (xid-header)");
   channel_free(channel);
-  event_manager_free(em);
+}
+void
+test_epilogue(void) {
+  lagopus_result_t r;
+  channel_mgr_finalize();
+  r = global_state_request_shutdown(SHUTDOWN_GRACEFULLY);
+  TEST_ASSERT_EQUAL(r, LAGOPUS_RESULT_OK);
+  lagopus_mainloop_wait_thread();
 }
