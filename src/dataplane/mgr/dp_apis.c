@@ -423,7 +423,6 @@ dp_port_interface_set(const char *name, const char *ifname) {
   port->interface = ifp;
   port->ifindex = ifp->info.eth.port_number;
   ifp->port = port;
-  ifp->stats = port->stats;
   vector_set_index(port_vector,
                    ifp->info.eth.port_number,
                    port);

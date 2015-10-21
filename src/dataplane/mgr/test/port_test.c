@@ -163,13 +163,16 @@ test_dp_port_stats(void) {
 void
 test_lagopus_get_port_statistics(void) {
   datastore_bridge_info_t info;
+  datastore_interface_info_t ifinfo;
   struct bridge *bridge;
   struct ofp_port_stats_request req;
   struct port_stats_list list;
+  struct port_stats *stats;
   struct ofp_error error;
   lagopus_result_t rv;
 
   memset(&info, 0, sizeof(info));
+  memset(&ifinfo, 0, sizeof(ifinfo));
   info.fail_mode = DATASTORE_BRIDGE_FAIL_MODE_SECURE;
   rv = dp_bridge_create("br0", &info);
   TEST_ASSERT_EQUAL_MESSAGE(rv, LAGOPUS_RESULT_OK,
@@ -190,6 +193,8 @@ test_lagopus_get_port_statistics(void) {
 
   TEST_ASSERT_EQUAL(dp_port_create("port1"), LAGOPUS_RESULT_OK);
   TEST_ASSERT_EQUAL(dp_interface_create("interface1"), LAGOPUS_RESULT_OK);
+  TEST_ASSERT_EQUAL(dp_interface_info_set("interface1", &ifinfo),
+                    LAGOPUS_RESULT_OK);
   TEST_ASSERT_EQUAL(dp_port_interface_set("port1", "interface1"),
                     LAGOPUS_RESULT_OK);
   TEST_ASSERT_EQUAL(dp_bridge_port_set("br0", "port1", 1), LAGOPUS_RESULT_OK);
@@ -199,12 +204,32 @@ test_lagopus_get_port_statistics(void) {
   rv = lagopus_get_port_statistics(bridge->ports, &req, &list, &error);
   TEST_ASSERT_EQUAL_MESSAGE(rv, LAGOPUS_RESULT_OK, "result error");
   TEST_ASSERT_NOT_NULL_MESSAGE(TAILQ_FIRST(&list), "list error");
+  TAILQ_FOREACH(stats, &list, entry) {
+    TEST_ASSERT_EQUAL(stats->ofp.rx_packets, 0);
+    TEST_ASSERT_EQUAL(stats->ofp.tx_packets, 0);
+    TEST_ASSERT_EQUAL(stats->ofp.rx_bytes, 0);
+    TEST_ASSERT_EQUAL(stats->ofp.tx_bytes, 0);
+    TEST_ASSERT_EQUAL(stats->ofp.rx_dropped, 0);
+    TEST_ASSERT_EQUAL(stats->ofp.tx_dropped, 0);
+    TEST_ASSERT_EQUAL(stats->ofp.rx_errors, 0);
+    TEST_ASSERT_EQUAL(stats->ofp.tx_errors, 0);
+  }
 
   req.port_no = 1;
   TAILQ_INIT(&list);
   rv = lagopus_get_port_statistics(bridge->ports, &req, &list, &error);
   TEST_ASSERT_EQUAL_MESSAGE(rv, LAGOPUS_RESULT_OK, "result error");
   TEST_ASSERT_NOT_NULL_MESSAGE(TAILQ_FIRST(&list), "list error");
+  TAILQ_FOREACH(stats, &list, entry) {
+    TEST_ASSERT_EQUAL(stats->ofp.rx_packets, 0);
+    TEST_ASSERT_EQUAL(stats->ofp.tx_packets, 0);
+    TEST_ASSERT_EQUAL(stats->ofp.rx_bytes, 0);
+    TEST_ASSERT_EQUAL(stats->ofp.tx_bytes, 0);
+    TEST_ASSERT_EQUAL(stats->ofp.rx_dropped, 0);
+    TEST_ASSERT_EQUAL(stats->ofp.tx_dropped, 0);
+    TEST_ASSERT_EQUAL(stats->ofp.rx_errors, 0);
+    TEST_ASSERT_EQUAL(stats->ofp.tx_errors, 0);
+  }
 
   req.port_no = 5;
   TAILQ_INIT(&list);

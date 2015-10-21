@@ -544,8 +544,10 @@ rawsocket_thread_loop(__UNUSED const lagopus_thread_t *selfptr,
         continue;
       }
       /* update port stats. */
-      stats = port->stats(port);
-      free(stats);
+      if (port->interface != NULL && port->interface->stats != NULL) {
+        stats = port->interface->stats(port);
+        free(stats);
+      }
 
       if ((pollfd[i].revents & POLLIN) == 0) {
         flowdb_rdunlock(NULL);

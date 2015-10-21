@@ -437,7 +437,6 @@ lagopus_configure_physical_port(struct port *port) {
   bind(fd, (struct sockaddr *)&sll, sizeof(sll));
   pollfd[portid].fd = fd;
   pollfd[portid].events = POLLIN;
-  port->stats = port_stats;
 
   return LAGOPUS_RESULT_OK;
 }
@@ -752,8 +751,10 @@ dataplane_thread_loop(__UNUSED const lagopus_thread_t *selfptr,
         continue;
       }
       /* update port stats. */
-      stats = port->stats(port);
-      free(stats);
+      if (port->interface != NULL && port->interface->stats != NULL) {
+        stats = port->interface->stats(port);
+        free(stats);
+      }
 
       if ((pollfd[i].revents & POLLIN) == 0) {
         flowdb_rdunlock(NULL);
