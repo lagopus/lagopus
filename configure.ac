@@ -484,7 +484,10 @@ if test "x$with_dpdk_dir" != "x"; then
   AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_null.a,
                 RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_null",)
   RTE_LIBS="$RTE_LIBS -Xlinker --end-group -Xlinker --no-whole-archive"
-  RTE_LIBS="$RTE_LIBS -lethdev -lrte_malloc -lrte_mempool"
+  RTE_LIBS="$RTE_LIBS -lethdev"
+  AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_malloc.a,
+                RTE_LIBS="$RTE_LIBS -Xlinker -lrte_malloc",)
+  RTE_LIBS="$RTE_LIBS  -lrte_mempool"
   CPPFLAGS_BKUP="$CPPFLAGS"
   CPPFLAGS="$CPPFLAGS -I$RTE_SDK/$RTE_TARGET/include"
   AC_CHECK_MEMBER([struct rte_mbuf.pkt],
