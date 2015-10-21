@@ -224,7 +224,7 @@ dp_interface_info_set(const char *name,
     memset(&ifp->info, 0, sizeof(ifp->info));
     return rv;
   } else {
-    switch (ifp->info.type) {
+    switch (interface_info->type) {
       case DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_PHY:
       case DATASTORE_INTERFACE_TYPE_ETHERNET_RAWSOCK:
       case DATASTORE_INTERFACE_TYPE_VXLAN:
@@ -442,7 +442,6 @@ dp_port_interface_unset_internal(struct port *port) {
 #endif /* HAVE_DPDK */
     vector_set_index(port_vector, port->ifindex, NULL);
     port->interface->port = NULL;
-    port->interface->stats = NULL;
     port->interface = NULL;
   }
 }
