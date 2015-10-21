@@ -77,6 +77,12 @@ bridgeq_freeup_proc(void *val) {
   }
 }
 
+static inline void
+bridgeqs_clear(void) {
+  memset(bridgeqs, 0, sizeof(bridgeqs));
+  n_bridgeqs = 0;
+}
+
 static void
 initialize_internal(void) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
@@ -171,8 +177,7 @@ ofp_bridgeq_mgr_clear(void) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
 
   bridgeq_mgr_lock();
-  memset(bridgeqs, 0, sizeof(bridgeqs));
-  n_bridgeqs = 0;
+  bridgeqs_clear();
   bridgeq_mgr_unlock();
 
   ret = lagopus_hashmap_clear(&bridgeq_table, true);
@@ -222,9 +227,6 @@ bridgeq_mgr_map_to_array(void) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
 
   if (bridgeq_table != NULL) {
-    bridgeq_mgr_lock();
-    n_bridgeqs = 0;
-
     if (lagopus_hashmap_size(&bridgeq_table) != 0) {
       /* NOTE:
        *   hashmap_iterate() is very slow.
@@ -235,7 +237,6 @@ bridgeq_mgr_map_to_array(void) {
     } else {
       ret = LAGOPUS_RESULT_OK;
     }
-    bridgeq_mgr_unlock();
   } else {
     ret = LAGOPUS_RESULT_INVALID_OBJECT;
     lagopus_msg_warning("bridgeq_table is NULL.\n");
@@ -245,7 +246,7 @@ bridgeq_mgr_map_to_array(void) {
 }
 
 static inline lagopus_result_t
-bridge_register(uint64_t dpid, struct ofp_bridgeq *bridgeq) {
+bridge_register_internal(uint64_t dpid, struct ofp_bridgeq *bridgeq) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   struct ofp_bridgeq *brq = bridgeq;
 
@@ -263,11 +264,10 @@ bridge_register(uint64_t dpid, struct ofp_bridgeq *bridgeq) {
 }
 
 static inline lagopus_result_t
-bridge_unregister(uint64_t dpid, bool force) {
+bridge_unregister_internal(uint64_t dpid, bool force) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   struct ofp_bridgeq *brq = NULL;
 
-  bridgeq_mgr_lock();
   /* delete from bridgeq_table */
   ret = lagopus_hashmap_delete(&bridgeq_table,
                                (void *)dpid, (void **)&brq, false);
@@ -279,6 +279,54 @@ bridge_unregister(uint64_t dpid, bool force) {
     ret = LAGOPUS_RESULT_OK;
   } else {
     lagopus_perror(ret);
+  }
+
+  return ret;
+}
+
+static inline lagopus_result_t
+bridge_register(uint64_t dpid, struct ofp_bridgeq *bridgeq) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+
+  if (bridgeq != NULL) {
+    bridgeq_mgr_lock();
+
+    if ((ret = bridge_register_internal(dpid, bridgeq)) != LAGOPUS_RESULT_OK) {
+      lagopus_perror(ret);
+      ofp_bridgeq_free(bridgeq, true);
+    } else {
+      /* update array. */
+      bridgeqs_clear();
+      ret = bridgeq_mgr_map_to_array();
+      if (ret != LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        (void) bridge_unregister_internal(dpid, true);
+      }
+    }
+    bridgeq_mgr_unlock();
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  return ret;
+}
+
+static inline lagopus_result_t
+bridge_unregister(uint64_t dpid, bool force) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+
+  bridgeq_mgr_lock();
+  bridgeqs_clear();
+
+  ret = bridge_unregister_internal(dpid, force);
+  if (ret != LAGOPUS_RESULT_OK) {
+    lagopus_perror(ret);
+  } else {
+    /* update array. */
+    ret = bridgeq_mgr_map_to_array();
+    if (ret != LAGOPUS_RESULT_OK) {
+      lagopus_perror(ret);
+    }
   }
   bridgeq_mgr_unlock();
 
@@ -356,14 +404,6 @@ ofp_bridgeq_mgr_bridge_register(uint64_t dpid,
           /* register. */
           if ((ret = bridge_register(dpid, bridgeq)) != LAGOPUS_RESULT_OK) {
             lagopus_perror(ret);
-            ofp_bridgeq_free(bridgeq, true);
-          } else {
-            /* update array. */
-            ret = bridgeq_mgr_map_to_array();
-            if (ret != LAGOPUS_RESULT_OK) {
-              lagopus_perror(ret);
-              (void) bridge_unregister(dpid, true);
-            }
           }
         }
       }
@@ -385,15 +425,9 @@ ofp_bridgeq_mgr_bridge_unregister(uint64_t dpid) {
   lagopus_msg_debug(1, "called. (dpid: %"PRIu64")\n", dpid);
 
   if (bridgeq_table != NULL) {
-    ret = bridge_unregister(dpid, false);
-    if (ret != LAGOPUS_RESULT_OK) {
+    if ((ret = bridge_unregister(dpid, false)) !=
+        LAGOPUS_RESULT_OK) {
       lagopus_perror(ret);
-    } else {
-      /* update array. */
-      ret = bridgeq_mgr_map_to_array();
-      if (ret != LAGOPUS_RESULT_OK) {
-        lagopus_perror(ret);
-      }
     }
   } else {
     ret = LAGOPUS_RESULT_INVALID_OBJECT;
@@ -410,11 +444,13 @@ ofp_bridgeq_mgr_bridge_lookup(uint64_t dpid,
 
   if (bridgeq != NULL) {
     if (bridgeq_table != NULL) {
+      bridgeq_mgr_lock();
       ret = lagopus_hashmap_find(&bridgeq_table,
                                  (void *)dpid, (void **)bridgeq);
       if (ret == LAGOPUS_RESULT_OK) {
         ofp_bridgeq_refs_get(*bridgeq);
       }
+      bridgeq_mgr_unlock();
     } else {
       ret = LAGOPUS_RESULT_INVALID_OBJECT;
       lagopus_msg_warning("bridgeq_table is NULL.\n");
@@ -610,6 +646,7 @@ ofp_bridgeq_mgr_dataq_max_batches_set(uint64_t dpid,
   struct ofp_bridgeq *bridgeq = NULL;
 
   if (bridgeq_table != NULL) {
+    bridgeq_mgr_lock();
     ret = lagopus_hashmap_find(&bridgeq_table,
                                (void *)dpid, (void **)&bridgeq);
     if (ret == LAGOPUS_RESULT_OK) {
@@ -621,6 +658,7 @@ ofp_bridgeq_mgr_dataq_max_batches_set(uint64_t dpid,
       }
       bridgeq_unlock(bridgeq);
     }
+    bridgeq_mgr_unlock();
   } else {
     ret = LAGOPUS_RESULT_INVALID_OBJECT;
     lagopus_msg_warning("bridgeq_table is NULL.\n");
@@ -636,6 +674,7 @@ ofp_bridgeq_mgr_eventq_max_batches_set(uint64_t dpid,
   struct ofp_bridgeq *bridgeq = NULL;
 
   if (bridgeq_table != NULL) {
+    bridgeq_mgr_lock();
     ret = lagopus_hashmap_find(&bridgeq_table,
                                (void *)dpid, (void **)&bridgeq);
     if (ret == LAGOPUS_RESULT_OK) {
@@ -647,6 +686,7 @@ ofp_bridgeq_mgr_eventq_max_batches_set(uint64_t dpid,
       }
       bridgeq_unlock(bridgeq);
     }
+    bridgeq_mgr_unlock();
   } else {
     ret = LAGOPUS_RESULT_INVALID_OBJECT;
     lagopus_msg_warning("bridgeq_table is NULL.\n");
@@ -662,6 +702,7 @@ ofp_bridgeq_mgr_event_dataq_max_batches_set(uint64_t dpid,
   struct ofp_bridgeq *bridgeq = NULL;
 
   if (bridgeq_table != NULL) {
+    bridgeq_mgr_lock();
     ret = lagopus_hashmap_find(&bridgeq_table,
                                (void *)dpid, (void **)&bridgeq);
     if (ret == LAGOPUS_RESULT_OK) {
@@ -673,6 +714,7 @@ ofp_bridgeq_mgr_event_dataq_max_batches_set(uint64_t dpid,
       }
       bridgeq_unlock(bridgeq);
     }
+    bridgeq_mgr_unlock();
   } else {
     ret = LAGOPUS_RESULT_INVALID_OBJECT;
     lagopus_msg_warning("bridgeq_table is NULL.\n");
@@ -691,6 +733,7 @@ ofp_bridgeq_mgr_stats_get(uint64_t dpid,
   uint16_t event_dataq_stats = 0;
 
   if (bridgeq_table != NULL) {
+    bridgeq_mgr_lock();
     ret = lagopus_hashmap_find(&bridgeq_table,
                                (void *)dpid, (void **)&bridgeq);
     if (ret == LAGOPUS_RESULT_OK) {
@@ -716,14 +759,15 @@ ofp_bridgeq_mgr_stats_get(uint64_t dpid,
       stats->up_streamq_entries = eventq_stats;
       stats->down_streamq_entries = event_dataq_stats;
 
+   done:
       bridgeq_unlock(bridgeq);
     }
+    bridgeq_mgr_unlock();
   } else {
     ret = LAGOPUS_RESULT_INVALID_OBJECT;
     lagopus_msg_warning("bridgeq_table is NULL.\n");
   }
 
-done:
   return ret;
 }
 
@@ -734,6 +778,7 @@ ofp_bridgeq_mgr_name_get(uint64_t dpid,
   struct ofp_bridgeq *bridgeq = NULL;
 
   if (bridgeq_table != NULL) {
+    bridgeq_mgr_lock();
     ret = lagopus_hashmap_find(&bridgeq_table,
                                (void *)dpid, (void **)&bridgeq);
     if (ret == LAGOPUS_RESULT_OK) {
@@ -745,16 +790,17 @@ ofp_bridgeq_mgr_name_get(uint64_t dpid,
         goto done;
       }
 
+   done:
       bridgeq_unlock(bridgeq);
     } else {
       *name = NULL;
     }
+    bridgeq_mgr_unlock();
   } else {
     ret = LAGOPUS_RESULT_INVALID_OBJECT;
     lagopus_msg_warning("bridgeq_table is NULL.\n");
   }
 
-done:
   return ret;
 }
 
@@ -765,6 +811,7 @@ ofp_bridgeq_mgr_info_get(uint64_t dpid,
   struct ofp_bridgeq *bridgeq = NULL;
 
   if (bridgeq_table != NULL) {
+    bridgeq_mgr_lock();
     ret = lagopus_hashmap_find(&bridgeq_table,
                                (void *)dpid, (void **)&bridgeq);
     if (ret == LAGOPUS_RESULT_OK) {
@@ -776,13 +823,14 @@ ofp_bridgeq_mgr_info_get(uint64_t dpid,
         goto done;
       }
 
+   done:
       bridgeq_unlock(bridgeq);
     }
+    bridgeq_mgr_unlock();
   } else {
     ret = LAGOPUS_RESULT_INVALID_OBJECT;
     lagopus_msg_warning("bridgeq_table is NULL.\n");
   }
 
-done:
   return ret;
 }
