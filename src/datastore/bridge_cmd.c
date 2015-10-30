@@ -89,6 +89,15 @@ enum bridge_opts {
   OPT_MAX,
 };
 
+/* clear queue option num. */
+enum bridge_clear_q_opts {
+  OPT_CLEAR_Q_PACKET_INQ = 0,
+  OPT_CLEAR_Q_UP_STREAMQ,
+  OPT_CLEAR_Q_DOWN_STREAMQ,
+
+  OPT_CLEAR_Q_MAX,
+};
+
 /* stats num. */
 enum bridge_stats {
   STATS_PACKET_INQ_ENTRIES = 0,
@@ -108,7 +117,7 @@ enum bridge_stats {
 static const char *const opt_strs[OPT_MAX] = {
   "*name",                     /* OPT_NAME (not option) */
   "*controllers",              /* OPT_CONTROLLERS (not option) */
-  "-controller",               /* OPT_CONTROLLER*/
+  "-controller",               /* OPT_CONTROLLER */
   "*ports",                    /* OPT_PORTS (not option) */
   "-port",                     /* OPT_PORT  */
   "-l2-bridge",                /* OPT_L2_BRIDGE */
@@ -144,6 +153,13 @@ static const char *const opt_strs[OPT_MAX] = {
 
   "*is-used",                  /* OPT_IS_USED (not option) */
   "*is-enabled",               /* OPT_IS_ENABLED (not option) */
+};
+
+/* clear queue option name. */
+static const char *const clear_q_opt_strs[OPT_CLEAR_Q_MAX] = {
+  "-packet-inq",
+  "-up-streamq",
+  "-down-streamq",
 };
 
 /* stats name. */
@@ -185,9 +201,12 @@ typedef lagopus_result_t
 (*uint16_set_proc_t)(bridge_attr_t *attr, const uint16_t num);
 typedef lagopus_result_t
 (*uint8_set_proc_t)(bridge_attr_t *attr, const uint8_t num);
+typedef lagopus_result_t
+(*clear_q_proc_t)(uint64_t dpid);
 
 static lagopus_hashmap_t sub_cmd_table = NULL;
 static lagopus_hashmap_t opt_table = NULL;
+static lagopus_hashmap_t opt_clear_queue_table = NULL;
 static lagopus_hashmap_t port_table = NULL;
 
 static inline lagopus_result_t
@@ -2589,6 +2608,44 @@ bool_opt_parse(const char *const *argv[],
   return ret;
 }
 
+static inline lagopus_result_t
+clear_q_opt_parse(const char *const *argv[],
+                  bridge_conf_t *conf,
+                  configs_t *configs,
+                  void *proc,
+                  lagopus_dstring_t *result) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  bridge_attr_t *attr = NULL;
+  uint64_t dpid;
+
+  if (argv != NULL && conf != NULL &&
+      configs != NULL && proc != NULL &&
+      result != NULL) {
+    attr = conf->current_attr == NULL ?
+        conf->modified_attr : conf->current_attr;
+
+    if (attr != NULL) {
+      if ((ret = bridge_get_dpid(attr, &dpid)) ==
+          LAGOPUS_RESULT_OK) {
+        ret = ((clear_q_proc_t) proc)(dpid);
+      } else {
+        ret = datastore_json_result_set(result, ret, NULL);
+      }
+    } else {
+      ret = datastore_json_result_string_setf(
+          result,
+          LAGOPUS_RESULT_INVALID_OBJECT,
+          "Bad attr (%s).", conf->name);
+    }
+  } else {
+    ret = datastore_json_result_set(result,
+                                    LAGOPUS_RESULT_INVALID_ARGS,
+                                    NULL);
+  }
+
+  return ret;
+}
+
 static lagopus_result_t
 controller_opt_parse(const char *const *argv[],
                      void *c, void *out_configs,
@@ -3364,6 +3421,33 @@ block_looping_ports_opt_parse(const char *const *argv[],
 }
 
 static lagopus_result_t
+packet_inq_opt_parse(const char *const *argv[],
+                     void *c, void *out_configs,
+                     lagopus_dstring_t *result) {
+  return clear_q_opt_parse(argv, (bridge_conf_t *) c, (configs_t *) out_configs,
+                           &ofp_bridgeq_mgr_dataq_clear,
+                           result);
+}
+
+static lagopus_result_t
+up_streamq_opt_parse(const char *const *argv[],
+                     void *c, void *out_configs,
+                     lagopus_dstring_t *result) {
+  return clear_q_opt_parse(argv, (bridge_conf_t *) c, (configs_t *) out_configs,
+                           &ofp_bridgeq_mgr_eventq_clear,
+                           result);
+}
+
+static lagopus_result_t
+down_streamq_opt_parse(const char *const *argv[],
+                       void *c, void *out_configs,
+                       lagopus_dstring_t *result) {
+  return clear_q_opt_parse(argv, (bridge_conf_t *) c, (configs_t *) out_configs,
+                           &ofp_bridgeq_mgr_event_dataq_clear,
+                           result);
+}
+
+static lagopus_result_t
 action_type_opt_parse(const char *const *argv[],
                       void *c, void *out_configs,
                       lagopus_dstring_t *result) {
@@ -3927,6 +4011,75 @@ done:
   return ret;
 }
 
+static inline lagopus_result_t
+clear_queue_opt_parse(const char *const argv[],
+                      bridge_conf_t *conf,
+                      configs_t *out_configs,
+                      lagopus_dstring_t *result) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  void *opt_proc;
+
+  argv++;
+  if (*argv != NULL) {
+    while (*argv != NULL) {
+      if (IS_VALID_STRING(*(argv)) == true) {
+        if (lagopus_hashmap_find(&opt_clear_queue_table,
+                                 (void *)(*argv),
+                                 &opt_proc) == LAGOPUS_RESULT_OK) {
+          /* parse opt. */
+          if (opt_proc != NULL) {
+            ret = ((opt_proc_t) opt_proc)(&argv,
+                                          (void *) conf,
+                                          (void *) out_configs,
+                                          result);
+            if (ret != LAGOPUS_RESULT_OK) {
+              goto done;
+            }
+          } else {
+            ret = LAGOPUS_RESULT_NOT_FOUND;
+            lagopus_perror(ret);
+            goto done;
+          }
+        } else {
+          ret = datastore_json_result_string_setf(result,
+                                                  LAGOPUS_RESULT_INVALID_ARGS,
+                                                  "opt = %s.", *argv);
+          goto done;
+        }
+      } else {
+        ret = datastore_json_result_set(result,
+                                        LAGOPUS_RESULT_INVALID_ARGS,
+                                        NULL);
+        goto done;
+      }
+      argv++;
+    }
+  } else {
+    /* clear all queue. */
+    if ((ret = packet_inq_opt_parse(&argv,
+                                    (void *) conf,
+                                    (void *) out_configs,
+                                    result)) != LAGOPUS_RESULT_OK) {
+      goto done;
+    }
+    if ((ret = up_streamq_opt_parse(&argv,
+                                    (void *) conf,
+                                    (void *) out_configs,
+                                    result)) != LAGOPUS_RESULT_OK) {
+      goto done;
+    }
+    if ((ret = down_streamq_opt_parse(&argv,
+                                      (void *) conf,
+                                      (void *) out_configs,
+                                      result)) != LAGOPUS_RESULT_OK) {
+      goto done;
+    }
+  }
+
+done:
+  return ret;
+}
+
 static lagopus_result_t
 create_sub_cmd_parse_internal(datastore_interp_t *iptr,
                               datastore_interp_state_t state,
@@ -4452,6 +4605,48 @@ stats_sub_cmd_parse(datastore_interp_t *iptr,
   }
 
 done:
+  return ret;
+}
+
+static lagopus_result_t
+clear_queue_sub_cmd_parse(datastore_interp_t *iptr,
+                          datastore_interp_state_t state,
+                          size_t argc, const char *const argv[],
+                          char *name,
+                          lagopus_hashmap_t *hptr,
+                          datastore_update_proc_t proc,
+                          void *out_configs,
+                          lagopus_dstring_t *result) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  bridge_conf_t *conf = NULL;
+  (void) iptr;
+  (void) state;
+  (void) argc;
+  (void) argv;
+  (void) hptr;
+  (void) proc;
+  (void) out_configs;
+  (void) result;
+
+  if (name != NULL) {
+    ret = bridge_find(name, &conf);
+
+    if (ret == LAGOPUS_RESULT_OK &&
+        conf->is_destroying == false) {
+      ret = clear_queue_opt_parse(argv,
+                                  conf,
+                                  out_configs,
+                                  result);
+    } else {
+      ret = datastore_json_result_string_setf(result,
+                                              LAGOPUS_RESULT_INVALID_OBJECT,
+                                              "name = %s", name);
+    }
+  } else {
+    ret = datastore_json_result_set(result, LAGOPUS_RESULT_INVALID_ARGS,
+                                    NULL);
+  }
+
   return ret;
 }
 
@@ -6872,6 +7067,9 @@ initialize_internal(void) {
        LAGOPUS_RESULT_OK) ||
       ((ret = sub_cmd_add(STATS_SUB_CMD, stats_sub_cmd_parse,
                           &sub_cmd_table)) !=
+       LAGOPUS_RESULT_OK) ||
+      ((ret = sub_cmd_add(CLEAR_QUEUE_SUB_CMD, clear_queue_sub_cmd_parse,
+                          &sub_cmd_table)) !=
        LAGOPUS_RESULT_OK)) {
     goto done;
   }
@@ -6974,6 +7172,29 @@ initialize_internal(void) {
     goto done;
   }
 
+  /* create hashmap for clear queue opt. */
+  if ((ret = lagopus_hashmap_create(&opt_clear_queue_table,
+                                    LAGOPUS_HASHMAP_TYPE_STRING,
+                                    NULL)) != LAGOPUS_RESULT_OK) {
+    lagopus_perror(ret);
+    goto done;
+  }
+
+  if (((ret = opt_add(clear_q_opt_strs[OPT_CLEAR_Q_PACKET_INQ],
+                      packet_inq_opt_parse,
+                      &opt_clear_queue_table)) !=
+       LAGOPUS_RESULT_OK) ||
+      ((ret = opt_add(clear_q_opt_strs[OPT_CLEAR_Q_UP_STREAMQ],
+                      up_streamq_opt_parse,
+                      &opt_clear_queue_table)) !=
+       LAGOPUS_RESULT_OK) ||
+      ((ret = opt_add(clear_q_opt_strs[OPT_CLEAR_Q_DOWN_STREAMQ],
+                      down_streamq_opt_parse,
+                      &opt_clear_queue_table)) !=
+       LAGOPUS_RESULT_OK)) {
+    goto done;
+  }
+
   if ((ret = datastore_register_table(CMD_NAME,
                                       &bridge_table,
                                       bridge_cmd_update,
@@ -7024,6 +7245,8 @@ bridge_cmd_finalize(void) {
   sub_cmd_table = NULL;
   lagopus_hashmap_destroy(&opt_table, true);
   opt_table = NULL;
+  lagopus_hashmap_destroy(&opt_clear_queue_table, true);
+  opt_clear_queue_table = NULL;
   lagopus_hashmap_destroy(&port_table, true);
   port_table = NULL;
   bridge_finalize();

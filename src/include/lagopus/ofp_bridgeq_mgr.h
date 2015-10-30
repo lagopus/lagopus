@@ -368,6 +368,45 @@ ofp_bridgeq_mgr_stats_get(uint64_t dpid,
                           datastore_bridge_stats_t *q_stats);
 
 /**
+ * Clear dataq.
+ *
+ *     @param[in]	dpid	dpid
+ *
+ *     @retval	LAGOPUS_RESULT_OK	Succeeded.
+ *     @retval	LAGOPUS_RESULT_INVALID_ARGS	Failed, invalid args.
+ *     @retval	LAGOPUS_RESULT_NOT_FOUND	Failed, Not found.
+ *     @retval	LAGOPUS_RESULT_ANY_FAILURES	Failed.
+ */
+lagopus_result_t
+ofp_bridgeq_mgr_dataq_clear(uint64_t dpid);
+
+/**
+ * Clear eventq.
+ *
+ *     @param[in]	dpid	dpid
+ *
+ *     @retval	LAGOPUS_RESULT_OK	Succeeded.
+ *     @retval	LAGOPUS_RESULT_INVALID_ARGS	Failed, invalid args.
+ *     @retval	LAGOPUS_RESULT_NOT_FOUND	Failed, Not found.
+ *     @retval	LAGOPUS_RESULT_ANY_FAILURES	Failed.
+ */
+lagopus_result_t
+ofp_bridgeq_mgr_eventq_clear(uint64_t dpid);
+
+/**
+ * Clear event_dataq.
+ *
+ *     @param[in]	dpid	dpid
+ *
+ *     @retval	LAGOPUS_RESULT_OK	Succeeded.
+ *     @retval	LAGOPUS_RESULT_INVALID_ARGS	Failed, invalid args.
+ *     @retval	LAGOPUS_RESULT_NOT_FOUND	Failed, Not found.
+ *     @retval	LAGOPUS_RESULT_ANY_FAILURES	Failed.
+ */
+lagopus_result_t
+ofp_bridgeq_mgr_event_dataq_clear(uint64_t dpid);
+
+/**
  * Get bridge name.
  *
  *     @param[in]	dpid	dpid

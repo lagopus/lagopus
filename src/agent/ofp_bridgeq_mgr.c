@@ -772,6 +772,75 @@ ofp_bridgeq_mgr_stats_get(uint64_t dpid,
 }
 
 lagopus_result_t
+ofp_bridgeq_mgr_dataq_clear(uint64_t dpid) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  struct ofp_bridgeq *bridgeq = NULL;
+
+  if (bridgeq_table != NULL) {
+    bridgeq_mgr_lock();
+    ret = lagopus_hashmap_find(&bridgeq_table,
+                               (void *)dpid, (void **)&bridgeq);
+    if (ret == LAGOPUS_RESULT_OK) {
+      bridgeq_lock(bridgeq);
+      ret = ofp_bridge_dataq_clear(bridgeq->ofp_bridge);
+      bridgeq_unlock(bridgeq);
+    }
+    bridgeq_mgr_unlock();
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_OBJECT;
+    lagopus_msg_warning("bridgeq_table is NULL.\n");
+  }
+
+  return ret;
+}
+
+lagopus_result_t
+ofp_bridgeq_mgr_eventq_clear(uint64_t dpid) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  struct ofp_bridgeq *bridgeq = NULL;
+
+  if (bridgeq_table != NULL) {
+    bridgeq_mgr_lock();
+    ret = lagopus_hashmap_find(&bridgeq_table,
+                               (void *)dpid, (void **)&bridgeq);
+    if (ret == LAGOPUS_RESULT_OK) {
+      bridgeq_lock(bridgeq);
+      ret = ofp_bridge_eventq_clear(bridgeq->ofp_bridge);
+      bridgeq_unlock(bridgeq);
+    }
+    bridgeq_mgr_unlock();
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_OBJECT;
+    lagopus_msg_warning("bridgeq_table is NULL.\n");
+  }
+
+  return ret;
+}
+
+lagopus_result_t
+ofp_bridgeq_mgr_event_dataq_clear(uint64_t dpid) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  struct ofp_bridgeq *bridgeq = NULL;
+
+  if (bridgeq_table != NULL) {
+    bridgeq_mgr_lock();
+    ret = lagopus_hashmap_find(&bridgeq_table,
+                               (void *)dpid, (void **)&bridgeq);
+    if (ret == LAGOPUS_RESULT_OK) {
+      bridgeq_lock(bridgeq);
+      ret = ofp_bridge_event_dataq_clear(bridgeq->ofp_bridge);
+      bridgeq_unlock(bridgeq);
+    }
+    bridgeq_mgr_unlock();
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_OBJECT;
+    lagopus_msg_warning("bridgeq_table is NULL.\n");
+  }
+
+  return ret;
+}
+
+lagopus_result_t
 ofp_bridgeq_mgr_name_get(uint64_t dpid,
                          char **name) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;

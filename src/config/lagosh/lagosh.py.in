@@ -438,7 +438,7 @@ class Configure(Cmd):
         Load configuration file and commit immediately.
         So far, use raw DSL output.
         """
-        conffile = '@PREFIX@/etc/lagopus/lagopus.conf'
+        conffile = '@PREFIX@/etc/lagopus/lagopus.dsl'
         # Load candidate config and convert to DSL
         # Load DSL.
         ds_client().call('destroy-all-obj\n')
@@ -452,7 +452,7 @@ class Configure(Cmd):
         Load configuration file and commit immediately.
         So far, use raw DSL output.
         """
-        conffile = '@PREFIX@/etc/lagopus/lagopus.conf'
+        conffile = '@PREFIX@/etc/lagopus/lagopus.dsl'
         # Load candidate config and convert to DSL
         # Load DSL.
         ds_client().call('save ' + conffile + '\n')
