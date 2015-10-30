@@ -422,6 +422,7 @@ dpcomm_initialize(int argc,
   (void) argv;
 
   commarg.threadptr = &comm_thread;
+  commarg.lock = &comm_lock;
   commarg.running = &comm_run;
   *thdptr = &comm_thread;
 

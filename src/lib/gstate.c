@@ -87,9 +87,16 @@ s_final(void) {
 
 static void
 s_dtors(void) {
-  s_final();
+  if (lagopus_module_is_unloading() &&
+      lagopus_module_is_finalized_cleanly()) {
 
-  lagopus_msg_debug(10, "The global status tracker finalized.\n");
+    s_final();
+
+    lagopus_msg_debug(10, "The global status tracker finalized.\n");
+  } else {
+    lagopus_msg_debug(10, "The global status tracker is not finalized "
+                      "because of module finalization problem.\n");
+  }
 }
 
 

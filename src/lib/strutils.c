@@ -252,8 +252,15 @@ s_final(void) {
 
 static void
 s_dtors(void) {
-  s_final();
-  lagopus_msg_debug(5, "The string utility module finalized.\n");
+  if (lagopus_module_is_unloading() &&
+      lagopus_module_is_finalized_cleanly()) {
+    s_final();
+
+    lagopus_msg_debug(5, "The string utility module finalized.\n");
+  } else {
+    lagopus_msg_debug(10, "The string utility module is not finalized"
+                      "because of module finalization problem.\n");
+  }
 }
 
 

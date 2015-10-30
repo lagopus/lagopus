@@ -2100,10 +2100,12 @@ bridge_cmd_do_destroy(bridge_conf_t *conf,
       }
     }
 
-    ret = bri_destroy(conf->name, conf->current_attr, result);
-    if (ret != LAGOPUS_RESULT_OK) {
-      /* ignore error. */
-      lagopus_msg_warning("ret = %s", lagopus_error_get_string(ret));
+    if (conf->current_attr != NULL) {
+      ret = bri_destroy(conf->name, conf->current_attr, result);
+      if (ret != LAGOPUS_RESULT_OK) {
+        /* ignore error. */
+        lagopus_msg_warning("ret = %s", lagopus_error_get_string(ret));
+      }
     }
 
     ret = bridge_conf_delete(conf);
@@ -3012,6 +3014,18 @@ port_opt_parse(const char *const *argv[],
                 result, LAGOPUS_RESULT_NOT_FOUND,
                 "port name = %s.", fullname);
             goto done;
+          }
+
+          if (*(*argv + 1) != NULL) {
+            if (IS_VALID_OPT(*(*argv + 1)) == false) {
+              /* argv + 1 equals option string(-XXX). */
+              ret = datastore_json_result_string_setf(
+                  result, LAGOPUS_RESULT_INVALID_ARGS,
+                  "Bad opt value = %s. "
+                  "Do not specify the port number.",
+                  *(*argv + 1));
+              goto done;
+            }
           }
 
           /* 0 means unassigned port. */

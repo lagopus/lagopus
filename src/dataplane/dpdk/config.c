@@ -818,6 +818,9 @@ app_parse_args(int argc, const char *argv[]) {
 
   /* Check that all mandatory arguments are provided */
   if ((arg_rx == 0 || arg_tx == 0 || arg_w == 0) && arg_p == 0) {
+    if (rawsocket_only_mode == true) {
+      goto out;
+    }
     lagopus_exit_error(EXIT_FAILURE,
                        "Not all mandatory arguments are present\n");
   }
@@ -1061,7 +1064,7 @@ app_parse_args(int argc, const char *argv[]) {
     }
     exit(0);
   }
-
+out:
   if (optind >= 0) {
     argv[optind - 1] = prgname;
   }

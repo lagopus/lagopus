@@ -109,9 +109,15 @@ s_final(void) {
 
 static void
 s_dtors(void) {
-  s_final();
+  if (lagopus_module_is_unloading() &&
+      lagopus_module_is_finalized_cleanly()) {
+    s_final();
 
-  lagopus_msg_debug(10, "The mutex/lock APIs are finalized.\n");
+    lagopus_msg_debug(10, "The mutex/lock APIs are finalized.\n");
+  } else {
+    lagopus_msg_debug(10, "The mutex/lock APIs is not finalized "
+                      "because of module finalization problem.\n");
+  }
 }
 
 

@@ -169,9 +169,11 @@ app_lcore_worker(struct app_lcore_params_worker *lp,
       pkt = (struct lagopus_packet *)
             (m->buf_addr + APP_DEFAULT_MBUF_LOCALDATA_OFFSET);
 #ifdef RTE_MBUF_HAS_PKT
-      port = dp_port_lookup(m->pkt.in_port);
+      port = dp_port_lookup(DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_PHY,
+                            m->pkt.in_port);
 #else
-      port = dp_port_lookup(m->port);
+      port = dp_port_lookup(DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_PHY,
+                            m->port);
 #endif /* RTE_MBUF_HAS_PKT */
       if (port == NULL ||
           port->bridge == NULL ||

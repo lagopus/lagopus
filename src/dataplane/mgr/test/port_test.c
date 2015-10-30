@@ -74,7 +74,7 @@ test_dp_port_interface_set_unset(void) {
   TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_NOT_FOUND);
   rv = dp_port_interface_set("port0", "if0");
   TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
-  TEST_ASSERT_NOT_EQUAL(dp_port_lookup(0), NULL);
+  TEST_ASSERT_NOT_EQUAL(dp_port_lookup(0, 0), NULL);
   rv = dp_port_interface_unset("port1");
   TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_NOT_FOUND);
   rv = dp_port_interface_unset("port0");

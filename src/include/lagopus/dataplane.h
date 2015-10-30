@@ -77,7 +77,7 @@ struct bucket;
 
 struct dataplane_arg {
   lagopus_thread_t *threadptr;
-  struct dpmgr *dpmgr;
+  lagopus_mutex_t *lock;
   int argc;
   char **argv;
   bool *running;
@@ -594,6 +594,11 @@ lagopus_dataplane_init(int argc, const char * const argv[]);
 /**
  */
 lagopus_result_t
+rawsock_dataplane_init(int argc, const char *const argv[]);
+
+/**
+ */
+lagopus_result_t
 dataplane_initialize(int argc, const char *const argv[],
                      void *extarg, lagopus_thread_t **thdptr);
 
@@ -602,10 +607,10 @@ dataplane_initialize(int argc, const char *const argv[],
 void dataplane_finalize(void);
 
 /**
- * dataplane main loop function.
+ * loop function wait for finish all DPDK thread.
  */
 lagopus_result_t
-dataplane_thread_loop(const lagopus_thread_t *, void *);
+dpdk_thread_loop(const lagopus_thread_t *, void *);
 
 /**
  * dataplane start function.
@@ -702,7 +707,7 @@ void copy_dataplane_info(char *buf, int len);
  * @param[in]   t       Thread object pointer.
  * @param[in]   arg     Do not used argument.
  */
-lagopus_result_t rawsocket_thread_loop(const lagopus_thread_t *t, void *arg);
+lagopus_result_t rawsock_thread_loop(const lagopus_thread_t *t, void *arg);
 
 /**
  * Print usage.
@@ -710,5 +715,7 @@ lagopus_result_t rawsocket_thread_loop(const lagopus_thread_t *t, void *arg);
  * @param[in]   fp      Output file pointer.
  */
 void dataplane_usage(FILE *fp);
+
+bool rawsocket_only_mode;
 
 #endif /* SRC_INCLUDE_LAGOPUS_DATAPLANE_H_ */

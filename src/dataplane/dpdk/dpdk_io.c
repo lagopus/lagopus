@@ -127,6 +127,8 @@
 #define APP_LCORE_IO_FLUSH           10000
 #endif
 
+#define DP_UPDATE_COUNT		     (1 * 1000 * 1000)
+
 #define APP_IO_RX_DROP_ALL_PACKETS   0
 #define APP_IO_TX_DROP_ALL_PACKETS   0
 
@@ -648,21 +650,32 @@ app_lcore_io_tx_kni(struct app_lcore_params_io *lp, uint32_t bsz) {
 #endif /* __linux__ */
 
 static inline void
+dpdk_update_link_status(struct app_lcore_params_io *lp) {
+  int i;
+
+  for (i = 0; i < lp->tx.n_nic_ports; i++) {
+    struct port *port;
+    uint8_t portid;
+
+    portid = lp->tx.nic_ports[i];
+    port = dp_port_lookup(DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_PHY, portid);
+    if (port != NULL) {
+      update_port_link_status(port);
+    }
+  }
+}
+
+static inline void
 app_lcore_io_tx_flush(struct app_lcore_params_io *lp, __UNUSED void *arg) {
   uint8_t portid, i;
 
   for (i = 0; i < lp->tx.n_nic_ports; i++) {
     uint32_t n_pkts;
-    struct port *port;
 
     portid = lp->tx.nic_ports[i];
 #ifdef __linux__
     rte_kni_handle_request(lagopus_kni[portid]);
 #endif /* __linux__ */
-    port = dp_port_lookup(portid);
-    if (port != NULL) {
-      update_port_link_status(port);
-    }
 
     if (likely((lp->tx.mbuf_out_flush[portid] == 0) ||
                (lp->tx.mbuf_out[portid].n_mbufs == 0))) {
@@ -729,7 +742,8 @@ app_lcore_main_loop_io(void *arg) {
   uint32_t lcore = rte_lcore_id();
   struct app_lcore_params_io *lp = &app.lcore_params[lcore].io;
   uint32_t n_workers = app_get_lcores_worker();
-  uint64_t i = 0;
+  uint32_t flush_count = 0;
+  uint32_t update_count = 0;
 
   uint32_t bsz_rx_rd = app.burst_size_io_rx_read;
   uint32_t bsz_rx_wr = app.burst_size_io_rx_write;
@@ -739,48 +753,62 @@ app_lcore_main_loop_io(void *arg) {
   if (lp->rx.n_nic_queues > 0 && lp->tx.n_nic_ports == 0) {
     /* receive loop */
     for (;;) {
-      if (APP_LCORE_IO_FLUSH && (unlikely(i == APP_LCORE_IO_FLUSH))) {
+      if (APP_LCORE_IO_FLUSH && unlikely(flush_count == APP_LCORE_IO_FLUSH)) {
+        app_lcore_io_rx_flush(lp, n_workers);
+        flush_count = 0;
+      }
+      if (update_count == DP_UPDATE_COUNT) {
         if (rte_atomic32_read(&dpdk_stop) != 0) {
           break;
         }
-        app_lcore_io_rx_flush(lp, n_workers);
-        i = 0;
+        update_count = 0;
       }
       app_lcore_io_rx(lp, n_workers, bsz_rx_rd, bsz_rx_wr);
-      i++;
+      flush_count++;
+      update_count++;
     }
   } else if (lp->rx.n_nic_queues == 0 && lp->tx.n_nic_ports > 0) {
     /* transimit loop */
     for (;;) {
-      if (APP_LCORE_IO_FLUSH && (unlikely(i == APP_LCORE_IO_FLUSH))) {
+      if (APP_LCORE_IO_FLUSH && unlikely(flush_count == APP_LCORE_IO_FLUSH)) {
+        app_lcore_io_tx_flush(lp, arg);
+        flush_count = 0;
+      }
+      if (update_count == DP_UPDATE_COUNT) {
         if (rte_atomic32_read(&dpdk_stop) != 0) {
           break;
         }
-        app_lcore_io_tx_flush(lp, arg);
-        i = 0;
+        dpdk_update_link_status(lp);
+        update_count = 0;
       }
       app_lcore_io_tx(lp, n_workers, bsz_tx_rd, bsz_tx_wr);
 #ifdef __linux__
       app_lcore_io_tx_kni(lp, bsz_tx_wr);
 #endif /* __linux__ */
-      i++;
+      flush_count++;
+      update_count++;
     }
   } else {
     for (;;) {
-      if (APP_LCORE_IO_FLUSH && (unlikely(i == APP_LCORE_IO_FLUSH))) {
+      if (APP_LCORE_IO_FLUSH && unlikely(flush_count == APP_LCORE_IO_FLUSH)) {
+        app_lcore_io_rx_flush(lp, n_workers);
+        app_lcore_io_tx_flush(lp, arg);
+        flush_count = 0;
+      }
+      if (update_count == DP_UPDATE_COUNT) {
         if (rte_atomic32_read(&dpdk_stop) != 0) {
           break;
         }
-        app_lcore_io_rx_flush(lp, n_workers);
-        app_lcore_io_tx_flush(lp, arg);
-        i = 0;
+        dpdk_update_link_status(lp);
+        update_count = 0;
       }
       app_lcore_io_rx(lp, n_workers, bsz_rx_rd, bsz_rx_wr);
       app_lcore_io_tx(lp, n_workers, bsz_tx_rd, bsz_tx_wr);
 #ifdef __linux__
       app_lcore_io_tx_kni(lp, bsz_tx_wr);
 #endif /* __linux__ */
-      i++;
+      flush_count++;
+      update_count++;
     }
   }
   /* cleanup */
@@ -1555,7 +1583,13 @@ lagopus_is_portid_enabled(int portid) {
 
 void
 lagopus_packet_free(struct lagopus_packet *pkt) {
-  OS_M_FREE(pkt->mbuf);
+  if (rawsocket_only_mode != true) {
+    rte_pktmbuf_free(pkt->mbuf);
+  } else {
+    if (rte_mbuf_refcnt_update(pkt->mbuf, -1) == 0) {
+      free(pkt->mbuf);
+    }
+  }
 }
 
 int

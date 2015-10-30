@@ -884,10 +884,17 @@ s_ctors(void) {
   lagopus_msg_debug(10, "The session/TLS module is initialized.\n");
 }
 
+
 static void
 s_dtors(void) {
-  s_checkcert_final();
+  if (lagopus_module_is_unloading() &&
+      lagopus_module_is_finalized_cleanly()) {
+    s_checkcert_final();
 
-  lagopus_msg_debug(10, "The session/TLS module is finalized.\n");
+    lagopus_msg_debug(10, "The session/TLS module is finalized.\n");
+  } else {
+    lagopus_msg_debug(10, "The session/TLS module  is not finalized "
+                      "because of module finalization problem.\n");
+  }
 }
 

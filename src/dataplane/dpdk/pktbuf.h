@@ -34,6 +34,7 @@
 #define OS_M_PREPEND  rte_pktmbuf_prepend
 #define OS_M_APPEND   rte_pktmbuf_append
 #define OS_M_ADJ      rte_pktmbuf_adj
+#define OS_M_TRIM     rte_pktmbuf_trim
 #define OS_M_FREE     rte_pktmbuf_free
 #define OS_MTOD       rte_pktmbuf_mtod
 #define OS_M_ADDREF(m) rte_mbuf_refcnt_update((m), 1)
