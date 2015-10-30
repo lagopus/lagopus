@@ -124,10 +124,10 @@
 #endif
 
 #ifndef APP_LCORE_IO_FLUSH
-#define APP_LCORE_IO_FLUSH           10000
+#define APP_LCORE_IO_FLUSH           100
 #endif
 
-#define DP_UPDATE_COUNT		     (1 * 1000 * 1000)
+#define DP_UPDATE_COUNT		     (100 * 1000)
 
 #define APP_IO_RX_DROP_ALL_PACKETS   0
 #define APP_IO_TX_DROP_ALL_PACKETS   0

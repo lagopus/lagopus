@@ -111,7 +111,7 @@
 #include "dpdk/dpdk.h"
 
 #ifndef APP_LCORE_WORKER_FLUSH
-#define APP_LCORE_WORKER_FLUSH       10000
+#define APP_LCORE_WORKER_FLUSH       1000
 #endif
 
 #define APP_WORKER_DROP_ALL_PACKETS  0
