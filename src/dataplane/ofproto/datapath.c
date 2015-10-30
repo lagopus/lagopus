@@ -1173,7 +1173,8 @@ execute_group_action(struct lagopus_packet *pkt, uint32_t group_id) {
         }
       }
       /* to free original packet */
-      rv = LAGOPUS_RESULT_OK;
+      lagopus_packet_free(pkt);
+      rv = LAGOPUS_RESULT_NO_MORE_ACTION;
       break;
 
     case OFPGT_SELECT:
