@@ -636,7 +636,7 @@ class Topcmd(Cmd):
             data = ds_client().call('bridge\n')
             try:
                 for ifdata in data:
-                    req = 'flow ' + ifdata['name'].encode() + '\n'
+                    req = 'flow ' + ifdata['name'].encode() + ' -with-stats\n'
                     res = ds_client().call(req)[0]
                     odata.append(res)
                 self.output(json.dumps(odata, indent=4) + '\n')
