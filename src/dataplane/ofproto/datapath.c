@@ -2281,12 +2281,8 @@ dp_openflow_do_cached_action(struct lagopus_packet *pkt) {
     rv = LAGOPUS_RESULT_OK;
     for (i = 0; i < cache_entry->nmatched; i++) {
       flow = *flowp++;
-      if ((flow->flags & OFPFF_NO_PKT_COUNTS) == 0) {
-        flow->packet_count++;
-      }
-      if ((flow->flags & OFPFF_NO_BYT_COUNTS) == 0) {
-        flow->byte_count += OS_M_PKTLEN(pkt->mbuf);
-      }
+      flow->packet_count++;
+      flow->byte_count += OS_M_PKTLEN(pkt->mbuf);
       if (flow->idle_timeout != 0 || flow->hard_timeout != 0) {
         flow->update_time = get_current_time();
       }

@@ -1756,8 +1756,13 @@ table_flow_counts(struct table *table,
       }
     }
     if (match_compare(&flow->match_list, match_list) == true) {
-      reply->packet_count += flow->packet_count;
-      reply->byte_count += flow->byte_count;
+
+      if ((flow->flags & OFPFF_NO_PKT_COUNTS) == 0) {
+        reply->packet_count += flow->packet_count;
+      }
+      if ((flow->flags & OFPFF_NO_BYT_COUNTS) == 0) {
+        reply->byte_count += flow->byte_count;
+      }
       reply->flow_count++;
     }
   }
