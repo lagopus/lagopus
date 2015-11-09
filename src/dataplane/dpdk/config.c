@@ -86,6 +86,7 @@
 #include <rte_ip.h>
 #include <rte_tcp.h>
 #include <rte_string_fns.h>
+#include <rte_version.h>
 
 #include "lagopus_apis.h"
 #include "lagopus/dataplane.h"
@@ -120,7 +121,9 @@ static const char usage[] =
   "           hashmap         Use hashmap                                         \n"
   "           ptree           Use ptree                                           \n"
 #ifdef __SSE4_2__
+#if RTE_VERSION >= RTE_VERSION_NUM(2, 1, 0, 0)
   "           rte_hash        Use DPDK hash table                                 \n"
+#endif /* RTE_VERSION */
   "    --hashtype TYPE: Select hash type for flow cache                           \n"
   "           city64   CityHash(64bit) (default)                                  \n"
   "           intel64  Intel_hash64                                               \n"
@@ -583,8 +586,10 @@ parse_arg_kvstype(const char *arg) {
     app.kvs_type = FLOWCACHE_HASHMAP;
   } else if (!strcmp(arg, "ptree")) {
     app.kvs_type = FLOWCACHE_PTREE;
+#if RTE_VERSION >= RTE_VERSION_NUM(2, 1, 0, 0)
   } else if (!strcmp(arg, "rte_hash")) {
     app.kvs_type = FLOWCACHE_RTE_HASH;
+#endif /* RTE_VERSION */
   } else {
     return -1;
   }

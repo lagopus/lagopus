@@ -31,6 +31,8 @@
 #include "packet.h"
 
 #ifdef HAVE_DPDK
+#include <rte_version.h>
+#if RTE_VERSION >= RTE_VERSION_NUM(2, 1, 0, 0)
 #include <rte_hash.h>
 #ifdef __SSE4_2__
 #include <rte_hash_crc.h>
@@ -39,6 +41,7 @@
 #include <rte_jhash.h>
 #define HASH_FUNC       rte_jhash
 #endif
+#endif /* RTE_VERSION */
 #endif /* HAVE_DPDK */
 
 #define FLOWCACHE_BITLEN 32
@@ -60,7 +63,9 @@ struct flowcache_bank {
     struct ptree *ptree;
     lagopus_hashmap_t hashmap;
 #ifdef HAVE_DPDK
+#if RTE_VERSION >= RTE_VERSION_NUM(2, 1, 0, 0)
     struct rte_hash *hash;
+#endif /* RTE_VERSION */
 #endif /* HAVE_DPDK */
   };
   /* statistics */
@@ -100,6 +105,7 @@ init_flowcache_bank(int kvs_type) {
       break;
 
 #ifdef HAVE_DPDK
+#if RTE_VERSION >= RTE_VERSION_NUM(2, 1, 0, 0)
     case FLOWCACHE_RTE_HASH:
       {
         struct rte_hash_parameters params;
@@ -111,6 +117,7 @@ init_flowcache_bank(int kvs_type) {
         cache->hash = rte_hash_create(&params);
       }
       break;
+#endif /* RTE_VERSION */
 #endif /* HAVE_DPDK */
 
     case FLOWCACHE_HASHMAP:
@@ -171,6 +178,7 @@ register_cache_bank(struct flowcache_bank *cache,
       break;
 
 #ifdef HAVE_DPDK
+#if RTE_VERSION >= RTE_VERSION_NUM(2, 1, 0, 0)
     case FLOWCACHE_RTE_HASH:
       if (rte_hash_lookup_data(cache->hash,
                                (const void *)&hash32_h,
@@ -192,6 +200,7 @@ register_cache_bank(struct flowcache_bank *cache,
                               list);
       }
       break;
+#endif /* RTE_VERSION */
 #endif /* HAVE_DPDK */
 
     case FLOWCACHE_HASHMAP:
@@ -283,9 +292,11 @@ clear_all_cache_bank(struct flowcache_bank *cache) {
       break;
 
 #ifdef HAVE_DPDK
+#if RTE_VERSION >= RTE_VERSION_NUM(2, 1, 0, 0)
     case FLOWCACHE_RTE_HASH:
       rte_hash_reset(cache->hash);
       break;
+#endif /* RTE_VERSION */
 #endif /* HAVE_DPDK */
 
     case  FLOWCACHE_HASHMAP:
@@ -325,6 +336,7 @@ cache_lookup_bank(struct flowcache_bank *cache, struct lagopus_packet *pkt) {
       break;
 
 #ifdef HAVE_DPDK
+#if RTE_VERSION >= RTE_VERSION_NUM(2, 1, 0, 0)
     case FLOWCACHE_RTE_HASH:
       if (rte_hash_lookup_data(cache->hash,
                                (void *)&pkt->hash32_h,
@@ -332,6 +344,7 @@ cache_lookup_bank(struct flowcache_bank *cache, struct lagopus_packet *pkt) {
         list = NULL;
       }
       break;
+#endif /* RTE_VERSION */
 #endif /* HAVE_DPDK */
 
     case FLOWCACHE_HASHMAP:
@@ -373,9 +386,11 @@ fini_flowcache_bank(struct flowcache_bank *cache) {
       break;
 
 #ifdef HAVE_DPDK
+#if RTE_VERSION >= RTE_VERSION_NUM(2, 1, 0, 0)
     case FLOWCACHE_RTE_HASH:
       rte_hash_free(cache->hash);
       break;
+#endif /* RTE_VERSION */
 #endif /* HAVE_DPDK */
 
     case  FLOWCACHE_HASHMAP:
