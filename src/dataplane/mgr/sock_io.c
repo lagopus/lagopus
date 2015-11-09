@@ -34,6 +34,7 @@
 #include "lagopus/interface.h"
 #include "pktbuf.h"
 #include "packet.h"
+#include "csum.h"
 #include "pcap.h"
 
 static struct port_stats *port_stats(struct port *port);
@@ -338,6 +339,13 @@ rawsock_send_packet_physical(struct lagopus_packet *pkt, uint32_t portid) {
     plen = OS_M_PKTLEN(m);
     if (plen < 60) {
       memset(OS_M_APPEND(m, 60 - plen), 0, (uint32_t)(60 - plen));
+    }
+    if ((pkt->flags & PKT_FLAG_RECALC_CKSUM_MASK) != 0) {
+      if (pkt->ether_type == ETHERTYPE_IP) {
+        lagopus_update_ipv4_checksum(pkt);
+      } else if (pkt->ether_type == ETHERTYPE_IPV6) {
+        lagopus_update_ipv6_checksum(pkt);
+      }
     }
     (void)write(pollfd[portid].fd,
                 OS_MTOD(m, char *),

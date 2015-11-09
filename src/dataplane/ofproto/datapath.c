@@ -749,7 +749,7 @@ execute_action_set_field(struct lagopus_packet *pkt,
         /* IPv4, 6bit of ToS field */
         IPV4_TOS(pkt->ipv4) &= 0x03;
         IPV4_TOS(pkt->ipv4) |= (uint8_t)((*oxm_value) << 2);
-        lagopus_update_iphdr_checksum(pkt);
+        pkt->flags |= PKT_FLAG_RECALC_IPV4_CKSUM;
       } else if (pkt->ether_type == ETHERTYPE_IPV6) {
         /* IPv6, 6bit of Traffic Class field */
         IPV6_VTCF(pkt->ipv6) &= OS_HTONL(0xf03fffffU);
@@ -763,7 +763,7 @@ execute_action_set_field(struct lagopus_packet *pkt,
         /* IPv4, lower 2bit2 of ToS field */
         IPV4_TOS(pkt->ipv4) &= 0xfc;
         IPV4_TOS(pkt->ipv4) |= *oxm_value;
-        lagopus_update_iphdr_checksum(pkt);
+        pkt->flags |= PKT_FLAG_RECALC_IPV4_CKSUM;
       } else if (pkt->ether_type == ETHERTYPE_IPV6) {
         /* IPv6, 2bit of Traffic Class field */
         IPV6_VTCF(pkt->ipv6) &= OS_HTONL(0xffcfffffU);
@@ -775,7 +775,7 @@ execute_action_set_field(struct lagopus_packet *pkt,
       DP_PRINT("set_field ip_proto: %d\n", *oxm_value);
       *pkt->proto = *oxm_value;
       if (pkt->ether_type == ETHERTYPE_IP) {
-        lagopus_update_iphdr_checksum(pkt);
+        pkt->flags |= PKT_FLAG_RECALC_IPV4_CKSUM;
       }
       /* re-classify packet if needed. */
       re_classify_packet(pkt);
@@ -786,7 +786,7 @@ execute_action_set_field(struct lagopus_packet *pkt,
                oxm_value[0], oxm_value[1], oxm_value[2], oxm_value[3]);
       OS_MEMCPY(&val32, oxm_value, sizeof(uint32_t));
       IPV4_SRC(pkt->ipv4) = val32;
-      lagopus_update_ipv4_checksum(pkt);
+      pkt->flags |= PKT_FLAG_RECALC_IPV4_CKSUM | PKT_FLAG_RECALC_L4_CKSUM;
       break;
 
     case OFPXMT_OFB_IPV4_DST:
@@ -794,61 +794,61 @@ execute_action_set_field(struct lagopus_packet *pkt,
                oxm_value[0], oxm_value[1], oxm_value[2], oxm_value[3]);
       OS_MEMCPY(&val32, oxm_value, sizeof(uint32_t));
       IPV4_DST(pkt->ipv4) = val32;
-      lagopus_update_ipv4_checksum(pkt);
+      pkt->flags |= PKT_FLAG_RECALC_IPV4_CKSUM | PKT_FLAG_RECALC_L4_CKSUM;
       break;
 
     case OFPXMT_OFB_TCP_SRC:
       OS_MEMCPY(&val16, oxm_value, sizeof(uint16_t));
       DP_PRINT("set_field tcp_src: %d\n", OS_HTONS(val16));
       TCP_SPORT(pkt->tcp) = val16;
-      lagopus_update_tcp_checksum(pkt);
+      pkt->flags |= PKT_FLAG_RECALC_TCP_CKSUM;
       break;
 
     case OFPXMT_OFB_TCP_DST:
       OS_MEMCPY(&val16, oxm_value, sizeof(uint16_t));
       DP_PRINT("set_field tcp_dst: %d\n", OS_HTONS(val16));
       TCP_DPORT(pkt->tcp) = val16;
-      lagopus_update_tcp_checksum(pkt);
+      pkt->flags |= PKT_FLAG_RECALC_TCP_CKSUM;
       break;
 
     case OFPXMT_OFB_UDP_SRC:
       OS_MEMCPY(&val16, oxm_value, sizeof(uint16_t));
       DP_PRINT("set_field udp_src: %d\n", OS_HTONS(val16));
       UDP_SPORT(pkt->udp) = val16;
-      lagopus_update_udp_checksum(pkt);
+      pkt->flags |= PKT_FLAG_RECALC_UDP_CKSUM;
       break;
 
     case OFPXMT_OFB_UDP_DST:
       OS_MEMCPY(&val16, oxm_value, sizeof(uint16_t));
       DP_PRINT("set_field udp_dst: %d\n", OS_HTONS(val16));
       UDP_DPORT(pkt->udp) = val16;
-      lagopus_update_udp_checksum(pkt);
+      pkt->flags |= PKT_FLAG_RECALC_UDP_CKSUM;
       break;
 
     case OFPXMT_OFB_SCTP_SRC:
       OS_MEMCPY(&val16, oxm_value, sizeof(uint16_t));
       DP_PRINT("set_field sctp_src: %d\n", OS_HTONS(val16));
       SCTP_SPORT(pkt->sctp) = val16;
-      lagopus_update_sctp_checksum(pkt);
+      pkt->flags |= PKT_FLAG_RECALC_SCTP_CKSUM;
       break;
 
     case OFPXMT_OFB_SCTP_DST:
       OS_MEMCPY(&val16, oxm_value, sizeof(uint16_t));
       DP_PRINT("set_field sctp_dst: %d\n", OS_HTONS(val16));
       SCTP_DPORT(pkt->sctp) = val16;
-      lagopus_update_sctp_checksum(pkt);
+      pkt->flags |= PKT_FLAG_RECALC_SCTP_CKSUM;
       break;
 
     case OFPXMT_OFB_ICMPV4_TYPE:
       DP_PRINT("set_field icmpv4_type: %d\n", *oxm_value);
       pkt->icmp->icmp_type = *oxm_value;
-      lagopus_update_icmp_checksum(pkt);
+      pkt->flags |= PKT_FLAG_RECALC_ICMP_CKSUM;
       break;
 
     case OFPXMT_OFB_ICMPV4_CODE:
       DP_PRINT("set_field icmpv4_code: %d\n", *oxm_value);
       pkt->icmp->icmp_code = *oxm_value;
-      lagopus_update_icmp_checksum(pkt);
+      pkt->flags |= PKT_FLAG_RECALC_ICMP_CKSUM;
       break;
 
     case OFPXMT_OFB_ARP_OP:
@@ -887,7 +887,7 @@ execute_action_set_field(struct lagopus_packet *pkt,
       DP_PRINT_HEXDUMP(oxm_value, 16);
       DP_PRINT("\n");
       OS_MEMCPY(IPV6_SRC(pkt->ipv6), oxm_value, 16);
-      lagopus_update_ipv6_checksum(pkt);
+      pkt->flags |= PKT_FLAG_RECALC_IPV6_CKSUM | PKT_FLAG_RECALC_L4_CKSUM;
       break;
 
     case OFPXMT_OFB_IPV6_DST:
@@ -895,7 +895,7 @@ execute_action_set_field(struct lagopus_packet *pkt,
       DP_PRINT_HEXDUMP(oxm_value, 16);
       DP_PRINT("\n");
       OS_MEMCPY(IPV6_DST(pkt->ipv6), oxm_value, 16);
-      lagopus_update_ipv6_checksum(pkt);
+      pkt->flags |= PKT_FLAG_RECALC_IPV6_CKSUM | PKT_FLAG_RECALC_L4_CKSUM;
       break;
 
     case OFPXMT_OFB_IPV6_FLABEL:
@@ -908,13 +908,13 @@ execute_action_set_field(struct lagopus_packet *pkt,
     case OFPXMT_OFB_ICMPV6_TYPE:
       DP_PRINT("set_field icmpv6_type: %d\n", *oxm_value);
       pkt->icmp6->icmp6_type = *oxm_value;
-      lagopus_update_icmpv6_checksum(pkt);
+      pkt->flags |= PKT_FLAG_RECALC_ICMPV6_CKSUM;
       break;
 
     case OFPXMT_OFB_ICMPV6_CODE:
       DP_PRINT("set_field icmpv6_code: %d\n", *oxm_value);
       pkt->icmp6->icmp6_code = *oxm_value;
-      lagopus_update_icmpv6_checksum(pkt);
+      pkt->flags |= PKT_FLAG_RECALC_ICMPV6_CKSUM;
       break;
 
     case OFPXMT_OFB_IPV6_ND_TARGET:
@@ -922,7 +922,7 @@ execute_action_set_field(struct lagopus_packet *pkt,
       DP_PRINT_HEXDUMP(oxm_value, 16);
       DP_PRINT("\n");
       OS_MEMCPY(&pkt->nd_ns->nd_ns_target, oxm_value, 16);
-      lagopus_update_icmpv6_checksum(pkt);
+      pkt->flags |= PKT_FLAG_RECALC_ICMPV6_CKSUM;
       break;
 
     case OFPXMT_OFB_IPV6_ND_SLL:
@@ -931,7 +931,7 @@ execute_action_set_field(struct lagopus_packet *pkt,
                oxm_value[3], oxm_value[4], oxm_value[5]);
       if (pkt->nd_sll != NULL) {
         OS_MEMCPY(&pkt->nd_sll[2], oxm_value, ETHER_ADDR_LEN);
-        lagopus_update_icmpv6_checksum(pkt);
+      pkt->flags |= PKT_FLAG_RECALC_ICMPV6_CKSUM;
       }
       break;
 
@@ -941,7 +941,7 @@ execute_action_set_field(struct lagopus_packet *pkt,
                oxm_value[3], oxm_value[4], oxm_value[5]);
       if (pkt->nd_tll != NULL) {
         OS_MEMCPY(&pkt->nd_tll[2], oxm_value, ETHER_ADDR_LEN);
-        lagopus_update_icmpv6_checksum(pkt);
+      pkt->flags |= PKT_FLAG_RECALC_ICMPV6_CKSUM;
       }
       break;
 
@@ -1288,7 +1288,7 @@ apply_meter(struct lagopus_packet *pkt, struct meter_table *meter_table,
         if (pkt->ether_type == ETHERTYPE_IP) {
           IPV4_TOS(pkt->ipv4) &= 0x03;
           IPV4_TOS(pkt->ipv4) |= (uint8_t)(dscp << 2);
-          lagopus_update_iphdr_checksum(pkt);
+          pkt->flags |= PKT_FLAG_RECALC_IPV4_CKSUM;
         } else if (pkt->ether_type == ETHERTYPE_IPV6) {
           IPV6_VTCF(pkt->ipv6) &= OS_HTONL(0xf03fffffU);
           IPV6_VTCF(pkt->ipv6) |= OS_HTONL((uint32_t)(dscp << 22));
@@ -1669,7 +1669,7 @@ execute_action_copy_ttl_in(struct lagopus_packet *pkt,
        */
       if (IPV4_VER(ipv4_hdr) == 4) {
         IPV4_TTL(ipv4_hdr) = MPLS_TTL(pkt->mpls->mpls_lse);
-        lagopus_update_iphdr_checksum(pkt);
+        pkt->flags |= PKT_FLAG_RECALC_IPV4_CKSUM;
       } else if (IPV6_VER(ipv6_hdr) == 6) {
         IPV6_HLIM(ipv6_hdr) = MPLS_TTL(pkt->mpls->mpls_lse);
       }
@@ -1918,7 +1918,7 @@ execute_action_set_nw_ttl(struct lagopus_packet *pkt,
   if (pkt->ether_type == ETHERTYPE_IP) {
     IPV4_TTL(pkt->ipv4) =
       ((struct ofp_action_nw_ttl *)&action->ofpat)->nw_ttl;
-    lagopus_update_iphdr_checksum(pkt);
+    pkt->flags |= PKT_FLAG_RECALC_IPV4_CKSUM;
   } else if (pkt->ether_type == ETHERTYPE_IPV6) {
     IPV6_HLIM(pkt->ipv6) =
       ((struct ofp_action_nw_ttl *)&action->ofpat)->nw_ttl;
@@ -1938,7 +1938,7 @@ execute_action_dec_nw_ttl(struct lagopus_packet *pkt,
     if (likely(IPV4_TTL(pkt->ipv4) > 0)) {
       IPV4_TTL(pkt->ipv4)--;
       if (unlikely(IPV4_CSUM(pkt->ipv4) == 0xffff)) {
-        lagopus_update_iphdr_checksum(pkt);
+        pkt->flags |= PKT_FLAG_RECALC_IPV4_CKSUM;
       } else {
         IPV4_CSUM(pkt->ipv4)++;
       }

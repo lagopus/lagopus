@@ -84,7 +84,7 @@ struct dataplane_arg {
 };
 
 int
-dpdk_send_packet_physical(struct lagopus_packet *pkt, uint32_t portid);
+dpdk_send_packet_physical(struct lagopus_packet *pkt, struct interface *);
 int
 rawsock_send_packet_physical(struct lagopus_packet *pkt, uint32_t portid);
 
@@ -459,7 +459,7 @@ lagopus_send_packet_physical(struct lagopus_packet *pkt,
     case DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_PHY:
     case DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_PCAP:
 #ifdef HAVE_DPDK
-      return dpdk_send_packet_physical(pkt, ifp->info.eth.port_number);
+      return dpdk_send_packet_physical(pkt, ifp);
 #else
       break;
 #endif

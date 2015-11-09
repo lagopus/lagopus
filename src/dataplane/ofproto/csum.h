@@ -251,52 +251,6 @@ lagopus_update_udp_checksum(struct lagopus_packet *pkt) {
 }
 
 /**
- * Update IP header checksum and update TCP/UDP checksum.
- *
- * @param[in]   pkt     packet for updating.
- */
-static inline void
-lagopus_update_ipv4_checksum(struct lagopus_packet *pkt) {
-  if (HW_IP_CKSUM_IS_ENABLED) {
-    /* calculate ip checksum by NIC, nothing to do. */
-  } else {
-    IPV4_CSUM(pkt->ipv4) = 0;
-    IPV4_CSUM(pkt->ipv4) = get_ipv4_cksum(pkt->l3_hdr_w);
-  }
-  switch (IPV4_PROTO(pkt->ipv4)) {
-    case IPPROTO_TCP:
-      lagopus_update_tcp_checksum(pkt);
-      break;
-    case IPPROTO_UDP:
-      lagopus_update_udp_checksum(pkt);
-      break;
-    default:
-      break;
-  }
-}
-
-/**
- * Update TCP/UDP checksum.
- *
- * @param[in]   pkt     packet for updating.
- */
-static inline void
-lagopus_update_ipv6_checksum(struct lagopus_packet *pkt) {
-  if (pkt->proto != NULL) {
-    switch (*pkt->proto) {
-      case IPPROTO_TCP:
-        lagopus_update_tcp_checksum(pkt);
-        break;
-      case IPPROTO_UDP:
-        lagopus_update_udp_checksum(pkt);
-        break;
-      default:
-        break;
-    }
-  }
-}
-
-/**
  * Update SCTP checksum.
  *
  * @param[in]   pkt     packet for updating.
@@ -373,6 +327,63 @@ lagopus_update_icmpv6_checksum(struct lagopus_packet *pkt) {
   ICMP_CKSUM(pkt->icmp) = 0;
   ICMP_CKSUM(pkt->icmp) = get_ipv6_l4_checksum(pkt->ipv6, pkt->l4_hdr_w,
                           get_ipv6_psd_sum(pkt->ipv6));
+}
+
+/**
+ * Update IP header checksum and update TCP/UDP/SCTP/ICMP checksum.
+ *
+ * @param[in]   pkt     packet for updating.
+ */
+static inline void
+lagopus_update_ipv4_checksum(struct lagopus_packet *pkt) {
+  if (HW_IP_CKSUM_IS_ENABLED) {
+    /* calculate ip checksum by NIC, nothing to do. */
+  } else {
+    IPV4_CSUM(pkt->ipv4) = 0;
+    IPV4_CSUM(pkt->ipv4) = get_ipv4_cksum(pkt->l3_hdr_w);
+  }
+  switch (IPV4_PROTO(pkt->ipv4)) {
+    case IPPROTO_TCP:
+      lagopus_update_tcp_checksum(pkt);
+      break;
+    case IPPROTO_UDP:
+      lagopus_update_udp_checksum(pkt);
+      break;
+    case IPPROTO_SCTP:
+      lagopus_update_sctp_checksum(pkt);
+      break;
+    case IPPROTO_ICMP:
+      lagopus_update_icmp_checksum(pkt);
+      break;
+    default:
+      break;
+  }
+}
+
+/**
+ * Update IPv6 header checksum and TCP/UDP/SCTP/ICMPv6 checksum.
+ *
+ * @param[in]   pkt     packet for updating.
+ */
+static inline void
+lagopus_update_ipv6_checksum(struct lagopus_packet *pkt) {
+  if (pkt->proto != NULL) {
+    switch (*pkt->proto) {
+      case IPPROTO_TCP:
+        lagopus_update_tcp_checksum(pkt);
+        break;
+      case IPPROTO_UDP:
+        lagopus_update_udp_checksum(pkt);
+        break;
+      case IPPROTO_SCTP:
+        lagopus_update_sctp_checksum(pkt);
+        break;
+      case IPPROTO_ICMPV6:
+        lagopus_update_icmpv6_checksum(pkt);
+      default:
+        break;
+    }
+  }
 }
 
 #endif /* SRC_DATAPLANE_OFPROTO_CSUM_H_ */
