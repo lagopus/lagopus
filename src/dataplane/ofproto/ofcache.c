@@ -30,6 +30,19 @@
 #include "pktbuf.h"
 #include "packet.h"
 
+#ifdef HAVE_DPDK
+#include <rte_hash.h>
+#ifdef __SSE4_2__
+#include <rte_hash_crc.h>
+#define HASH_FUNC       rte_hash_crc
+#else
+#include <rte_jhash.h>
+#define HASH_FUNC       rte_jhash
+#endif
+#endif /* HAVE_DPDK */
+
+#define FLOWCACHE_BITLEN 32
+
 #undef CACHE_DEBUG
 #ifdef CACHE_DEBUG
 #define DPRINTF(...) printf(__VA_ARGS__)
@@ -43,8 +56,13 @@
 
 struct flowcache_bank {
   int kvs_type;
-  struct ptree *ptree;
-  lagopus_hashmap_t hashmap;
+  union {
+    struct ptree *ptree;
+    lagopus_hashmap_t hashmap;
+#ifdef HAVE_DPDK
+    struct rte_hash *hash;
+#endif /* HAVE_DPDK */
+  };
   /* statistics */
   uint64_t nentries;
   uint64_t hit;
@@ -80,6 +98,21 @@ init_flowcache_bank(int kvs_type) {
     case FLOWCACHE_PTREE:
       cache->ptree = ptree_init(FLOWCACHE_BITLEN);
       break;
+
+#ifdef HAVE_DPDK
+    case FLOWCACHE_RTE_HASH:
+      {
+        struct rte_hash_parameters params;
+        memset(&params, 0, sizeof(params));
+        params.name = "lagopus flowcache";
+        params.entries = FLOWCACHE_MAX_ENTRIES;
+        params.key_len = FLOWCACHE_BITLEN >> 3;
+        params.hash_func = HASH_FUNC;
+        cache->hash = rte_hash_create(&params);
+      }
+      break;
+#endif /* HAVE_DPDK */
+
     case FLOWCACHE_HASHMAP:
     case FLOWCACHE_HASHMAP_NOLOCK:
     default:
@@ -136,6 +169,31 @@ register_cache_bank(struct flowcache_bank *cache,
         }
       }
       break;
+
+#ifdef HAVE_DPDK
+    case FLOWCACHE_RTE_HASH:
+      if (rte_hash_lookup_data(cache->hash,
+                               (const void *)&hash32_h,
+                               (void **)&list) == 0 &&
+          list != NULL) {
+        if (list->nentries == CACHE_NODE_MAX_ENTRIES) {
+          /* so far, remove old entry */
+          remove_entry = TAILQ_FIRST(&list->entries);
+          TAILQ_REMOVE(&list->entries, remove_entry, next);
+          free(remove_entry);
+          list->nentries--;
+        }
+      } else {
+        list = calloc(1, sizeof(struct cache_list));
+        list->nentries = 0;
+        TAILQ_INIT(&list->entries);
+        rte_hash_add_key_data(cache->hash,
+                              (const void *)&hash32_h,
+                              list);
+      }
+      break;
+#endif /* HAVE_DPDK */
+
     case FLOWCACHE_HASHMAP:
       if (lagopus_hashmap_find(&cache->hashmap,
                                (void *)(uintptr_t)hash32_h,
@@ -161,6 +219,7 @@ register_cache_bank(struct flowcache_bank *cache,
                              (void **)&list);
       }
       break;
+
     case FLOWCACHE_HASHMAP_NOLOCK:
     default:
       if (lagopus_hashmap_find_no_lock(&cache->hashmap,
@@ -198,6 +257,10 @@ clear_all_cache_bank(struct flowcache_bank *cache) {
   struct cache_entry *cache_entry;
   struct ptree_node *node;
 
+  if (cache->nentries == 0) {
+    /* no entries.  nothing to do. */
+    return;
+  }
   switch (cache->kvs_type) {
     case FLOWCACHE_PTREE:
       node = ptree_top(cache->ptree);
@@ -218,9 +281,17 @@ clear_all_cache_bank(struct flowcache_bank *cache) {
         node = ptree_next(node);
       }
       break;
+
+#ifdef HAVE_DPDK
+    case FLOWCACHE_RTE_HASH:
+      rte_hash_reset(cache->hash);
+      break;
+#endif
+
     case  FLOWCACHE_HASHMAP:
       lagopus_hashmap_clear(&cache->hashmap, true);
       break;
+
     case  FLOWCACHE_HASHMAP_NOLOCK:
     default:
       lagopus_hashmap_clear_no_lock(&cache->hashmap, true);
@@ -252,6 +323,17 @@ cache_lookup_bank(struct flowcache_bank *cache, struct lagopus_packet *pkt) {
         list = NULL;
       }
       break;
+
+#ifdef HAVE_DPDK
+    case FLOWCACHE_RTE_HASH:
+      if (rte_hash_lookup_data(cache->hash,
+                               (void *)&pkt->hash32_h,
+                               (void **)&list) != 0) {
+        list = NULL;
+      }
+      break;
+#endif /* HAVE_DPDK */
+
     case FLOWCACHE_HASHMAP:
       if (lagopus_hashmap_find(&cache->hashmap,
                                (void *)(uintptr_t)pkt->hash32_h,
@@ -259,6 +341,7 @@ cache_lookup_bank(struct flowcache_bank *cache, struct lagopus_packet *pkt) {
         list = NULL;
       }
       break;
+
     case FLOWCACHE_HASHMAP_NOLOCK:
     default:
       if (lagopus_hashmap_find_no_lock(&cache->hashmap,
@@ -288,6 +371,13 @@ fini_flowcache_bank(struct flowcache_bank *cache) {
     case  FLOWCACHE_PTREE:
       ptree_free(cache->ptree);
       break;
+
+#ifdef HAVE_DPDK
+    case FLOWCACHE_RTE_HASH:
+      rte_hash_free(cache->hash);
+      break;
+#endif /* HAVE_DPDK */
+
     case  FLOWCACHE_HASHMAP:
     case  FLOWCACHE_HASHMAP_NOLOCK:
       lagopus_hashmap_destroy(&cache->hashmap, false);

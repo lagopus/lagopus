@@ -120,6 +120,7 @@ static const char usage[] =
   "           hashmap         Use hashmap                                         \n"
   "           ptree           Use ptree                                           \n"
 #ifdef __SSE4_2__
+  "           rte_hash        Use DPDK hash table                                 \n"
   "    --hashtype TYPE: Select hash type for flow cache                           \n"
   "           city64   CityHash(64bit) (default)                                  \n"
   "           intel64  Intel_hash64                                               \n"
@@ -582,6 +583,8 @@ parse_arg_kvstype(const char *arg) {
     app.kvs_type = FLOWCACHE_HASHMAP;
   } else if (!strcmp(arg, "ptree")) {
     app.kvs_type = FLOWCACHE_PTREE;
+  } else if (!strcmp(arg, "rte_hash")) {
+    app.kvs_type = FLOWCACHE_RTE_HASH;
   } else {
     return -1;
   }
