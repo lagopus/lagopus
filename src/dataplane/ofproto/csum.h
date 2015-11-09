@@ -22,7 +22,8 @@
 /*-
  *   BSD LICENSE
  *
- *   Copyright(c) 2010-2013 Intel Corporation. All rights reserved.
+ *   Copyright(c) 2010-2014 Intel Corporation. All rights reserved.
+ *   Copyright 2014 6WIND S.A.
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -73,20 +74,23 @@
 #define HW_SCTP_CKSUM_IS_ENABLED 0
 
 static inline uint16_t
-get_16b_sum(uint16_t *ptr16, uint32_t nr) {
-  uint32_t sum = 0;
-  while (nr > 1) {
-    sum +=*ptr16;
-    nr -= (uint32_t)sizeof(uint16_t);
-    ptr16++;
-    if (sum > UINT16_MAX) {
-      sum -= UINT16_MAX;
-    }
+get_16b_sum(uint16_t *u16, uint32_t len, uint32_t sum) {
+  while (len >= sizeof(uint16_t) * 4) {
+    sum += u16[0];
+    sum += u16[1];
+    sum += u16[2];
+    sum += u16[3];
+    len -= sizeof(uint16_t) * 4;
+    u16 += 4;
+  }
+  while (len > 1) {
+    sum += *u16++;
+    len -= (uint32_t)sizeof(uint16_t);
   }
 
   /* If length is in odd bytes */
-  if (nr) {
-    sum += *((uint8_t *)ptr16);
+  if (len) {
+    sum += *((const uint8_t *)u16);
   }
 
   sum = ((sum & 0xffff0000) >> 16) + (sum & 0xffff);
@@ -97,8 +101,8 @@ get_16b_sum(uint16_t *ptr16, uint32_t nr) {
 static inline uint16_t
 get_ipv4_cksum(uint16_t *ipv4_hdr) {
   uint16_t cksum;
-  cksum = get_16b_sum(ipv4_hdr, sizeof(IPV4_HDR));
-  return (uint16_t)((cksum == 0xffff)?cksum:~cksum);
+  cksum = get_16b_sum(ipv4_hdr, sizeof(IPV4_HDR), 0);
+  return (uint16_t)((cksum == 0xffff) ? cksum : ~cksum);
 }
 
 static inline uint16_t
@@ -121,7 +125,7 @@ get_ipv4_psd_sum(IPV4_HDR *ip_hdr) {
   psd_hdr.proto    = IPV4_PROTO(ip_hdr);
   psd_hdr.len      = OS_HTONS((uint16_t)(IPV4_TLEN(ip_hdr)
                                          - (IPV4_HLEN(ip_hdr) << 2)));
-  return get_16b_sum(psd_hdr.u16_arr, sizeof(psd_hdr));
+  return get_16b_sum(psd_hdr.u16_arr, sizeof(psd_hdr), 0);
 }
 
 static inline uint16_t
@@ -143,7 +147,7 @@ get_ipv6_psd_sum(IPV6_HDR *ip_hdr) {
   psd_hdr.len       = OS_HTONL(IPV6_PLEN(ip_hdr));
   psd_hdr.proto     = OS_HTONL((uint32_t)IPV6_PROTO(ip_hdr));
 
-  return get_16b_sum(psd_hdr.u16_arr, sizeof(psd_hdr));
+  return get_16b_sum(psd_hdr.u16_arr, sizeof(psd_hdr), 0);
 }
 
 static inline uint16_t
@@ -152,9 +156,8 @@ get_ipv4_l4_checksum(IPV4_HDR *ipv4_hdr, uint16_t *l4_hdr, uint32_t cksum) {
 
   l4_len = (uint32_t)(IPV4_TLEN(ipv4_hdr) - (IPV4_HLEN(ipv4_hdr) << 2));
 
-  cksum += get_16b_sum(l4_hdr, l4_len);
+  cksum = get_16b_sum(l4_hdr, l4_len, cksum);
 
-  cksum = ((cksum & 0xffff0000) >> 16) + (cksum & 0xffff);
   cksum = (~cksum) & 0xffff;
   if (cksum == 0) {
     cksum = 0xffff;
@@ -168,9 +171,8 @@ get_ipv6_l4_checksum(IPV6_HDR *ipv6_hdr, uint16_t *l4_hdr, uint32_t cksum) {
 
   l4_len = IPV6_PLEN(ipv6_hdr);
 
-  cksum += get_16b_sum(l4_hdr, l4_len);
+  cksum = get_16b_sum(l4_hdr, l4_len, cksum);
 
-  cksum = ((cksum & 0xffff0000) >> 16) + (cksum & 0xffff);
   cksum = (~cksum) & 0xffff;
   if (cksum == 0) {
     cksum = 0xffff;
