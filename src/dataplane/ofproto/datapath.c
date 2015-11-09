@@ -1172,6 +1172,11 @@ execute_group_action(struct lagopus_packet *pkt, uint32_t group_id) {
           }
         }
       }
+      if ((pkt->flags & PKT_FLAG_CACHED_FLOW) == 0 && pkt->cache != NULL) {
+        /* register crc and flows to cache. */
+        register_cache(pkt->cache, pkt->hash64,
+                       pkt->nmatched, pkt->matched_flow);
+      }
       /* to free original packet */
       lagopus_packet_free(pkt);
       rv = LAGOPUS_RESULT_NO_MORE_ACTION;

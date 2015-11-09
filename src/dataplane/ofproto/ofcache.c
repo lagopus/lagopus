@@ -286,7 +286,7 @@ clear_all_cache_bank(struct flowcache_bank *cache) {
     case FLOWCACHE_RTE_HASH:
       rte_hash_reset(cache->hash);
       break;
-#endif
+#endif /* HAVE_DPDK */
 
     case  FLOWCACHE_HASHMAP:
       lagopus_hashmap_clear(&cache->hashmap, true);
@@ -328,7 +328,7 @@ cache_lookup_bank(struct flowcache_bank *cache, struct lagopus_packet *pkt) {
     case FLOWCACHE_RTE_HASH:
       if (rte_hash_lookup_data(cache->hash,
                                (void *)&pkt->hash32_h,
-                               (void **)&list) != 0) {
+                               (void **)&list) < 0) {
         list = NULL;
       }
       break;
