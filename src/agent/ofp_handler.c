@@ -58,7 +58,7 @@ struct ofp_handler_record {
   lagopus_qmuxer_t muxer;         /* muxer */
 
   lagopus_qmuxer_poll_t *m_polls; /* poll objects */
-  uint64_t m_n_polls;                  /* num of polls */
+  volatile uint64_t m_n_polls;                  /* num of polls */
 
   enum ofp_handler_running_status  m_status;
   lagopus_mutex_t m_status_lock;   /* lock of m_status */
@@ -933,7 +933,8 @@ s_ofph_thread_main(const lagopus_thread_t *selfptr,
     /* get polls.*/
     n_polls = thd->m_n_polls;
     res = ofp_bridgeq_mgr_polls_get(thd->m_polls,
-                                    bridgeqs, &thd->m_n_polls,
+                                    bridgeqs,
+                                    (uint64_t *) &thd->m_n_polls,
                                     n_bridgeqs);
     if (res != LAGOPUS_RESULT_OK) {
       lagopus_perror(res);

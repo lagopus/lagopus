@@ -21,11 +21,11 @@ Please refer the following web sites:
 Lagopus setup
 ---------------------------
 To use TLS for a channel between Lagopus and an OpenFlow controller,
-we should setup both "lagopus.conf" and "check.conf".
+we should setup both "lagopus.dsl" and "check.conf".
 
-### lagopus.conf
+### lagopus.dsl
 To enable TLS on Lagopus, you have to add a tls directive and
-tls option in a channel directive in lagopus.conf. 
+tls option in a channel directive in lagopus.dsl.
 You do not need to modify other configuration.
 
 ```

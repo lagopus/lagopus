@@ -104,7 +104,7 @@
 #endif
 
 #ifndef APP_STATS
-#define APP_STATS                    1000000
+#define APP_STATS                    10000000
 #endif
 
 

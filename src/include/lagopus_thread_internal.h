@@ -51,6 +51,7 @@ typedef struct lagopus_thread_record {
 
   lagopus_cond_t m_wait_cond;
   lagopus_cond_t m_startup_cond;
+  lagopus_cond_t m_finalize_cond;
 
   lagopus_result_t m_result_code;
 

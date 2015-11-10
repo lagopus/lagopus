@@ -543,8 +543,8 @@ check_packet_parse_with_dequeue_expect_error(ofp_handler_proc_t handler_proc,
   (void) ofp_bridgeq_mgr_bridge_unregister(channel_dpid_get(channel));
 
 done:
-  s_destroy_static_data();
   (void)s_shutdown_ofp_handler();
+  s_destroy_static_data();
 
   if (pbuf != NULL) {
     pbuf_free(pbuf);

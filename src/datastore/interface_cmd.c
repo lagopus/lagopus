@@ -1089,9 +1089,6 @@ opt_parse(const char *const argv[],
   lagopus_hashmap_t table = NULL;
   void *opt_proc = NULL;
 
-  /* TODO:
-   * add required option check.
-   */
   argv++;
   if (*argv != NULL) {
     while (*argv != NULL) {
@@ -1221,6 +1218,27 @@ opt_parse(const char *const argv[],
       out_configs->flags = OPTS_MAX;
     }
     ret = LAGOPUS_RESULT_OK;
+  }
+
+  /* set required opts. */
+  if (conf->modified_attr != NULL) {
+    if ((ret = interface_get_type(conf->modified_attr,
+                                  &type)) ==
+        LAGOPUS_RESULT_OK) {
+      if (type == DATASTORE_INTERFACE_TYPE_UNKNOWN) {
+        ret = interface_set_type(conf->modified_attr,
+                                 DATASTORE_INTERFACE_TYPE_ETHERNET_RAWSOCK);
+        if (ret != LAGOPUS_RESULT_OK) {
+          ret = datastore_json_result_string_setf(result, ret,
+                                                  "Can't set type.");
+          goto done;
+        }
+      }
+    } else {
+      ret = datastore_json_result_string_setf(result, ret,
+                                              "Can't get type.");
+      goto done;
+    }
   }
 
 done:

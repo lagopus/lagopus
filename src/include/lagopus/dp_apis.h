@@ -248,13 +248,14 @@ dp_port_interface_unset(const char *name);
 /**
  * Lookup internel port structure.
  *
- * @param[in]   name    Name of port.
+ * @param[in]   type    Type of port.
+ * @param[in]   portid  Port ID.
  *
  * @retval      != NULL         internal port structure.
  * @retval      ==NULL          Port is not found.
  */
 struct port *
-dp_port_lookup(uint32_t portid);
+dp_port_lookup(int type, uint32_t portid);
 
 /**
  * Count number of port in the system.

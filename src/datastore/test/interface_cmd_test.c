@@ -1157,7 +1157,11 @@ test_interface_cmd_serialize_default_opt(void) {
 
   /* serialize result str. */
   const char serialize_str1[] =
-    "interface "DATASTORE_NAMESPACE_DELIMITER"test_name27 create\n";
+      "interface "DATASTORE_NAMESPACE_DELIMITER"test_name27 create "
+      "-type ethernet-rawsock "
+      "-port-number 0 "
+      "-mtu 1500 "
+      "-ip-addr 127.0.0.1\n";
 
   /* create cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, interface_cmd_parse, &interp, state,
@@ -1192,7 +1196,11 @@ test_interface_cmd_serialize_default_opt_escape(void) {
 
   /* serialize result str. */
   const char serialize_str1[] =
-    "interface \""DATASTORE_NAMESPACE_DELIMITER"test_\\\"name28\" create\n";
+      "interface \""DATASTORE_NAMESPACE_DELIMITER"test_\\\"name28\" create "
+      "-type ethernet-rawsock "
+      "-port-number 0 "
+      "-mtu 1500 "
+      "-ip-addr 127.0.0.1\n";
 
   /* create cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, interface_cmd_parse, &interp, state,
@@ -1227,7 +1235,11 @@ test_interface_cmd_serialize_default_opt_escape_white_space(void) {
 
   /* serialize result str. */
   const char serialize_str1[] =
-    "interface \""DATASTORE_NAMESPACE_DELIMITER"test name29\" create\n";
+      "interface \""DATASTORE_NAMESPACE_DELIMITER"test name29\" create "
+      "-type ethernet-rawsock "
+      "-port-number 0 "
+      "-mtu 1500 "
+      "-ip-addr 127.0.0.1\n";
 
   /* create cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, interface_cmd_parse, &interp, state,

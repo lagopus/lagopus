@@ -147,9 +147,28 @@ struct pbb_hdr {
  * packet flags
  */
 enum {
-  PKT_FLAG_HAS_ACTION =  1 << 0,
-  PKT_FLAG_CACHED_FLOW = 1 << 1
+  PKT_FLAG_HAS_ACTION =          1 << 0,
+  PKT_FLAG_CACHED_FLOW =         1 << 1,
+  PKT_FLAG_RECALC_IPV4_CKSUM =   1 << 2,
+  PKT_FLAG_RECALC_TCP_CKSUM =    1 << 3,
+  PKT_FLAG_RECALC_UDP_CKSUM =    1 << 4,
+  PKT_FLAG_RECALC_SCTP_CKSUM =   1 << 5,
+  PKT_FLAG_RECALC_ICMP_CKSUM =   1 << 6,
+  PKT_FLAG_RECALC_IPV6_CKSUM =   1 << 7,
+  PKT_FLAG_RECALC_ICMPV6_CKSUM = 1 << 8,
 };
+
+#define PKT_FLAG_RECALC_L4_CKSUM (                                     \
+    PKT_FLAG_RECALC_TCP_CKSUM |                                        \
+    PKT_FLAG_RECALC_UDP_CKSUM |                                        \
+    PKT_FLAG_RECALC_SCTP_CKSUM |                                       \
+    PKT_FLAG_RECALC_ICMP_CKSUM |                                       \
+    PKT_FLAG_RECALC_ICMPV6_CKSUM )
+
+#define PKT_FLAG_RECALC_CKSUM_MASK (  \
+    PKT_FLAG_RECALC_IPV4_CKSUM |      \
+    PKT_FLAG_RECALC_IPV6_CKSUM |      \
+    PKT_FLAG_RECALC_L4_CKSUM )
 
 /**
  * max number of pipelines.

@@ -29,19 +29,19 @@
 #include <netinet/tcp.h>
 #include <netinet/udp.h>
 
-/* match only */
 struct sock_buf {
   size_t len;
-  unsigned char dat[MAX_PACKET_SZ];
   unsigned char *data;
   int refcnt;
+  unsigned char dat[MAX_PACKET_SZ + 128];
 };
 
 #define OS_MBUF           struct sock_buf
 #define OS_M_PKTLEN(m)    ((m)->len)
 #define OS_M_PREPEND(m,n) ((m)->data -= (n), (m)->len += (n), (m)->data)
-#define OS_M_APPEND(m,n)  ((m)->len += (n), (m)->data)
+#define OS_M_APPEND(m,n)  ((m)->len += (n), (m)->data + (m)->len - (n))
 #define OS_M_ADJ(m,n)     ((m)->data += (n), (m)->len -= (n))
+#define OS_M_TRIM(m,n)    ((m)->len -= (n))
 #define OS_M_FREE(m)      sock_m_free(m)
 #define OS_MTOD(m,type)   ((type)(m)->data)
 #define OS_M_ADDREF(m)    ((m)->refcnt++)

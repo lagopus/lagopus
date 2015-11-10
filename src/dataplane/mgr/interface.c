@@ -24,9 +24,19 @@
 
 #include "lagopus/ofp_dp_apis.h" /* for port_stats */
 
+static struct port_stats *
+unknown_port_stats(struct port *port) {
+  return calloc(1, sizeof(struct port_stats));
+}
+
 struct interface *
 dp_interface_alloc(void) {
-  return calloc(1, sizeof(struct interface));
+  struct interface *ifp;
+  ifp = calloc(1, sizeof(struct interface));
+  if (ifp != NULL) {
+    ifp->stats = unknown_port_stats;
+  }
+  return ifp;
 }
 
 lagopus_result_t
@@ -36,11 +46,6 @@ dp_interface_free(struct interface *ifp) {
   }
   free(ifp);
   return LAGOPUS_RESULT_OK;
-}
-
-static struct port_stats *
-unknown_port_stats(struct port *port) {
-  return calloc(1, sizeof(struct port_stats));
 }
 
 lagopus_result_t
@@ -60,7 +65,6 @@ dp_interface_configure_internal(struct interface *ifp) {
       break;
 
     case DATASTORE_INTERFACE_TYPE_UNKNOWN:
-      ifp->stats = unknown_port_stats;
       rv = LAGOPUS_RESULT_OK;
       break;
 

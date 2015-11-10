@@ -26,7 +26,7 @@
 #include "datastore_internal.h"
 #include "lagopus/port.h"
 
-#define CONFIGURATOR_NAME	"lagopus.conf"
+#define CONFIGURATOR_NAME	"lagopus.dsl"
 
 #ifdef __UNIT_TESTING__
 #define STATIC
@@ -48,6 +48,7 @@
 #define STATS_SUB_CMD "stats"
 #define DUMP_SUB_CMD "dump"
 #define CLEAR_SUB_CMD "clear"
+#define CLEAR_QUEUE_SUB_CMD "clear-queue"
 #define ADD_SUB_CMD "add"
 #define DEL_SUB_CMD "del"
 #define MOD_SUB_CMD "mod"

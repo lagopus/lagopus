@@ -181,14 +181,20 @@ s_free_all(void *key, void *val, lagopus_hashentry_t he, void *arg) {
 static inline void
 s_final_numa_thingies(void) {
   if (s_numa_nodes != NULL) {
-    free((void *)s_numa_nodes);
+    if (lagopus_module_is_unloading() &&
+        lagopus_module_is_finalized_cleanly()) {    
+      free((void *)s_numa_nodes);
 
-    if (s_tbl != NULL) {
-      (void)lagopus_hashmap_iterate(&s_tbl, s_free_all, NULL);
-      (void)lagopus_hashmap_destroy(&s_tbl, true);
+      if (s_tbl != NULL) {
+        (void)lagopus_hashmap_iterate(&s_tbl, s_free_all, NULL);
+        (void)lagopus_hashmap_destroy(&s_tbl, true);
+      }
+
+      lagopus_msg_debug(5, "The NUMA aware memory allocator is finalized.\n");
+    } else {
+      lagopus_msg_debug(5, "The NUMA aware memory allocator is not finalized"
+                        "because of module finalization problem.\n");
     }
-
-    lagopus_msg_debug(5, "The NUMA aware memory allocator is finalized.\n");
   }
 }
 

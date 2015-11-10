@@ -107,7 +107,7 @@ usage(FILE *fd, int exit_status) {
 -h|-?, --help            Display this help and exit\n\
 -l, --logfile filename   Specify a log/trace file path (default: syslog)\n\
 -p, --pidfile filename   Specify a pid file path (default: /var/run/%s.pid)\n\
--C, --config filename    Speficy a config file path (default: lagopus.conf)\n\
+-C, --config filename    Speficy a config file path (default: lagopus.dsl)\n\
 \n", s_progname, s_progname);
     lagopus_module_usage_all(fd);
   }

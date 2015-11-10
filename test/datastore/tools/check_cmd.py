@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# - lagopus.conf
+# - lagopus.dsl
 #   datastore -addr 127.0.0.1 -port 12345 -protocol tcp -tls true
 #
 #   tls -cert-file /<path to lagopus>/test/cert_for_test/server1.pem \

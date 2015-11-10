@@ -10,6 +10,9 @@ setup:
       - cmd_type: ds
         cmd: destroy-all-obj
         result: '{"ret": "OK"}'
+      - cmd_type: shell
+        cmd: "{{ shell_dir }}/dummy_eth_up.sh lago_eth 2"
+        result: "0"
 
 teardown:
   - repetition_count: 1
@@ -17,6 +20,9 @@ teardown:
       - cmd_type: ds
         cmd: destroy-all-obj
         result: '{"ret": "OK"}'
+      - cmd_type: shell
+        cmd: "{{ shell_dir }}/dummy_eth_down.sh lago_eth 2"
+        result: "0"
 
 testcases:
   - testcase: being, commit
@@ -27,7 +33,7 @@ testcases:
             cmd: atomic begin
             result: '{"ret": "OK"}'
           - cmd_type: ds
-            cmd: interface if01 create
+            cmd: interface if01 create -type ethernet-rawsock -device lago_eth0 -port-number 1
             result: '{"ret": "OK"}'
           - cmd_type: ds
             cmd: atomic commit
@@ -37,7 +43,11 @@ testcases:
             result: |-
               {"ret":"OK",
               "data":[{"name":":if01",
-              "type":"unknown",
+              "type":"ethernet-rawsock",
+              "port-number":1,
+              "device":"lago_eth0",
+              "mtu":1500,
+              "ip-addr":"127.0.0.1",
               "is-used":false,
               "is-enabled":false}]}
           - cmd_type: ds

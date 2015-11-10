@@ -1,18 +1,4 @@
-/*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+/* %COPYRIGHT% */
 
 /**
  *      @file   sock_io.c
@@ -38,28 +24,60 @@
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
 
-#include "lagopus/vector.h"
+#include "lagopus/dp_apis.h"
 #include "lagopus/flowdb.h"
 #include "lagopus/meter.h"
 #include "lagopus/ofp_dp_apis.h"
-#include "lagopus/dp_apis.h"
 #include "lagopus/port.h"
 #include "lagopus/dataplane.h"
 #include "lagopus/ofcache.h"
 #include "lagopus/interface.h"
 #include "pktbuf.h"
 #include "packet.h"
+#include "csum.h"
 #include "pcap.h"
 
 static struct port_stats *port_stats(struct port *port);
 
-static struct pollfd pollfd[256]; /* XXX */
-static int ifindex[256];
+#define NUM_PORTID 256
 
-#define TIMEOUT_SHUTDOWN_RIGHT_NOW     (100*1000*1000) /* 100msec */
-#define TIMEOUT_SHUTDOWN_GRACEFULLY    (1500*1000*1000) /* 1.5sec */
+static struct pollfd pollfd[NUM_PORTID];
+static int ifindex[NUM_PORTID];
+
+#ifndef HAVE_DPDK
+static bool no_cache = true;
+static int kvs_type = FLOWCACHE_HASHMAP_NOLOCK;
+static int hashtype = HASH_TYPE_INTEL64;
+static struct flowcache *flowcache;
+#endif /* HAVE_DPDK */
 
 static bool volatile clear_cache = false;
+
+static int portidx = 0;
+
+static uint32_t free_portids[NUM_PORTID];
+
+static uint32_t
+get_port_number(void) {
+  if (portidx == 0) {
+    int i;
+
+    /* initialize */
+    for (i = 0; i < NUM_PORTID; i++) {
+      free_portids[i] = i;
+    }
+  }
+  if (portidx == NUM_PORTID) {
+    /* portid exhausted */
+    return UINT32_MAX;
+  }
+  return free_portids[portidx++];
+}
+
+static void
+put_port_number(int id) {
+  free_portids[--portidx] = id;
+}
 
 static ssize_t
 read_packet(int fd, uint8_t *buf, size_t buflen) {
@@ -102,9 +120,15 @@ read_packet(int fd, uint8_t *buf, size_t buflen) {
       continue;
     }
     auxdata = (struct tpacket_auxdata *)CMSG_DATA(cmsg);
+#if defined (TP_STATUS_VLAN_VALID)
+    if ((auxdata->tp_status & TP_STATUS_VLAN_VALID) == 0) {
+      continue;
+    }
+#else
     if (auxdata->tp_vlan_tci == 0) {
       continue;
     }
+#endif /* TP_STATUS_VLAN_VALID */
     p = (uint16_t *)(buf + ETHER_ADDR_LEN * 2);
     switch (OS_NTOHS(p[0])) {
       case ETHERTYPE_PBB:
@@ -122,6 +146,52 @@ read_packet(int fd, uint8_t *buf, size_t buflen) {
   }
   return pktlen;
 }
+
+#ifndef HAVE_DPDK
+lagopus_result_t
+rawsock_dataplane_init(int argc, const char *const argv[]) {
+  static struct option lgopts[] = {
+    {"no-cache", 0, 0, 0},
+    {"kvstype", 1, 0, 0},
+    {"hashtype", 1, 0, 0},
+    {NULL, 0, 0, 0}
+  };
+  int opt, optind;
+
+  while ((opt = getopt_long(argc, argv, "", lgopts, &optind)) != -1) {
+    switch (opt) {
+      case 0: /* long options */
+        if (!strcmp(lgopts[optind].name, "no-cache")) {
+          no_cache = true;
+        }
+        if (!strcmp(lgopts[optind].name, "kvstype")) {
+          if (!strcmp(optarg, "hashmap_nolock")) {
+            kvs_type = FLOWCACHE_HASHMAP_NOLOCK;
+          } else if (!strcmp(optarg, "hashmap")) {
+            kvs_type = FLOWCACHE_HASHMAP;
+          } else if (!strcmp(optarg, "ptree")) {
+            kvs_type = FLOWCACHE_PTREE;
+          } else {
+            return -1;
+          }
+        }
+        if (!strcmp(lgopts[optind].name, "hashtype")) {
+          if (!strcmp(optarg, "intel64")) {
+            hashtype = HASH_TYPE_INTEL64;
+          } else if (!strcmp(optarg, "city64")) {
+            hashtype = HASH_TYPE_CITY64;
+          } else if (!strcmp(optarg, "murmur3")) {
+            hashtype = HASH_TYPE_MURMUR3;
+          } else {
+            return -1;
+          }
+        }
+        break;
+    }
+  }
+  return 0;
+}
+#endif /* HAVE_DPDK */
 
 lagopus_result_t
 rawsock_configure_interface(struct interface *ifp) {
@@ -146,6 +216,7 @@ rawsock_configure_interface(struct interface *ifp) {
   }
   on = 1;
   if (setsockopt(fd, SOL_PACKET, PACKET_AUXDATA, &on, sizeof(on)) != 0) {
+    close(fd);
     lagopus_msg_warning("%s: %s\n",
                         ifp->info.eth_rawsock.device, strerror(errno));
     return LAGOPUS_RESULT_POSIX_API_ERROR;
@@ -158,7 +229,14 @@ rawsock_configure_interface(struct interface *ifp) {
                         ifp->info.eth_rawsock.device, strerror(errno));
     return LAGOPUS_RESULT_POSIX_API_ERROR;
   }
-  portid = ifp->info.eth_rawsock.port_number;
+  portid = get_port_number();
+  if (portid == UINT32_MAX) {
+    close(fd);
+    lagopus_msg_error("%s: too many port opened\n",
+                      ifp->info.eth_rawsock.device);
+    return LAGOPUS_RESULT_TOO_MANY_OBJECTS;
+  }
+  ifp->info.eth_rawsock.port_number = portid;
   ifindex[portid] = ifreq.ifr_ifindex;
   if (ioctl(fd, SIOCGIFHWADDR, &ifreq) != 0) {
     close(fd);
@@ -211,6 +289,7 @@ rawsock_unconfigure_interface(struct interface *ifp) {
   close(pollfd[portid].fd);
   pollfd[portid].fd = 0;
   ifindex[portid] = 0;
+  put_port_number(portid);
 
   return LAGOPUS_RESULT_OK;
 }
@@ -260,6 +339,13 @@ rawsock_send_packet_physical(struct lagopus_packet *pkt, uint32_t portid) {
     plen = OS_M_PKTLEN(m);
     if (plen < 60) {
       memset(OS_M_APPEND(m, 60 - plen), 0, (uint32_t)(60 - plen));
+    }
+    if ((pkt->flags & PKT_FLAG_RECALC_CKSUM_MASK) != 0) {
+      if (pkt->ether_type == ETHERTYPE_IP) {
+        lagopus_update_ipv4_checksum(pkt);
+      } else if (pkt->ether_type == ETHERTYPE_IPV6) {
+        lagopus_update_ipv6_checksum(pkt);
+      }
     }
     (void)write(pollfd[portid].fd,
                 OS_MTOD(m, char *),
@@ -508,8 +594,8 @@ rawsock_change_config(struct interface *ifp,
  * dataplane thread (raw socket I/O)
  */
 lagopus_result_t
-rawsocket_thread_loop(__UNUSED const lagopus_thread_t *selfptr,
-                      __UNUSED void *arg) {
+rawsock_thread_loop(__UNUSED const lagopus_thread_t *selfptr,
+                    __UNUSED void *arg) {
   struct lagopus_packet *pkt;
   struct port_stats *stats;
   ssize_t len;
@@ -527,6 +613,14 @@ rawsocket_thread_loop(__UNUSED const lagopus_thread_t *selfptr,
     return rv;
   }
 
+#ifndef HAVE_DPDK
+  if (no_cache == false) {
+    flowcache = init_flowcache(kvs_type);
+  } else {
+    flowcache = NULL;
+  }
+#endif /* HAVE_DPDK */
+
   for (;;) {
     struct port *port;
 
@@ -537,15 +631,24 @@ rawsocket_thread_loop(__UNUSED const lagopus_thread_t *selfptr,
       err(errno, "poll");
     }
     for (i = 0; i < nb_ports; i++) {
+#ifndef HAVE_DPDK
+      if (clear_cache == true && flowcache != NULL) {
+        clear_all_cache(flowcache);
+        clear_cache = false;
+      }
+#endif /* HAVE_DPDK */
       flowdb_rdlock(NULL);
-      port = dp_port_lookup((uint32_t)i);
+      port = dp_port_lookup(DATASTORE_INTERFACE_TYPE_ETHERNET_RAWSOCK,
+                            (uint32_t)i);
       if (port == NULL) {
         flowdb_rdunlock(NULL);
         continue;
       }
       /* update port stats. */
-      stats = port->stats(port);
-      free(stats);
+      if (port->interface != NULL && port->interface->stats != NULL) {
+        stats = port->interface->stats(port);
+        free(stats);
+      }
 
       if ((pollfd[i].revents & POLLIN) == 0) {
         flowdb_rdunlock(NULL);
@@ -554,7 +657,13 @@ rawsocket_thread_loop(__UNUSED const lagopus_thread_t *selfptr,
       if (port->bridge != NULL &&
           (port->ofp_port.config & OFPPC_NO_RECV) == 0) {
         pkt = alloc_lagopus_packet();
+#ifndef HAVE_DPDK
+        if (flowcache != NULL) {
+          pkt->cache = flowcache;
+        }
+#endif /* HAVE_DPDK */
         /* not enough? */
+        (void)OS_M_APPEND(pkt->mbuf, MAX_PACKET_SZ);
         len = read_packet(pollfd[i].fd, OS_MTOD(pkt->mbuf, uint8_t *),
                           MAX_PACKET_SZ);
         if (len < 0) {
@@ -571,14 +680,19 @@ rawsocket_thread_loop(__UNUSED const lagopus_thread_t *selfptr,
               lagopus_exit_fatal("read: %d", errno);
           }
         }
-        (void)OS_M_APPEND(pkt->mbuf, len);
+        OS_M_TRIM(pkt->mbuf, MAX_PACKET_SZ - len);
         lagopus_packet_init(pkt, pkt->mbuf, port);
         if (port->bridge->flowdb->switch_mode == SWITCH_MODE_STANDALONE) {
           lagopus_forward_packet_to_port(pkt, OFPP_NORMAL);
         } else {
+#ifdef PACKET_CAPTURE
+          /* capture received packet */
+          if (port->pcap_queue != NULL) {
+            lagopus_pcap_enqueue(pkt->in_port, pkt);
+          }
+#endif /* PACKET_CAPTURE */
           lagopus_match_and_action(pkt);
         }
-        lagopus_packet_free(pkt);
       }
       flowdb_rdunlock(NULL);
     }
