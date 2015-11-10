@@ -373,7 +373,7 @@ add_action_output_instruction(struct instruction_list *instruction_list,
 
 static void
 add_write_action_output_instruction(struct instruction_list *instruction_list,
-                             uint32_t port_number) {
+                                    uint32_t port_number) {
   struct instruction *insn;
   struct action *action;
   struct ofp_action_output *action_output;

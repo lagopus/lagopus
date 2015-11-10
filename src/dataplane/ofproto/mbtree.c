@@ -799,7 +799,7 @@ find_mbtree(struct lagopus_packet *pkt, struct flow_list *flows) {
   flow = find_mbtree_child(pkt, flows->branch[pkt->ether_type]);
   if (pkt->mpls != NULL) {
     alt_flow = find_mbtree_child(pkt,
-        flows->branch[ntohs(*(((uint16_t *)pkt->mpls) - 1))]);
+                                 flows->branch[ntohs(*(((uint16_t *)pkt->mpls) - 1))]);
     if (alt_flow != NULL &&
         (flow == NULL || alt_flow->priority > flow->priority)) {
       flow = alt_flow;

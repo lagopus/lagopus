@@ -454,10 +454,12 @@ controller_cmd_do_destroy(controller_conf_t *conf,
       }
     }
 
-    ret = controller_destroy(conf->name, conf->current_attr, result);
-    if (ret != LAGOPUS_RESULT_OK) {
-      /* ignore error. */
-      lagopus_msg_warning("ret = %s", lagopus_error_get_string(ret));
+    if (conf->current_attr != NULL) {
+      ret = controller_destroy(conf->name, conf->current_attr, result);
+      if (ret != LAGOPUS_RESULT_OK) {
+        /* ignore error. */
+        lagopus_msg_warning("ret = %s", lagopus_error_get_string(ret));
+      }
     }
 
     ret = controller_conf_delete(conf);

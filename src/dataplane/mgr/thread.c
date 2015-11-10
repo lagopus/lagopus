@@ -1,18 +1,4 @@
-/*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+/* %COPYRIGHT% */
 
 /**
  *      @file   thread.c
@@ -37,19 +23,19 @@
 #include "thread.h"
 
 /* so far, global variable. */
-static lagopus_thread_t dataplane_thread = NULL;
-static bool run = false;
-static lagopus_mutex_t lock = NULL;
+#ifdef HAVE_DPDK
+static lagopus_thread_t dpdk_thread = NULL;
+static bool dpdk_run = false;
+static lagopus_mutex_t dpdk_lock = NULL;
+#endif /* HAVE_DPDK */
 
 static lagopus_thread_t timer_thread = NULL;
 static bool timer_run = false;
 static lagopus_mutex_t timer_lock = NULL;
 
-#ifdef HAVE_DPDK
 static lagopus_thread_t sock_thread = NULL;
 static bool sock_run = false;
 static lagopus_mutex_t sock_lock = NULL;
-#endif /* HAVE_DPDK */
 
 #define TIMEOUT_SHUTDOWN_RIGHT_NOW     (100*1000*1000) /* 100msec */
 #define TIMEOUT_SHUTDOWN_GRACEFULLY    (1500*1000*1000) /* 1.5sec */
@@ -101,8 +87,8 @@ dp_freeproc(const lagopus_thread_t *t, void *arg) {
   }
   /* ADD delete ports? */
 
-  lagopus_mutex_destroy(&lock);
-  lock = NULL;
+  lagopus_mutex_destroy(dparg->lock);
+  *dparg->lock = NULL;
 }
 
 lagopus_result_t
@@ -213,24 +199,22 @@ timerthread_initialize(void *arg) {
   return LAGOPUS_RESULT_OK;
 }
 
-#ifdef HAVE_DPDK
 static lagopus_result_t
 sockthread_initialize(void *arg) {
-  lagopus_thread_create(&sock_thread, rawsocket_thread_loop,
+  lagopus_thread_create(&sock_thread, rawsock_thread_loop,
                         dp_finalproc, dp_freeproc, "dataplane rawswock", arg);
   return LAGOPUS_RESULT_OK;
 }
-#endif /* HAVE_DPDK */
 
 lagopus_result_t
 dataplane_initialize(int argc,
                      const char *const argv[],
                      __UNUSED void *extarg,
                      lagopus_thread_t **thdptr) {
-  static struct dataplane_arg dparg;
 #ifdef HAVE_DPDK
-  static struct dataplane_arg sockarg;
+  static struct dataplane_arg dparg;
 #endif /* HAVE_DPDK */
+  static struct dataplane_arg sockarg;
   static struct dataplane_arg timerarg;
   lagopus_result_t nb_ports;
 
@@ -240,28 +224,35 @@ dataplane_initialize(int argc,
     return nb_ports;
   }
   dp_api_init();
-  dparg.threadptr = &dataplane_thread;
-  lagopus_thread_create(&dataplane_thread, dataplane_thread_loop,
-                        dp_finalproc, dp_freeproc, "dataplane", &dparg);
+#ifdef HAVE_DPDK
+  if (rawsocket_only_mode != true) {
+    dparg.threadptr = &dpdk_thread;
+    dparg.lock = &dpdk_lock;
+    lagopus_thread_create(&dpdk_thread, dpdk_thread_loop,
+                          dp_finalproc, dp_freeproc, "dataplane", &dparg);
 
-  if (lagopus_mutex_create(&lock) != LAGOPUS_RESULT_OK) {
-    lagopus_exit_fatal("lagopus_mutex_create");
+    if (lagopus_mutex_create(&dpdk_lock) != LAGOPUS_RESULT_OK) {
+      lagopus_exit_fatal("lagopus_mutex_create");
+    }
   }
-  *thdptr = &dataplane_thread;
+#endif /* HAVE_DPDK */
+
   lagopus_meter_init();
   lagopus_register_action_hook = lagopus_set_action_function;
   lagopus_register_instruction_hook = lagopus_set_instruction_function;
   flowinfo_init();
 
   timerarg.threadptr = &timer_thread;
+  timerarg.lock = &timer_lock;
   timerarg.running = NULL;
   timerthread_initialize(&timerarg);
 
-#ifdef HAVE_DPDK
   sockarg.threadptr = &sock_thread;
+  sockarg.lock = &sock_lock;
   sockarg.running = NULL;
   sockthread_initialize(&sockarg);
-#endif /* HAVE_DPDK */
+
+  *thdptr = &sock_thread;
 
   return LAGOPUS_RESULT_OK;
 }
@@ -271,25 +262,31 @@ dataplane_start(void) {
   lagopus_result_t rv;
 #ifdef HAVE_DPDK
   /* launch per-lcore init on every lcore */
-  if (run == false) {
+  if (dpdk_run == false && rawsocket_only_mode != true) {
     rte_eal_mp_remote_launch(app_lcore_main_loop, NULL, SKIP_MASTER);
   }
-  rv = dp_thread_start(&sock_thread, &sock_lock, &sock_run);
 #endif /* HAVE_DPDK */
-  rv = dp_thread_start(&timer_thread, &timer_lock, &timer_run);
+  rv = dp_thread_start(&sock_thread, &sock_lock, &sock_run);
   if (rv == LAGOPUS_RESULT_OK) {
-    rv = dp_thread_start(&dataplane_thread, &lock, &run);
+    rv = dp_thread_start(&timer_thread, &timer_lock, &timer_run);
   }
+#ifdef HAVE_DPDK
+  if (rv == LAGOPUS_RESULT_OK && rawsocket_only_mode != true) {
+    rv = dp_thread_start(&dpdk_thread, &dpdk_lock, &dpdk_run);
+  }
+#endif /* HAVE_DPDK */
   return rv;
 }
 
 void
 dataplane_finalize(void) {
-#ifdef HAVE_DPDK
   dp_thread_finalize(&sock_thread);
-#endif /* HAVE_DPDK */
   dp_thread_finalize(&timer_thread);
-  dp_thread_finalize(&dataplane_thread);
+#ifdef HAVE_DPDK
+  if (rawsocket_only_mode != true) {
+    dp_thread_finalize(&dpdk_thread);
+  }
+#endif /* HAVE_DPDK */
   dp_api_fini();
 }
 
@@ -299,16 +296,18 @@ dataplane_shutdown(shutdown_grace_level_t level) {
   lagopus_result_t rv, rv2;
 
   rv = dp_thread_shutdown(&timer_thread, &timer_lock, &timer_run, level);
-#ifdef HAVE_DPDK
   rv2 = dp_thread_shutdown(&sock_thread, &sock_lock, &sock_run, level);
   if (rv == LAGOPUS_RESULT_OK) {
     rv = rv2;
   }
-#endif /* HAVE_DPDK */
-  rv2 = dp_thread_shutdown(&dataplane_thread, &lock, &run, level);
-  if (rv == LAGOPUS_RESULT_OK) {
-    rv = rv2;
+#ifdef HAVE_DPDK
+  if (rawsocket_only_mode != true) {
+    rv2 = dp_thread_shutdown(&dpdk_thread, &dpdk_lock, &dpdk_run, level);
+    if (rv == LAGOPUS_RESULT_OK) {
+      rv = rv2;
+    }
   }
+#endif /* HAVE_DPDK */
   return rv;
 }
 /* Dataplane thread stop. */
@@ -321,16 +320,18 @@ dataplane_stop(void) {
 #endif /* HAVE_DPDK */
 
   rv = dp_thread_stop(&timer_thread, &timer_run);
-#ifdef HAVE_DPDK
   rv2 = dp_thread_stop(&sock_thread, &sock_run);
   if (rv == LAGOPUS_RESULT_OK) {
     rv = rv2;
   }
-#endif /* HAVE_DPDK */
-  rv2 = dp_thread_stop(&dataplane_thread, &run);
-  if (rv == LAGOPUS_RESULT_OK) {
-    rv = rv2;
+#ifdef HAVE_DPDK
+  if (rawsocket_only_mode != true) {
+    rv2 = dp_thread_stop(&dpdk_thread, &dpdk_run);
+    if (rv == LAGOPUS_RESULT_OK) {
+      rv = rv2;
+    }
   }
+#endif /* HAVE_DPDK */
   return rv;
 }
 

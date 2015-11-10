@@ -280,4 +280,14 @@ lagopus_module_find(const char *name);
 
 
 
+/*
+ * Undocumeted on purpose.
+ */
+bool	lagopus_module_is_finalized_cleanly(void);
+bool	lagopus_module_is_unloading(void);
+
+
+
+
+
 #endif /* __LAGOPUS_MODULE_APIS_H__ */

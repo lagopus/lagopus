@@ -97,7 +97,6 @@ port_alloc(void) {
   if (port == NULL) {
     return NULL;
   }
-  port->stats = port_stats;
   clock_gettime(CLOCK_MONOTONIC, &port->create_time);
 
   return port;
@@ -220,7 +219,7 @@ lagopus_get_port_statistics(struct vector *ports,
       return LAGOPUS_RESULT_OFP_ERROR;
     }
     /* XXX read lock */
-    if (port->interface != NULL) {
+    if (port->interface != NULL && port->interface->stats != NULL) {
       stats = port->interface->stats(port);
     } else {
       stats = NULL;

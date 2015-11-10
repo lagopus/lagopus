@@ -29,6 +29,7 @@ import socket
 import select
 import inspect
 import pydoc
+import getopt
 
 
 class DSLError(Exception):
@@ -173,6 +174,8 @@ class dsl:
 
 class ds_client:
 
+    port = 12345
+
     def remove_namespace(self, arg):
         if isinstance(arg, dict):
             for a in arg.iterkeys():
@@ -186,7 +189,7 @@ class ds_client:
 
     def open(self):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.sock.connect(('127.0.0.1', 12345))
+        self.sock.connect(('127.0.0.1', self.port))
 
     def close(self):
         del self.sock
@@ -438,7 +441,7 @@ class Configure(Cmd):
         Load configuration file and commit immediately.
         So far, use raw DSL output.
         """
-        conffile = '@PREFIX@/etc/lagopus/lagopus.conf'
+        conffile = '@PREFIX@/etc/lagopus/lagopus.dsl'
         # Load candidate config and convert to DSL
         # Load DSL.
         ds_client().call('destroy-all-obj\n')
@@ -452,7 +455,7 @@ class Configure(Cmd):
         Load configuration file and commit immediately.
         So far, use raw DSL output.
         """
-        conffile = '@PREFIX@/etc/lagopus/lagopus.conf'
+        conffile = '@PREFIX@/etc/lagopus/lagopus.dsl'
         # Load candidate config and convert to DSL
         # Load DSL.
         ds_client().call('save ' + conffile + '\n')
@@ -633,7 +636,7 @@ class Topcmd(Cmd):
             data = ds_client().call('bridge\n')
             try:
                 for ifdata in data:
-                    req = 'flow ' + ifdata['name'].encode() + '\n'
+                    req = 'flow ' + ifdata['name'].encode() + ' -with-stats\n'
                     res = ds_client().call(req)[0]
                     odata.append(res)
                 self.output(json.dumps(odata, indent=4) + '\n')
@@ -767,21 +770,29 @@ def main():
     Topcmd().cmdloop()
 
 if __name__ == "__main__":
-    if sys.argv[1:] == []:
-        main()
-    else:
-        # non interactive mode or help (currently not implemented)
-        if sys.argv[1] == '--dsl-decode':
-            print dsl().decode_file(sys.argv[2:])
-        elif sys.argv[1] == '--dsl-encode':
+    try:
+        opts, args = getopt.getopt(sys.argv[1:],
+                                   'p:c',
+                                   ['dsl-decode=', 'dsl-encode='])
+    except getopt.GetoptError:
+        usage()
+        sys.exit(2)
+    for opt, arg in opts:
+        if opt == '--dsl-decode':
+            print dsl().decode_file([arg])
+            sys.exit(0)
+        elif opt == '--dsl-encode':
             try:
-                print dsl().encode_file(sys.argv[2:])
+                print dsl().encode_file([arg])
             except DSLError as e:
                 print e.value
-        elif sys.argv[1] == '-c':
+            sys.exit(0)
+        elif opt == '-p':
+            ds_client.port = int(arg)
+        elif opt == '-c':
             str = ''
-            for word in sys.argv[2:]:
+            for word in args:
                 str += word + ' '
             Topcmd().onecmd(str)
-        else:
-            usage()
+            sys.exit(0)
+    main()

@@ -101,6 +101,7 @@
 #include "dpdk/dpdk.h"
 
 rte_atomic32_t dpdk_stop = RTE_ATOMIC32_INIT(0);
+bool rawsocket_only_mode;
 
 int
 app_lcore_main_loop(void *arg) {
@@ -171,15 +172,28 @@ alloc_lagopus_packet(void) {
   unsigned sock;
 
   mbuf = NULL;
-  for (sock = 0; sock < APP_MAX_SOCKETS; sock++) {
-    if (app.pools[sock] != NULL) {
-      mbuf = rte_pktmbuf_alloc(app.pools[sock]);
-      break;
+  if (rawsocket_only_mode != true) {
+    for (sock = 0; sock < APP_MAX_SOCKETS; sock++) {
+      if (app.pools[sock] != NULL) {
+        mbuf = rte_pktmbuf_alloc(app.pools[sock]);
+        break;
+      }
     }
-  }
-  if (mbuf == NULL) {
-    lagopus_msg_error("rte_pktmbuf_alloc failed\n");
-    return NULL;
+    if (mbuf == NULL) {
+      lagopus_msg_error("rte_pktmbuf_alloc failed\n");
+      return NULL;
+    }
+  } else {
+    /* do not use rte_mempool because it is not initialized. */
+    mbuf = calloc(1, sizeof(struct rte_mbuf) + APP_DEFAULT_MBUF_SIZE);
+    if (mbuf == NULL) {
+      lagopus_msg_error("memory exhausted\n");
+      return NULL;
+    }
+    mbuf->buf_addr = (void *)&mbuf[1];
+    mbuf->buf_len = APP_DEFAULT_MBUF_SIZE;
+    rte_pktmbuf_reset(mbuf);
+    rte_mbuf_refcnt_set(mbuf, 1);
   }
   pkt = (struct lagopus_packet *)
         (mbuf->buf_addr + APP_DEFAULT_MBUF_LOCALDATA_OFFSET);
@@ -206,6 +220,7 @@ copy_packet(struct lagopus_packet *src_pkt) {
   OS_M_APPEND(mbuf, pktlen);
   memcpy(OS_MTOD(pkt->mbuf, char *), OS_MTOD(src_pkt->mbuf, char *), pktlen);
   pkt->in_port = src_pkt->in_port;
+  pkt->flags = PKT_FLAG_CACHED_FLOW;
   /* other pkt members are not used in physical output. */
   return pkt;
 }
@@ -218,8 +233,8 @@ lagopus_instruction_experimenter(__UNUSED struct lagopus_packet *pkt,
 /* --------------------------Lagopus code end---------------------------- */
 
 lagopus_result_t
-dataplane_thread_loop(__UNUSED const lagopus_thread_t *selfptr,
-                      __UNUSED void *arg) {
+dpdk_thread_loop(__UNUSED const lagopus_thread_t *selfptr,
+                 __UNUSED void *arg) {
   unsigned lcore_id;
 
   lagopus_result_t rv;
@@ -271,17 +286,19 @@ lagopus_dataplane_init(int argc, const char *const argv[]) {
   if (i == argc) {
     /* "--" is not found in argv */
     memcpy(copy_argv, argv, argsize);
+    rawsocket_only_mode = true;
   } else {
     argc -= i;
     optind = 1;
-  }
-  /* init EAL */
-  ret = rte_eal_init(argc, copy_argv);
-  if (ret < 0) {
-    return LAGOPUS_RESULT_INVALID_ARGS;
-  }
 
-  optind = ret + 1;
+    /* init EAL */
+    ret = rte_eal_init(argc, copy_argv);
+    if (ret < 0) {
+      return LAGOPUS_RESULT_INVALID_ARGS;
+    }
+    optind = ret + 1;
+    rawsocket_only_mode = false;
+  }
 
   /* parse application arguments (after the EAL ones) */
   ret = app_parse_args(argc, copy_argv);
@@ -290,9 +307,11 @@ lagopus_dataplane_init(int argc, const char *const argv[]) {
     return LAGOPUS_RESULT_INVALID_ARGS;
   }
 
-  /* Init */
-  app_init();
-  app_print_params();
+  if (rawsocket_only_mode != true) {
+    /* Init */
+    app_init();
+    app_print_params();
+  }
 
   return LAGOPUS_RESULT_OK;
 }

@@ -6529,6 +6529,183 @@ test_bridge_cmd_parse_dryrun(void) {
 }
 
 void
+test_bridge_cmd_parse_create_clear_queue_packet_inq(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"bridge", "test_name85", "create",
+                         NULL
+                        };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char *argv2[] = {"bridge", "test_name85", "clear-queue",
+                         "-packet-inq",
+                         NULL
+                        };
+  const char test_str2[] = "{\"ret\":\"OK\"}";
+  const char *argv3[] = {"bridge", "test_name85", "destroy",
+                         NULL
+                        };
+  const char test_str3[] = "{\"ret\":\"OK\"}";
+
+  /* create cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse,
+                 &interp, state, ARGV_SIZE(argv1), argv1,
+                 &tbl, bridge_cmd_update, &ds, str, test_str1);
+
+  /* clear-queue cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse,
+                 &interp, state, ARGV_SIZE(argv2), argv2,
+                 &tbl, bridge_cmd_update, &ds, str, test_str2);
+
+  /* destroy cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse,
+                 &interp, state, ARGV_SIZE(argv3), argv3,
+                 &tbl, bridge_cmd_update, &ds, str, test_str3);
+}
+
+void
+test_bridge_cmd_parse_create_clear_queue_up_streamq(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"bridge", "test_name86", "create",
+                         NULL
+                        };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char *argv2[] = {"bridge", "test_name86", "clear-queue",
+                         "-up-streamq",
+                         NULL
+                        };
+  const char test_str2[] = "{\"ret\":\"OK\"}";
+  const char *argv3[] = {"bridge", "test_name86", "destroy",
+                         NULL
+                        };
+  const char test_str3[] = "{\"ret\":\"OK\"}";
+
+  /* create cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse,
+                 &interp, state, ARGV_SIZE(argv1), argv1,
+                 &tbl, bridge_cmd_update, &ds, str, test_str1);
+
+  /* clear-queue cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse,
+                 &interp, state, ARGV_SIZE(argv2), argv2,
+                 &tbl, bridge_cmd_update, &ds, str, test_str2);
+
+  /* destroy cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse,
+                 &interp, state, ARGV_SIZE(argv3), argv3,
+                 &tbl, bridge_cmd_update, &ds, str, test_str3);
+}
+
+void
+test_bridge_cmd_parse_create_clear_queue_down_streamq(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"bridge", "test_name87", "create",
+                         NULL
+                        };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char *argv2[] = {"bridge", "test_name87", "clear-queue",
+                         "-down-streamq",
+                         NULL
+                        };
+  const char test_str2[] = "{\"ret\":\"OK\"}";
+  const char *argv3[] = {"bridge", "test_name87", "destroy",
+                         NULL
+                        };
+  const char test_str3[] = "{\"ret\":\"OK\"}";
+
+  /* create cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse,
+                 &interp, state, ARGV_SIZE(argv1), argv1,
+                 &tbl, bridge_cmd_update, &ds, str, test_str1);
+
+  /* clear-queue cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse,
+                 &interp, state, ARGV_SIZE(argv2), argv2,
+                 &tbl, bridge_cmd_update, &ds, str, test_str2);
+
+  /* destroy cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse,
+                 &interp, state, ARGV_SIZE(argv3), argv3,
+                 &tbl, bridge_cmd_update, &ds, str, test_str3);
+}
+
+void
+test_bridge_cmd_parse_create_clear_queue_all(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"bridge", "test_name88", "create",
+                         NULL
+                        };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char *argv2[] = {"bridge", "test_name88", "clear-queue",
+                         NULL
+                        };
+  const char test_str2[] = "{\"ret\":\"OK\"}";
+  const char *argv3[] = {"bridge", "test_name88", "destroy",
+                         NULL
+                        };
+  const char test_str3[] = "{\"ret\":\"OK\"}";
+
+  /* create cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse,
+                 &interp, state, ARGV_SIZE(argv1), argv1,
+                 &tbl, bridge_cmd_update, &ds, str, test_str1);
+
+  /* clear-queue cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse,
+                 &interp, state, ARGV_SIZE(argv2), argv2,
+                 &tbl, bridge_cmd_update, &ds, str, test_str2);
+
+  /* destroy cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse,
+                 &interp, state, ARGV_SIZE(argv3), argv3,
+                 &tbl, bridge_cmd_update, &ds, str, test_str3);
+}
+
+void
+test_bridge_cmd_parse_create_clear_queue_bad_opt(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"bridge", "test_name89", "create",
+                         NULL
+                        };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char *argv2[] = {"bridge", "test_name89", "clear-queue",
+                         "-hoge",
+                         NULL
+                        };
+  const char test_str2[] =
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"opt = -hoge.\"}";
+  const char *argv3[] = {"bridge", "test_name89", "destroy",
+                         NULL
+                        };
+  const char test_str3[] = "{\"ret\":\"OK\"}";
+
+  /* create cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse,
+                 &interp, state, ARGV_SIZE(argv1), argv1,
+                 &tbl, bridge_cmd_update, &ds, str, test_str1);
+
+  /* clear-queue cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 bridge_cmd_parse,
+                 &interp, state, ARGV_SIZE(argv2), argv2,
+                 &tbl, bridge_cmd_update, &ds, str, test_str2);
+
+  /* destroy cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse,
+                 &interp, state, ARGV_SIZE(argv3), argv3,
+                 &tbl, bridge_cmd_update, &ds, str, test_str3);
+}
+
+void
 test_destroy(void) {
   destroy = true;
 }

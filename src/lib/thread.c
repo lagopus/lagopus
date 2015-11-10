@@ -110,9 +110,15 @@ s_final(void) {
 
 static void
 s_dtors(void) {
-  s_final();
+  if (lagopus_module_is_unloading() &&
+      lagopus_module_is_finalized_cleanly()) {
+    s_final();
 
-  lagopus_msg_debug(10, "The thread module is finalized.\n");
+    lagopus_msg_debug(10, "The thread module is finalized.\n");
+  } else {
+    lagopus_msg_debug(10, "The thread module is not finalized "
+                      "because of module finalization problem.\n");
+  }
 }
 
 
@@ -232,6 +238,8 @@ s_initialize(lagopus_thread_t thd,
         ((ret = lagopus_cond_create(&(thd->m_wait_cond))) ==
          LAGOPUS_RESULT_OK) &&
         ((ret = lagopus_cond_create(&(thd->m_startup_cond))) ==
+         LAGOPUS_RESULT_OK) &&
+        ((ret = lagopus_cond_create(&(thd->m_finalize_cond))) ==
          LAGOPUS_RESULT_OK)) {
       thd->m_arg = arg;
       if (IS_VALID_STRING(name) == true) {
@@ -319,6 +327,8 @@ s_finalize(lagopus_thread_t thd, bool is_canceled,
           (void)lagopus_cond_notify(&(thd->m_wait_cond), true);
         }
         s_wait_unlock(thd);
+
+        (void)lagopus_cond_notify(&(thd->m_finalize_cond), true);
 
       }
       (void)lagopus_mutex_leave_critical(&(thd->m_finalize_lock),
@@ -411,6 +421,10 @@ s_destroy(lagopus_thread_t *thdptr, bool is_clean_finish) {
       if ((*thdptr)->m_startup_cond != NULL) {
         (void)lagopus_cond_destroy(&((*thdptr)->m_startup_cond));
         (*thdptr)->m_startup_cond = NULL;
+      }
+      if ((*thdptr)->m_finalize_cond != NULL) {
+        (void)lagopus_cond_destroy(&((*thdptr)->m_finalize_cond));
+        (*thdptr)->m_finalize_cond = NULL;
       }
 
     }
@@ -752,22 +766,50 @@ lagopus_thread_wait(const lagopus_thread_t *thdptr,
       if (s_is_thd(*thdptr) == true) {
         if ((*thdptr)->m_do_autodelete == false) {
 
-          s_wait_lock(*thdptr);
+          int o_cancel_state;
+
+          (void)pthread_setcancelstate(PTHREAD_CANCEL_DISABLE,
+                                       &o_cancel_state);
           {
-          waitcheck:
-            mbar();
-            if ((*thdptr)->m_is_activated == true) {
-              ret = lagopus_cond_wait(&((*thdptr)->m_wait_cond),
-                                      &((*thdptr)->m_wait_lock),
-                                      nsec);
-              if (ret == LAGOPUS_RESULT_OK) {
-                goto waitcheck;
+
+            s_wait_lock(*thdptr);
+            {
+           waitcheck:
+              mbar();
+              if ((*thdptr)->m_is_activated == true) {
+                ret = lagopus_cond_wait(&((*thdptr)->m_wait_cond),
+                                        &((*thdptr)->m_wait_lock),
+                                        nsec);
+                if (ret == LAGOPUS_RESULT_OK) {
+                  goto waitcheck;
+                }
+              } else {
+                ret = LAGOPUS_RESULT_OK;
               }
-            } else {
-              ret = LAGOPUS_RESULT_OK;
             }
+            s_wait_unlock(*thdptr);
+
+            if ((*thdptr)->m_is_started == true) {
+
+              (void)lagopus_mutex_lock(&((*thdptr)->m_finalize_lock));
+              {
+                mbar();
+             finalcheck:
+                if ((*thdptr)->m_n_finalized_count == 0) {
+                  ret = lagopus_cond_wait(&((*thdptr)->m_finalize_cond),
+                                          &((*thdptr)->m_finalize_lock),
+                                          nsec);
+                  if (ret == LAGOPUS_RESULT_OK) {
+                    goto finalcheck;
+                  }
+                }
+              }
+              (void)lagopus_mutex_unlock(&((*thdptr)->m_finalize_lock));
+
+            }
+
           }
-          s_wait_unlock(*thdptr);
+          (void)pthread_setcancelstate(o_cancel_state, NULL);
 
         } else {
           ret = LAGOPUS_RESULT_NOT_OPERATIONAL;

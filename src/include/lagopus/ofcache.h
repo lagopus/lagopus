@@ -24,10 +24,12 @@
 #define FLOWCACHE_HASHMAP_NOLOCK 0
 #define FLOWCACHE_HASHMAP        1
 #define FLOWCACHE_PTREE          2
+#define FLOWCACHE_RTE_HASH       3
 
 #define CACHE_NODE_MAX_ENTRIES 256
 
 struct lagopus_packet;
+struct rte_hash;
 struct flowcache;
 
 /**

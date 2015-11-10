@@ -174,14 +174,14 @@ Check the current status of NICs whehter the 2nd, 3rd and 4th interface is regis
 ```
 
 ### Setup Lagopus configuration file
-Sample Lagopus configuration (DSL format) is "lagopus/samples/lagopus.conf".
+Sample Lagopus configuration (DSL format) is "misc/examples/lagopus.dsl".
 
-NOTE: *lagopus.conf* file must be located at the same directory of the executable of lagopus vswitch or
+NOTE: *lagopus.dsl* file must be located at the same directory of the executable of lagopus vswitch or
 the following directory.
 
 ```
-     % sudo cp lagopus/samples/lagopus.conf /usr/local/etc/lagopus/
-     % sudo vi /usr/local/etc/lagopus/lagopus.conf
+     % sudo cp misc/examples/lagopus.dsl /usr/local/etc/lagopus/
+     % sudo vi /usr/local/etc/lagopus/lagopus.dsl
 ```
 
 Usually, edit and commit configuration via "lagosh" interactive shell.

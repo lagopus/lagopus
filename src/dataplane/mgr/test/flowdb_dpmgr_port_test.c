@@ -79,7 +79,7 @@ static uint64_t dpid_base;
       ifinfo.eth.port_number = TEST_PORT_IFINDEX(_s);                   \
       TEST_ASSERT_TRUE_MESSAGE(LAGOPUS_RESULT_OK == dp_interface_info_set(ifname[_s], &ifinfo), _buf); \
       TEST_ASSERT_TRUE_MESSAGE(LAGOPUS_RESULT_OK == dp_port_interface_set(port_name[_s], ifname[_s]), _buf); \
-      TEST_ASSERT_NOT_NULL_MESSAGE((_port = dp_port_lookup(TEST_PORT_IFINDEX(_s))), _buf); \
+      TEST_ASSERT_NOT_NULL_MESSAGE((_port = dp_port_lookup(0, TEST_PORT_IFINDEX(_s))), _buf); \
     }                                                                   \
   } while (0);
 
@@ -123,7 +123,7 @@ static uint64_t dpid_base;
     snprintf(_buf, sizeof(_buf), "%s, find ports", (_msg));		\
     \
     for (size_t _s = (_b); _s < (_e); _s++) {				\
-      TEST_ASSERT_TRUE_MESSAGE(NULL != dp_port_lookup(TEST_PORT_IFINDEX(_s)), _buf); \
+      TEST_ASSERT_TRUE_MESSAGE(NULL != dp_port_lookup(0, TEST_PORT_IFINDEX(_s)), _buf); \
     }									\
   } while (0);
 
@@ -135,7 +135,7 @@ static uint64_t dpid_base;
     snprintf(_buf, sizeof(_buf), "%s, negatively find ports", (_msg));	\
     \
     for (size_t _s = (_b); _s < (_e); _s++) {				\
-      TEST_ASSERT_TRUE_MESSAGE(NULL == dp_port_lookup(TEST_PORT_IFINDEX(_s)), _buf); \
+      TEST_ASSERT_TRUE_MESSAGE(NULL == dp_port_lookup(0, TEST_PORT_IFINDEX(_s)), _buf); \
     }									\
   } while (0);
 
@@ -297,7 +297,7 @@ tearDown(void) {
   }
 
   for (s = 0; s < ARRAY_LEN(bridge); s++) {
-    TEST_ASSERT_NULL(dp_port_lookup(TEST_PORT_IFINDEX(s)));
+    TEST_ASSERT_NULL(dp_port_lookup(0, TEST_PORT_IFINDEX(s)));
     TEST_ASSERT_TRUE(LAGOPUS_RESULT_OK == dp_bridge_destroy(bridge_name[s]));
     // Free the bridge names.
     free(port_name[s]);

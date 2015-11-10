@@ -398,7 +398,7 @@ ofp_port_policer_delete(const char *name,
     }
   } else {
     ret = datastore_json_result_string_setf(result, ret,
-                                            "Can't create policer.");
+                                            "Can't delete policer.");
   }
 
 done:
@@ -1302,10 +1302,12 @@ port_cmd_do_destroy(port_conf_t *conf,
       }
     }
 
-    ret = ofp_port_destroy(conf->name, conf->current_attr, result);
-    if (ret != LAGOPUS_RESULT_OK) {
-      /* ignore error. */
-      lagopus_msg_warning("ret = %s", lagopus_error_get_string(ret));
+    if (conf->current_attr != NULL) {
+      ret = ofp_port_destroy(conf->name, conf->current_attr, result);
+      if (ret != LAGOPUS_RESULT_OK) {
+        /* ignore error. */
+        lagopus_msg_warning("ret = %s", lagopus_error_get_string(ret));
+      }
     }
 
     ret = port_conf_delete(conf);

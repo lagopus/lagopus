@@ -793,6 +793,7 @@ flow_action_examination(struct flow *flow,
                         struct action_list *action_list) {
   struct action *action, *action_output, *action_push;
   struct group *group;
+  struct bucket *bucket;
   uint32_t group_id;
   int flags;
 
@@ -842,21 +843,13 @@ flow_action_examination(struct flow *flow,
         if (group == NULL) {
           break;
         }
-        if (group->type == OFPGT_ALL) {
-          struct bucket *bucket;
+        TAILQ_FOREACH(bucket, &group->bucket_list, entry) {
+          struct action *bucket_output;
 
-          TAILQ_FOREACH(bucket, &group->bucket_list, entry) {
-            struct action *bucket_output;
-
-            TAILQ_FOREACH(bucket_output,
-                          &bucket->actions[LAGOPUS_ACTION_SET_ORDER_OUTPUT],
-                          entry) {
-              if (action_output != NULL) {
-                action_output->flags = OUTPUT_COPIED_PACKET;
-              }
-              action_output = bucket_output;
-              action_output->cookie = flow->cookie;
-            }
+          TAILQ_FOREACH(bucket_output,
+                        &bucket->actions[LAGOPUS_ACTION_SET_ORDER_OUTPUT],
+                        entry) {
+            bucket_output->cookie = flow->cookie;
           }
         }
         break;
@@ -1763,8 +1756,13 @@ table_flow_counts(struct table *table,
       }
     }
     if (match_compare(&flow->match_list, match_list) == true) {
-      reply->packet_count += flow->packet_count;
-      reply->byte_count += flow->byte_count;
+
+      if ((flow->flags & OFPFF_NO_PKT_COUNTS) == 0) {
+        reply->packet_count += flow->packet_count;
+      }
+      if ((flow->flags & OFPFF_NO_BYT_COUNTS) == 0) {
+        reply->byte_count += flow->byte_count;
+      }
       reply->flow_count++;
     }
   }

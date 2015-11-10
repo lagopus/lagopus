@@ -58,14 +58,26 @@ typedef struct {
 
 
 static size_t s_n_modules = 0;
+static volatile size_t s_n_finalized_modules = 0;
+static volatile bool s_is_finalized = false;
+static volatile bool s_is_unloading = false;
 static a_module s_modules[MAX_MODULES];
 
 static pthread_once_t s_once = PTHREAD_ONCE_INIT;
 static lagopus_mutex_t s_lck = NULL;
+static lagopus_cond_t s_cnd = NULL;
 
-
+/*
+ * NOTE:
+ *
+ *	This module must be initialized at the last of static
+ *	onstruction sequence. So check the priority when new modules
+ *	are added.
+ */
 static void	s_ctors(void) __attr_constructor__(113);
 static void	s_dtors(void) __attr_destructor__(113);
+
+static void	s_atexit_handler(void);
 
 
 
@@ -74,12 +86,25 @@ static void	s_dtors(void) __attr_destructor__(113);
 static void
 s_once_proc(void) {
   lagopus_result_t r;
+
   s_n_modules = 0;
+  s_n_finalized_modules = 0;
+  s_is_finalized = false;
+  s_is_unloading = false;
   (void)memset((void *)s_modules, 0, sizeof(s_modules));
 
   if ((r = lagopus_mutex_create(&s_lck)) != LAGOPUS_RESULT_OK) {
     lagopus_perror(r);
     lagopus_exit_fatal("can't initialize a mutex.\n");
+  }
+  if ((r = lagopus_cond_create(&s_cnd)) != LAGOPUS_RESULT_OK) {
+    lagopus_perror(r);
+    lagopus_exit_fatal("can't initialize a cond.\n");
+  }
+
+  if (atexit(s_atexit_handler) != 0) {
+    lagopus_perror(LAGOPUS_RESULT_POSIX_API_ERROR);
+    lagopus_exit_fatal("can't add an exit handler.\n");
   }
 }
 
@@ -102,6 +127,9 @@ static void
 s_final(void) {
   if (s_lck != NULL) {
     lagopus_mutex_destroy(&s_lck);
+  }
+  if (s_cnd != NULL) {
+    lagopus_cond_destroy(&s_cnd);
   }
 }
 
@@ -130,6 +158,60 @@ s_unlock(void) {
   if (s_lck != NULL) {
     (void)lagopus_mutex_unlock(&s_lck);
   }
+}
+
+
+static inline lagopus_result_t
+s_wait(lagopus_chrono_t to) {
+  if (s_lck != NULL && s_cnd != NULL) {
+    return lagopus_cond_wait(&s_cnd, &s_lck, to);
+  } else {
+    return LAGOPUS_RESULT_NOT_OPERATIONAL;
+  }
+}
+
+
+static inline void
+s_wakeup(void) {
+  if (s_lck != NULL && s_cnd != NULL) {
+    (void)lagopus_cond_notify(&s_cnd, true);
+  }
+}
+
+
+
+
+
+
+static void
+s_atexit_handler(void) {
+  lagopus_result_t r;
+
+  s_lock();
+  {
+
+    if (s_n_modules > 0) {
+      mbar();
+   recheck:
+      if (s_is_finalized == false) {
+        r = s_wait(100LL * 1000LL * 1000LL);
+        if (r == LAGOPUS_RESULT_OK) {
+          goto recheck;
+        } else if (r == LAGOPUS_RESULT_TIMEDOUT) {
+          lagopus_msg_warning("Module finaliations seems not completed.\n");
+        } else {
+          lagopus_perror(r);
+          lagopus_msg_error("module finalization wait failed.\n");
+        }
+      }
+
+      s_is_unloading = true;
+      mbar();
+    }
+
+  }
+  s_unlock();
+
 }
 
 
@@ -391,6 +473,7 @@ s_finalize_module(a_module *mptr) {
     if (mptr->m_status != MODULE_STATE_STARTED &&
         mptr->m_status != MODULE_STATE_CANCELLING) {
       (mptr->m_finalize_proc)();
+      (void)__sync_fetch_and_add(&s_n_finalized_modules, 1);
     } else {
       lagopus_msg_warning("the module \"%s\" seems to be still running, "
                           "won't destruct it for safe.\n",
@@ -710,6 +793,10 @@ lagopus_module_finalize_all(void) {
         s_finalize_module(mptr);
       }
     }
+
+    s_is_finalized = true;
+
+    s_wakeup();
   }
   s_unlock();
 }
@@ -722,3 +809,20 @@ lagopus_result_t
 lagopus_module_find(const char *name) {
   return s_find_module(name, NULL);
 }
+
+
+
+
+
+bool
+lagopus_module_is_finalized_cleanly(void) {
+  return (s_n_modules == s_n_finalized_modules) ? true : false;
+}
+
+
+bool
+lagopus_module_is_unloading(void) {
+  mbar();
+  return s_is_unloading;
+}
+

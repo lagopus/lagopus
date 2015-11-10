@@ -86,6 +86,7 @@
 #include <rte_ip.h>
 #include <rte_tcp.h>
 #include <rte_string_fns.h>
+#include <rte_version.h>
 
 #include "lagopus_apis.h"
 #include "lagopus/dataplane.h"
@@ -120,6 +121,9 @@ static const char usage[] =
   "           hashmap         Use hashmap                                         \n"
   "           ptree           Use ptree                                           \n"
 #ifdef __SSE4_2__
+#if RTE_VERSION >= RTE_VERSION_NUM(2, 1, 0, 0)
+  "           rte_hash        Use DPDK hash table                                 \n"
+#endif /* RTE_VERSION */
   "    --hashtype TYPE: Select hash type for flow cache                           \n"
   "           city64   CityHash(64bit) (default)                                  \n"
   "           intel64  Intel_hash64                                               \n"
@@ -582,6 +586,10 @@ parse_arg_kvstype(const char *arg) {
     app.kvs_type = FLOWCACHE_HASHMAP;
   } else if (!strcmp(arg, "ptree")) {
     app.kvs_type = FLOWCACHE_PTREE;
+#if RTE_VERSION >= RTE_VERSION_NUM(2, 1, 0, 0)
+  } else if (!strcmp(arg, "rte_hash")) {
+    app.kvs_type = FLOWCACHE_RTE_HASH;
+#endif /* RTE_VERSION */
   } else {
     return -1;
   }
@@ -818,6 +826,9 @@ app_parse_args(int argc, const char *argv[]) {
 
   /* Check that all mandatory arguments are provided */
   if ((arg_rx == 0 || arg_tx == 0 || arg_w == 0) && arg_p == 0) {
+    if (rawsocket_only_mode == true) {
+      goto out;
+    }
     lagopus_exit_error(EXIT_FAILURE,
                        "Not all mandatory arguments are present\n");
   }
@@ -1061,7 +1072,7 @@ app_parse_args(int argc, const char *argv[]) {
     }
     exit(0);
   }
-
+out:
   if (optind >= 0) {
     argv[optind - 1] = prgname;
   }

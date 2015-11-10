@@ -89,7 +89,22 @@ test_ofp_bridgeq_mgr_bridge(void) {
   ret = ofp_bridgeq_mgr_info_get(dpid, &test_info);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, ret,
                             "ofp_bridgeq_mgr_info_get error.");
-  TEST_ASSERT_EQUAL_MESSAGE(0, memcmp(&info, &test_info, sizeof(info)),
+  TEST_ASSERT_EQUAL_MESSAGE(1, ((info.dpid == test_info.dpid) &&
+                                (info.fail_mode == test_info.fail_mode) &&
+                                (info.max_buffered_packets ==
+                                 test_info.max_buffered_packets) &&
+                                (info.max_ports == test_info.max_ports) &&
+                                (info.max_tables == test_info.max_tables) &&
+                                (info.max_flows == test_info.max_flows) &&
+                                (info.capabilities == test_info.capabilities) &&
+                                (info.action_types == test_info.action_types) &&
+                                (info.instruction_types ==
+                                 test_info.instruction_types) &&
+                                (info.reserved_port_types ==
+                                 test_info.reserved_port_types) &&
+                                (info.group_types == test_info.group_types) &&
+                                (info.group_capabilities ==
+                                 test_info.group_capabilities)),
                             "bad bridge info.");
 
   /* get bridge info (not found). */

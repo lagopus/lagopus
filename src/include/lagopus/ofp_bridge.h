@@ -202,6 +202,42 @@ ofp_bridge_event_dataq_stats_get(struct ofp_bridge *ptr,
                                  uint16_t *val);
 
 /**
+ * Clear dataq.
+ *
+ *     @param[in]	ptr	A pointer to \e ofp_bridge.
+ *
+ *     @retval	LAGOPUS_RESULT_OK	Succeeded.
+ *     @retval	LAGOPUS_RESULT_INVALID_ARGS	Failed, invalid args.
+ *     @retval	LAGOPUS_RESULT_ANY_FAILURES	Failed.
+ */
+lagopus_result_t
+ofp_bridge_dataq_clear(struct ofp_bridge *ptr);
+
+/**
+ * Clear eventq.
+ *
+ *     @param[in]	ptr	A pointer to \e ofp_bridge.
+ *
+ *     @retval	LAGOPUS_RESULT_OK	Succeeded.
+ *     @retval	LAGOPUS_RESULT_INVALID_ARGS	Failed, invalid args.
+ *     @retval	LAGOPUS_RESULT_ANY_FAILURES	Failed.
+ */
+lagopus_result_t
+ofp_bridge_eventq_clear(struct ofp_bridge *ptr);
+
+/**
+ * Clear event dataq.
+ *
+ *     @param[in]	ptr	A pointer to \e ofp_bridge.
+ *
+ *     @retval	LAGOPUS_RESULT_OK	Succeeded.
+ *     @retval	LAGOPUS_RESULT_INVALID_ARGS	Failed, invalid args.
+ *     @retval	LAGOPUS_RESULT_ANY_FAILURES	Failed.
+ */
+lagopus_result_t
+ofp_bridge_event_dataq_clear(struct ofp_bridge *ptr);
+
+/**
  * Get bridge name.
  *
  *     @param[in]	ptr	A pointer to \e ofp_bridge.

@@ -301,6 +301,45 @@ ofp_bridge_event_dataq_stats_get(struct ofp_bridge *ptr,
 }
 
 lagopus_result_t
+ofp_bridge_dataq_clear(struct ofp_bridge *ptr) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+
+  if (ptr != NULL) {
+    ret = lagopus_bbq_clear(&ptr->dataq, true);
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  return ret;
+}
+
+lagopus_result_t
+ofp_bridge_eventq_clear(struct ofp_bridge *ptr) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+
+  if (ptr != NULL) {
+    ret = lagopus_bbq_clear(&ptr->eventq, true);
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  return ret;
+}
+
+lagopus_result_t
+ofp_bridge_event_dataq_clear(struct ofp_bridge *ptr) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+
+  if (ptr != NULL) {
+    ret = lagopus_bbq_clear(&ptr->event_dataq, true);
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  return ret;
+}
+
+lagopus_result_t
 ofp_bridge_name_get(struct ofp_bridge *ptr,
                     char **name) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;

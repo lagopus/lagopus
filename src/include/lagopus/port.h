@@ -43,7 +43,6 @@ struct port {
   lagopus_hashmap_t queueinfo_hashmap;  /** Related active queue hashtable. */
   lagopus_bbq_t pcap_queue;             /** Packet queue for capture */
   struct timespec create_time;          /** Creation time. */
-  struct port_stats *(*stats)(struct port *);  /** Statistics function. */
 
   /* Type specific member. */
   union {

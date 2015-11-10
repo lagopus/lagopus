@@ -45,18 +45,21 @@ static lagopus_hashmap_t queueid_hashmap;
 /**
  * physical port id --> struct port table
  */
-static struct vector *port_vector;
+static struct vector *port_vector[DATASTORE_INTERFACE_TYPE_MAX + 1];
 
 static void dp_port_interface_unset_internal(struct port *port);
 static void dp_queue_free(void *queue);
 
 lagopus_result_t
 dp_api_init(void) {
+  int i;
   lagopus_result_t rv;
 
-  port_vector = ports_alloc();
-  if (port_vector == NULL) {
-    return LAGOPUS_RESULT_NO_MEMORY;
+  for (i = 0; i < DATASTORE_INTERFACE_TYPE_MAX + 1; i++) {
+    port_vector[i] = ports_alloc();
+    if (port_vector[i] == NULL) {
+      return LAGOPUS_RESULT_NO_MEMORY;
+    }
   }
   rv = lagopus_hashmap_create(&interface_hashmap,
                               LAGOPUS_HASHMAP_TYPE_STRING,
@@ -96,13 +99,17 @@ dp_api_init(void) {
 
 void
 dp_api_fini(void) {
+  int i;
+
   lagopus_hashmap_destroy(&interface_hashmap, true);
   lagopus_hashmap_destroy(&port_hashmap, true);
   lagopus_hashmap_destroy(&bridge_hashmap, true);
   lagopus_hashmap_destroy(&dpid_hashmap, false);
   lagopus_hashmap_destroy(&queue_hashmap, true);
   lagopus_hashmap_destroy(&queueid_hashmap, true);
-  ports_free(port_vector);
+  for (i = 0; i < DATASTORE_INTERFACE_TYPE_MAX + 1; i++) {
+    ports_free(port_vector[i]);
+  }
 }
 
 /*
@@ -224,7 +231,7 @@ dp_interface_info_set(const char *name,
     memset(&ifp->info, 0, sizeof(ifp->info));
     return rv;
   } else {
-    switch (ifp->info.type) {
+    switch (interface_info->type) {
       case DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_PHY:
       case DATASTORE_INTERFACE_TYPE_ETHERNET_RAWSOCK:
       case DATASTORE_INTERFACE_TYPE_VXLAN:
@@ -423,8 +430,7 @@ dp_port_interface_set(const char *name, const char *ifname) {
   port->interface = ifp;
   port->ifindex = ifp->info.eth.port_number;
   ifp->port = port;
-  ifp->stats = port->stats;
-  vector_set_index(port_vector,
+  vector_set_index(port_vector[ifp->info.type],
                    ifp->info.eth.port_number,
                    port);
   if (port->interface != NULL) {
@@ -441,25 +447,29 @@ dp_port_interface_unset_internal(struct port *port) {
 #ifdef HAVE_DPDK
     dpdk_queue_unconfigure(port->interface);
 #endif /* HAVE_DPDK */
-    vector_set_index(port_vector, port->ifindex, NULL);
+    vector_set_index(port_vector[port->interface->info.type],
+                     port->ifindex, NULL);
     port->interface->port = NULL;
-    port->interface->stats = NULL;
     port->interface = NULL;
   }
 }
 
 struct port *
-dp_port_lookup(uint32_t portid) {
-  return port_lookup(port_vector, portid);
+dp_port_lookup(int type, uint32_t portid) {
+  return port_lookup(port_vector[type], portid);
 }
 
 uint32_t
 dp_port_count(void) {
   uint32_t count, idx;
+  int i;
 
-  for (count = 0, idx = 0; idx <= vector_max(port_vector); idx++) {
-    if (vector_slot(port_vector, idx) != NULL) {
-      count++;
+  count = 0;
+  for (i = 0; i < DATASTORE_INTERFACE_TYPE_MAX + 1; i++) {
+    for (idx = 0; idx <= vector_max(port_vector[i]); idx++) {
+      if (vector_slot(port_vector[i], idx) != NULL) {
+        count++;
+      }
     }
   }
   return count;

@@ -91,6 +91,10 @@
 #include <rte_ring.h>
 #include <rte_mempool.h>
 #include <rte_string_fns.h>
+#include <rte_ip.h>
+#include <rte_tcp.h>
+#include <rte_udp.h>
+#include <rte_sctp.h>
 #ifdef __linux__
 #include <rte_kni.h>
 #endif /* __linux__ */
@@ -108,10 +112,11 @@
 #include "lagopus/dp_apis.h"
 #include "pktbuf.h"
 #include "packet.h"
+#include "csum.h"
 #include "dpdk/dpdk.h"
 
 #ifndef APP_LCORE_WORKER_FLUSH
-#define APP_LCORE_WORKER_FLUSH       10000
+#define APP_LCORE_WORKER_FLUSH       1000
 #endif
 
 #define APP_WORKER_DROP_ALL_PACKETS  0
@@ -127,6 +132,8 @@
 #define APP_WORKER_PREFETCH0(p)
 #define APP_WORKER_PREFETCH1(p)
 #endif
+
+#define IS_TX_OFFLOAD_ENABLE(ifp) false /* preliminary */
 
 struct worker_arg {
   struct lagopus_packet *pkt;
@@ -169,9 +176,11 @@ app_lcore_worker(struct app_lcore_params_worker *lp,
       pkt = (struct lagopus_packet *)
             (m->buf_addr + APP_DEFAULT_MBUF_LOCALDATA_OFFSET);
 #ifdef RTE_MBUF_HAS_PKT
-      port = dp_port_lookup(m->pkt.in_port);
+      port = dp_port_lookup(DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_PHY,
+                            m->pkt.in_port);
 #else
-      port = dp_port_lookup(m->port);
+      port = dp_port_lookup(DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_PHY,
+                            m->port);
 #endif /* RTE_MBUF_HAS_PKT */
       if (port == NULL ||
           port->bridge == NULL ||
@@ -387,14 +396,16 @@ app_assign_worker_ids(void) {
  * NOTE: Intel DPDK supports only physical port of the NIC.
  */
 int
-dpdk_send_packet_physical(struct lagopus_packet *pkt, uint32_t portid) {
+dpdk_send_packet_physical(struct lagopus_packet *pkt, struct interface *ifp) {
   struct app_lcore_params_worker *lp;
   unsigned lcore;
   struct rte_mbuf *m;
   uint32_t bsz_wr = app.burst_size_worker_write;
   uint32_t pos, plen;
+  uint8_t portid;
   int ret;
 
+  portid = ifp->info.eth.port_number;
   lcore = rte_lcore_id();
   if (unlikely(lcore == 0 || lcore == UINT_MAX)) {
     /**
@@ -414,6 +425,64 @@ dpdk_send_packet_physical(struct lagopus_packet *pkt, uint32_t portid) {
   plen = OS_M_PKTLEN(m);
   if (plen < 60) {
     memset(OS_M_APPEND(m, 60 - plen), 0, (uint32_t)(60 - plen));
+  }
+  if ((pkt->flags & PKT_FLAG_RECALC_CKSUM_MASK) != 0) {
+    if (IS_TX_OFFLOAD_ENABLE(ifp) == false) {
+      if (pkt->ether_type == ETHERTYPE_IP) {
+        lagopus_update_ipv4_checksum(pkt);
+      } else if (pkt->ether_type == ETHERTYPE_IPV6) {
+        lagopus_update_ipv6_checksum(pkt);
+      }
+    } else {
+      if (pkt->vlan != NULL) {
+        m->ol_flags |= PKT_TX_VLAN_PKT;
+      }
+      if (pkt->ether_type == ETHERTYPE_IP) {
+        pkt->ipv4->ip_sum = 0;
+        m->ol_flags |= PKT_TX_IP_CKSUM | PKT_TX_IPV4;
+        switch (IPV4_PROTO(pkt->ipv4)) {
+          case IPPROTO_TCP:
+            m->ol_flags |= PKT_TX_TCP_CKSUM;
+            pkt->tcp[8] = rte_ipv4_phdr_cksum(pkt->ipv4, m->ol_flags);
+            break;
+          case IPPROTO_UDP:
+            m->ol_flags |= PKT_TX_UDP_CKSUM;
+            pkt->udp[3] = rte_ipv4_phdr_cksum(pkt->ipv4, m->ol_flags);
+            break;
+          case IPPROTO_SCTP:
+            m->ol_flags |= PKT_TX_SCTP_CKSUM;
+            break;
+          case IPPROTO_ICMP:
+            lagopus_update_icmp_checksum(pkt);
+          default:
+            break;
+        }
+        plen = OS_M_PKTLEN(m);
+      } else if (pkt->ether_type == ETHERTYPE_IPV6) {
+        m->ol_flags |= PKT_TX_IP_CKSUM | PKT_TX_IPV6;
+        switch (IPV4_PROTO(pkt->ipv4)) {
+          case IPPROTO_TCP:
+            m->ol_flags |= PKT_TX_TCP_CKSUM;
+            pkt->tcp[8] = rte_ipv6_phdr_cksum(pkt->ipv4, m->ol_flags);
+            break;
+          case IPPROTO_UDP:
+            m->ol_flags |= PKT_TX_UDP_CKSUM;
+            pkt->udp[3] = rte_ipv6_phdr_cksum(pkt->ipv4, m->ol_flags);
+            break;
+          case IPPROTO_SCTP:
+            m->ol_flags |= PKT_TX_SCTP_CKSUM;
+            break;
+          case IPPROTO_ICMPV6:
+            lagopus_update_icmpv6_checksum(pkt);
+            break;
+          default:
+            m->l4_len = 0;
+            break;
+        }
+      }
+      m->l3_len = pkt->base[L4_BASE] - pkt->base[L3_BASE];
+      m->l2_len = pkt->base[L3_BASE] - pkt->base[ETH_BASE];
+    }
   }
 
   pos = lp->mbuf_out[portid].n_mbufs;
