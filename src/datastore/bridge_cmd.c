@@ -1299,12 +1299,11 @@ bri_names_used_set(const char *name,
                    bridge_attr_t *attr, bool b,
                    lagopus_dstring_t *result) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  (void) name;
 
   if ((ret = bri_ports_used_set(attr, b, result)) ==
       LAGOPUS_RESULT_OK) {
-    if ((ret = bri_controllers_used_set(attr, b, result)) ==
-        LAGOPUS_RESULT_OK) {
-    }
+    ret = bri_controllers_used_set(attr, b, result);
   }
 
   return ret;

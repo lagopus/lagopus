@@ -14,7 +14,7 @@ setup:
         cmd: "{{ shell_dir }}/dummy_eth_up.sh lago_eth 2"
         result: "0"
       - cmd_type: shell
-        cmd: cp -f {{ test_home  }}/test_scenarios/functional_tests/load_fail.dsl /tmp/load_fail.dsl
+        cmd: cp -f {{ test_home  }}/test_scenarios/functional_tests/load/load_fail.dsl /tmp/load_fail.dsl
         result: "0"
 
 teardown:

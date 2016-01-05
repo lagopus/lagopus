@@ -63,10 +63,10 @@ testcases:
             cmd: controller controller01 create -channel channel01 -role equal -connection-type main
             result: '{"ret": "OK"}'
           - cmd_type: ds
-            cmd: interface if01 create -type ethernet-rawsock -device lago_eth0 -port-number 1 -mtu 1 -ip-addr 127.0.0.1
+            cmd: interface if01 create -type ethernet-rawsock -device lago_eth0 -mtu 1 -ip-addr 127.0.0.1
             result: '{"ret": "OK"}'
           - cmd_type: ds
-            cmd: interface if02 create -type ethernet-rawsock -device lago_eth1 -port-number 2 -mtu 2 -ip-addr 127.0.0.2
+            cmd: interface if02 create -type ethernet-rawsock -device lago_eth1 -mtu 2 -ip-addr 127.0.0.2
             result: '{"ret": "OK"}'
           - cmd_type: ds
             cmd: queue queue01 create -type single-rate -id 1 -priority 2 -color color-aware -committed-burst-size 1500 -committed-information-rate 1500 -excess-burst-size 1500
@@ -101,7 +101,6 @@ testcases:
               {"ret":"OK",
               "data":[{"name":"dryrun:if01",
               "type":"ethernet-rawsock",
-              "port-number":1,
               "device":"lago_eth0",
               "mtu":1,
               "ip-addr":"127.0.0.1",
@@ -109,7 +108,6 @@ testcases:
               "is-enabled":false},
               {"name":"dryrun:if02",
               "type":"ethernet-rawsock",
-              "port-number":2,
               "device":"lago_eth1",
               "mtu":2,
               "ip-addr":"127.0.0.2",
@@ -121,7 +119,6 @@ testcases:
               {"ret":"OK",
               "data":[{"name":"dryrun:if01",
               "type":"ethernet-rawsock",
-              "port-number":1,
               "device":"lago_eth0",
               "mtu":1,
               "ip-addr":"127.0.0.1",
@@ -133,7 +130,6 @@ testcases:
               {"ret":"OK",
               "data":[{"name":"dryrun:if02",
               "type":"ethernet-rawsock",
-              "port-number":2,
               "device":"lago_eth1",
               "mtu":2,
               "ip-addr":"127.0.0.2",

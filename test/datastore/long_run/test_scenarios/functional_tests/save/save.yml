@@ -36,7 +36,7 @@ testcases:
       - repetition_count: 1
         cmds:
           - cmd_type: ds
-            cmd: load {{ test_home  }}/test_scenarios/functional_tests/save.dsl
+            cmd: load {{ test_home  }}/test_scenarios/functional_tests/save/save.dsl
             result: '{"ret": "OK"}'
           - cmd_type: ds
             cmd: save /tmp/save.dsl
@@ -53,7 +53,6 @@ testcases:
               {"ret":"OK",
               "data":[{"name":":if01",
               "type":"ethernet-rawsock",
-              "port-number":1,
               "device":"lago_eth0",
               "mtu":1,
               "ip-addr":"127.0.0.1",
@@ -65,7 +64,6 @@ testcases:
               {"ret":"OK",
               "data":[{"name":":if02",
               "type":"ethernet-rawsock",
-              "port-number":2,
               "device":"lago_eth1",
               "mtu":2,
               "ip-addr":"127.0.0.2",
@@ -222,7 +220,7 @@ testcases:
               "is-used":false,
               "is-enabled":false}]}
           - cmd_type: shell
-            cmd: tail -n +2 {{ test_home  }}/test_scenarios/functional_tests/save.dsl > /tmp/save_org.dsl
+            cmd: tail -n +2 {{ test_home  }}/test_scenarios/functional_tests/save/save.dsl > /tmp/save_org.dsl
             result: "0"
           - cmd_type: shell
             cmd: tail -n +3 /tmp/save.dsl > /tmp/save_new.dsl

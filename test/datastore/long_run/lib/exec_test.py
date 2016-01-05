@@ -176,7 +176,10 @@ class ExecTest(object):
                 self.confs.get(CONF_SEC_LAGOPUS, CONF_SEC_LAGOPUS_OPTS)),
             "lagopus_log": LAGOPUS_LOG,
             "ryu_path": self.confs.get(CONF_SEC_RYU, CONF_SEC_RYU_PATH),
-            "ryu_opts": self.confs.get(CONF_SEC_RYU, CONF_SEC_RYU_OPTS),
+            "ryu_opts": "\"%s %s\"" % (
+                self.confs.get(CONF_SEC_RYU, CONF_SEC_RYU_OPTS),
+                os.path.join(test_home, self.confs.get(CONF_SEC_RYU,
+                                                       CONF_SEC_RYU_APP))),
             "ryu_log": RYU_LOG,
             "log_dir": self.out_dir,
             "index": 0,  # repetition count index

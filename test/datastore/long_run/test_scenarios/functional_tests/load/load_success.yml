@@ -30,7 +30,7 @@ testcases:
       - repetition_count: 1
         cmds:
           - cmd_type: ds
-            cmd: load {{ test_home  }}/test_scenarios/functional_tests/load_success.dsl
+            cmd: load {{ test_home  }}/test_scenarios/functional_tests/load/load_success.dsl
             result: '{"ret": "OK"}'
           - cmd_type: ds
             cmd: interface if01
@@ -38,7 +38,6 @@ testcases:
               {"ret":"OK",
               "data":[{"name":":if01",
               "type":"ethernet-rawsock",
-              "port-number":1,
               "device":"lago_eth0",
               "mtu":1,
               "ip-addr":"127.0.0.1",
@@ -50,7 +49,6 @@ testcases:
               {"ret":"OK",
               "data":[{"name":":if02",
               "type":"ethernet-rawsock",
-              "port-number":2,
               "device":"lago_eth1",
               "mtu":2,
               "ip-addr":"127.0.0.2",

@@ -274,11 +274,9 @@
 }
 
 #define TEST_PORT_CREATE(_ret, _interp, _state, _tbl,                   \
-                         _ds, _str, _inter_name, _port_name,            \
-                         _port_no) {                                    \
+                         _ds, _str, _inter_name, _port_name) {          \
   const char *_inter1[] = {"interface", _inter_name, "create",        \
                            "-type", "ethernet-rawsock",               \
-                           "-port-number", _port_no,                  \
                            "-device", _inter_name,                    \
                            NULL};                                     \
   const char _inter_str1[] = "{\"ret\":\"OK\"}";                      \
@@ -330,7 +328,7 @@
     TEST_CONTROLLER_CREATE(_ret, _interp, _state, _tbl,                 \
                            _ds, _str, _c_name, _ctrler_name);           \
     TEST_PORT_CREATE(_ret, _interp, _state, _tbl,                       \
-                     _ds, _str, _inter_name, _port_name, _port_no);     \
+                     _ds, _str, _inter_name, _port_name);               \
     /* bridge create cmd. */                                            \
     TEST_CMD_PARSE(_ret, LAGOPUS_RESULT_OK, bridge_cmd_parse,           \
                    _interp, _state, ARGV_SIZE(_b), _b,                  \

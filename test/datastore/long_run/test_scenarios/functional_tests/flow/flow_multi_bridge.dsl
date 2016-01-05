@@ -1,7 +1,7 @@
-interface if01 create -type ethernet-rawsock -port-number 1 -device lago_eth0
-interface if02 create -type ethernet-rawsock -port-number 2 -device lago_eth1
-interface if03 create -type ethernet-rawsock -port-number 3 -device lago_eth2
-interface if04 create -type ethernet-rawsock -port-number 4 -device lago_eth3
+interface if01 create -type ethernet-rawsock -device lago_eth0
+interface if02 create -type ethernet-rawsock -device lago_eth1
+interface if03 create -type ethernet-rawsock -device lago_eth2
+interface if04 create -type ethernet-rawsock -device lago_eth3
 
 port port01 create -interface if01
 port port02 create -interface if02

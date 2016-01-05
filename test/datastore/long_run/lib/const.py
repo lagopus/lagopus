@@ -34,6 +34,7 @@ CONF_SEC_LAGOPUS_OPTS = "lagopus_opts"
 CONF_SEC_RYU = "ryu"
 CONF_SEC_RYU_PATH = "ryu_path"
 CONF_SEC_RYU_OPTS = "ryu_opts"
+CONF_SEC_RYU_APP = "ryu_app"
 
 CONF_SEC_TLS = "tls"
 CONF_SEC_TLS_IS_ENABLE = "is_enable"

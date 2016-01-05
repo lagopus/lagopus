@@ -29,8 +29,8 @@ queue :queue01 create -type single-rate -id 1 -priority 2 -color color-aware -co
 queue :queue02 create -type single-rate -id 2 -priority 3 -color color-aware -committed-burst-size 1500 -committed-information-rate 1500 -excess-burst-size 1500
 
 # all the interface objects' attribute
-interface :if01 create -type ethernet-rawsock -port-number 1 -device lago_eth0 -mtu 1 -ip-addr 127.0.0.1
-interface :if02 create -type ethernet-rawsock -port-number 2 -device lago_eth1 -mtu 2 -ip-addr 127.0.0.2
+interface :if01 create -type ethernet-rawsock -device lago_eth0 -mtu 1 -ip-addr 127.0.0.1
+interface :if02 create -type ethernet-rawsock -device lago_eth1 -mtu 2 -ip-addr 127.0.0.2
 
 # all the port objects' attribute
 port :port01 create -interface :if01 -policer :policer01 -queue :queue01

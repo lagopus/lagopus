@@ -34,7 +34,11 @@ class ShellCmd(object):
             remaining_time = time.time() - start_time
             if timeout and remaining_time > timeout:
                 self.process.kill()
-                raise ShellCmdTimeOut("timed out")
+                # get stdout.
+                stdout = self.process.communicate()[0]
+                if stdout:
+                    logging.debug("sh output: %s" % stdout)
+                raise ShellCmdTimeOut("timed out, cmd: %s" % self.cmd)
             time.sleep(0.1)
 
         # get stdout.

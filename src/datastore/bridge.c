@@ -600,7 +600,6 @@ bridge_attr_duplicate(const bridge_attr_t *src_attr,
                       bridge_attr_t **dst_attr,
                       const char *namespace) {
   lagopus_result_t rc;
-  size_t len = 0;
   char *buf = NULL;
 
   if (src_attr == NULL || dst_attr == NULL) {

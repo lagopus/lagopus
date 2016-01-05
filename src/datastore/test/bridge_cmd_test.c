@@ -286,10 +286,10 @@ test_bridge_cmd_parse_create_01(void) {
 
   TEST_CONTROLLER_CREATE(ret, &interp, state, &tbl, &ds, str, "cha1", "c1");
   TEST_CONTROLLER_CREATE(ret, &interp, state, &tbl, &ds, str, "cha2", "c2");
-  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i1", "p1", "1");
-  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i2", "p2", "2");
+  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i1", "p1");
+  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i2", "p2");
   TEST_CONTROLLER_CREATE(ret, &interp, state, &tbl, &ds, str, "cha5", "c5");
-  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i5", "p5", "5");
+  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i5", "p5");
 
   /* create cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
@@ -827,7 +827,7 @@ test_bridge_cmd_parse_create_controller_not_exists(void) {
     "{\"ret\":\"NOT_FOUND\",\n"
     "\"data\":\"controller name = "DATASTORE_NAMESPACE_DELIMITER"c7.\"}";
 
-  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i7", "p7", "7");
+  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i7", "p7");
 
   /* create cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR, bridge_cmd_parse,
@@ -876,7 +876,6 @@ test_bridge_cmd_enable_destroy_propagation(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"i8\",\n"
     "\"type\":\"ethernet-rawsock\",\n"
-    "\"port-number\":8,\n"
     "\"device\":\"i8\",\n"
     "\"mtu\":1500,\n"
     "\"ip-addr\":\"127.0.0.1\",\n"
@@ -887,7 +886,6 @@ test_bridge_cmd_enable_destroy_propagation(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"i8\",\n"
     "\"type\":\"ethernet-rawsock\",\n"
-    "\"port-number\":8,\n"
     "\"device\":\"i8\",\n"
     "\"mtu\":1500,\n"
     "\"ip-addr\":\"127.0.0.1\",\n"
@@ -955,7 +953,7 @@ test_bridge_cmd_enable_destroy_propagation(void) {
     "\"is-enabled\":false}]}";
 
   TEST_CONTROLLER_CREATE(ret, &interp, state, &tbl, &ds, str, "cha8", "c8");
-  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i8", "p8", "8");
+  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i8", "p8");
   /* create cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
                  ARGV_SIZE(argv1), argv1, &tbl, bridge_cmd_update,
@@ -1214,9 +1212,9 @@ test_bridge_cmd_parse_config_01(void) {
     "\"is-enabled\":false}]}";
 
   TEST_CONTROLLER_CREATE(ret, &interp, state, &tbl, &ds, str, "cha25", "c25");
-  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i25", "p25", "25");
+  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i25", "p25");
   TEST_CONTROLLER_CREATE(ret, &interp, state, &tbl, &ds, str, "cha26", "c26");
-  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i26", "p26", "26");
+  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i26", "p26");
 
   /* create cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
@@ -1436,7 +1434,7 @@ test_bridge_cmd_parse_config_02(void) {
   const char test_str7[] = "{\"ret\":\"OK\"}";
 
   TEST_CONTROLLER_CREATE(ret, &interp, state, &tbl, &ds, str, "cha27", "c\"27");
-  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i27", "p\"27", "27");
+  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i27", "p\"27");
 
   /* create cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
@@ -1626,7 +1624,7 @@ test_bridge_cmd_parse_config_delete_port_ctrler(void) {
   const char test_str7[] = "{\"ret\":\"OK\"}";
 
   TEST_CONTROLLER_CREATE(ret, &interp, state, &tbl, &ds, str, "cha28", "c28");
-  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i28", "p28", "28");
+  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i28", "p28");
 
   /* create cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
@@ -1755,7 +1753,7 @@ test_bridge_cmd_parse_config_show_01(void) {
   const char test_str5[] = "{\"ret\":\"OK\"}";
 
   TEST_CONTROLLER_CREATE(ret, &interp, state, &tbl, &ds, str, "cha29", "c29");
-  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i29", "p29", "29");
+  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i29", "p29");
 
   /* create cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
@@ -1881,7 +1879,7 @@ test_bridge_cmd_show_01(void) {
   const char test_str6[] = "{\"ret\":\"OK\"}";
 
   TEST_CONTROLLER_CREATE(ret, &interp, state1, &tbl, &ds, str, "cha30", "c30");
-  TEST_PORT_CREATE(ret, &interp, state1, &tbl, &ds, str, "i30", "p30", "30");
+  TEST_PORT_CREATE(ret, &interp, state1, &tbl, &ds, str, "i30", "p30");
 
   /* create cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state1,
@@ -2045,7 +2043,7 @@ test_bridge_cmd_parse_config_port_number_01(void) {
   const char test_str7[] = "{\"ret\":\"OK\"}";
 
   TEST_CONTROLLER_CREATE(ret, &interp, state, &tbl, &ds, str, "cha31", "c31");
-  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i31", "p31", "31");
+  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i31", "p31");
 
   /* create cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
@@ -2200,8 +2198,8 @@ test_bridge_cmd_parse_config_port_number_02(void) {
     "\"is-enabled\":true}]}";
 
   TEST_CONTROLLER_CREATE(ret, &interp, state, &tbl, &ds, str, "cha32", "c32");
-  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i32", "p32", "32");
-  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i33", "p33", "33");
+  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i32", "p32");
+  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i33", "p33");
 
   /* create cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
@@ -2347,7 +2345,7 @@ test_bridge_cmd_parse_config_controller_02(void) {
   const char test_str7[] = "{\"ret\":\"OK\"}";
 
   TEST_CONTROLLER_CREATE(ret, &interp, state, &tbl, &ds, str, "cha36", "c36");
-  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i36", "p36", "36");
+  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i36", "p36");
 
   /* create cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
@@ -2639,7 +2637,7 @@ test_bridge_cmd_serialize_all_opt(void) {
                                 "-group-capability ~select-liveness\n";
 
   TEST_CONTROLLER_CREATE(ret, &interp, state, &tbl, &ds, str, "cha40", "c40");
-  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i40", "p40", "40");
+  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i40", "p40");
 
   /* bridge create cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
@@ -2909,10 +2907,8 @@ test_bridge_cmd_parse_atomic_commit(void) {
   TEST_CONTROLLER_CREATE(ret, &interp, state4, &tbl, &ds, str, "cha43", "c43");
   TEST_CONTROLLER_CREATE(ret, &interp, state4, &tbl, &ds, str, "cha43_2",
                          "c43_2");
-  TEST_PORT_CREATE(ret, &interp, state4, &tbl_port, &ds, str, "i43", "p43",
-                   "43");
-  TEST_PORT_CREATE(ret, &interp, state4, &tbl_port, &ds, str, "i43_2", "p43_2",
-                   "143");
+  TEST_PORT_CREATE(ret, &interp, state4, &tbl_port, &ds, str, "i43", "p43");
+  TEST_PORT_CREATE(ret, &interp, state4, &tbl_port, &ds, str, "i43_2", "p43_2");
 
   /* create cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state1,
@@ -3128,10 +3124,8 @@ test_bridge_cmd_parse_atomic_rollback(void) {
   TEST_CONTROLLER_CREATE(ret, &interp, state4, &tbl, &ds, str, "cha44", "c44");
   TEST_CONTROLLER_CREATE(ret, &interp, state4, &tbl, &ds, str, "cha44_2",
                          "c44_2");
-  TEST_PORT_CREATE(ret, &interp, state4, &tbl_port, &ds, str, "i44", "p44",
-                   "44");
-  TEST_PORT_CREATE(ret, &interp, state4, &tbl_port, &ds, str, "i44_2", "p44_2",
-                   "144");
+  TEST_PORT_CREATE(ret, &interp, state4, &tbl_port, &ds, str, "i44", "p44");
+  TEST_PORT_CREATE(ret, &interp, state4, &tbl_port, &ds, str, "i44_2", "p44_2");
 
   /* create cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state1,
@@ -3374,8 +3368,7 @@ test_bridge_cmd_parse_atomic_delay_enable(void) {
   const char test_str9[] = "{\"ret\":\"OK\"}";
 
   TEST_CONTROLLER_CREATE(ret, &interp, state4, &tbl, &ds, str, "cha45", "c45");
-  TEST_PORT_CREATE(ret, &interp, state4, &tbl_port, &ds, str, "i45", "p45",
-                   "45");
+  TEST_PORT_CREATE(ret, &interp, state4, &tbl_port, &ds, str, "i45", "p45");
 
   /* create cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state1,
@@ -3609,8 +3602,7 @@ test_bridge_cmd_parse_atomic_delay_disable(void) {
   const char test_str7[] = "{\"ret\":\"OK\"}";
 
   TEST_CONTROLLER_CREATE(ret, &interp, state4, &tbl, &ds, str, "cha46", "c46");
-  TEST_PORT_CREATE(ret, &interp, state4, &tbl_port, &ds, str, "i46", "p46",
-                   "46");
+  TEST_PORT_CREATE(ret, &interp, state4, &tbl_port, &ds, str, "i46", "p46");
 
   /* create cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state4,
@@ -3735,8 +3727,7 @@ test_bridge_cmd_parse_atomic_delay_destroy(void) {
     "\"data\":\"name = "DATASTORE_NAMESPACE_DELIMITER"test_name47\"}";
 
   TEST_CONTROLLER_CREATE(ret, &interp, state4, &tbl, &ds, str, "cha47", "c47");
-  TEST_PORT_CREATE(ret, &interp, state4, &tbl_port, &ds, str, "i47", "p47",
-                   "47");
+  TEST_PORT_CREATE(ret, &interp, state4, &tbl_port, &ds, str, "i47", "p47");
 
   /* create cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state4,
@@ -3976,10 +3967,8 @@ test_bridge_cmd_parse_atomic_abort_01(void) {
   TEST_CONTROLLER_CREATE(ret, &interp, state4, &tbl, &ds, str, "cha48", "c48");
   TEST_CONTROLLER_CREATE(ret, &interp, state4, &tbl, &ds, str, "cha48_2",
                          "c48_2");
-  TEST_PORT_CREATE(ret, &interp, state4, &tbl_port, &ds, str, "i48", "p48",
-                   "48");
-  TEST_PORT_CREATE(ret, &interp, state4, &tbl_port, &ds, str, "i48_2", "p48_2",
-                   "148");
+  TEST_PORT_CREATE(ret, &interp, state4, &tbl_port, &ds, str, "i48", "p48");
+  TEST_PORT_CREATE(ret, &interp, state4, &tbl_port, &ds, str, "i48_2", "p48_2");
 
   /* create cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state1,
@@ -4350,10 +4339,8 @@ test_bridge_cmd_parse_atomic_abort_02(void) {
   TEST_CONTROLLER_CREATE(ret, &interp, state4, &tbl, &ds, str, "cha49", "c49");
   TEST_CONTROLLER_CREATE(ret, &interp, state4, &tbl, &ds, str, "cha49_2",
                          "c49_2");
-  TEST_PORT_CREATE(ret, &interp, state4, &tbl_port, &ds, str, "i49", "p49",
-                   "49");
-  TEST_PORT_CREATE(ret, &interp, state4, &tbl_port, &ds, str, "i49_2", "p49_2",
-                   "149");
+  TEST_PORT_CREATE(ret, &interp, state4, &tbl_port, &ds, str, "i49", "p49");
+  TEST_PORT_CREATE(ret, &interp, state4, &tbl_port, &ds, str, "i49_2", "p49_2");
 
   /* create cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state4,
@@ -4642,10 +4629,8 @@ test_bridge_cmd_parse_atomic_destroy_create(void) {
   TEST_CONTROLLER_CREATE(ret, &interp, state4, &tbl, &ds, str, "cha50", "c50");
   TEST_CONTROLLER_CREATE(ret, &interp, state4, &tbl, &ds, str, "cha50_2",
                          "c50_2");
-  TEST_PORT_CREATE(ret, &interp, state4, &tbl_port, &ds, str, "i50", "p50",
-                   "50");
-  TEST_PORT_CREATE(ret, &interp, state4, &tbl_port, &ds, str, "i50_2", "p50_2",
-                   "150");
+  TEST_PORT_CREATE(ret, &interp, state4, &tbl_port, &ds, str, "i50", "p50");
+  TEST_PORT_CREATE(ret, &interp, state4, &tbl_port, &ds, str, "i50_2", "p50_2");
 
   /* create cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state4,
@@ -4798,10 +4783,10 @@ test_bridge_cmd_parse_port_no_already_exists(void) {
                         };
   const char test_str5[] = "{\"ret\":\"OK\"}";
 
-  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i52", "p52", "52");
-  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i52_2", "p52_2", "125");
-  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i52_3", "p52_3", "126");
-  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i52_4", "p52_4", "127");
+  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i52", "p52");
+  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i52_2", "p52_2");
+  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i52_3", "p52_3");
+  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i52_4", "p52_4");
 
   /* create cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
@@ -5609,7 +5594,7 @@ test_bridge_cmd_parse_stats_01(void) {
   const char test_str3[] = "{\"ret\":\"OK\"}";
 
   TEST_CONTROLLER_CREATE(ret, &interp, state, &tbl, &ds, str, "cha63", "c63");
-  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i63", "p63", "63");
+  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i63", "p63");
 
   /* create cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
@@ -6185,10 +6170,8 @@ test_bridge_cmd_parse_dryrun(void) {
   TEST_CONTROLLER_CREATE(ret, &interp, state1, &tbl, &ds, str, "cha84", "c84");
   TEST_CONTROLLER_CREATE(ret, &interp, state1, &tbl, &ds, str, "cha84_2",
                          "c84_2");
-  TEST_PORT_CREATE(ret, &interp, state1, &tbl_port, &ds, str, "i84", "p84",
-                   "84");
-  TEST_PORT_CREATE(ret, &interp, state1, &tbl_port, &ds, str, "i84_2", "p84_2",
-                   "184");
+  TEST_PORT_CREATE(ret, &interp, state1, &tbl_port, &ds, str, "i84", "p84");
+  TEST_PORT_CREATE(ret, &interp, state1, &tbl_port, &ds, str, "i84_2", "p84_2");
 
   /* create cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state1,

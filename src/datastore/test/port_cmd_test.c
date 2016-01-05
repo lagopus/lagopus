@@ -112,13 +112,11 @@ test_port_cmd_parse_create_01(void) {
   const char *inter_argv[] = {"interface", "test_eth0", "create",
                               "-type", "ethernet-rawsock",
                               "-device", "eth0",
-                              "-port-number", "100",
                               NULL
                              };
   const char inter_test_str[] = "{\"ret\":\"OK\"}";
   const char *inter_argv1[] = {"interface", "test_eth\"1", "create",
                                "-type", "ethernet-rawsock",
-                               "-port-number", "100",
                                "-device", "eth0",
                                NULL
                               };
@@ -128,7 +126,6 @@ test_port_cmd_parse_create_01(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_eth\\\"1\",\n"
     "\"type\":\"ethernet-rawsock\",\n"
-    "\"port-number\":100,\n"
     "\"device\":\"eth0\",\n"
     "\"mtu\":1500,\n"
     "\"ip-addr\":\"127.0.0.1\",\n"
@@ -139,7 +136,6 @@ test_port_cmd_parse_create_01(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_eth\\\"1\",\n"
     "\"type\":\"ethernet-rawsock\",\n"
-    "\"port-number\":100,\n"
     "\"device\":\"eth0\",\n"
     "\"mtu\":1500,\n"
     "\"ip-addr\":\"127.0.0.1\",\n"
@@ -422,7 +418,6 @@ test_port_cmd_parse_enable_unused(void) {
   const char test_str4[] = "{\"ret\":\"OK\"}";
   const char *inter_argv1[] = {"interface", "test_eth2", "create",
                                "-type", "ethernet-rawsock",
-                               "-port-number", "1",
                                "-device", "eth0",
                                NULL
                               };
@@ -524,7 +519,6 @@ test_port_cmd_parse_config_01(void) {
   const char test_str5[] = "{\"ret\":\"OK\"}";
   const char *inter_argv1[] = {"interface", "test_eth3", "create",
                                "-type", "ethernet-rawsock",
-                               "-port-number", "103",
                                "-device", "eth0",
                                NULL
                               };
@@ -534,7 +528,6 @@ test_port_cmd_parse_config_01(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_eth3\",\n"
     "\"type\":\"ethernet-rawsock\",\n"
-    "\"port-number\":103,\n"
     "\"device\":\"eth0\",\n"
     "\"mtu\":1500,\n"
     "\"ip-addr\":\"127.0.0.1\",\n"
@@ -545,7 +538,6 @@ test_port_cmd_parse_config_01(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_eth3\",\n"
     "\"type\":\"ethernet-rawsock\",\n"
-    "\"port-number\":103,\n"
     "\"device\":\"eth0\",\n"
     "\"mtu\":1500,\n"
     "\"ip-addr\":\"127.0.0.1\",\n"
@@ -553,7 +545,6 @@ test_port_cmd_parse_config_01(void) {
     "\"is-enabled\":false}]}";
   const char *inter_argv4[] = {"interface", "test_eth4", "create",
                                "-type", "ethernet-rawsock",
-                               "-port-number", "104",
                                "-device", "eth1",
                                NULL
                               };
@@ -563,7 +554,6 @@ test_port_cmd_parse_config_01(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_eth4\",\n"
     "\"type\":\"ethernet-rawsock\",\n"
-    "\"port-number\":104,\n"
     "\"device\":\"eth1\",\n"
     "\"mtu\":1500,\n"
     "\"ip-addr\":\"127.0.0.1\",\n"
@@ -574,7 +564,6 @@ test_port_cmd_parse_config_01(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_eth4\",\n"
     "\"type\":\"ethernet-rawsock\",\n"
-    "\"port-number\":104,\n"
     "\"device\":\"eth1\",\n"
     "\"mtu\":1500,\n"
     "\"ip-addr\":\"127.0.0.1\",\n"
@@ -704,14 +693,12 @@ test_port_cmd_parse_config_02(void) {
   const char test_str7[] = "{\"ret\":\"OK\"}";
   const char *inter_argv1[] = {"interface", "test_eth5", "create",
                                "-type", "ethernet-rawsock",
-                               "-port-number", "105",
                                "-device", "eth0",
                                NULL
                               };
   const char inter_test_str1[] = "{\"ret\":\"OK\"}";
   const char *inter_argv2[] = {"interface", "test_eth6", "create",
                                "-type", "ethernet-rawsock",
-                               "-port-number", "106",
                                "-device", "eth1",
                                NULL
                               };
@@ -838,14 +825,12 @@ test_port_cmd_parse_config_show_01(void) {
   const char test_str5[] = "{\"ret\":\"OK\"}";
   const char *inter_argv1[] = {"interface", "test_eth7", "create",
                                "-type", "ethernet-rawsock",
-                               "-port-number", "107",
                                "-device", "eth0",
                                NULL
                               };
   const char inter_test_str1[] = "{\"ret\":\"OK\"}";
   const char *inter_argv2[] = {"interface", "test_eth8", "create",
                                "-type", "ethernet-rawsock",
-                               "-port-number", "108",
                                "-device", "eth1",
                                NULL
                               };
@@ -931,7 +916,6 @@ test_port_cmd_parse_destroy_used(void) {
   const char test_str4[] = "{\"ret\":\"OK\"}";
   const char *inter_argv1[] = {"interface", "test_eth13", "create",
                                "-type", "ethernet-rawsock",
-                               "-port-number", "100",
                                "-device", "eth0",
                                NULL
                               };
@@ -1055,21 +1039,18 @@ test_port_cmd_parse_show_01(void) {
   const char test_str8[] = "{\"ret\":\"OK\"}";
   const char *inter_argv1[] = {"interface", "test_eth9", "create",
                                "-type", "ethernet-rawsock",
-                               "-port-number", "109",
                                "-device", "eth0",
                                NULL
                               };
   const char inter_test_str1[] = "{\"ret\":\"OK\"}";
   const char *inter_argv2[] = {"interface", "test_eth10", "create",
                                "-type", "ethernet-rawsock",
-                               "-port-number", "110",
                                "-device", "eth1",
                                NULL
                               };
   const char inter_test_str2[] = "{\"ret\":\"OK\"}";
   const char *inter_argv3[] = {"interface", "test_eth11", "create",
                                "-type", "ethernet-rawsock",
-                               "-port-number", "111",
                                "-device", "eth2",
                                NULL
                               };
@@ -1188,7 +1169,6 @@ test_port_cmd_serialize_01(void) {
   const char test_str3[] = "{\"ret\":\"OK\"}";
   const char *inter_argv1[] = {"interface", "test_eth15", "create",
                                "-type", "ethernet-rawsock",
-                               "-port-number", "115",
                                "-device", "eth0",
                                NULL
                               };
@@ -1260,7 +1240,6 @@ test_port_cmd_serialize_escape(void) {
   const char test_str3[] = "{\"ret\":\"OK\"}";
   const char *inter_argv1[] = {"interface", "test_\"eth16", "create",
                                "-type", "ethernet-rawsock",
-                               "-port-number", "116",
                                "-device", "eth0",
                                NULL
                               };
@@ -1324,7 +1303,6 @@ test_port_cmd_serialize_escape_white_space(void) {
   const char test_str3[] = "{\"ret\":\"OK\"}";
   const char *inter_argv1[] = {"interface", "test eth17", "create",
                                "-type", "ethernet-rawsock",
-                               "-port-number", "117",
                                "-device", "eth0",
                                NULL
                               };
@@ -1476,14 +1454,12 @@ test_port_cmd_parse_atomic_commit(void) {
   const char test_str9[] = "{\"ret\":\"OK\"}";
   const char *inter_argv1[] = {"interface", "test_eth19", "create",
                                "-type", "ethernet-rawsock",
-                               "-port-number", "119",
                                "-device", "eth0",
                                NULL
                               };
   const char inter_test_str1[] = "{\"ret\":\"OK\"}";
   const char *inter_argv2[] = {"interface", "test_eth19_2", "create",
                                "-type", "ethernet-rawsock",
-                               "-port-number", "19",
                                "-device", "eth0",
                                NULL
                               };
@@ -1641,14 +1617,12 @@ test_port_cmd_parse_atomic_rollback(void) {
     "\"data\":\"name = :test_name20\"}";
   const char *inter_argv1[] = {"interface", "test_eth20", "create",
                                "-type", "ethernet-rawsock",
-                               "-port-number", "120",
                                "-device", "eth0",
                                NULL
                               };
   const char inter_test_str1[] = "{\"ret\":\"OK\"}";
   const char *inter_argv2[] = {"interface", "test_eth20_2", "create",
                                "-type", "ethernet-rawsock",
-                               "-port-number", "20",
                                "-device", "eth0",
                                NULL
                               };
@@ -1803,7 +1777,6 @@ test_port_cmd_parse_atomic_delay_enable(void) {
   const char test_str9[] = "{\"ret\":\"OK\"}";
   const char *inter_argv1[] = {"interface", "test_eth21", "create",
                                "-type", "ethernet-rawsock",
-                               "-port-number", "121",
                                "-device", "eth0",
                                NULL
                               };
@@ -1953,7 +1926,6 @@ test_port_cmd_parse_atomic_delay_disable(void) {
   const char test_str7[] = "{\"ret\":\"OK\"}";
   const char *inter_argv1[] = {"interface", "test_eth22", "create",
                                "-type", "ethernet-rawsock",
-                               "-port-number", "122",
                                "-device", "eth0",
                                NULL
                               };
@@ -2082,7 +2054,6 @@ test_port_cmd_parse_atomic_delay_destroy(void) {
     "\"data\":\"name = "DATASTORE_NAMESPACE_DELIMITER"test_name23\"}";
   const char *inter_argv1[] = {"interface", "test_eth23", "create",
                                "-type", "ethernet-rawsock",
-                               "-port-number", "123",
                                "-device", "eth0",
                                NULL
                               };
@@ -2222,14 +2193,12 @@ test_port_cmd_parse_atomic_abort_01(void) {
     "\"data\":\"name = "DATASTORE_NAMESPACE_DELIMITER"test_name24\"}";
   const char *inter_argv1[] = {"interface", "test_eth24", "create",
                                "-type", "ethernet-rawsock",
-                               "-port-number", "124",
                                "-device", "eth0",
                                NULL
                               };
   const char inter_test_str1[] = "{\"ret\":\"OK\"}";
   const char *inter_argv2[] = {"interface", "test_eth24_2", "create",
                                "-type", "ethernet-rawsock",
-                               "-port-number", "24",
                                "-device", "eth0",
                                NULL
                               };
@@ -2428,14 +2397,12 @@ test_port_cmd_parse_atomic_abort_02(void) {
   const char test_str11[] = "{\"ret\":\"OK\"}";
   const char *inter_argv1[] = {"interface", "test_eth25", "create",
                                "-type", "ethernet-rawsock",
-                               "-port-number", "125",
                                "-device", "eth0",
                                NULL
                               };
   const char inter_test_str1[] = "{\"ret\":\"OK\"}";
   const char *inter_argv2[] = {"interface", "test_eth25_2", "create",
                                "-type", "ethernet-rawsock",
-                               "-port-number", "25",
                                "-device", "eth0",
                                NULL
                               };
@@ -2616,14 +2583,12 @@ test_port_cmd_parse_atomic_destroy_create(void) {
   const char test_str9[] = "{\"ret\":\"OK\"}";
   const char *inter_argv1[] = {"interface", "test_eth26", "create",
                                "-type", "ethernet-rawsock",
-                               "-port-number", "26",
                                "-device", "eth0",
                                NULL
                               };
   const char inter_test_str1[] = "{\"ret\":\"OK\"}";
   const char *inter_argv2[] = {"interface", "test_eth26_2", "create",
                                "-type", "ethernet-rawsock",
-                               "-port-number", "126",
                                "-device", "eth0",
                                NULL
                               };
@@ -2749,7 +2714,6 @@ test_port_cmd_parse_stats_01(void) {
   const char test_str3[] = "{\"ret\":\"OK\"}";
   const char *inter_argv1[] = {"interface", "test_eth27", "create",
                                "-type", "ethernet-rawsock",
-                               "-port-number", "27",
                                "-device", "eth0",
                                NULL
                               };
@@ -2815,7 +2779,6 @@ test_port_cmd_parse_stats_02(void) {
   const char test_str4[] = "{\"ret\":\"OK\"}";
   const char *inter_argv1[] = {"interface", "test_eth28", "create",
                                "-type", "ethernet-rawsock",
-                               "-port-number", "28",
                                "-device", "eth0",
                                NULL
                               };
@@ -2960,7 +2923,6 @@ test_port_cmd_parse_config_delete_queue(void) {
   const char test_str7[] = "{\"ret\":\"OK\"}";
   const char *inter_argv1[] = {"interface", "test_eth30", "create",
                                "-type", "ethernet-rawsock",
-                               "-port-number", "30",
                                "-device", "eth0",
                                NULL
                               };
@@ -3160,7 +3122,6 @@ test_port_cmd_parse_config_delete_policer(void) {
   const char test_str7[] = "{\"ret\":\"OK\"}";
   const char *inter_argv1[] = {"interface", "test_eth33", "create",
                                "-type", "ethernet-rawsock",
-                               "-port-number", "33",
                                "-device", "eth0",
                                NULL
                               };
@@ -3321,14 +3282,12 @@ test_port_cmd_parse_dryrun(void) {
 
   const char *inter_argv1[] = {"interface", "test_eth34", "create",
                                "-type", "ethernet-rawsock",
-                               "-port-number", "134",
                                "-device", "eth0",
                                NULL
                               };
   const char inter_test_str1[] = "{\"ret\":\"OK\"}";
   const char *inter_argv2[] = {"interface", "test_eth34_2", "create",
                                "-type", "ethernet-rawsock",
-                               "-port-number", "34",
                                "-device", "eth0",
                                NULL
                               };

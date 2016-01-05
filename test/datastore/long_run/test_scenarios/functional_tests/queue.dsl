@@ -1,7 +1,7 @@
 queue queue01 create -type single-rate -id 1 -priority 2 -color color-aware -committed-burst-size 1500 -committed-information-rate 1500 -excess-burst-size 1500
 queue queue02 create -type single-rate -id 2 -priority 3 -color color-aware -committed-burst-size 1500 -committed-information-rate 1500 -excess-burst-size 1500
 
-interface if01 create -type ethernet-rawsock -port-number 1 -device lago_eth0 -mtu 1 -ip-addr 127.0.0.1
+interface if01 create -type ethernet-rawsock -device lago_eth0 -mtu 1 -ip-addr 127.0.0.1
 
 port port01 create -interface if01 -queue queue01
 

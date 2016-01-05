@@ -773,15 +773,16 @@ mac_addr_opt_parse(const char *str,
 static inline lagopus_result_t
 mask_split(char **ts,
            char **tokens,
+           size_t tokens_size,
            bool has_mask,
            lagopus_dstring_t *result) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   lagopus_result_t n_tokens = LAGOPUS_RESULT_ANY_FAILURES;
   size_t i;
 
-  memset((void *) tokens, 0, sizeof(tokens));
+  memset((void *) tokens, 0, tokens_size);
   n_tokens = lagopus_str_tokenize(*ts, tokens,
-                                  TOKEN_MAX + 1, "/");
+                                  tokens_size, "/");
 
   if (n_tokens == 1 ||
       (has_mask == true && n_tokens == 2)) {
@@ -811,14 +812,15 @@ done:
 static inline lagopus_result_t
 action_split(char **ts,
              char **tokens,
+             size_t tokens_size,
              lagopus_dstring_t *result) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   lagopus_result_t n_tokens = LAGOPUS_RESULT_ANY_FAILURES;
   size_t i;
 
-  memset((void *) tokens, 0, sizeof(tokens));
+  memset((void *) tokens, 0, tokens_size);
   n_tokens = lagopus_str_tokenize_with_limit(*ts, tokens,
-                                             TOKEN_MAX + 1,
+                                             tokens_size,
                                              ACTION_TOKEN_LIMIT,
                                              ":");
 
@@ -849,14 +851,15 @@ done:
 static inline lagopus_result_t
 comma_split(char **ts,
             char **tokens,
+            size_t tokens_size,
             lagopus_dstring_t *result) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   lagopus_result_t n_tokens = LAGOPUS_RESULT_ANY_FAILURES;
   size_t i;
 
-  memset((void *) tokens, 0, sizeof(tokens));
+  memset((void *) tokens, 0, tokens_size);
   n_tokens = lagopus_str_tokenize(*ts, tokens,
-                                  TOKEN_MAX + 1, ",");
+                                  tokens_size, ",");
 
   if (n_tokens > 0 && n_tokens <= TOKEN_MAX) {
     for (i = 0; i < (size_t) n_tokens; i++) {
@@ -907,7 +910,7 @@ uint_field_parse(char **argv[],
     if (**argv != NULL && *(*argv + 1) != NULL) {
       (*argv)++;
 
-      n_tokens = mask_split(*argv, (char**) &tokens,
+      n_tokens = mask_split(*argv, (char**) &tokens, TOKEN_MAX + 1,
                             (has_mask == true &&
                              (ftype == FLOW_CMD_TYPE_MATCH ||
                               ftype == FLOW_CMD_TYPE_FLOW_FIELD ||
@@ -980,7 +983,7 @@ ipv_field_parse(char **argv[],
     if (**argv != NULL && *(*argv + 1) != NULL) {
       (*argv)++;
 
-      n_tokens = mask_split(*argv, (char**) &tokens,
+      n_tokens = mask_split(*argv, (char**) &tokens, TOKEN_MAX + 1,
                             (has_mask == true &&
                              ftype == FLOW_CMD_TYPE_MATCH),
                             result);
@@ -1075,7 +1078,7 @@ mac_addr_field_parse(char **argv[],
     if (**argv != NULL && *(*argv + 1) != NULL) {
       (*argv)++;
 
-      n_tokens = mask_split(*argv, (char**) &tokens,
+      n_tokens = mask_split(*argv, (char**) &tokens, TOKEN_MAX + 1,
                             (has_mask == true &&
                              ftype == FLOW_CMD_TYPE_MATCH),
                             result);
@@ -1135,7 +1138,7 @@ one_cmd_field_parse(char **argv[],
   if (argv != NULL && flow_mod != NULL &&
       match_list != NULL && instruction_list != NULL &&
       result != NULL) {
-    n_tokens = mask_split(*argv, (char**) &tokens,
+    n_tokens = mask_split(*argv, (char**) &tokens, TOKEN_MAX + 1,
                           (has_mask == true &&
                            ftype == FLOW_CMD_TYPE_MATCH),
                           result);
@@ -1191,12 +1194,14 @@ actions_parse(char **argv[],
 
     if (**argv != NULL && *(*argv + 1) != NULL) {
       (*argv)++;
-      n_tokens = comma_split(*argv, (char**) &tokens, result);
+      n_tokens = comma_split(*argv, (char**) &tokens, TOKEN_MAX + 1, result);
 
       if (n_tokens > 0) {
         for (i = 0; i < (size_t) n_tokens; i++) {
           n_act_tokens = action_split(&tokens[i],
-                                      (char**) &act_tokens, result);
+                                      (char**) &act_tokens,
+                                      TOKEN_MAX + 1,
+                                      result);
 
           if (n_act_tokens > 0) {
             if ((ret = lagopus_str_trim(act_tokens[0], " \t\r\n", &key)) <= 0) {
