@@ -30,6 +30,9 @@ testcases:
       - repetition_count: 1
         cmds:
           - cmd_type: ds
+            cmd: load {{ test_home  }}/test_scenarios/functional_tests/tls/tls.dsl
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
             cmd: tls
             result: |-
               {"ret":"OK",
@@ -63,6 +66,9 @@ testcases:
       - repetition_count: 1
         cmds:
           - cmd_type: ds
+            cmd: load {{ test_home  }}/test_scenarios/functional_tests/tls/tls.dsl
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
             cmd: tls -cert-file /tmp/catls.pem
             result: '{"ret": "OK"}'
           - cmd_type: ds
@@ -78,6 +84,9 @@ testcases:
     test:
       - repetition_count: 1
         cmds:
+          - cmd_type: ds
+            cmd: load {{ test_home  }}/test_scenarios/functional_tests/tls/tls.dsl
+            result: '{"ret": "OK"}'
           - cmd_type: ds
             cmd: tls -private-key /tmp/key.pem
             result: '{"ret": "OK"}'
@@ -95,6 +104,9 @@ testcases:
       - repetition_count: 1
         cmds:
           - cmd_type: ds
+            cmd: load {{ test_home  }}/test_scenarios/functional_tests/tls/tls.dsl
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
             cmd: tls -certificate-store /tmp/lagopus
             result: '{"ret": "OK"}'
           - cmd_type: ds
@@ -110,6 +122,9 @@ testcases:
     test:
       - repetition_count: 1
         cmds:
+          - cmd_type: ds
+            cmd: load {{ test_home  }}/test_scenarios/functional_tests/tls/tls.dsl
+            result: '{"ret": "OK"}'
           - cmd_type: ds
             cmd: tls -trust-point-conf /tmp/check.conf
             result: '{"ret": "OK"}'
