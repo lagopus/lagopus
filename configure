@@ -2657,6 +2657,20 @@ fi
 PREFIX=${prefix}
 
 
+case `uname` in
+Linux)
+    SHELL=`which bash` > /dev/null 2>&1
+    if test $? -ne 0 -o -z "${SHELL}"; then
+        as_fn_error $? "To run libtool you need the GNU bash, not the old-school /bin/sh." "$LINENO" 5
+        exit 1
+    fi
+;;
+*)
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: SHELL is \"$SHELL\". bash is recommended." >&5
+$as_echo "SHELL is \"$SHELL\". bash is recommended." >&6; }
+;;
+esac
+
 export SHELL
 
 

@@ -1,0 +1,3 @@
+---
+- name: install DPDK
+  include: install_dpdk.yml

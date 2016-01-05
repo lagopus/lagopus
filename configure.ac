@@ -21,6 +21,19 @@ fi
 PREFIX=${prefix}
 AC_SUBST(PREFIX)
 
+case `uname` in
+Linux)
+    SHELL=`which bash` > /dev/null 2>&1
+    if test $? -ne 0 -o -z "${SHELL}"; then
+        AC_MSG_ERROR([To run libtool you need the GNU bash, not the old-school /bin/sh.])
+        exit 1
+    fi
+;;
+*)
+    AC_MSG_RESULT([SHELL is "$SHELL". bash is recommended.])
+;;
+esac
+
 export SHELL
 AC_SUBST(SHELL)
 

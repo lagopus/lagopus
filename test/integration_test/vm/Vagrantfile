@@ -1,0 +1,82 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+require 'yaml'
+
+Vagrant.configure(2) do |config|
+  # used base box's url.
+  #  cf. http://www.vagrantbox.es/
+  # config.vm.box_url = "https://cloud-images.ubuntu.com/vagrant/trusty/current/trusty-server-cloudimg-amd64-vagrant-disk1.box"
+
+  def read_confs(file)
+    return YAML.load_file(file)
+  end
+
+  def set_network(h, opts)
+    h.vm.network :private_network, opts
+  end
+
+  # const.
+  CONF_FILE = File.join(File.dirname(__FILE__),
+                        "conf", "vagrant_conf.yml")
+
+  # read config.
+  confs = read_confs(CONF_FILE)
+
+  config.vm.box = confs["system"]["box_name"]
+
+  config.ssh.forward_agent = confs["ssh"]["forward_agent"]
+
+  # set hosts.
+  confs["hosts"].each do |host|
+    config.vm.define host["name"] do |h|
+
+      # libvirt.
+      h.vm.provider :libvirt do |libvirt, override|
+        # NOTE: custom template.
+        require_relative "lib/libvirt/custom_templates"
+
+        libvirt.storage_pool_name = confs["libvirt"]["storage_pool"]
+        libvirt.cpus = host["cpus"]
+        libvirt.memory = host["memory"]
+        libvirt.nic_model_type = "e1000"
+        libvirt.nested = true
+        libvirt.cpu_mode = "custom"
+
+        # set networks.
+        host["interfaces"].each do |ip|
+          set_network(override, ip: ip)
+        end
+      end
+
+      # virtualbox.
+      h.vm.provider :virtualbox do |vb, override|
+        vb.cpus = host["cpus"]
+        vb.memory = host["memory"]
+
+        # set promiscuous mode.
+        opts = ["modifyvm", :id]
+        interfaces = host["interfaces"].size - 1
+        (host["interfaces"].size - 1).times do |i|
+          opts += ["--nicpromisc#{i + 2}", "allow-all"]
+        end
+        vb.customize opts
+
+        # set networks.
+        host["interfaces"].each_with_index do |ip, i|
+          intnet = "#{confs["virtualbox"]["intnet_name"]}#{i}"
+          set_network(override, ip: ip, virtualbox__intnet: intnet)
+        end
+      end
+
+      h.vm.hostname = host["name"]
+    end
+  end
+
+  # provision (ansible).
+  config.vm.provision "ansible" do |ansible|
+    ansible.playbook = "provisioning/ansible/site.yml"
+
+    ansible.extra_vars = {vagrant: confs}
+  end
+end

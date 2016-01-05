@@ -1326,3 +1326,19 @@ lagopus_pipeline_stage_set_worker_event_buffer(
 
   return ret;
 }
+
+
+lagopus_result_t
+lagopus_pipeline_stage_get_name(const lagopus_pipeline_stage_t *sptr,
+                                const char **name) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+
+  if (sptr != NULL && *sptr != NULL && name != NULL) {
+    *name = (*sptr)->m_name;
+    ret = LAGOPUS_RESULT_OK;
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  return ret;
+}

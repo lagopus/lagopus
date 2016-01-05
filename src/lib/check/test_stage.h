@@ -33,6 +33,7 @@ typedef enum {
   test_stage_state_done
 } test_stage_state_t;
 
+
 typedef struct test_stage_record {
   base_stage_record m_base_stg;
 
@@ -52,6 +53,8 @@ typedef struct test_stage_record {
   volatile size_t m_n_events;
   volatile uint64_t m_start_clock;
   volatile uint64_t m_end_clock;
+  lagopus_chrono_t m_start_time;
+  lagopus_chrono_t m_end_time;
 } test_stage_record;
 typedef test_stage_record	*test_stage_t;
 

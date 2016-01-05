@@ -66,6 +66,23 @@ s_pipeline_create(test_stage_t *stages,
 }
 
 
+static inline void
+s_pipeline_destroy(test_stage_t *stages,
+                   size_t max_stage) {
+  if (likely(stages != NULL)) {
+    size_t i;
+
+    for (i = 0; i < max_stage; i++) {
+      lagopus_pipeline_stage_destroy((lagopus_pipeline_stage_t *)stages[i]);
+      stages[i] = NULL;
+    }
+  }
+}
+
+
+
+
+
 static inline base_stage_sched_t
 s_str2sched(const char *str) {
   base_stage_sched_t ret = base_stage_sched_unknown;
@@ -200,7 +217,7 @@ s_set_stage_spec(test_stage_spec_t *spec, const char *str) {
 
 
 
-static size_t s_n_events = 1000 * 1000 * 1000;
+static size_t s_n_events = 64 * 1000 * 1000;
 static lagopus_chrono_t s_to = 100 * 1000;	/* 100 us. */
 
 static test_stage_t *s_stages;
@@ -212,6 +229,8 @@ static const char *s_egr_spec_str = "1:1:1000:single:single";
 static test_stage_spec_t s_ingres_spec;
 static test_stage_spec_t s_interm_spec;
 static test_stage_spec_t s_egress_spec;
+
+static uint64_t s_check_sum = 0LL;
 
 
 static inline lagopus_result_t
@@ -327,6 +346,8 @@ s_parse_args(int argc, const char * const argv[]) {
     s_egress_spec.m_n_events = s_n_events;
     s_egress_spec.m_to = s_to;
 
+    s_check_sum = (s_n_events + 1) * s_n_events / 2LL - s_n_events;
+
     if ((ret = s_set_stage_spec(&s_interm_spec, s_int_spec_str)) !=
         LAGOPUS_RESULT_OK) {
       lagopus_msg_error("Invalid intermidiate stages spec. '%s'.\n",
@@ -370,6 +391,155 @@ done:
 }
 
 
+static inline void
+s_result(void) {
+  const char *name = NULL;
+  bool is_ok = true;
+  size_t i;
+
+  fprintf(stderr, "\nchecking ... ");
+
+  for (i = 1; i < s_n_stages; i++) {
+    (void)lagopus_pipeline_stage_get_name(
+        (lagopus_pipeline_stage_t *)&(s_stages[i]),
+        &name);
+    if (s_stages[i]->m_n_events != s_n_events) {
+      fprintf(stderr, "\n");
+      lagopus_msg_error("stage " PFSZ(u) " '%s' events # error, "
+                        PFSZ(u) " != " PFSZ(u) "\n",
+                        i, name,
+                        s_stages[i]->m_n_events, s_n_events);
+      is_ok = false;
+    }
+    if (s_stages[i]->m_sum != s_check_sum) {
+      fprintf(stderr, "\n");
+      lagopus_msg_error("stage " PFSZ(u) " '%s' checksum error, "
+                        PFSZ(u) " != " PFSZ(u) "\n",
+                        i, name,
+                        s_stages[i]->m_sum, s_check_sum);
+      is_ok = false;
+    }
+
+    fprintf(stderr, PFSZ(u) " ", i);
+  }
+
+  if (is_ok == true) {
+    lagopus_chrono_t total_time = 
+        s_stages[s_n_stages - 1]->m_end_time - 
+        s_stages[0]->m_start_time;
+    uint64_t total_clock = 
+        s_stages[s_n_stages - 1]->m_end_clock - 
+        s_stages[0]->m_start_clock;
+    double tick = (double)total_time / (double)total_clock;
+    double meps = (double)s_n_events / (double)total_time * 1000.0;
+    double bw = meps * (double)sizeof(uint64_t);
+
+    fprintf(stderr, "done.\n");
+
+    fprintf(stdout, "\nResult:\n\n");
+
+    fprintf(stdout, "Total time:\t" PFSZS(20, u) " nsec.\n", total_time);
+    fprintf(stdout, "Total clock:\t" PFSZS(20, u) " clock.\n", total_clock);
+    fprintf(stdout, "Tick:\t\t%20.6f nsec.\n", tick);
+
+    fprintf(stdout, "Throughput:\t%20.6f M events/sec.\n", meps);
+    fprintf(stdout, "Bandwadth:\t%20.6f MB/sec.\n", bw);
+
+    fflush(stdout);
+  }
+}
+
+
+static inline lagopus_result_t
+s_run(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+
+  if (s_stages != NULL) {
+    size_t i;
+    lagopus_pipeline_stage_t *s;
+
+    for (i = 0; i < s_n_stages; i++) {
+      s = (lagopus_pipeline_stage_t *)(&s_stages[i]);
+      ret = lagopus_pipeline_stage_setup(s);
+      if (ret != LAGOPUS_RESULT_OK) {
+        break;
+      }
+    }
+
+    if (ret == LAGOPUS_RESULT_OK) {
+      /*
+       * Start all the stages.
+       */
+      for (i = 0; i < s_n_stages; i++) {
+        s = (lagopus_pipeline_stage_t *)(&s_stages[i]);
+        ret = lagopus_pipeline_stage_start(s);
+        if (ret != LAGOPUS_RESULT_OK) {
+          break;
+        }
+      }
+    }
+
+    if (ret == LAGOPUS_RESULT_OK) {
+      /*
+       * Go.
+       */
+      ret = global_state_set(GLOBAL_STATE_STARTED);
+      if (ret == LAGOPUS_RESULT_OK) {
+        /*
+         * Wait the last stage finish.
+         */
+        ret = s_test_stage_wait(s_stages[s_n_stages - 1]);
+        if (ret == LAGOPUS_RESULT_OK) {
+          /*
+           * Send all the stages a shutdown notification.
+           */
+          for (i = 0; i < s_n_stages; i++) {
+            s = (lagopus_pipeline_stage_t *)(&s_stages[i]);
+            ret = lagopus_pipeline_stage_shutdown(s, SHUTDOWN_GRACEFULLY);
+            if (ret != LAGOPUS_RESULT_OK) {
+              break;
+            }
+          }
+          if (ret == LAGOPUS_RESULT_OK) {
+            /*
+             * Wake all the stages up, then all the stage workers exit.
+             */
+            for (i = 0; i < s_n_stages; i++) {
+              ret = s_test_stage_wakeup(s_stages[i]);
+              if (ret != LAGOPUS_RESULT_OK) {
+                break;
+              }
+            }
+            if (ret == LAGOPUS_RESULT_OK) {
+              /*
+               * Wait all the stages finish.
+               */
+              for (i = 0; i < s_n_stages; i++) {
+                s = (lagopus_pipeline_stage_t *)(&s_stages[i]);
+                ret = lagopus_pipeline_stage_wait(s, -1LL);
+                if (ret != LAGOPUS_RESULT_OK) {
+                  break;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  return ret;
+}
+
+
+static inline void
+s_destroy(void) {
+  s_pipeline_destroy(s_stages, s_n_stages);
+}
+
+
 
 
 
@@ -383,114 +553,14 @@ main(int argc, const char *const argv[]) {
   }
 
   st = s_create();
-
-#if 0
-  lagopus_pipeline_stage_t s = NULL;
-
-  size_t nthd = 1;
-
-  (void)argc;
-
-  if (IS_VALID_STRING(argv[1]) == true) {
-    size_t tmp;
-    if (lagopus_str_parse_uint64(argv[1], &tmp) == LAGOPUS_RESULT_OK &&
-        tmp > 0LL) {
-      nthd = tmp;
-    }
-  }
-
-  fprintf(stdout, "Creating... ");
-  st = lagopus_pipeline_stage_create(&s, 0, "a_test",
-                                     nthd,
-                                     sizeof(void *), 1024,
-                                     s_pre_pause,
-                                     s_sched,
-                                     s_setup,
-                                     s_fetch,
-                                     s_main,
-                                     s_throw,
-                                     s_shutdown,
-                                     s_finalize,
-                                     s_freeup);
   if (st == LAGOPUS_RESULT_OK) {
-    fprintf(stdout, "Created.\n");
-    fprintf(stdout, "Setting up... ");
-    st = lagopus_pipeline_stage_setup(&s);
+    st = s_run();
     if (st == LAGOPUS_RESULT_OK) {
-      fprintf(stdout, "Set up.\n");
-      fprintf(stdout, "Starting... ");
-      st = lagopus_pipeline_stage_start(&s);
-      if (st == LAGOPUS_RESULT_OK) {
-        fprintf(stdout, "Started.\n");
-        fprintf(stdout, "Opening the front door... ");
-        st = global_state_set(GLOBAL_STATE_STARTED);
-        if (st == LAGOPUS_RESULT_OK) {
-          char buf[1024];
-          char *cmd = NULL;
-          fprintf(stdout, "The front door is open.\n");
-
-          fprintf(stdout, "> ");
-          while (fgets(buf, sizeof(buf), stdin) != NULL &&
-                 st == LAGOPUS_RESULT_OK) {
-            (void)lagopus_str_trim_right(buf, "\r\n\t ", &cmd);
-
-            if (strcasecmp(cmd, "pause") == 0 ||
-                strcasecmp(cmd, "spause") == 0) {
-              fprintf(stdout, "Pausing... ");
-              if ((st = lagopus_pipeline_stage_pause(&s, -1LL)) ==
-                  LAGOPUS_RESULT_OK) {
-                if (strcasecmp(cmd, "spause") == 0) {
-                  s_set(0LL);
-                }
-                fprintf(stdout, "Paused " PF64(u) "\n", s_get());
-              } else {
-                fprintf(stdout, "Failure.\n");
-              }
-            } else if (strcasecmp(cmd, "resume") == 0) {
-              fprintf(stdout, "Resuming... ");
-              if ((st = lagopus_pipeline_stage_resume(&s)) ==
-                  LAGOPUS_RESULT_OK) {
-                fprintf(stdout, "Resumed.\n");
-              } else {
-                fprintf(stdout, "Failure.\n");
-              }
-            } else if (strcasecmp(cmd, "get") == 0) {
-              fprintf(stdout, PF64(u) "\n", s_get());
-            }
-
-            free((void *)cmd);
-            cmd = NULL;
-            fprintf(stdout, "> ");
-          }
-          fprintf(stdout, "\nDone.\n");
-
-          fprintf(stdout, "Shutting down... ");
-          st = lagopus_pipeline_stage_shutdown(&s, SHUTDOWN_GRACEFULLY);
-          if (st == LAGOPUS_RESULT_OK) {
-            fprintf(stdout, "Shutdown accepted... ");
-            sleep(1);
-            s_do_stop = true;
-            fprintf(stdout, "Waiting shutdown... ");
-            st = lagopus_pipeline_stage_wait(&s, -1LL);
-            if (st == LAGOPUS_RESULT_OK) {
-              fprintf(stdout, "OK, Shutdown.\n");
-            }
-          }
-        }
-      }
+      s_result();
     }
   }
-  fflush(stdout);
 
-  if (st != LAGOPUS_RESULT_OK) {
-    lagopus_perror(st);
-  }
-
-  fprintf(stdout, "Destroying... ");
-  lagopus_pipeline_stage_destroy(&s);
-  fprintf(stdout, "Destroyed.\n");
-
-#endif
+  s_destroy();
 
 done:
   if (st != LAGOPUS_RESULT_OK) {

@@ -1,0 +1,6 @@
+---
+- hosts: all
+  vars_files:
+    - ../../conf/ansible_conf.yml
+  roles:
+    - lagopus

@@ -1,0 +1,13 @@
+---
+- include: ubuntu.yml
+  when: ansible_distribution == "Ubuntu"
+  tags: ubuntu
+
+- include: pip.yml
+  tags: pip
+
+- include: dpdk.yml
+  tags: dpdk
+
+- include: lagopus.yml
+  tags: lagopus

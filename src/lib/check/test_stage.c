@@ -56,6 +56,7 @@ s_test_stage_create(test_stage_t *tsptr,
     if (likely((ret = lagopus_mutex_create(&lock)) == LAGOPUS_RESULT_OK &&
                (ret = lagopus_cond_create(&cond)) == LAGOPUS_RESULT_OK &&
                (ret = s_base_create((base_stage_t *)tsptr,
+                                    sizeof(test_stage_record),
                                     "test",
                                     stage_idx,	/* stage_idx */
                                     max_stage,	/* max_stage */
@@ -91,6 +92,8 @@ s_test_stage_create(test_stage_t *tsptr,
       (*tsptr)->m_n_events = 0;
       (*tsptr)->m_start_clock = 0;
       (*tsptr)->m_end_clock = 0;
+      (*tsptr)->m_start_time = -1LL;
+      (*tsptr)->m_end_time = -1LL;
 
       ret = LAGOPUS_RESULT_OK;
     } else {
@@ -108,9 +111,63 @@ done:
 
 
 
+static inline lagopus_result_t
+s_test_stage_wait(const test_stage_t ts) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+
+  if (likely(ts->m_lock != NULL && ts->m_cond != NULL)) {
+
+    (void)lagopus_mutex_lock(&(ts->m_lock));
+    {
+   recheck:
+      if (ts->m_do_exit != true) {
+        (void)lagopus_cond_wait(&(ts->m_cond), &(ts->m_lock), -1LL);
+        goto recheck;
+      }
+    }
+    (void)lagopus_mutex_unlock(&(ts->m_lock));
+
+    ret = LAGOPUS_RESULT_OK;
+
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  return ret;
+}
+
+
+static inline lagopus_result_t
+s_test_stage_wakeup(const test_stage_t ts) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+
+  if (likely(ts->m_lock != NULL && ts->m_cond != NULL)) {
+
+    (void)lagopus_mutex_lock(&(ts->m_lock));
+    {
+      ts->m_do_exit = true;
+      (void)lagopus_cond_notify(&(ts->m_cond), true);
+    }
+    (void)lagopus_mutex_unlock(&(ts->m_lock));
+
+    ret = LAGOPUS_RESULT_OK;
+
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  return ret;
+}
+
+
+
+
+
 static lagopus_result_t
 s_ingress_setup(base_stage_t bs) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+
+  lagopus_msg_debug(1, "called.\n");
 
   if (likely(bs != NULL)) {
     test_stage_t ts = (test_stage_t)bs;
@@ -121,7 +178,7 @@ s_ingress_setup(base_stage_t bs) {
     if (likely(n_data > 0 &&
                n_workers > 0)) {
       uint64_t *data =
-          (uint64_t *)malloc(sizeof(lagopus_chrono_t) * n_data);
+          (uint64_t *)malloc(sizeof(uint64_t) * n_data);
       enqueue_info_t *enq_infos = 
           (enqueue_info_t *)malloc(sizeof(enqueue_info_t) * (size_t)n_workers);
 
@@ -130,18 +187,19 @@ s_ingress_setup(base_stage_t bs) {
         size_t rem_size = n_data;
         size_t len = n_data / (size_t)n_workers;
 
+        fprintf(stderr, "\npreparing data ... ");
         for (i = 0; i < n_data; i++) {
           data[i] = i;
         }
+        fprintf(stderr, "done.\n");
 
         if (n_data % (size_t)n_workers != 0) {
           len++;
         }
 
-        for (i = 0; i < (size_t)n_workers; i++) {
+        for (i = 0; i < (size_t)n_workers; i++, rem_size -= len) {
           enq_infos[i].m_offset = i * len;
-          rem_size -= len;
-          enq_infos[i].m_offset = (rem_size < len) ? rem_size : len;
+          enq_infos[i].m_length = (rem_size < len) ? rem_size : len;
         }
 
         ts->m_data = data;
@@ -178,10 +236,13 @@ s_ingress_main(const lagopus_pipeline_stage_t *sptr,
 
     if (likely(bs != NULL && bs->m_next_stg != NULL)) {
       if (likely(ts->m_states[idx] != test_stage_state_done)) {
+        lagopus_chrono_t start_time;
         uint64_t start_clock;
         uint64_t end_clock;
         uint64_t *addr = ts->m_data + ts->m_enq_infos[idx].m_offset;
         size_t len = ts->m_enq_infos[idx].m_length;
+
+        WHAT_TIME_IS_IT_NOW_IN_NSEC(start_time);
 
         start_clock = lagopus_rdtsc();
         ret = lagopus_pipeline_stage_submit((lagopus_pipeline_stage_t *)
@@ -193,26 +254,14 @@ s_ingress_main(const lagopus_pipeline_stage_t *sptr,
                                   0, start_clock);
         lagopus_atomic_update_max(uint64_t, &(ts->m_end_clock),
                                   0, end_clock);
+
+        lagopus_atomic_update_min(lagopus_chrono_t, &(ts->m_start_time),
+                                  0, start_time);
         
         ts->m_states[idx] = test_stage_state_done;
         mbar();
       } else {
-        if (likely(ts->m_lock != NULL && ts->m_cond)) {
-
-          (void)lagopus_mutex_lock(&(ts->m_lock));
-          {
-         recheck:
-            if (ts->m_do_exit != true) {
-              (void)lagopus_cond_wait(&(ts->m_cond), &(ts->m_lock), -1LL);
-              goto recheck;
-            }
-          }
-          (void)lagopus_mutex_unlock(&(ts->m_lock));
-
-          ret = 0;
-        } else {
-          ret = LAGOPUS_RESULT_INVALID_ARGS;
-        }
+        ret = s_test_stage_wait(ts);
       }
     } else {
       ret = LAGOPUS_RESULT_INVALID_ARGS;
@@ -283,35 +332,39 @@ s_intermediate_main(const lagopus_pipeline_stage_t *sptr,
       for (i = 0; i < n_evs; i++) {
         sum += data[i];
       }
-      (void)__sync_fetch_and_add(&(ts->m_sum), sum);
+      (void)__sync_add_and_fetch(&(ts->m_sum), sum);
+      n_cur_evs = __sync_add_and_fetch(&(ts->m_n_events), n_evs);
 
       if (unlikely(ts->m_n_data == n_cur_evs)) {
         uint64_t cur_clock = lagopus_rdtsc();
+        lagopus_chrono_t end_time;
+
+        WHAT_TIME_IS_IT_NOW_IN_NSEC(end_time);
+
+        lagopus_msg_debug(1, "got " PFSZ(u) " / " PFSZ(u)"  events.\n",
+                          n_cur_evs, ts->m_n_data);
+
         lagopus_atomic_update_min(uint64_t, &(ts->m_end_clock),
                                   0, cur_clock);
+
+        lagopus_atomic_update_max(lagopus_chrono_t, &(ts->m_end_time),
+                                  0, end_time);
+
+        ts->m_states[idx] = test_stage_state_done;
+        mbar();
+
+        if (ts->m_type == test_stage_type_egress) {
+          /*
+           * Wake the master up.
+           */
+          (void)s_test_stage_wakeup(ts);
+        }
       }
 
       ret = (lagopus_result_t)n_evs;
+
     } else {
-      ts->m_states[idx] = test_stage_state_done;
-      mbar();
-
-      if (likely(ts->m_lock != NULL && ts->m_cond)) {
-
-        (void)lagopus_mutex_lock(&(ts->m_lock));
-        {
-       recheck:
-          if (ts->m_do_exit != true) {
-            (void)lagopus_cond_wait(&(ts->m_cond), &(ts->m_lock), -1LL);
-            goto recheck;
-          }
-        }
-        (void)lagopus_mutex_unlock(&(ts->m_lock));
-
-        ret = 0;
-      } else {
-        ret = LAGOPUS_RESULT_INVALID_ARGS;
-      }
+      ret = s_test_stage_wait(ts);
     }
   } else {
     ret = LAGOPUS_RESULT_INVALID_ARGS;

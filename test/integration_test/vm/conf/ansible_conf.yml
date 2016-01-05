@@ -1,0 +1,22 @@
+---
+# configuration for ansible.
+system:
+  shell_dir: "{{ vagrant.system.vagrant_dir }}/lib/shell"
+  work_dir: "{{ ansible_env.HOME }}/work"
+
+dpdk:
+  is_used: true
+  version: dpdk-2.1.0
+
+dpdk_env:
+  RTE_SDK: "{{ system.work_dir }}/{{ dpdk.version }}"
+  RTE_TARGET: "x86_64-native-linuxapp-gcc"
+
+lagopus:
+  git: https://github.com/lagopus/lagopus.git
+  dir: "{{ system.work_dir }}/lagopus"
+  is_used_git_ssh: false
+
+proxy_env:
+  http_proxy:
+  https_proxy:

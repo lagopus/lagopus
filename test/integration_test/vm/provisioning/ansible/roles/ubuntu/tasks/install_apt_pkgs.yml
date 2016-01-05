@@ -1,0 +1,31 @@
+---
+- name: apt-get update
+  apt: update_cache=yes
+  sudo: yes
+
+- name: install deb-pkgs
+  apt: pkg={{ item }} state=latest
+  with_items:
+    - linux-generic
+    - linux-headers-generic
+    - git
+    - libexpat-dev
+    - libgmp-dev
+    - libncurses-dev
+    - libssl-dev
+    - libpcap-dev
+    - libsnmp-dev
+    - libgmp-dev
+    - gcc
+    - make
+    - autoconf
+    - byacc
+    - flex
+    - python
+    - python-dev
+    - python-pip
+    - libxml2-dev
+    - libxslt1-dev
+    - unzip
+    - lshw
+  sudo: yes

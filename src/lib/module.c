@@ -823,6 +823,6 @@ lagopus_module_is_finalized_cleanly(void) {
 bool
 lagopus_module_is_unloading(void) {
   mbar();
-  return s_is_unloading;
+  return (s_n_modules > 0) ? s_is_unloading : true;
 }
 

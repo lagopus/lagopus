@@ -426,4 +426,19 @@ lagopus_pipeline_stage_set_worker_event_buffer(
     lagopus_pipeline_stage_event_buffer_freeup_proc_t freeup_proc);
 
 
+/**
+ * Get name a pipeline stage.
+ *
+ *	@param[in]	sptr	A pointer to a stage. 
+ *	@param[out]	name	A pointer for the returned name.
+ *
+ *	@retval	LAGOPUS_RESULT_OK		Succeeded.
+ *	@retval LAGOPUS_RESULT_INVALID_ARGS	Failed, invalid args.
+ *	@retval LAGOPUS_RESULT_ANY_FAILURES	Failed.
+ */
+lagopus_result_t
+lagopus_pipeline_stage_get_name(const lagopus_pipeline_stage_t *sptr,
+                                const char **name);
+
+
 #endif /* __LAGOPUS_PIPELINE_STAGE_H__ */

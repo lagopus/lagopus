@@ -155,6 +155,7 @@ s_base_setup(const lagopus_pipeline_stage_t *sptr) {
 
   if (likely(sptr != NULL && *sptr != NULL)) {
     base_stage_t bs = (base_stage_t)(*sptr);
+    const char *myname = NULL;
 
     if (bs->m_setup_proc != NULL) {
       ret = (bs->m_setup_proc)(bs);
@@ -163,10 +164,12 @@ s_base_setup(const lagopus_pipeline_stage_t *sptr) {
       }
     }
 
+    (void)lagopus_pipeline_stage_get_name(sptr, &myname);
+
     if (bs->m_stg_idx < (bs->m_n_stgs - 1)) {
       if (likely(IS_VALID_STRING(bs->m_basename) == true)) {
         const char *name = s_base_get_stage_name(bs->m_basename,
-                                                 bs->m_stg_idx);
+                                                 bs->m_stg_idx + 1);
 
         if (likely(IS_VALID_STRING(name) == true)) {
           lagopus_pipeline_stage_t nbs = NULL;
@@ -174,7 +177,8 @@ s_base_setup(const lagopus_pipeline_stage_t *sptr) {
           ret = lagopus_pipeline_stage_find(name, &nbs);
           if (ret == LAGOPUS_RESULT_OK) {
             bs->m_next_stg = (base_stage_t)nbs;
-            lagopus_msg_debug(1, "found the next stage '%s'.\n", name);
+            lagopus_msg_debug(1, "this is '%s', found the next stage '%s'.\n",
+                              myname, name);
           } else {
             lagopus_perror(ret);
             lagopus_msg_error("can't find the next stage '%s'.\n", name);
@@ -187,6 +191,7 @@ s_base_setup(const lagopus_pipeline_stage_t *sptr) {
         ret = LAGOPUS_RESULT_INVALID_ARGS;
       }
     } else {
+      lagopus_msg_debug(1, "this is '%s', the last stage.\n", myname);
       ret = LAGOPUS_RESULT_OK;
     }
   } else {
@@ -537,6 +542,7 @@ s_base_freeup(const lagopus_pipeline_stage_t *sptr) {
 
 static inline lagopus_result_t
 s_base_create(base_stage_t *bsptr,
+              size_t alloc_size,
               const char *bname,
               size_t stage_idx,
               size_t max_stage,
@@ -595,7 +601,9 @@ s_base_create(base_stage_t *bsptr,
       base_stage_t bs = NULL;
 
       ret = lagopus_pipeline_stage_create(
-          (lagopus_pipeline_stage_t *)&bs, 0, name, n_workers,
+          (lagopus_pipeline_stage_t *)&bs,
+          (alloc_size == 0) ? sizeof(base_stage_record) : alloc_size,
+          name, n_workers,
           sizeof(int64_t), batch_size,
           s_base_pre_pause,		/* pre_pause */
           sched_proc,			/* sched */
