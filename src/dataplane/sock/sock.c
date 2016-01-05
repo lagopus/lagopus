@@ -89,6 +89,7 @@ copy_packet(struct lagopus_packet *src_pkt) {
   (void)OS_M_APPEND(mbuf, pktlen);
   memcpy(OS_MTOD(pkt->mbuf, char *), OS_MTOD(src_pkt->mbuf, char *), pktlen);
   pkt->in_port = src_pkt->in_port;
+  pkt->flags = src_pkt->flags;
   /* other pkt members are not used in physical output. */
   return pkt;
 }
