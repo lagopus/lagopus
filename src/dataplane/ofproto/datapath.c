@@ -1491,12 +1491,6 @@ lagopus_forward_packet_to_port(struct lagopus_packet *pkt,
           continue;
         }
 
-#ifdef PACKET_CAPTURE
-        /* capture sending packet */
-        if (unlikely(port->pcap_queue != NULL)) {
-          lagopus_pcap_enqueue(port, pkt);
-        }
-#endif /* PACKET_CAPTURE */
         /* send packet */
         OS_M_ADDREF(pkt->mbuf);
         lagopus_send_packet_physical(pkt, port->interface);
@@ -1531,12 +1525,6 @@ lagopus_forward_packet_to_port(struct lagopus_packet *pkt,
       v = pkt->in_port->bridge->ports;
       port = port_lookup(v, out_port);
       if (port != NULL && (port->ofp_port.config & OFPPC_NO_FWD) == 0) {
-#ifdef PACKET_CAPTURE
-        /* capture sending packet */
-        if (unlikely(port->pcap_queue != NULL)) {
-          lagopus_pcap_enqueue(port, pkt);
-        }
-#endif /* PACKET_CAPTURE */
         /* so far, we support only physical port. */
         DP_PRINT("Forwarding packet to port %d\n", port->ifindex);
         lagopus_send_packet_physical(pkt, port->interface);

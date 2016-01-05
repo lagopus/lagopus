@@ -715,12 +715,6 @@ dp_rawsock_thread_loop(__UNUSED const lagopus_thread_t *selfptr,
             port->bridge->flowdb->switch_mode == SWITCH_MODE_STANDALONE) {
           lagopus_forward_packet_to_port(pkt, OFPP_NORMAL);
         } else {
-#ifdef PACKET_CAPTURE
-          /* capture received packet */
-          if (port->pcap_queue != NULL) {
-            lagopus_pcap_enqueue(pkt->in_port, pkt);
-          }
-#endif /* PACKET_CAPTURE */
           lagopus_match_and_action(pkt);
         }
       }
