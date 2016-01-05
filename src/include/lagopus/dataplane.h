@@ -467,7 +467,7 @@ lagopus_send_packet_physical(struct lagopus_packet *pkt,
   }
   switch (ifp->info.type) {
     case DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_PHY:
-    case DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_PCAP:
+    case DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_VDEV:
 #ifdef HAVE_DPDK
       return dpdk_send_packet_physical(pkt, ifp);
 #else
@@ -477,8 +477,11 @@ lagopus_send_packet_physical(struct lagopus_packet *pkt,
       return rawsock_send_packet_physical(pkt,
                                           ifp->info.eth_rawsock.port_number);
 
-    case DATASTORE_INTERFACE_TYPE_UNKNOWN:
+    case DATASTORE_INTERFACE_TYPE_GRE:
+    case DATASTORE_INTERFACE_TYPE_NVGRE:
     case DATASTORE_INTERFACE_TYPE_VXLAN:
+    case DATASTORE_INTERFACE_TYPE_VHOST_USER:
+    case DATASTORE_INTERFACE_TYPE_UNKNOWN:
       /* TODO */
       lagopus_packet_free(pkt);
       return LAGOPUS_RESULT_OK;
