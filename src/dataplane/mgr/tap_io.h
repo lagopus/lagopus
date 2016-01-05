@@ -1,3 +1,7 @@
+/* %COPYRIGHT% */
+
+#define TAP_POLL_TIMEOUT 1
+
 struct dp_tap_interface;
 
 lagopus_result_t

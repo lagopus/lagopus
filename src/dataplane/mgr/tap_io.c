@@ -165,6 +165,7 @@ dp_tap_interface_destroy(const char *name) {
     close(tap->fd);
     free(tap->name);
     free(tap);
+    usleep(TAP_POLL_TIMEOUT * 1000);
   }
 }
 
@@ -258,34 +259,45 @@ dp_tapio_thread_loop(__UNUSED const lagopus_thread_t *selfptr,
     return rv;
   }
   while (tapio_run == true) {
-    if (poll(pollfd, portidx, 100) < 0) {
-      err(errno, "poll");
-    }
-    for (i = 0; i < portidx; i++) {
-      if ((pollfd[i].revents & POLLIN) == 0) {
-        continue;
-      }
-      tap = tap_ifp[i];
-      pkt = alloc_lagopus_packet();
-      (void)OS_M_APPEND(pkt->mbuf, MAX_PACKET_SZ);
-      len = dp_tap_interface_recv_packet(tap, pkt);
-      if (len < 0) {
-        switch (errno) {
-          case ENETDOWN:
-          case ENETRESET:
-          case ECONNABORTED:
-          case ECONNRESET:
-          case EINTR:
-            continue;
-
-          default:
-            lagopus_exit_fatal("read: %d", errno);
+    switch (poll(pollfd, portidx, TAP_POLL_TIMEOUT)) {
+      case -1:
+        if (errno == EINTR) {
+          continue;
         }
-      }
-      OS_M_TRIM(pkt->mbuf, MAX_PACKET_SZ - len);
-      lagopus_packet_init(pkt, pkt->mbuf, tap->ifp->port);
-      /* passthrough to real interface */
-      lagopus_send_packet_physical(pkt, tap->ifp);
+        err(errno, "poll");
+
+      case 0:
+        /* no events */
+        continue;
+
+      default:
+        for (i = 0; i < portidx; i++) {
+          if ((pollfd[i].revents & POLLIN) == 0) {
+            continue;
+          }
+          tap = tap_ifp[i];
+          pkt = alloc_lagopus_packet();
+          (void)OS_M_APPEND(pkt->mbuf, MAX_PACKET_SZ);
+          len = dp_tap_interface_recv_packet(tap, pkt);
+          if (len < 0) {
+            switch (errno) {
+              case ENETDOWN:
+              case ENETRESET:
+              case ECONNABORTED:
+              case ECONNRESET:
+              case EINTR:
+                continue;
+
+              default:
+                lagopus_exit_fatal("read: %d", errno);
+            }
+          }
+          OS_M_TRIM(pkt->mbuf, MAX_PACKET_SZ - len);
+          lagopus_packet_init(pkt, pkt->mbuf, tap->ifp->port);
+          /* passthrough to real interface */
+          lagopus_send_packet_physical(pkt, tap->ifp);
+        }
+        break;
     }
   }
 }
