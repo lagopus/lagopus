@@ -245,11 +245,6 @@ rawsock_configure_interface(struct interface *ifp) {
   }
   lagopus_msg_info("Configuring %s, ifindex %d\n",
                    ifp->info.eth_rawsock.device, ifindex[portid]);
-  memset(&mreq, 0, sizeof(mreq));
-  mreq.mr_type = PACKET_MR_PROMISC;
-  mreq.mr_ifindex = ifindex[portid];
-  setsockopt(fd, SOL_PACKET, PACKET_ADD_MEMBERSHIP,
-             (void *)&mreq, sizeof(mreq));
   sll.sll_family = AF_PACKET;
   sll.sll_protocol = htons(ETH_P_ALL);
   sll.sll_ifindex = ifindex[portid];
@@ -272,6 +267,24 @@ rawsock_configure_interface(struct interface *ifp) {
   mtu = ifp->info.eth_rawsock.mtu;
   memcpy(RTA_DATA(rta), &mtu, sizeof(mtu));
   send(fd, &req, req.nlh.nlmsg_len, 0);
+
+  /* set promiscous mode */
+  memset(&ifreq, 0, sizeof(ifreq));
+  snprintf(ifreq.ifr_name, sizeof(ifreq.ifr_name),
+           "%s", ifp->info.eth_rawsock.device);
+  if (ioctl(fd, SIOCGIFFLAGS, &ifreq) != 0) {
+    close(fd);
+    lagopus_msg_warning("%s: %s\n",
+                        ifp->info.eth_rawsock.device, strerror(errno));
+    return LAGOPUS_RESULT_POSIX_API_ERROR;
+  }
+  ifreq.ifr_flags |= IFF_PROMISC;
+  if (ioctl(fd, SIOCSIFFLAGS, &ifreq) != 0) {
+    close(fd);
+    lagopus_msg_warning("%s: %s\n",
+                        ifp->info.eth_rawsock.device, strerror(errno));
+    return LAGOPUS_RESULT_POSIX_API_ERROR;
+  }
 
   pollfd[portid].fd = fd;
   pollfd[portid].events = 0;
@@ -320,8 +333,9 @@ rawsock_get_hwaddr(struct interface *ifp, uint8_t *hw_addr) {
 
   portid = ifp->info.eth_rawsock.port_number;
   fd = pollfd[portid].fd;
+  snprintf(ifreq.ifr_name, sizeof(ifreq.ifr_name),
+           "%s", ifp->info.eth_rawsock.device);
   if (ioctl(fd, SIOCGIFHWADDR, &ifreq) != 0) {
-    close(fd);
     lagopus_msg_warning("%s\n", strerror(errno));
     return LAGOPUS_RESULT_ANY_FAILURES;
   }
