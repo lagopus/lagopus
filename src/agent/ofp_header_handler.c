@@ -286,7 +286,7 @@ ofp_header_version_check(struct channel *channel,
 
   if (channel != NULL && header != NULL) {
     dpid = channel_dpid_get(channel);
-    ret = dpmgr_bridge_ofp_version_get(dpid, &bridge_ofp_version);
+    ret = ofp_switch_version_get(dpid, &bridge_ofp_version);
 
     if (ret == LAGOPUS_RESULT_OK) {
       if (bridge_ofp_version == header->version) {

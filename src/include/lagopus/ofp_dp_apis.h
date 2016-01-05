@@ -36,6 +36,6 @@
 #include "lagopus/ofp_queue_get_config_apis.h"
 #include "lagopus/ofp_table_mod_apis.h"
 #include "lagopus/ofp_multipart_apis.h"
-#include "lagopus/ofp_switch_config_apis.h"
+#include "lagopus/ofp_switch_apis.h"
 
 #endif /* __LAGOPUS_OFP_DP_APIS_H__ */

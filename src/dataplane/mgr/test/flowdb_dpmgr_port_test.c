@@ -64,7 +64,7 @@ static uint64_t dpid_base;
   } while (0)
 
 /* Positively assert the port creation. */
-#define TEST_ASSERT_DPMGR_PORT_ADD_OK(_b, _e, _msg)                     \
+#define TEST_ASSERT_PORT_ADD_OK(_b, _e, _msg)                     \
   do {									\
     char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];				\
     datastore_interface_info_t ifinfo;                                  \
@@ -84,7 +84,7 @@ static uint64_t dpid_base;
   } while (0);
 
 /* Negatively assert the port creation. */
-#define TEST_ASSERT_DPMGR_PORT_ADD_NG(_b, _e, _pi, _msg)		\
+#define TEST_ASSERT_PORT_ADD_NG(_b, _e, _pi, _msg)		\
   do {									\
     char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];				\
     \
@@ -95,7 +95,7 @@ static uint64_t dpid_base;
   } while (0);
 
 /* Positively assert the port deletion. */
-#define TEST_ASSERT_DPMGR_PORT_DELETE_OK(_b, _e, _msg)			\
+#define TEST_ASSERT_PORT_DELETE_OK(_b, _e, _msg)			\
   do {									\
     char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];				\
     \
@@ -105,8 +105,8 @@ static uint64_t dpid_base;
       TEST_ASSERT_TRUE_MESSAGE(LAGOPUS_RESULT_OK == dp_port_destroy(port_name[_s]), _buf); \
   } while (0);
 
-/* Assert the port count in dpmgr. */
-#define TEST_ASSERT_DPMGR_PORT_COUNT(_count, _msg)		\
+/* Assert the port count in the system. */
+#define TEST_ASSERT_PORT_COUNT(_count, _msg)		\
   do {								\
     char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];			\
     \
@@ -115,8 +115,8 @@ static uint64_t dpid_base;
     TEST_ASSERT_EQUAL_INT_MESSAGE((_count), dp_port_count(), (_msg)); \
   } while (0);
 
-/* Positively assert the ports in dpmgr. */
-#define TEST_ASSERT_DPMGR_PORT_FIND_OK(_b, _e, _msg)			\
+/* Positively assert the ports in the system. */
+#define TEST_ASSERT_PORT_FIND_OK(_b, _e, _msg)			\
   do {									\
     char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];				\
     \
@@ -127,8 +127,8 @@ static uint64_t dpid_base;
     }									\
   } while (0);
 
-/* Negatively assert the ports in dpmgr. */
-#define TEST_ASSERT_DPMGR_PORT_FIND_NG(_b, _e, _msg)			\
+/* Negatively assert the ports in the system. */
+#define TEST_ASSERT_PORT_FIND_NG(_b, _e, _msg)			\
   do {									\
     char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];				\
     \
@@ -140,7 +140,7 @@ static uint64_t dpid_base;
   } while (0);
 
 /* Positively assert the port adddition to a bridge. */
-#define TEST_ASSERT_DPMGR_BRIDGE_ADD_PORT_OK(_b, _e, _msg)		\
+#define TEST_ASSERT_BRIDGE_ADD_PORT_OK(_b, _e, _msg)		\
   do {									\
     char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];				\
     \
@@ -151,7 +151,7 @@ static uint64_t dpid_base;
   } while (0);
 
 /* Negatively assert the port adddition to a bridge. */
-#define TEST_ASSERT_DPMGR_BRIDGE_ADD_PORT_NG(_b, _e, _msg)		\
+#define TEST_ASSERT_BRIDGE_ADD_PORT_NG(_b, _e, _msg)		\
   do {									\
     char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];				\
     \
@@ -162,7 +162,7 @@ static uint64_t dpid_base;
   } while (0);
 
 /* Negatively assert the port adddition to a shifted bridge. */
-#define TEST_ASSERT_DPMGR_SHIFTEDBRIDGE_ADD_PORT_NG(_b, _e, _msg)	\
+#define TEST_ASSERT_SHIFTEDBRIDGE_ADD_PORT_NG(_b, _e, _msg)	\
   do {									\
     char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];				\
     \
@@ -173,7 +173,7 @@ static uint64_t dpid_base;
   } while (0);
 
 /* Positively assert the port deletion from a bridge. */
-#define TEST_ASSERT_DPMGR_BRIDGE_DELETE_PORT_OK(_b, _e, _msg)		\
+#define TEST_ASSERT_BRIDGE_DELETE_PORT_OK(_b, _e, _msg)		\
   do {									\
     char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];				\
     \
@@ -185,7 +185,7 @@ static uint64_t dpid_base;
   } while (0);
 
 /* Negatively assert the port deletion from a bridge. */
-#define TEST_ASSERT_DPMGR_BRIDGE_DELETE_PORT_NG(_b, _e, _msg)		\
+#define TEST_ASSERT_BRIDGE_DELETE_PORT_NG(_b, _e, _msg)		\
   do {									\
     char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];				\
     \
@@ -196,7 +196,7 @@ static uint64_t dpid_base;
   } while (0);
 
 /* Negatively assert the port deletion from a shifted bridge. */
-#define TEST_ASSERT_DPMGR_SHIFTEDBRIDGE_DELETE_PORT_NG(_b, _e, _msg)	\
+#define TEST_ASSERT_SHIFTEDBRIDGE_DELETE_PORT_NG(_b, _e, _msg)	\
   do {									\
     char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];				\
     \
@@ -207,7 +207,7 @@ static uint64_t dpid_base;
   } while (0);
 
 /* Assert the port count in a bridge. */
-#define TEST_ASSERT_DPMGR_BRIDGE_COUNT_PORT(_b, _e, _count, _msg)	\
+#define TEST_ASSERT_BRIDGE_COUNT_PORT(_b, _e, _count, _msg)	\
   do {									\
     char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];				\
     \
@@ -218,7 +218,7 @@ static uint64_t dpid_base;
   } while (0);
 
 /* Positively assert the ports in a bridge. */
-#define TEST_ASSERT_DPMGR_BRIDGE_FIND_PORT_OK(_b, _e, _msg)		\
+#define TEST_ASSERT_BRIDGE_FIND_PORT_OK(_b, _e, _msg)		\
   do {									\
     char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];				\
     \
@@ -230,7 +230,7 @@ static uint64_t dpid_base;
   } while (0);
 
 /* Negatively assert the ports in a bridge. */
-#define TEST_ASSERT_DPMGR_BRIDGE_FIND_PORT_NG(_b, _e, _msg)		\
+#define TEST_ASSERT_BRIDGE_FIND_PORT_NG(_b, _e, _msg)		\
   do {									\
     char _buf[TEST_ASSERT_MESSAGE_BUFSIZE];				\
     \
@@ -312,148 +312,148 @@ tearDown(void) {
 
 /*
  * Step 0: Assert no ports on the bridge.
- * Step 1: Add the ports to dpmgr.
- * Step 2: Doubly add the ports to dpmgr. (negative)
+ * Step 1: Add the ports to the system.
+ * Step 2: Doubly add the ports to system. (negative)
  * Step 3: Add the ports to the bridge.
  * Step 4: Doubly add the ports to the bridge. (negative)
  * Step 5: Add the ports to the shifted bridge. (negative).
- * Step 6: Delete the ports from dpmgr. (negative)
+ * Step 6: Delete the ports from the system. (negative)
  * Step 7: Delete the ports from the shifted bridge. (negative)
  * Step 8: Delete the ports from the bridge.
  * Step 9: Doubly delete the ports from the bridge. (negative)
- * Step 10: Delete the ports from dpmgr.
- * Step 11: Doubly delete the ports from dpmgr. (negative)
+ * Step 10: Delete the ports from the system.
+ * Step 11: Doubly delete the ports from the system. (negative)
  */
 void
-test_flowdb_dpmgr_ports(void) {
+test_flowdb_ports(void) {
   char buf[TEST_ASSERT_MESSAGE_BUFSIZE];
 
   /* Step 0. */
   TEST_SCENARIO_MSG_STEP(buf, 0);
 
-  TEST_ASSERT_DPMGR_PORT_COUNT(0, buf);
-  TEST_ASSERT_DPMGR_PORT_FIND_NG(0, TEST_PORT_EXTRA_NUM, buf);
-  TEST_ASSERT_DPMGR_BRIDGE_COUNT_PORT(0, TEST_PORT_EXTRA_NUM, 0, buf);
-  TEST_ASSERT_DPMGR_BRIDGE_FIND_PORT_NG(0, TEST_PORT_EXTRA_NUM, buf);
+  TEST_ASSERT_PORT_COUNT(0, buf);
+  TEST_ASSERT_PORT_FIND_NG(0, TEST_PORT_EXTRA_NUM, buf);
+  TEST_ASSERT_BRIDGE_COUNT_PORT(0, TEST_PORT_EXTRA_NUM, 0, buf);
+  TEST_ASSERT_BRIDGE_FIND_PORT_NG(0, TEST_PORT_EXTRA_NUM, buf);
 
   /* Step 1. */
   TEST_SCENARIO_MSG_STEP(buf, 1);
-  TEST_ASSERT_DPMGR_PORT_ADD_OK(0, TEST_PORT_NUM, buf);
+  TEST_ASSERT_PORT_ADD_OK(0, TEST_PORT_NUM, buf);
 
-  TEST_ASSERT_DPMGR_PORT_COUNT(TEST_PORT_NUM, buf);
-  TEST_ASSERT_DPMGR_PORT_FIND_OK(0, TEST_PORT_NUM, buf);
-  TEST_ASSERT_DPMGR_PORT_FIND_NG(TEST_PORT_NUM, TEST_PORT_EXTRA_NUM, buf);
-  TEST_ASSERT_DPMGR_BRIDGE_COUNT_PORT(0, TEST_PORT_EXTRA_NUM, 0, buf);
-  TEST_ASSERT_DPMGR_BRIDGE_FIND_PORT_NG(0, TEST_PORT_EXTRA_NUM, buf);
+  TEST_ASSERT_PORT_COUNT(TEST_PORT_NUM, buf);
+  TEST_ASSERT_PORT_FIND_OK(0, TEST_PORT_NUM, buf);
+  TEST_ASSERT_PORT_FIND_NG(TEST_PORT_NUM, TEST_PORT_EXTRA_NUM, buf);
+  TEST_ASSERT_BRIDGE_COUNT_PORT(0, TEST_PORT_EXTRA_NUM, 0, buf);
+  TEST_ASSERT_BRIDGE_FIND_PORT_NG(0, TEST_PORT_EXTRA_NUM, buf);
 
   /* Step 2. */
   TEST_SCENARIO_MSG_STEP(buf, 2);
-  TEST_ASSERT_DPMGR_PORT_ADD_NG(0, TEST_PORT_NUM, nports, buf);
+  TEST_ASSERT_PORT_ADD_NG(0, TEST_PORT_NUM, nports, buf);
 
-  TEST_ASSERT_DPMGR_PORT_COUNT(TEST_PORT_NUM, buf);
-  TEST_ASSERT_DPMGR_PORT_FIND_OK(0, TEST_PORT_NUM, buf);
-  TEST_ASSERT_DPMGR_PORT_FIND_NG(TEST_PORT_NUM, TEST_PORT_EXTRA_NUM, buf);
-  TEST_ASSERT_DPMGR_BRIDGE_COUNT_PORT(0, TEST_PORT_EXTRA_NUM, 0, buf);
-  TEST_ASSERT_DPMGR_BRIDGE_FIND_PORT_NG(0, TEST_PORT_EXTRA_NUM, buf);
+  TEST_ASSERT_PORT_COUNT(TEST_PORT_NUM, buf);
+  TEST_ASSERT_PORT_FIND_OK(0, TEST_PORT_NUM, buf);
+  TEST_ASSERT_PORT_FIND_NG(TEST_PORT_NUM, TEST_PORT_EXTRA_NUM, buf);
+  TEST_ASSERT_BRIDGE_COUNT_PORT(0, TEST_PORT_EXTRA_NUM, 0, buf);
+  TEST_ASSERT_BRIDGE_FIND_PORT_NG(0, TEST_PORT_EXTRA_NUM, buf);
 
   /* Step 3. */
   TEST_SCENARIO_MSG_STEP(buf, 3);
-  TEST_ASSERT_DPMGR_BRIDGE_ADD_PORT_OK(0, TEST_PORT_NUM, buf);
+  TEST_ASSERT_BRIDGE_ADD_PORT_OK(0, TEST_PORT_NUM, buf);
 
-  TEST_ASSERT_DPMGR_PORT_COUNT(TEST_PORT_NUM, buf);
-  TEST_ASSERT_DPMGR_PORT_FIND_OK(0, TEST_PORT_NUM, buf);
-  TEST_ASSERT_DPMGR_PORT_FIND_NG(TEST_PORT_NUM, TEST_PORT_EXTRA_NUM, buf);
-  TEST_ASSERT_DPMGR_BRIDGE_COUNT_PORT(0, TEST_PORT_NUM, 1, buf);
-  TEST_ASSERT_DPMGR_BRIDGE_COUNT_PORT(TEST_PORT_NUM, TEST_PORT_EXTRA_NUM, 0,
+  TEST_ASSERT_PORT_COUNT(TEST_PORT_NUM, buf);
+  TEST_ASSERT_PORT_FIND_OK(0, TEST_PORT_NUM, buf);
+  TEST_ASSERT_PORT_FIND_NG(TEST_PORT_NUM, TEST_PORT_EXTRA_NUM, buf);
+  TEST_ASSERT_BRIDGE_COUNT_PORT(0, TEST_PORT_NUM, 1, buf);
+  TEST_ASSERT_BRIDGE_COUNT_PORT(TEST_PORT_NUM, TEST_PORT_EXTRA_NUM, 0,
                                       buf);
-  TEST_ASSERT_DPMGR_BRIDGE_FIND_PORT_OK(0, TEST_PORT_NUM, buf);
-  TEST_ASSERT_DPMGR_BRIDGE_FIND_PORT_NG(TEST_PORT_NUM, TEST_PORT_EXTRA_NUM, buf);
+  TEST_ASSERT_BRIDGE_FIND_PORT_OK(0, TEST_PORT_NUM, buf);
+  TEST_ASSERT_BRIDGE_FIND_PORT_NG(TEST_PORT_NUM, TEST_PORT_EXTRA_NUM, buf);
 
   /* Step 4. */
   TEST_SCENARIO_MSG_STEP(buf, 4);
-  TEST_ASSERT_DPMGR_BRIDGE_ADD_PORT_NG(0, TEST_PORT_NUM, buf);
+  TEST_ASSERT_BRIDGE_ADD_PORT_NG(0, TEST_PORT_NUM, buf);
 
-  TEST_ASSERT_DPMGR_PORT_COUNT(TEST_PORT_NUM, buf);
-  TEST_ASSERT_DPMGR_PORT_FIND_OK(0, TEST_PORT_NUM, buf);
-  TEST_ASSERT_DPMGR_PORT_FIND_NG(TEST_PORT_NUM, TEST_PORT_EXTRA_NUM, buf);
-  TEST_ASSERT_DPMGR_BRIDGE_COUNT_PORT(0, TEST_PORT_NUM, 1, buf);
-  TEST_ASSERT_DPMGR_BRIDGE_COUNT_PORT(TEST_PORT_NUM, TEST_PORT_EXTRA_NUM, 0,
+  TEST_ASSERT_PORT_COUNT(TEST_PORT_NUM, buf);
+  TEST_ASSERT_PORT_FIND_OK(0, TEST_PORT_NUM, buf);
+  TEST_ASSERT_PORT_FIND_NG(TEST_PORT_NUM, TEST_PORT_EXTRA_NUM, buf);
+  TEST_ASSERT_BRIDGE_COUNT_PORT(0, TEST_PORT_NUM, 1, buf);
+  TEST_ASSERT_BRIDGE_COUNT_PORT(TEST_PORT_NUM, TEST_PORT_EXTRA_NUM, 0,
                                       buf);
-  TEST_ASSERT_DPMGR_BRIDGE_FIND_PORT_OK(0, TEST_PORT_NUM, buf);
-  TEST_ASSERT_DPMGR_BRIDGE_FIND_PORT_NG(TEST_PORT_NUM, TEST_PORT_EXTRA_NUM, buf);
+  TEST_ASSERT_BRIDGE_FIND_PORT_OK(0, TEST_PORT_NUM, buf);
+  TEST_ASSERT_BRIDGE_FIND_PORT_NG(TEST_PORT_NUM, TEST_PORT_EXTRA_NUM, buf);
 
   /* Step 5. */
   TEST_SCENARIO_MSG_STEP(buf, 5);
-  TEST_ASSERT_DPMGR_SHIFTEDBRIDGE_ADD_PORT_NG(0, TEST_PORT_NUM, buf);
+  TEST_ASSERT_SHIFTEDBRIDGE_ADD_PORT_NG(0, TEST_PORT_NUM, buf);
 
-  TEST_ASSERT_DPMGR_PORT_COUNT(TEST_PORT_NUM, buf);
-  TEST_ASSERT_DPMGR_PORT_FIND_OK(0, TEST_PORT_NUM, buf);
-  TEST_ASSERT_DPMGR_PORT_FIND_NG(TEST_PORT_NUM, TEST_PORT_EXTRA_NUM, buf);
-  TEST_ASSERT_DPMGR_BRIDGE_COUNT_PORT(0, TEST_PORT_NUM, 1, buf);
-  TEST_ASSERT_DPMGR_BRIDGE_COUNT_PORT(TEST_PORT_NUM, TEST_PORT_EXTRA_NUM, 0,
+  TEST_ASSERT_PORT_COUNT(TEST_PORT_NUM, buf);
+  TEST_ASSERT_PORT_FIND_OK(0, TEST_PORT_NUM, buf);
+  TEST_ASSERT_PORT_FIND_NG(TEST_PORT_NUM, TEST_PORT_EXTRA_NUM, buf);
+  TEST_ASSERT_BRIDGE_COUNT_PORT(0, TEST_PORT_NUM, 1, buf);
+  TEST_ASSERT_BRIDGE_COUNT_PORT(TEST_PORT_NUM, TEST_PORT_EXTRA_NUM, 0,
                                       buf);
-  TEST_ASSERT_DPMGR_BRIDGE_FIND_PORT_OK(0, TEST_PORT_NUM, buf);
-  TEST_ASSERT_DPMGR_BRIDGE_FIND_PORT_NG(TEST_PORT_NUM, TEST_PORT_EXTRA_NUM, buf);
+  TEST_ASSERT_BRIDGE_FIND_PORT_OK(0, TEST_PORT_NUM, buf);
+  TEST_ASSERT_BRIDGE_FIND_PORT_NG(TEST_PORT_NUM, TEST_PORT_EXTRA_NUM, buf);
 
   /* Step 6. */
   TEST_SCENARIO_MSG_STEP(buf, 6);
 
-  TEST_ASSERT_DPMGR_PORT_COUNT(TEST_PORT_NUM, buf);
-  TEST_ASSERT_DPMGR_PORT_FIND_OK(0, TEST_PORT_NUM, buf);
-  TEST_ASSERT_DPMGR_PORT_FIND_NG(TEST_PORT_NUM, TEST_PORT_EXTRA_NUM, buf);
-  TEST_ASSERT_DPMGR_BRIDGE_COUNT_PORT(0, TEST_PORT_NUM, 1, buf);
-  TEST_ASSERT_DPMGR_BRIDGE_COUNT_PORT(TEST_PORT_NUM, TEST_PORT_EXTRA_NUM, 0,
+  TEST_ASSERT_PORT_COUNT(TEST_PORT_NUM, buf);
+  TEST_ASSERT_PORT_FIND_OK(0, TEST_PORT_NUM, buf);
+  TEST_ASSERT_PORT_FIND_NG(TEST_PORT_NUM, TEST_PORT_EXTRA_NUM, buf);
+  TEST_ASSERT_BRIDGE_COUNT_PORT(0, TEST_PORT_NUM, 1, buf);
+  TEST_ASSERT_BRIDGE_COUNT_PORT(TEST_PORT_NUM, TEST_PORT_EXTRA_NUM, 0,
                                       buf);
-  TEST_ASSERT_DPMGR_BRIDGE_FIND_PORT_OK(0, TEST_PORT_NUM, buf);
-  TEST_ASSERT_DPMGR_BRIDGE_FIND_PORT_NG(TEST_PORT_NUM, TEST_PORT_EXTRA_NUM, buf);
+  TEST_ASSERT_BRIDGE_FIND_PORT_OK(0, TEST_PORT_NUM, buf);
+  TEST_ASSERT_BRIDGE_FIND_PORT_NG(TEST_PORT_NUM, TEST_PORT_EXTRA_NUM, buf);
 
   /* Step 7. */
   TEST_SCENARIO_MSG_STEP(buf, 7);
-  TEST_ASSERT_DPMGR_SHIFTEDBRIDGE_DELETE_PORT_NG(0, TEST_PORT_NUM, buf);
+  TEST_ASSERT_SHIFTEDBRIDGE_DELETE_PORT_NG(0, TEST_PORT_NUM, buf);
 
-  TEST_ASSERT_DPMGR_PORT_COUNT(TEST_PORT_NUM, buf);
-  TEST_ASSERT_DPMGR_PORT_FIND_OK(0, TEST_PORT_NUM, buf);
-  TEST_ASSERT_DPMGR_PORT_FIND_NG(TEST_PORT_NUM, TEST_PORT_EXTRA_NUM, buf);
-  TEST_ASSERT_DPMGR_BRIDGE_COUNT_PORT(0, TEST_PORT_NUM, 1, buf);
-  TEST_ASSERT_DPMGR_BRIDGE_COUNT_PORT(TEST_PORT_NUM, TEST_PORT_EXTRA_NUM, 0,
+  TEST_ASSERT_PORT_COUNT(TEST_PORT_NUM, buf);
+  TEST_ASSERT_PORT_FIND_OK(0, TEST_PORT_NUM, buf);
+  TEST_ASSERT_PORT_FIND_NG(TEST_PORT_NUM, TEST_PORT_EXTRA_NUM, buf);
+  TEST_ASSERT_BRIDGE_COUNT_PORT(0, TEST_PORT_NUM, 1, buf);
+  TEST_ASSERT_BRIDGE_COUNT_PORT(TEST_PORT_NUM, TEST_PORT_EXTRA_NUM, 0,
                                       buf);
-  TEST_ASSERT_DPMGR_BRIDGE_FIND_PORT_OK(0, TEST_PORT_NUM, buf);
-  TEST_ASSERT_DPMGR_BRIDGE_FIND_PORT_NG(TEST_PORT_NUM, TEST_PORT_EXTRA_NUM, buf);
+  TEST_ASSERT_BRIDGE_FIND_PORT_OK(0, TEST_PORT_NUM, buf);
+  TEST_ASSERT_BRIDGE_FIND_PORT_NG(TEST_PORT_NUM, TEST_PORT_EXTRA_NUM, buf);
 
   /* Step 8. */
   TEST_SCENARIO_MSG_STEP(buf, 8);
-  TEST_ASSERT_DPMGR_BRIDGE_DELETE_PORT_OK(0, TEST_PORT_NUM, buf);
+  TEST_ASSERT_BRIDGE_DELETE_PORT_OK(0, TEST_PORT_NUM, buf);
 
-  TEST_ASSERT_DPMGR_PORT_COUNT(TEST_PORT_NUM, buf);
-  TEST_ASSERT_DPMGR_PORT_FIND_OK(0, TEST_PORT_NUM, buf);
-  TEST_ASSERT_DPMGR_PORT_FIND_NG(TEST_PORT_NUM, TEST_PORT_EXTRA_NUM, buf);
-  TEST_ASSERT_DPMGR_BRIDGE_COUNT_PORT(0, TEST_PORT_EXTRA_NUM, 0, buf);
-  TEST_ASSERT_DPMGR_BRIDGE_FIND_PORT_NG(0, TEST_PORT_EXTRA_NUM, buf);
+  TEST_ASSERT_PORT_COUNT(TEST_PORT_NUM, buf);
+  TEST_ASSERT_PORT_FIND_OK(0, TEST_PORT_NUM, buf);
+  TEST_ASSERT_PORT_FIND_NG(TEST_PORT_NUM, TEST_PORT_EXTRA_NUM, buf);
+  TEST_ASSERT_BRIDGE_COUNT_PORT(0, TEST_PORT_EXTRA_NUM, 0, buf);
+  TEST_ASSERT_BRIDGE_FIND_PORT_NG(0, TEST_PORT_EXTRA_NUM, buf);
 
   /* Step 9. */
   TEST_SCENARIO_MSG_STEP(buf, 9);
-  TEST_ASSERT_DPMGR_BRIDGE_DELETE_PORT_NG(0, TEST_PORT_NUM, buf);
+  TEST_ASSERT_BRIDGE_DELETE_PORT_NG(0, TEST_PORT_NUM, buf);
 
-  TEST_ASSERT_DPMGR_PORT_COUNT(TEST_PORT_NUM, buf);
-  TEST_ASSERT_DPMGR_PORT_FIND_OK(0, TEST_PORT_NUM, buf);
-  TEST_ASSERT_DPMGR_PORT_FIND_NG(TEST_PORT_NUM, TEST_PORT_EXTRA_NUM, buf);
-  TEST_ASSERT_DPMGR_BRIDGE_COUNT_PORT(0, TEST_PORT_EXTRA_NUM, 0, buf);
-  TEST_ASSERT_DPMGR_BRIDGE_FIND_PORT_NG(0, TEST_PORT_EXTRA_NUM, buf);
+  TEST_ASSERT_PORT_COUNT(TEST_PORT_NUM, buf);
+  TEST_ASSERT_PORT_FIND_OK(0, TEST_PORT_NUM, buf);
+  TEST_ASSERT_PORT_FIND_NG(TEST_PORT_NUM, TEST_PORT_EXTRA_NUM, buf);
+  TEST_ASSERT_BRIDGE_COUNT_PORT(0, TEST_PORT_EXTRA_NUM, 0, buf);
+  TEST_ASSERT_BRIDGE_FIND_PORT_NG(0, TEST_PORT_EXTRA_NUM, buf);
 
   /* Step 10. */
   TEST_SCENARIO_MSG_STEP(buf, 10);
-  TEST_ASSERT_DPMGR_PORT_DELETE_OK(0, TEST_PORT_NUM, buf);
+  TEST_ASSERT_PORT_DELETE_OK(0, TEST_PORT_NUM, buf);
 
-  TEST_ASSERT_DPMGR_PORT_COUNT(0, buf);
-  TEST_ASSERT_DPMGR_PORT_FIND_NG(0, TEST_PORT_EXTRA_NUM, buf);
-  TEST_ASSERT_DPMGR_BRIDGE_COUNT_PORT(0, TEST_PORT_EXTRA_NUM, 0, buf);
-  TEST_ASSERT_DPMGR_BRIDGE_FIND_PORT_NG(0, TEST_PORT_EXTRA_NUM, buf);
+  TEST_ASSERT_PORT_COUNT(0, buf);
+  TEST_ASSERT_PORT_FIND_NG(0, TEST_PORT_EXTRA_NUM, buf);
+  TEST_ASSERT_BRIDGE_COUNT_PORT(0, TEST_PORT_EXTRA_NUM, 0, buf);
+  TEST_ASSERT_BRIDGE_FIND_PORT_NG(0, TEST_PORT_EXTRA_NUM, buf);
 
   /* Step 11. */
   TEST_SCENARIO_MSG_STEP(buf, 11);
 
-  TEST_ASSERT_DPMGR_PORT_COUNT(0, buf);
-  TEST_ASSERT_DPMGR_PORT_FIND_NG(0, TEST_PORT_EXTRA_NUM, buf);
-  TEST_ASSERT_DPMGR_BRIDGE_COUNT_PORT(0, TEST_PORT_EXTRA_NUM, 0, buf);
-  TEST_ASSERT_DPMGR_BRIDGE_FIND_PORT_NG(0, TEST_PORT_EXTRA_NUM, buf);
+  TEST_ASSERT_PORT_COUNT(0, buf);
+  TEST_ASSERT_PORT_FIND_NG(0, TEST_PORT_EXTRA_NUM, buf);
+  TEST_ASSERT_BRIDGE_COUNT_PORT(0, TEST_PORT_EXTRA_NUM, 0, buf);
+  TEST_ASSERT_BRIDGE_FIND_PORT_NG(0, TEST_PORT_EXTRA_NUM, buf);
 }

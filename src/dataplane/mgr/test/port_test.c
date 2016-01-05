@@ -20,7 +20,6 @@
 #include "openflow.h"
 
 #include "lagopus_apis.h"
-#include "lagopus/dpmgr.h"
 #include "lagopus/port.h"
 #include "lagopus/vector.h"
 #include "lagopus/ofp_dp_apis.h"

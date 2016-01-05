@@ -257,3 +257,126 @@ ofp_switch_config_get(uint64_t dpid,
 
   return LAGOPUS_RESULT_OK;
 }
+
+lagopus_result_t
+ofp_switch_mode_get(uint64_t dpid, enum switch_mode *switch_mode) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  struct bridge *bridge = NULL;
+
+  bridge = dp_bridge_lookup_by_dpid(dpid);
+  if (bridge != NULL) {
+    ret = flowdb_switch_mode_get(bridge->flowdb, switch_mode);
+  } else {
+    lagopus_msg_warning("Not found bridge.\n");
+    ret = LAGOPUS_RESULT_NOT_FOUND;
+  }
+  return ret;
+}
+
+lagopus_result_t
+ofp_switch_mode_set(uint64_t dpid, enum switch_mode switch_mode) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  struct bridge *bridge = NULL;
+
+  bridge = dp_bridge_lookup_by_dpid(dpid);
+  if (bridge != NULL) {
+    ret = flowdb_switch_mode_set(bridge->flowdb, switch_mode);
+  } else {
+    lagopus_msg_warning("Not found bridge.\n");
+    ret = LAGOPUS_RESULT_NOT_FOUND;
+  }
+  return ret;
+}
+
+lagopus_result_t
+ofp_switch_fail_mode_get(uint64_t dpid,
+                         enum fail_mode *fail_mode) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  struct bridge *bridge = NULL;
+
+  bridge = dp_bridge_lookup_by_dpid(dpid);
+  if (bridge != NULL) {
+    ret = bridge_fail_mode_get(bridge, fail_mode);
+  } else {
+    lagopus_msg_warning("Not found bridge.\n");
+    ret = LAGOPUS_RESULT_NOT_FOUND;
+  }
+  return ret;
+}
+
+lagopus_result_t
+ofp_switch_version_get(uint64_t dpid, uint8_t *version) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  struct bridge *bridge = NULL;
+
+  bridge = dp_bridge_lookup_by_dpid(dpid);
+  if (bridge != NULL) {
+    ret = bridge_ofp_version_get(bridge, version);
+  } else {
+    lagopus_msg_warning("Not found bridge.\n");
+    ret = LAGOPUS_RESULT_NOT_FOUND;
+  }
+  return ret;
+}
+
+lagopus_result_t
+ofp_switch_version_set(uint64_t dpid, uint8_t version) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  struct bridge *bridge = NULL;
+
+  bridge = dp_bridge_lookup_by_dpid(dpid);
+  if (bridge != NULL) {
+    ret = bridge_ofp_version_set(bridge, version);
+  } else {
+    lagopus_msg_warning("Not found bridge.\n");
+    ret = LAGOPUS_RESULT_NOT_FOUND;
+  }
+  return ret;
+}
+
+lagopus_result_t
+ofp_switch_version_bitmap_get(uint64_t dpid,
+                              uint32_t *version_bitmap) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  struct bridge *bridge = NULL;
+
+  bridge = dp_bridge_lookup_by_dpid(dpid);
+  if (bridge != NULL) {
+    ret = bridge_ofp_version_bitmap_get(bridge, version_bitmap);
+  } else {
+    lagopus_msg_warning("Not found bridge.\n");
+    ret = LAGOPUS_RESULT_NOT_FOUND;
+  }
+  return ret;
+}
+
+lagopus_result_t
+ofp_switch_version_bitmap_set(uint64_t dpid, uint8_t version) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  struct bridge *bridge = NULL;
+
+  bridge = dp_bridge_lookup_by_dpid(dpid);
+  if (bridge != NULL) {
+    ret = bridge_ofp_version_bitmap_set(bridge, version);
+  } else {
+    lagopus_msg_warning("Not found bridge.\n");
+    ret = LAGOPUS_RESULT_NOT_FOUND;
+  }
+  return ret;
+}
+
+lagopus_result_t
+ofp_switch_features_get(uint64_t dpid,
+                        struct ofp_switch_features *features) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  struct bridge *bridge = NULL;
+
+  bridge = dp_bridge_lookup_by_dpid(dpid);
+  if (bridge != NULL) {
+    ret = bridge_ofp_features_get(bridge, features);
+  } else {
+    lagopus_msg_warning("Not found bridge.\n");
+    ret = LAGOPUS_RESULT_NOT_FOUND;
+  }
+  return ret;
+}
