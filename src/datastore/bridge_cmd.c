@@ -2255,7 +2255,7 @@ bridge_cmd_update_internal(datastore_interp_t *iptr,
   switch (state) {
     case DATASTORE_INTERP_STATE_AUTO_COMMIT: {
       i = 0;
-      while (i < UPDATE_RETRY_MAX) {
+      while (i < UPDATE_CNT_MAX) {
         ret = bridge_cmd_do_update(iptr, state, conf,
                                    is_propagation,
                                    is_enable_disable_cmd,

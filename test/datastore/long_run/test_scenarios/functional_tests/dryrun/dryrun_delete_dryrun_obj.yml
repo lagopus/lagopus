@@ -51,9 +51,6 @@ testcases:
             cmd: controller
             result: '{"ret": "OK"}'
           - cmd_type: ds
-            cmd: l2-bridge
-            result: '{"ret": "OK"}'
-          - cmd_type: ds
             cmd: bridge
             result: '{"ret": "OK"}'
           - cmd_type: ds
@@ -96,10 +93,7 @@ testcases:
             cmd: port port02 create -interface if02 -policer policer02 -queue queue02
             result: '{"ret": "OK"}'
           - cmd_type: ds
-            cmd: l2-bridge l2-bridge01 create -expire 1 -max-entries 1
-            result: '{"ret": "OK"}'
-          - cmd_type: ds
-            cmd: bridge bridge01 create -controller controller01 -port port01 1 -port port02 2 -l2-bridge l2-bridge01 -dpid 0x1
+            cmd: bridge bridge01 create -controller controller01 -port port01 1 -port port02 2 -dpid 0x1
             result: '{"ret": "OK"}'
           - cmd_type: ds
             cmd: interface
@@ -355,30 +349,6 @@ testcases:
               "connection-type":"main",
               "is-used":false,
               "is-enabled":false}]}
-          # bridge name is not updated.
-          - cmd_type: ds
-            cmd: l2-bridge
-            result: |-
-              {"ret":"OK",
-              "data":[{"name":"dryrun:l2-bridge01",
-              "expire":1,
-              "max-entries":1,
-              "tmp-dir":"\/tmp",
-              "bridge":"",
-              "is-used":false,
-              "is-enabled":false}]}
-          # bridge name is not updated.
-          - cmd_type: ds
-            cmd: l2-bridge l2-bridge01
-            result: |-
-              {"ret":"OK",
-              "data":[{"name":"dryrun:l2-bridge01",
-              "expire":1,
-              "max-entries":1,
-              "tmp-dir":"\/tmp",
-              "bridge":"",
-              "is-used":false,
-              "is-enabled":false}]}
           # port number is not updated.
           - cmd_type: ds
             cmd: bridge
@@ -388,7 +358,6 @@ testcases:
               "controllers":["dryrun:controller01"],
               "ports":{"dryrun:port01":0,
               "dryrun:port02":0},
-              "l2-bridge":"dryrun:l2-bridge01",
               "dpid":1,
               "fail-mode":"secure",
               "flow-statistics":true,
@@ -430,7 +399,6 @@ testcases:
               "controllers":["dryrun:controller01"],
               "ports":{"dryrun:port01":0,
               "dryrun:port02":0},
-              "l2-bridge":"dryrun:l2-bridge01",
               "dpid":1,
               "fail-mode":"secure",
               "flow-statistics":true,
@@ -486,9 +454,6 @@ testcases:
             result: '{"ret": "OK"}'
           - cmd_type: ds
             cmd: controller
-            result: '{"ret": "OK"}'
-          - cmd_type: ds
-            cmd: l2-bridge
             result: '{"ret": "OK"}'
           - cmd_type: ds
             cmd: bridge

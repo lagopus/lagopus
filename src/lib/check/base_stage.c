@@ -276,7 +276,7 @@ s_base_sched_rr(const lagopus_pipeline_stage_t *sptr,
   } else {
     ret = LAGOPUS_RESULT_INVALID_ARGS;
   }
-          
+
   return ret;
 }
 
@@ -366,7 +366,7 @@ s_base_fetch_hint(const lagopus_pipeline_stage_t *sptr,
     base_stage_t bs = (base_stage_t)(*sptr);
 
     ret = s_base_get_n(&(bs->m_qs[idx % bs->m_n_qs]), (int64_t *)buf, max,
-                  bs->m_to);
+                       bs->m_to);
   } else {
     ret = LAGOPUS_RESULT_INVALID_ARGS;
   }
@@ -386,7 +386,6 @@ s_base_fetch_rr(const lagopus_pipeline_stage_t *sptr,
     size_t baseidx = __sync_fetch_and_add(&(bs->m_get_next_q_idx), 0);
     size_t curidx = baseidx;
     size_t i = 0;
-    bool fetched = false;
     bool is_first_wait = true;
 
  recheck:
@@ -400,27 +399,20 @@ s_base_fetch_rr(const lagopus_pipeline_stage_t *sptr,
          * Update the next q idx only when the old idx is not yet
          * overwritten by the bigest index.
          */
-#if 0
-     recas:
-        curidx = __sync_val_compare_and_swap(&(bs->m_get_next_q_idx),
-                                             curidx, idx);
-        if (unlikely(curidx != baseidx &&
-                     curidx < idx)) {
-          goto recas;
-        }
-#else
         lagopus_atomic_update_max(size_t, &(bs->m_get_next_q_idx),
                                   baseidx, curidx);
-#endif
-        fetched = true;
-        break;
+
+        return ret;
       } else if (ret < 0) {
         return ret;
       }
 
     } while (i < bs->m_n_qs);
 
-    if (unlikely(fetched == false && is_first_wait == true)) {
+    /*
+     * all the qs are checked and no data.
+     */
+    if (is_first_wait == true) {
       lagopus_chrono_t now;
       lagopus_chrono_t until;
 

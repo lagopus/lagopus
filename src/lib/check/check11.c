@@ -17,6 +17,7 @@
 static inline lagopus_result_t
 s_pipeline_create(test_stage_t *stages,
                   size_t max_stage,
+                  size_t weight,
                   test_stage_spec_t *ingress_info,
                   test_stage_spec_t *intermediate_info,
                   test_stage_spec_t *egress_info) {
@@ -42,6 +43,8 @@ s_pipeline_create(test_stage_t *stages,
       if (unlikely((ret =
                     s_test_stage_create_by_spec(&(stages[i]), i, max_stage,
                                                 intermediate_info)) != 
+                   LAGOPUS_RESULT_OK ||
+                   (ret = s_test_stage_set_weight(&(stages[i]), weight)) !=
                    LAGOPUS_RESULT_OK)) {
         goto done;
       }
@@ -50,6 +53,10 @@ s_pipeline_create(test_stage_t *stages,
     ret = s_test_stage_create_by_spec(&(stages[max_stage - 1]),
                                       max_stage - 1, max_stage,
                                       egress_info);
+    if (ret == LAGOPUS_RESULT_OK) {
+      ret = s_test_stage_set_weight(&(stages[max_stage - 1]), weight);
+    }
+
  done:
     if (unlikely(ret != LAGOPUS_RESULT_OK)) {
       for (i = 0; i < max_stage; i++) {
@@ -73,7 +80,7 @@ s_pipeline_destroy(test_stage_t *stages,
     size_t i;
 
     for (i = 0; i < max_stage; i++) {
-      lagopus_pipeline_stage_destroy((lagopus_pipeline_stage_t *)stages[i]);
+      lagopus_pipeline_stage_destroy((lagopus_pipeline_stage_t *)&stages[i]);
       stages[i] = NULL;
     }
   }
@@ -217,20 +224,125 @@ s_set_stage_spec(test_stage_spec_t *spec, const char *str) {
 
 
 
-static size_t s_n_events = 64 * 1000 * 1000;
+static size_t s_n_try = 1;
+static size_t s_n_events = 8 * 1000 * 1000;
 static lagopus_chrono_t s_to = 100 * 1000;	/* 100 us. */
+
+static uint64_t *s_start_clocks = NULL;
 
 static test_stage_t *s_stages;
 static size_t s_n_stages = 2;
 static size_t s_n_ing_workers = 1;
 static const char *s_int_spec_str = "1:1:1000:single:single";
 static const char *s_egr_spec_str = "1:1:1000:single:single";
+static size_t s_weight = 100;
 
 static test_stage_spec_t s_ingres_spec;
 static test_stage_spec_t s_interm_spec;
 static test_stage_spec_t s_egress_spec;
 
 static uint64_t s_check_sum = 0LL;
+
+static bool s_do_ref = false;
+
+
+static lagopus_statistic_t s_total_time = NULL;
+static lagopus_statistic_t s_total_clock = NULL;
+static lagopus_statistic_t s_tick = NULL;
+static lagopus_statistic_t s_throughput = NULL;
+static lagopus_statistic_t s_ev_time = NULL;
+static lagopus_statistic_t s_actual_meps = NULL;
+static lagopus_statistic_t *s_latencies = NULL;
+
+
+
+
+
+static inline lagopus_result_t
+s_init(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+
+  s_start_clocks = (uint64_t *)malloc(sizeof(uint64_t) * s_n_stages);
+  if (s_start_clocks == NULL) {
+    ret = LAGOPUS_RESULT_NO_MEMORY;
+    goto done;
+  }
+
+  s_latencies = (lagopus_statistic_t *)malloc(sizeof(lagopus_statistic_t) *
+                                              s_n_stages);
+  if (s_latencies != NULL) {
+    size_t i;
+    char buf[32];
+
+    (void)memset((void *)s_latencies, 0,
+                 sizeof(lagopus_statistic_t) * s_n_stages);
+    for (i = 0; i < s_n_stages; i++) {
+      snprintf(buf, 32, "latency[" PFSZ(u) "]", i);
+      ret = lagopus_statistic_create(&s_latencies[i], buf);
+      if (ret != LAGOPUS_RESULT_OK) {
+        goto done;
+      }
+    }
+  }
+
+  if ((ret = lagopus_statistic_create(&s_total_time, "total-time")) !=
+      LAGOPUS_RESULT_OK) {
+    goto done;
+  }
+  if ((ret = lagopus_statistic_create(&s_total_clock, "total-clock")) !=
+      LAGOPUS_RESULT_OK) {
+    goto done;
+  }
+  if ((ret = lagopus_statistic_create(&s_tick, "tick")) !=
+      LAGOPUS_RESULT_OK) {
+    goto done;
+  }
+  if ((ret = lagopus_statistic_create(&s_throughput, "throughput")) !=
+      LAGOPUS_RESULT_OK) {
+    goto done;
+  }
+
+  if ((ret = lagopus_statistic_create(&s_ev_time, "net load time")) !=
+      LAGOPUS_RESULT_OK) {
+    goto done;
+  }
+  if ((ret = lagopus_statistic_create(&s_actual_meps,
+                                      "net load throughput")) !=
+      LAGOPUS_RESULT_OK) {
+    goto done;
+  }
+
+  ret = LAGOPUS_RESULT_OK;
+
+done:
+  return ret;
+}
+
+
+static inline void
+s_final(void) {
+  free((void *)s_start_clocks);
+
+  if (s_latencies != NULL) {
+    size_t i;
+
+    for (i = 0; i < s_n_stages; i++) {
+      lagopus_statistic_destroy(&s_latencies[i]);
+    }
+
+    free((void *)s_latencies);
+  }
+
+  lagopus_statistic_destroy(&s_total_time);
+  lagopus_statistic_destroy(&s_total_clock);
+  lagopus_statistic_destroy(&s_tick);
+  lagopus_statistic_destroy(&s_throughput);
+  lagopus_statistic_destroy(&s_ev_time);
+  lagopus_statistic_destroy(&s_actual_meps);
+}
+
+
+
 
 
 static inline lagopus_result_t
@@ -249,10 +361,25 @@ s_parse_args(int argc, const char * const argv[]) {
       if (IS_VALID_STRING(*argv) == true) {
         utmp = 0;
         if ((ret = lagopus_str_parse_uint64(*argv, &utmp)) == 
-            LAGOPUS_RESULT_OK && tmp > 0) {
+            LAGOPUS_RESULT_OK && utmp > 0) {
           s_n_events = utmp;
         } else {
           lagopus_msg_error("Invalid event size '%s'.\n", *argv);
+          goto done;
+        }
+      } else {
+        lagopus_msg_error("An event size is not specified.\n");
+        goto done;
+      }
+    } else if (strcasecmp(*argv, "-n") == 0) {
+      argv++;
+      if (IS_VALID_STRING(*argv) == true) {
+        utmp = 0;
+        if ((ret = lagopus_str_parse_uint64(*argv, &utmp)) == 
+            LAGOPUS_RESULT_OK && utmp > 0) {
+          s_n_try = utmp;
+        } else {
+          lagopus_msg_error("Invalid test run # '%s'.\n", *argv);
           goto done;
         }
       } else {
@@ -264,7 +391,7 @@ s_parse_args(int argc, const char * const argv[]) {
       if (IS_VALID_STRING(*argv) == true) {
         utmp = 0;
         if ((ret = lagopus_str_parse_uint64(*argv, &utmp)) == 
-            LAGOPUS_RESULT_OK && tmp > 0) {
+            LAGOPUS_RESULT_OK && utmp > 0) {
           if (utmp >= 2) {
             s_n_stages = utmp;
           } else {
@@ -278,6 +405,21 @@ s_parse_args(int argc, const char * const argv[]) {
         }
       } else {
         lagopus_msg_error("A stage # is not specified.\n");
+        goto done;
+      }
+    } else if (strcasecmp(*argv, "-w") == 0) {
+      argv++;
+      if (IS_VALID_STRING(*argv) == true) {
+        utmp = 0;
+        if ((ret = lagopus_str_parse_uint64(*argv, &utmp)) == 
+            LAGOPUS_RESULT_OK && utmp > 0) {
+          s_weight = utmp;
+        } else {
+          lagopus_msg_error("Invalid weight # '%s'.\n", *argv);
+          goto done;
+        }
+      } else {
+        lagopus_msg_error("A weight # is not specified.\n");
         goto done;
       }
     } else if (strcasecmp(*argv, "-to") == 0) {
@@ -316,7 +458,7 @@ s_parse_args(int argc, const char * const argv[]) {
       if (IS_VALID_STRING(*argv) == true) {
         utmp = 0;
         if ((ret = lagopus_str_parse_uint64(*argv, &utmp)) == 
-            LAGOPUS_RESULT_OK && tmp > 0) {
+            LAGOPUS_RESULT_OK && utmp > 0) {
           s_n_ing_workers = utmp;
         } else {
           lagopus_msg_error("Invalid ingress worker # '%s'.\n", *argv);
@@ -326,6 +468,8 @@ s_parse_args(int argc, const char * const argv[]) {
         lagopus_msg_error("An ingress worker # is not specified.\n");
         goto done;
       }
+    } else if (strcasecmp(*argv, "-ref") == 0) {
+      s_do_ref = true;
     }
 
     argv++;
@@ -381,7 +525,7 @@ s_create(void) {
   }
   (void)memset((void *)s_stages, 0, sizeof(test_stage_t *) * s_n_stages);
 
-  ret = s_pipeline_create(s_stages, s_n_stages,
+  ret = s_pipeline_create(s_stages, s_n_stages, s_weight,
                           &s_ingres_spec,
                           &s_interm_spec,
                           &s_egress_spec);
@@ -391,25 +535,22 @@ done:
 }
 
 
-static inline void
-s_result(void) {
-  const char *name = NULL;
-  bool is_ok = true;
+static inline lagopus_result_t
+s_record(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   size_t i;
 
-  fprintf(stderr, "\nchecking ... ");
-
   for (i = 1; i < s_n_stages; i++) {
+    const char *name = NULL;
     (void)lagopus_pipeline_stage_get_name(
         (lagopus_pipeline_stage_t *)&(s_stages[i]),
         &name);
     if (s_stages[i]->m_n_events != s_n_events) {
-      fprintf(stderr, "\n");
       lagopus_msg_error("stage " PFSZ(u) " '%s' events # error, "
                         PFSZ(u) " != " PFSZ(u) "\n",
                         i, name,
                         s_stages[i]->m_n_events, s_n_events);
-      is_ok = false;
+      goto done;
     }
     if (s_stages[i]->m_sum != s_check_sum) {
       fprintf(stderr, "\n");
@@ -417,36 +558,56 @@ s_result(void) {
                         PFSZ(u) " != " PFSZ(u) "\n",
                         i, name,
                         s_stages[i]->m_sum, s_check_sum);
-      is_ok = false;
+      goto done;
+    }
+  }
+
+  ret = LAGOPUS_RESULT_OK;
+
+  if (ret == LAGOPUS_RESULT_OK) {
+    uint64_t dummy0 = 0;
+    uint64_t start_clock = 0;
+    uint64_t end_clock = 0;
+    lagopus_chrono_t dummy1 = 0;
+    lagopus_chrono_t start_time = 0;
+    lagopus_chrono_t end_time = 0;
+    lagopus_chrono_t total_time = 0;
+    uint64_t total_clock = 0;
+    double tick = 0.0;
+    double meps = 0.0;
+
+    (void)s_test_stage_get_times(&s_stages[0],
+                                 &start_time, &dummy1);
+    (void)s_test_stage_get_times(&s_stages[s_n_stages - 1],
+                                 &dummy1, &end_time);
+
+    (void)s_test_stage_get_clocks(&s_stages[0],
+                                  &start_clock, &dummy0);
+    (void)s_test_stage_get_clocks(&s_stages[s_n_stages - 1],
+                                  &dummy0, &end_clock);
+
+    total_time = end_time - start_time;
+    total_clock = end_clock - start_clock;
+    tick = (double)total_time / (double)total_clock * 1000000.0;
+    meps = (double)s_n_events / (double)total_time * 1000000.0;
+
+    (void)lagopus_statistic_record(&s_total_time, (int64_t)total_time);
+    (void)lagopus_statistic_record(&s_total_clock, (int64_t)total_clock);
+    (void)lagopus_statistic_record(&s_tick, (int64_t)tick);
+    (void)lagopus_statistic_record(&s_throughput, (int64_t)meps);
+
+    for (i = 0; i < s_n_stages; i++) {
+      (void)s_test_stage_get_clocks(&s_stages[i], &s_start_clocks[i], &dummy0);
     }
 
-    fprintf(stderr, PFSZ(u) " ", i);
+    for (i = 0; i < s_n_stages - 1; i++) {
+      dummy0 = s_start_clocks[i + 1] - s_start_clocks[i];
+      (void)lagopus_statistic_record(&s_latencies[i + 1], (int64_t)dummy0);
+    }
   }
 
-  if (is_ok == true) {
-    lagopus_chrono_t total_time = 
-        s_stages[s_n_stages - 1]->m_end_time - 
-        s_stages[0]->m_start_time;
-    uint64_t total_clock = 
-        s_stages[s_n_stages - 1]->m_end_clock - 
-        s_stages[0]->m_start_clock;
-    double tick = (double)total_time / (double)total_clock;
-    double meps = (double)s_n_events / (double)total_time * 1000.0;
-    double bw = meps * (double)sizeof(uint64_t);
-
-    fprintf(stderr, "done.\n");
-
-    fprintf(stdout, "\nResult:\n\n");
-
-    fprintf(stdout, "Total time:\t" PFSZS(20, u) " nsec.\n", total_time);
-    fprintf(stdout, "Total clock:\t" PFSZS(20, u) " clock.\n", total_clock);
-    fprintf(stdout, "Tick:\t\t%20.6f nsec.\n", tick);
-
-    fprintf(stdout, "Throughput:\t%20.6f M events/sec.\n", meps);
-    fprintf(stdout, "Bandwadth:\t%20.6f MB/sec.\n", bw);
-
-    fflush(stdout);
-  }
+done:
+  return ret;
 }
 
 
@@ -534,9 +695,201 @@ s_run(void) {
 }
 
 
+static inline lagopus_result_t
+s_ref(size_t n_try) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  size_t n = s_n_events;
+  uint64_t *dst = (uint64_t *)malloc(sizeof(uint64_t) * n);
+  uint64_t *src = (uint64_t *)malloc(sizeof(uint64_t) * n);
+
+  if (dst != NULL && src != NULL) {
+    size_t sum = 0;
+    size_t i;
+    size_t j;
+    size_t k;
+    lagopus_chrono_t start = 0;
+    lagopus_chrono_t ev_start = 0;
+    lagopus_chrono_t end = 0;
+
+    for (i = 0; i < s_n_events; i++) {
+      src[i] = i;
+    }
+
+    fprintf(stderr, "\n");
+
+    for (i = 0; i < n_try; i++) {
+
+      fprintf(stderr, "iter " PFSZ(u) " ... ", i + 1);
+
+      sum = 0;
+
+      WHAT_TIME_IS_IT_NOW_IN_NSEC(start);
+
+      (void)memcpy((void *)dst, (void *)src, sizeof(uint64_t) * n);
+
+      WHAT_TIME_IS_IT_NOW_IN_NSEC(ev_start);
+
+      for (j = 0; j < s_weight; j++) {
+        sum = 0;
+        for (k = 0; k < n; k++) {
+          sum += dst[k];
+        }
+      }
+
+      WHAT_TIME_IS_IT_NOW_IN_NSEC(end);
+
+      if (sum == s_check_sum) {
+        lagopus_chrono_t total_time = end - start;
+        lagopus_chrono_t ev_time = end - ev_start;
+        double meps = (double)s_n_events / (double)total_time * 1000000.0;
+        double actual_meps = (double)s_n_events / (double)ev_time * 1000000.0;
+
+        (void)lagopus_statistic_record(&s_total_time, (int64_t)total_time);
+        (void)lagopus_statistic_record(&s_ev_time, (int64_t)ev_time);
+        (void)lagopus_statistic_record(&s_throughput, (int64_t)meps);
+        (void)lagopus_statistic_record(&s_actual_meps, (int64_t)actual_meps);
+
+        fprintf(stderr, "done.\r");
+      } else {
+        fprintf(stderr, "checksum error.\n");
+        goto done;
+      }
+    }
+
+    ret = LAGOPUS_RESULT_OK;
+
+ done:
+    free((void *)src);
+    free((void *)dst);
+  }
+
+  fprintf(stderr, "\n");
+
+  return ret;
+}
+
+
 static inline void
 s_destroy(void) {
   s_pipeline_destroy(s_stages, s_n_stages);
+}
+
+
+
+
+
+static inline lagopus_result_t
+s_try(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+
+  ret = s_create();
+  if (ret == LAGOPUS_RESULT_OK) {
+    ret = s_run();
+    if (ret == LAGOPUS_RESULT_OK) {
+      ret = s_record();
+    }
+    s_destroy();
+  }
+
+  return ret;
+}
+
+
+static inline lagopus_result_t
+s_iterate(size_t n) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  size_t i;
+
+  fprintf(stderr, "\n");
+
+  for (i = 0; i < n; i++) {
+    fprintf(stderr, "iter " PFSZ(u) " ... ", i + 1);
+    ret = s_try();
+    if (ret != LAGOPUS_RESULT_OK) {
+      break;
+    } else {
+      fprintf(stderr, "done.\r");
+    }
+  }
+
+  fprintf(stderr, "\n");
+
+  return ret;
+}
+
+
+
+
+
+static inline void
+s_print_statistic(FILE *fd, lagopus_statistic_t *s,
+                  const char *title, const char *fmt, const char *unit,
+                  double scale) {
+  char buf[1024];
+
+  int64_t min = 0;
+  int64_t max = 0;
+  double avg = 0.0;
+  double sd = 0.0;
+  double dmin = 0.0;
+  double dmax = 0.0;
+
+  (void)lagopus_statistic_min(s, &min);
+  (void)lagopus_statistic_max(s, &max);
+  (void)lagopus_statistic_average(s, &avg);
+  (void)lagopus_statistic_sd(s, &sd, false);
+
+  dmin = (double)min * scale;
+  dmax = (double)max * scale;
+  avg = avg * scale;
+  sd = sd * scale;
+
+  snprintf(buf, sizeof(buf),
+           "%s (min/avg/max/sd):\n\t%s / %s / %s / %s %s\n",
+           title, fmt, fmt, fmt, fmt, unit);
+  fprintf(fd, (const char *)buf, dmin, avg, dmax, sd);
+
+  fflush(fd);
+}
+
+
+static inline void
+s_result(void) {
+  size_t i;
+  char buf[32];
+  double tick = 0.0;
+
+  fprintf(stdout, "\nResult:\n");
+
+  if (s_do_ref == false) {
+    s_print_statistic(stdout, &s_total_time,
+                      "\tTotal time", "%12.4f", "msec.", 1.0/1000000.0);
+    s_print_statistic(stdout, &s_total_clock,
+                      "\tTotal clock", "%16.4f", "clock.", 1.0);
+    s_print_statistic(stdout, &s_tick,
+                      "\tTick", "%f", "nsec.", 1.0/1000000.0);
+    s_print_statistic(stdout, &s_throughput,
+                      "\tThroughput", "%16.4f", "M events/sec.", 1.0/1000.0);
+
+    (void)lagopus_statistic_average(&s_tick, &tick);
+    tick /= 1000000.0;
+
+    for (i = 1; i < s_n_stages; i++) {
+      snprintf(buf, sizeof(buf), "\tLatency[" PFSZS(2, u) "]", i);
+      s_print_statistic(stdout, &s_latencies[i],
+                        buf, "%10.2f", "nsec.", tick);
+    }
+  } else {
+    s_print_statistic(stdout, &s_total_time,
+                      "\tTotal time", "%12.4f", "msec.", 1.0/1000000.0);
+    s_print_statistic(stdout, &s_ev_time,
+                      "\tTotal load time", "%12.4f", "msec.", 1.0/1000000.0);
+    s_print_statistic(stdout, &s_throughput,
+                      "\tThroughput", "%16.4f", "M events/sec.", 1.0/1000.0);
+    s_print_statistic(stdout, &s_actual_meps,
+                      "\tLoad throughput", "%16.4f", "M events/sec.",
+                      1.0/1000.0);
+  }
 }
 
 
@@ -552,17 +905,25 @@ main(int argc, const char *const argv[]) {
     goto done;
   }
 
-  st = s_create();
+  st = s_init();
   if (st == LAGOPUS_RESULT_OK) {
-    st = s_run();
+    if (s_do_ref == false) {
+      if (st != LAGOPUS_RESULT_OK) {
+        goto done;
+      }
+
+      st = s_iterate(s_n_try);
+    } else {
+      st = s_ref(s_n_try);
+    }
     if (st == LAGOPUS_RESULT_OK) {
       s_result();
     }
   }
 
-  s_destroy();
-
 done:
+  s_final();
+
   if (st != LAGOPUS_RESULT_OK) {
     lagopus_perror(st);
   }

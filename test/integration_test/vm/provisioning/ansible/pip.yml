@@ -3,4 +3,5 @@
   vars_files:
     - ../../conf/ansible_conf.yml
   roles:
-    - pip
+    - role: pip
+      tags: pip

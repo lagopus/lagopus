@@ -5,9 +5,10 @@ How to build the environment for KVM.
 ## Recommended
 * Host
     * Ubuntu 14.04
-        * Vagrant 1.7.2
-            * vagrant-libvirt 0.0.25
-            * vagrant-mutate 0.3.2
+        * Vagrant 1.7.4
+            * vagrant-libvirt 0.0.32
+            * vagrant-mutate 1.0.3
+            * vagrant-reload 0.0.1
     * qemu-kvm 2.0.0 (use KVM)
     * VirtualBox 5.0.10 (use VirtualBox)
 * Gest
@@ -24,7 +25,7 @@ How to build the environment.
         % sudo apt-get install \
            qemu-kvm libvirt-bin ubuntu-vm-builder bridge-utils \
            libxslt-dev libxml2-dev libvirt-dev dpkg zlib1g-dev \
-           ruby rubygems
+           ruby-dev rubygems
         % sudo gem install nokogiri
 
    Detailed Installation of KVM see below.
@@ -39,12 +40,13 @@ How to build the environment.
    Install Vagrant packages.
    You execute the following command:
 
-    % wget https://dl.bintray.com/mitchellh/vagrant/vagrant_X.X.X_x86_64.deb
-    % sudo dpkg -i vagrant_X.X.X_x86_64.deb
+    % wget https://dl.bintray.com/mitchellh/vagrant/vagrant_1.7.4_x86_64.deb
+    % sudo dpkg -i vagrant_1.7.4_x86_64.deb
 
     # plugins.
-    % vagrant plugin install vagrant-libvirt --plugin-version 0.0.25
-    % vagrant plugin install vagrant-mutate --plugin-version 0.3.2
+    % vagrant plugin install vagrant-libvirt --plugin-version 0.0.32
+    % vagrant plugin install vagrant-mutate --plugin-version 1.0.3
+    % vagrant plugin install vagrant-reload --plugin-version 0.0.1
 
 ## 3. Add box image.
    Add Vagrant box.
@@ -77,8 +79,9 @@ How to build the environment.
   Detailed command see below.
   cf.) https://docs.vagrantup.com/v2/cli/index.html
 
-## conf/vagrant_conf.yml
-### Configuration items
+conf/vagrant_conf.yml
+---------------------------
+## Configuration items
 |field1|field2|field3|description|
 |:--|:--|:--|:--|
 |hosts|||Host configurations.|
@@ -97,7 +100,7 @@ How to build the environment.
 |virtualbox||||
 ||intnet_name|||
 
-### Sample
+## Sample
 
     # hosts
     hosts:
@@ -131,8 +134,9 @@ How to build the environment.
     virtualbox:
       intnet_name: intnet
 
-## conf/ansible_conf.yml
-### Configuration items
+conf/ansible_conf.yml
+---------------------------
+## Configuration items
 |field1|field2|description|
 |:--|:--|:--|
 |system|||
@@ -152,7 +156,7 @@ How to build the environment.
 ||http_proxy||
 ||https_proxy||
 
-### Sample
+## Sample
 
     # configuration for ansible.
     system:
@@ -175,3 +179,32 @@ How to build the environment.
     proxy_env:
       http_proxy: http://proxy.foo.com:80
       https_proxy: http://proxy.foo.com:80
+
+How to use SSH agent forwarding for git.
+---------------------------
+## 1. Add your SSH key in HOST.
+
+    ssh-add ~/.ssh/<KEY>
+
+## 2. Edit `conf/vagrant_conf.yml`, `conf/ansible_conf.yml`.
+
+    diff --git a/test/integration_test/vm/conf/ansible_conf.yml b/test/integration_test/vm/conf/ansible_conf.yml
+    --- a/test/integration_test/vm/conf/ansible_conf.yml
+    +++ b/test/integration_test/vm/conf/ansible_conf.yml
+     lagopus:
+    -  git: https://github.com/lagopus/lagopus.git
+    +  git: ssh://USER_NAME@HOST:PORT/REPOS  # Your repository.
+
+    -  is_used_git_ssh: false
+    +  is_used_git_ssh: yes
+
+    diff --git a/test/integration_test/vm/conf/vagrant_conf.yml b/test/integration_test/vm/conf/vagrant_conf.yml
+    --- a/test/integration_test/vm/conf/vagrant_conf.yml
+    +++ b/test/integration_test/vm/conf/vagrant_conf.yml
+     ssh:
+    -  forward_agent: false
+    +  forward_agent: yes
+
+## 3. Start Vagrant.
+
+    % vagrant up [OPTS]

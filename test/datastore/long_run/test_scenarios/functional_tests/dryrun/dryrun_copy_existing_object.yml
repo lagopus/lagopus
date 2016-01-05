@@ -299,28 +299,6 @@ testcases:
               "is-used":true,
               "is-enabled":false}]}
           - cmd_type: ds
-            cmd: l2-bridge
-            result: |-
-              {"ret":"OK",
-              "data":[{"name":":l2-bridge01",
-              "expire":1,
-              "max-entries":1,
-              "tmp-dir":"\/tmp",
-              "bridge":":bridge01",
-              "is-used":true,
-              "is-enabled":false}]}
-          - cmd_type: ds
-            cmd: l2-bridge l2-bridge01
-            result: |-
-              {"ret":"OK",
-              "data":[{"name":":l2-bridge01",
-              "expire":1,
-              "max-entries":1,
-              "tmp-dir":"\/tmp",
-              "bridge":":bridge01",
-              "is-used":true,
-              "is-enabled":false}]}
-          - cmd_type: ds
             cmd: bridge
             result: |-
               {"ret":"OK",
@@ -328,7 +306,6 @@ testcases:
               "controllers":[":controller01"],
               "ports":{":port01":1,
               ":port02":2},
-              "l2-bridge":":l2-bridge01",
               "dpid":1,
               "fail-mode":"secure",
               "flow-statistics":true,
@@ -369,7 +346,6 @@ testcases:
               "controllers":[":controller01"],
               "ports":{":port01":1,
               ":port02":2},
-              "l2-bridge":":l2-bridge01",
               "dpid":1,
               "fail-mode":"secure",
               "flow-statistics":true,
@@ -654,28 +630,6 @@ testcases:
               "is-used":true,
               "is-enabled":false}]}
           - cmd_type: ds
-            cmd: l2-bridge
-            result: |-
-              {"ret":"OK",
-              "data":[{"name":"dryrun:l2-bridge01",
-              "expire":1,
-              "max-entries":1,
-              "tmp-dir":"\/tmp",
-              "bridge":"dryrun:bridge01",
-              "is-used":true,
-              "is-enabled":false}]}
-          - cmd_type: ds
-            cmd: l2-bridge l2-bridge01
-            result: |-
-              {"ret":"OK",
-              "data":[{"name":"dryrun:l2-bridge01",
-              "expire":1,
-              "max-entries":1,
-              "tmp-dir":"\/tmp",
-              "bridge":"dryrun:bridge01",
-              "is-used":true,
-              "is-enabled":false}]}
-          - cmd_type: ds
             cmd: bridge
             result: |-
               {"ret":"OK",
@@ -683,7 +637,6 @@ testcases:
               "controllers":["dryrun:controller01"],
               "ports":{"dryrun:port01":1,
               "dryrun:port02":2},
-              "l2-bridge":"dryrun:l2-bridge01",
               "dpid":1,
               "fail-mode":"secure",
               "flow-statistics":true,
@@ -724,7 +677,6 @@ testcases:
               "controllers":["dryrun:controller01"],
               "ports":{"dryrun:port01":1,
               "dryrun:port02":2},
-              "l2-bridge":"dryrun:l2-bridge01",
               "dpid":1,
               "fail-mode":"secure",
               "flow-statistics":true,
@@ -1027,28 +979,6 @@ testcases:
               "is-used":true,
               "is-enabled":false}]}
           - cmd_type: ds
-            cmd: l2-bridge
-            result: |-
-              {"ret":"OK",
-              "data":[{"name":":l2-bridge01",
-              "expire":1,
-              "max-entries":1,
-              "tmp-dir":"\/tmp",
-              "bridge":":bridge01",
-              "is-used":true,
-              "is-enabled":false}]}
-          - cmd_type: ds
-            cmd: l2-bridge l2-bridge01
-            result: |-
-              {"ret":"OK",
-              "data":[{"name":":l2-bridge01",
-              "expire":1,
-              "max-entries":1,
-              "tmp-dir":"\/tmp",
-              "bridge":":bridge01",
-              "is-used":true,
-              "is-enabled":false}]}
-          - cmd_type: ds
             cmd: bridge
             result: |-
               {"ret":"OK",
@@ -1056,7 +986,6 @@ testcases:
               "controllers":[":controller01"],
               "ports":{":port01":1,
               ":port02":2},
-              "l2-bridge":":l2-bridge01",
               "dpid":1,
               "fail-mode":"secure",
               "flow-statistics":true,
@@ -1097,7 +1026,6 @@ testcases:
               "controllers":[":controller01"],
               "ports":{":port01":1,
               ":port02":2},
-              "l2-bridge":":l2-bridge01",
               "dpid":1,
               "fail-mode":"secure",
               "flow-statistics":true,

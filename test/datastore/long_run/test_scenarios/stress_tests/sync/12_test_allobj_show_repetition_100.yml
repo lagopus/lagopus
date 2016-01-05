@@ -93,7 +93,6 @@ testcases:
               "data":[{"name":":bridge01",
               "controllers":[":controller01"],
               "ports":{":port01":1},
-              "l2-bridge":"",
               "dpid":1,
               "fail-mode":"secure",
               "flow-statistics":true,

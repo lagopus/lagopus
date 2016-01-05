@@ -3,4 +3,6 @@
   vars_files:
     - ../../conf/ansible_conf.yml
   roles:
-    - ubuntu
+    - role: ubuntu
+      tags: pkgs
+      when: ansible_distribution == "Ubuntu"

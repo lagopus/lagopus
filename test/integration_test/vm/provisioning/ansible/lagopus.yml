@@ -3,4 +3,5 @@
   vars_files:
     - ../../conf/ansible_conf.yml
   roles:
-    - lagopus
+    - role: lagopus
+      tags: lagopus

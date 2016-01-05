@@ -1,4 +1,10 @@
 ---
+- name: add canonical partner repos
+  shell: >-
+    sh -c 'echo "deb http://archive.canonical.com/ubuntu/
+    `lsb_release -cs` partner" >> /etc/apt/sources.list.d/canonical_partner.list'
+  sudo: yes
+
 - name: apt-get update
   apt: update_cache=yes
   sudo: yes
@@ -6,6 +12,7 @@
 - name: install deb-pkgs
   apt: pkg={{ item }} state=latest
   with_items:
+    - uio-module-drv-dkms
     - linux-generic
     - linux-headers-generic
     - git

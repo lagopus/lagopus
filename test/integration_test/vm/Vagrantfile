@@ -73,10 +73,20 @@ Vagrant.configure(2) do |config|
     end
   end
 
-  # provision (ansible).
+  # provision (ansible), install pkgs.
   config.vm.provision "ansible" do |ansible|
     ansible.playbook = "provisioning/ansible/site.yml"
+    ansible.tags = ["pkgs"]
+    ansible.extra_vars = {vagrant: confs}
+  end
 
+  # reboot for uio (kernel module).
+  config.vm.provision "reload"
+
+  # provision (ansible), install pip/DPDK/lagopus.
+  config.vm.provision "ansible" do |ansible|
+    ansible.playbook = "provisioning/ansible/site.yml"
+    ansible.tags = ["pip", "dpdk", "lagopus"]
     ansible.extra_vars = {vagrant: confs}
   end
 end

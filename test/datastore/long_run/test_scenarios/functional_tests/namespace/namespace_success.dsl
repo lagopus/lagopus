@@ -10,5 +10,4 @@ policer policer01 create -action policer-action01 -bandwidth-limit 1500 -burst-s
 policer policer02 create -action policer-action02 -bandwidth-limit 1500 -burst-size-limit 1500 -bandwidth-percent 0
 port port01 create -interface if01 -policer policer01 -queue queue01
 port port02 create -interface if02 -policer policer02 -queue queue02
-l2-bridge l2-bridge01 create -expire 1 -max-entries 1
-bridge bridge01 create -controller controller01 -port port01 1 -port port02 2 -l2-bridge l2-bridge01 -dpid 0x1
+bridge bridge01 create -controller controller01 -port port01 1 -port port02 2 -dpid 0x1

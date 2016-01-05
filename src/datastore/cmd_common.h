@@ -55,8 +55,8 @@
 #define SHOW_OPT_CURRENT "current"
 #define SHOW_OPT_MODIFIED "modified"
 
-/* number of update retry for auto commit. */
-#define UPDATE_RETRY_MAX 1
+/* number of update for auto commit. */
+#define UPDATE_CNT_MAX 2
 
 #define OPTS_MAX UINT64_MAX
 

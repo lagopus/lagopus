@@ -88,6 +88,7 @@ s_test_stage_create(test_stage_t *tsptr,
       (*tsptr)->m_n_data = n_events;
       (*tsptr)->m_enq_infos = NULL;
       (*tsptr)->m_states = states;
+      (*tsptr)->m_weight = 1;
       (*tsptr)->m_sum = 0;
       (*tsptr)->m_n_events = 0;
       (*tsptr)->m_start_clock = 0;
@@ -187,11 +188,9 @@ s_ingress_setup(base_stage_t bs) {
         size_t rem_size = n_data;
         size_t len = n_data / (size_t)n_workers;
 
-        fprintf(stderr, "\npreparing data ... ");
         for (i = 0; i < n_data; i++) {
           data[i] = i;
         }
-        fprintf(stderr, "done.\n");
 
         if (n_data % (size_t)n_workers != 0) {
           len++;
@@ -256,7 +255,7 @@ s_ingress_main(const lagopus_pipeline_stage_t *sptr,
                                   0, end_clock);
 
         lagopus_atomic_update_min(lagopus_chrono_t, &(ts->m_start_time),
-                                  0, start_time);
+                                  -1LL, start_time);
         
         ts->m_states[idx] = test_stage_state_done;
         mbar();
@@ -304,6 +303,26 @@ s_ingress_create(test_stage_t *tsptr,
 }
 
 
+static inline lagopus_result_t
+s_ingress_get_data(test_stage_t *tsptr,
+		   uint64_t **data, size_t *n) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+
+  if (likely(tsptr != NULL && *tsptr != NULL &&
+             (*tsptr)->m_type == test_stage_type_ingress &&
+             data != NULL && n != NULL)) {
+    *data = (*tsptr)->m_data;
+    *n = (*tsptr)->m_n_data;
+
+    ret = LAGOPUS_RESULT_OK;
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  return ret;
+}
+
+
 
 
 
@@ -321,17 +340,23 @@ s_intermediate_main(const lagopus_pipeline_stage_t *sptr,
     if (likely(n_cur_evs < ts->m_n_data)) {
       uint64_t *data = (uint64_t *)evbuf;
       size_t i;
+      size_t j;
       uint64_t sum = 0;
 
       if (unlikely(ts->m_states[idx] == test_stage_state_initialized)) {
         uint64_t cur_clock = lagopus_rdtsc();
         lagopus_atomic_update_min(uint64_t, &(ts->m_start_clock),
                                   0, cur_clock);
+        ts->m_states[idx] = test_stage_state_running;
       }
 
-      for (i = 0; i < n_evs; i++) {
-        sum += data[i];
+      for (i = 0; i < ts->m_weight; i++) {
+        sum = 0;
+        for (j = 0; j < n_evs; j++) {
+          sum += data[j];
+        }
       }
+
       (void)__sync_add_and_fetch(&(ts->m_sum), sum);
       n_cur_evs = __sync_add_and_fetch(&(ts->m_n_events), n_evs);
 
@@ -348,7 +373,7 @@ s_intermediate_main(const lagopus_pipeline_stage_t *sptr,
                                   0, cur_clock);
 
         lagopus_atomic_update_max(lagopus_chrono_t, &(ts->m_end_time),
-                                  0, end_time);
+                                  -1, end_time);
 
         ts->m_states[idx] = test_stage_state_done;
         mbar();
@@ -528,5 +553,59 @@ s_test_stage_create_by_spec(test_stage_t *tsptr,
   }
 
 done:
+  return ret;
+}
+
+
+static inline lagopus_result_t
+s_test_stage_get_clocks(test_stage_t *tsptr,
+                        uint64_t *start,
+                        uint64_t *end) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+
+  if (tsptr != NULL && *tsptr != NULL && start != NULL && end != NULL) {
+    *start = (*tsptr)->m_start_clock;
+    *end = (*tsptr)->m_end_clock;
+
+    ret = LAGOPUS_RESULT_OK;
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  return ret;
+}
+
+
+static inline lagopus_result_t
+s_test_stage_get_times(test_stage_t *tsptr,
+                       lagopus_result_t *start,
+                       lagopus_result_t *end) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+
+  if (tsptr != NULL && *tsptr != NULL && start != NULL && end != NULL) {
+    *start = (*tsptr)->m_start_time;
+    *end = (*tsptr)->m_end_time;
+
+    ret = LAGOPUS_RESULT_OK;
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  return ret;
+}
+
+
+static inline lagopus_result_t
+s_test_stage_set_weight(test_stage_t *tsptr,
+                        size_t weight) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+
+  if (tsptr != NULL && *tsptr != NULL && weight > 0) {
+    (*tsptr)->m_weight = weight;
+    ret = LAGOPUS_RESULT_OK;
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
   return ret;
 }

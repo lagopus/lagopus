@@ -211,23 +211,8 @@ s_record_stat(lagopus_statistic_t s, int64_t val) {
     (void)__sync_add_and_fetch(&(s->m_sum), val);
     (void)__sync_add_and_fetch(&(s->m_sum2), sum2);
 
- do_min:
-    old_min = __sync_add_and_fetch(&(s->m_min), 0);
-    if (old_min > val) {
-      if (unlikely(__sync_bool_compare_and_swap(&(s->m_min), old_min, val) ==
-                   false)) {
-        goto do_min;
-      }
-    }
-
- do_max:
-    old_max = __sync_add_and_fetch(&(s->m_max), 0);
-    if (old_max < val) {
-      if (unlikely(__sync_bool_compare_and_swap(&(s->m_max), old_max, val) ==
-                   false)) {
-        goto do_max;
-      }
-    }
+    lagopus_atomic_update_min(int64_t, &(s->m_min), LLONG_MAX, val);
+    lagopus_atomic_update_max(int64_t, &(s->m_max), LLONG_MIN, val);
 
     return LAGOPUS_RESULT_OK;
   } else {

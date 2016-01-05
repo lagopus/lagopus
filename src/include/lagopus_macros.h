@@ -217,22 +217,29 @@
 #endif /* __GNUC__ */
 
 #ifdef __GNUC__
-#define lagopus_atomic_update_comp(type, addr, init, val, comp) {       \
-      type __tmp__ = __sync_fetch_and_add((addr), 0);                   \
-      while (true) {                                                    \
-        __tmp__ = __sync_val_compare_and_swap((addr), __tmp__, (val));  \
-        if (unlikely(__tmp__ != (init) && __tmp__ comp (val))){         \
-          continue;                                                     \
-        } else {                                                        \
-          break;                                                        \
-        }                                                               \
+#define lagopus_atomic_update_cmp(type, addr, init, val, cmp)           \
+{                                                                       \
+  type __tmp__ =  __sync_fetch_and_add((addr), 0);                      \
+  type __tmp2__;                                                        \
+  do {                                                                  \
+    if (__tmp__ == (init) || __tmp__ cmp (val)) {                       \
+      __tmp2__ = __sync_val_compare_and_swap((addr), __tmp__, (val));   \
+      if (likely(__tmp__ == __tmp2__)) {                                \
+        break;                                                          \
+      } else {                                                          \
+        __tmp__ = __tmp2__;                                             \
+        continue;                                                       \
       }                                                                 \
-    }
+    } else {                                                            \
+      break;                                                            \
+    }                                                                   \
+  } while (true);                                                       \
+}
 
 #define lagopus_atomic_update_min(type, addr, init, val)  \
-    lagopus_atomic_update_comp(type, addr, init, val, >)
+    lagopus_atomic_update_cmp(type, addr, init, val, >)
 #define lagopus_atomic_update_max(type, addr, init, val)  \
-    lagopus_atomic_update_comp(type, addr, init, val, <)
+    lagopus_atomic_update_cmp(type, addr, init, val, <)
 #endif /* __GNUC__ */
 
 

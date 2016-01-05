@@ -49,6 +49,8 @@ typedef struct test_stage_record {
 
   test_stage_state_t *m_states;	/* The length is # of workers */
 
+  size_t m_weight;
+
   volatile uint64_t m_sum;
   volatile size_t m_n_events;
   volatile uint64_t m_start_clock;

@@ -5,3 +5,4 @@
   roles:
     - role: dpdk
       when: dpdk.is_used
+      tags: dpdk

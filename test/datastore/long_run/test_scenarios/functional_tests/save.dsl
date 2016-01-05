@@ -15,8 +15,6 @@ snmp -master-agentx-socket tcp:localhost:705 -ping-interval-second 10
 
 # all the namespace objects' attribute
 
-# all the l2-bridge objects' attribute
-l2-bridge :l2-bridge01 create -expire 1 -max-entries 1 -tmp-dir /tmp
 
 # all the policer-action objects' attribute
 policer-action :policer-action01 create -type discard
@@ -45,10 +43,8 @@ channel :channel01 create -dst-addr 127.0.0.1 -dst-port 12345 -local-addr 0.0.0.
 controller :controller01 create -channel :channel01 -role equal -connection-type main
 
 # all the bridge objects' attribute
-bridge :bridge01 create -dpid 1 -controller :controller01 -port :port01 1 -port :port02 2 -l2-bridge :l2-bridge01 -fail-mode secure -flow-statistics true -group-statistics true -port-statistics true -queue-statistics true -table-statistics true -reassemble-ip-fragments false -max-buffered-packets 65535 -max-ports 255 -max-tables 255 -max-flows 4294967295 -packet-inq-size 1000 -packet-inq-max-batches 1000 -up-streamq-size 1000 -up-streamq-max-batches 1000 -down-streamq-size 1000 -down-streamq-max-batches 1000 -block-looping-ports false
+bridge :bridge01 create -dpid 1 -controller :controller01 -port :port01 1 -port :port02 2 -fail-mode secure -flow-statistics true -group-statistics true -port-statistics true -queue-statistics true -table-statistics true -reassemble-ip-fragments false -max-buffered-packets 65535 -max-ports 255 -max-tables 255 -max-flows 4294967295 -packet-inq-size 1000 -packet-inq-max-batches 1000 -up-streamq-size 1000 -up-streamq-max-batches 1000 -down-streamq-size 1000 -down-streamq-max-batches 1000 -block-looping-ports false
 
-# l2-bridge objects' status
-l2-bridge :l2-bridge01 disable
 
 # policer-action objects' status
 policer-action :policer-action01 disable
