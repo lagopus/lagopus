@@ -174,6 +174,20 @@ s_once_proc(void) {
     lagopus_perror(r);
     lagopus_exit_fatal("can't register the \"%s\" module.\n", name);
   }
+
+  name = "dp_netlink";
+  r = lagopus_module_register(name,
+                              dp_netlink_thread_init,
+                              NULL,
+                              dp_netlink_thread_start,
+                              dp_netlink_thread_shutdown,
+                              dp_netlink_thread_stop,
+                              dp_netlink_thread_fini,
+                              NULL);
+  if (r != LAGOPUS_RESULT_OK) {
+    lagopus_perror(r);
+    lagopus_exit_fatal("can't register the \"%s\" module.\n", name);
+  }
 #endif /* HYBRID */
 
   name = "agent";
