@@ -40,6 +40,8 @@ CPPFLAGS += -I$(BUILD_DATAPLANEDIR)/$(DATAPATHDIR)
 WARN_CFLAGS += -Werror=missing-prototypes
 WARN_CFLAGS += -Werror=uninitialized
 
+DEP_LIBS	+= $(DEP_LAGOPUS_UTIL_LIB)
+
 TARGETS	=	$(TARGET_LIB)
 
 DIRS	=	$(DPMGRDIR)/test $(OFPROTODIR)/test
