@@ -447,4 +447,16 @@
     TEST_ASSERT_EQUAL(ret, LAGOPUS_RESULT_OK);                          \
   }
 
+#define TEST_ASSERT_METER_ADD(_ret, _dpid, _mm, _bl, _er) {             \
+    (_mm)->command = OFPMC_ADD;                                         \
+    _ret = ofp_meter_mod_add((_dpid), (_mm), (_bl), (_er));             \
+    TEST_ASSERT_EQUAL(ret, LAGOPUS_RESULT_OK);                          \
+  }
+
+#define TEST_ASSERT_METER_DEL(_ret, _dpid, _mm, _er) {                  \
+    (_mm)->command = OFPMC_DELETE;                                      \
+    _ret = ofp_meter_mod_delete((_dpid), (_mm), (_er));                 \
+    TEST_ASSERT_EQUAL(ret, LAGOPUS_RESULT_OK);                          \
+  }
+
 #endif /* __CMD_TEST_UTILS_H__ */
