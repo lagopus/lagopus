@@ -51,6 +51,7 @@
 #include "lagopus_session.h"
 #include "lagopus_session_tls.h"
 #include "lagopus_ip_addr.h"
+#include "lagopus_qsort.h"
 #include "lagopus/datastore/controller.h"
 #include "lagopus/datastore/channel.h"
 

@@ -296,7 +296,8 @@ s_serilize_proc(void *key, void *val, lagopus_hashentry_t he, void *arg) {
 
 static int
 s_cmp_proc(const void *v0, const void *v1, void *arg) {
-  (void)arg;
+
+  (void) arg;
 
   if (v0 != NULL && v1 != NULL) {
     pattern_pair_t **p0 = (pattern_pair_t **)v0;
@@ -337,8 +338,8 @@ s_serialize_pairs(size_t *szptr) {
       if ((rc = lagopus_hashmap_iterate(&s_pat_tbl,
                                         s_serilize_proc,
                                         (void *)&s)) == LAGOPUS_RESULT_OK) {
-        qsort_r((void *)ret, n_pats, sizeof(pattern_pair_t *),
-                s_cmp_proc, NULL);
+        lagopus_qsort_r((void *)ret, n_pats, sizeof(pattern_pair_t *),
+                        s_cmp_proc, NULL);
         *szptr = n_pats;
       }
     } else {

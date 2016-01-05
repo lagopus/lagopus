@@ -385,7 +385,7 @@ static int
 s_qcmp_proc(const void *v0, const void *v1, void *arg) {
   int ret = 0;
 
-  (void)arg;
+  (void) arg;
 
   if (s_cmp_proc != NULL) {
     /*
@@ -409,7 +409,7 @@ static inline void
 s_sort_objs(void **objs, size_t n_objs, datastore_compare_proc_t proc) {
   if (objs != NULL && n_objs > 0 && proc != NULL) {
     s_cmp_proc = proc;
-    qsort_r((void *)objs, n_objs, sizeof(void *), s_qcmp_proc, NULL);
+    lagopus_qsort_r((void *)objs, n_objs, sizeof(void *), s_qcmp_proc, NULL);
     s_cmp_proc = NULL;
   }
 }
