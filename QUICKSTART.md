@@ -40,9 +40,8 @@ Compile
 Install necessary packages
 
 ```
-	$ sudo apt-get install build-essential libexpat-dev libgmp-dev \
-	  libssl-dev libpcap-dev byacc flex \
-	  python-dev python-pastedeploy python-paste python-twisted
+	$ sudo apt-get install build-essential libgmp-dev \
+	  libssl-dev libpcap-dev byacc flex
 ```
 
 Compile vswitch
@@ -73,14 +72,14 @@ Install necessary packages
 Using pip command is the easiest option:
 
 ```
-	$ pip install ryu
+	$ sudo pip install ryu
 ```
 
 Or install from the source code if you prefer:
 
 ```
 	$ git clone git://github.com/osrg/ryu.git
-	$ cd ryu; python ./setup.py install
+	$ cd ryu; sudo python ./setup.py install
 ```
 
 Environmental Setup
