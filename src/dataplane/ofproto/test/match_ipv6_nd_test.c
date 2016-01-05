@@ -19,7 +19,6 @@
 #include <netinet/ip_icmp.h>
 #include <netinet/icmp6.h>
 
-#include "lagopus/dpmgr.h"
 #include "lagopus/flowdb.h"
 #include "lagopus/port.h"
 #include "pktbuf.h"

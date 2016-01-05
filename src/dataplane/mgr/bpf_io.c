@@ -165,6 +165,7 @@ rawsock_configure_interface(struct interface *ifp) {
     put_port_number(portid);
     return LAGOPUS_RESULT_POSIX_API_ERROR;
   }
+#ifdef BIOCSDIRECTION
   intparam = BPF_D_IN;
   if (ioctl(fd, BIOCSDIRECTION, &intparam) != 0) {
     lagopus_msg_error("%s: BIOCSDIRECTION: %s\n",
@@ -173,6 +174,16 @@ rawsock_configure_interface(struct interface *ifp) {
     put_port_number(portid);
     return LAGOPUS_RESULT_POSIX_API_ERROR;
   }
+#else
+  intparam = 0;
+  if (ioctl(fd, BIOCSSEESENT, &intparam) != 0) {
+    lagopus_msg_error("%s: BIOCSSEESENT: %s\n",
+                      ifp->info.eth_rawsock.device, strerror(errno));
+    close(fd);
+    put_port_number(portid);
+    return LAGOPUS_RESULT_POSIX_API_ERROR;
+  }
+#endif /* BIOCSDIRECTION */
   snprintf(ifreq.ifr_name, sizeof(ifreq.ifr_name), "%s",
            ifp->info.eth_rawsock.device);
   if (ioctl(fd, BIOCSETIF, &ifreq) != 0) {

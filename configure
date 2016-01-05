@@ -2657,11 +2657,6 @@ fi
 PREFIX=${prefix}
 
 
-SHELL=`which bash` > /dev/null 2>&1
-if test $? -ne 0 -o -z "${SHELL}"; then
-   as_fn_error $? "To run libtool you need the GNU bash, not the old-school /bin/sh." "$LINENO" 5
-   exit 1
-fi
 export SHELL
 
 
@@ -11097,7 +11092,6 @@ CC="$lt_save_CC"
 
 
 
-
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking target system type" >&5
 $as_echo_n "checking target system type... " >&6; }
 if ${ac_cv_target+:} false; then :
@@ -16780,7 +16774,9 @@ fi
 
 
 
-for ac_func in strlcpy strlcat
+oLIBS=${LIBS}
+LIBS="${LIBS} -lpthread"
+for ac_func in strlcpy strlcat, pthread_mutex_timedlock
 do :
   as_ac_var=`$as_echo "ac_cv_func_$ac_func" | $as_tr_sh`
 ac_fn_c_check_func "$LINENO" "$ac_func" "$as_ac_var"
@@ -16792,6 +16788,7 @@ _ACEOF
 fi
 done
 
+LIBS=${oLIBS}
 ac_fn_c_check_func "$LINENO" "strtold" "ac_cv_func_strtold"
 if test "x$ac_cv_func_strtold" = xyes; then :
   $as_echo "#define HAVE_STRTOLD 1" >>confdefs.h

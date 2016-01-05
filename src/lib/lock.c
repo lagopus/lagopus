@@ -16,6 +16,7 @@
 
 
 #include "lagopus_apis.h"
+#include "lagopus_config.h"
 
 
 
@@ -304,7 +305,7 @@ lagopus_mutex_trylock(lagopus_mutex_t *mtxptr) {
   return ret;
 }
 
-
+#ifdef HAVE_PTHREAD_MUTEX_TIMEDLOCK
 lagopus_result_t
 lagopus_mutex_timedlock(lagopus_mutex_t *mtxptr,
                         lagopus_chrono_t nsec) {
@@ -347,6 +348,7 @@ lagopus_mutex_timedlock(lagopus_mutex_t *mtxptr,
 
   return ret;
 }
+#endif /* HAVE_PTHREAD_MUTEX_TIMEDLOCK */
 
 
 lagopus_result_t

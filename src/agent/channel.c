@@ -28,7 +28,6 @@
 
 #include "openflow.h"
 #include "openflow13packet.h"
-#include "lagopus/dpmgr.h"
 #include "lagopus/flowdb.h"
 #include "lagopus/ofp_handler.h"
 #include "lagopus/meter.h"

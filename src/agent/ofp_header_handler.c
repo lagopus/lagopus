@@ -21,7 +21,6 @@
 #include "openflow13packet.h"
 #include "ofp_apis.h"
 #include "lagopus/ofp_handler.h"
-#include "lagopus/dpmgr.h"
 
 /* Header only packet receive. */
 lagopus_result_t

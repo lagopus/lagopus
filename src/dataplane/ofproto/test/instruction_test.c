@@ -16,6 +16,7 @@
 
 #include "unity.h"
 
+#include "lagopus/dp_apis.h"
 #include "lagopus/flowdb.h"
 #include "lagopus/ethertype.h"
 #include "lagopus/port.h"
@@ -26,7 +27,6 @@
 #include "datapath_test_misc.h"
 #include "datapath_test_misc_macros.h"
 
-static struct dpmgr *my_dpmgr;
 static struct port port;
 static struct lagopus_packet pkt;
 

@@ -37,6 +37,7 @@
 #ifdef HAVE_NET_ETHERNET_H
 #include <net/ethernet.h>
 #else
+#include <net/if.h>
 #include <net/if_ether.h>
 #endif /* HAVE_NET_ETHERNET_H */
 #endif /* HAVE_DPDK */
@@ -145,7 +146,6 @@ struct pbb_hdr {
   uint8_t c_shost[6];
   uint16_t c_ethtype;
 } __attribute__((__packed__));
-
 
 /**
  * packet flags

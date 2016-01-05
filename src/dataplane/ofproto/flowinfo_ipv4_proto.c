@@ -24,6 +24,7 @@
 #include "openflow.h"
 #include "lagopus/ptree.h"
 #include "lagopus/flowdb.h"
+#include "lagopus/dataplane.h"
 #include "pktbuf.h"
 #include "packet.h"
 

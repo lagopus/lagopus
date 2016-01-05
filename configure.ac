@@ -21,17 +21,11 @@ fi
 PREFIX=${prefix}
 AC_SUBST(PREFIX)
 
-SHELL=`which bash` > /dev/null 2>&1
-if test $? -ne 0 -o -z "${SHELL}"; then
-   AC_MSG_ERROR([To run libtool you need the GNU bash, not the old-school /bin/sh.])
-   exit 1
-fi
 export SHELL
 AC_SUBST(SHELL)
 
 LT_INIT
-AC_SUBST(LIBTOOL)
-AC_SUBST(LIBTOOL_DEPS)
+AC_SUBST([LIBTOOL_DEPS])
 
 AC_CANONICAL_BUILD
 AC_CANONICAL_HOST
@@ -266,7 +260,10 @@ AC_CHECK_HEADER(poll.h, [AC_DEFINE(HAVE_POLL_H)])
 AC_CHECK_HEADER(sys/socket.h, [AC_DEFINE(HAVE_SYS_SOCKET_H)])
 AC_CHECK_HEADER(net/ethernet.h, [AC_DEFINE(HAVE_NET_ETHERNET_H)])
 
-AC_CHECK_FUNCS([strlcpy strlcat])
+oLIBS=${LIBS}
+LIBS="${LIBS} -lpthread"
+AC_CHECK_FUNCS([strlcpy strlcat, pthread_mutex_timedlock])
+LIBS=${oLIBS}
 AC_CHECK_FUNC(strtold, [AC_DEFINE(HAVE_STRTOLD)])
 
 

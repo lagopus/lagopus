@@ -29,6 +29,7 @@
 #ifdef HAVE_NET_ETHERNET_H
 #include <net/ethernet.h>
 #else
+#include <net/if.h>
 #include <net/if_ether.h>
 #endif /* HAVE_NET_ETHERNET_H */
 #endif /* HAVE_DPDK */
@@ -43,6 +44,10 @@
 #include "lagopus/interface.h"
 
 #define LAGOPUS_DATAPLANE_VERSION "0.9"
+
+#ifndef IPPROTO_SCTP
+#define IPPROTO_SCTP 132
+#endif /* IPPROTO_SCTP */
 
 /*
  * OpenFlow support level configuration.

@@ -23,7 +23,6 @@
 #include "ofp_apis.h"
 #include "ofp_tlv.h"
 #include "ofp_element.h"
-#include "lagopus/dpmgr.h"
 #include "lagopus/ofp_handler.h"
 #include "lagopus/bridge.h"
 #include "lagopus/ofp_pdump.h"

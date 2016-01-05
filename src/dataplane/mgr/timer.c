@@ -304,7 +304,7 @@ dp_timer_thread_loop(const lagopus_thread_t *t, void *arg) {
       dp_timer = TAILQ_FIRST(&dp_timer_list);
       /* XXX flowdb unlock */
     } while (dp_timer != NULL);
-    pthread_yield();
+    sched_yield();
   }
 
   return LAGOPUS_RESULT_OK;
