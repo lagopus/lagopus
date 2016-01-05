@@ -23,6 +23,7 @@
 #define SRC_INCLUDE_LAGOPUS_DATAPLANE_H_
 
 #ifdef HAVE_DPDK
+#include <rte_config.h>
 #include <rte_ether.h>
 #else
 #include <net/ethernet.h>
@@ -568,7 +569,7 @@ lagopus_get_switch_config(struct bridge *bridge,
                           struct ofp_error *error);
 
 /**
- * initialize dataplane.  e.g. setup Intel DPDK.
+ * initialize Intel DPDK related APIs.
  *
  * @param[in]   argc                    argc from command line
  * @param[in]   argv                    argv from commend line
@@ -580,7 +581,7 @@ lagopus_get_switch_config(struct bridge *bridge,
  * as soon as possible in the application's main() function.
  */
 lagopus_result_t
-lagopus_dataplane_init(int argc, const char * const argv[]);
+dpdk_dataplane_init(int argc, const char * const argv[]);
 
 /**
  */
@@ -588,82 +589,161 @@ lagopus_result_t
 rawsock_dataplane_init(int argc, const char *const argv[]);
 
 /**
- * Dataplane thread initialization.
+ * Dataplane rawsocket thread initialization.
  */
 lagopus_result_t
-dataplane_initialize(int argc, const char *const argv[],
-                     void *extarg, lagopus_thread_t **thdptr);
+dp_rawsock_thread_init(int argc, const char *const argv[],
+                       void *extarg, lagopus_thread_t **thdptr);
 
 /**
- * Dataplane thread finalization.
- */
-void dataplane_finalize(void);
-
-/**
- * loop function wait for finish all DPDK thread.
- */
-lagopus_result_t
-dpdk_thread_loop(const lagopus_thread_t *, void *);
-
-/**
- * dataplane start function.
+ * Dataplane rawsock thread start function.
  *
  * @retval      LAGOPUS_RESULT_OK       dataplane main thread is created.
  * @retval      !=LAGOPUS_RESULT_OK     dataplane main thread is not created.
+ */
+lagopus_result_t dp_rawsock_thread_start(void);
+
+/**
+ * Dataplane rawsock thread stop function.
+ */
+lagopus_result_t dp_rawsock_thread_stop(void);
+
+/**
+ * Dataplane rawsock thread shutdown function.
+ */
+lagopus_result_t dp_rawsock_thread_shutdown(shutdown_grace_level_t);
+
+/**
+ * Dataplane rawsock thread finalize function.
+ */
+void dp_rawsock_thread_fini(void);
+
+/**
+ * Dataplane dpdk thread initialization.
+ */
+lagopus_result_t
+dp_dpdk_thread_init(int argc, const char *const argv[],
+                       void *extarg, lagopus_thread_t **thdptr);
+
+/**
+ * Dataplane dpdk thread start function.
  *
- * Intel DPDK version note:
- * This function is to be executed on the MASTER lcore only.
+ * @retval      LAGOPUS_RESULT_OK       dataplane main thread is created.
+ * @retval      !=LAGOPUS_RESULT_OK     dataplane main thread is not created.
  */
-lagopus_result_t dataplane_start(void);
+lagopus_result_t dp_dpdk_thread_start(void);
 
 /**
- * dataplane shutdown function.
+ * Dataplane dpdk thread stop function.
  */
-lagopus_result_t dataplane_shutdown(shutdown_grace_level_t);
+lagopus_result_t dp_dpdk_thread_stop(void);
 
 /**
- * dataplane stop function.
+ * Dataplane dpdk thread shutdown function.
  */
-lagopus_result_t dataplane_stop(void);
+lagopus_result_t dp_dpdk_thread_shutdown(shutdown_grace_level_t);
 
 /**
- * Dataplane communicator thread
+ * Dataplane dpdk thread finalize function.
+ */
+void dp_dpdk_thread_fini(void);
+
+/**
+ * Dataplane dpdk thread usage function.
+ */
+void dp_dpdk_thread_usage(FILE *fp);
+
+/**
+ * Dataplane comm thread initialization.
  */
 lagopus_result_t
-dpcomm_initialize(int argc,
-                  const char *const argv[],
-                  void *extarg,
-                  lagopus_thread_t **thdptr);
+dp_comm_thread_init(int argc, const char *const argv[],
+                       void *extarg, lagopus_thread_t **thdptr);
 
 /**
- * Dataplane communicator thread
+ * Dataplane comm thread start function.
+ *
+ * @retval      LAGOPUS_RESULT_OK       dataplane main thread is created.
+ * @retval      !=LAGOPUS_RESULT_OK     dataplane main thread is not created.
+ */
+lagopus_result_t dp_comm_thread_start(void);
+
+/**
+ * Dataplane comm thread stop function.
+ */
+lagopus_result_t dp_comm_thread_stop(void);
+
+/**
+ * Dataplane comm thread shutdown function.
+ */
+lagopus_result_t dp_comm_thread_shutdown(shutdown_grace_level_t);
+
+/**
+ * Dataplane comm thread finalize function.
+ */
+void dp_comm_thread_fini(void);
+
+/**
+ * Dataplane timer thread initialization.
  */
 lagopus_result_t
-dpcomm_start(void);
+dp_timer_thread_init(int argc, const char *const argv[],
+                       void *extarg, lagopus_thread_t **thdptr);
 
 /**
- * Dataplane communicator thread
+ * Dataplane timer thread start function.
+ *
+ * @retval      LAGOPUS_RESULT_OK       dataplane main thread is created.
+ * @retval      !=LAGOPUS_RESULT_OK     dataplane main thread is not created.
  */
-void
-dpcomm_finalize(void);
+lagopus_result_t dp_timer_thread_start(void);
 
 /**
- * Dataplane communicator thread
+ * Dataplane timer thread stop function.
+ */
+lagopus_result_t dp_timer_thread_stop(void);
+
+/**
+ * Dataplane timer thread shutdown function.
+ */
+lagopus_result_t dp_timer_thread_shutdown(shutdown_grace_level_t);
+
+/**
+ * Dataplane timer thread finalize function.
+ */
+void dp_timer_thread_fini(void);
+
+#ifdef HYBRID
+/**
+ * Dataplane tapio thread initialization.
  */
 lagopus_result_t
-dpcomm_shutdown(shutdown_grace_level_t level);
+dp_tapio_thread_init(int argc, const char *const argv[],
+                       void *extarg, lagopus_thread_t **thdptr);
 
 /**
- * Dataplane communicator thread
+ * Dataplane tapio thread start function.
+ *
+ * @retval      LAGOPUS_RESULT_OK       dataplane main thread is created.
+ * @retval      !=LAGOPUS_RESULT_OK     dataplane main thread is not created.
  */
-lagopus_result_t
-dpcomm_stop(void);
+lagopus_result_t dp_tapio_thread_start(void);
 
 /**
- * dataplane communicator loop function.
+ * Dataplane tapio thread stop function.
  */
-lagopus_result_t
-comm_thread_loop(const lagopus_thread_t *, void *);
+lagopus_result_t dp_tapio_thread_stop(void);
+
+/**
+ * Dataplane tapio thread shutdown function.
+ */
+lagopus_result_t dp_tapio_thread_shutdown(shutdown_grace_level_t);
+
+/**
+ * Dataplane tapio thread finalize function.
+ */
+void dp_tapio_thread_fini(void);
+#endif /* HYBRID */
 
 /**
  */
@@ -693,14 +773,6 @@ struct lagopus_packet *copy_packet(struct lagopus_packet *);
 /**
  */
 void copy_dataplane_info(char *buf, int len);
-
-/**
- * Raw socket I/O process function.
- *
- * @param[in]   t       Thread object pointer.
- * @param[in]   arg     Do not used argument.
- */
-lagopus_result_t rawsock_thread_loop(const lagopus_thread_t *t, void *arg);
 
 /**
  * Print usage.

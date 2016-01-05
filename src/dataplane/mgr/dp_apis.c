@@ -109,6 +109,7 @@ dp_api_fini(void) {
   lagopus_hashmap_destroy(&queueid_hashmap, true);
   for (i = 0; i < DATASTORE_INTERFACE_TYPE_MAX + 1; i++) {
     ports_free(port_vector[i]);
+    port_vector[i] = NULL;
   }
 }
 
@@ -430,9 +431,12 @@ dp_port_interface_set(const char *name, const char *ifname) {
   port->interface = ifp;
   port->ifindex = ifp->info.eth.port_number;
   ifp->port = port;
-  vector_set_index(port_vector[ifp->info.type],
-                   ifp->info.eth.port_number,
-                   port);
+  rv = vector_set_index(port_vector[ifp->info.type],
+                        ifp->info.eth.port_number,
+                        port);
+  if (rv != LAGOPUS_RESULT_OK) {
+    goto out;
+  }
   if (port->interface != NULL) {
     rv = dp_interface_queue_configure(port->interface);
   }
@@ -698,7 +702,10 @@ dp_bridge_port_set(const char *name,
     goto out;
   }
   port->ofp_port.port_no = port_num;
-  vector_set_index(bridge->ports, port->ofp_port.port_no, port);
+  rv = vector_set_index(bridge->ports, port->ofp_port.port_no, port);
+  if (rv != LAGOPUS_RESULT_OK) {
+    goto out;
+  }
   port->bridge = bridge;
   send_port_status(port, OFPPR_ADD);
 
@@ -725,7 +732,10 @@ dp_bridge_port_unset(const char *name, const char *port_name) {
     goto out;
   }
 
-  vector_set_index(bridge->ports, port->ofp_port.port_no, NULL);
+  rv = vector_set_index(bridge->ports, port->ofp_port.port_no, NULL);
+  if (rv != LAGOPUS_RESULT_OK) {
+    goto out;
+  }
   send_port_status(port, OFPPR_DELETE);
   port->bridge = NULL;
 
@@ -753,7 +763,10 @@ dp_bridge_port_unset_num(const char *name, uint32_t port_no) {
     goto out;
   }
 
-  vector_set_index(bridge->ports, port_no, NULL);
+  rv = vector_set_index(bridge->ports, port_no, NULL);
+  if (rv != LAGOPUS_RESULT_OK) {
+    goto out;
+  }
   send_port_status(port, OFPPR_DELETE);
   port->bridge = NULL;
 

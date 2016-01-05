@@ -118,11 +118,6 @@ lagopus_meter_init(void) {
   /* XXX not implemented */
 }
 
-lagopus_result_t
-lagopus_dataplane_init(int argc, const char *const argv[]) {
-  return rawsock_dataplane_init(argc, argv);
-}
-
 void
 dp_get_flowcache_statistics(struct bridge *bridge, struct ofcachestat *st) {
   st->nentries = 0;

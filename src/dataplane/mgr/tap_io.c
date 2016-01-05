@@ -257,7 +257,7 @@ dp_tapio_thread_loop(__UNUSED const lagopus_thread_t *selfptr,
   if (rv != LAGOPUS_RESULT_OK) {
     return rv;
   }
-  for (;;) {
+  while (tapio_run == true) {
     if (poll(pollfd, portidx, 100) < 0) {
       err(errno, "poll");
     }
@@ -290,15 +290,19 @@ dp_tapio_thread_loop(__UNUSED const lagopus_thread_t *selfptr,
   }
 }
 
-static lagopus_result_t
-dp_tapio_init(__UNUSED int argc,
-              __UNUSED const char *const argv[],
-              __UNUSED void *extarg,
-              lagopus_thread_t **thdptr) {
-  lagopus_hashmap_create(&tap_hashmap, LAGOPUS_HASHMAP_TYPE_STRING, NULL);
+lagopus_result_t
+dp_tapio_thread_init(__UNUSED int argc,
+                     __UNUSED const char *const argv[],
+                     __UNUSED void *extarg,
+                     lagopus_thread_t **thdptr) {
+  static struct dataplane_arg dparg;
 
+  lagopus_hashmap_create(&tap_hashmap, LAGOPUS_HASHMAP_TYPE_STRING, NULL);
+  dparg.threadptr = &tapio_thread;
+  dparg.lock = &tapio_lock;
+  dparg.running = &tapio_run;
   lagopus_thread_create(&tapio_thread, dp_tapio_thread_loop,
-                        dp_finalproc, dp_freeproc, "tap_io", NULL);
+                        dp_finalproc, dp_freeproc, "tap_io", &dparg);
   if (lagopus_mutex_create(&tapio_lock) != LAGOPUS_RESULT_OK) {
     lagopus_exit_fatal("lagopus_mutex_create");
   }
@@ -307,42 +311,49 @@ dp_tapio_init(__UNUSED int argc,
   return LAGOPUS_RESULT_OK;
 }
 
-static lagopus_result_t
-dp_tapio_start(void) {
+lagopus_result_t
+dp_tapio_thread_start(void) {
   return dp_thread_start(&tapio_thread, &tapio_lock, &tapio_run);
 }
 
-static void
-dp_tapio_fini(void) {
+void
+dp_tapio_thread_fini(void) {
   dp_thread_finalize(&tapio_thread);
   lagopus_hashmap_destroy(&tap_hashmap, true);
 }
 
-static lagopus_result_t
-dp_tapio_shutdown(shutdown_grace_level_t level) {
+lagopus_result_t
+dp_tapio_thread_shutdown(shutdown_grace_level_t level) {
   return dp_thread_shutdown(&tapio_thread, &tapio_lock, &tapio_run, level);
 }
 
-static lagopus_result_t
-dp_tapio_stop(void) {
+lagopus_result_t
+dp_tapio_thread_stop(void) {
   return dp_thread_stop(&tapio_thread, &tapio_run);
 }
 
+#if 0
 #define MODIDX_TAPIO  LAGOPUS_MODULE_CONSTRUCTOR_INDEX_BASE + 108
-#define MODNAME_TAPIO "tap_io"
 
 static void tapio_ctors(void) __attr_constructor__(MODIDX_TAPIO);
 static void tapio_dtors(void) __attr_constructor__(MODIDX_TAPIO);
 
 static void tapio_ctors (void) {
-  lagopus_module_register("tap_io",
-                          dp_tapio_init,
-                          NULL,
-                          dp_tapio_start,
-                          dp_tapio_shutdown,
-                          dp_tapio_stop,
-                          dp_tapio_fini,
-                          NULL
-                         );
+  lagopus_result_t rv;
+  const char *name = "dp_tap_io";
+
+  rv = lagopus_module_register(name,
+                               dp_tapio_thread_init,
+                               NULL,
+                               dp_tapio_thread_start,
+                               dp_tapio_thread_shutdown,
+                               dp_tapio_thread_stop,
+                               dp_tapio_thread_fini,
+                               NULL);
+  if (rv != LAGOPUS_RESULT_OK) {
+    lagopus_perror(rv);
+    lagopus_exit_fatal("can't register the \"%s\" module.\n", name);
+  }
 }
+#endif /* 0 */
 #endif /* HYBRID */

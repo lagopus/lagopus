@@ -157,7 +157,7 @@ static const char usage[] =
   "           F = I/O TX lcore write burst size to NIC TX (default value is %u)   \n";
 
 void
-dataplane_usage(FILE *fp) {
+dp_dpdk_thread_usage(FILE *fp) {
   fprintf(fp, usage,
           APP_DEFAULT_NIC_RX_RING_SIZE,
           APP_DEFAULT_RING_RX_SIZE,

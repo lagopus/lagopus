@@ -35,6 +35,7 @@
 #include "pktbuf.h"
 #include "packet.h"
 #include "csum.h"
+#include "thread.h"
 #include "pcap.h"
 
 static struct port_stats *port_stats(struct port *port);
@@ -191,7 +192,7 @@ rawsock_dataplane_init(int argc, const char *const argv[]) {
   }
   return 0;
 }
-#endif /* HAVE_DPDK */
+#endif /* !HAVE_DPDK */
 
 lagopus_result_t
 rawsock_configure_interface(struct interface *ifp) {
@@ -347,7 +348,7 @@ int
 rawsock_send_packet_physical(struct lagopus_packet *pkt, uint32_t portid) {
   if (pollfd[portid].fd != 0) {
     OS_MBUF *m;
-    uint32_t plen;
+    size_t plen;
 
     m = pkt->mbuf;
     plen = OS_M_PKTLEN(m);
@@ -517,7 +518,8 @@ rawsock_get_stats(struct interface *ifp, datastore_interface_stats_t *stats) {
 #else
   struct rtnl_link_stats *link_stats;
 #endif /* IFLA_STATS64 */
-  int fd, len, rta_len;
+  ssize_t len, rta_len;
+  int fd;
 
   link_stats = NULL;
 
@@ -605,20 +607,24 @@ rawsock_change_config(struct interface *ifp,
 }
 
 /**
- * dataplane thread (raw socket I/O)
+ * Raw socket I/O process function.
+ *
+ * @param[in]   t       Thread object pointer.
+ * @param[in]   arg     Do not used argument.
  */
-lagopus_result_t
-rawsock_thread_loop(__UNUSED const lagopus_thread_t *selfptr,
-                    __UNUSED void *arg) {
+static lagopus_result_t
+dp_rawsock_thread_loop(__UNUSED const lagopus_thread_t *selfptr,
+                    void *arg) {
   static const uint8_t eth_bcast[] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
   struct lagopus_packet *pkt;
   struct port_stats *stats;
   ssize_t len;
-  unsigned int nb_ports;
   unsigned int i;
   lagopus_result_t rv;
   global_state_t cur_state;
   shutdown_grace_level_t cur_grace;
+  struct dataplane_arg *dparg;
+  bool *running = NULL;
 
   rv = global_state_wait_for(GLOBAL_STATE_STARTED,
                              &cur_state,
@@ -636,16 +642,17 @@ rawsock_thread_loop(__UNUSED const lagopus_thread_t *selfptr,
   }
 #endif /* HAVE_DPDK */
 
-  for (;;) {
+  dparg = arg;
+  running = dparg->running;
+
+  while (*running == true) {
     struct port *port;
 
-    nb_ports = dp_port_count() + 1;
-
     /* wait 0.1 sec. */
-    if (poll(pollfd, (nfds_t)nb_ports, 100) < 0) {
+    if (poll(pollfd, (nfds_t)portidx, 100) < 0) {
       err(errno, "poll");
     }
-    for (i = 0; i < nb_ports; i++) {
+    for (i = 0; i < portidx; i++) {
 #ifndef HAVE_DPDK
       if (clear_cache == true && flowcache != NULL) {
         clear_all_cache(flowcache);
@@ -692,7 +699,7 @@ rawsock_thread_loop(__UNUSED const lagopus_thread_t *selfptr,
               continue;
 
             default:
-              lagopus_exit_fatal("read: %d", errno);
+              lagopus_exit_fatal("read: %s", strerror(errno));
           }
         }
         OS_M_TRIM(pkt->mbuf, MAX_PACKET_SZ - len);
@@ -722,3 +729,95 @@ rawsock_thread_loop(__UNUSED const lagopus_thread_t *selfptr,
 
   return LAGOPUS_RESULT_OK;
 }
+
+static lagopus_thread_t rawsock_thread = NULL;
+static bool rawsock_run = false;
+static lagopus_mutex_t rawsock_lock = NULL;
+
+lagopus_result_t
+dp_rawsock_thread_init(int argc,
+                       const char *const argv[],
+                       __UNUSED void *extarg,
+                       lagopus_thread_t **thdptr) {
+  static struct dataplane_arg dparg;
+  lagopus_result_t nb_ports;
+
+#ifdef HAVE_DPDK
+  nb_ports = dpdk_dataplane_init(argc, argv);
+#else
+  nb_ports = rawsock_dataplane_init(argc, argv);
+#endif /* HAVE_DPDK */
+  if (nb_ports < 0) {
+    lagopus_msg_fatal("lagopus_dataplane_init failed\n");
+    return nb_ports;
+  }
+  lagopus_meter_init();
+  lagopus_register_action_hook = lagopus_set_action_function;
+  lagopus_register_instruction_hook = lagopus_set_instruction_function;
+  flowinfo_init();
+
+  dparg.threadptr = &rawsock_thread;
+  dparg.lock = &rawsock_lock;
+  dparg.running = &rawsock_run;
+  lagopus_thread_create(&rawsock_thread, dp_rawsock_thread_loop,
+                        dp_finalproc, dp_freeproc, "dp_rawsock",
+                        &dparg);
+  if (lagopus_mutex_create(&rawsock_lock) != LAGOPUS_RESULT_OK) {
+    lagopus_exit_fatal("lagopus_mutex_create");
+  }
+  *thdptr = &rawsock_thread;
+
+  return LAGOPUS_RESULT_OK;
+}
+
+lagopus_result_t
+dp_rawsock_thread_start(void) {
+  return dp_thread_start(&rawsock_thread, &rawsock_lock, &rawsock_run);
+}
+
+lagopus_result_t
+dp_rawsock_thread_stop(void) {
+  return dp_thread_stop(&rawsock_thread, &rawsock_run);
+}
+
+lagopus_result_t
+dp_rawsock_thread_shutdown(shutdown_grace_level_t level) {
+  return dp_thread_shutdown(&rawsock_thread, &rawsock_lock, &rawsock_run,
+                            level);
+}
+
+void
+dp_rawsock_thread_fini(void) {
+  dp_thread_finalize(&rawsock_thread);
+}
+
+#if 0
+#define MODIDX_RAWSOCK  LAGOPUS_MODULE_CONSTRUCTOR_INDEX_BASE + 108
+#define MODNAME_RAWSOCK "dp_rawsock"
+
+static void rawsock_ctors(void) __attr_constructor__(MODIDX_RAWSOCK);
+static void rawsock_dtors(void) __attr_constructor__(MODIDX_RAWSOCK);
+
+static void rawsock_ctors (void) {
+  lagopus_result_t rv;
+  const char *name = "dp_rawsock";
+
+  dp_api_init();
+  rv = lagopus_module_register(name,
+                               dp_rawsock_thread_init,
+                               NULL,
+                               dp_rawsock_thread_start,
+                               dp_rawsock_thread_shutdown,
+                               dp_rawsock_thread_stop,
+                               dp_rawsock_thread_fini,
+                               NULL);
+  if (rv != LAGOPUS_RESULT_OK) {
+    lagopus_perror(rv);
+    lagopus_exit_fatal("can't register the \"%s\" module.\n", name);
+  }
+}
+
+static void rawsock_dtors (void) {
+  dp_api_fini();
+}
+#endif /* 0 */

@@ -45,7 +45,9 @@ ports_alloc(void) {
 
 void
 ports_free(struct vector *v) {
-  vector_free(v);
+  if (v != NULL) {
+    vector_free(v);
+  }
 }
 
 /**
