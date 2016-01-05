@@ -596,6 +596,7 @@ rawsock_change_config(struct interface *ifp,
 lagopus_result_t
 rawsock_thread_loop(__UNUSED const lagopus_thread_t *selfptr,
                     __UNUSED void *arg) {
+  static const uint8_t eth_bcast[] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
   struct lagopus_packet *pkt;
   struct port_stats *stats;
   ssize_t len;
@@ -682,7 +683,14 @@ rawsock_thread_loop(__UNUSED const lagopus_thread_t *selfptr,
         }
         OS_M_TRIM(pkt->mbuf, MAX_PACKET_SZ - len);
         lagopus_packet_init(pkt, pkt->mbuf, port);
-        if (port->bridge->flowdb->switch_mode == SWITCH_MODE_STANDALONE) {
+        if (
+#ifdef HYBRID
+                !memcmp(OS_MTOD(pkt->mbuf, uint8_t *),
+                        port->interface->hw_addr, ETHER_ADDR_LEN) ||
+                !memcmp(OS_MTOD(pkt->mbuf, uint8_t *),
+                        eth_bcast, ETHER_ADDR_LEN) ||
+#endif /* HYBRID */
+            port->bridge->flowdb->switch_mode == SWITCH_MODE_STANDALONE) {
           lagopus_forward_packet_to_port(pkt, OFPP_NORMAL);
         } else {
 #ifdef PACKET_CAPTURE

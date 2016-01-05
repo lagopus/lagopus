@@ -1592,21 +1592,6 @@ lagopus_packet_free(struct lagopus_packet *pkt) {
   }
 }
 
-int
-lagopus_send_packet_normal(struct lagopus_packet *pkt, uint32_t portid) {
-#ifdef __linux__
-  struct rte_kni *kni;
-
-  /* So far, output only one pakcet. */
-  kni = lagopus_kni[portid];
-  if (kni != NULL) {
-    rte_kni_tx_burst(kni, &pkt->mbuf, 1);
-  }
-#endif /* __linux__ */
-
-  return 0;
-}
-
 /* --------------------------Lagopus code end---------------------------- */
 
 #ifdef __linux__

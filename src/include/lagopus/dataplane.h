@@ -480,15 +480,6 @@ lagopus_send_packet_physical(struct lagopus_packet *pkt,
 }
 
 /**
- * Send packet to kernel normal path related with physical port.
- *
- * @param[in]   pkt     packet.
- * @param[in]   port    physical port number (ifindex).
- *
- */
-int lagopus_send_packet_normal(struct lagopus_packet *, uint32_t);
-
-/**
  * Return if port is using by lagopus vswitch.
  *
  * @param[in]   port    port.
@@ -597,12 +588,14 @@ lagopus_result_t
 rawsock_dataplane_init(int argc, const char *const argv[]);
 
 /**
+ * Dataplane thread initialization.
  */
 lagopus_result_t
 dataplane_initialize(int argc, const char *const argv[],
                      void *extarg, lagopus_thread_t **thdptr);
 
 /**
+ * Dataplane thread finalization.
  */
 void dataplane_finalize(void);
 

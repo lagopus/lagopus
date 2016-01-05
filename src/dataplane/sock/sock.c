@@ -79,13 +79,6 @@ lagopus_packet_free(struct lagopus_packet *pkt) {
   OS_M_FREE(pkt->mbuf);
 }
 
-int
-lagopus_send_packet_normal(__UNUSED struct lagopus_packet *pkt,
-                           __UNUSED uint32_t portid) {
-  /* not implemented yet */
-  return 0;
-}
-
 struct lagopus_packet *
 copy_packet(struct lagopus_packet *src_pkt) {
   OS_MBUF *mbuf;

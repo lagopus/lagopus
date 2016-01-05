@@ -24,6 +24,10 @@
 
 #include "lagopus/ofp_dp_apis.h" /* for port_stats */
 
+#ifdef HYBRID
+#include "tap_io.h"
+#endif /* HYBRID */
+
 static struct port_stats *
 unknown_port_stats(struct port *port) {
   return calloc(1, sizeof(struct port_stats));
@@ -76,6 +80,12 @@ dp_interface_configure_internal(struct interface *ifp) {
     default:
       break;
   }
+  if (rv == LAGOPUS_RESULT_OK) {
+    dp_interface_hw_addr_get_internal(ifp, ifp->hw_addr);
+#ifdef HYBRID
+    rv = dp_tap_interface_create(ifp->name, ifp);
+#endif /* HYBRID */
+  }
 
   return rv;
 }
@@ -109,31 +119,45 @@ dp_interface_unconfigure_internal(struct interface *ifp) {
     default:
       break;
   }
+#ifdef HYBRID
+  if (rv == LAGOPUS_RESULT_OK) {
+    dp_tap_interface_destroy(ifp->name);
+  }
+#endif /* HYBRID */
 
   return rv;
 }
 
 lagopus_result_t
 dp_interface_start_internal(struct interface *ifp) {
+  lagopus_result_t rv;
+
   switch (ifp->info.type) {
+#ifdef HAVE_DPDK
     case DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_PHY:
     case DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_PCAP:
-#ifdef HAVE_DPDK
-      return dpdk_start_interface(ifp->info.eth.port_number);
-#else
+      rv = dpdk_start_interface(ifp->info.eth.port_number);
       break;
 #endif
     case DATASTORE_INTERFACE_TYPE_ETHERNET_RAWSOCK:
-      return rawsock_start_interface(ifp);
+      rv = rawsock_start_interface(ifp);
+      break;
 
     case DATASTORE_INTERFACE_TYPE_UNKNOWN:
-      return LAGOPUS_RESULT_OK;
+      rv = LAGOPUS_RESULT_OK;
+      break;
 
     default:
+      rv = LAGOPUS_RESULT_INVALID_ARGS;
       break;
   }
+#ifdef HYBRID
+  if (rv == LAGOPUS_RESULT_OK) {
+    rv = dp_tap_start_interface(ifp->name);
+  }
+#endif /* HYBRID */
 
-  return LAGOPUS_RESULT_INVALID_ARGS;
+  return rv;
 }
 
 lagopus_result_t
@@ -141,6 +165,9 @@ dp_interface_stop_internal(struct interface *ifp) {
   if (ifp == NULL) {
     return LAGOPUS_RESULT_INVALID_ARGS;
   }
+#ifdef HYBRID
+  dp_tap_stop_interface(ifp->name);
+#endif /* HYBRID */
   switch (ifp->info.type) {
     case DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_PHY:
     case DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_PCAP:
@@ -159,6 +186,20 @@ dp_interface_stop_internal(struct interface *ifp) {
       break;
   }
 
+  return LAGOPUS_RESULT_OK;
+}
+
+lagopus_result_t
+dp_interface_send_packet_normal(struct lagopus_packet *pkt,
+                                struct interface *ifp) {
+#ifdef HYBRID
+  if (ifp->tap != NULL) {
+    return dp_tap_interface_send_packet(ifp->tap, pkt);
+  }
+#else
+  (void) pkt;
+  (void) ifp;
+#endif /* HYBRID */
   return LAGOPUS_RESULT_OK;
 }
 

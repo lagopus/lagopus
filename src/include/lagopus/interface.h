@@ -33,6 +33,8 @@
 #endif /* HAVE_DPDK */
 
 struct port;
+struct dp_tap_interface;
+struct lagopus_packet;
 
 typedef datastore_queue_info_t dp_queue_info_t;
 
@@ -62,6 +64,8 @@ struct interface {
   struct dp_ifqueue ifqueue;
   struct port_stats *(*stats)(struct port *);
   struct port *port;
+  uint8_t hw_addr[ETHER_ADDR_LEN];
+  struct dp_tap_interface *tap;
 };
 
 struct interface *dp_interface_alloc(void);
@@ -70,6 +74,17 @@ lagopus_result_t dp_interface_start_internal(struct interface *ifp);
 lagopus_result_t dp_interface_stop_internal(struct interface *ifp);
 lagopus_result_t dp_interface_configure_internal(struct interface *ifp);
 lagopus_result_t dp_interface_unconfigure_internal(struct interface *ifp);
+
+/**
+ * Send packet to kernel normal path related with physical port.
+ *
+ * @param[in]   pkt     packet.
+ * @param[in]   ifp     interface.
+ *
+ */
+lagopus_result_t
+dp_interface_send_packet_normal(struct lagopus_packet *pkt,
+                                struct interface *ifp);
 lagopus_result_t
 dp_interface_change_config(struct interface *ifp,
                            uint32_t advertised,

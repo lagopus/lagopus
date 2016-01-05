@@ -143,6 +143,7 @@ static inline void
 app_lcore_worker(struct app_lcore_params_worker *lp,
                  uint32_t bsz_rd,
                  struct worker_arg *arg) {
+  static const uint8_t eth_bcast[] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
   struct port *port;
   struct lagopus_packet *pkt;
   uint32_t i;
@@ -196,7 +197,14 @@ app_lcore_worker(struct app_lcore_params_worker *lp,
        * OFPP_NORMAL.
        */
       lagopus_packet_init(pkt, m, port);
-      if (port->bridge->flowdb->switch_mode == SWITCH_MODE_STANDALONE) {
+      if (
+#ifdef HYBRID
+                !memcmp(OS_MTOD(m, uint8_t *),
+                        port->interface->hw_addr, ETHER_ADDR_LEN) ||
+                !memcmp(OS_MTOD(m, uint8_t *),
+                        eth_bcast, ETHER_ADDR_LEN) ||
+#endif /* HYBRID */
+          port->bridge->flowdb->switch_mode == SWITCH_MODE_STANDALONE) {
         lagopus_forward_packet_to_port(pkt, OFPP_NORMAL);
         lp->mbuf_in.array[j] = NULL;
         continue;
