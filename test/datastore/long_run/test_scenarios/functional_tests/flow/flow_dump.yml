@@ -11,7 +11,7 @@ setup:
         cmd: destroy-all-obj
         result: '{"ret": "OK"}'
       - cmd_type: shell
-        cmd: "{{ shell_dir }}/dummy_eth_up.sh lago_eth 2"
+        cmd: "{{ shell_dir }}/dummy_eth_up.sh lago_eth 4"
         result: "0"
 
 teardown:
@@ -21,7 +21,7 @@ teardown:
         cmd: destroy-all-obj
         result: '{"ret": "OK"}'
       - cmd_type: shell
-        cmd: "{{ shell_dir }}/dummy_eth_down.sh lago_eth 2"
+        cmd: "{{ shell_dir }}/dummy_eth_down.sh lago_eth 4"
         result: "0"
 
 testcases:
@@ -171,3 +171,58 @@ testcases:
               {"output":"local"}]}],
               "stats":{"packet_count":0,
               "byte_count":0}}]}]}]}
+  - testcase: dump flows (multi bridge)
+    test:
+      - repetition_count: 1
+        cmds:
+          # load
+          - cmd_type: ds
+            cmd: load {{ test_home  }}/test_scenarios/functional_tests/flow/flow_multi_bridge.dsl
+            result: '{"ret": "OK"}'
+          # add flow
+          - cmd_type: ds
+            cmd: >-
+               flow bridge01 add
+               in_port=0
+               in_phy_port=1
+               write_metadata=3
+               "apply_actions =dl_type:2, nw_proto:3, output:controller"
+            result: '{"ret":"OK"}'
+          # add flow
+          - cmd_type: ds
+            cmd: >-
+               flow bridge02 add
+               in_port=0
+               in_phy_port=1
+               write_metadata=3
+               "apply_actions =dl_type:2, nw_proto:3, output:controller"
+            result: '{"ret":"OK"}'
+          # dump flow
+          - cmd_type: ds
+            cmd: flow
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":":bridge01",
+              "tables":[{"table":0,
+              "flows":[{"priority":0,
+              "idle_timeout":0,
+              "hard_timeout":0,
+              "cookie":0,
+              "in_port":0,
+              "in_phy_port":1,
+              "actions":[{"write_metadata":"3"},
+              {"apply_actions":[{"dl_type":2},
+              {"nw_proto":3},
+              {"output":"controller"}]}]}]}]},
+              {"name":":bridge02",
+              "tables":[{"table":0,
+              "flows":[{"priority":0,
+              "idle_timeout":0,
+              "hard_timeout":0,
+              "cookie":0,
+              "in_port":0,
+              "in_phy_port":1,
+              "actions":[{"write_metadata":"3"},
+              {"apply_actions":[{"dl_type":2},
+              {"nw_proto":3},
+              {"output":"controller"}]}]}]}]}]}

@@ -276,6 +276,15 @@ typedef void
   const lagopus_pipeline_stage_t *sptr, size_t idx, void *arg);
 
 
+/**
+ * The signature of pipeline stage event buffer free up functions.
+ *
+ *	@param[in]	buf	A buffer address.
+ */
+typedef void
+(*lagopus_pipeline_stage_event_buffer_freeup_proc_t)(void *buf);
+
+
 
 
 

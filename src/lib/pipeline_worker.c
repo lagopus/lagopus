@@ -37,10 +37,10 @@ typedef struct lagopus_pipeline_worker_record {
   worker_main_proc_t m_proc;
   bool m_is_started;
 
-  uint8_t m_buf[0];		/* A buffer for the batch, must be >=
+  uint8_t *m_buf;		/* A buffer for the batch, must be >=
                                  * m_stg->m_batch_buffer_size (in
-                                 * bytes) and placed at the tail of
-                                 * the record. */
+                                 * bytes.) */
+  lagopus_pipeline_stage_event_buffer_freeup_proc_t m_freeup_proc;
 } lagopus_pipeline_worker_record;
 
 
@@ -347,14 +347,15 @@ s_worker_create(lagopus_pipeline_worker_t *wptr,
       sptr != NULL && *sptr != NULL &&
       IS_VALID_STRING((*sptr)->m_name) == true) {
     lagopus_pipeline_worker_t w;
+    uint8_t *evbuf = NULL;
 
     *wptr = NULL;
     /*
      * Allocate a worker.
      */
-    w = (lagopus_pipeline_worker_t)malloc(sizeof(*w) +
-                                          (*sptr)->m_batch_buffer_size);
-    if (w != NULL) {
+    w = (lagopus_pipeline_worker_t)malloc(sizeof(*w));
+    evbuf = (uint8_t *)malloc((*sptr)->m_batch_buffer_size);
+    if (w != NULL && evbuf != NULL) {
       char buf[16];
       snprintf(buf, sizeof(buf), "%s:%d", (*sptr)->m_name, (int)idx);
       if ((ret = lagopus_thread_create((lagopus_thread_t *)&w,
@@ -367,6 +368,8 @@ s_worker_create(lagopus_pipeline_worker_t *wptr,
         w->m_idx = idx;
         w->m_proc = proc;
         w->m_is_started = false;
+        w->m_buf = evbuf;
+        w->m_freeup_proc = free;
         (void)memset((void *)(w->m_buf), 0, (*sptr)->m_batch_buffer_size);
         /*
          * Make the object destroyable via lagopus_thread_destroy() so
@@ -409,6 +412,10 @@ s_worker_wait(lagopus_pipeline_worker_t *wptr, lagopus_chrono_t nsec) {
 
 static inline void
 s_worker_destroy(lagopus_pipeline_worker_t *wptr) {
+  if (wptr != NULL &&
+      (*wptr)->m_buf != NULL && (*wptr)->m_freeup_proc != NULL) {
+    ((*wptr)->m_freeup_proc)((*wptr)->m_buf);
+  }
   lagopus_thread_destroy((lagopus_thread_t *)wptr);
 }
 
@@ -419,6 +426,38 @@ s_worker_set_cpu_affinity(lagopus_pipeline_worker_t *wptr, int cpu) {
   return lagopus_thread_set_cpu_affinity((lagopus_thread_t *)wptr, cpu);
 }
 #endif /* LAGOPUS_OS_LINUX */
+
+
+static inline void *
+s_worker_get_buffer(lagopus_pipeline_worker_t *wptr) {
+  void *ret = NULL;
+
+  if (wptr != NULL && *wptr != NULL) {
+    ret = (void *)((*wptr)->m_buf);
+  }
+
+  return ret;
+}
+
+
+static inline void *
+s_worker_set_buffer(lagopus_pipeline_worker_t *wptr,
+                    void *buf,
+                    lagopus_pipeline_stage_event_buffer_freeup_proc_t
+                    freeup_proc) {
+  void *ret = NULL;
+
+  if (wptr != NULL && *wptr != NULL && buf != NULL) {
+    ret = (*wptr)->m_buf;
+    if ((*wptr)->m_buf != NULL && (*wptr)->m_freeup_proc != NULL) {
+      ((*wptr)->m_freeup_proc)((*wptr)->m_buf);
+    }
+    (*wptr)->m_buf = buf;
+    (*wptr)->m_freeup_proc = freeup_proc;
+  }
+
+  return ret;
+}
 
 
 

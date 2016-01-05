@@ -371,6 +371,7 @@ test_lagopus_pipeline_stage_create_invalid_args(void) {
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS, ret,
                             "not invalid args.");
 
+#if 0
   ret = lagopus_pipeline_stage_create(&stage, 0,
                                       "test_error",
                                       nthd,
@@ -386,6 +387,13 @@ test_lagopus_pipeline_stage_create_invalid_args(void) {
                                       pipeline_freeup);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS, ret,
                             "not invalid args.");
+#else
+  /*
+   * NULL check of the sched_proc is omitted from
+   * commit:e0495bc27542156c5ad85dd53e579611bb241c94, in order to
+   * support "ingress" stages.
+   */
+#endif
 
   ret = lagopus_pipeline_stage_create(&stage, 0,
                                       "test_error",

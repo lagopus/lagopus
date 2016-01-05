@@ -211,9 +211,32 @@
 #endif /* ntohll */
 #endif /* LAGOPUS_BIG_ENDIAN */
 
+#ifdef __GNUC__
 /* Unused argument. */
 #define __UNUSED __attribute__((unused))
+#endif /* __GNUC__ */
+
+#ifdef __GNUC__
+#define lagopus_atomic_update_comp(type, addr, init, val, comp) {       \
+      type __tmp__ = __sync_fetch_and_add((addr), 0);                   \
+      while (true) {                                                    \
+        __tmp__ = __sync_val_compare_and_swap((addr), __tmp__, (val));  \
+        if (unlikely(__tmp__ != (init) && __tmp__ comp (val))){         \
+          continue;                                                     \
+        } else {                                                        \
+          break;                                                        \
+        }                                                               \
+      }                                                                 \
+    }
+
+#define lagopus_atomic_update_min(type, addr, init, val)  \
+    lagopus_atomic_update_comp(type, addr, init, val, >)
+#define lagopus_atomic_update_max(type, addr, init, val)  \
+    lagopus_atomic_update_comp(type, addr, init, val, <)
+#endif /* __GNUC__ */
+
 
 
+
 
 #endif /* ! __LAGOPUS_MACROS_H__ */

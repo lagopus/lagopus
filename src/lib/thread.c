@@ -962,6 +962,123 @@ lagopus_thread_set_cpu_affinity(const lagopus_thread_t *thdptr,
 
 
 lagopus_result_t
+lagopus_thread_get_cpu_affinity(const lagopus_thread_t *thdptr) {
+#ifdef HAVE_PTHREAD_SETAFFINITY_NP
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+
+  if (thdptr != NULL && *thdptr != NULL) {
+    if (s_is_thd(*thdptr) == true) {
+      pthread_t tid;
+
+      s_wait_lock(*thdptr);
+      {
+
+        if ((ret = s_get_pthdid(thdptr, &tid)) == LAGOPUS_RESULT_OK) {
+          int st;
+          cpu_set_t *cur_set = CPU_ALLOC(MAX_CPUS);
+
+          if (cur_set == NULL) {
+            ret = LAGOPUS_RESULT_NO_MEMORY;
+            goto done;
+          }
+          CPU_ZERO_S(s_cpu_set_sz, (*thdptr)->m_cpusetptr);
+
+          if ((st = pthread_getaffinity_np(tid, s_cpu_set_sz, cur_set)) == 0) {
+            int i;
+            int cpu = -INT_MAX;
+
+            for (i = 0; i < MAX_CPUS; i++) {
+              if (CPU_ISSET_S((unsigned)i, s_cpu_set_sz, cur_set)) {
+                cpu = (lagopus_result_t)i;
+                break;
+              }
+            }
+
+            if (cpu != -INT_MAX) {
+
+#if SIZEOF_PTHREAD_T == SIZEOF_INT64_T
+#define TIDFMT "0x" PFTIDS(016, x)
+#elif SIZEOF_PTHREAD_T == SIZEOF_INT
+#define TIDFMT "0x" PFTIDS(08, x)
+#endif /* SIZEOF_PTHREAD_T == SIZEOF_INT64_T ... */
+
+              if ((*thdptr)->m_cpusetptr != NULL &&
+                  (!(CPU_ISSET_S((unsigned)cpu, s_cpu_set_sz,
+                                 (*thdptr)->m_cpusetptr)))) {
+                const char *name =
+                    (IS_VALID_STRING((*thdptr)->m_name) == true) ?
+                    (*thdptr)->m_name : "???";
+              
+
+                lagopus_msg_warning("Thread " TIDFMT " \"%s\" is running on "
+                                    "CPU %d, but is not specified to run "
+                                    "on it.\n",
+                                    tid, name, cpu);
+              }
+                  
+              ret = (lagopus_result_t)cpu;
+
+            } else {
+              lagopus_msg_error("Thread " TIDFMT " is running on unknown "
+                                "CPU??\n", tid);
+              ret = LAGOPUS_RESULT_POSIX_API_ERROR;
+            }
+
+#undef TIDFMT
+
+          } else {
+            errno = st;
+            ret = LAGOPUS_RESULT_POSIX_API_ERROR;
+          }
+
+          CPU_FREE(cur_set);
+
+        } else {	/* (ret = s_get_pthdid(thdptr, &tid)) ... */
+
+          if (ret == LAGOPUS_RESULT_NOT_STARTED) {
+            if ((*thdptr)->m_cpusetptr != NULL) {
+              int i;
+              int cpu = -INT_MAX;
+
+              for (i = 0; i < MAX_CPUS; i++) {
+                if (CPU_ISSET_S((unsigned)i, s_cpu_set_sz,
+                                (*thdptr)->m_cpusetptr)) {
+                  cpu = (lagopus_result_t)i;
+                  break;
+                }
+              }
+
+              if (cpu != -INT_MAX) {
+                ret = (lagopus_result_t)cpu;
+              } else {
+                ret = LAGOPUS_RESULT_NOT_DEFINED;
+              }
+            } else {
+              ret = LAGOPUS_RESULT_NOT_DEFINED;
+            }
+          }
+
+        }
+
+      }
+    done:
+      s_wait_unlock(*thdptr);
+
+    } else {
+      ret = LAGOPUS_RESULT_INVALID_OBJECT;
+    }
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  return ret;
+#else
+  return 0;
+#endif /* HAVE_PTHREAD_SETAFFINITY_NP */
+}
+
+
+lagopus_result_t
 lagopus_thread_set_result_code(const lagopus_thread_t *thdptr,
                                lagopus_result_t code) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
