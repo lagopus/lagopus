@@ -593,6 +593,46 @@ class Topcmd(Cmd):
                   'interface', 'meter', 'port', 'version']
         return [name for name in params if name.startswith(text)]
 
+    def subcmd_show(self, line, key='bridge', stats='stats'):
+        args = line.split()
+        try:
+            subcmd = args[0]
+        except:
+            print 'Argument error'
+            return
+
+        if len(args) >= 2:
+            req = subcmd + ' ' + args[1] + ' ' + stats + '\n'
+            try:
+                res = ds_client().call(req)[0]
+            except:
+                print 'invalid keyword: ' + args[1]
+                return
+            if len(args) == 3:
+                try:
+                    res = res[args[2]]
+                except:
+                    print 'invalid keyword: ' + args[2]
+                    return
+            self.output(json.dumps(res, indent=4) + '\n')
+        else:
+            try:
+                odata = []
+                data = ds_client().call(key + '\n')
+                for ifdata in data:
+                    name = ifdata['name']
+                    req = subcmd + ' ' + name.encode() + ' ' + stats + '\n'
+                    res = ds_client().call(req)[0]
+                    try:
+                        res['name'] = name
+                        res['is-enabled'] = ifdata['is-enabled']
+                    except:
+                        pass
+                    odata.append(res)
+                self.output(json.dumps(odata, indent=4) + '\n')
+            except TypeError:
+                return
+
     def do_show(self, line):
         """
         Show statistics.
@@ -609,19 +649,14 @@ class Topcmd(Cmd):
             print 'Argument error'
             return
 
-        if subcmd == 'bridge':
-            odata = []
-            data = ds_client().call('bridge\n')
-            try:
-                for ifdata in data:
-                    req = 'bridge ' + ifdata['name'].encode() + ' stats\n'
-                    res = ds_client().call(req)[0]
-                    res['name'] = ifdata['name']
-                    res['is-enabled'] = ifdata['is-enabled']
-                    odata.append(res)
-                self.output(json.dumps(odata, indent=4) + '\n')
-            except:
-                return
+        if subcmd in ['bridge', 'group', 'meter']:
+            self.subcmd_show(line)
+
+        elif subcmd == 'flow':
+            self.subcmd_show(line, 'bridge', '-with-stats')
+
+        elif subcmd in ['interface', 'port']:
+            self.subcmd_show(line, subcmd)
 
         elif subcmd == 'channel':
             data = ds_client().call('channel\n')
@@ -630,68 +665,6 @@ class Topcmd(Cmd):
         elif subcmd == 'controller':
             data = ds_client().call('controller\n')
             self.output(json.dumps(data, indent=4))
-
-        elif subcmd == 'flow':
-            odata = []
-            data = ds_client().call('bridge\n')
-            try:
-                for ifdata in data:
-                    req = 'flow ' + ifdata['name'].encode() + ' -with-stats\n'
-                    res = ds_client().call(req)[0]
-                    odata.append(res)
-                self.output(json.dumps(odata, indent=4) + '\n')
-            except:
-                return
-
-        elif subcmd == 'group':
-            odata = []
-            data = ds_client().call('bridge\n')
-            try:
-                for ifdata in data:
-                    req = 'group ' + ifdata['name'].encode() + ' stats\n'
-                    res = ds_client().call(req)[0]
-                    odata.append(res)
-                self.output(json.dumps(odata, indent=4) + '\n')
-            except:
-                return
-
-        elif subcmd == 'interface':
-            odata = []
-            data = ds_client().call('interface\n')
-            try:
-                for ifdata in data:
-                    req = 'interface ' + ifdata['name'].encode() + ' stats\n'
-                    res = ds_client().call(req)[0]
-                    res['name'] = ifdata['name']
-                    odata.append(res)
-                self.output(json.dumps(odata, indent=4) + '\n')
-            except:
-                return
-
-        elif subcmd == 'meter':
-            odata = []
-            data = ds_client().call('bridge\n')
-            try:
-                for ifdata in data:
-                    req = 'meter ' + ifdata['name'].encode() + ' stats\n'
-                    res = ds_client().call(req)[0]
-                    odata.append(res)
-                self.output(json.dumps(odata, indent=4) + '\n')
-            except:
-                return
-
-        elif subcmd == 'port':
-            odata = []
-            data = ds_client().call('port\n')
-            try:
-                for ifdata in data:
-                    req = 'port ' + ifdata['name'].encode() + ' stats\n'
-                    res = ds_client().call(req)[0]
-                    res['name'] = ifdata['name']
-                    odata.append(res)
-                self.output(json.dumps(odata, indent=4) + '\n')
-            except:
-                return
 
         elif subcmd == 'version':
             data = ds_client().call('version\n')
