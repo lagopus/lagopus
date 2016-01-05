@@ -93,7 +93,8 @@ lagopus_result_t dp_interface_unconfigure_internal(struct interface *ifp);
  */
 lagopus_result_t
 dp_interface_send_packet_normal(struct lagopus_packet *pkt,
-                                struct interface *ifp);
+                                struct interface *ifp,
+                                bool l2_bridge);
 lagopus_result_t
 dp_interface_change_config(struct interface *ifp,
                            uint32_t advertised,

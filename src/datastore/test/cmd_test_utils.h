@@ -316,73 +316,6 @@
                  _str, _inter_str1);                                  \
 }
 
-#define TEST_L2_BRIDGE_CREATE(_ret, _interp, _state, _tbl,              \
-                              _ds, _str, _l2_name) {                    \
-    const char *_l2[] = {"l2-bridge", _l2_name, "create",               \
-                         "-expire", "1",                                \
-                         "-max-entries", "1",                           \
-                         NULL};                                         \
-    const char _l2_str[] = "{\"ret\":\"OK\"}";                          \
-    /* l2 bridge create cmd. */                                         \
-    TEST_CMD_PARSE(_ret, LAGOPUS_RESULT_OK, l2_bridge_cmd_parse,        \
-                   _interp, _state, ARGV_SIZE(_l2), _l2,                \
-                   _tbl, l2_bridge_cmd_update, _ds,                     \
-                   str, _l2_str);                                       \
-  }
-
-#define TEST_L2_BRIDGE_DESTROY(_ret, _interp, _state, _tbl,             \
-                               _ds, _str, _l2_name) {                   \
-    const char *_l2[] = {"l2-bridge", _l2_name, "destroy",              \
-                         NULL};                                         \
-    const char _l2_str[] = "{\"ret\":\"OK\"}";                          \
-    /* l2 bridge destroy cmd. */                                        \
-    TEST_CMD_PARSE(_ret, LAGOPUS_RESULT_OK, l2_bridge_cmd_parse,        \
-                   _interp, _state, ARGV_SIZE(_l2), _l2,                \
-                   _tbl, l2_bridge_cmd_update, _ds,                     \
-                   str, _l2_str);                                       \
-  }
-
-#define TEST_BRIDGE_CREATE_FOR_L2B(_ret, _interp, _state, _tbl,         \
-                                   _ds, _str, _name, _dpid,             \
-                                   _l2_name, _c_name, _ctrler_name,     \
-                                   _inter_name, _port_name,             \
-                                   _port_no) {                          \
-    const char *_b[] = {"bridge", _name, "create",                      \
-                        "-controller", _ctrler_name,                    \
-                        "-port", _port_name, _port_no,                  \
-                        "-l2-bridge", _l2_name,                         \
-                        "-dpid", _dpid,                                 \
-                        NULL};                                          \
-    const char _b_str[] = "{\"ret\":\"OK\"}";                           \
-    TEST_CONTROLLER_CREATE(_ret, _interp, _state, _tbl,                 \
-                           _ds, _str, _c_name, _ctrler_name);           \
-    TEST_PORT_CREATE(_ret, _interp, _state, _tbl,                       \
-                     _ds, _str, _inter_name, _port_name, _port_no);     \
-    /* bridge create cmd. */                                            \
-    TEST_CMD_PARSE(_ret, LAGOPUS_RESULT_OK, bridge_cmd_parse,           \
-                   _interp, _state, ARGV_SIZE(_b), _b,                  \
-                   _tbl, bridge_cmd_update, _ds,                        \
-                   str, _b_str);                                        \
-  }
-
-#define TEST_BRIDGE_DESTROY_FOR_L2B(_ret, _interp, _state, _tbl,        \
-                                    _ds, _str, _name,                   \
-                                    _c_name, _ctrler_name,              \
-                                    _inter_name, _port_name) {          \
-    const char *_b[] = {"bridge", _name, "destroy",                     \
-                        NULL};                                          \
-    const char _b_str[] = "{\"ret\":\"OK\"}";                           \
-    /* bridge destroy cmd. */                                           \
-    TEST_CMD_PARSE(_ret, LAGOPUS_RESULT_OK, bridge_cmd_parse,           \
-                   _interp, _state, ARGV_SIZE(_b), _b,                  \
-                   _tbl, bridge_cmd_update, _ds,                        \
-                   str, _b_str);                                        \
-    TEST_CONTROLLER_DESTROY(_ret, _interp, _state, _tbl,                \
-                            _ds, _str, _c_name, _ctrler_name);          \
-    TEST_PORT_DESTROY(_ret, _interp, _state, _tbl,                      \
-                      _ds, _str, _inter_name, _port_name);              \
-  }
-
 #define TEST_BRIDGE_CREATE(_ret, _interp, _state, _tbl,                 \
                            _ds, _str, _name, _dpid,                     \
                            _c_name, _ctrler_name,                       \
@@ -409,10 +342,18 @@
                             _ds, _str, _name,                           \
                             _c_name, _ctrler_name,                      \
                             _inter_name, _port_name) {                  \
-    TEST_BRIDGE_DESTROY_FOR_L2B(_ret, _interp, _state, _tbl,            \
-                                _ds, _str, _name,                       \
-                                _c_name, _ctrler_name,                  \
-                                _inter_name, _port_name);               \
+    const char *_b[] = {"bridge", _name, "destroy",                     \
+                        NULL};                                          \
+    const char _b_str[] = "{\"ret\":\"OK\"}";                           \
+    /* bridge destroy cmd. */                                           \
+    TEST_CMD_PARSE(_ret, LAGOPUS_RESULT_OK, bridge_cmd_parse,           \
+                   _interp, _state, ARGV_SIZE(_b), _b,                  \
+                   _tbl, bridge_cmd_update, _ds,                        \
+                   str, _b_str);                                        \
+    TEST_CONTROLLER_DESTROY(_ret, _interp, _state, _tbl,                \
+                            _ds, _str, _c_name, _ctrler_name);          \
+    TEST_PORT_DESTROY(_ret, _interp, _state, _tbl,                      \
+                      _ds, _str, _inter_name, _port_name);              \
   }
 
 #define TEST_QUEUE_CREATE(_ret, _interp, _state, _tbl,                  \

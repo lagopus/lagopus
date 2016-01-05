@@ -25,6 +25,9 @@
 #include "lagopus/flowdb.h"
 #include "lagopus/group.h"
 #include "lagopus/meter.h"
+#ifdef HYBRID
+#include "lagopus/mactable.h"
+#endif /* HYBRID */
 #include "lagopus/vector.h"
 
 #include "lagopus/dp_apis.h"
@@ -32,7 +35,9 @@
 #define SET32_FLAG(V, F)        (V) = (V) | (uint32_t)(F)
 #define UNSET32_FLAG(V, F)      (V) = (V) & (uint32_t)~(F)
 
-/* Allocate a new bridge. */
+/**
+ * Allocate a new bridge.
+ */
 struct bridge *
 bridge_alloc(const char *name) {
   struct bridge *bridge;
@@ -97,6 +102,12 @@ bridge_alloc(const char *name) {
     goto out;
   }
 
+#ifdef HYBRID
+  if (init_mactable(&bridge->mactable) != LAGOPUS_RESULT_OK) {
+    goto out;
+  }
+#endif /* HYBRID */
+
   /* Return bridge. */
   return bridge;
 
@@ -105,7 +116,9 @@ out:
   return NULL;
 }
 
-/* Bridge free. */
+/**
+ *Bridge free.
+ */
 void
 bridge_free(struct bridge *bridge) {
   if (bridge->ports != NULL) {
@@ -134,8 +147,158 @@ bridge_free(struct bridge *bridge) {
   if (bridge->meter_table != NULL) {
     meter_table_free(bridge->meter_table);
   }
+#ifdef HYBRID
+  fini_mactable(&bridge->mactable);
+#endif /* HYBRID */
   free(bridge);
 }
+
+#ifdef HYBRID
+/**
+ * Set ageing time of the mac table.
+ */
+lagopus_result_t
+bridge_mactable_ageing_time_set(struct bridge *bridge, uint32_t ageing_time) {
+  mactable_set_ageing_time(&bridge->mactable, ageing_time);
+
+  return LAGOPUS_RESULT_OK;
+}
+
+/**
+ * Set max entries of the mac table.
+ */
+lagopus_result_t
+bridge_mactable_max_entries_set(struct bridge *bridge, uint16_t max_entries) {
+  mactable_set_max_entries(&bridge->mactable, max_entries);
+
+  return LAGOPUS_RESULT_OK;
+}
+
+/**
+ * Update entry in the mac table.
+ */
+lagopus_result_t
+bridge_mactable_entry_set(struct bridge *bridge,
+                          const uint8_t ethaddr[],
+                          uint32_t portid) {
+  return mactable_entry_update(&bridge->mactable, ethaddr, portid);
+}
+
+/**
+ * Modify entry in the mac table.
+ */
+lagopus_result_t
+bridge_mactable_entry_modify(struct bridge *bridge,
+                             const uint8_t ethaddr[],
+                             uint32_t portid) {
+  return mactable_entry_update(&bridge->mactable, ethaddr, portid);
+}
+
+/**
+ * Delete entry in the mac table.
+ */
+lagopus_result_t
+bridge_mactable_entry_delete(struct bridge *bridge, const uint8_t ethaddr[]) {
+  return mactable_entry_delete(&bridge->mactable, ethaddr);
+}
+
+/**
+ * Clear all entries in the mac table.
+ */
+lagopus_result_t
+bridge_mactable_entry_clear(struct bridge *bridge) {
+  return mactable_entry_clear(&bridge->mactable);
+}
+
+/* for debug */
+static lagopus_result_t
+mac_addr_to_str(uint64_t mac, char *macstr) {
+  int i, j;
+  uint8_t str[6];
+  for (i = 6 - 1, j = 0; i >= 0; i--, j++)
+    str[j] = 0xff & mac >> (8 * i);
+  sprintf(macstr, "%02x:%02x:%02x:%02x:%02x:%02x",
+          str[5], str[4], str[3], str[2], str[1], str[0]);
+}
+
+static bool
+get_macentry(void *key, void *val, lagopus_hashentry_t he, void *arg) {
+  bool result = false;
+  char macstr[18];
+  struct mactable_args *ma = (struct mactable_args *)arg;
+  struct macentry *entries = (struct macentry *)ma->entries;
+  struct macentry *entry = (struct macentry *)val;
+  (void) he;
+  (void) key;
+
+  if (val != NULL || ma->no < ma->num) {
+    entries[ma->no].inteth = entry->inteth;
+    entries[ma->no].portid = entry->portid;
+    entries[ma->no].update_time = entry->update_time;
+    entries[ma->no].address_type = entry->address_type;
+    ma->no++;
+    result = true;
+  } else {
+    result = false;
+  }
+
+  return result;
+}
+
+lagopus_result_t
+bridge_mactable_entries_get(struct bridge *bridge,
+                            struct macentry *entries,
+                            unsigned int num) {
+  int cnt; // debug
+  char macstr[18]; //debug
+
+  lagopus_result_t result;
+  struct mactable_args ma;
+  struct mactable *mactable = &bridge->mactable;
+
+  ma.entries = entries;
+  ma.num = num;
+  ma.no = 0;
+  result = lagopus_hashmap_iterate(&mactable->hashmap, get_macentry, &ma);
+
+  if (result == LAGOPUS_RESULT_OK) {
+  } else {
+    lagopus_perror(result);
+  }
+
+  for (cnt = 0; cnt < num; cnt++) {
+    mac_addr_to_str(entries[cnt].inteth, macstr);
+    lagopus_msg_info("inteth: %s\n", macstr);
+    lagopus_msg_info("port: %"PRIu32"\n", entries[cnt].portid);
+    lagopus_msg_info("address type: %s\n",
+                     (entries[cnt].address_type == MACTABLE_SETTYPE_STATIC ?
+                      "static" : "dynamic"));
+    lagopus_msg_info("update time: %"PRIu32"\n",
+                     (uint32_t)(entries[cnt].update_time.tv_sec));
+  }
+
+  return result;
+}
+
+unsigned int
+bridge_mactable_num_entries_get(struct bridge *bridge) {
+  struct mactable *mactable = &bridge->mactable;
+
+  return (unsigned int)lagopus_hashmap_size(&mactable->hashmap);
+}
+
+lagopus_result_t
+bridge_mactable_ageing_time_get(struct bridge *bridge, uint32_t *ageing_time) {
+  *ageing_time = mactable_get_ageing_time(&bridge->mactable);
+  return LAGOPUS_RESULT_OK;
+}
+
+lagopus_result_t
+bridge_mactable_max_entries_get(struct bridge *bridge, uint32_t *max_entries) {
+  *max_entries = mactable_get_max_entries(&bridge->mactable);
+  return LAGOPUS_RESULT_OK;
+}
+#endif /* HYBRID */
 
 lagopus_result_t
 bridge_fail_mode_get(struct bridge *bridge,

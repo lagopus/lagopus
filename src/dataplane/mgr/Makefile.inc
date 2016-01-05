@@ -3,6 +3,7 @@ DPMGRSRCS+= desc.c queue.c dp_apis.c interface.c thread.c
 ifeq (${OSDEF}, LAGOPUS_OS_LINUX)
 DPMGRSRCS += sock_io.c tap_io.c
 endif
+HYBRIDSRCS = mactable.c
 ifeq (${OSDEF}, LAGOPUS_OS_NETBSD)
 DPMGRSRCS += bpf_io.c
 endif

@@ -217,6 +217,11 @@ typedef struct datastore_bridge_info {
   uint32_t max_ports;
   uint8_t max_tables;
   uint32_t max_flows;
+#ifdef HYBRID
+  bool l2_bridge;
+  uint32_t mactable_ageing_time;
+  uint32_t mactable_max_entries;
+#endif /* HYBRID */
   uint64_t capabilities;          /* flags (DATASTORE_BRIDGE_CAPABILITY_TYPE_*) */
   uint64_t action_types;          /* flags (DATASTORE_BRIDGE_ACTION_TYPE_*) */
   uint64_t instruction_types;     /* flags (DATASTORE_BRIDGE_INSTRUCTION_TYPE_*) */
@@ -252,20 +257,6 @@ typedef struct datastore_bridge_stats {
   uint64_t flow_matched_count;
 } datastore_bridge_stats_t;
 
-/**
- * @brief	datastore_bridge_l2_info_t
- */
-typedef struct datastore_bridge_l2_info {
-  uint64_t index; /* zero based. */
-  uint8_t hw_addr[6];
-  uint32_t port_number;
-  uint64_t ageing_timer;
-} datastore_bridge_l2_info_t;
-
-typedef lagopus_result_t
-(*datastore_l2_dump_proc_t)(datastore_bridge_l2_info_t *entry,
-                            FILE *fp,
-                            lagopus_dstring_t *result);
 
 /**
  * @brief	datastore_bridge_meter_info_list_t
@@ -351,19 +342,6 @@ lagopus_result_t
 datastore_bridge_get_port_names(const char *name,
                                 bool current,
                                 datastore_name_info_t **port_names);
-
-/**
- * Get the value to attribute 'l2_bridge_name' of the bridge table record'
- *
- *  @param[in] name
- *  @param[in] current
- *  @param[out] l2_bridge_name the value of attribute 'l2_bridge_name'
- *
- *  @retval == LAGOPUS_RESULT_OK the attribute 'l2_bridge_name' getted sucessfully.
- */
-lagopus_result_t
-datastore_bridge_get_l2_bridge_name(const char *name, bool current,
-                                    char **l2_bridge_name);
 
 /**
  * Get the value to attribute 'fail_mode' of the bridge table record'
@@ -693,6 +671,7 @@ datastore_bridge_get_name_by_dpid(uint64_t dpid,
 lagopus_result_t
 datastore_bridge_get_names(const char *name,
                            datastore_name_info_t **names);
+
 
 
 #endif /* ! __LAGOPUS_DATASTORE_BRIDGE_H__ */

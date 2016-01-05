@@ -1456,7 +1456,7 @@ lagopus_forward_packet_to_port(struct lagopus_packet *pkt,
     case OFPP_NORMAL:
       /* optional */
       DP_PRINT("OFPP_NORMAL\n");
-      dp_interface_send_packet_normal(pkt, pkt->in_port->interface);
+      dp_interface_send_packet_normal(pkt, pkt->in_port->interface, pkt->in_port->bridge->l2_bridge);
       lagopus_packet_free(pkt);
       break;
 

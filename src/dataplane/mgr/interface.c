@@ -25,6 +25,7 @@
 #include "lagopus/ofp_dp_apis.h" /* for port_stats */
 
 #ifdef HYBRID
+#include "lagopus/mactable.h"
 #include "tap_io.h"
 #endif /* HYBRID */
 
@@ -191,9 +192,15 @@ dp_interface_stop_internal(struct interface *ifp) {
 
 lagopus_result_t
 dp_interface_send_packet_normal(struct lagopus_packet *pkt,
-                                struct interface *ifp) {
+                                struct interface *ifp,
+                                bool l2_bridge) {
 #ifdef HYBRID
-  if (ifp->tap != NULL) {
+  uint32_t port;
+
+  if (l2_bridge == true) {
+    port = find_and_learn_port_in_mac_table(pkt);
+    lagopus_forward_packet_to_port(pkt, port);
+  } else if (ifp->tap != NULL) {
     return dp_tap_interface_send_packet(ifp->tap, pkt);
   }
 #else

@@ -21,6 +21,9 @@
 #include "lagopus/datastore.h"
 #include "datastore_internal.h"
 #include "flow_cmd.h"
+#ifdef HYBRID
+#include "mactable_cmd.h"
+#endif /* HYBRID */
 #include "channel_cmd.h"
 #include "controller_cmd.h"
 #include "interface_cmd.h"
@@ -30,7 +33,6 @@
 #include "meter_cmd.h"
 #include "group_cmd.h"
 #include "affinition_cmd.h"
-#include "l2_bridge_cmd.h"
 #include "queue_cmd.h"
 #include "policer_cmd.h"
 #include "policer_action_cmd.h"
@@ -279,6 +281,12 @@ datastore_all_commands_initialize(void) {
     lagopus_perror(ret);
     goto done;
   }
+#ifdef HYBRID
+  if ((ret = mactable_cmd_initialize()) != LAGOPUS_RESULT_OK) {
+    lagopus_perror(ret);
+    goto done;
+  }
+#endif /* HYBRID */
   if ((ret = namespace_cmd_initialize()) != LAGOPUS_RESULT_OK) {
     lagopus_perror(ret);
     goto done;
@@ -292,10 +300,6 @@ datastore_all_commands_initialize(void) {
     goto done;
   }
   if ((ret = affinition_cmd_initialize()) != LAGOPUS_RESULT_OK) {
-    lagopus_perror(ret);
-    goto done;
-  }
-  if ((ret = l2_bridge_cmd_initialize()) != LAGOPUS_RESULT_OK) {
     lagopus_perror(ret);
     goto done;
   }
@@ -319,6 +323,9 @@ done:
 void
 datastore_all_commands_finalize(void) {
   flow_cmd_finalize();
+#ifdef HYBRID
+  mactable_cmd_finalize();
+#endif /* HYBRID */
   interface_cmd_finalize();
   port_cmd_finalize();
   channel_cmd_finalize();
@@ -328,7 +335,6 @@ datastore_all_commands_finalize(void) {
   meter_cmd_finalize();
   group_cmd_finalize();
   affinition_cmd_finalize();
-  l2_bridge_cmd_finalize();
   queue_cmd_finalize();
   policer_cmd_finalize();
   policer_action_cmd_finalize();

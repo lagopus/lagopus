@@ -14,9 +14,15 @@
  * limitations under the License.
  */
 
+/**
+ *      @file   bridge.c
+ *      @brief  DSL for bridge management.
+ */
+
 #include "lagopus/datastore.h"
 #include "datastore_internal.h"
 #include "ns_util.h"
+#include "bridge_cmd_internal.h"
 
 #define MINIMUM_BUFFERED_PACKETS 0
 #define MAXIMUM_BUFFERED_PACKETS UINT16_MAX
@@ -38,12 +44,22 @@
 #define MAXIMUM_DOWN_STREAMQ_SIZE UINT16_MAX
 #define MINIMUM_DOWN_STREAMQ_MAX_BATCHES 0
 #define MAXIMUM_DOWN_STREAMQ_MAX_BATCHES UINT16_MAX
+#ifdef HYBRID
+/* ageing time for mactable. */
+#define MINIMUM_MACTABLE_AGEING_TIME 10
+#define MAXIMUM_MACTABLE_AGEING_TIME 1000000
+#define DEFAULT_MACTABLE_AGEING_TIME 300
+/* number of max entries for mactable. */
+#define MINIMUM_MACTABLE_MAX_ENTRIES 10      /* TODO: */
+#define MAXIMUM_MACTABLE_MAX_ENTRIES 65535   /* TODO: */
+#define DEFAULT_MACTABLE_MAX_ENTRIES 8192
+#endif /* HYBRID */
 
+/* bridge attributes. */
 typedef struct bridge_attr {
   uint64_t dpid;
   datastore_name_info_t *controller_names;
   datastore_name_info_t *port_names;
-  char l2_bridge_name[DATASTORE_L2_BRIDGE_FULLNAME_MAX + 1];
   datastore_bridge_fail_mode_t fail_mode;
   bool flow_statistics;
   bool group_statistics;
@@ -67,6 +83,12 @@ typedef struct bridge_attr {
   uint16_t up_streamq_max_batches;
   uint16_t down_streamq_size;
   uint16_t down_streamq_max_batches;
+#ifdef HYBRID
+  bool l2_bridge;
+  uint32_t mactable_ageing_time;
+  uint32_t mactable_max_entries;
+  bridge_mactable_info_t *mactable_entries;
+#endif /* HYBRID */
 } bridge_attr_t;
 
 typedef struct bridge_conf {
@@ -178,15 +200,313 @@ typedef struct {
 
 static lagopus_hashmap_t bridge_table = NULL;
 
+#ifdef HYBRID
+/* mactable entry list utilities */
+/**
+ * Destory mac entry in mac table list.
+ */
+lagopus_result_t
+bridge_mactable_entry_destroy(bridge_mactable_info_t *entries) {
+  struct bridge_mactable_entry *entry = NULL;
+
+  if (entries == NULL) {
+    return LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  while ((entry = TAILQ_FIRST(&(entries->head))) != NULL) {
+    TAILQ_REMOVE(&(entries->head), entry, mactable_entries);
+    free(entry);
+  }
+  entries->size = 0;
+
+  free((void *) entries);
+
+  return LAGOPUS_RESULT_OK;
+}
+
+/**
+ * Create mac entry list.
+ */
+lagopus_result_t
+bridge_mactable_entry_create(bridge_mactable_info_t **entries) {
+  if (entries== NULL) {
+    return LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  if (*entries != NULL) {
+    bridge_mactable_entry_destroy(*entries);
+    *entries = NULL;
+  }
+
+  if ((*entries =
+       (bridge_mactable_info_t *) malloc(sizeof(bridge_mactable_info_t)))
+       == NULL) {
+    return LAGOPUS_RESULT_NO_MEMORY;
+  }
+  (*entries)->size = 0;
+  TAILQ_INIT(&((*entries)->head));
+
+  return LAGOPUS_RESULT_OK;
+}
+
+/**
+ * Duplicate mac entry for mac entry list.
+ */
+lagopus_result_t
+bridge_mactable_entry_duplicate(const bridge_mactable_info_t *src_entries,
+                          bridge_mactable_info_t **dst_entries) {
+  struct bridge_mactable_entry *src_entry = NULL;
+  struct bridge_mactable_entry *dst_entry = NULL;
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+
+  if (src_entries == NULL || dst_entries == NULL) {
+    return LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  if (*dst_entries != NULL) {
+    bridge_mactable_entry_destroy(*dst_entries);
+    *dst_entries = NULL;
+  }
+
+  *dst_entries =
+     (bridge_mactable_info_t *) malloc(sizeof(bridge_mactable_info_t));
+  if (*dst_entries == NULL) {
+    return LAGOPUS_RESULT_NO_MEMORY;
+  }
+  memset(*dst_entries, 0, sizeof(bridge_mactable_info_t));
+
+  TAILQ_INIT(&((*dst_entries)->head));
+
+  TAILQ_FOREACH(src_entry, &(src_entries->head), mactable_entries) {
+    dst_entry =
+      (struct bridge_mactable_entry *)
+       malloc(sizeof(struct bridge_mactable_entry));
+    if (dst_entry == NULL) {
+      ret = LAGOPUS_RESULT_NO_MEMORY;
+      goto error;
+    }
+    TAILQ_INSERT_TAIL(&((*dst_entries)->head), dst_entry, mactable_entries);
+    ret = copy_mac_address(src_entry->mac_address, dst_entry->mac_address);
+    if (ret != LAGOPUS_RESULT_OK) {
+      goto error;
+    }
+    dst_entry->port_no = src_entry->port_no;
+    (*dst_entries)->size++;
+  }
+
+  return LAGOPUS_RESULT_OK;
+
+error:
+  bridge_mactable_entry_destroy(*dst_entries);
+  *dst_entries = NULL;
+  return ret;
+}
+
+/**
+ * Check if mac entry is exist in mac entry list.
+ */
+bool
+bridge_mactable_entry_exists(const bridge_mactable_info_t *entries,
+                             const struct bridge_mactable_entry *in) {
+  struct bridge_mactable_entry *entry = NULL;
+
+  if (entries != NULL && in != NULL) {
+    TAILQ_FOREACH(entry, &(entries->head), mactable_entries) {
+      if (equals_mac_address(entry->mac_address, in->mac_address) == true
+          && entry->port_no == in->port_no) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Check if mac entries are same.
+ */
+bool
+bridge_mactable_entry_equals(const bridge_mactable_info_t *entries0,
+                       const bridge_mactable_info_t *entries1) {
+  struct bridge_mactable_entry *entry = NULL;
+
+  if (entries0 == NULL || entries1 == NULL) {
+    return false;
+  }
+
+  if (entries0->size != entries1->size) {
+    return false;
+  }
+
+  TAILQ_FOREACH(entry, &(entries0->head), mactable_entries) {
+    if (bridge_mactable_entry_exists(entries1, entry) == false) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/**
+ * Add new mac entry to mac entry list.
+ */
+lagopus_result_t
+bridge_mactable_add_entries(bridge_mactable_info_t *entries,
+                            const mac_address_t addr,
+                            const uint32_t port_no) {
+  struct bridge_mactable_entry *e = NULL;
+  struct bridge_mactable_entry *entry = NULL;
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+
+  if (entries == NULL || addr == NULL || port_no <= 0) {
+    return LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  /* check entry list. */
+  TAILQ_FOREACH(entry, &(entries->head), mactable_entries) {
+    /* mac address the same information */
+    if (equals_mac_address(entry->mac_address, addr) == true) {
+      TAILQ_REMOVE(&(entries->head), entry, mactable_entries);
+      free(entry);
+      entries->size--;
+      break;
+    }
+  }
+
+  /* add new entry. */
+  e = malloc(sizeof(struct bridge_mactable_entry));
+  if (e == NULL) {
+    return LAGOPUS_RESULT_NO_MEMORY;
+  }
+
+  ret = copy_mac_address(addr, e->mac_address);
+  if (ret != LAGOPUS_RESULT_OK) {
+    return ret;
+  }
+  e->port_no = port_no;
+
+  TAILQ_INSERT_TAIL(&(entries->head), e, mactable_entries);
+  entries->size++;
+
+  return LAGOPUS_RESULT_OK;
+}
+
+/**
+ * Remove mac entry from mac entry list.
+ */
+lagopus_result_t
+bridge_mactable_remove_entry(bridge_mactable_info_t *entries,
+                             const mac_address_t addr) {
+  struct bridge_mactable_entry *entry = NULL;
+
+  if (entries == NULL || addr == NULL) {
+    return LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  TAILQ_FOREACH(entry, &(entries->head), mactable_entries) {
+    /* mac address the same information */
+    if (equals_mac_address(entry->mac_address, addr) == true) {
+      TAILQ_REMOVE(&(entries->head), entry, mactable_entries);
+      free(entry);
+
+      entries->size--;
+
+      break;
+    }
+  }
+
+  return LAGOPUS_RESULT_OK;
+}
+
+/**
+ * Remove all entries from mac entry list.
+ */
+lagopus_result_t
+bridge_mactable_remove_all_entries(bridge_mactable_info_t *entries) {
+  struct bridge_mactable_entry *entry = NULL;
+
+  if (entries == NULL) {
+    return LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  while ((entry = TAILQ_FIRST(&(entries->head))) != NULL) {
+    TAILQ_REMOVE(&(entries->head), entry, mactable_entries);
+    free(entry);
+  }
+  entries->size = 0;
+
+  return LAGOPUS_RESULT_OK;
+}
+
+
+
+/**
+ * Check if mac entry is exist in mac entry list.
+ */
+static inline bool
+bridge_attr_mactable_entry_exists(const bridge_attr_t *attr,
+                                  struct bridge_mactable_entry *entry) {
+  if (attr == NULL || entry == NULL) {
+    return false;
+  }
+  return bridge_mactable_entry_exists(attr->mactable_entries, entry);
+}
+
+/**
+ * Add mac entry to mac entry list.
+ */
+static inline lagopus_result_t
+bridge_attr_add_mactable_entry(const bridge_attr_t *attr,
+                               const mac_address_t addr,
+                               const uint32_t port_no) {
+  if (attr == NULL || addr == NULL || port_no <= 0) {
+    return LAGOPUS_RESULT_INVALID_ARGS;
+  }
+  return bridge_mactable_add_entries(attr->mactable_entries, addr, port_no);
+}
+
+/**
+ * Remove mac entry from mac entry list.
+ */
+static inline lagopus_result_t
+bridge_attr_remove_mactable_entry(const bridge_attr_t *attr,
+                                  const mac_address_t addr) {
+  if (attr == NULL || addr == NULL) {
+    return LAGOPUS_RESULT_INVALID_ARGS;
+  }
+  return bridge_mactable_remove_entry(attr->mactable_entries, addr);
+}
+
+/**
+ * Remove all mac entries from mac entry list.
+ */
+static inline lagopus_result_t
+bridge_attr_remove_all_mactable_entry(const bridge_attr_t *attr) {
+  if (attr == NULL) {
+    return LAGOPUS_RESULT_INVALID_ARGS;
+  }
+  return bridge_mactable_remove_all_entries(attr->mactable_entries);
+}
+#endif /* HYBRID */
+
+/**
+ * Destroy attributes of bridge.
+ */
 static inline void
 bridge_attr_destroy(bridge_attr_t *attr) {
   if (attr != NULL) {
     datastore_names_destroy(attr->controller_names);
     datastore_names_destroy(attr->port_names);
+#ifdef HYBRID
+    bridge_mactable_entry_destroy(attr->mactable_entries);
+#endif /* HYBRID */
     free((void *) attr);
   }
 }
 
+/**
+ * Create attributes of bridge.
+ */
 static inline lagopus_result_t
 bridge_attr_create(bridge_attr_t **attr) {
   lagopus_result_t rc;
@@ -208,6 +528,9 @@ bridge_attr_create(bridge_attr_t **attr) {
   (*attr)->dpid = 0;
   (*attr)->controller_names = NULL;
   (*attr)->port_names = NULL;
+#ifdef HYBRID
+  (*attr)->mactable_entries = NULL;
+#endif /* HYBRID */
   rc = datastore_names_create(&((*attr)->controller_names));
   if (rc != LAGOPUS_RESULT_OK) {
     goto error;
@@ -216,7 +539,13 @@ bridge_attr_create(bridge_attr_t **attr) {
   if (rc != LAGOPUS_RESULT_OK) {
     goto error;
   }
-  (*attr)->l2_bridge_name[0] = '\0';
+#ifdef HYBRID
+  /* initialize for mactable */
+  rc = bridge_mactable_entry_create(&((*attr)->mactable_entries));
+  if (rc != LAGOPUS_RESULT_OK) {
+    goto error;
+  }
+#endif /* HYBRID */
   (*attr)->fail_mode = DATASTORE_BRIDGE_FAIL_MODE_UNKNOWN;
   (*attr)->flow_statistics = true;
   (*attr)->group_statistics = true;
@@ -241,16 +570,31 @@ bridge_attr_create(bridge_attr_t **attr) {
   (*attr)->down_streamq_size = 1000;
   (*attr)->down_streamq_max_batches = 1000;
 
+#ifdef HYBRID
+  /* initialize for mactable */
+  (*attr)->l2_bridge = false;
+  (*attr)->mactable_ageing_time = DEFAULT_MACTABLE_AGEING_TIME;
+  (*attr)->mactable_max_entries = DEFAULT_MACTABLE_MAX_ENTRIES;
+#endif /* HYBRID */
+
   return LAGOPUS_RESULT_OK;
 
 error:
   datastore_names_destroy((*attr)->controller_names);
   datastore_names_destroy((*attr)->port_names);
+#ifdef HYBRID
+  if ((*attr)->mactable_entries == NULL) {
+    bridge_mactable_entry_destroy((*attr)->mactable_entries);
+  }
+#endif /* HYBRID */
   free((void *) *attr);
   *attr = NULL;
   return rc;
 }
 
+/**
+ * Duplicate attirbutes.
+ */
 static inline lagopus_result_t
 bridge_attr_duplicate(const bridge_attr_t *src_attr,
                       bridge_attr_t **dst_attr,
@@ -289,33 +633,6 @@ bridge_attr_duplicate(const bridge_attr_t *src_attr,
     goto error;
   }
 
-  if (src_attr->l2_bridge_name[0] != '\0') {
-    if ((len = strlen(src_attr->l2_bridge_name))
-        <= DATASTORE_L2_BRIDGE_FULLNAME_MAX) {
-      if (namespace == NULL) {
-        strncpy((*dst_attr)->l2_bridge_name, src_attr->l2_bridge_name, len);
-        (*dst_attr)->l2_bridge_name[len] = '\0';
-      } else {
-        rc = ns_replace_namespace(src_attr->l2_bridge_name, namespace, &buf);
-        if (rc == LAGOPUS_RESULT_OK) {
-          if ((len = strlen(buf)) <= DATASTORE_L2_BRIDGE_FULLNAME_MAX) {
-            strncpy((*dst_attr)->l2_bridge_name, buf, len);
-            (*dst_attr)->l2_bridge_name[len] = '\0';
-          } else {
-            rc = LAGOPUS_RESULT_TOO_LONG;
-            goto error;
-          }
-        } else {
-          goto error;
-        }
-        free(buf);
-      }
-    } else {
-      rc = LAGOPUS_RESULT_TOO_LONG;
-      goto error;
-    }
-  }
-
   (*dst_attr)->fail_mode = src_attr->fail_mode;
   (*dst_attr)->flow_statistics = src_attr->flow_statistics;
   (*dst_attr)->group_statistics = src_attr->group_statistics;
@@ -339,6 +656,18 @@ bridge_attr_duplicate(const bridge_attr_t *src_attr,
   (*dst_attr)->up_streamq_max_batches = src_attr->up_streamq_max_batches;
   (*dst_attr)->down_streamq_size = src_attr->down_streamq_size;
   (*dst_attr)->down_streamq_max_batches = src_attr->down_streamq_max_batches;
+
+#ifdef HYBRID
+  /* mactable */
+  rc = bridge_mactable_entry_duplicate(src_attr->mactable_entries,
+                                 &((*dst_attr)->mactable_entries));
+  if (rc != LAGOPUS_RESULT_OK) {
+    goto error;
+  }
+  (*dst_attr)->l2_bridge = src_attr->l2_bridge;
+  (*dst_attr)->mactable_ageing_time = src_attr->mactable_ageing_time;
+  (*dst_attr)->mactable_max_entries = src_attr->mactable_max_entries;
+#endif /* HYBRID */
 
   return LAGOPUS_RESULT_OK;
 
@@ -366,6 +695,9 @@ bridge_attr_port_name_exists(const bridge_attr_t *attr, const char *name) {
   return datastore_name_exists(attr->port_names, name);
 }
 
+/**
+ * Check whether there are changes in attributes.
+ */
 static inline bool
 bridge_attr_equals(bridge_attr_t *attr0, bridge_attr_t *attr1) {
   if (attr0 == NULL && attr1 == NULL) {
@@ -378,7 +710,6 @@ bridge_attr_equals(bridge_attr_t *attr0, bridge_attr_t *attr1) {
                                 attr1->controller_names) == true) &&
       (datastore_names_equals(attr0->port_names,
                               attr1->port_names) == true) &&
-      (strcmp(attr0->l2_bridge_name, attr1->l2_bridge_name) == 0) &&
       (attr0->dpid == attr1->dpid) &&
       (attr0->fail_mode == attr1->fail_mode) &&
       (attr0->flow_statistics == attr1->flow_statistics) &&
@@ -399,16 +730,27 @@ bridge_attr_equals(bridge_attr_t *attr0, bridge_attr_t *attr1) {
       (attr0->group_capabilities == attr1->group_capabilities) &&
       (attr0->packet_inq_size == attr1->packet_inq_size) &&
       (attr0->packet_inq_max_batches == attr1->packet_inq_max_batches) &&
+#ifdef HYBRID
+      (attr0->l2_bridge == attr1->l2_bridge) &&
+      (bridge_mactable_entry_equals(attr0->mactable_entries,
+                              attr1->mactable_entries) == true) &&
+      (attr0->mactable_ageing_time == attr1->mactable_ageing_time) &&
+      (attr0->mactable_max_entries == attr1->mactable_max_entries) &&
+#endif /* HYBRID */
       (attr0->up_streamq_size == attr1->up_streamq_size) &&
       (attr0->up_streamq_max_batches == attr1->up_streamq_max_batches) &&
       (attr0->down_streamq_size == attr1->down_streamq_size) &&
-      (attr0->down_streamq_max_batches == attr1->down_streamq_max_batches)) {
+      (attr0->down_streamq_max_batches == attr1->down_streamq_max_batches)
+    ) {
     return true;
   }
 
   return false;
 }
 
+/**
+ * Check whether there are changes in attributes that namespace is specified.
+ */
 static inline bool
 bridge_attr_equals_without_names(bridge_attr_t *attr0, bridge_attr_t *attr1) {
   if (attr0 == NULL || attr1 == NULL) {
@@ -435,10 +777,18 @@ bridge_attr_equals_without_names(bridge_attr_t *attr0, bridge_attr_t *attr1) {
       (attr0->group_capabilities == attr1->group_capabilities) &&
       (attr0->packet_inq_size == attr1->packet_inq_size) &&
       (attr0->packet_inq_max_batches == attr1->packet_inq_max_batches) &&
+#ifdef HYBRID
+      (attr0->l2_bridge == attr1->l2_bridge) &&
+      (bridge_mactable_entry_equals(attr0->mactable_entries,
+                              attr1->mactable_entries) == true) &&
+      (attr0->mactable_ageing_time == attr1->mactable_ageing_time) &&
+      (attr0->mactable_max_entries == attr1->mactable_max_entries) &&
+#endif /* HYBRID */
       (attr0->up_streamq_size == attr1->up_streamq_size) &&
       (attr0->up_streamq_max_batches == attr1->up_streamq_max_batches) &&
       (attr0->down_streamq_size == attr1->down_streamq_size) &&
-      (attr0->down_streamq_max_batches == attr1->down_streamq_max_batches)) {
+      (attr0->down_streamq_max_batches == attr1->down_streamq_max_batches)
+    ) {
     return true;
   }
 
@@ -455,7 +805,6 @@ bridge_attr_equals_without_qmax_batches(bridge_attr_t *attr0, bridge_attr_t *att
                                 attr1->controller_names) == true) &&
       (datastore_names_equals(attr0->port_names,
                               attr1->port_names) == true) &&
-      (strcmp(attr0->l2_bridge_name, attr1->l2_bridge_name) == 0) &&
       (attr0->dpid == attr1->dpid) &&
       (attr0->fail_mode == attr1->fail_mode) &&
       (attr0->flow_statistics == attr1->flow_statistics) &&
@@ -475,8 +824,16 @@ bridge_attr_equals_without_qmax_batches(bridge_attr_t *attr0, bridge_attr_t *att
       (attr0->group_types == attr1->group_types) &&
       (attr0->group_capabilities == attr1->group_capabilities) &&
       (attr0->packet_inq_size == attr1->packet_inq_size) &&
+#ifdef HYBRID
+      (attr0->l2_bridge == attr1->l2_bridge) &&
+      (bridge_mactable_entry_equals(attr0->mactable_entries,
+                              attr1->mactable_entries) == true) &&
+      (attr0->mactable_ageing_time == attr1->mactable_ageing_time) &&
+      (attr0->mactable_max_entries == attr1->mactable_max_entries) &&
+#endif /* HYBRID */
       (attr0->up_streamq_size == attr1->up_streamq_size) &&
-      (attr0->down_streamq_size == attr1->down_streamq_size)) {
+      (attr0->down_streamq_size == attr1->down_streamq_size)
+    ) {
     return true;
   }
 
@@ -1147,18 +1504,6 @@ bridge_get_port_names(const bridge_attr_t *attr,
 }
 
 static inline lagopus_result_t
-bridge_get_l2_bridge_name(const bridge_attr_t *attr, char **l2_bridge_name) {
-  if (attr != NULL && l2_bridge_name != NULL && *l2_bridge_name == NULL) {
-    *l2_bridge_name = strdup(attr->l2_bridge_name);
-    if (*l2_bridge_name == NULL) {
-      return LAGOPUS_RESULT_NO_MEMORY;
-    }
-    return LAGOPUS_RESULT_OK;
-  }
-  return LAGOPUS_RESULT_INVALID_ARGS;
-}
-
-static inline lagopus_result_t
 bridge_get_fail_mode(const bridge_attr_t *attr,
                      datastore_bridge_fail_mode_t *fail_mode) {
   if (attr != NULL && fail_mode != NULL) {
@@ -1289,6 +1634,162 @@ bridge_get_max_flows(const bridge_attr_t *attr,
   }
   return LAGOPUS_RESULT_INVALID_ARGS;
 }
+
+#ifdef HYBRID
+/* mactable entry list utilities */
+/**
+ * Set l2-bridge attribute.
+ */
+static inline lagopus_result_t
+bridge_is_l2_bridge(const bridge_attr_t *attr,
+                     bool *l2_bridge) {
+  if (attr != NULL && l2_bridge!= NULL) {
+    *l2_bridge = attr->l2_bridge;
+    return LAGOPUS_RESULT_OK;
+  }
+  return LAGOPUS_RESULT_INVALID_ARGS;
+}
+
+/**
+ * Get mac entry from mac entry list.
+ */
+static inline lagopus_result_t
+bridge_get_mactable_entry(const bridge_attr_t *attr,
+                          bridge_mactable_info_t **mactable_entries) {
+  if (attr != NULL && mactable_entries != NULL) {
+    /* get entry */
+    return bridge_mactable_entry_duplicate(attr->mactable_entries,
+                                           mactable_entries);
+  }
+  return LAGOPUS_RESULT_INVALID_ARGS;
+}
+
+/**
+ * Get ageing time of mac table.
+ */
+static inline lagopus_result_t
+bridge_get_mactable_ageing_time(const bridge_attr_t *attr,
+                     uint32_t *mactable_ageing_time) {
+  if (attr != NULL && mactable_ageing_time != NULL) {
+    *mactable_ageing_time = attr->mactable_ageing_time;
+    return LAGOPUS_RESULT_OK;
+  }
+  return LAGOPUS_RESULT_INVALID_ARGS;
+}
+
+/**
+ * Get number of max entries of mac table.
+ */
+static inline lagopus_result_t
+bridge_get_mactable_max_entries(const bridge_attr_t *attr,
+                     uint32_t *mactable_max_entries) {
+  if (attr != NULL && mactable_max_entries != NULL) {
+    *mactable_max_entries = attr->mactable_max_entries;
+    return LAGOPUS_RESULT_OK;
+  }
+  return LAGOPUS_RESULT_INVALID_ARGS;
+}
+
+/**
+ * Set l2-bridge flag.
+ */
+static inline lagopus_result_t
+bridge_set_l2_bridge(bridge_attr_t *attr,
+                           const bool l2_bridge) {
+  if (attr != NULL) {
+    attr->l2_bridge = l2_bridge;
+    return LAGOPUS_RESULT_OK;
+  }
+  return LAGOPUS_RESULT_INVALID_ARGS;
+}
+
+/**
+ * Set ageing time of mac table.
+ */
+static inline lagopus_result_t
+bridge_set_mactable_ageing_time(bridge_attr_t *attr,
+                     const uint64_t mactable_ageing_time) {
+  if (attr != NULL) {
+    long long int min_diff =
+      (long long int) (mactable_ageing_time - MINIMUM_MACTABLE_AGEING_TIME);
+    long long int max_diff =
+      (long long int) (mactable_ageing_time - MAXIMUM_MACTABLE_AGEING_TIME);
+    if (max_diff <= 0 && min_diff >= 0) {
+      attr->mactable_ageing_time = (uint32_t) mactable_ageing_time;
+      return LAGOPUS_RESULT_OK;
+    } else if (min_diff < 0) {
+      return LAGOPUS_RESULT_TOO_SHORT;
+    } else {
+      return LAGOPUS_RESULT_TOO_LONG;
+    }
+  }
+  return LAGOPUS_RESULT_INVALID_ARGS;
+}
+
+/**
+ * Set number of max entries of mac table.
+ */
+static inline lagopus_result_t
+bridge_set_mactable_max_entries(bridge_attr_t *attr,
+                     const uint64_t mactable_max_entries) {
+  if (attr != NULL) {
+    long long int min_diff =
+      (long long int) (mactable_max_entries - MINIMUM_MACTABLE_MAX_ENTRIES);
+    long long int max_diff =
+      (long long int) (mactable_max_entries - MAXIMUM_MACTABLE_MAX_ENTRIES);
+    if (max_diff <= 0 && min_diff >= 0) {
+      attr->mactable_max_entries = (uint32_t) mactable_max_entries;
+      return LAGOPUS_RESULT_OK;
+    } else if (min_diff < 0) {
+      return LAGOPUS_RESULT_TOO_SHORT;
+    } else {
+      return LAGOPUS_RESULT_TOO_LONG;
+    }
+  }
+  return LAGOPUS_RESULT_INVALID_ARGS;
+}
+
+/**
+ * Get ageing time of mac table.
+ */
+lagopus_result_t
+datastore_bridge_get_mactable_ageing_time(const char *name, bool current,
+                               uint32_t *mactable_ageing_time) {
+  lagopus_result_t rc;
+  bridge_attr_t *attr = NULL;
+
+  if (IS_VALID_STRING(name) == true && mactable_ageing_time != NULL) {
+    rc = bridge_get_attr(name, current, &attr);
+    if (rc == LAGOPUS_RESULT_OK) {
+      rc = bridge_get_mactable_ageing_time(attr, mactable_ageing_time);
+    }
+  } else {
+    rc = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+  return rc;
+}
+
+/**
+ * Get number of max entries of mac table.
+ */
+lagopus_result_t
+datastore_bridge_get_mactable_max_entries(const char *name, bool current,
+                               uint32_t *mactable_max_entries) {
+  lagopus_result_t rc;
+  bridge_attr_t *attr = NULL;
+
+  if (IS_VALID_STRING(name) == true && mactable_max_entries != NULL) {
+    rc = bridge_get_attr(name, current, &attr);
+    if (rc == LAGOPUS_RESULT_OK) {
+      rc = bridge_get_mactable_max_entries(attr, mactable_max_entries);
+    }
+  } else {
+    rc = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+  return rc;
+}
+#endif /* HYBRID */
+
 
 static inline lagopus_result_t
 bridge_get_reserved_port_types(const bridge_attr_t *attr,
@@ -1488,21 +1989,6 @@ bridge_set_port_names(bridge_attr_t *attr,
   if (attr != NULL && port_names != NULL) {
     return datastore_names_duplicate(port_names,
                                      &(attr->port_names), NULL);
-  }
-  return LAGOPUS_RESULT_INVALID_ARGS;
-}
-
-static inline lagopus_result_t
-bridge_set_l2_bridge_name(bridge_attr_t *attr, const char *l2_bridge_name) {
-  if (attr != NULL && l2_bridge_name != NULL) {
-    size_t len = strlen(l2_bridge_name);
-    if (len <= DATASTORE_L2_BRIDGE_FULLNAME_MAX) {
-      strncpy(attr->l2_bridge_name, l2_bridge_name, len);
-      attr->l2_bridge_name[len] = '\0';
-      return LAGOPUS_RESULT_OK;
-    } else {
-      return LAGOPUS_RESULT_TOO_LONG;
-    }
   }
   return LAGOPUS_RESULT_INVALID_ARGS;
 }
@@ -2093,22 +2579,6 @@ datastore_bridge_get_port_names(const char *name,
   return rc;
 }
 
-lagopus_result_t
-datastore_bridge_get_l2_bridge_name(const char *name, bool current,
-                                    char **l2_bridge_name) {
-  lagopus_result_t rc;
-  bridge_attr_t *attr = NULL;
-
-  if (IS_VALID_STRING(name) == true && l2_bridge_name != NULL) {
-    rc = bridge_get_attr(name, current, &attr);
-    if (rc == LAGOPUS_RESULT_OK) {
-      rc = bridge_get_l2_bridge_name(attr, l2_bridge_name);
-    }
-  } else {
-    rc = LAGOPUS_RESULT_INVALID_ARGS;
-  }
-  return rc;
-}
 
 lagopus_result_t
 datastore_bridge_get_fail_mode(const char *name, bool current,

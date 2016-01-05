@@ -234,3 +234,39 @@ cmd_uint_parse(const char *const str,
   return ret;
 }
 
+lagopus_result_t
+cmd_opt_macaddr_get(const char *in_mac, char **out_mac, bool *is_added) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  size_t len = 0;
+
+  if (IS_VALID_STRING(in_mac) &&
+      out_mac != NULL && *out_mac == NULL &&
+      is_added != NULL) {
+    *out_mac = strdup(in_mac);
+
+    if (*out_mac != NULL) {
+      if (IS_VALID_ADD_NAME(*out_mac) ||
+          IS_VALID_DEL_NAME(*out_mac)) {
+        if (IS_VALID_DEL_NAME(*out_mac) == true) {
+          *is_added = false;
+        } else {
+          *is_added = true;
+        }
+        /* delete head character. */
+        len = strlen(*out_mac);
+        memmove(*out_mac, *out_mac + 1, len);
+        (*out_mac)[len - 1] = '\0';
+      } else {
+        *is_added = true;
+      }
+      ret = LAGOPUS_RESULT_OK;
+    } else {
+      ret = LAGOPUS_RESULT_NO_MEMORY;
+    }
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  return ret;
+}
+

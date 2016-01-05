@@ -661,6 +661,7 @@ SNMP_CPPFLAGS
 SNMP_DIR
 PCAP_LIBS
 HYBRID_CPPFLAGS
+HYBRID
 UNITY_SRC_DIR
 HAVE_UNITY
 HAVE_GCOVR
@@ -16081,8 +16082,13 @@ fi
 
 
 if test "X${hybrid}" != "Xno"; then
+   HYBRID="yes"
    HYBRID_CPPFLAGS=-DHYBRID
+else
+   HYBRID=""
+   HYBRID_CPPFLAGS=""
 fi
+
 
 
 # headers/macros

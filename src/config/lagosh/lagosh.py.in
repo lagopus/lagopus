@@ -590,7 +590,7 @@ class Topcmd(Cmd):
 
     def complete_show(self, text, line, begidx, endidx):
         params = ['bridge', 'channel', 'controller', 'flow', 'group',
-                  'interface', 'meter', 'port', 'version']
+                  'mactable', 'interface', 'meter', 'port', 'version']
         return [name for name in params if name.startswith(text)]
 
     def subcmd_show(self, line, key='bridge', stats='stats'):
@@ -639,6 +639,7 @@ class Topcmd(Cmd):
         Usage
                 show bridge
                 show flow
+                show mactable
                 show interface
                 show table
         """
@@ -665,6 +666,18 @@ class Topcmd(Cmd):
         elif subcmd == 'controller':
             data = ds_client().call('controller\n')
             self.output(json.dumps(data, indent=4))
+
+        elif subcmd == 'mactable':
+            odata = []
+            data = ds_client().call('bridge\n')
+            try:
+                for ifdata in data:
+                    req = 'mactable ' + ifdata['name'].encode() + '\n'
+                    res = ds_client().call(req)[0]
+                    odata.append(res)
+                self.output(json.dumps(odata, indent=4) + '\n')
+            except:
+                return
 
         elif subcmd == 'version':
             data = ds_client().call('version\n')

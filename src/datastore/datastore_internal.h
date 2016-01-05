@@ -51,9 +51,6 @@ bool
 port_exists(const char *name);
 
 bool
-l2_bridge_exists(const char *name);
-
-bool
 queue_exists(const char *name);
 
 bool
@@ -81,9 +78,6 @@ lagopus_result_t
 port_set_used(const char *name, bool is_used);
 
 lagopus_result_t
-l2_bridge_set_used(const char *name, bool is_used);
-
-lagopus_result_t
 queue_set_used(const char *name, bool is_used);
 
 lagopus_result_t
@@ -106,9 +100,6 @@ interface_set_enabled(const char *name, bool is_enabled);
 
 lagopus_result_t
 port_set_enabled(const char *name, bool is_enabled);
-
-lagopus_result_t
-l2_bridge_set_enabled(const char *name, bool is_enabled);
 
 lagopus_result_t
 queue_set_enabled(const char *name, bool is_enabled);
@@ -136,9 +127,6 @@ namespace_cmd_serialize(lagopus_dstring_t *result);
 
 lagopus_result_t
 agent_cmd_serialize(lagopus_dstring_t *result);
-
-lagopus_result_t
-l2_bridge_set_bridge_name(const char *name, const char *bridge_name);
 
 lagopus_result_t
 copy_mac_address(const mac_address_t src, mac_address_t dst);

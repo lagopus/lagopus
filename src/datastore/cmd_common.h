@@ -222,4 +222,10 @@ cmd_uint_parse(const char *const str,
                enum cmd_uint_type type,
                union cmd_uint *cmd_uint);
 
+/**
+ * Check if delete command.
+ */
+lagopus_result_t
+cmd_opt_macaddr_get(const char *in_mac, char **out_mac, bool *is_added);
+
 #endif /* __CMD_COMMON_H__ */

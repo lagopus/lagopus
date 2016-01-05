@@ -211,8 +211,13 @@ AC_ARG_ENABLE([hybrid],
 	 ,[hybrid="$enableval"], [hybrid=no])
 
 if test "X${hybrid}" != "Xno"; then
+   HYBRID="yes"
    HYBRID_CPPFLAGS=-DHYBRID
+else
+   HYBRID=""
+   HYBRID_CPPFLAGS=""
 fi
+AC_SUBST(HYBRID)
 AC_SUBST(HYBRID_CPPFLAGS)
 
 # headers/macros

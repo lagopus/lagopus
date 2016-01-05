@@ -26,12 +26,13 @@
 #include "datastore/port.h"
 #include "datastore/interface.h"
 #include "datastore/controller.h"
-#include "datastore/l2_bridge.h"
 #include "datastore/affinition.h"
 #include "datastore/queue.h"
 #include "datastore/policer.h"
 #include "datastore/policer_action.h"
 #include "datastore/datastore_config.h"
 #include "datastore/datastore_module.h"
-
+#ifdef HYBRID
+#include "datastore/mactable_cmd.h"
+#endif /* HYBRID */
 #endif /* ! __LAGOPUS_DATASTORE_H__ */
