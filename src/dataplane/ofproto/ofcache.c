@@ -446,6 +446,10 @@ void
 clear_all_cache(struct flowcache *cache) {
   int bank;
 
+  if (cache == NULL) {
+    /* flowcache is not running, nothing to do. */
+    return;
+  }
   for (bank = 0; bank < NBANK; bank++) {
     clear_all_cache_bank(cache->bank[bank]);
   }
