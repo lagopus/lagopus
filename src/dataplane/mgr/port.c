@@ -163,22 +163,6 @@ port_lookup_number(struct vector *v, uint32_t port_no) {
   return NULL;
 }
 
-unsigned int
-num_ports(struct vector *v) {
-  unsigned int id, count;
-
-  count = 0;
-  for (id = 0; id <= v->allocated; id++) {
-    struct port *port;
-
-    port = v->index[id];
-    if (port != NULL) {
-      count++;
-    }
-  }
-  return count;
-}
-
 lagopus_result_t
 lagopus_get_port_statistics(struct vector *ports,
                             struct ofp_port_stats_request *request,

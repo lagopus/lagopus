@@ -24,6 +24,8 @@
 #include "openflow13.h"
 #include "ofp_band.h"
 
+#include "bridge.c"
+
 static struct bridge *bridge;
 static const char bridge_name[] = "br0";
 static const uint64_t dpid = 12345678;

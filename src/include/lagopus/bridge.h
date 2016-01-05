@@ -106,6 +106,15 @@ bridge_alloc(const char *name);
 void
 bridge_free(struct bridge *bridge);
 
+/**
+ * Count number of ports assigned for the bridge.
+ *
+ * @param[in]   bridge  Bridge.
+ *
+ * @retval      Number of ports.
+ */
+uint32_t dp_bridge_port_count(const char *name);
+
 #ifdef HYBRID
 /* mactable */
 /**
@@ -221,112 +230,5 @@ lagopus_result_t
 dp_bridge_flow_iter_get(dp_bridge_iter_t iter, struct flow **flowp);
 void
 dp_bridge_flow_iter_destroy(dp_bridge_iter_t iter);
-
-
-/**
- * Get OpenFlow switch fail mode.
- *
- * @param[in]   bridge  Bridge.
- * @param[out]  fail_mode       Bridge fail mode.
- *
- * @retval LAGOPUS_RESULT_OK            Succeeded.
- */
-lagopus_result_t
-bridge_fail_mode_get(struct bridge *bridge, enum fail_mode *fail_mode) __attribute__ ((deprecated));
-
-/**
- * Get OpenFlow switch fail mode.
- *
- * @param[in]   bridge  Bridge.
- * @param[in]   fail_mode       Bridge fail mode.
- *
- * @retval LAGOPUS_RESULT_OK            Succeeded.
- * @retval LAGOPUS_RESULT_INVALID_ARGS  fail_mode value is wrong.
- */
-lagopus_result_t
-bridge_fail_mode_set(struct bridge *bridge, enum fail_mode fail_mode) __attribute__ ((deprecated));
-
-/**
- * Get OpenFlow switch features.
- *
- * @param[in]   bridge  Bridge.
- * @param[out]  features        ofp_switch_features structure.
- *
- * @retval LAGOPUS_RESULT_OK            Succeeded.
- */
-lagopus_result_t
-bridge_ofp_features_get(struct bridge *bridge,
-                        struct ofp_switch_features *features) __attribute__ ((deprecated));
-
-/**
- * Get primary OpenFlow version.
- *
- * @param[in]   bridge  Bridge.
- * @param[out]  version Wire protocol version.
- *
- * @retval LAGOPUS_RESULT_OK            Succeeded.
- */
-lagopus_result_t
-bridge_ofp_version_get(struct bridge *bridge, uint8_t *version) __attribute__ ((deprecated));
-
-/**
- * Set primary OpenFlow version.
- *
- * @param[in]   bridge  Bridge.
- * @param[in]   version Wire protocol version.
- *
- * @retval LAGOPUS_RESULT_OK            Succeeded.
- * @retval LAGOPUS_RESULT_INVALID_ARGS  Version number is wrong.
- */
-lagopus_result_t
-bridge_ofp_version_set(struct bridge *bridge, uint8_t version) __attribute__ ((deprecated));
-
-/**
- * Get supported OpenFlow version bitmap.
- *
- * @param[in]   bridge  Bridge.
- * @param[out]  version_bitmap  Support version bitmap.
- *
- * @retval LAGOPUS_RESULT_OK            Succeeded.
- */
-lagopus_result_t
-bridge_ofp_version_bitmap_get(struct bridge *bridge, uint32_t *version_bitmap) __attribute__ ((deprecated));
-
-/**
- * Set supported OpenFlow version bitmap.
- *
- * @param[in]   bridge  Bridge.
- * @param[in]   version Wire protocol version to be set to version bitmap.
- *
- * @retval LAGOPUS_RESULT_OK            Succeeded.
- * @retval LAGOPUS_RESULT_INVALID_ARGS  Version number is wrong.
- */
-lagopus_result_t
-bridge_ofp_version_bitmap_set(struct bridge *bridge, uint8_t version) __attribute__ ((deprecated));
-
-/**
- * Get supported OpenFlow version bitmap.
- *
- * @param[in]   bridge  Bridge.
- * @param[in]   version Wire protocol version to be unset from version bitmap.
- *
- * @retval LAGOPUS_RESULT_OK            Succeeded.
- * @retval LAGOPUS_RESULT_INVALID_ARGS  Version number is wrong.
- */
-lagopus_result_t
-bridge_ofp_version_bitmap_unset(struct bridge *bridge, uint8_t version) __attribute__ ((deprecated));
-
-/**
- * Get switch features.
- *
- * @param[in]   bridge                  Bridge.
- * @param[out]  features                Pointer of features.
- *
- * @retval LAGOPUS_RESULT_OK            Succeeded.
- * @retval      LAGOPUS_RESULT_NOT_FOUND Bridge is not exist.
- */
-lagopus_result_t
-bridge_ofp_features_get(struct bridge *bridge,
-                        struct ofp_switch_features *features) __attribute__ ((deprecated));
 
 #endif /* SRC_INCLUDE_LAGOPUS_BRIDGE_H_ */

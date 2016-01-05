@@ -131,16 +131,6 @@ struct port *
 port_lookup_number(struct vector *v, uint32_t port_no);
 
 /**
- * Count number of ports.
- *
- * @param[in]   v               Port database.
- *
- * @retval      Number of ports.
- */
-unsigned int
-num_ports(struct vector *v) __attribute__ ((deprecated));
-
-/**
  * Get port statistics.
  *
  * @param[in]   ports   Port database.

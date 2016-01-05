@@ -1032,6 +1032,28 @@ dp_bridge_flow_iter_destroy(dp_bridge_iter_t iter) {
   free(iter);
 }
 
+uint32_t
+dp_bridge_port_count(const char *name) {
+  struct bridge *bridge;
+  uint32_t id, count;
+  lagopus_result_t rv;
+
+  rv = lagopus_hashmap_find(&bridge_hashmap, (void *)name, (void **)&bridge);
+  if (rv != LAGOPUS_RESULT_OK) {
+    return 0;
+  }
+  count = 0;
+  for (id = 0; id <= bridge->ports->allocated; id++) {
+    struct port *port;
+
+    port = bridge->ports->index[id];
+    if (port != NULL) {
+      count++;
+    }
+  }
+  return count;
+}
+
 lagopus_result_t
 dp_bridge_stats_get(const char *name,
                     datastore_bridge_stats_t *stats) {

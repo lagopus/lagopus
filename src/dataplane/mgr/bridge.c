@@ -36,6 +36,144 @@
 #define UNSET32_FLAG(V, F)      (V) = (V) & (uint32_t)~(F)
 
 /**
+ * Get OpenFlow switch fail mode.
+ *
+ * @param[in]   bridge  Bridge.
+ * @param[out]  fail_mode       Bridge fail mode.
+ *
+ * @retval LAGOPUS_RESULT_OK            Succeeded.
+ */
+static lagopus_result_t
+bridge_fail_mode_get(struct bridge *bridge,
+                     enum fail_mode *fail_mode) {
+  *fail_mode = bridge->fail_mode;
+  return LAGOPUS_RESULT_OK;
+}
+
+/**
+ * Set OpenFlow switch fail mode.
+ *
+ * @param[in]   bridge  Bridge.
+ * @param[in]   fail_mode       Bridge fail mode.
+ *
+ * @retval LAGOPUS_RESULT_OK            Succeeded.
+ * @retval LAGOPUS_RESULT_INVALID_ARGS  fail_mode value is wrong.
+ */
+static lagopus_result_t
+bridge_fail_mode_set(struct bridge *bridge,
+                     enum fail_mode fail_mode) {
+  if (fail_mode != FAIL_SECURE_MODE && fail_mode != FAIL_STANDALONE_MODE) {
+    return LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  bridge->fail_mode = fail_mode;
+
+  return LAGOPUS_RESULT_OK;
+}
+
+/**
+ * Get primary OpenFlow version.
+ *
+ * @param[in]   bridge  Bridge.
+ * @param[out]  version Wire protocol version.
+ *
+ * @retval LAGOPUS_RESULT_OK            Succeeded.
+ */
+static lagopus_result_t
+bridge_ofp_version_get(struct bridge *bridge, uint8_t *version) {
+  *version = bridge->version;
+  return LAGOPUS_RESULT_OK;
+}
+
+/**
+ * Set primary OpenFlow version.
+ *
+ * @param[in]   bridge  Bridge.
+ * @param[in]   version Wire protocol version.
+ *
+ * @retval LAGOPUS_RESULT_OK            Succeeded.
+ * @retval LAGOPUS_RESULT_INVALID_ARGS  Version number is wrong.
+ */
+static lagopus_result_t
+bridge_ofp_version_set(struct bridge *bridge, uint8_t version) {
+  if (version != OPENFLOW_VERSION_1_3 && version != OPENFLOW_VERSION_1_4) {
+    return LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  if (bridge->version != version) {
+    /* We need to reset all of connections and flows. */
+    bridge->version = version;
+  }
+  return LAGOPUS_RESULT_OK;
+}
+
+/**
+ * Get supported OpenFlow version bitmap.
+ *
+ * @param[in]   bridge  Bridge.
+ * @param[out]  version_bitmap  Support version bitmap.
+ *
+ * @retval LAGOPUS_RESULT_OK            Succeeded.
+ */
+static lagopus_result_t
+bridge_ofp_version_bitmap_get(struct bridge *bridge,
+                              uint32_t *version_bitmap) {
+  *version_bitmap = bridge->version_bitmap;
+  return LAGOPUS_RESULT_OK;
+}
+
+/**
+ * Set supported OpenFlow version bitmap.
+ *
+ * @param[in]   bridge  Bridge.
+ * @param[in]   version Wire protocol version to be set to version bitmap.
+ *
+ * @retval LAGOPUS_RESULT_OK            Succeeded.
+ * @retval LAGOPUS_RESULT_INVALID_ARGS  Version number is wrong.
+ */
+static lagopus_result_t
+bridge_ofp_version_bitmap_set(struct bridge *bridge, uint8_t version) {
+  if (version != OPENFLOW_VERSION_1_3 && version != OPENFLOW_VERSION_1_4) {
+    return LAGOPUS_RESULT_INVALID_ARGS;
+  }
+  SET32_FLAG(bridge->version_bitmap, (1 << version));
+  return LAGOPUS_RESULT_OK;
+}
+
+/**
+ * Unset supported OpenFlow version bitmap.
+ *
+ * @param[in]   bridge  Bridge.
+ * @param[in]   version Wire protocol version to be unset from version bitmap.
+ *
+ * @retval LAGOPUS_RESULT_OK            Succeeded.
+ * @retval LAGOPUS_RESULT_INVALID_ARGS  Version number is wrong.
+ */
+static lagopus_result_t
+bridge_ofp_version_bitmap_unset(struct bridge *bridge, uint8_t version) {
+  if (version != OPENFLOW_VERSION_1_3 && version != OPENFLOW_VERSION_1_4) {
+    return LAGOPUS_RESULT_INVALID_ARGS;
+  }
+  UNSET32_FLAG(bridge->version_bitmap, (1 << version));
+  return LAGOPUS_RESULT_OK;
+}
+
+/**
+ * Get OpenFlow switch features.
+ *
+ * @param[in]   bridge                  Bridge.
+ * @param[out]  features                Pointer of features.
+ *
+ * @retval LAGOPUS_RESULT_OK            Succeeded.
+ */
+static lagopus_result_t
+bridge_ofp_features_get(struct bridge *bridge,
+                        struct ofp_switch_features *features) {
+  *features = bridge->features;
+  return LAGOPUS_RESULT_OK;
+}
+
+/**
  * Allocate a new bridge.
  */
 struct bridge *
@@ -299,76 +437,6 @@ bridge_mactable_max_entries_get(struct bridge *bridge, uint32_t *max_entries) {
   return LAGOPUS_RESULT_OK;
 }
 #endif /* HYBRID */
-
-lagopus_result_t
-bridge_fail_mode_get(struct bridge *bridge,
-                     enum fail_mode *fail_mode) {
-  *fail_mode = bridge->fail_mode;
-  return LAGOPUS_RESULT_OK;
-}
-
-lagopus_result_t
-bridge_fail_mode_set(struct bridge *bridge,
-                     enum fail_mode fail_mode) {
-  if (fail_mode != FAIL_SECURE_MODE && fail_mode != FAIL_STANDALONE_MODE) {
-    return LAGOPUS_RESULT_INVALID_ARGS;
-  }
-
-  bridge->fail_mode = fail_mode;
-
-  return LAGOPUS_RESULT_OK;
-}
-
-lagopus_result_t
-bridge_ofp_version_get(struct bridge *bridge, uint8_t *version) {
-  *version = bridge->version;
-  return LAGOPUS_RESULT_OK;
-}
-
-lagopus_result_t
-bridge_ofp_version_set(struct bridge *bridge, uint8_t version) {
-  if (version != OPENFLOW_VERSION_1_3 && version != OPENFLOW_VERSION_1_4) {
-    return LAGOPUS_RESULT_INVALID_ARGS;
-  }
-
-  if (bridge->version != version) {
-    /* We need to reset all of connections and flows. */
-    bridge->version = version;
-  }
-  return LAGOPUS_RESULT_OK;
-}
-
-lagopus_result_t
-bridge_ofp_version_bitmap_get(struct bridge *bridge,
-                              uint32_t *version_bitmap) {
-  *version_bitmap = bridge->version_bitmap;
-  return LAGOPUS_RESULT_OK;
-}
-
-lagopus_result_t
-bridge_ofp_version_bitmap_set(struct bridge *bridge, uint8_t version) {
-  if (version != OPENFLOW_VERSION_1_3 && version != OPENFLOW_VERSION_1_4) {
-    return LAGOPUS_RESULT_INVALID_ARGS;
-  }
-  SET32_FLAG(bridge->version_bitmap, (1 << version));
-  return LAGOPUS_RESULT_OK;
-}
-
-lagopus_result_t
-bridge_ofp_version_bitmap_unset(struct bridge *bridge, uint8_t version) {
-  if (version != OPENFLOW_VERSION_1_3 && version != OPENFLOW_VERSION_1_4) {
-    return LAGOPUS_RESULT_INVALID_ARGS;
-  }
-  UNSET32_FLAG(bridge->version_bitmap, (1 << version));
-  return LAGOPUS_RESULT_OK;
-}
-
-lagopus_result_t
-bridge_ofp_features_get(struct bridge *bridge,
-                        struct ofp_switch_features *features) {
-  *features = bridge->features;
-  return LAGOPUS_RESULT_OK;
-}
 
 /**
  * Set switch configuration.

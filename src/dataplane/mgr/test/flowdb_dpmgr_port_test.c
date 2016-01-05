@@ -214,7 +214,7 @@ static uint64_t dpid_base;
     snprintf(_buf, sizeof(_buf), "%s, count ports in a bridge", (_msg)); \
     \
     for (size_t _s = (_b); _s < (_e); _s++)				\
-      TEST_ASSERT_EQUAL_INT_MESSAGE((_count), num_ports(bridge[_s]->ports), (_msg)); \
+      TEST_ASSERT_EQUAL_INT_MESSAGE((_count), dp_bridge_port_count(bridge[_s]->name), (_msg)); \
   } while (0);
 
 /* Positively assert the ports in a bridge. */
