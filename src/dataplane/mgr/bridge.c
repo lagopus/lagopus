@@ -453,11 +453,17 @@ ofp_switch_config_set(uint64_t dpid,
   }
   /* Reassemble fragmented packet is not supported */
   if ((switch_config->flags & OFPC_FRAG_REASM) != 0) {
-    ofp_error_set(error, OFPET_SWITCH_CONFIG_FAILED, OFPSCFC_BAD_FLAGS);
+    error->type = OFPET_SWITCH_CONFIG_FAILED;
+    error->code = OFPSCFC_BAD_FLAGS;
+    lagopus_msg_info("switch config: reassemble is not supported (%d:%d)",
+                     error->type, error->code);
     return LAGOPUS_RESULT_OFP_ERROR;
   }
   if (switch_config->miss_send_len < 64) {
-    ofp_error_set(error, OFPET_SWITCH_CONFIG_FAILED, OFPSCFC_BAD_LEN);
+    error->type = OFPET_SWITCH_CONFIG_FAILED;
+    error->code = OFPSCFC_BAD_LEN;
+    lagopus_msg_info("switch config: %d: too short length (%d:%d)",
+                     switch_config->miss_send_len, error->type, error->code);
     return LAGOPUS_RESULT_OFP_ERROR;
   }
   bridge->switch_config = *switch_config;

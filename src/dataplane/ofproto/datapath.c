@@ -661,7 +661,9 @@ execute_action_set_field(struct lagopus_packet *pkt,
   oxm_class = (uint16_t)((oxm_header >> 16) & 0xffff);
   oxm_hasmask = ((oxm_header & 0x00000100) != 0);
   if (oxm_hasmask != 0) {
-    DP_PRINT("invalid: set field has mask\n");
+    error->type = OFPET_BAD_ACTION;
+    error->code = OFPBAC_BAD_ARGUMENT;
+    lagopus_msg_info("set field has mask (%d:%d)", error->type, error->code);
     return LAGOPUS_RESULT_OFP_ERROR;
   }
   if (oxm_class != OFPXMC_OPENFLOW_BASIC) {
