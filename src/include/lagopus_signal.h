@@ -32,6 +32,9 @@
 #ifdef __FreeBSD__
 #define sighandler_t sig_t
 #endif /* __FreeBSD__ */
+#ifdef __NetBSD__
+typedef void (*sighandler_t)(int);
+#endif /* __NetBSD__ */
 
 
 #define SIG_CUR	__s_I_g_C_u_R__

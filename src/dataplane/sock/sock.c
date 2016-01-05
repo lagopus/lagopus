@@ -29,14 +29,8 @@
 #include <sys/ioctl.h>
 #include <sys/queue.h>
 #include <sys/socket.h>
-//#include <net/ethernet.h>
 #include <net/if.h>
 #include <pthread.h>
-
-#include <linux/if_packet.h>
-#include <linux/if_link.h>
-#include <linux/netlink.h>
-#include <linux/rtnetlink.h>
 
 #include "lagopus/dp_apis.h"
 #include "lagopus/flowdb.h"
@@ -124,9 +118,4 @@ dp_get_flowcache_statistics(struct bridge *bridge, struct ofcachestat *st) {
   st->hit = 0;
   st->miss = 0;
   /* not implemented yet */
-}
-
-void
-dataplane_usage(__UNUSED FILE *fp) {
-  /* so far, nothing additional options. */
 }

@@ -19,6 +19,8 @@
  *      @brief  multiple branch tree for Openflow
  */
 
+#include "lagopus_config.h"
+
 #include <inttypes.h>
 #include <stddef.h>
 #include <sys/types.h>
@@ -26,7 +28,11 @@
 #include <sys/queue.h>
 
 #ifndef HAVE_DPDK
+#ifdef HAVE_NET_ETHERNET_H
 #include <net/ethernet.h>
+#else
+#include <net/if_ether.h>
+#endif /* HAVE_NET_ETHERNET_H */
 #endif /* HAVE_DPDK */
 
 #define __FAVOR_BSD

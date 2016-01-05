@@ -95,9 +95,6 @@
 #include "City.h"
 #endif /* __SSE4_2__ */
 #include <rte_string_fns.h>
-#ifdef __linux__
-#include <rte_kni.h>
-#endif /* __linux__ */
 
 #include "lagopus/ethertype.h"
 #include "lagopus/flowdb.h"
@@ -158,19 +155,6 @@
 
 /* optimized tx write threshold for igb only. */
 #define APP_IGB_NIC_TX_WTHRESH  16
-
-#ifdef __linux__
-/* Total octets in ethernet header */
-#define KNI_ENET_HEADER_SIZE    14
-
-/* Total octets in the FCS */
-#define KNI_ENET_FCS_SIZE       4
-
-static struct rte_kni *lagopus_kni[RTE_MAX_ETHPORTS];
-
-static int kni_change_mtu(uint8_t port_id, unsigned new_mtu);
-static int kni_config_network_interface(uint8_t port_id, uint8_t if_up);
-#endif /* __linux__ */
 
 /* ethernet addresses of ports */
 static struct ether_addr lagopus_ports_eth_addr[RTE_MAX_ETHPORTS];
@@ -236,7 +220,7 @@ struct lagopus_port_statistics {
 } __rte_cache_aligned;
 struct lagopus_port_statistics port_statistics[RTE_MAX_ETHPORTS];
 
-static struct port_stats *port_stats(struct port *port);
+static struct port_stats *dpdk_port_stats(struct port *port);
 
 static struct vector *ifp_vector;
 
@@ -618,37 +602,6 @@ app_lcore_io_tx(struct app_lcore_params_io *lp,
   }
 }
 
-#ifdef __linux__
-static inline void
-app_lcore_io_tx_kni(struct app_lcore_params_io *lp, uint32_t bsz) {
-  struct rte_mbuf *pkts_burst[bsz];
-  unsigned num;
-  uint8_t portid;
-  uint16_t nb_tx;
-  unsigned i, j;
-
-  return;
-  for (i = 0; i < lp->tx.n_nic_ports; i++) {
-
-    portid = lp->tx.nic_ports[i];
-    if (lagopus_kni[portid] == NULL) {
-      continue;
-    }
-    num = rte_kni_rx_burst(lagopus_kni[portid], pkts_burst, bsz);
-    if (num == 0 || (uint32_t)num > bsz) {
-      continue;
-    }
-    nb_tx = rte_eth_tx_burst(portid, 0, pkts_burst, (uint16_t)num);
-    if (unlikely(nb_tx < (uint16_t)num)) {
-      /* Free mbufs not tx to NIC */
-      for (j = nb_tx; j < num; j++) {
-        rte_pktmbuf_free(pkts_burst[j]);
-      }
-    }
-  }
-}
-#endif /* __linux__ */
-
 static inline void
 dpdk_update_link_status(struct app_lcore_params_io *lp) {
   int i;
@@ -673,10 +626,6 @@ app_lcore_io_tx_flush(struct app_lcore_params_io *lp, __UNUSED void *arg) {
     uint32_t n_pkts;
 
     portid = lp->tx.nic_ports[i];
-#ifdef __linux__
-    rte_kni_handle_request(lagopus_kni[portid]);
-#endif /* __linux__ */
-
     if (likely((lp->tx.mbuf_out_flush[portid] == 0) ||
                (lp->tx.mbuf_out[portid].n_mbufs == 0))) {
       continue;
@@ -732,9 +681,6 @@ app_lcore_io(struct app_lcore_params_io *lp, uint32_t n_workers) {
 
   app_lcore_io_rx(lp, n_workers, bsz_rx_rd, bsz_rx_wr);
   app_lcore_io_tx(lp, n_workers, bsz_tx_rd, bsz_tx_wr);
-#ifdef __linux__
-  app_lcore_io_tx_kni(lp, bsz_tx_wr);
-#endif /* __linux__ */
 }
 
 void
@@ -782,9 +728,6 @@ app_lcore_main_loop_io(void *arg) {
         update_count = 0;
       }
       app_lcore_io_tx(lp, n_workers, bsz_tx_rd, bsz_tx_wr);
-#ifdef __linux__
-      app_lcore_io_tx_kni(lp, bsz_tx_wr);
-#endif /* __linux__ */
       flush_count++;
       update_count++;
     }
@@ -804,9 +747,6 @@ app_lcore_main_loop_io(void *arg) {
       }
       app_lcore_io_rx(lp, n_workers, bsz_rx_rd, bsz_rx_wr);
       app_lcore_io_tx(lp, n_workers, bsz_tx_rd, bsz_tx_wr);
-#ifdef __linux__
-      app_lcore_io_tx_kni(lp, bsz_tx_wr);
-#endif /* __linux__ */
       flush_count++;
       update_count++;
     }
@@ -1205,7 +1145,7 @@ dpdk_configure_interface(struct interface *ifp) {
     }
   }
 
-  ifp->stats = port_stats;
+  ifp->stats = dpdk_port_stats;
   dpdk_interface_set_index(ifp);
 
   return LAGOPUS_RESULT_OK;
@@ -1278,58 +1218,8 @@ app_init_nics(void) {
 #endif /* RTE_VERSION_NUM */
 }
 
-#ifdef __linux__
-void
-app_init_kni(void) {
-  uint8_t portid;
-
-  for (portid = 0; portid < rte_eth_dev_count(); portid++) {
-    struct rte_kni *kni;
-    struct rte_kni_ops ops;
-    struct rte_kni_conf conf;
-    struct rte_eth_dev_info dev_info;
-
-    continue; /* XXX */
-    /* Clear conf at first */
-    memset(&conf, 0, sizeof(conf));
-    memset(&dev_info, 0, sizeof(dev_info));
-    memset(&ops, 0, sizeof(ops));
-    snprintf(conf.name, RTE_KNI_NAMESIZE, "vEth%u", portid);
-    conf.group_id = (uint16_t)portid;
-    conf.mbuf_size = MAX_PACKET_SZ;
-    rte_eth_dev_info_get(portid, &dev_info);
-    conf.addr = dev_info.pci_dev->addr;
-    conf.id = dev_info.pci_dev->id;
-    ops.port_id = portid;
-    ops.change_mtu = kni_change_mtu;
-    ops.config_network_if = kni_config_network_interface,
-        /* XXX socket 0 */
-        kni = rte_kni_alloc(app.pools[0], &conf, &ops);
-    if (kni == NULL) {
-      lagopus_msg_error("Fail to create kni dev for port: %d\n", portid);
-      continue;
-    }
-    lagopus_kni[portid] = kni;
-    printf("KNI: %s is configured.\n", conf.name);
-
-    printf("Port %u, MAC address: %02X:%02X:%02X:%02X:%02X:%02X\n\n",
-           (unsigned) portid,
-           lagopus_ports_eth_addr[portid].addr_bytes[0],
-           lagopus_ports_eth_addr[portid].addr_bytes[1],
-           lagopus_ports_eth_addr[portid].addr_bytes[2],
-           lagopus_ports_eth_addr[portid].addr_bytes[3],
-           lagopus_ports_eth_addr[portid].addr_bytes[4],
-           lagopus_ports_eth_addr[portid].addr_bytes[5]);
-
-    /* initialize port stats */
-    memset(&port_statistics, 0, sizeof(port_statistics));
-  }
-}
-#endif /* __linux__ */
-
-/* --------------------------Lagopus code start ----------------------------- */
 static struct port_stats *
-port_stats(struct port *port) {
+dpdk_port_stats(struct port *port) {
   struct rte_eth_stats rte_stats;
   struct timespec ts;
   struct port_stats *stats;
@@ -1591,77 +1481,3 @@ lagopus_packet_free(struct lagopus_packet *pkt) {
     }
   }
 }
-
-/* --------------------------Lagopus code end---------------------------- */
-
-#ifdef __linux__
-/* Callback for request of changing MTU */
-static int
-kni_change_mtu(uint8_t port_id, unsigned new_mtu) {
-  int ret;
-  struct rte_eth_conf conf;
-
-  if (port_id >= rte_eth_dev_count()) {
-    lagopus_msg_error("Invalid port id %d\n", port_id);
-    return -EINVAL;
-  }
-
-  lagopus_msg_info("Change MTU of port %d to %u\n", port_id, new_mtu);
-
-  /* Stop specific port */
-  rte_eth_dev_stop(port_id);
-
-  memcpy(&conf, &port_conf, sizeof(conf));
-  /* Set new MTU */
-  if (new_mtu > ETHER_MAX_LEN) {
-    conf.rxmode.jumbo_frame = 1;
-  } else {
-    conf.rxmode.jumbo_frame = 0;
-  }
-
-  /* mtu + length of header + length of FCS = max pkt length */
-  conf.rxmode.max_rx_pkt_len = new_mtu + KNI_ENET_HEADER_SIZE +
-                               KNI_ENET_FCS_SIZE;
-  ret = rte_eth_dev_configure(port_id, 1, 1, &conf);
-  if (ret < 0) {
-    lagopus_msg_error("Fail to reconfigure port %d\n", port_id);
-    return ret;
-  }
-
-  /* Restart specific port */
-  ret = rte_eth_dev_start(port_id);
-  if (ret < 0) {
-    lagopus_msg_error("Fail to restart port %d\n", port_id);
-    return ret;
-  }
-
-  return 0;
-}
-
-/* Callback for request of configuring network interface up/down */
-static int
-kni_config_network_interface(uint8_t port_id, uint8_t if_up) {
-  int ret = 0;
-
-  if (port_id >= rte_eth_dev_count() || port_id >= RTE_MAX_ETHPORTS) {
-    lagopus_msg_error("Invalid port id %d\n", port_id);
-    return -EINVAL;
-  }
-
-  lagopus_msg_info("Configure network interface of %d %s\n",
-                   port_id, if_up ? "up" : "down");
-
-  if (if_up != 0) { /* Configure network interface up */
-    rte_eth_dev_stop(port_id);
-    ret = rte_eth_dev_start(port_id);
-  } else { /* Configure network interface down */
-    rte_eth_dev_stop(port_id);
-  }
-
-  if (ret < 0) {
-    lagopus_msg_error("Failed to start port %d\n", port_id);
-  }
-
-  return ret;
-}
-#endif /* __linux__ */

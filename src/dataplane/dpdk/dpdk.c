@@ -156,9 +156,6 @@ app_init(void) {
   app_init_rings_rx();
   app_init_rings_tx();
   app_init_nics();
-#ifdef __linux__
-  app_init_kni();
-#endif /* __linux__ */
 
   printf("Initialization completed.\n");
 }

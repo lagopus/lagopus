@@ -34,7 +34,11 @@
 #define _NET_ETHERNET_H_ /* hmm, conflict ethernet.h with rte_ether.h */
 #endif
 #else
+#ifdef HAVE_NET_ETHERNET_H
 #include <net/ethernet.h>
+#else
+#include <net/if_ether.h>
+#endif /* HAVE_NET_ETHERNET_H */
 #endif /* HAVE_DPDK */
 
 #define __FAVOR_BSD

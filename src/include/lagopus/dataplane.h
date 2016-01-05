@@ -26,7 +26,11 @@
 #include <rte_config.h>
 #include <rte_ether.h>
 #else
+#ifdef HAVE_NET_ETHERNET_H
 #include <net/ethernet.h>
+#else
+#include <net/if_ether.h>
+#endif /* HAVE_NET_ETHERNET_H */
 #endif /* HAVE_DPDK */
 #include <netinet/in.h>
 

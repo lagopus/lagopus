@@ -95,9 +95,6 @@
 #include <rte_tcp.h>
 #include <rte_udp.h>
 #include <rte_sctp.h>
-#ifdef __linux__
-#include <rte_kni.h>
-#endif /* __linux__ */
 
 #include "lagopus/ethertype.h"
 #include "lagopus/flowdb.h"

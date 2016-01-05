@@ -114,10 +114,12 @@ case $OS in
 	OS_LIBS="-lrt -lpthread -ldl"
 	OS=linux;;
     netbsd*)
-        MAKE=gmake
-        OS_CPPFLAGS="${OS_CPPFLAGS} -I/usr/pkg/include"
-    	OS_LDFLAGS="-L/usr/pkg/lib"
-	OS_LIBS="-lpthread"
+	MAKE=gmake
+	OS_CPPFLAGS="${OS_CPPFLAGS} -I/usr/pkg/include"
+	OS_LDFLAGS="${OS_LDFLAGS} -L/usr/pkg/lib"
+	CPPFLAGS="${CPPFLAGS} ${OS_CPPFLAGS}"
+	LDFLAGS="${LDFLAGS} ${OS_LDFLAGS}"
+	OS_LIBS="-lpthread -lexecinfo"
 	OS=netbsd;;
 esac
 
@@ -262,6 +264,7 @@ AC_CHECK_HEADER(ncurses.h, [AC_DEFINE(HAVE_NCURSES_H)])
 AC_CHECK_HEADER(assert.h, [AC_DEFINE(HAVE_ASSERT_H)])
 AC_CHECK_HEADER(poll.h, [AC_DEFINE(HAVE_POLL_H)])
 AC_CHECK_HEADER(sys/socket.h, [AC_DEFINE(HAVE_SYS_SOCKET_H)])
+AC_CHECK_HEADER(net/ethernet.h, [AC_DEFINE(HAVE_NET_ETHERNET_H)])
 
 AC_CHECK_FUNCS([strlcpy strlcat])
 AC_CHECK_FUNC(strtold, [AC_DEFINE(HAVE_STRTOLD)])

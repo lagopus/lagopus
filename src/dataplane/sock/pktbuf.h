@@ -21,8 +21,14 @@
  *      @file   pktbuf.h
  */
 
+#ifdef HAVE_NET_ETHERNET_H
 #include <net/ethernet.h>
+#else
+#include <net/if_ether.h>
+#endif /* HAVE_NET_ETHERNET_H */
+#ifdef __linux__
 #include <linux/if_vlan.h>
+#endif /* __linux__ */
 #include <netinet/if_ether.h>
 #include <netinet/ip.h>
 #include <netinet/ip6.h>

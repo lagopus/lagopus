@@ -1,48 +1,40 @@
 /* %COPYRIGHT% */
 
 /**
- *      @file   sock_io.c
- *      @brief  Dataplane driver use with raw socket
+ *      @file   bpf_io.c
+ *      @brief  Datapath driver use with Berkelay Packet Filter
  */
 
 #include <stdio.h>
 #include <stdbool.h>
 #include <inttypes.h>
-#include <poll.h>
-#include <pthread.h>
-#include <err.h>
-#include <getopt.h>
+#include <sys/types.h>
+#include <sys/time.h>
 #include <sys/ioctl.h>
-#include <sys/queue.h>
-#include <sys/socket.h>
+#include <net/bpf.h>
 #include <net/if.h>
-#include <pthread.h>
+#include <net/if_dl.h>
 
-#include <linux/if_packet.h>
-#include <linux/if_link.h>
-#include <linux/netlink.h>
-#include <linux/rtnetlink.h>
-
+#include "lagopus_apis.h"
 #include "lagopus/dp_apis.h"
 #include "lagopus/flowdb.h"
 #include "lagopus/meter.h"
-#include "lagopus/ofp_dp_apis.h"
-#include "lagopus/port.h"
 #include "lagopus/dataplane.h"
 #include "lagopus/ofcache.h"
+#include "lagopus/bridge.h"
+#include "lagopus/port.h"
 #include "lagopus/interface.h"
 #include "pktbuf.h"
 #include "packet.h"
 #include "csum.h"
 #include "thread.h"
-#include "pcap.h"
 
-static struct port_stats *rawsock_port_stats(struct port *port);
+static struct port_stats *bpf_port_stats(struct port *port);
 
+#define BPF_DEV "/dev/bpf"
 #define NUM_PORTID 256
 
 static struct pollfd pollfd[NUM_PORTID];
-static int ifindex[NUM_PORTID];
 
 #ifndef HAVE_DPDK
 static bool no_cache = true;
@@ -81,68 +73,18 @@ put_port_number(int id) {
 
 static ssize_t
 read_packet(int fd, uint8_t *buf, size_t buflen) {
-  struct sockaddr from;
-  struct iovec iov;
-  struct msghdr msg;
-  union {
-    struct cmsghdr cmsg;
-    uint8_t buf[CMSG_SPACE(sizeof(struct tpacket_auxdata))];
-  } cmsgbuf;
-  struct cmsghdr *cmsg;
-  struct tpacket_auxdata *auxdata;
-  uint16_t *p;
+  struct bpf_hdr *hdr;
   ssize_t pktlen;
-  uint16_t ether_type;
 
-  iov.iov_base = buf;
-  iov.iov_len = buflen;
-  memset(buf, 0, buflen); /* XXX */
-
-  msg.msg_name = &from;
-  msg.msg_namelen = sizeof(from);
-  msg.msg_iov = &iov;
-  msg.msg_iovlen = 1;
-  msg.msg_control = &cmsgbuf;
-  msg.msg_controllen = sizeof(cmsgbuf);
-  msg.msg_flags = 0;
-
-  pktlen = recvmsg(fd, &msg, MSG_TRUNC);
+  pktlen = read(fd, buf, buflen);
   if (pktlen == -1) {
     if (errno == EAGAIN) {
       pktlen = 0;
     }
-    return pktlen;
-  }
-  for (cmsg = CMSG_FIRSTHDR(&msg);
-       cmsg != NULL;
-       cmsg = CMSG_NXTHDR(&msg, cmsg)) {
-    if (cmsg->cmsg_type != PACKET_AUXDATA) {
-      continue;
-    }
-    auxdata = (struct tpacket_auxdata *)CMSG_DATA(cmsg);
-#if defined (TP_STATUS_VLAN_VALID)
-    if ((auxdata->tp_status & TP_STATUS_VLAN_VALID) == 0) {
-      continue;
-    }
-#else
-    if (auxdata->tp_vlan_tci == 0) {
-      continue;
-    }
-#endif /* TP_STATUS_VLAN_VALID */
-    p = (uint16_t *)(buf + ETHER_ADDR_LEN * 2);
-    switch (OS_NTOHS(p[0])) {
-      case ETHERTYPE_PBB:
-      case ETHERTYPE_VLAN:
-        ether_type = 0x88a8;
-        break;
-      default:
-        ether_type = ETHERTYPE_VLAN;
-        break;
-    }
-    memmove(&p[2], p, pktlen - ETHER_ADDR_LEN * 2);
-    p[0] = OS_HTONS(ether_type);
-    p[1] = OS_HTONS(auxdata->tp_vlan_tci);
-    pktlen += 4;
+  } else {
+    hdr = (void *)buf;
+    pktlen = hdr->bh_caplen;
+    memmove(buf, buf + hdr->bh_hdrlen, hdr->bh_caplen);
   }
   return pktlen;
 }
@@ -195,38 +137,15 @@ rawsock_dataplane_init(int argc, const char *const argv[]) {
 
 lagopus_result_t
 rawsock_configure_interface(struct interface *ifp) {
-  struct nlreq {
-    struct nlmsghdr nlh;
-    struct ifinfomsg ifinfo;
-    char buf[64];
-  } req;
-  struct rtattr *rta;
   uint32_t portid;
   struct ifreq ifreq;
-  struct packet_mreq mreq;
-  struct sockaddr_ll sll;
-  unsigned int mtu;
+  u_int intparam;
   int fd, on;
 
-  fd = socket(PF_PACKET, SOCK_RAW | SOCK_NONBLOCK, htons(ETH_P_ALL));
+  fd = open(BPF_DEV, O_RDWR);
   if (fd == -1) {
     lagopus_msg_error("%s: %s\n",
                       ifp->info.eth_rawsock.device, strerror(errno));
-    return LAGOPUS_RESULT_POSIX_API_ERROR;
-  }
-  on = 1;
-  if (setsockopt(fd, SOL_PACKET, PACKET_AUXDATA, &on, sizeof(on)) != 0) {
-    close(fd);
-    lagopus_msg_warning("%s: %s\n",
-                        ifp->info.eth_rawsock.device, strerror(errno));
-    return LAGOPUS_RESULT_POSIX_API_ERROR;
-  }
-  snprintf(ifreq.ifr_name, sizeof(ifreq.ifr_name),
-           "%s", ifp->info.eth_rawsock.device);
-  if (ioctl(fd, SIOCGIFINDEX, &ifreq) != 0) {
-    close(fd);
-    lagopus_msg_warning("%s: %s\n",
-                        ifp->info.eth_rawsock.device, strerror(errno));
     return LAGOPUS_RESULT_POSIX_API_ERROR;
   }
   portid = get_port_number();
@@ -237,62 +156,53 @@ rawsock_configure_interface(struct interface *ifp) {
     return LAGOPUS_RESULT_TOO_MANY_OBJECTS;
   }
   ifp->info.eth_rawsock.port_number = portid;
-  ifindex[portid] = ifreq.ifr_ifindex;
-  if (ioctl(fd, SIOCGIFHWADDR, &ifreq) != 0) {
-    close(fd);
-    lagopus_msg_warning("%s: %s\n",
-                        ifp->info.eth_rawsock.device, strerror(errno));
-  } else {
-    memcpy(ifp->hw_addr, ifreq.ifr_hwaddr.sa_data, ETHER_ADDR_LEN);
-  }
-  lagopus_msg_info("Configuring %s, ifindex %d\n",
-                   ifp->info.eth_rawsock.device, ifindex[portid]);
-  sll.sll_family = AF_PACKET;
-  sll.sll_protocol = htons(ETH_P_ALL);
-  sll.sll_ifindex = ifindex[portid];
-  bind(fd, (struct sockaddr *)&sll, sizeof(sll));
-
-  /* Set MTU */
-  memset(&req, 0, sizeof(req));
-  req.nlh.nlmsg_len = NLMSG_LENGTH(sizeof(struct ifinfomsg));
-  req.nlh.nlmsg_type = RTM_NEWLINK;
-  req.nlh.nlmsg_flags = NLM_F_REQUEST;
-  req.ifinfo.ifi_family = AF_UNSPEC;
-  req.ifinfo.ifi_type = ARPHRD_ETHER;
-  req.ifinfo.ifi_index = ifindex[portid];
-  req.ifinfo.ifi_flags = 0;
-  req.ifinfo.ifi_change = 0xffffffff;
-  rta = (void *)(((char *)&req) + NLMSG_ALIGN(offsetof(struct nlreq, buf)));
-  rta->rta_type = IFLA_MTU;
-  rta->rta_len = RTA_LENGTH(sizeof(mtu));
-  req.nlh.nlmsg_len = req.nlh.nlmsg_len + RTA_LENGTH(sizeof(mtu));
-  mtu = ifp->info.eth_rawsock.mtu;
-  memcpy(RTA_DATA(rta), &mtu, sizeof(mtu));
-  send(fd, &req, req.nlh.nlmsg_len, 0);
-
-  /* set promiscous mode */
-  memset(&ifreq, 0, sizeof(ifreq));
-  snprintf(ifreq.ifr_name, sizeof(ifreq.ifr_name),
-           "%s", ifp->info.eth_rawsock.device);
-  if (ioctl(fd, SIOCGIFFLAGS, &ifreq) != 0) {
-    close(fd);
-    lagopus_msg_warning("%s: %s\n",
-                        ifp->info.eth_rawsock.device, strerror(errno));
-    return LAGOPUS_RESULT_POSIX_API_ERROR;
-  }
-  ifreq.ifr_flags |= IFF_PROMISC;
-  if (ioctl(fd, SIOCSIFFLAGS, &ifreq) != 0) {
-    close(fd);
-    lagopus_msg_warning("%s: %s\n",
-                        ifp->info.eth_rawsock.device, strerror(errno));
-    return LAGOPUS_RESULT_POSIX_API_ERROR;
-  }
-
   pollfd[portid].fd = fd;
+  intparam = MAX_PACKET_SZ;
+  if (ioctl(fd, BIOCSBLEN, &intparam) != 0) {
+    lagopus_msg_error("%s: BIOCSBLEN: %s\n",
+                      ifp->info.eth_rawsock.device, strerror(errno));
+    close(fd);
+    put_port_number(portid);
+    return LAGOPUS_RESULT_POSIX_API_ERROR;
+  }
+  intparam = BPF_D_IN;
+  if (ioctl(fd, BIOCSDIRECTION, &intparam) != 0) {
+    lagopus_msg_error("%s: BIOCSDIRECTION: %s\n",
+                      ifp->info.eth_rawsock.device, strerror(errno));
+    close(fd);
+    put_port_number(portid);
+    return LAGOPUS_RESULT_POSIX_API_ERROR;
+  }
+  snprintf(ifreq.ifr_name, sizeof(ifreq.ifr_name), "%s",
+           ifp->info.eth_rawsock.device);
+  if (ioctl(fd, BIOCSETIF, &ifreq) != 0) {
+    lagopus_msg_error("%s: BIOCSETIF: %s\n",
+                      ifp->info.eth_rawsock.device, strerror(errno));
+    close(fd);
+    put_port_number(portid);
+    return LAGOPUS_RESULT_POSIX_API_ERROR;
+  }
+  lagopus_msg_info("Configuring %s\n", ifp->info.eth_rawsock.device);
+  ifreq.ifr_addr.sa_family = AF_LINK;
+  if (ioctl(fd, SIOCGIFADDR, &ifreq) == 0) {
+    memcpy(ifp->hw_addr,
+           LLADDR(((struct sockaddr_dl *)&ifreq.ifr_addr)),
+           ETHER_ADDR_LEN);
+  }
+  if (ioctl(fd, BIOCPROMISC, NULL) != 0) {
+    lagopus_msg_error("%s: BIOCPROMISC: %s\n",
+                      ifp->info.eth_rawsock.device, strerror(errno));
+  }
+  on = 1;
+#ifdef BIOCIMMEDIATE
+  if (ioctl(fd, BIOCIMMEDIATE, &on) == 0) {
+  }
+#endif /* BIOCIMMEDIATE */
   pollfd[portid].events = 0;
-  ifp->stats = rawsock_port_stats;
+  ifp->stats = bpf_port_stats;
 
   return LAGOPUS_RESULT_OK;
+
 }
 
 lagopus_result_t
@@ -303,7 +213,6 @@ rawsock_unconfigure_interface(struct interface *ifp) {
   pollfd[portid].events = 0;
   close(pollfd[portid].fd);
   pollfd[portid].fd = 0;
-  ifindex[portid] = 0;
   put_port_number(portid);
 
   return LAGOPUS_RESULT_OK;
@@ -337,11 +246,14 @@ rawsock_get_hwaddr(struct interface *ifp, uint8_t *hw_addr) {
   fd = pollfd[portid].fd;
   snprintf(ifreq.ifr_name, sizeof(ifreq.ifr_name),
            "%s", ifp->info.eth_rawsock.device);
-  if (ioctl(fd, SIOCGIFHWADDR, &ifreq) != 0) {
+  ifreq.ifr_addr.sa_family = AF_LINK;
+  if (ioctl(fd, SIOCGIFADDR, &ifreq) != 0) {
     lagopus_msg_warning("%s\n", strerror(errno));
     return LAGOPUS_RESULT_ANY_FAILURES;
   }
-  memcpy(hw_addr, ifreq.ifr_hwaddr.sa_data, ETHER_ADDR_LEN);
+  memcpy(ifp->hw_addr,
+      LLADDR(((struct sockaddr_dl *)&ifreq.ifr_addr)),
+      ETHER_ADDR_LEN);
   return LAGOPUS_RESULT_OK;
 }
 
@@ -372,219 +284,20 @@ rawsock_send_packet_physical(struct lagopus_packet *pkt, uint32_t portid) {
 }
 
 static struct port_stats *
-rawsock_port_stats(struct port *port) {
-  struct {
-    struct nlmsghdr nlh;
-    struct ifinfomsg ifinfo;
-    char buf[64];
-  } req;
-  union {
-    struct nlmsghdr nlh;
-    char buf[4096];
-  } res;
-  struct nlmsghdr *nlh;
-  struct rtattr *rta;
-#ifdef IFLA_STATS64
-  struct rtnl_link_stats64 *link_stats;
-#else
-  struct rtnl_link_stats *link_stats;
-#endif /* IFLA_STATS64 */
-  struct timespec ts;
+bpf_port_stats(struct port *port) {
   struct port_stats *stats;
-  int fd, len, rta_len;
-
-  link_stats = NULL;
 
   stats = calloc(1, sizeof(struct port_stats));
   if (stats == NULL) {
     return NULL;
   }
 
-  fd = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
-  if (fd == -1) {
-    lagopus_msg_error("netlink socket create error: %s\n", strerror(errno));
-    free(stats);
-    return NULL;
-  }
-  memset(&req, 0, sizeof(req));
-  req.nlh.nlmsg_len = NLMSG_LENGTH(sizeof(struct ifinfomsg));
-  req.nlh.nlmsg_type = RTM_GETLINK;
-  req.nlh.nlmsg_flags = NLM_F_REQUEST | NLM_F_DUMP;
-  req.ifinfo.ifi_family = AF_UNSPEC;
-  req.ifinfo.ifi_type = ARPHRD_ETHER;
-  req.ifinfo.ifi_index = ifindex[port->ifindex];
-  req.ifinfo.ifi_flags = 0;
-  req.ifinfo.ifi_change = 0xffffffff;
-  send(fd, &req, req.nlh.nlmsg_len, 0);
-  memset(&res, 0, sizeof(res));
-  while ((len = recv(fd, &res, sizeof(res), 0)) > 0) {
-    link_stats = NULL;
-    for (nlh = &res.nlh; NLMSG_OK(nlh, len); nlh = NLMSG_NEXT(nlh, len)) {
-      if (nlh->nlmsg_type == RTM_NEWLINK) {
-        struct ifinfomsg *ifi;
-
-        ifi = NLMSG_DATA(nlh);
-        if (ifi->ifi_index != ifindex[port->ifindex]) {
-          continue;
-        }
-        if (ifi->ifi_family == AF_UNSPEC) {
-          bool changed = false;
-
-          if ((ifi->ifi_flags & (IFF_UP|IFF_RUNNING)) != (IFF_UP|IFF_RUNNING)) {
-            if (port->ofp_port.state != OFPPS_LINK_DOWN) {
-              lagopus_msg_info("Physical Port %d: link down\n", port->ifindex);
-              changed = true;
-            }
-            port->ofp_port.state = OFPPS_LINK_DOWN;
-          } else {
-            if (port->ofp_port.state != OFPPS_LIVE) {
-              lagopus_msg_info("Physical Port %d: link up\n", port->ifindex);
-              changed = true;
-            }
-            port->ofp_port.state = OFPPS_LIVE;
-          }
-          if (changed == true) {
-            send_port_status(port, OFPPR_MODIFY);
-          }
-          rta_len = nlh->nlmsg_len - NLMSG_LENGTH(sizeof(*ifi));
-
-          for (rta = IFLA_RTA(ifi);
-               RTA_OK(rta, rta_len);
-               rta = RTA_NEXT(rta, rta_len)) {
-
-            switch (rta->rta_type) {
-#ifdef IFLA_STATS64
-              case IFLA_STATS64:
-#else
-              case IFLA_STATS:
-#endif /* IFLA_STATS64 */
-                link_stats = RTA_DATA(rta);
-                goto found;
-            }
-          }
-        }
-      }
-    }
-  }
-found:
-  close(fd);
-
-  /* if counter is not supported, set all ones value. */
-  stats->ofp.port_no = port->ofp_port.port_no;
-  if (link_stats != NULL) {
-    stats->ofp.rx_packets = link_stats->rx_packets;
-    stats->ofp.tx_packets = link_stats->tx_packets;
-    stats->ofp.rx_bytes = link_stats->rx_bytes;
-    stats->ofp.tx_bytes = link_stats->tx_bytes;
-    stats->ofp.rx_dropped = link_stats->rx_dropped;
-    stats->ofp.tx_dropped = link_stats->tx_dropped;
-    stats->ofp.rx_errors = link_stats->rx_errors;
-    stats->ofp.tx_errors = link_stats->tx_errors;
-    stats->ofp.rx_frame_err = link_stats->rx_frame_errors;
-    stats->ofp.rx_over_err = link_stats->rx_over_errors;
-    stats->ofp.rx_crc_err =  link_stats->rx_crc_errors;
-    stats->ofp.collisions = link_stats->collisions;
-  }
-
-  clock_gettime(CLOCK_MONOTONIC, &ts);
-  stats->ofp.duration_sec = (uint32_t)(ts.tv_sec - port->create_time.tv_sec);
-  if (ts.tv_nsec < port->create_time.tv_nsec) {
-    stats->ofp.duration_sec--;
-    stats->ofp.duration_nsec = 1 * 1000 * 1000 * 1000;
-  } else {
-    stats->ofp.duration_nsec = 0;
-  }
-  stats->ofp.duration_nsec += (uint32_t)ts.tv_nsec;
-  stats->ofp.duration_nsec -= (uint32_t)port->create_time.tv_nsec;
-  OS_MEMCPY(&port->ofp_port_stats, &stats->ofp, sizeof(stats->ofp));
-
   return stats;
 }
 
 lagopus_result_t
 rawsock_get_stats(struct interface *ifp, datastore_interface_stats_t *stats) {
-  struct {
-    struct nlmsghdr nlh;
-    struct ifinfomsg ifinfo;
-    char buf[64];
-  } req;
-  union {
-    struct nlmsghdr nlh;
-    char buf[4096];
-  } res;
-  struct nlmsghdr *nlh;
-  struct rtattr *rta;
-#ifdef IFLA_STATS64
-  struct rtnl_link_stats64 *link_stats;
-#else
-  struct rtnl_link_stats *link_stats;
-#endif /* IFLA_STATS64 */
-  ssize_t len, rta_len;
-  int fd;
-
-  link_stats = NULL;
-
-  fd = socket(AF_NETLINK, SOCK_RAW | SOCK_NONBLOCK, NETLINK_ROUTE);
-  if (fd == -1) {
-    lagopus_msg_error("netlink socket create error: %s\n", strerror(errno));
-    free(stats);
-    return LAGOPUS_RESULT_POSIX_API_ERROR;
-  }
-  memset(&req, 0, sizeof(req));
-  req.nlh.nlmsg_len = NLMSG_LENGTH(sizeof(struct ifinfomsg));
-  req.nlh.nlmsg_type = RTM_GETLINK;
-  req.nlh.nlmsg_flags = NLM_F_REQUEST | NLM_F_DUMP;
-  req.ifinfo.ifi_family = AF_UNSPEC;
-  req.ifinfo.ifi_type = ARPHRD_ETHER;
-  req.ifinfo.ifi_index = ifindex[ifp->info.eth_rawsock.port_number];
-  req.ifinfo.ifi_flags = 0;
-  req.ifinfo.ifi_change = 0xffffffff;
-  send(fd, &req, req.nlh.nlmsg_len, 0);
-  memset(&res, 0, sizeof(res));
-  while ((len = recv(fd, &res, sizeof(res), 0)) > 0) {
-    link_stats = NULL;
-    for (nlh = &res.nlh; NLMSG_OK(nlh, len); nlh = NLMSG_NEXT(nlh, len)) {
-      if (nlh->nlmsg_type == RTM_NEWLINK) {
-        struct ifinfomsg *ifi;
-
-        ifi = NLMSG_DATA(nlh);
-        if (ifi->ifi_index != ifindex[ifp->info.eth_rawsock.port_number]) {
-          continue;
-        }
-        if (ifi->ifi_family == AF_UNSPEC) {
-
-          rta_len = nlh->nlmsg_len - NLMSG_HDRLEN - sizeof(struct ifinfomsg);
-          for (rta = IFLA_RTA(ifi);
-               RTA_OK(rta, rta_len);
-               rta = RTA_NEXT(rta, rta_len)) {
-
-            switch (rta->rta_type) {
-#ifdef IFLA_STATS64
-              case IFLA_STATS64:
-#else
-              case IFLA_STATS:
-#endif /* IFLA_STATS64 */
-                link_stats = RTA_DATA(rta);
-                goto found;
-            }
-          }
-        }
-      }
-    }
-  }
-found:
-  close(fd);
-
-  /* if counter is not supported, set all ones value. */
-  if (link_stats != NULL) {
-    stats->rx_packets = link_stats->rx_packets;
-    stats->rx_bytes = link_stats->rx_bytes;
-    stats->tx_packets = link_stats->tx_packets;
-    stats->tx_bytes = link_stats->tx_bytes;
-    stats->rx_errors = link_stats->rx_errors;
-    stats->tx_dropped = link_stats->tx_dropped;
-    stats->tx_errors = link_stats->tx_errors;
-  }
+  (void) ifp;
 
   return LAGOPUS_RESULT_OK;
 }
@@ -614,8 +327,7 @@ rawsock_change_config(struct interface *ifp,
  * @param[in]   arg     Do not used argument.
  */
 static lagopus_result_t
-dp_rawsock_thread_loop(__UNUSED const lagopus_thread_t *selfptr,
-                    void *arg) {
+dp_bpf_thread_loop(__UNUSED const lagopus_thread_t *selfptr, void *arg) {
   static const uint8_t eth_bcast[] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
   struct lagopus_packet *pkt;
   struct port_stats *stats;
@@ -700,7 +412,9 @@ dp_rawsock_thread_loop(__UNUSED const lagopus_thread_t *selfptr,
               continue;
 
             default:
-              lagopus_exit_fatal("read: %s", strerror(errno));
+              lagopus_exit_fatal("read_packet(%d, %p, %d): %s",
+                                 pollfd[i].fd, OS_MTOD(pkt->mbuf, uint8_t *),
+                                 MAX_PACKET_SZ, strerror(errno));
           }
         }
         OS_M_TRIM(pkt->mbuf, MAX_PACKET_SZ - len);
@@ -760,7 +474,7 @@ dp_rawsock_thread_init(int argc,
   dparg.threadptr = &rawsock_thread;
   dparg.lock = &rawsock_lock;
   dparg.running = &rawsock_run;
-  lagopus_thread_create(&rawsock_thread, dp_rawsock_thread_loop,
+  lagopus_thread_create(&rawsock_thread, dp_bpf_thread_loop,
                         dp_finalproc, dp_freeproc, "dp_rawsock",
                         &dparg);
   if (lagopus_mutex_create(&rawsock_lock) != LAGOPUS_RESULT_OK) {

@@ -19,13 +19,19 @@
  *      @brief  Optimized flow database for dataplane, linear search
  */
 
+#include "lagopus_config.h"
+
 #include <inttypes.h>
 #include <stdbool.h>
 #include <sys/types.h>
 #include <sys/queue.h>
 
 #ifndef HAVE_DPDK
+#ifdef HAVE_NET_ETHERNET_H
 #include <net/ethernet.h>
+#else
+#include <net/if_ether.h>
+#endif /* HAVE_NET_ETHERNET_H */
 #endif /* HAVE_DPDK */
 
 #define __FAVOR_BSD

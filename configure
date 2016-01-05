@@ -15828,10 +15828,12 @@ case $OS in
 	OS_LIBS="-lrt -lpthread -ldl"
 	OS=linux;;
     netbsd*)
-        MAKE=gmake
-        OS_CPPFLAGS="${OS_CPPFLAGS} -I/usr/pkg/include"
-    	OS_LDFLAGS="-L/usr/pkg/lib"
-	OS_LIBS="-lpthread"
+	MAKE=gmake
+	OS_CPPFLAGS="${OS_CPPFLAGS} -I/usr/pkg/include"
+	OS_LDFLAGS="${OS_LDFLAGS} -L/usr/pkg/lib"
+	CPPFLAGS="${CPPFLAGS} ${OS_CPPFLAGS}"
+	LDFLAGS="${LDFLAGS} ${OS_LDFLAGS}"
+	OS_LIBS="-lpthread -lexecinfo"
 	OS=netbsd;;
 esac
 
@@ -16766,6 +16768,13 @@ fi
 ac_fn_c_check_header_mongrel "$LINENO" "sys/socket.h" "ac_cv_header_sys_socket_h" "$ac_includes_default"
 if test "x$ac_cv_header_sys_socket_h" = xyes; then :
   $as_echo "#define HAVE_SYS_SOCKET_H 1" >>confdefs.h
+
+fi
+
+
+ac_fn_c_check_header_mongrel "$LINENO" "net/ethernet.h" "ac_cv_header_net_ethernet_h" "$ac_includes_default"
+if test "x$ac_cv_header_net_ethernet_h" = xyes; then :
+  $as_echo "#define HAVE_NET_ETHERNET_H 1" >>confdefs.h
 
 fi
 

@@ -22,6 +22,7 @@
 #ifndef SRC_INCLUDE_LAGOPUS_INTERFACE_H_
 #define SRC_INCLUDE_LAGOPUS_INTERFACE_H_
 
+#include "lagopus_config.h"
 #include "lagopus/datastore/interface.h"
 #include "lagopus/datastore/queue.h"
 
@@ -32,7 +33,11 @@
 #include "rte_ether.h"
 #include "rte_meter.h"
 #else
+#ifdef HAVE_NET_ETHERNET_H
 #include <net/ethernet.h>
+#else
+#include <net/if_ether.h>
+#endif /* HAVE_NET_ETHERNET_H */
 #endif /* HAVE_DPDK */
 
 struct port;
