@@ -593,7 +593,20 @@ class Topcmd(Cmd):
                   'mactable', 'interface', 'meter', 'port', 'version']
         return [name for name in params if name.startswith(text)]
 
-    def subcmd_show(self, line, key='bridge', stats='stats'):
+    def subcmd_id_merge(self, subcmd, id, res, resc):
+        gstats = res[subcmd + 's']
+        gconfig = resc[subcmd + 's']
+        for gs in gstats:
+            for gc in gconfig:
+                if gs[subcmd + '-id'] == gc[subcmd + '-id']:
+                    stats = gs[id + '-stats']
+                    config = gc[id + 's']
+                    for b in stats:
+                        for c in config:
+                            if c[id + '-id'] == b[id + '-id']:
+                                b.update(c)
+
+    def subcmd_show(self, line, key='bridge', stats='stats', id=None):
         args = line.split()
         try:
             subcmd = args[0]
@@ -608,6 +621,9 @@ class Topcmd(Cmd):
             except:
                 print 'invalid keyword: ' + args[1]
                 return
+            if id != None:
+                resc = ds_client().call(subcmd + ' ' + args[1] + '\n')[0]
+                self.subcmd_id_merge(subcmd, id, res, resc)
             if len(args) == 3:
                 try:
                     res = res[args[2]]
@@ -623,6 +639,9 @@ class Topcmd(Cmd):
                     name = ifdata['name']
                     req = subcmd + ' ' + name.encode() + ' ' + stats + '\n'
                     res = ds_client().call(req)[0]
+                    if id != None:
+                        resc = ds_client().call(subcmd + ' ' + name.encode() + '\n')[0]
+                        self.subcmd_id_merge(subcmd, id, res, resc)
                     try:
                         res['name'] = name
                         res['is-enabled'] = ifdata['is-enabled']
@@ -650,8 +669,14 @@ class Topcmd(Cmd):
             print 'Argument error'
             return
 
-        if subcmd in ['bridge', 'group', 'meter']:
+        if subcmd == 'bridge':
             self.subcmd_show(line)
+
+        elif subcmd == 'group':
+            self.subcmd_show(line, 'bridge', 'stats', 'bucket')
+
+        elif subcmd == 'meter':
+            self.subcmd_show(line, 'bridge', 'stats', 'band')
 
         elif subcmd == 'flow':
             self.subcmd_show(line, 'bridge', '-with-stats')

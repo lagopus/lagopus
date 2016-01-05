@@ -239,10 +239,12 @@ test_meter_cmd_parse_dump_02(void) {
     "\"meters\":[{\"meter-id\":5,\n"
     "\"flags\":[\"kbps\",\n"
     "\"burst\"],\n"
-    "\"bands\":[{\"type\":\"drop\",\n"
+    "\"bands\":[{\"band-id\":0,\n"
+    "\"type\":\"drop\",\n"
     "\"rate\":1,\n"
     "\"burst-size\":2},\n"
-    "{\"type\":\"drop\",\n"
+    "{\"band-id\":1,\n"
+    "\"type\":\"drop\",\n"
     "\"rate\":2,\n"
     "\"burst-size\":3}]}]}]}";
 

@@ -41,6 +41,7 @@ enum g_stats {
   STATS_BUCKET,
   STATS_BUCKET_PACKET_COUNT,
   STATS_BUCKET_BYTE_COUNT,
+  STATS_BUCKET_ID, /* OFP1.3 is unsupported. */
 
   STATS_MAX,
 };
@@ -56,6 +57,7 @@ enum g_dumps {
   DUMPS_BUCKET_WATCH_PORT,
   DUMPS_BUCKET_WATCH_GROUP,
   DUMPS_BUCKET_ACTIONS,
+  DUMPS_BUCKET_ID, /* OFP1.3 is unsupported. */
 
   DUMPS_MAX,
 };
@@ -73,6 +75,7 @@ static const char *const stat_strs[STATS_MAX] = {
   "*bucket-stats",       /* STATS_BUCKET (not option) */
   "*packet-count",       /* STATS_BUCKET_PACKET_COUNT (not option) */
   "*byte-count",         /* STATS_BUCKET_BYTE_COUNT (not option) */
+  "*bucket-id",          /* STATS_BUCKET_ID (not option) */
 };
 
 /* dumps name. */
@@ -86,6 +89,7 @@ static const char *const dump_strs[DUMPS_MAX] = {
   "*watch-port",         /* BUCKET_WATCH_PORT (not option) */
   "*watch-group",        /* BUCKET_WATCH_GROUP (not option) */
   "*actions",            /* BUCKET_ACTIONS (not option) */
+  "*bucket-id",          /* DUMPS_BUCKET_ID (not option) */
 };
 
 /* type num. */
@@ -243,6 +247,7 @@ group_cmd_dump_json_create(char *name,
   struct bucket *bucket = NULL;
   struct action *action = NULL;
   struct group_desc *info = NULL;
+  uint32_t bucket_id = 0;
   bool delimiter1;
   bool delimiter2;
   bool is_action_first = true;
@@ -318,10 +323,19 @@ group_cmd_dump_json_create(char *name,
                 goto done;
               }
 
+              /* bucket_id */
+              if ((ret = datastore_json_uint32_append(
+                      ds, ATTR_NAME_GET(dump_strs, DUMPS_BUCKET_ID),
+                      bucket_id, false)) !=
+                  LAGOPUS_RESULT_OK) {
+                lagopus_perror(ret);
+                goto done;
+              }
+
               /* weight */
               if ((ret = datastore_json_uint16_append(
                       ds, ATTR_NAME_GET(dump_strs, DUMPS_BUCKET_WEIGHT),
-                      bucket->ofp.weight, false)) !=
+                      bucket->ofp.weight, true)) !=
                   LAGOPUS_RESULT_OK) {
                 lagopus_perror(ret);
                 goto done;
@@ -384,6 +398,8 @@ group_cmd_dump_json_create(char *name,
               if (delimiter2 == false) {
                 delimiter2 = true;
               }
+
+              bucket_id++;
             }
           }
 
@@ -444,6 +460,7 @@ group_cmd_stats_json_create(char *name,
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   struct group_stats *stats = NULL;
   struct bucket_counter *bucket_counter = NULL;
+  uint32_t bucket_id = 0;
   bool delimiter1;
   bool delimiter2;
 
@@ -554,10 +571,19 @@ group_cmd_stats_json_create(char *name,
                 goto done;
               }
 
+              /* bucket_id */
+              if ((ret = datastore_json_uint32_append(
+                      ds, ATTR_NAME_GET(stat_strs, STATS_BUCKET_ID),
+                      bucket_id, false)) !=
+                  LAGOPUS_RESULT_OK) {
+                lagopus_perror(ret);
+                goto done;
+              }
+
               /* packet_count */
               if ((ret = datastore_json_uint64_append(
                       ds, ATTR_NAME_GET(stat_strs, STATS_BUCKET_PACKET_COUNT),
-                      bucket_counter->ofp.packet_count, false)) !=
+                      bucket_counter->ofp.packet_count, true)) !=
                   LAGOPUS_RESULT_OK) {
                 lagopus_perror(ret);
                 goto done;
@@ -581,6 +607,8 @@ group_cmd_stats_json_create(char *name,
               if (delimiter2 == false) {
                 delimiter2 = true;
               }
+
+              bucket_id++;
             }
           }
 

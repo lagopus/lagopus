@@ -39,6 +39,7 @@ enum m_stats {
   STATS_BAND,
   STATS_BAND_PACKET_BAND_COUNT,
   STATS_BAND_BYTE_BAND_COUNT,
+  STATS_BAND_ID, /* OFP1.3 is unsupported */
 
   STATS_MAX,
 };
@@ -53,6 +54,7 @@ enum m_dumps {
   DUMPS_BAND_TYPE,
   DUMPS_BAND_RATE,
   DUMPS_BAND_BURST_SIZE,
+  DUMPS_BAND_ID, /* OFP1.3 is unsupported */
 
   DUMPS_MAX,
 };
@@ -70,6 +72,7 @@ static const char *const stat_strs[STATS_MAX] = {
   "*band-stats",         /* STATS_BAND (not option) */
   "*packet-band-count",  /* STATS_BAND_PACKET_BAND_COUNT (not option) */
   "*byte-band-count",    /* STATS_BAND_BYTE_BAND_COUNT (not option) */
+  "*band-id",            /* STATS_BAND_ID (not option) */
 };
 
 /* dumps name. */
@@ -82,6 +85,7 @@ static const char *const dump_strs[DUMPS_MAX] = {
   "*type",               /* DUMPS_BAND_TYPE (not option) */
   "*rate",               /* DUMPS_BAND_RATE (not option) */
   "*burst-size",         /* DUMPS_BAND_BURST_SIZE (not option) */
+  "*band-id",            /* DUMPS_BAND_ID (not option) */
 };
 
 /* flags name. */
@@ -242,6 +246,7 @@ meter_cmd_dump_json_create(char *name,
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   struct meter_band *band = NULL;
   struct meter_config *info = NULL;
+  uint32_t band_id = 0;
   bool delimiter1;
   bool delimiter2;
 
@@ -317,10 +322,19 @@ meter_cmd_dump_json_create(char *name,
                 goto done;
               }
 
+              /* band_id */
+              if ((ret = datastore_json_uint32_append(
+                      ds, ATTR_NAME_GET(dump_strs, DUMPS_BAND_ID),
+                      band_id, false)) !=
+                  LAGOPUS_RESULT_OK) {
+                lagopus_perror(ret);
+                goto done;
+              }
+
               /* type */
               if ((ret = datastore_json_string_append(
                       ds, ATTR_NAME_GET(dump_strs, DUMPS_BAND_TYPE),
-                      dump_type(band->type), false)) !=
+                      dump_type(band->type), true)) !=
                   LAGOPUS_RESULT_OK) {
                 lagopus_perror(ret);
                 goto done;
@@ -353,6 +367,8 @@ meter_cmd_dump_json_create(char *name,
               if (delimiter2 == false) {
                 delimiter2 = true;
               }
+
+              band_id++;
             }
 
             if (delimiter1 == false) {
@@ -413,6 +429,7 @@ meter_cmd_stats_json_create(char *name,
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   struct meter_stats *stats = NULL;
   struct meter_band_stats *band_stats = NULL;
+  uint32_t band_id = 0;
   bool delimiter1;
   bool delimiter2;
 
@@ -523,10 +540,19 @@ meter_cmd_stats_json_create(char *name,
                 goto done;
               }
 
+              /* band_id */
+              if ((ret = datastore_json_uint64_append(
+                      ds, ATTR_NAME_GET(stat_strs, STATS_BAND_ID),
+                      band_id, false)) !=
+                  LAGOPUS_RESULT_OK) {
+                lagopus_perror(ret);
+                goto done;
+              }
+
               /* packet_band_count */
               if ((ret = datastore_json_uint64_append(
                       ds, ATTR_NAME_GET(stat_strs, STATS_BAND_PACKET_BAND_COUNT),
-                      band_stats->ofp.packet_band_count, false)) !=
+                      band_stats->ofp.packet_band_count, true)) !=
                   LAGOPUS_RESULT_OK) {
                 lagopus_perror(ret);
                 goto done;
@@ -550,6 +576,8 @@ meter_cmd_stats_json_create(char *name,
               if (delimiter2 == false) {
                 delimiter2 = true;
               }
+
+              band_id++;
             }
           }
 
