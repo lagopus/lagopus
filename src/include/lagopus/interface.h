@@ -84,6 +84,14 @@ lagopus_result_t dp_interface_stop_internal(struct interface *ifp);
 lagopus_result_t dp_interface_configure_internal(struct interface *ifp);
 lagopus_result_t dp_interface_unconfigure_internal(struct interface *ifp);
 
+
+/**
+ * Send packet to tap interface.
+ * @param[in]   pkt     packet.
+ */
+lagopus_result_t
+dp_interface_send_packet_kernel(struct lagopus_packet *pkt,
+                                struct interface *ifp);
 /**
  * Send packet to kernel normal path related with physical port.
  *

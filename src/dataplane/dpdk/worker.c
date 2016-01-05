@@ -194,14 +194,16 @@ app_lcore_worker(struct app_lcore_params_worker *lp,
        * OFPP_NORMAL.
        */
       lagopus_packet_init(pkt, m, port);
-      if (
+
 #ifdef HYBRID
-                !memcmp(OS_MTOD(m, uint8_t *),
-                        port->interface->hw_addr, ETHER_ADDR_LEN) ||
-                !memcmp(OS_MTOD(m, uint8_t *),
-                        eth_bcast, ETHER_ADDR_LEN) ||
+      /* count up refcnt(packet copy). */
+      OS_M_ADDREF(m);
+
+      /* send to tap */
+      dp_interface_send_packet_kernel(pkt, pkt->in_port->interface);
 #endif /* HYBRID */
-          port->bridge->flowdb->switch_mode == SWITCH_MODE_STANDALONE) {
+
+      if (port->bridge->flowdb->switch_mode == SWITCH_MODE_STANDALONE) {
         lagopus_forward_packet_to_port(pkt, OFPP_NORMAL);
         lp->mbuf_in.array[j] = NULL;
         continue;

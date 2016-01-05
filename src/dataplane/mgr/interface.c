@@ -190,6 +190,17 @@ dp_interface_stop_internal(struct interface *ifp) {
   return LAGOPUS_RESULT_OK;
 }
 
+#ifdef HYBRID
+lagopus_result_t
+dp_interface_send_packet_kernel(struct lagopus_packet *pkt,
+                                struct interface *ifp) {
+  if (ifp->tap != NULL) {
+    return dp_tap_interface_send_packet(ifp->tap, pkt);
+  }
+  return LAGOPUS_RESULT_OK;
+}
+#endif /* HYBRID */
+
 lagopus_result_t
 dp_interface_send_packet_normal(struct lagopus_packet *pkt,
                                 struct interface *ifp,
@@ -200,8 +211,6 @@ dp_interface_send_packet_normal(struct lagopus_packet *pkt,
   if (l2_bridge == true) {
     port = find_and_learn_port_in_mac_table(pkt);
     lagopus_forward_packet_to_port(pkt, port);
-  } else if (ifp->tap != NULL) {
-    return dp_tap_interface_send_packet(ifp->tap, pkt);
   }
 #else
   (void) pkt;
