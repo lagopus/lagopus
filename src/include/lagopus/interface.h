@@ -29,7 +29,10 @@
 #include "rte_config.h"
 #include "rte_ethdev.h"
 #include "rte_sched.h"
+#include "rte_ether.h"
 #include "rte_meter.h"
+#else
+#include <net/ethernet.h>
 #endif /* HAVE_DPDK */
 
 struct port;
