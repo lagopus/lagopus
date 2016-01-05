@@ -33,8 +33,15 @@ static struct port_stats *bpf_port_stats(struct port *port);
 
 #define BPF_DEV "/dev/bpf"
 #define NUM_PORTID 256
+#define BPF_PACKET_BUFSIZE 65536
 
 static struct pollfd pollfd[NUM_PORTID];
+struct pkt_buffers {
+  uint8_t *buf;
+  uint8_t *ptr;
+  ssize_t len;
+};
+static struct pkt_buffers pkt_buffers[NUM_PORTID];
 
 #ifndef HAVE_DPDK
 static bool no_cache = true;
@@ -72,20 +79,30 @@ put_port_number(int id) {
 }
 
 static ssize_t
-read_packet(int fd, uint8_t *buf, size_t buflen) {
+read_packet(int portid, uint8_t *buf, size_t buflen) {
+  struct pkt_buffers *pbp;
   struct bpf_hdr *hdr;
   ssize_t pktlen;
 
-  pktlen = read(fd, buf, buflen);
-  if (pktlen == -1) {
-    if (errno == EAGAIN) {
-      pktlen = 0;
+  pbp = &pkt_buffers[portid];
+  if (pbp->len == 0) {
+    pbp->len = read(pollfd[portid].fd, pbp->buf, BPF_PACKET_BUFSIZE);
+    if (pbp->len == -1) {
+      if (errno == EAGAIN) {
+        pbp->len = 0;
+      }
+      return pbp->len;
     }
-  } else {
-    hdr = (void *)buf;
-    pktlen = hdr->bh_caplen;
-    memmove(buf, buf + hdr->bh_hdrlen, hdr->bh_caplen);
+    pbp->ptr = pbp->buf;
   }
+  if (pbp->buf + pbp->len <= pbp->ptr) {
+    pbp->len = 0;
+    return 0;
+  }
+  hdr = (void *)pbp->ptr;
+  pktlen = hdr->bh_caplen;
+  OS_MEMCPY(buf, pbp->ptr + hdr->bh_hdrlen, hdr->bh_caplen);
+  pbp->ptr += hdr->bh_hdrlen + hdr->bh_caplen;
   return pktlen;
 }
 
@@ -157,7 +174,7 @@ rawsock_configure_interface(struct interface *ifp) {
   }
   ifp->info.eth_rawsock.port_number = portid;
   pollfd[portid].fd = fd;
-  intparam = MAX_PACKET_SZ;
+  intparam = BPF_PACKET_BUFSIZE;
   if (ioctl(fd, BIOCSBLEN, &intparam) != 0) {
     lagopus_msg_error("%s: BIOCSBLEN: %s\n",
                       ifp->info.eth_rawsock.device, strerror(errno));
@@ -165,6 +182,15 @@ rawsock_configure_interface(struct interface *ifp) {
     put_port_number(portid);
     return LAGOPUS_RESULT_POSIX_API_ERROR;
   }
+  pkt_buffers[portid].buf = malloc(BPF_PACKET_BUFSIZE);
+  if (pkt_buffers[portid].buf == NULL) {
+    lagopus_msg_error("%s: malloc: %s\n",
+                      ifp->info.eth_rawsock.device, strerror(errno));
+    close(fd);
+    put_port_number(portid);
+    return LAGOPUS_RESULT_POSIX_API_ERROR;
+  }
+  pkt_buffers[portid].len = 0;
 #ifdef BIOCSDIRECTION
   intparam = BPF_D_IN;
   if (ioctl(fd, BIOCSDIRECTION, &intparam) != 0) {
@@ -224,6 +250,7 @@ rawsock_unconfigure_interface(struct interface *ifp) {
   pollfd[portid].events = 0;
   close(pollfd[portid].fd);
   pollfd[portid].fd = 0;
+  free(pkt_buffers[portid].buf);
   put_port_number(portid);
 
   return LAGOPUS_RESULT_OK;
@@ -402,51 +429,53 @@ dp_bpf_thread_loop(__UNUSED const lagopus_thread_t *selfptr, void *arg) {
       }
       if (port->bridge != NULL &&
           (port->ofp_port.config & OFPPC_NO_RECV) == 0) {
-        pkt = alloc_lagopus_packet();
+        for (;;) {
+          pkt = alloc_lagopus_packet();
 #ifndef HAVE_DPDK
-        if (flowcache != NULL) {
-          pkt->cache = flowcache;
-        }
+          if (flowcache != NULL) {
+            pkt->cache = flowcache;
+          }
 #endif /* HAVE_DPDK */
         /* not enough? */
-        (void)OS_M_APPEND(pkt->mbuf, MAX_PACKET_SZ);
-        len = read_packet(pollfd[i].fd, OS_MTOD(pkt->mbuf, uint8_t *),
-                          MAX_PACKET_SZ);
-        if (len < 0) {
-          switch (errno) {
-            case ENETDOWN:
-            case ENETRESET:
-            case ECONNABORTED:
-            case ECONNRESET:
-            case EINTR:
-              flowdb_rdunlock(NULL);
-              continue;
+          (void)OS_M_APPEND(pkt->mbuf, MAX_PACKET_SZ);
+          len = read_packet(i, OS_MTOD(pkt->mbuf, uint8_t *), MAX_PACKET_SZ);
+          if (len < 0) {
+            switch (errno) {
+              case ENETDOWN:
+              case ENETRESET:
+              case ECONNABORTED:
+              case ECONNRESET:
+              case EINTR:
+                flowdb_rdunlock(NULL);
+                continue;
 
-            default:
-              lagopus_exit_fatal("read_packet(%d, %p, %d): %s",
-                                 pollfd[i].fd, OS_MTOD(pkt->mbuf, uint8_t *),
-                                 MAX_PACKET_SZ, strerror(errno));
+              default:
+                lagopus_exit_fatal("read_packet(%d, %p, %d): %s",
+                                   pollfd[i].fd, OS_MTOD(pkt->mbuf, uint8_t *),
+                                   MAX_PACKET_SZ, strerror(errno));
+            }
+          } else if (len == 0) {
+            /*
+             * read all packet in buffer.
+             * stop for loop and look in next port
+             */
+            lagopus_packet_free(pkt);
+            break;
           }
-        }
-        OS_M_TRIM(pkt->mbuf, MAX_PACKET_SZ - len);
-        lagopus_packet_init(pkt, pkt->mbuf, port);
-        if (
+          OS_M_TRIM(pkt->mbuf, MAX_PACKET_SZ - len);
+          lagopus_packet_init(pkt, pkt->mbuf, port);
+          if (
 #ifdef HYBRID
-                !memcmp(OS_MTOD(pkt->mbuf, uint8_t *),
-                        port->interface->hw_addr, ETHER_ADDR_LEN) ||
-                !memcmp(OS_MTOD(pkt->mbuf, uint8_t *),
-                        eth_bcast, ETHER_ADDR_LEN) ||
+              !memcmp(OS_MTOD(pkt->mbuf, uint8_t *),
+                      port->interface->hw_addr, ETHER_ADDR_LEN) ||
+              !memcmp(OS_MTOD(pkt->mbuf, uint8_t *),
+                      eth_bcast, ETHER_ADDR_LEN) ||
 #endif /* HYBRID */
-            port->bridge->flowdb->switch_mode == SWITCH_MODE_STANDALONE) {
-          lagopus_forward_packet_to_port(pkt, OFPP_NORMAL);
-        } else {
-#ifdef PACKET_CAPTURE
-          /* capture received packet */
-          if (port->pcap_queue != NULL) {
-            lagopus_pcap_enqueue(pkt->in_port, pkt);
+              port->bridge->flowdb->switch_mode == SWITCH_MODE_STANDALONE) {
+            lagopus_forward_packet_to_port(pkt, OFPP_NORMAL);
+          } else {
+            lagopus_match_and_action(pkt);
           }
-#endif /* PACKET_CAPTURE */
-          lagopus_match_and_action(pkt);
         }
       }
       flowdb_rdunlock(NULL);
