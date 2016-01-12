@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -661,7 +661,9 @@ execute_action_set_field(struct lagopus_packet *pkt,
   oxm_class = (uint16_t)((oxm_header >> 16) & 0xffff);
   oxm_hasmask = ((oxm_header & 0x00000100) != 0);
   if (oxm_hasmask != 0) {
-    DP_PRINT("invalid: set field has mask\n");
+    error->type = OFPET_BAD_ACTION;
+    error->code = OFPBAC_BAD_ARGUMENT;
+    lagopus_msg_info("set field has mask (%d:%d)", error->type, error->code);
     return LAGOPUS_RESULT_OFP_ERROR;
   }
   if (oxm_class != OFPXMC_OPENFLOW_BASIC) {
@@ -1456,7 +1458,7 @@ lagopus_forward_packet_to_port(struct lagopus_packet *pkt,
     case OFPP_NORMAL:
       /* optional */
       DP_PRINT("OFPP_NORMAL\n");
-      lagopus_send_packet_normal(pkt, pkt->in_port->ifindex);
+      dp_interface_send_packet_normal(pkt, pkt->in_port->interface, pkt->in_port->bridge->l2_bridge);
       lagopus_packet_free(pkt);
       break;
 
@@ -1491,12 +1493,6 @@ lagopus_forward_packet_to_port(struct lagopus_packet *pkt,
           continue;
         }
 
-#ifdef PACKET_CAPTURE
-        /* capture sending packet */
-        if (unlikely(port->pcap_queue != NULL)) {
-          lagopus_pcap_enqueue(port, pkt);
-        }
-#endif /* PACKET_CAPTURE */
         /* send packet */
         OS_M_ADDREF(pkt->mbuf);
         lagopus_send_packet_physical(pkt, port->interface);
@@ -1531,12 +1527,6 @@ lagopus_forward_packet_to_port(struct lagopus_packet *pkt,
       v = pkt->in_port->bridge->ports;
       port = port_lookup(v, out_port);
       if (port != NULL && (port->ofp_port.config & OFPPC_NO_FWD) == 0) {
-#ifdef PACKET_CAPTURE
-        /* capture sending packet */
-        if (unlikely(port->pcap_queue != NULL)) {
-          lagopus_pcap_enqueue(port, pkt);
-        }
-#endif /* PACKET_CAPTURE */
         /* so far, we support only physical port. */
         DP_PRINT("Forwarding packet to port %d\n", port->ifindex);
         lagopus_send_packet_physical(pkt, port->interface);

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -69,7 +69,7 @@ typedef struct interface_type {
 static const interface_type_t types[] = {
   {DATASTORE_INTERFACE_TYPE_UNKNOWN, "unknown"},
   {DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_PHY, "ethernet-dpdk-phy"},
-  {DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_PCAP, "ethernet-dpdk-pcap"},
+  {DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_VDEV, "ethernet-dpdk-vdev"},
   {DATASTORE_INTERFACE_TYPE_ETHERNET_RAWSOCK, "ethernet-rawsock"},
   {DATASTORE_INTERFACE_TYPE_GRE, "gre"},
   {DATASTORE_INTERFACE_TYPE_NVGRE, "nvgre"},

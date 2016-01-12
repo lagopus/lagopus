@@ -1,0 +1,55 @@
+---
+- name: mkdir work
+  file: path="{{ system.work_dir }}"
+  args:
+    state: directory
+
+- name: DL DPDK.
+  shell: >-
+    wget -nv http://dpdk.org/browse/dpdk/snapshot/{{ dpdk.version }}.zip
+  args:
+    chdir: "{{ system.work_dir }}"
+  environment: proxy_env
+
+- name: unzip DPDK.
+  shell: >-
+    unzip {{ dpdk.version }}.zip
+  args:
+    chdir: "{{ system.work_dir }}"
+
+- name: edit config in DPDK
+  shell: >-
+    sed -i".org" -e "s/CONFIG_RTE_LIBRTE_VIRTIO_PMD=y/CONFIG_RTE_LIBRTE_VIRTIO_PMD=n/g"
+    config/common_linuxapp chdir="{{ dpdk_env.RTE_SDK }}"
+
+- name: config DPDK
+  shell: >-
+    make config T=${RTE_TARGET}
+  args:
+    chdir: "{{ dpdk_env.RTE_SDK }}"
+  environment: dpdk_env
+
+- name: make DPDK
+  shell: >-
+    make
+  args:
+    chdir: "{{ dpdk_env.RTE_SDK }}"
+  environment: dpdk_env
+
+- name: set hugepages
+  shell: >-
+    {{ system.shell_dir }}/hugepages.sh
+  environment: dpdk_env
+  sudo: yes
+
+- name: install mod
+  shell: >-
+    {{ system.shell_dir }}/insmod.sh
+  environment: dpdk_env
+  sudo: yes
+
+- name: unbind interfaces
+  shell: >-
+    {{ system.shell_dir }}/unbind.sh
+  environment: dpdk_env
+  sudo: yes

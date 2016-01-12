@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +22,30 @@
 #define __BRIDGE_CMD_INTERNAL_H__
 
 #include "cmd_common.h"
+
+#ifdef HYBRID
+/* mac table entry list */
+/**
+ * MAC entry structure for mac entry list.
+ */
+typedef struct bridge_mactable_entry {
+  TAILQ_ENTRY(bridge_mactable_entry) mactable_entries;
+  mac_address_t mac_address;
+  uint32_t port_no;
+} bridge_mactable_entry_t;
+
+TAILQ_HEAD(mactable_entry_head, bridge_mactable_entry);
+
+/**
+ * MAC entry list.
+ */
+struct bridge_mactable_entry_list {
+  size_t size;
+  struct mactable_entry_head head;
+};
+
+typedef struct bridge_mactable_entry_list bridge_mactable_info_t;
+#endif /* HYBRID */
 
 /**
  * Parse command for bridge.
@@ -92,5 +116,30 @@ bridge_cmd_serialize(datastore_interp_t *iptr,
                      datastore_interp_state_t state,
                      const void *obj,
                      lagopus_dstring_t *result);
+
+#ifdef HYBRID
+/* mactable entry list utilities */
+lagopus_result_t
+bridge_mactable_entry_destroy(bridge_mactable_info_t *entries);
+lagopus_result_t
+bridge_mactable_entry_create(bridge_mactable_info_t **entries);
+lagopus_result_t
+bridge_mactable_entry_duplicate(const bridge_mactable_info_t *src_entries,
+                                bridge_mactable_info_t **dst_entries);
+bool
+bridge_mactable_entry_exists(const bridge_mactable_info_t *entries,
+                             const struct bridge_mactable_entry *entry);
+bool
+bridge_mactable_entry_equals(const bridge_mactable_info_t *entries0,
+                       const bridge_mactable_info_t *entries1);
+lagopus_result_t
+bridge_mactable_add_entries(bridge_mactable_info_t *entries,
+                            const mac_address_t addr,
+                            const uint32_t port_no);
+lagopus_result_t
+bridge_mactable_remove_entry(bridge_mactable_info_t *entries, const mac_address_t addr);
+lagopus_result_t
+bridge_mactable_remove_all_entries(bridge_mactable_info_t *entries);
+#endif /* HYBRID */
 
 #endif /* __BRIDGE_CMD_INTERNAL_H__ */

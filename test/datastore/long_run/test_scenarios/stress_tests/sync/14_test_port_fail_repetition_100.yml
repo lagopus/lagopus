@@ -21,7 +21,7 @@ testcases:
           - cmd_type: ds
             cmd: >-
               interface interface01 create -type ethernet-rawsock
-              -device lago_eth0 -port-number 1
+              -device lago_eth0
             result: '{"ret": "OK"}'
           - cmd_type: ds
             cmd: port port01 create -interface interface01

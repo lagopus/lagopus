@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -884,10 +884,10 @@ test_interface_type_to_str(void) {
     TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
     TEST_ASSERT_EQUAL_STRING("ethernet-dpdk-phy", actual_type_str);
 
-    rc = interface_type_to_str(DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_PCAP,
+    rc = interface_type_to_str(DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_VDEV,
                                &actual_type_str);
     TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
-    TEST_ASSERT_EQUAL_STRING("ethernet-dpdk-pcap", actual_type_str);
+    TEST_ASSERT_EQUAL_STRING("ethernet-dpdk-vdev", actual_type_str);
 
     rc = interface_type_to_str(DATASTORE_INTERFACE_TYPE_ETHERNET_RAWSOCK,
                                &actual_type_str);
@@ -943,9 +943,9 @@ test_interface_type_to_enum(void) {
     TEST_ASSERT_EQUAL_UINT32(DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_PHY,
                              actual_type);
 
-    rc = interface_type_to_enum("ethernet-dpdk-pcap", &actual_type);
+    rc = interface_type_to_enum("ethernet-dpdk-vdev", &actual_type);
     TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
-    TEST_ASSERT_EQUAL_UINT32(DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_PCAP,
+    TEST_ASSERT_EQUAL_UINT32(DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_VDEV,
                              actual_type);
 
     rc = interface_type_to_enum("ethernet-rawsock", &actual_type);

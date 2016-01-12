@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -374,6 +374,71 @@ lagopus_pipeline_stage_schedule_maintenance(
 lagopus_result_t
 lagopus_pipeline_stage_find(const char *name,
                             lagopus_pipeline_stage_t *retptr);
+
+
+/**
+ * Get a # of workers in the stage.
+ *
+ *	@param[in]  sptr	A pointer to a stage.
+ *
+ *	@retval >=0				Succeeded, A # of 
+ *						the workers in the stage.
+ *	@retval LAGOPUS_RESULT_INVALID_ARGS	Failed, invalid args.
+ *	@retval LAGOPUS_RESULT_ANY_FAILURES	Failed.
+ */
+lagopus_result_t
+lagopus_pipeline_stage_get_worker_nubmer(lagopus_pipeline_stage_t *sptr);
+
+
+/**
+ * Get an event/batch buffer of a pipeline stage worker.
+ *
+ *	@param[in]	sptr	A pointer to a stage. 
+ *	@param[in]	index	A worker index.
+ *	@param[out]	buf	A returned address.
+ *
+ *	@retval	LAGOPUS_RESULT_OK		Succeeded.
+ *	@retval LAGOPUS_RESULT_INVALID_ARGS	Failed, invalid args.
+ *	@retval LAGOPUS_RESULT_ANY_FAILURES	Failed.
+ */
+lagopus_result_t
+lagopus_pipeline_stage_get_worker_event_buffer(lagopus_pipeline_stage_t *sptr,
+                                               size_t index, void **buf);
+
+
+/**
+ * Set an event/batch buffer of a pipeline stage worker.
+ *
+ *	@param[in]	sptr	A pointer to a stage. 
+ *	@param[in]	index	A worker index.
+ *	@param[in]	buf	A buffer.
+ *	@param[in]	freeup_proc	A free up function for the \b buf.
+ *
+ *	@retval	LAGOPUS_RESULT_OK		Succeeded.
+ *	@retval LAGOPUS_RESULT_INVALID_ARGS	Failed, invalid args.
+ *	@retval LAGOPUS_RESULT_ANY_FAILURES	Failed.
+ */
+lagopus_result_t
+lagopus_pipeline_stage_set_worker_event_buffer(
+    lagopus_pipeline_stage_t *sptr,
+    size_t index,
+    void *buf,
+    lagopus_pipeline_stage_event_buffer_freeup_proc_t freeup_proc);
+
+
+/**
+ * Get name a pipeline stage.
+ *
+ *	@param[in]	sptr	A pointer to a stage. 
+ *	@param[out]	name	A pointer for the returned name.
+ *
+ *	@retval	LAGOPUS_RESULT_OK		Succeeded.
+ *	@retval LAGOPUS_RESULT_INVALID_ARGS	Failed, invalid args.
+ *	@retval LAGOPUS_RESULT_ANY_FAILURES	Failed.
+ */
+lagopus_result_t
+lagopus_pipeline_stage_get_name(const lagopus_pipeline_stage_t *sptr,
+                                const char **name);
 
 
 #endif /* __LAGOPUS_PIPELINE_STAGE_H__ */

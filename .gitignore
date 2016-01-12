@@ -101,3 +101,6 @@ callgrind.*
 *_test_runner.c
 *.testresult
 *_test
+
+# excluded integration test dir.
+!test/integration_test

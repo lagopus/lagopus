@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -129,16 +129,6 @@ port_lookup(struct vector *v, uint32_t port_no);
  */
 struct port *
 port_lookup_number(struct vector *v, uint32_t port_no);
-
-/**
- * Count number of ports.
- *
- * @param[in]   v               Port database.
- *
- * @retval      Number of ports.
- */
-unsigned int
-num_ports(struct vector *v) __attribute__ ((deprecated));
 
 /**
  * Get port statistics.

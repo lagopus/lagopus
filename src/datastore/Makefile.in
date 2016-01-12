@@ -1,5 +1,6 @@
 TOPDIR		= @TOPDIR@
 MKRULESDIR	= @MKRULESDIR@
+HYBRID		= @HYBRID@
 
 TARGET_LIB		= $(LAGOPUS_DATASTORE_LIB)
 INSTALL_LIB_TARGETS	= $(TARGET_LIB)
@@ -12,9 +13,13 @@ SRCS =	interp.c datastore.c conv_json.c \
         conv_json_result.c cmd_common.c interface_cmd.c \
         port_cmd.c channel_cmd.c controller_cmd.c module.c \
         bridge_cmd.c flow_cmd.c meter_cmd.c group_cmd.c \
-        affinition_cmd.c l2_bridge_cmd.c cmd_dump.c \
+        affinition_cmd.c cmd_dump.c \
         queue_cmd.c policer_action_cmd.c policer_cmd.c \
         load_conf_module.c
+
+ifeq ($(HYBRID),yes)
+SRCS += mactable_cmd.c
+endif
 
 TARGETS			= $(TARGET_LIB)
 

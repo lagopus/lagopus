@@ -1,0 +1,3 @@
+---
+- name: install pip pkgs
+  include: install_pip_pkgs.yml

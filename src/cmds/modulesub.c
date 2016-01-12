@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@
 #include "lagopus/flowdb.h"
 #include "lagopus/meter.h"
 #include "lagopus/dataplane.h"
+#include "lagopus/dp_apis.h"
 #include "lagopus/ofp_handler.h"
 #ifdef ENABLE_SNMP_MODULE
 #include "lagopus/snmpmgr.h"
@@ -104,29 +105,90 @@ s_once_proc(void) {
     lagopus_exit_fatal("can't register the \"%s\" module.\n", name);
   }
 
-  name = "dataplane";
-  if ((r = lagopus_module_register(name,
-                                   dataplane_initialize, NULL,
-                                   dataplane_start,
-                                   dataplane_shutdown,
-                                   dataplane_stop,
-                                   dataplane_finalize,
-                                   dataplane_usage)) != LAGOPUS_RESULT_OK) {
+  dp_api_init();
+  name = "dp_rawsock";
+  r = lagopus_module_register(name,
+                              dp_rawsock_thread_init,
+                              NULL,
+                              dp_rawsock_thread_start,
+                              dp_rawsock_thread_shutdown,
+                              dp_rawsock_thread_stop,
+                              dp_rawsock_thread_fini,
+                              NULL);
+  if (r != LAGOPUS_RESULT_OK) {
+    lagopus_perror(r);
+    lagopus_exit_fatal("can't register the \"%s\" module.\n", name);
+  }
+#ifdef HAVE_DPDK
+  name = "dp_dpdk";
+  r = lagopus_module_register(name,
+                              dp_dpdk_thread_init,
+                              NULL,
+                              dp_dpdk_thread_start,
+                              dp_dpdk_thread_shutdown,
+                              dp_dpdk_thread_stop,
+                              dp_dpdk_thread_fini,
+                              dp_dpdk_thread_usage);
+  if (r != LAGOPUS_RESULT_OK) {
+    lagopus_perror(r);
+    lagopus_exit_fatal("can't register the \"%s\" module.\n", name);
+  }
+#endif /* HAVE_DPDK */
+  name = "dp_timer";
+  r = lagopus_module_register(name,
+                              dp_timer_thread_init,
+                              NULL,
+                              dp_timer_thread_start,
+                              dp_timer_thread_shutdown,
+                              dp_timer_thread_stop,
+                              dp_timer_thread_fini,
+                              NULL);
+  if (r != LAGOPUS_RESULT_OK) {
+    lagopus_perror(r);
+    lagopus_exit_fatal("can't register the \"%s\" module.\n", name);
+  }
+  name = "dp_comm";
+  r = lagopus_module_register(name,
+                              dp_comm_thread_init,
+                              NULL,
+                              dp_comm_thread_start,
+                              dp_comm_thread_shutdown,
+                              dp_comm_thread_stop,
+                              dp_comm_thread_fini,
+                              NULL);
+  if (r != LAGOPUS_RESULT_OK) {
+    lagopus_perror(r);
+    lagopus_exit_fatal("can't register the \"%s\" module.\n", name);
+  }
+#ifdef HYBRID
+  name = "dp_tap_io";
+  r = lagopus_module_register(name,
+                              dp_tapio_thread_init,
+                              NULL,
+                              dp_tapio_thread_start,
+                              dp_tapio_thread_shutdown,
+                              dp_tapio_thread_stop,
+                              dp_tapio_thread_fini,
+                              NULL);
+  if (r != LAGOPUS_RESULT_OK) {
     lagopus_perror(r);
     lagopus_exit_fatal("can't register the \"%s\" module.\n", name);
   }
 
-  name = "dp_comm";
-  if ((r = lagopus_module_register(name,
-                                   dpcomm_initialize, NULL,
-                                   dpcomm_start,
-                                   dpcomm_shutdown,
-                                   dpcomm_stop,
-                                   dpcomm_finalize,
-                                   NULL)) != LAGOPUS_RESULT_OK) {
+  name = "dp_netlink";
+  r = lagopus_module_register(name,
+                              dp_netlink_thread_init,
+                              NULL,
+                              dp_netlink_thread_start,
+                              dp_netlink_thread_shutdown,
+                              dp_netlink_thread_stop,
+                              dp_netlink_thread_fini,
+                              NULL);
+  if (r != LAGOPUS_RESULT_OK) {
     lagopus_perror(r);
     lagopus_exit_fatal("can't register the \"%s\" module.\n", name);
   }
+#endif /* HYBRID */
 
   name = "agent";
   if ((r = lagopus_module_register(name,

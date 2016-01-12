@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -49,14 +49,12 @@ test_interface_cmd_parse_create_01(void) {
   char *str = NULL;
   const char *argv[] = {"interface", "test_name01", "create",
                         "-type", "ethernet-rawsock",
-                        "-port-number", "255",
                         "-device", "eth0",
                         NULL
                        };
   const char test_str[] = "{\"ret\":\"OK\"}";
   const char *argv1[] = {"interface", "test_name02", "create",
                          "-type", "ethernet-rawsock",
-                         "-port-number", "100",
                          "-device", "eth1",
                          "-mtu", "1",
                          "-ip-addr", "127.0.0.2",
@@ -72,7 +70,6 @@ test_interface_cmd_parse_create_01(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name02\",\n"
     "\"type\":\"ethernet-rawsock\",\n"
-    "\"port-number\":100,\n"
     "\"device\":\"eth1\",\n"
     "\"mtu\":1,\n"
     "\"ip-addr\":\"127.0.0.2\",\n"
@@ -80,7 +77,6 @@ test_interface_cmd_parse_create_01(void) {
     "\"is-enabled\":true},\n"
     "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name01\",\n"
     "\"type\":\"ethernet-rawsock\",\n"
-    "\"port-number\":255,\n"
     "\"device\":\"eth0\",\n"
     "\"mtu\":1500,\n"
     "\"ip-addr\":\"127.0.0.1\",\n"
@@ -91,7 +87,6 @@ test_interface_cmd_parse_create_01(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name02\",\n"
     "\"type\":\"ethernet-rawsock\",\n"
-    "\"port-number\":100,\n"
     "\"device\":\"eth1\",\n"
     "\"mtu\":1,\n"
     "\"ip-addr\":\"127.0.0.2\",\n"
@@ -203,40 +198,6 @@ test_interface_cmd_parse_create_bad_type(void) {
 }
 
 void
-test_interface_cmd_parse_create_over_port(void) {
-  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
-  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
-  char *str = NULL;
-  const char *argv[] = {"interface", "test_name05", "create",
-                        "-type", "ethernet-rawsock", "-port-number", "4294967296", NULL
-                       };
-  const char test_str[] =
-    "{\"ret\":\"OUT_OF_RANGE\",\n"
-    "\"data\":\"Bad opt value = 4294967296.\"}";
-
-  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR, interface_cmd_parse,
-                 &interp, state, ARGV_SIZE(argv), argv,
-                 &tbl, interface_cmd_update, &ds, str, test_str);
-}
-
-void
-test_interface_cmd_parse_create_bad_port(void) {
-  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
-  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
-  char *str = NULL;
-  const char *argv[] = {"interface", "test_name06", "create",
-                        "-type", "ethernet-rawsock", "-port-number", "hoge", NULL
-                       };
-  const char test_str[] =
-    "{\"ret\":\"INVALID_ARGS\",\n"
-    "\"data\":\"Bad opt value = hoge.\"}";
-
-  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR, interface_cmd_parse,
-                 &interp, state, ARGV_SIZE(argv), argv,
-                 &tbl, interface_cmd_update, &ds, str, test_str);
-}
-
-void
 test_interface_cmd_parse_create_bad_required_opts_01(void) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
@@ -275,7 +236,6 @@ test_interface_cmd_parse_enable_unused(void) {
   char *str = NULL;
   const char *argv1[] = {"interface", "test_name09", "create",
                          "-type", "ethernet-rawsock",
-                         "-port-number", "100",
                          "-device", "eth0",
                          NULL
                         };
@@ -291,7 +251,6 @@ test_interface_cmd_parse_enable_unused(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name09\",\n"
     "\"type\":\"ethernet-rawsock\",\n"
-    "\"port-number\":100,\n"
     "\"device\":\"eth0\",\n"
     "\"mtu\":1500,\n"
     "\"ip-addr\":\"127.0.0.1\",\n"
@@ -331,7 +290,6 @@ test_interface_cmd_parse_config_01(void) {
   char *str = NULL;
   const char *argv1[] = {"interface", "test_name10", "create",
                          "-type", "ethernet-rawsock",
-                         "-port-number", "100",
                          "-device", "eth0",
                          NULL
                         };
@@ -341,7 +299,6 @@ test_interface_cmd_parse_config_01(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name10\",\n"
     "\"type\":\"ethernet-rawsock\",\n"
-    "\"port-number\":100,\n"
     "\"device\":\"eth0\",\n"
     "\"mtu\":1500,\n"
     "\"ip-addr\":\"127.0.0.1\",\n"
@@ -349,7 +306,6 @@ test_interface_cmd_parse_config_01(void) {
     "\"is-enabled\":false}]}";
   const char *argv3[] = {"interface", "test_name10", "config",
                          "-type", "ethernet-rawsock",
-                         "-port-number", "200",
                          "-device", "eth1",
                          "-mtu", "1",
                          "-ip-addr", "127.0.0.2",
@@ -361,7 +317,6 @@ test_interface_cmd_parse_config_01(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name10\",\n"
     "\"type\":\"ethernet-rawsock\",\n"
-    "\"port-number\":200,\n"
     "\"device\":\"eth1\",\n"
     "\"mtu\":1,\n"
     "\"ip-addr\":\"127.0.0.2\",\n"
@@ -405,7 +360,6 @@ test_interface_cmd_parse_config_02(void) {
   char *str = NULL;
   const char *argv1[] = {"interface", "test_name11", "create",
                          "-type", "ethernet-rawsock",
-                         "-port-number", "101",
                          "-device", "eth0",
                          NULL
                         };
@@ -419,7 +373,6 @@ test_interface_cmd_parse_config_02(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name11\",\n"
     "\"type\":\"ethernet-rawsock\",\n"
-    "\"port-number\":101,\n"
     "\"device\":\"eth0\",\n"
     "\"mtu\":1500,\n"
     "\"ip-addr\":\"127.0.0.1\",\n"
@@ -427,7 +380,6 @@ test_interface_cmd_parse_config_02(void) {
     "\"is-enabled\":true}]}";
   const char *argv4[] = {"interface", "test_name11", "config",
                          "-type", "ethernet-rawsock",
-                         "-port-number", "102",
                          "-device", "eth1",
                          "-mtu", "1",
                          "-ip-addr", "127.0.0.2",
@@ -439,7 +391,6 @@ test_interface_cmd_parse_config_02(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name11\",\n"
     "\"type\":\"ethernet-rawsock\",\n"
-    "\"port-number\":102,\n"
     "\"device\":\"eth1\",\n"
     "\"mtu\":1,\n"
     "\"ip-addr\":\"127.0.0.2\",\n"
@@ -516,7 +467,6 @@ test_interface_cmd_parse_config_show_01(void) {
   char *str = NULL;
   const char *argv1[] = {"interface", "test_name12", "create",
                          "-type", "ethernet-rawsock",
-                         "-port-number", "102",
                          "-device", "eth0",
                          NULL
                         };
@@ -526,7 +476,6 @@ test_interface_cmd_parse_config_show_01(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name12\",\n"
     "\"type\":\"ethernet-rawsock\",\n"
-    "\"port-number\":102,\n"
     "\"device\":\"eth0\",\n"
     "\"mtu\":1500,\n"
     "\"ip-addr\":\"127.0.0.1\",\n"
@@ -534,7 +483,6 @@ test_interface_cmd_parse_config_show_01(void) {
     "\"is-enabled\":false}]}";
   const char *argv3[] = {"interface", "test_name12", "config",
                          "-type", "ethernet-rawsock",
-                         "-port-number", "202",
                          "-device", "eth1",
                          "-mtu", "1",
                          "-ip-addr", "127.0.0.2",
@@ -542,12 +490,12 @@ test_interface_cmd_parse_config_show_01(void) {
                         };
   const char test_str3[] = "{\"ret\":\"OK\"}";
   const char *argv4[] = {"interface", "test_name12", "config",
-                         "-port-number", NULL
+                         "-ip-addr", NULL
                         };
   const char test_str4[] =
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name12\",\n"
-    "\"port-number\":202}]}";
+    "\"ip-addr\":\"127.0.0.2\"}]}";
   const char *argv5[] = {"interface", "test_name12", "destroy",
                          NULL
                         };
@@ -586,7 +534,6 @@ test_interface_cmd_parse_destroy_used(void) {
   char *str = NULL;
   const char *argv1[] = {"interface", "test_name13", "create",
                          "-type", "ethernet-rawsock",
-                         "-port-number", "100",
                          "-device", "eth0",
                          NULL
                         };
@@ -636,7 +583,6 @@ test_interface_cmd_parse_show_01(void) {
   char *str = NULL;
   const char *argv1[] = {"interface", "test_name14", "create",
                          "-type", "ethernet-rawsock",
-                         "-port-number", "104",
                          "-device", "eth0",
                          NULL
                         };
@@ -648,7 +594,6 @@ test_interface_cmd_parse_show_01(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name14\",\n"
     "\"type\":\"ethernet-rawsock\",\n"
-    "\"port-number\":104,\n"
     "\"device\":\"eth0\",\n"
     "\"mtu\":1500,\n"
     "\"ip-addr\":\"127.0.0.1\",\n"
@@ -662,7 +607,7 @@ test_interface_cmd_parse_show_01(void) {
                             };
   const char *argv4[] = {"interface", "test_name14", "config",
                          "-type", "ethernet-rawsock",
-                         "-port-number", "105",
+                         "-mtu", "105",
                          NULL
                         };
   const char test_str4[] = "{\"ret\":\"OK\"}";
@@ -674,7 +619,6 @@ test_interface_cmd_parse_show_01(void) {
                             };
   const char *argv6[] = {"interface", "test_name14", "config",
                          "-type", "ethernet-rawsock",
-                         "-port-number", "106",
                          "-device", "eth1",
                          "-mtu", "1",
                          "-ip-addr", "127.0.0.2",
@@ -688,7 +632,6 @@ test_interface_cmd_parse_show_01(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name14\",\n"
     "\"type\":\"ethernet-rawsock\",\n"
-    "\"port-number\":106,\n"
     "\"device\":\"eth1\",\n"
     "\"mtu\":1,\n"
     "\"ip-addr\":\"127.0.0.2\",\n"
@@ -1159,7 +1102,6 @@ test_interface_cmd_serialize_default_opt(void) {
   const char serialize_str1[] =
       "interface "DATASTORE_NAMESPACE_DELIMITER"test_name27 create "
       "-type ethernet-rawsock "
-      "-port-number 0 "
       "-mtu 1500 "
       "-ip-addr 127.0.0.1\n";
 
@@ -1198,7 +1140,6 @@ test_interface_cmd_serialize_default_opt_escape(void) {
   const char serialize_str1[] =
       "interface \""DATASTORE_NAMESPACE_DELIMITER"test_\\\"name28\" create "
       "-type ethernet-rawsock "
-      "-port-number 0 "
       "-mtu 1500 "
       "-ip-addr 127.0.0.1\n";
 
@@ -1237,7 +1178,6 @@ test_interface_cmd_serialize_default_opt_escape_white_space(void) {
   const char serialize_str1[] =
       "interface \""DATASTORE_NAMESPACE_DELIMITER"test name29\" create "
       "-type ethernet-rawsock "
-      "-port-number 0 "
       "-mtu 1500 "
       "-ip-addr 127.0.0.1\n";
 
@@ -1267,7 +1207,6 @@ test_interface_cmd_serialize_type_ethernet(void) {
   /* interface create cmd str. */
   const char *argv1[] = {"interface", "test_name30", "create",
                          "-type", "ethernet-rawsock",
-                         "-port-number", "130",
                          "-device", "test_device30",
                          "-mtu", "1",
                          "-ip-addr", "127.0.0.2",
@@ -1285,7 +1224,6 @@ test_interface_cmd_serialize_type_ethernet(void) {
   const char serialize_str1[] = "interface "
                                 DATASTORE_NAMESPACE_DELIMITER"test_name30 create "
                                 "-type ethernet-rawsock "
-                                "-port-number 130 "
                                 "-device test_device30 "
                                 "-mtu 1 "
                                 "-ip-addr 127.0.0.2\n";
@@ -1316,7 +1254,6 @@ test_interface_cmd_serialize_type_ethernet_escape(void) {
   /* interface create cmd str. */
   const char *argv1[] = {"interface", "test_name31", "create",
                          "-type", "ethernet-rawsock",
-                         "-port-number", "131",
                          "-device", "test_\"device31",
                          "-mtu", "1",
                          "-ip-addr", "127.0.0.2",
@@ -1334,7 +1271,6 @@ test_interface_cmd_serialize_type_ethernet_escape(void) {
   const char serialize_str1[] = "interface "
                                 DATASTORE_NAMESPACE_DELIMITER"test_name31 create "
                                 "-type ethernet-rawsock "
-                                "-port-number 131 "
                                 "-device \"test_\\\"device31\" "
                                 "-mtu 1 "
                                 "-ip-addr 127.0.0.2\n";
@@ -1365,7 +1301,6 @@ test_interface_cmd_serialize_type_ethernet_escape_white_space(void) {
   /* interface create cmd str. */
   const char *argv1[] = {"interface", "test_name32", "create",
                          "-type", "ethernet-rawsock",
-                         "-port-number", "132",
                          "-device", "test device32",
                          "-mtu", "1",
                          "-ip-addr", "127.0.0.2",
@@ -1383,7 +1318,6 @@ test_interface_cmd_serialize_type_ethernet_escape_white_space(void) {
   const char serialize_str1[] = "interface "
                                 DATASTORE_NAMESPACE_DELIMITER"test_name32 create "
                                 "-type ethernet-rawsock "
-                                "-port-number 132 "
                                 "-device \"test device32\" "
                                 "-mtu 1 "
                                 "-ip-addr 127.0.0.2\n";
@@ -1411,7 +1345,6 @@ test_interface_cmd_parse_stats_01(void) {
   char *str = NULL;
   const char *argv1[] = {"interface", "test_name33", "create",
                          "-type", "ethernet-rawsock",
-                         "-port-number", "133",
                          "-device", "eth1",
                          NULL
                         };
@@ -1459,7 +1392,6 @@ test_interface_cmd_parse_stats_02(void) {
   char *str = NULL;
   const char *argv1[] = {"interface", "test_name34", "create",
                          "-type", "ethernet-rawsock",
-                         "-port-number", "134",
                          "-device", "eth1",
                          NULL
                         };
@@ -1537,7 +1469,6 @@ test_interface_cmd_parse_stats_invalid_args(void) {
   char *str = NULL;
   const char *argv1[] = {"interface", "test_name35", "create",
                          "-type", "ethernet-rawsock",
-                         "-port-number", "135",
                          "-device", "eth1",
                          NULL
                         };
@@ -1595,7 +1526,6 @@ test_interface_cmd_parse_atomic_commit(void) {
   void *conf = NULL;
   const char *argv1[] = {"interface", "test_name36", "create",
                          "-type", "ethernet-rawsock",
-                         "-port-number", "100",
                          "-device", "eth0",
                          NULL
                         };
@@ -1609,7 +1539,6 @@ test_interface_cmd_parse_atomic_commit(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name36\",\n"
     "\"type\":\"ethernet-rawsock\",\n"
-    "\"port-number\":100,\n"
     "\"device\":\"eth0\",\n"
     "\"mtu\":1500,\n"
     "\"ip-addr\":\"127.0.0.1\",\n"
@@ -1617,7 +1546,6 @@ test_interface_cmd_parse_atomic_commit(void) {
     "\"is-enabled\":false}]}";
   const char *argv4[] = {"interface", "test_name36", "config",
                          "-type", "ethernet-rawsock",
-                         "-port-number", "200",
                          "-device", "eth1",
                          "-mtu", "1",
                          "-ip-addr", "127.0.0.2",
@@ -1633,7 +1561,6 @@ test_interface_cmd_parse_atomic_commit(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name36\",\n"
     "\"type\":\"ethernet-rawsock\",\n"
-    "\"port-number\":200,\n"
     "\"device\":\"eth1\",\n"
     "\"mtu\":1,\n"
     "\"ip-addr\":\"127.0.0.2\",\n"
@@ -1644,7 +1571,6 @@ test_interface_cmd_parse_atomic_commit(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name36\",\n"
     "\"type\":\"ethernet-rawsock\",\n"
-    "\"port-number\":200,\n"
     "\"device\":\"eth1\",\n"
     "\"mtu\":1,\n"
     "\"ip-addr\":\"127.0.0.2\",\n"
@@ -1726,7 +1652,6 @@ test_interface_cmd_parse_atomic_rollback(void) {
   void *conf = NULL;
   const char *argv1[] = {"interface", "test_name37", "create",
                          "-type", "ethernet-rawsock",
-                         "-port-number", "100",
                          "-device", "eth0",
                          NULL
                         };
@@ -1740,7 +1665,6 @@ test_interface_cmd_parse_atomic_rollback(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name37\",\n"
     "\"type\":\"ethernet-rawsock\",\n"
-    "\"port-number\":100,\n"
     "\"device\":\"eth0\",\n"
     "\"mtu\":1500,\n"
     "\"ip-addr\":\"127.0.0.1\",\n"
@@ -1748,7 +1672,6 @@ test_interface_cmd_parse_atomic_rollback(void) {
     "\"is-enabled\":false}]}";
   const char *argv4[] = {"interface", "test_name37", "config",
                          "-type", "ethernet-rawsock",
-                         "-port-number", "200",
                          "-device", "eth1",
                          "-mtu", "1",
                          "-ip-addr", "127.0.0.2",
@@ -1764,7 +1687,6 @@ test_interface_cmd_parse_atomic_rollback(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name37\",\n"
     "\"type\":\"ethernet-rawsock\",\n"
-    "\"port-number\":200,\n"
     "\"device\":\"eth1\",\n"
     "\"mtu\":1,\n"
     "\"ip-addr\":\"127.0.0.2\",\n"
@@ -1833,7 +1755,6 @@ test_interface_cmd_parse_atomic_delay_enable(void) {
   void *conf = NULL;
   const char *argv1[] = {"interface", "test_name38", "create",
                          "-type", "ethernet-rawsock",
-                         "-port-number", "100",
                          "-device", "eth0",
                          NULL
                         };
@@ -1849,7 +1770,6 @@ test_interface_cmd_parse_atomic_delay_enable(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name38\",\n"
     "\"type\":\"ethernet-rawsock\",\n"
-    "\"port-number\":100,\n"
     "\"device\":\"eth0\",\n"
     "\"mtu\":1500,\n"
     "\"ip-addr\":\"127.0.0.1\",\n"
@@ -1864,7 +1784,6 @@ test_interface_cmd_parse_atomic_delay_enable(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name38\",\n"
     "\"type\":\"ethernet-rawsock\",\n"
-    "\"port-number\":100,\n"
     "\"device\":\"eth0\",\n"
     "\"mtu\":1500,\n"
     "\"ip-addr\":\"127.0.0.1\",\n"
@@ -1875,7 +1794,6 @@ test_interface_cmd_parse_atomic_delay_enable(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name38\",\n"
     "\"type\":\"ethernet-rawsock\",\n"
-    "\"port-number\":100,\n"
     "\"device\":\"eth0\",\n"
     "\"mtu\":1500,\n"
     "\"ip-addr\":\"127.0.0.1\",\n"
@@ -1977,7 +1895,6 @@ test_interface_cmd_parse_atomic_delay_disable(void) {
   void *conf = NULL;
   const char *argv1[] = {"interface", "test_name39", "create",
                          "-type", "ethernet-rawsock",
-                         "-port-number", "100",
                          "-device", "eth0",
                          NULL
                         };
@@ -1991,7 +1908,6 @@ test_interface_cmd_parse_atomic_delay_disable(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name39\",\n"
     "\"type\":\"ethernet-rawsock\",\n"
-    "\"port-number\":100,\n"
     "\"device\":\"eth0\",\n"
     "\"mtu\":1500,\n"
     "\"ip-addr\":\"127.0.0.1\",\n"
@@ -2002,7 +1918,6 @@ test_interface_cmd_parse_atomic_delay_disable(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name39\",\n"
     "\"type\":\"ethernet-rawsock\",\n"
-    "\"port-number\":100,\n"
     "\"device\":\"eth0\",\n"
     "\"mtu\":1500,\n"
     "\"ip-addr\":\"127.0.0.1\",\n"
@@ -2013,7 +1928,6 @@ test_interface_cmd_parse_atomic_delay_disable(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name39\",\n"
     "\"type\":\"ethernet-rawsock\",\n"
-    "\"port-number\":100,\n"
     "\"device\":\"eth0\",\n"
     "\"mtu\":1500,\n"
     "\"ip-addr\":\"127.0.0.1\",\n"
@@ -2098,7 +2012,6 @@ test_interface_cmd_parse_atomic_delay_destroy(void) {
   void *conf = NULL;
   const char *argv1[] = {"interface", "test_name40", "create",
                          "-type", "ethernet-rawsock",
-                         "-port-number", "100",
                          "-device", "eth0",
                          NULL
                         };
@@ -2193,7 +2106,6 @@ test_interface_cmd_parse_atomic_abort_01(void) {
   void *conf = NULL;
   const char *argv1[] = {"interface", "test_name41", "create",
                          "-type", "ethernet-rawsock",
-                         "-port-number", "100",
                          "-device", "eth0",
                          NULL
                         };
@@ -2207,7 +2119,6 @@ test_interface_cmd_parse_atomic_abort_01(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name41\",\n"
     "\"type\":\"ethernet-rawsock\",\n"
-    "\"port-number\":100,\n"
     "\"device\":\"eth0\",\n"
     "\"mtu\":1500,\n"
     "\"ip-addr\":\"127.0.0.1\",\n"
@@ -2215,7 +2126,6 @@ test_interface_cmd_parse_atomic_abort_01(void) {
     "\"is-enabled\":false}]}";
   const char *argv4[] = {"interface", "test_name41", "config",
                          "-type", "ethernet-rawsock",
-                         "-port-number", "200",
                          "-device", "eth1",
                          NULL
                         };
@@ -2229,7 +2139,6 @@ test_interface_cmd_parse_atomic_abort_01(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name41\",\n"
     "\"type\":\"ethernet-rawsock\",\n"
-    "\"port-number\":200,\n"
     "\"device\":\"eth1\",\n"
     "\"mtu\":1500,\n"
     "\"ip-addr\":\"127.0.0.1\",\n"
@@ -2244,7 +2153,6 @@ test_interface_cmd_parse_atomic_abort_01(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name41\",\n"
     "\"type\":\"ethernet-rawsock\",\n"
-    "\"port-number\":200,\n"
     "\"device\":\"eth1\",\n"
     "\"mtu\":1500,\n"
     "\"ip-addr\":\"127.0.0.1\",\n"
@@ -2324,7 +2232,6 @@ test_interface_cmd_parse_atomic_abort_02(void) {
   void *conf = NULL;
   const char *argv1[] = {"interface", "test_name42", "create",
                          "-type", "ethernet-rawsock",
-                         "-port-number", "100",
                          "-device", "eth0",
                          NULL
                         };
@@ -2334,7 +2241,6 @@ test_interface_cmd_parse_atomic_abort_02(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name42\",\n"
     "\"type\":\"ethernet-rawsock\",\n"
-    "\"port-number\":100,\n"
     "\"device\":\"eth0\",\n"
     "\"mtu\":1500,\n"
     "\"ip-addr\":\"127.0.0.1\",\n"
@@ -2346,7 +2252,6 @@ test_interface_cmd_parse_atomic_abort_02(void) {
     "\"data\":\"Not set modified.\"}";
   const char *argv4[] = {"interface", "test_name42", "config",
                          "-type", "ethernet-rawsock",
-                         "-port-number", "200",
                          "-device", "eth1",
                          "-mtu", "1",
                          "-ip-addr", "127.0.0.2",
@@ -2358,7 +2263,6 @@ test_interface_cmd_parse_atomic_abort_02(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name42\",\n"
     "\"type\":\"ethernet-rawsock\",\n"
-    "\"port-number\":100,\n"
     "\"device\":\"eth0\",\n"
     "\"mtu\":1500,\n"
     "\"ip-addr\":\"127.0.0.1\",\n"
@@ -2369,7 +2273,6 @@ test_interface_cmd_parse_atomic_abort_02(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name42\",\n"
     "\"type\":\"ethernet-rawsock\",\n"
-    "\"port-number\":200,\n"
     "\"device\":\"eth1\",\n"
     "\"mtu\":1,\n"
     "\"ip-addr\":\"127.0.0.2\",\n"
@@ -2380,7 +2283,6 @@ test_interface_cmd_parse_atomic_abort_02(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name42\",\n"
     "\"type\":\"ethernet-rawsock\",\n"
-    "\"port-number\":100,\n"
     "\"device\":\"eth0\",\n"
     "\"mtu\":1500,\n"
     "\"ip-addr\":\"127.0.0.1\",\n"
@@ -2391,7 +2293,6 @@ test_interface_cmd_parse_atomic_abort_02(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name42\",\n"
     "\"type\":\"ethernet-rawsock\",\n"
-    "\"port-number\":200,\n"
     "\"device\":\"eth1\",\n"
     "\"mtu\":1,\n"
     "\"ip-addr\":\"127.0.0.2\",\n"
@@ -2402,7 +2303,6 @@ test_interface_cmd_parse_atomic_abort_02(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name42\",\n"
     "\"type\":\"ethernet-rawsock\",\n"
-    "\"port-number\":100,\n"
     "\"device\":\"eth0\",\n"
     "\"mtu\":1500,\n"
     "\"ip-addr\":\"127.0.0.1\",\n"
@@ -2495,7 +2395,6 @@ test_interface_cmd_parse_atomic_destroy_create(void) {
   void *conf = NULL;
   const char *argv1[] = {"interface", "test_name43", "create",
                          "-type", "ethernet-rawsock",
-                         "-port-number", "100",
                          "-device", "eth0",
                          NULL
                         };
@@ -2510,8 +2409,7 @@ test_interface_cmd_parse_atomic_destroy_create(void) {
     "\"data\":\"name = "DATASTORE_NAMESPACE_DELIMITER"test_name43\"}";
   const char *argv4[] = {"interface", "test_name43", "create",
                          "-type", "ethernet-rawsock",
-                         "-port-number", "200",
-                         "-device", "eth0",
+                         "-device", "eth1",
                          NULL
                         };
   const char test_str4[] = "{\"ret\":\"OK\"}";
@@ -2520,7 +2418,6 @@ test_interface_cmd_parse_atomic_destroy_create(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name43\",\n"
     "\"type\":\"ethernet-rawsock\",\n"
-    "\"port-number\":100,\n"
     "\"device\":\"eth0\",\n"
     "\"mtu\":1500,\n"
     "\"ip-addr\":\"127.0.0.1\",\n"
@@ -2531,8 +2428,7 @@ test_interface_cmd_parse_atomic_destroy_create(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name43\",\n"
     "\"type\":\"ethernet-rawsock\",\n"
-    "\"port-number\":200,\n"
-    "\"device\":\"eth0\",\n"
+    "\"device\":\"eth1\",\n"
     "\"mtu\":1500,\n"
     "\"ip-addr\":\"127.0.0.1\",\n"
     "\"is-used\":false,\n"
@@ -2542,8 +2438,7 @@ test_interface_cmd_parse_atomic_destroy_create(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name43\",\n"
     "\"type\":\"ethernet-rawsock\",\n"
-    "\"port-number\":200,\n"
-    "\"device\":\"eth0\",\n"
+    "\"device\":\"eth1\",\n"
     "\"mtu\":1500,\n"
     "\"ip-addr\":\"127.0.0.1\",\n"
     "\"is-used\":false,\n"
@@ -2620,7 +2515,6 @@ test_interface_cmd_parse_create_bad_ip_addr(void) {
   char *str = NULL;
   const char *argv1[] = {"interface", "test_name44", "create",
                          "-type", "ethernet-rawsock",
-                         "-port-number", "255",
                          "-device", "eth0",
                          "-ip-addr", "127.0.0.1.1",
                          NULL
@@ -2643,7 +2537,6 @@ test_interface_cmd_parse_create_over_mtu(void) {
   char *str = NULL;
   const char *argv1[] = {"interface", "test_name45", "create",
                          "-type", "ethernet-rawsock",
-                         "-port-number", "255",
                          "-device", "eth0",
                          "-mtu", "65536",
                          NULL
@@ -2667,7 +2560,6 @@ test_interface_cmd_parse_dryrun(void) {
   char *str = NULL;
   const char *argv1[] = {"interface", "test_name46", "create",
                          "-type", "ethernet-rawsock",
-                         "-port-number", "100",
                          "-device", "eth0",
                          NULL
                         };
@@ -2677,7 +2569,6 @@ test_interface_cmd_parse_dryrun(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name46\",\n"
     "\"type\":\"ethernet-rawsock\",\n"
-    "\"port-number\":100,\n"
     "\"device\":\"eth0\",\n"
     "\"mtu\":1500,\n"
     "\"ip-addr\":\"127.0.0.1\",\n"
@@ -2689,7 +2580,6 @@ test_interface_cmd_parse_dryrun(void) {
     "\"data\":\"Not set modified.\"}";
   const char *argv4[] = {"interface", "test_name46", "config",
                          "-type", "ethernet-rawsock",
-                         "-port-number", "200",
                          "-device", "eth1",
                          NULL
                         };
@@ -2699,7 +2589,6 @@ test_interface_cmd_parse_dryrun(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name46\",\n"
     "\"type\":\"ethernet-rawsock\",\n"
-    "\"port-number\":200,\n"
     "\"device\":\"eth1\",\n"
     "\"mtu\":1500,\n"
     "\"ip-addr\":\"127.0.0.1\",\n"

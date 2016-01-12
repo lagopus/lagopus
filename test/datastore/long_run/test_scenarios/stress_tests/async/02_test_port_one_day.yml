@@ -11,7 +11,7 @@ setup:
       - cmd_type: ds
         cmd: >-
           interface interface01 create -type ethernet-rawsock
-          -device lago_eth0 -port-number 1
+          -device lago_eth0
 
 teardown:
   - cmds:

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,7 +34,12 @@
 #define _NET_ETHERNET_H_ /* hmm, conflict ethernet.h with rte_ether.h */
 #endif
 #else
+#ifdef HAVE_NET_ETHERNET_H
 #include <net/ethernet.h>
+#else
+#include <net/if.h>
+#include <net/if_ether.h>
+#endif /* HAVE_NET_ETHERNET_H */
 #endif /* HAVE_DPDK */
 
 #define __FAVOR_BSD
@@ -141,7 +146,6 @@ struct pbb_hdr {
   uint8_t c_shost[6];
   uint16_t c_ethtype;
 } __attribute__((__packed__));
-
 
 /**
  * packet flags

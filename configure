@@ -661,6 +661,7 @@ SNMP_CPPFLAGS
 SNMP_DIR
 PCAP_LIBS
 HYBRID_CPPFLAGS
+HYBRID
 UNITY_SRC_DIR
 HAVE_UNITY
 HAVE_GCOVR
@@ -2657,11 +2658,20 @@ fi
 PREFIX=${prefix}
 
 
-SHELL=`which bash` > /dev/null 2>&1
-if test $? -ne 0 -o -z "${SHELL}"; then
-   as_fn_error $? "To run libtool you need the GNU bash, not the old-school /bin/sh." "$LINENO" 5
-   exit 1
-fi
+case `uname` in
+Linux)
+    SHELL=`which bash` > /dev/null 2>&1
+    if test $? -ne 0 -o -z "${SHELL}"; then
+        as_fn_error $? "To run libtool you need the GNU bash, not the old-school /bin/sh." "$LINENO" 5
+        exit 1
+    fi
+;;
+*)
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: SHELL is \"$SHELL\". bash is recommended." >&5
+$as_echo "SHELL is \"$SHELL\". bash is recommended." >&6; }
+;;
+esac
+
 export SHELL
 
 
@@ -11097,7 +11107,6 @@ CC="$lt_save_CC"
 
 
 
-
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking target system type" >&5
 $as_echo_n "checking target system type... " >&6; }
 if ${ac_cv_target+:} false; then :
@@ -15828,10 +15837,12 @@ case $OS in
 	OS_LIBS="-lrt -lpthread -ldl"
 	OS=linux;;
     netbsd*)
-        MAKE=gmake
-        OS_CPPFLAGS="${OS_CPPFLAGS} -I/usr/pkg/include"
-    	OS_LDFLAGS="-L/usr/pkg/lib"
-	OS_LIBS="-lpthread"
+	MAKE=gmake
+	OS_CPPFLAGS="${OS_CPPFLAGS} -I/usr/pkg/include"
+	OS_LDFLAGS="${OS_LDFLAGS} -L/usr/pkg/lib"
+	CPPFLAGS="${CPPFLAGS} ${OS_CPPFLAGS}"
+	LDFLAGS="${LDFLAGS} ${OS_LDFLAGS}"
+	OS_LIBS="-lpthread -lexecinfo"
 	OS=netbsd;;
 esac
 
@@ -16071,8 +16082,13 @@ fi
 
 
 if test "X${hybrid}" != "Xno"; then
+   HYBRID="yes"
    HYBRID_CPPFLAGS=-DHYBRID
+else
+   HYBRID=""
+   HYBRID_CPPFLAGS=""
 fi
+
 
 
 # headers/macros
@@ -16770,8 +16786,17 @@ if test "x$ac_cv_header_sys_socket_h" = xyes; then :
 fi
 
 
+ac_fn_c_check_header_mongrel "$LINENO" "net/ethernet.h" "ac_cv_header_net_ethernet_h" "$ac_includes_default"
+if test "x$ac_cv_header_net_ethernet_h" = xyes; then :
+  $as_echo "#define HAVE_NET_ETHERNET_H 1" >>confdefs.h
 
-for ac_func in strlcpy strlcat
+fi
+
+
+
+oLIBS=${LIBS}
+LIBS="${LIBS} -lpthread"
+for ac_func in strlcpy strlcat, pthread_mutex_timedlock
 do :
   as_ac_var=`$as_echo "ac_cv_func_$ac_func" | $as_tr_sh`
 ac_fn_c_check_func "$LINENO" "$ac_func" "$as_ac_var"
@@ -16783,6 +16808,7 @@ _ACEOF
 fi
 done
 
+LIBS=${oLIBS}
 ac_fn_c_check_func "$LINENO" "strtold" "ac_cv_func_strtold"
 if test "x$ac_cv_func_strtold" = xyes; then :
   $as_echo "#define HAVE_STRTOLD 1" >>confdefs.h

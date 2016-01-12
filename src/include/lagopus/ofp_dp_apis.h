@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,6 +36,6 @@
 #include "lagopus/ofp_queue_get_config_apis.h"
 #include "lagopus/ofp_table_mod_apis.h"
 #include "lagopus/ofp_multipart_apis.h"
-#include "lagopus/ofp_switch_config_apis.h"
+#include "lagopus/ofp_switch_apis.h"
 
 #endif /* __LAGOPUS_OFP_DP_APIS_H__ */

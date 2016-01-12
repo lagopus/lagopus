@@ -80,9 +80,10 @@ class ExecShellCmd(ExecCmd):
         self.exec_cmd(cmd, result, SCE_TIMEOUT_DEFAULT, replase_kws)
 
     def stop_cmd(self, target, replase_kws):
-        cmd = "%s/stop_%s.sh %s" % (replase_kws["shell_dir"],
+        cmd = "%s/stop_%s.sh %s %d" % (replase_kws["shell_dir"],
                                     target,
-                                    replase_kws["log_dir"])
+                                    replase_kws["log_dir"],
+                                    SCE_TIMEOUT_DEFAULT)
         result = "0"
         self.exec_cmd(cmd, result, SCE_TIMEOUT_DEFAULT, replase_kws)
 
@@ -175,7 +176,10 @@ class ExecTest(object):
                 self.confs.get(CONF_SEC_LAGOPUS, CONF_SEC_LAGOPUS_OPTS)),
             "lagopus_log": LAGOPUS_LOG,
             "ryu_path": self.confs.get(CONF_SEC_RYU, CONF_SEC_RYU_PATH),
-            "ryu_opts": self.confs.get(CONF_SEC_RYU, CONF_SEC_RYU_OPTS),
+            "ryu_opts": "\"%s %s\"" % (
+                self.confs.get(CONF_SEC_RYU, CONF_SEC_RYU_OPTS),
+                os.path.join(test_home, self.confs.get(CONF_SEC_RYU,
+                                                       CONF_SEC_RYU_APP))),
             "ryu_log": RYU_LOG,
             "log_dir": self.out_dir,
             "index": 0,  # repetition count index

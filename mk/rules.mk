@@ -355,6 +355,22 @@ scan-build-blame::
 		$(RM) -f ./m.out ; \
 	)
 
+gcc-full-opt::
+	@( \
+		$(MAKE) clean ; \
+		$(RM) -rf ./gcc-full-opt.mk ; \
+		echo "DEBUG_CFLAGS = -g0" > ./gcc-full-opt.mk ; \
+		echo "DEBUG_CXXFLAGS = -g0" >> ./gcc-full-opt.mk ; \
+		echo "OPT_CFLAGS = -O6" >> ./gcc-full-opt.mk ; \
+		echo "OPT_CXXFLAGS = -O6" >> ./gcc-full-opt.mk ; \
+		echo "CODEGEN_CFLAGS = -fno-keep-inline-functions" >> ./gcc-full-opt.mk ; \
+		echo "CODEGEN_CXXFLAGS = -fno-keep-inline-functions" >> ./gcc-full-opt.mk ; \
+		if test $$? -eq 0; then \
+			(SITECONF_MK=`pwd`/gcc-full-opt.mk $(MAKE)) ; \
+		fi ; \
+		$(RM) -f ./gcc-full-opt.mk ; \
+	)
+
 clang::
 	@( \
 		$(MAKE) clean ; \

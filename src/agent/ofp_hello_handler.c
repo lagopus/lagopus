@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,6 @@
 #include "ofp_apis.h"
 #include "ofp_tlv.h"
 #include "ofp_element.h"
-#include "lagopus/dpmgr.h"
 #include "lagopus/ofp_handler.h"
 #include "lagopus/bridge.h"
 #include "lagopus/ofp_pdump.h"
@@ -96,7 +95,7 @@ ofp_hello_handle(struct channel *channel, struct pbuf *pbuf,
       if (ret == LAGOPUS_RESULT_OK) {
         dpid = channel_dpid_get(channel);
 
-        ret = dpmgr_bridge_ofp_version_get(dpid, &bridge_ofp_version);
+        ret = ofp_switch_version_get(dpid, &bridge_ofp_version);
 
         if (ret == LAGOPUS_RESULT_OK) {
           if (hello.header.version != bridge_ofp_version) {
@@ -164,7 +163,7 @@ vbitmap_elem_create(uint64_t dpid,
       if (bitmap != NULL) {
         TAILQ_INSERT_TAIL(&element->bitmap_list, bitmap, entry);
         /* set ofp version. */
-        ret = dpmgr_bridge_ofp_version_bitmap_get(dpid, &bitmap->bitmap);
+        ret = ofp_switch_version_bitmap_get(dpid, &bitmap->bitmap);
 
         if (ret != LAGOPUS_RESULT_OK) {
           lagopus_msg_warning("FAILED (%s).\n", lagopus_error_get_string(ret));
@@ -209,7 +208,7 @@ ofp_hello_create(struct channel *channel,
     TAILQ_INIT(&element_list);
 
     dpid = channel_dpid_get_nolock(channel);
-    ret = dpmgr_bridge_ofp_version_get(dpid, &bridge_ofp_version);
+    ret = ofp_switch_version_get(dpid, &bridge_ofp_version);
 
     if (ret == LAGOPUS_RESULT_OK) {
       channel_version_set_nolock(channel, bridge_ofp_version);

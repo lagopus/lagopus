@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -71,10 +71,14 @@ enum interface_stats {
                       OPT_BIT_GET(OPT_TYPE) |                 \
                       OPT_BIT_GET(OPT_IS_USED) |              \
                       OPT_BIT_GET(OPT_IS_ENABLED))
-#define OPT_ETHERNET (OPT_COMMON | OPT_BIT_GET(OPT_PORT_NO) | \
-                      OPT_BIT_GET(OPT_DEVICE) |               \
-                      OPT_BIT_GET(OPT_MTU) |                  \
-                      OPT_BIT_GET(OPT_IP_ADDR))
+#define OPT_ETHERNET_RAWSOCK (OPT_COMMON | \
+                              OPT_BIT_GET(OPT_DEVICE) |               \
+                              OPT_BIT_GET(OPT_MTU) |                  \
+                              OPT_BIT_GET(OPT_IP_ADDR))
+#define OPT_ETHERNET_DPDK_PHY (OPT_COMMON | OPT_BIT_GET(OPT_PORT_NO) | \
+                               OPT_BIT_GET(OPT_DEVICE) |               \
+                               OPT_BIT_GET(OPT_MTU) |                  \
+                               OPT_BIT_GET(OPT_IP_ADDR))
 #define OPT_GRE      (OPT_COMMON | OPT_BIT_GET(OPT_PORT_NO) | \
                       OPT_BIT_GET(OPT_DST_ADDR) |             \
                       OPT_BIT_GET(OPT_SRC_ADDR) |             \
@@ -582,7 +586,7 @@ interface_cmd_update_internal(datastore_interp_t *iptr,
   switch (state) {
     case DATASTORE_INTERP_STATE_AUTO_COMMIT: {
       i = 0;
-      while (i < UPDATE_RETRY_MAX) {
+      while (i < UPDATE_CNT_MAX) {
         ret = interface_cmd_do_update(iptr, state, conf,
                                       is_propagation,
                                       is_enable_disable_cmd,
@@ -2107,8 +2111,10 @@ interface_cmd_serialize(datastore_interp_t *iptr,
 
     switch (type) {
       case DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_PHY:
+        flags &= OPT_ETHERNET_DPDK_PHY;
+        break;
       case DATASTORE_INTERFACE_TYPE_ETHERNET_RAWSOCK:
-        flags &= OPT_ETHERNET;
+        flags &= OPT_ETHERNET_RAWSOCK;
         break;
       case DATASTORE_INTERFACE_TYPE_GRE:
         flags &= OPT_GRE;
@@ -2972,8 +2978,10 @@ interface_cmd_json_create(lagopus_dstring_t *ds,
             flags = configs->flags;
             switch (type) {
               case DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_PHY:
+                flags &= OPT_ETHERNET_DPDK_PHY;
+                break;
               case DATASTORE_INTERFACE_TYPE_ETHERNET_RAWSOCK:
-                flags &= OPT_ETHERNET;
+                flags &= OPT_ETHERNET_RAWSOCK;
                 break;
               case DATASTORE_INTERFACE_TYPE_GRE:
                 flags &= OPT_GRE;

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -160,7 +160,10 @@ meter_table_meter_add(struct meter_table *meter_table,
   /* Lookup node. */
   node = ptree_node_lookup(meter_table->ptree, (uint8_t *)&key, 32);
   if (node != NULL) {
-    ofp_error_set(error, OFPET_METER_MOD_FAILED, OFPMMFC_METER_EXISTS);
+    error->type = OFPET_METER_MOD_FAILED;
+    error->code = OFPMMFC_METER_EXISTS;
+    lagopus_msg_info("meter add: %d: meter is eixst (%d:%d)",
+                     mod->meter_id, error->type, error->code);
     ret = LAGOPUS_RESULT_OFP_ERROR;
     goto out;
   }
@@ -211,7 +214,10 @@ meter_table_meter_modify(struct meter_table *meter_table,
   /* Lookup node. */
   node = ptree_node_lookup(meter_table->ptree, (uint8_t *)&key, 32);
   if (node == NULL) {
-    ofp_error_set(error, OFPET_METER_MOD_FAILED, OFPMMFC_UNKNOWN_METER);
+    error->type = OFPET_METER_MOD_FAILED;
+    error->code = OFPMMFC_UNKNOWN_METER;
+    lagopus_msg_info("meter modify: %d: meter is not exist (%d:%d)",
+                     mod->meter_id, error->type, error->code);
     ret = LAGOPUS_RESULT_OFP_ERROR;
     goto out;
   }
@@ -220,7 +226,10 @@ meter_table_meter_modify(struct meter_table *meter_table,
   meter = (struct meter *)node->info;
   if (meter == NULL) {
     ptree_unlock_node(node);
-    ofp_error_set(error, OFPET_METER_MOD_FAILED, OFPMMFC_UNKNOWN_METER);
+    error->type = OFPET_METER_MOD_FAILED;
+    error->code = OFPMMFC_UNKNOWN_METER;
+    lagopus_msg_info("meter modify: %d: meter is not exist (%d:%d)",
+                     mod->meter_id, error->type, error->code);
     ret = LAGOPUS_RESULT_OFP_ERROR;
     goto out;
   }

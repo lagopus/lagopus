@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 
 #include "lagopus_apis.h"
+#include "lagopus_config.h"
 
 
 
@@ -304,7 +305,7 @@ lagopus_mutex_trylock(lagopus_mutex_t *mtxptr) {
   return ret;
 }
 
-
+#ifdef HAVE_PTHREAD_MUTEX_TIMEDLOCK
 lagopus_result_t
 lagopus_mutex_timedlock(lagopus_mutex_t *mtxptr,
                         lagopus_chrono_t nsec) {
@@ -347,6 +348,7 @@ lagopus_mutex_timedlock(lagopus_mutex_t *mtxptr,
 
   return ret;
 }
+#endif /* HAVE_PTHREAD_MUTEX_TIMEDLOCK */
 
 
 lagopus_result_t

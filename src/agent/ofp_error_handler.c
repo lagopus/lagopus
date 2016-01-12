@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,6 +32,17 @@ error_msg_trace(struct ofp_error_msg *error) {
     lagopus_msg_pdump(TRACE_OFPT_ERROR, PDUMP_OFP_ERROR,
                       *error, "");
   }
+}
+
+static void
+ofp_error_str_get_internal(uint16_t type, uint16_t code,
+                           const char *pre_msg,
+                           char *str, size_t max_len) {
+  snprintf(str, max_len, "%s %s [type = %s(%d), code = %s(%d)].",
+           pre_msg,
+           lagopus_error_get_string(LAGOPUS_RESULT_OFP_ERROR),
+           ofp_error_type_str_get(type), type,
+           ofp_error_code_str_get(type, code), code);
 }
 
 /* RECV */
@@ -207,10 +218,16 @@ ofp_error_msg_send(struct channel *channel,
                    struct ofp_header *xid_header,
                    struct ofp_error *error) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  char ebuf[ERROR_MAX_SIZE];
   struct pbuf *send_pbuf = NULL;
 
   if (channel != NULL && xid_header != NULL &&
       error != NULL) {
+    /* put log. */
+    ofp_error_str_get_internal(error->type, error->code, "Send",
+                               ebuf, ERROR_MAX_SIZE);
+    lagopus_msg_warning("%s\n", ebuf);
+
     ret = ofp_error_msg_create(channel, error,
                                xid_header, &send_pbuf);
     if (ret == LAGOPUS_RESULT_OK) {
@@ -326,8 +343,5 @@ ofp_error_val_set(struct ofp_error *error, uint16_t type, uint16_t code) {
 void
 ofp_error_str_get(uint16_t type, uint16_t code,
                   char *str, size_t max_len) {
-  snprintf(str, max_len, "Set %s [type = %s(%d), code = %s(%d)].",
-           lagopus_error_get_string(LAGOPUS_RESULT_OFP_ERROR),
-           ofp_error_type_str_get(type), type,
-           ofp_error_code_str_get(type, code), code);
+  ofp_error_str_get_internal(type, code, "Set", str, max_len);
 }

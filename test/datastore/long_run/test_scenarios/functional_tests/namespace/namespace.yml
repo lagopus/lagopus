@@ -186,7 +186,6 @@ testcases:
               {"ret":"OK",
               "data":[{"name":"ns01:if01",
               "type":"ethernet-rawsock",
-              "port-number":1,
               "device":"lago_eth0",
               "mtu":1,
               "ip-addr":"127.0.0.1",
@@ -198,7 +197,6 @@ testcases:
               {"ret":"OK",
               "data":[{"name":"ns01:if02",
               "type":"ethernet-rawsock",
-              "port-number":2,
               "device":"lago_eth1",
               "mtu":2,
               "ip-addr":"127.0.0.2",
@@ -315,17 +313,6 @@ testcases:
               "is-used":true,
               "is-enabled":false}]}
           - cmd_type: ds
-            cmd: l2-bridge l2-bridge01
-            result: |-
-              {"ret":"OK",
-              "data":[{"name":"ns01:l2-bridge01",
-              "expire":1,
-              "max-entries":1,
-              "tmp-dir":"\/tmp",
-              "bridge":"ns01:bridge01",
-              "is-used":true,
-              "is-enabled":false}]}
-          - cmd_type: ds
             cmd: bridge bridge01
             result: |-
               {"ret":"OK",
@@ -333,7 +320,6 @@ testcases:
               "controllers":["ns01:controller01"],
               "ports":{"ns01:port01":1,
               "ns01:port02":2},
-              "l2-bridge":"ns01:l2-bridge01",
               "dpid":1,
               "fail-mode":"secure",
               "flow-statistics":true,
@@ -430,11 +416,6 @@ testcases:
               {"ret":"INVALID_NAMESPACE",
                "data":"Can't get fullname ns01:controller01."}
           - cmd_type: ds
-            cmd: l2-bridge ns01:l2-bridge01
-            result: |-
-              {"ret":"INVALID_NAMESPACE",
-               "data":"Can't get fullname ns01:l2-bridge01."}
-          - cmd_type: ds
             cmd: bridge ns01:bridge01
             result: |-
               {"ret":"INVALID_NAMESPACE",
@@ -472,7 +453,6 @@ testcases:
               {"ret":"OK",
               "data":[{"name":"ns01:if01",
               "type":"ethernet-rawsock",
-              "port-number":1,
               "device":"lago_eth0",
               "mtu":1,
               "ip-addr":"127.0.0.1",
@@ -484,7 +464,6 @@ testcases:
               {"ret":"OK",
               "data":[{"name":"ns01:if02",
               "type":"ethernet-rawsock",
-              "port-number":2,
               "device":"lago_eth1",
               "mtu":2,
               "ip-addr":"127.0.0.2",
@@ -601,17 +580,6 @@ testcases:
               "is-used":true,
               "is-enabled":false}]}
           - cmd_type: ds
-            cmd: l2-bridge l2-bridge01
-            result: |-
-              {"ret":"OK",
-              "data":[{"name":"ns01:l2-bridge01",
-              "expire":1,
-              "max-entries":1,
-              "tmp-dir":"\/tmp",
-              "bridge":"ns01:bridge01",
-              "is-used":true,
-              "is-enabled":false}]}
-          - cmd_type: ds
             cmd: bridge bridge01
             result: |-
               {"ret":"OK",
@@ -619,7 +587,6 @@ testcases:
               "controllers":["ns01:controller01"],
               "ports":{"ns01:port01":1,
               "ns01:port02":2},
-              "l2-bridge":"ns01:l2-bridge01",
               "dpid":1,
               "fail-mode":"secure",
               "flow-statistics":true,
@@ -690,9 +657,4 @@ testcases:
             result: |-
               {"ret":"INVALID_NAMESPACE",
                "data":"Can't get fullname ns01:port01."}
-          - cmd_type: ds
-            cmd: bridge bridge01 create -l2-bridge ns01:l2-bridge01
-            result: |-
-              {"ret":"INVALID_NAMESPACE",
-               "data":"Can't get fullname ns01:l2-bridge01."}
 

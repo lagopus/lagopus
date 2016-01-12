@@ -1,4 +1,18 @@
-/* %COPYRIGHT% */
+/*
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 /**
  *      @file   thread.c
@@ -22,28 +36,8 @@
 
 #include "thread.h"
 
-/* so far, global variable. */
-#ifdef HAVE_DPDK
-static lagopus_thread_t dpdk_thread = NULL;
-static bool dpdk_run = false;
-static lagopus_mutex_t dpdk_lock = NULL;
-#endif /* HAVE_DPDK */
-
-static lagopus_thread_t timer_thread = NULL;
-static bool timer_run = false;
-static lagopus_mutex_t timer_lock = NULL;
-
-static lagopus_thread_t sock_thread = NULL;
-static bool sock_run = false;
-static lagopus_mutex_t sock_lock = NULL;
-
 #define TIMEOUT_SHUTDOWN_RIGHT_NOW     (100*1000*1000) /* 100msec */
 #define TIMEOUT_SHUTDOWN_GRACEFULLY    (1500*1000*1000) /* 1.5sec */
-
-#ifdef HAVE_DPDK
-int app_lcore_main_loop(void *arg);
-rte_atomic32_t dpdk_stop;
-#endif /* HAVE_DPDK */
 
 void
 dp_finalproc(const lagopus_thread_t *t, bool is_canceled, void *arg) {
@@ -191,166 +185,3 @@ dp_thread_stop(lagopus_thread_t *threadptr, bool *runptr) {
 
   return ret;
 }
-
-static lagopus_result_t
-timerthread_initialize(void *arg) {
-  lagopus_thread_create(&timer_thread, dp_timer_loop,
-                        dp_finalproc, dp_freeproc, "dataplane timer", arg);
-  return LAGOPUS_RESULT_OK;
-}
-
-static lagopus_result_t
-sockthread_initialize(void *arg) {
-  lagopus_thread_create(&sock_thread, rawsock_thread_loop,
-                        dp_finalproc, dp_freeproc, "dataplane rawswock", arg);
-  return LAGOPUS_RESULT_OK;
-}
-
-lagopus_result_t
-dataplane_initialize(int argc,
-                     const char *const argv[],
-                     __UNUSED void *extarg,
-                     lagopus_thread_t **thdptr) {
-#ifdef HAVE_DPDK
-  static struct dataplane_arg dparg;
-#endif /* HAVE_DPDK */
-  static struct dataplane_arg sockarg;
-  static struct dataplane_arg timerarg;
-  lagopus_result_t nb_ports;
-
-  nb_ports = lagopus_dataplane_init(argc, argv);
-  if (nb_ports < 0) {
-    lagopus_msg_fatal("lagopus_dataplane_init failed\n");
-    return nb_ports;
-  }
-  dp_api_init();
-#ifdef HAVE_DPDK
-  if (rawsocket_only_mode != true) {
-    dparg.threadptr = &dpdk_thread;
-    dparg.lock = &dpdk_lock;
-    lagopus_thread_create(&dpdk_thread, dpdk_thread_loop,
-                          dp_finalproc, dp_freeproc, "dataplane", &dparg);
-
-    if (lagopus_mutex_create(&dpdk_lock) != LAGOPUS_RESULT_OK) {
-      lagopus_exit_fatal("lagopus_mutex_create");
-    }
-  }
-#endif /* HAVE_DPDK */
-
-  lagopus_meter_init();
-  lagopus_register_action_hook = lagopus_set_action_function;
-  lagopus_register_instruction_hook = lagopus_set_instruction_function;
-  flowinfo_init();
-
-  timerarg.threadptr = &timer_thread;
-  timerarg.lock = &timer_lock;
-  timerarg.running = NULL;
-  timerthread_initialize(&timerarg);
-
-  sockarg.threadptr = &sock_thread;
-  sockarg.lock = &sock_lock;
-  sockarg.running = NULL;
-  sockthread_initialize(&sockarg);
-
-  *thdptr = &sock_thread;
-
-  return LAGOPUS_RESULT_OK;
-}
-
-lagopus_result_t
-dataplane_start(void) {
-  lagopus_result_t rv;
-#ifdef HAVE_DPDK
-  /* launch per-lcore init on every lcore */
-  if (dpdk_run == false && rawsocket_only_mode != true) {
-    rte_eal_mp_remote_launch(app_lcore_main_loop, NULL, SKIP_MASTER);
-  }
-#endif /* HAVE_DPDK */
-  rv = dp_thread_start(&sock_thread, &sock_lock, &sock_run);
-  if (rv == LAGOPUS_RESULT_OK) {
-    rv = dp_thread_start(&timer_thread, &timer_lock, &timer_run);
-  }
-#ifdef HAVE_DPDK
-  if (rv == LAGOPUS_RESULT_OK && rawsocket_only_mode != true) {
-    rv = dp_thread_start(&dpdk_thread, &dpdk_lock, &dpdk_run);
-  }
-#endif /* HAVE_DPDK */
-  return rv;
-}
-
-void
-dataplane_finalize(void) {
-  dp_thread_finalize(&sock_thread);
-  dp_thread_finalize(&timer_thread);
-#ifdef HAVE_DPDK
-  if (rawsocket_only_mode != true) {
-    dp_thread_finalize(&dpdk_thread);
-  }
-#endif /* HAVE_DPDK */
-  dp_api_fini();
-}
-
-/* Dataplane thread shutdown. */
-lagopus_result_t
-dataplane_shutdown(shutdown_grace_level_t level) {
-  lagopus_result_t rv, rv2;
-
-  rv = dp_thread_shutdown(&timer_thread, &timer_lock, &timer_run, level);
-  rv2 = dp_thread_shutdown(&sock_thread, &sock_lock, &sock_run, level);
-  if (rv == LAGOPUS_RESULT_OK) {
-    rv = rv2;
-  }
-#ifdef HAVE_DPDK
-  if (rawsocket_only_mode != true) {
-    rv2 = dp_thread_shutdown(&dpdk_thread, &dpdk_lock, &dpdk_run, level);
-    if (rv == LAGOPUS_RESULT_OK) {
-      rv = rv2;
-    }
-  }
-#endif /* HAVE_DPDK */
-  return rv;
-}
-/* Dataplane thread stop. */
-lagopus_result_t
-dataplane_stop(void) {
-  lagopus_result_t rv, rv2;
-
-#ifdef HAVE_DPDK
-  rte_atomic32_inc(&dpdk_stop);
-#endif /* HAVE_DPDK */
-
-  rv = dp_thread_stop(&timer_thread, &timer_run);
-  rv2 = dp_thread_stop(&sock_thread, &sock_run);
-  if (rv == LAGOPUS_RESULT_OK) {
-    rv = rv2;
-  }
-#ifdef HAVE_DPDK
-  if (rawsocket_only_mode != true) {
-    rv2 = dp_thread_stop(&dpdk_thread, &dpdk_run);
-    if (rv == LAGOPUS_RESULT_OK) {
-      rv = rv2;
-    }
-  }
-#endif /* HAVE_DPDK */
-  return rv;
-}
-
-#if 0
-#define MODIDX_DATAPLANE  LAGOPUS_MODULE_CONSTRUCTOR_INDEX_BASE + 108
-#define MODNAME_DATAPLANE "dataplane"
-
-static void dataplane_ctors(void) __attr_constructor__(MODIDX_DATAPLANE);
-static void dataplane_dtors(void) __attr_constructor__(MODIDX_DATAPLANE);
-
-static void dataplane_ctors (void) {
-  lagopus_module_register("dataplane",
-                          dataplane_initialize,
-                          s_dpmptr,
-                          dataplane_start,
-                          dataplane_shutdown,
-                          dataplane_stop,
-                          dataplane_finalize,
-                          dataplane_usage
-                         );
-}
-#endif

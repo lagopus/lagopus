@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -95,9 +95,6 @@
 #include <rte_tcp.h>
 #include <rte_udp.h>
 #include <rte_sctp.h>
-#ifdef __linux__
-#include <rte_kni.h>
-#endif /* __linux__ */
 
 #include "lagopus/ethertype.h"
 #include "lagopus/flowdb.h"
@@ -143,6 +140,7 @@ static inline void
 app_lcore_worker(struct app_lcore_params_worker *lp,
                  uint32_t bsz_rd,
                  struct worker_arg *arg) {
+  static const uint8_t eth_bcast[] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
   struct port *port;
   struct lagopus_packet *pkt;
   uint32_t i;
@@ -196,6 +194,15 @@ app_lcore_worker(struct app_lcore_params_worker *lp,
        * OFPP_NORMAL.
        */
       lagopus_packet_init(pkt, m, port);
+
+#ifdef HYBRID
+      /* count up refcnt(packet copy). */
+      OS_M_ADDREF(m);
+
+      /* send to tap */
+      dp_interface_send_packet_kernel(pkt, pkt->in_port->interface);
+#endif /* HYBRID */
+
       if (port->bridge->flowdb->switch_mode == SWITCH_MODE_STANDALONE) {
         lagopus_forward_packet_to_port(pkt, OFPP_NORMAL);
         lp->mbuf_in.array[j] = NULL;

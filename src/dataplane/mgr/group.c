@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -189,7 +189,10 @@ group_table_add(struct group_table *group_table,
   struct ptree_node *node;
 
   if (group_loop_detect(group_table, group, group->id) == true) {
-    ofp_error_set(error, OFPET_GROUP_MOD_FAILED, OFPGMFC_LOOP);
+    error->type = OFPET_GROUP_MOD_FAILED;
+    error->code = OFPGMFC_LOOP;
+    lagopus_msg_info("group add: %d: loop detected (%d:%d)",
+                     group->id, error->type, error->code);
     return LAGOPUS_RESULT_OFP_ERROR;
   }
   key = htonl(group->id);
@@ -556,7 +559,10 @@ ofp_group_mod_add(uint64_t dpid,
   group = group_table_lookup(bridge->group_table, group_mod->group_id);
   if (group != NULL) {
     /* Group exists, send error. */
-    ofp_error_set(error, OFPET_GROUP_MOD_FAILED, OFPGMFC_GROUP_EXISTS);
+    error->type = OFPET_GROUP_MOD_FAILED;
+    error->code = OFPGMFC_GROUP_EXISTS;
+    lagopus_msg_info("group add: %d: group exists (%d:%d)",
+                     group_mod->group_id, error->type, error->code);
     rv = LAGOPUS_RESULT_OFP_ERROR;
   } else {
     /* Allocate a new group. */
@@ -593,7 +599,10 @@ ofp_group_mod_modify(uint64_t dpid,
   group = group_table_lookup(bridge->group_table, group_mod->group_id);
   if (group == NULL) {
     /* Group does not exist, send error. */
-    ofp_error_set(error, OFPET_GROUP_MOD_FAILED, OFPGMFC_UNKNOWN_GROUP);
+    error->type = OFPET_GROUP_MOD_FAILED;
+    error->code = OFPGMFC_UNKNOWN_GROUP;
+    lagopus_msg_info("group modify: %d: group is not exist (%d:%d)",
+                     group_mod->group_id, error->type, error->code);
     rv = LAGOPUS_RESULT_OFP_ERROR;
   } else {
     /* Modify group contents. */

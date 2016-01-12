@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -438,44 +438,6 @@ lagopus_result_t
 dp_bridge_stats_get(const char *name,
                     datastore_bridge_stats_t *stats);
 
-/**
- * Clear L2 bridge mac address learning table.
- *
- * @param[in]   name    Name of bridge.
- *
- * @retval      LAGOPUS_RESULT_OK               Succeeded.
- * @retval      LAGOPUS_RESULT_NOT_FOUND        Bridge is not exist.
- */
-lagopus_result_t
-dp_bridge_l2_clear(const char *name);
-
-/**
- * Set expire value of mac address learning table.
- *
- * @param[in]   name    Name of bridge.
- * @param[in]   expire  Expire value (second)
- *
- * @retval      LAGOPUS_RESULT_OK               Succeeded.
- * @retval      LAGOPUS_RESULT_NOT_FOUND        Bridge is not exist.
- *
- * New expire value is applied to new mac address entry.
- */
-lagopus_result_t
-dp_bridge_l2_expire_set(const char *name, uint64_t expire);
-
-lagopus_result_t
-dp_bridge_l2_max_entries_set(const char *name,
-                             uint64_t max_entries);
-
-lagopus_result_t
-dp_bridge_l2_entries_get(const char *name, uint64_t *entries);
-
-lagopus_result_t
-dp_bridge_l2_info_get(const char *name,
-                      datastore_l2_dump_proc_t proc,
-                      FILE *fp,
-                      lagopus_dstring_t *result);
-
 lagopus_result_t
 dp_bridge_meter_list_get(const char *name,
                          datastore_bridge_meter_info_list_t *list);
@@ -491,6 +453,79 @@ dp_bridge_group_list_get(const char *name,
 lagopus_result_t
 dp_bridge_group_stats_list_get(const char *name,
                                datastore_bridge_group_stats_list_t *list);
+
+#ifdef HYBRID
+/* mactable */
+/**
+ * Set the MAC address entry to MAC address table.
+ * @param[in]  name      Name of bridge.
+ * @param[in]  macaddr   MAC address.
+ * @param[in]  port_num  Port number that corresponding to MAC address.
+ * @retval      LAGOPUS_RESULT_OK               Succeeded.
+ * @retval      LAGOPUS_RESULT_NOT_FOUND        Bridge is not exist.
+ * @retval      LAGOPUS_RESULT_INVALID_ARGS     Arguments are invalid.
+ * @retval      LAGOPUS_RESULT_NO_MEMORY        Memory exhausted.
+ */
+lagopus_result_t
+dp_bridge_mactable_entry_set(const char *name, const uint8_t macaddr[], uint32_t port_num);
+
+/**
+ * Modify the MAC address entry to MAC address table.
+ * @param[in]   name      Name of bridge.
+ * @param[in]   macaddr   MAC address.
+ * @param[in]   port_num  Port number that corresponding to MAC address.
+ * @retval      LAGOPUS_RESULT_OK               Succeeded.
+ */
+lagopus_result_t
+dp_bridge_mactable_entry_modify(const char *name, const uint8_t macaddr[], uint32_t port_num);
+
+/**
+ * Delete the MAC address entry from MAC address table.
+ * @param[in]   name      Name of bridge.
+ * @param[in]   macaddr   MAC address.
+ * @retval      LAGOPUS_RESULT_OK               Succeeded.
+ */
+lagopus_result_t
+dp_bridge_mactable_entry_delete(const char *name, const uint8_t macaddr[]);
+
+/**
+ * Clear all MAC address entries from MAC address table.
+ * @param[in]   name      Name of bridge.
+ * @retval      LAGOPUS_RESULT_OK               Succeeded.
+ */
+lagopus_result_t
+dp_bridge_mactable_entry_clear(const char *name);
+
+/**
+ * Get entries in MAC address table.
+ * @param[in]   name      Name of bridge.
+ * @param[out]  e         MAC address table entry.
+ * @param[in]   num       Number of entries.
+ * @retval      LAGOPUS_RESULT_OK               Succeeded.
+ */
+lagopus_result_t
+dp_bridge_mactable_entries_get(const char *name, datastore_macentry_t *e, unsigned int num);
+
+/**
+ * Get number of entries in MAC address table.
+ * @param[in]   name      Name of bridge.
+ * @param[out]  num       Number of entries.
+ * @retval      LAGOPUS_RESULT_OK               Succeeded.
+ */
+lagopus_result_t
+dp_bridge_mactable_num_entries_get(const char *name, unsigned int *num);
+
+/**
+ * Get configs from MAC address table.
+ * @param[in]   name         Name of bridge.
+ * @param[out]  ageing_time  Ageing time.
+ * @param[out]  max_entries  Number of max entries.
+ * @retval      LAGOPUS_RESULT_OK               Succeeded.
+ */
+lagopus_result_t
+dp_bridge_mactable_configs_get(const char *name, uint32_t *ageing_time, uint32_t *max_entries);
+#endif /* HYBRID */
+
 /*
  * affinition API
  */

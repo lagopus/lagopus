@@ -1,0 +1,32 @@
+---
+# hosts
+hosts:
+  - name: lagopus01
+    cpus: 4
+    memory: 4096
+    interfaces:
+      - 192.168.100.100
+      - 192.168.101.100
+      - 192.168.102.100
+      - 192.168.103.100
+  #- name: lagopus02
+  #  cpus: 4
+  #  memory: 4096
+  #  interfaces:
+  #    - 192.168.100.101
+  #    - 192.168.101.101
+  #    - 192.168.102.101
+  #    - 192.168.103.101
+
+system:
+  box_name: lagopus_ubuntu_14.04s
+  vagrant_dir: /vagrant
+
+ssh:
+  forward_agent: false
+
+libvirt:
+  storage_pool: default
+
+virtualbox:
+  intnet_name: intnet

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -446,6 +446,10 @@ void
 clear_all_cache(struct flowcache *cache) {
   int bank;
 
+  if (cache == NULL) {
+    /* flowcache is not running, nothing to do. */
+    return;
+  }
   for (bank = 0; bank < NBANK; bank++) {
     clear_all_cache_bank(cache->bank[bank]);
   }

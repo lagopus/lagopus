@@ -4,7 +4,7 @@ policer-action policer-action02 create -type discard
 policer policer01 create -action policer-action01 -bandwidth-limit 1500 -burst-size-limit 1500 -bandwidth-percent 0
 policer policer02 create -action policer-action02 -bandwidth-limit 1500 -burst-size-limit 1500 -bandwidth-percent 0
 
-interface if01 create -type ethernet-rawsock -port-number 1 -device lago_eth0 -mtu 1 -ip-addr 127.0.0.1
+interface if01 create -type ethernet-rawsock -device lago_eth0 -mtu 1 -ip-addr 127.0.0.1
 
 port port01 create -interface if01 -policer policer01
 

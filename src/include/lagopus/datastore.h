@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,12 +26,13 @@
 #include "datastore/port.h"
 #include "datastore/interface.h"
 #include "datastore/controller.h"
-#include "datastore/l2_bridge.h"
 #include "datastore/affinition.h"
 #include "datastore/queue.h"
 #include "datastore/policer.h"
 #include "datastore/policer_action.h"
 #include "datastore/datastore_config.h"
 #include "datastore/datastore_module.h"
-
+#ifdef HYBRID
+#include "datastore/mactable_cmd.h"
+#endif /* HYBRID */
 #endif /* ! __LAGOPUS_DATASTORE_H__ */

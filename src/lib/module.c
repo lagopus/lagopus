@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -823,6 +823,6 @@ lagopus_module_is_finalized_cleanly(void) {
 bool
 lagopus_module_is_unloading(void) {
   mbar();
-  return s_is_unloading;
+  return (s_n_modules > 0) ? s_is_unloading : true;
 }
 

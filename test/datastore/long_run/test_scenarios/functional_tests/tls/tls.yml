@@ -1,0 +1,139 @@
+use:
+  - lagopus
+
+setup:
+  - repetition_count: 1
+    cmds:
+      - cmd_type: ds
+        cmd: log -debuglevel 10000
+        result: '{"ret": "OK"}'
+      - cmd_type: ds
+        cmd: destroy-all-obj
+        result: '{"ret": "OK"}'
+      - cmd_type: shell
+        cmd: "{{ shell_dir }}/dummy_eth_up.sh lago_eth 2"
+        result: "0"
+
+teardown:
+  - repetition_count: 1
+    cmds:
+      - cmd_type: ds
+        cmd: destroy-all-obj
+        result: '{"ret": "OK"}'
+      - cmd_type: shell
+        cmd: "{{ shell_dir }}/dummy_eth_down.sh lago_eth 2"
+        result: "0"
+
+testcases:
+  - testcase: show tls setting
+    test:
+      - repetition_count: 1
+        cmds:
+          - cmd_type: ds
+            cmd: load {{ test_home  }}/test_scenarios/functional_tests/tls/tls.dsl
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: tls
+            result: |-
+              {"ret":"OK",
+              "data":[{"cert-file":"\/usr\/local\/etc\/lagopus\/catls.pem",
+              "private-key":"\/usr\/local\/etc\/lagopus\/key.pem",
+              "certificate-store":"\/usr\/local\/etc\/lagopus",
+              "trust-point-conf":"\/usr\/local\/etc\/lagopus\/check.conf"}]}
+          - cmd_type: ds
+            cmd: tls -cert-file
+            result: |-
+              {"ret":"OK",
+              "data":[{"cert-file":"\/usr\/local\/etc\/lagopus\/catls.pem"}]}
+          - cmd_type: ds
+            cmd: tls -private-key
+            result: |-
+              {"ret":"OK",
+              "data":[{"private-key":"\/usr\/local\/etc\/lagopus\/key.pem"}]}
+          - cmd_type: ds
+            cmd: tls -certificate-store
+            result: |-
+              {"ret":"OK",
+              "data":[{"certificate-store":"\/usr\/local\/etc\/lagopus"}]}
+          - cmd_type: ds
+            cmd: tls -trust-point-conf
+            result: |-
+              {"ret":"OK",
+              "data":[{"trust-point-conf":"\/usr\/local\/etc\/lagopus\/check.conf"}]}
+
+  - testcase: cert-file
+    test:
+      - repetition_count: 1
+        cmds:
+          - cmd_type: ds
+            cmd: load {{ test_home  }}/test_scenarios/functional_tests/tls/tls.dsl
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: tls -cert-file /tmp/catls.pem
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: tls
+            result: |-
+              {"ret":"OK",
+              "data":[{"cert-file":"\/tmp\/catls.pem",
+              "private-key":"\/usr\/local\/etc\/lagopus\/key.pem",
+              "certificate-store":"\/usr\/local\/etc\/lagopus",
+              "trust-point-conf":"\/usr\/local\/etc\/lagopus\/check.conf"}]}
+
+  - testcase: private-key
+    test:
+      - repetition_count: 1
+        cmds:
+          - cmd_type: ds
+            cmd: load {{ test_home  }}/test_scenarios/functional_tests/tls/tls.dsl
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: tls -private-key /tmp/key.pem
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: tls
+            result: |-
+              {"ret":"OK",
+              "data":[{"cert-file":"\/usr\/local\/etc\/lagopus\/catls.pem",
+              "private-key":"\/tmp\/key.pem",
+              "certificate-store":"\/usr\/local\/etc\/lagopus",
+              "trust-point-conf":"\/usr\/local\/etc\/lagopus\/check.conf"}]}
+
+  - testcase: certificate-store
+    test:
+      - repetition_count: 1
+        cmds:
+          - cmd_type: ds
+            cmd: load {{ test_home  }}/test_scenarios/functional_tests/tls/tls.dsl
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: tls -certificate-store /tmp/lagopus
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: tls
+            result: |-
+              {"ret":"OK",
+              "data":[{"cert-file":"\/usr\/local\/etc\/lagopus\/catls.pem",
+              "private-key":"\/usr\/local\/etc\/lagopus\/key.pem",
+              "certificate-store":"\/tmp\/lagopus",
+              "trust-point-conf":"\/usr\/local\/etc\/lagopus\/check.conf"}]}
+
+  - testcase: trust-point-conf
+    test:
+      - repetition_count: 1
+        cmds:
+          - cmd_type: ds
+            cmd: load {{ test_home  }}/test_scenarios/functional_tests/tls/tls.dsl
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: tls -trust-point-conf /tmp/check.conf
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: tls
+            result: |-
+              {"ret":"OK",
+              "data":[{"cert-file":"\/usr\/local\/etc\/lagopus\/catls.pem",
+              "private-key":"\/usr\/local\/etc\/lagopus\/key.pem",
+              "certificate-store":"\/usr\/local\/etc\/lagopus",
+              "trust-point-conf":"\/tmp\/check.conf"}]}
+

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,8 @@
  *      @brief  multiple branch tree for Openflow
  */
 
+#include "lagopus_config.h"
+
 #include <inttypes.h>
 #include <stddef.h>
 #include <sys/types.h>
@@ -26,7 +28,12 @@
 #include <sys/queue.h>
 
 #ifndef HAVE_DPDK
+#ifdef HAVE_NET_ETHERNET_H
 #include <net/ethernet.h>
+#else
+#include <net/if.h>
+#include <net/if_ether.h>
+#endif /* HAVE_NET_ETHERNET_H */
 #endif /* HAVE_DPDK */
 
 #define __FAVOR_BSD

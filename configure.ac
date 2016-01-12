@@ -21,17 +21,24 @@ fi
 PREFIX=${prefix}
 AC_SUBST(PREFIX)
 
-SHELL=`which bash` > /dev/null 2>&1
-if test $? -ne 0 -o -z "${SHELL}"; then
-   AC_MSG_ERROR([To run libtool you need the GNU bash, not the old-school /bin/sh.])
-   exit 1
-fi
+case `uname` in
+Linux)
+    SHELL=`which bash` > /dev/null 2>&1
+    if test $? -ne 0 -o -z "${SHELL}"; then
+        AC_MSG_ERROR([To run libtool you need the GNU bash, not the old-school /bin/sh.])
+        exit 1
+    fi
+;;
+*)
+    AC_MSG_RESULT([SHELL is "$SHELL". bash is recommended.])
+;;
+esac
+
 export SHELL
 AC_SUBST(SHELL)
 
 LT_INIT
-AC_SUBST(LIBTOOL)
-AC_SUBST(LIBTOOL_DEPS)
+AC_SUBST([LIBTOOL_DEPS])
 
 AC_CANONICAL_BUILD
 AC_CANONICAL_HOST
@@ -114,10 +121,12 @@ case $OS in
 	OS_LIBS="-lrt -lpthread -ldl"
 	OS=linux;;
     netbsd*)
-        MAKE=gmake
-        OS_CPPFLAGS="${OS_CPPFLAGS} -I/usr/pkg/include"
-    	OS_LDFLAGS="-L/usr/pkg/lib"
-	OS_LIBS="-lpthread"
+	MAKE=gmake
+	OS_CPPFLAGS="${OS_CPPFLAGS} -I/usr/pkg/include"
+	OS_LDFLAGS="${OS_LDFLAGS} -L/usr/pkg/lib"
+	CPPFLAGS="${CPPFLAGS} ${OS_CPPFLAGS}"
+	LDFLAGS="${LDFLAGS} ${OS_LDFLAGS}"
+	OS_LIBS="-lpthread -lexecinfo"
 	OS=netbsd;;
 esac
 
@@ -202,8 +211,13 @@ AC_ARG_ENABLE([hybrid],
 	 ,[hybrid="$enableval"], [hybrid=no])
 
 if test "X${hybrid}" != "Xno"; then
+   HYBRID="yes"
    HYBRID_CPPFLAGS=-DHYBRID
+else
+   HYBRID=""
+   HYBRID_CPPFLAGS=""
 fi
+AC_SUBST(HYBRID)
 AC_SUBST(HYBRID_CPPFLAGS)
 
 # headers/macros
@@ -262,8 +276,12 @@ AC_CHECK_HEADER(ncurses.h, [AC_DEFINE(HAVE_NCURSES_H)])
 AC_CHECK_HEADER(assert.h, [AC_DEFINE(HAVE_ASSERT_H)])
 AC_CHECK_HEADER(poll.h, [AC_DEFINE(HAVE_POLL_H)])
 AC_CHECK_HEADER(sys/socket.h, [AC_DEFINE(HAVE_SYS_SOCKET_H)])
+AC_CHECK_HEADER(net/ethernet.h, [AC_DEFINE(HAVE_NET_ETHERNET_H)])
 
-AC_CHECK_FUNCS([strlcpy strlcat])
+oLIBS=${LIBS}
+LIBS="${LIBS} -lpthread"
+AC_CHECK_FUNCS([strlcpy strlcat, pthread_mutex_timedlock])
+LIBS=${oLIBS}
 AC_CHECK_FUNC(strtold, [AC_DEFINE(HAVE_STRTOLD)])
 
 

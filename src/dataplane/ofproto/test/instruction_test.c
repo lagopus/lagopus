@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 
 #include "unity.h"
 
+#include "lagopus/dp_apis.h"
 #include "lagopus/flowdb.h"
 #include "lagopus/ethertype.h"
 #include "lagopus/port.h"
@@ -26,7 +27,6 @@
 #include "datapath_test_misc.h"
 #include "datapath_test_misc_macros.h"
 
-static struct dpmgr *my_dpmgr;
 static struct port port;
 static struct lagopus_packet pkt;
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -45,7 +45,9 @@ ports_alloc(void) {
 
 void
 ports_free(struct vector *v) {
-  vector_free(v);
+  if (v != NULL) {
+    vector_free(v);
+  }
 }
 
 /**
@@ -161,22 +163,6 @@ port_lookup_number(struct vector *v, uint32_t port_no) {
   return NULL;
 }
 
-unsigned int
-num_ports(struct vector *v) {
-  unsigned int id, count;
-
-  count = 0;
-  for (id = 0; id <= v->allocated; id++) {
-    struct port *port;
-
-    port = v->index[id];
-    if (port != NULL) {
-      count++;
-    }
-  }
-  return count;
-}
-
 lagopus_result_t
 lagopus_get_port_statistics(struct vector *ports,
                             struct ofp_port_stats_request *request,
@@ -215,7 +201,10 @@ lagopus_get_port_statistics(struct vector *ports,
       }
     }
     if (i == max) {
-      ofp_error_set(error, OFPET_BAD_REQUEST, OFPBRC_BAD_PORT);
+      error->type = OFPET_BAD_REQUEST;
+      error->code = OFPBRC_BAD_PORT;
+      lagopus_msg_info("port stats: %d: no such port (%d:%d)",
+                       request->port_no, error->type, error->code);
       return LAGOPUS_RESULT_OFP_ERROR;
     }
     /* XXX read lock */
@@ -263,12 +252,18 @@ port_config(struct bridge *bridge,
   if (port_mod->port_no != OFPP_CONTROLLER) {
     port = port_lookup(bridge->ports, port_mod->port_no);
     if (port == NULL) {
-      ofp_error_set(error, OFPET_PORT_MOD_FAILED, OFPPMFC_BAD_PORT);
+      error->type = OFPET_PORT_MOD_FAILED;
+      error->code = OFPPMFC_BAD_PORT;
+      lagopus_msg_info("port config: %d: no such port (%d:%d)",
+                       port_mod->port_no, error->type, error->code);
       return LAGOPUS_RESULT_OFP_ERROR;
     }
     ofp_port = &port->ofp_port;
     if (port->interface == NULL) {
-      ofp_error_set(error, OFPET_PORT_MOD_FAILED, OFPPMFC_BAD_HW_ADDR);
+      error->type = OFPET_PORT_MOD_FAILED;
+      error->code = OFPPMFC_BAD_HW_ADDR;
+      lagopus_msg_info("port config: %d: do not assigned interface (%d:%d)",
+                       port_mod->port_no, error->type, error->code);
       return LAGOPUS_RESULT_OFP_ERROR;
     }
   } else {
@@ -277,7 +272,12 @@ port_config(struct bridge *bridge,
   }
   /* XXX write lock for thread safe */
   if ((port_mod->config & (uint32_t)~port_mod->mask) != 0) {
-    ofp_error_set(error, OFPET_PORT_MOD_FAILED, OFPPMFC_BAD_CONFIG);
+    error->type = OFPET_PORT_MOD_FAILED;
+    error->code = OFPPMFC_BAD_CONFIG;
+    lagopus_msg_info("port config: "
+                     "config(0x%x) and mask(0x%x) inconsistency (%d:%d)",
+                     port_mod->config, port_mod->mask,
+                     error->type, error->code);
     return LAGOPUS_RESULT_OFP_ERROR;
   }
   oldconfig = ofp_port->config;

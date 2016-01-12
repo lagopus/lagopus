@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -211,9 +211,39 @@
 #endif /* ntohll */
 #endif /* LAGOPUS_BIG_ENDIAN */
 
+#ifdef __GNUC__
 /* Unused argument. */
 #define __UNUSED __attribute__((unused))
+#endif /* __GNUC__ */
+
+#ifdef __GNUC__
+#define lagopus_atomic_update_cmp(type, addr, init, val, cmp)           \
+{                                                                       \
+  type __tmp__ =  __sync_fetch_and_add((addr), 0);                      \
+  type __tmp2__;                                                        \
+  do {                                                                  \
+    if (__tmp__ == (init) || __tmp__ cmp (val)) {                       \
+      __tmp2__ = __sync_val_compare_and_swap((addr), __tmp__, (val));   \
+      if (likely(__tmp__ == __tmp2__)) {                                \
+        break;                                                          \
+      } else {                                                          \
+        __tmp__ = __tmp2__;                                             \
+        continue;                                                       \
+      }                                                                 \
+    } else {                                                            \
+      break;                                                            \
+    }                                                                   \
+  } while (true);                                                       \
+}
+
+#define lagopus_atomic_update_min(type, addr, init, val)  \
+    lagopus_atomic_update_cmp(type, addr, init, val, >)
+#define lagopus_atomic_update_max(type, addr, init, val)  \
+    lagopus_atomic_update_cmp(type, addr, init, val, <)
+#endif /* __GNUC__ */
+
 
 
+
 
 #endif /* ! __LAGOPUS_MACROS_H__ */

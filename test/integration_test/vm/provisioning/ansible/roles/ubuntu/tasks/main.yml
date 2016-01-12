@@ -1,0 +1,8 @@
+- name: setup
+  include: setup.yml
+
+- name: apt-get update
+  include: install_apt_pkgs.yml
+
+- name: disable ipv6
+  include: disable_ipv6.yml

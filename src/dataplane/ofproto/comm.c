@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -277,7 +277,13 @@ done:
   return rv;
 }
 
-lagopus_result_t
+/**
+ * Communicate with agent loop function.
+ *
+ * @param[in]   t       Thread object pointer.
+ * @param[in]   arg     Do not used argument.
+ */
+static lagopus_result_t
 comm_thread_loop(const lagopus_thread_t *t, void *arg) {
   lagopus_result_t rv = LAGOPUS_RESULT_ANY_FAILURES;
   struct dataplane_arg *dparg;
@@ -331,6 +337,7 @@ comm_thread_loop(const lagopus_thread_t *t, void *arg) {
     rv = ofp_bridgeq_mgr_bridgeqs_to_array(bridgeqs, &n_bridgeqs,
                                            MAX_BRIDGES);
     if (rv != LAGOPUS_RESULT_OK) {
+      n_bridgeqs = 0;
       lagopus_perror(rv);
       break;
     }
@@ -389,7 +396,9 @@ comm_thread_loop(const lagopus_thread_t *t, void *arg) {
   done:
     /* free bridgeqs. */
     ofp_bridgeq_mgr_poll_reset(polls, MAX_DP_POLLS);
-    ofp_bridgeq_mgr_bridgeqs_free(bridgeqs, n_bridgeqs);
+    if (n_bridgeqs > 0) {
+      ofp_bridgeq_mgr_bridgeqs_free(bridgeqs, n_bridgeqs);
+    }
 
     if (rv != LAGOPUS_RESULT_OK) {
       break;
@@ -411,10 +420,10 @@ static bool comm_run = false;
 static lagopus_mutex_t comm_lock = NULL;
 
 lagopus_result_t
-dpcomm_initialize(int argc,
-                  const char *const argv[],
-                  __UNUSED void *extarg,
-                  lagopus_thread_t **thdptr) {
+dp_comm_thread_init(int argc,
+                    const char *const argv[],
+                    __UNUSED void *extarg,
+                    lagopus_thread_t **thdptr) {
   lagopus_result_t rv = LAGOPUS_RESULT_ANY_FAILURES;
   static struct dataplane_arg commarg;
 
@@ -448,12 +457,12 @@ dpcomm_initialize(int argc,
 }
 
 lagopus_result_t
-dpcomm_start(void) {
+dp_comm_thread_start(void) {
   return dp_thread_start(&comm_thread, &comm_lock, &comm_run);
 }
 
 void
-dpcomm_finalize(void) {
+dp_comm_thread_fini(void) {
   if (polls != NULL) {
     free(polls);
     polls = NULL;
@@ -467,31 +476,36 @@ dpcomm_finalize(void) {
 }
 
 lagopus_result_t
-dpcomm_shutdown(shutdown_grace_level_t level) {
+dp_comm_thread_shutdown(shutdown_grace_level_t level) {
   return dp_thread_shutdown(&comm_thread, &comm_lock, &comm_run, level);
 }
 
 lagopus_result_t
-dpcomm_stop(void) {
+dp_comm_thread_stop(void) {
   return dp_thread_stop(&comm_thread, &comm_run);
 }
 
 #if 0
-#define MODIDX_DPCOMM  LAGOPUS_MODULE_CONSTRUCTOR_INDEX_BASE + 108
-#define MODNAME_DPCOMM "dp_comm"
+#define MODIDX_DPCOMM  LAGOPUS_MODULE_CONSTRUCTOR_INDEX_BASE + 109
 
 static void dpcomm_ctors(void) __attr_constructor__(MODIDX_DPCOMM);
 static void dpcomm_dtors(void) __attr_constructor__(MODIDX_DPCOMM);
 
 static void dpcomm_ctors (void) {
-  lagopus_module_register(MODNAME_DPCOMM,
-                          dpcomm_initialize,
-                          s_dpmptr,
-                          dpcomm_start,
-                          dpcomm_shutdown,
-                          dpcomm_stop,
-                          dpcomm_finalize,
-                          NULL
-                         );
+  lagopus_result_t rv;
+  const char *name = "dp_comm";
+
+  rv = lagopus_module_register(name,
+                               dp_comm_thread_init,
+                               NULL,
+                               dp_comm_thread_start,
+                               dp_comm_thread_shutdown,
+                               dp_comm_thread_stop,
+                               dp_comm_thread_fini,
+                               NULL);
+  if (rv != LAGOPUS_RESULT_OK) {
+    lagopus_perror(rv);
+    lagopus_exit_fatal("can't register the \"%s\" module.\n", name);
+  }
 }
-#endif
+#endif /* 0 */
