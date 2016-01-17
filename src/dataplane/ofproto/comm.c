@@ -43,6 +43,7 @@
 #include "packet.h"
 #include "thread.h"
 #include "mbtree.h"
+#include "lock.h"
 
 #include "callback.h"
 

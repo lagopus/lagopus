@@ -391,7 +391,7 @@ add_write_action_output_instruction(struct instruction_list *instruction_list,
 
 void
 test_flowdb_flow_add(void) {
-  struct table **tablep;
+  struct table *table;
   struct ofp_flow_mod flow_mod;
   struct match_list match_list;
   struct instruction_list instruction_list;
@@ -409,30 +409,30 @@ test_flowdb_flow_add(void) {
   flow_mod.out_port = OFPP_ANY;
   flow_mod.out_group = OFPG_ANY;
 
-  TABLE_GET(tablep, flowdb, flow_mod.table_id);
+  table = table_get(flowdb, flow_mod.table_id);
 
   /* Add. */
   TEST_ASSERT_FLOW_ADD_OK(bridge, &flow_mod, &match_list,
                           &instruction_list, &error);
-  TEST_ASSERT_TABLE_NFLOW(tablep, MISC_FLOWS, 1);
+  TEST_ASSERT_TABLE_NFLOW(&table, MISC_FLOWS, 1);
 
   /* Add (overriden) */
   TEST_ASSERT_FLOW_ADD_OK(bridge, &flow_mod, &match_list,
                           &instruction_list, &error);
-  TEST_ASSERT_TABLE_NFLOW(tablep, MISC_FLOWS, 1);
+  TEST_ASSERT_TABLE_NFLOW(&table, MISC_FLOWS, 1);
 
   /* Add (overriden, CHECK_OVERLAP) */
   flow_mod.flags = OFPFF_CHECK_OVERLAP;
   TEST_ASSERT_FLOW_ADD_NG(bridge, &flow_mod, &match_list,
                           &instruction_list, &error);
-  TEST_ASSERT_TABLE_NFLOW(tablep, MISC_FLOWS, 1);
+  TEST_ASSERT_TABLE_NFLOW(&table, MISC_FLOWS, 1);
 
   /* Add (different priority, not overlap) */
   flow_mod.priority = 2;
   flow_mod.flags = 0;
   TEST_ASSERT_FLOW_ADD_OK(bridge, &flow_mod, &match_list,
                           &instruction_list, &error);
-  TEST_ASSERT_TABLE_NFLOW(tablep, MISC_FLOWS, 2);
+  TEST_ASSERT_TABLE_NFLOW(&table, MISC_FLOWS, 2);
 
   /* Add with match */
   add_port_match(&match_list, 1);
@@ -444,7 +444,7 @@ test_flowdb_flow_add(void) {
              4, OFPXMT_OFB_IPV4_DST << 1, 0xffffffff);
   TEST_ASSERT_FLOW_ADD_OK(bridge, &flow_mod, &match_list,
                           &instruction_list, &error);
-  TEST_ASSERT_TABLE_NFLOW(tablep, MISC_FLOWS, 3);
+  TEST_ASSERT_TABLE_NFLOW(&table, MISC_FLOWS, 3);
 
   /* Add with match (overriden) */
   add_port_match(&match_list, 1);
@@ -456,7 +456,7 @@ test_flowdb_flow_add(void) {
              4, OFPXMT_OFB_IPV4_DST << 1, 0xffffffff);
   TEST_ASSERT_FLOW_ADD_OK(bridge, &flow_mod, &match_list,
                           &instruction_list, &error);
-  TEST_ASSERT_TABLE_NFLOW(tablep, MISC_FLOWS, 3);
+  TEST_ASSERT_TABLE_NFLOW(&table, MISC_FLOWS, 3);
 
   /* Add with match (overriden, CHECK_OVERLAP) */
   add_port_match(&match_list, 1);
@@ -469,31 +469,31 @@ test_flowdb_flow_add(void) {
   flow_mod.flags = OFPFF_CHECK_OVERLAP;
   TEST_ASSERT_FLOW_ADD_NG(bridge, &flow_mod, &match_list,
                           &instruction_list, &error);
-  TEST_ASSERT_TABLE_NFLOW(tablep, MISC_FLOWS, 3);
+  TEST_ASSERT_TABLE_NFLOW(&table, MISC_FLOWS, 3);
 
   /* bad instruction */
   add_instruction(&instruction_list, 0xff);
   TEST_ASSERT_FLOW_ADD_NG(bridge, &flow_mod, &match_list,
                           &instruction_list, &error);
-  TEST_ASSERT_TABLE_NFLOW(tablep, MISC_FLOWS, 3);
+  TEST_ASSERT_TABLE_NFLOW(&table, MISC_FLOWS, 3);
   /* duplicate instruction */
   add_instruction(&instruction_list, OFPIT_CLEAR_ACTIONS);
   add_instruction(&instruction_list, OFPIT_CLEAR_ACTIONS);
   TEST_ASSERT_FLOW_ADD_NG(bridge, &flow_mod, &match_list,
                           &instruction_list, &error);
-  TEST_ASSERT_TABLE_NFLOW(tablep, MISC_FLOWS, 3);
+  TEST_ASSERT_TABLE_NFLOW(&table, MISC_FLOWS, 3);
 #if 0
   flow_mod.table_id = 1;
   TEST_ASSERT_FLOW_ADD_NG(bridge, &flow_mod, &match_list,
                           &instruction_list, &error);
-  TEST_ASSERT_TABLE_NFLOW(tablep, MISC_FLOWS, 1);
+  TEST_ASSERT_TABLE_NFLOW(&table, MISC_FLOWS, 1);
 #endif /* 0 */
 
   FLOWDB_DUMP(flowdb, "After addition", stdout);
 
   /* Cleanup. */
   TEST_ASSERT_FLOW_DELETE_OK(bridge, &flow_mod, &match_list, &error);
-  TEST_ASSERT_TABLE_NFLOW(tablep, MISC_FLOWS, 0);
+  TEST_ASSERT_TABLE_NFLOW(&table, MISC_FLOWS, 0);
 
   FLOWDB_DUMP(flowdb, "After cleanup", stdout);
 }
@@ -520,7 +520,7 @@ test_flowdb_flow_add(void) {
   } while (0)
 void
 test_flowdb_flow_del_strict(void) {
-  struct table **tablep;
+  struct table *table;
   struct ofp_flow_mod flow_mod;
   struct match_list match_list;
   struct instruction_list instruction_list;
@@ -535,14 +535,14 @@ test_flowdb_flow_del_strict(void) {
   flow_mod.flags = OFPFF_SEND_FLOW_REM;
   flow_mod.cookie = 0;
 
-  TABLE_GET(tablep, flowdb, flow_mod.table_id);
+  table = table_get(flowdb, flow_mod.table_id);
 
   add_port_match(&match_list, 1);
 
   /* Add a flow with a match. */
   TEST_ASSERT_FLOW_ADD_OK(bridge, &flow_mod, &match_list,
                           &instruction_list, &error);
-  TEST_ASSERT_TABLE_NFLOW(tablep, MISC_FLOWS, 1);
+  TEST_ASSERT_TABLE_NFLOW(&table, MISC_FLOWS, 1);
 
   TAILQ_COUNT(count, struct match, &match_list, entry);
   TEST_ASSERT_EQUAL(0, count);
@@ -553,14 +553,14 @@ test_flowdb_flow_del_strict(void) {
   flow_mod.command = OFPFC_DELETE_STRICT;
   TEST_ASSERT_FLOW_DELETE_OK(bridge, &flow_mod, &match_list, &error);
   /* The entry is alive because the matches are not equal. */
-  TEST_ASSERT_TABLE_NFLOW(tablep, MISC_FLOWS, 1);
+  TEST_ASSERT_TABLE_NFLOW(&table, MISC_FLOWS, 1);
 
   /* The new flow has taken match_list; make it again. */
   add_port_match(&match_list, 1);
 
   TEST_ASSERT_FLOW_DELETE_OK(bridge, &flow_mod, &match_list, &error);
   /* The entry is gone now. */
-  TEST_ASSERT_TABLE_NFLOW(tablep, MISC_FLOWS, 0);
+  TEST_ASSERT_TABLE_NFLOW(&table, MISC_FLOWS, 0);
 
   TAILQ_COUNT(count, struct match, &match_list, entry);
   TEST_ASSERT_EQUAL(0, count);
@@ -592,7 +592,7 @@ test_flowdb_flow_del_strict(void) {
   } while (0)
 void
 test_flowdb_flow_modify(void) {
-  struct table **tablep;
+  struct table *table;
   struct ofp_flow_mod flow_mod;
   struct match_list match_list;
   struct instruction_list instruction_list;
@@ -608,17 +608,17 @@ test_flowdb_flow_modify(void) {
   flow_mod.out_port = OFPP_ANY;
   flow_mod.out_group = OFPG_ANY;
 
-  TABLE_GET(tablep, flowdb, flow_mod.table_id);
+  table = table_get(flowdb, flow_mod.table_id);
 
   /* Add two flows. */
   TEST_ASSERT_FLOW_ADD_OK(bridge, &flow_mod, &match_list,
                           &instruction_list, &error);
-  TEST_ASSERT_TABLE_NFLOW(tablep, MISC_FLOWS, 1);
+  TEST_ASSERT_TABLE_NFLOW(&table, MISC_FLOWS, 1);
 
   add_port_match(&match_list, 1);
   TEST_ASSERT_FLOW_ADD_OK(bridge, &flow_mod, &match_list,
                           &instruction_list, &error);
-  TEST_ASSERT_TABLE_NFLOW(tablep, MISC_FLOWS, 2);
+  TEST_ASSERT_TABLE_NFLOW(&table, MISC_FLOWS, 2);
 
   FLOWDB_DUMP(flowdb, "After addition", stdout);
 
@@ -629,10 +629,10 @@ test_flowdb_flow_modify(void) {
 
   TEST_ASSERT_FLOW_MODIFY_OK(bridge, &flow_mod, &match_list,
                              &instruction_list, &error);
-  TEST_ASSERT_TABLE_NFLOW(tablep, MISC_FLOWS, 2);
+  TEST_ASSERT_TABLE_NFLOW(&table, MISC_FLOWS, 2);
 
-  TEST_ASSERT_HAS_METADATA_WRITE((*tablep)->flow_list->flows[0], 0);
-  TEST_ASSERT_NO_METADATA_WRITE((*tablep)->flow_list->flows[1]);
+  TEST_ASSERT_HAS_METADATA_WRITE(table->flow_list->flows[0], 0);
+  TEST_ASSERT_NO_METADATA_WRITE(table->flow_list->flows[1]);
 
   FLOWDB_DUMP(flowdb, "After modification (1)", stdout);
 
@@ -643,10 +643,10 @@ test_flowdb_flow_modify(void) {
 
   TEST_ASSERT_FLOW_MODIFY_OK(bridge, &flow_mod, &match_list,
                              &instruction_list, &error);
-  TEST_ASSERT_TABLE_NFLOW(tablep, MISC_FLOWS, 2);
+  TEST_ASSERT_TABLE_NFLOW(&table, MISC_FLOWS, 2);
 
-  TEST_ASSERT_HAS_METADATA_WRITE((*tablep)->flow_list->flows[0], 0);
-  TEST_ASSERT_HAS_METADATA_WRITE((*tablep)->flow_list->flows[1], 1);
+  TEST_ASSERT_HAS_METADATA_WRITE(table->flow_list->flows[0], 0);
+  TEST_ASSERT_HAS_METADATA_WRITE(table->flow_list->flows[1], 1);
 
   FLOWDB_DUMP(flowdb, "After modification (2)", stdout);
 
@@ -657,10 +657,10 @@ test_flowdb_flow_modify(void) {
 
   TEST_ASSERT_FLOW_MODIFY_OK(bridge, &flow_mod, &match_list,
                              &instruction_list, &error);
-  TEST_ASSERT_TABLE_NFLOW(tablep, MISC_FLOWS, 2);
+  TEST_ASSERT_TABLE_NFLOW(&table, MISC_FLOWS, 2);
 
-  TEST_ASSERT_HAS_METADATA_WRITE((*tablep)->flow_list->flows[0], 2);
-  TEST_ASSERT_HAS_METADATA_WRITE((*tablep)->flow_list->flows[1], 2);
+  TEST_ASSERT_HAS_METADATA_WRITE(table->flow_list->flows[0], 2);
+  TEST_ASSERT_HAS_METADATA_WRITE(table->flow_list->flows[1], 2);
 
   FLOWDB_DUMP(flowdb, "After modification (3)", stdout);
 
@@ -670,14 +670,14 @@ test_flowdb_flow_modify(void) {
   TAILQ_INIT(&match_list);
   TEST_ASSERT_FLOW_MODIFY_OK(bridge, &flow_mod, &match_list,
                              &instruction_list, &error);
-  TEST_ASSERT_TABLE_NFLOW(tablep, MISC_FLOWS, 2);
-  TEST_ASSERT_NO_METADATA_WRITE((*tablep)->flow_list->flows[0]);
-  TEST_ASSERT_HAS_METADATA_WRITE((*tablep)->flow_list->flows[1], 2);
+  TEST_ASSERT_TABLE_NFLOW(&table, MISC_FLOWS, 2);
+  TEST_ASSERT_NO_METADATA_WRITE(table->flow_list->flows[0]);
+  TEST_ASSERT_HAS_METADATA_WRITE(table->flow_list->flows[1], 2);
 
   /* Cleanup. */
   flow_mod.command = OFPFC_DELETE;
   TEST_ASSERT_FLOW_DELETE_OK(bridge, &flow_mod, &match_list, &error);
-  TEST_ASSERT_TABLE_NFLOW(tablep, MISC_FLOWS, 0);
+  TEST_ASSERT_TABLE_NFLOW(&table, MISC_FLOWS, 0);
 
   FLOWDB_DUMP(flowdb, "After cleanup", stdout);
 }
@@ -685,7 +685,7 @@ test_flowdb_flow_modify(void) {
 /* XXX already covered by test_flowdb_flow_add(), et. al. */
 void
 test_flowdb_flow_del(void) {
-  struct table **tablep;
+  struct table *table;
   struct ofp_flow_mod flow_mod;
   struct match_list match_list;
   struct instruction_list instruction_list;
@@ -701,16 +701,16 @@ test_flowdb_flow_del(void) {
   flow_mod.out_port = OFPP_ANY;
   flow_mod.out_group = OFPG_ANY;
 
-  TABLE_GET(tablep, flowdb, flow_mod.table_id);
+  table = table_get(flowdb, flow_mod.table_id);
 
   TEST_ASSERT_FLOW_ADD_OK(bridge, &flow_mod, &match_list,
                           &instruction_list, &error);
-  TEST_ASSERT_TABLE_NFLOW(tablep, MISC_FLOWS, 1);
+  TEST_ASSERT_TABLE_NFLOW(&table, MISC_FLOWS, 1);
 
   FLOWDB_DUMP(flowdb, "After addition", stdout);
 
   TEST_ASSERT_FLOW_DELETE_OK(bridge, &flow_mod, &match_list, &error);
-  TEST_ASSERT_TABLE_NFLOW(tablep, MISC_FLOWS, 0);
+  TEST_ASSERT_TABLE_NFLOW(&table, MISC_FLOWS, 0);
 
   FLOWDB_DUMP(flowdb, "After deletion", stdout);
 
@@ -719,7 +719,7 @@ test_flowdb_flow_del(void) {
 
 void
 test_flowdb_flow_del_with_cookie(void) {
-  struct table **tablep;
+  struct table *table;
   struct ofp_flow_mod flow_mod;
   struct match_list match_list;
   struct instruction_list instruction_list;
@@ -736,18 +736,18 @@ test_flowdb_flow_del_with_cookie(void) {
   flow_mod.out_port = OFPP_ANY;
   flow_mod.out_group = OFPG_ANY;
 
-  TABLE_GET(tablep, flowdb, flow_mod.table_id);
+  table = table_get(flowdb, flow_mod.table_id);
 
   flow_mod.command = OFPFC_ADD;
   TEST_ASSERT_FLOW_ADD_OK(bridge, &flow_mod, &match_list,
                           &instruction_list, &error);
-  TEST_ASSERT_TABLE_NFLOW(tablep, MISC_FLOWS, 1);
+  TEST_ASSERT_TABLE_NFLOW(&table, MISC_FLOWS, 1);
 
   FLOWDB_DUMP(flowdb, "After addition", stdout);
 
   flow_mod.command = OFPFC_DELETE;
   TEST_ASSERT_FLOW_DELETE_OK(bridge, &flow_mod, &match_list, &error);
-  TEST_ASSERT_TABLE_NFLOW(tablep, MISC_FLOWS, 0);
+  TEST_ASSERT_TABLE_NFLOW(&table, MISC_FLOWS, 0);
 
   FLOWDB_DUMP(flowdb, "After deletion", stdout);
 
@@ -756,7 +756,7 @@ test_flowdb_flow_del_with_cookie(void) {
 
 void
 test_flowdb_flow_stats(void) {
-  struct table **tablep;
+  struct table *table;
   struct ofp_flow_mod flow_mod;
   struct match_list match_list;
   struct instruction_list instruction_list;
@@ -777,11 +777,11 @@ test_flowdb_flow_stats(void) {
   flow_mod.out_port = OFPP_ANY;
   flow_mod.out_group = OFPG_ANY;
 
-  TABLE_GET(tablep, flowdb, flow_mod.table_id);
+  table = table_get(flowdb, flow_mod.table_id);
 
   TEST_ASSERT_FLOW_ADD_OK(bridge, &flow_mod, &match_list,
                           &instruction_list, &error);
-  TEST_ASSERT_TABLE_NFLOW(tablep, MISC_FLOWS, 1);
+  TEST_ASSERT_TABLE_NFLOW(&table, MISC_FLOWS, 1);
 
   FLOWDB_DUMP(flowdb, "After addition", stdout);
 
@@ -790,7 +790,7 @@ test_flowdb_flow_stats(void) {
 
   TEST_ASSERT_FLOW_STATS_OK(flowdb, &request, &match_list,
                             &flow_stats_list, &error);
-  TEST_ASSERT_TABLE_NFLOW(tablep, MISC_FLOWS, 1);
+  TEST_ASSERT_TABLE_NFLOW(&table, MISC_FLOWS, 1);
   flow_stats = TAILQ_FIRST(&flow_stats_list);
   TEST_ASSERT_NOT_NULL_MESSAGE(flow_stats,
                                "empty stats error");
@@ -847,14 +847,14 @@ test_flowdb_flow_stats(void) {
 
   /* Cleanup. */
   TEST_ASSERT_FLOW_DELETE_OK(bridge, &flow_mod, &match_list, &error);
-  TEST_ASSERT_TABLE_NFLOW(tablep, MISC_FLOWS, 0);
+  TEST_ASSERT_TABLE_NFLOW(&table, MISC_FLOWS, 0);
 
   FLOWDB_DUMP(flowdb, "After cleanup", stdout);
 }
 
 void
 test_flowdb_flow_aggregate_stats(void) {
-  struct table **tablep;
+  struct table *table;
   struct ofp_flow_mod flow_mod;
   struct match_list match_list;
   struct instruction_list instruction_list;
@@ -874,11 +874,11 @@ test_flowdb_flow_aggregate_stats(void) {
   flow_mod.out_port = OFPP_ANY;
   flow_mod.out_group = OFPG_ANY;
 
-  TABLE_GET(tablep, flowdb, flow_mod.table_id);
+  table = table_get(flowdb, flow_mod.table_id);
 
   TEST_ASSERT_FLOW_ADD_OK(bridge, &flow_mod, &match_list,
                           &instruction_list, &error);
-  TEST_ASSERT_TABLE_NFLOW(tablep, MISC_FLOWS, 1);
+  TEST_ASSERT_TABLE_NFLOW(&table, MISC_FLOWS, 1);
 
   FLOWDB_DUMP(flowdb, "After addition", stdout);
 
@@ -913,7 +913,7 @@ test_flowdb_flow_aggregate_stats(void) {
 
   /* Cleanup. */
   TEST_ASSERT_FLOW_DELETE_OK(bridge, &flow_mod, &match_list, &error);
-  TEST_ASSERT_TABLE_NFLOW(tablep, MISC_FLOWS, 0);
+  TEST_ASSERT_TABLE_NFLOW(&table, MISC_FLOWS, 0);
 
   FLOWDB_DUMP(flowdb, "After cleanup", stdout);
 }
@@ -975,7 +975,7 @@ test_flow_dump(void) {
   struct match_list match_list;
   struct instruction_list instruction_list;
   struct ofp_error error;
-  struct table **tablep;
+  struct table *table;
   FILE *fp;
 
   TAILQ_INIT(&match_list);
@@ -989,8 +989,8 @@ test_flow_dump(void) {
   flow_mod.cookie = 0;
   flow_mod.out_port = OFPP_ANY;
 
-  TABLE_GET(tablep, flowdb, flow_mod.table_id);
-  TEST_ASSERT_NOT_NULL(*tablep);
+  table = table_get(flowdb, flow_mod.table_id);
+  TEST_ASSERT_NOT_NULL(table);
 
   make_match(&match_list,
              6,
@@ -1048,13 +1048,13 @@ test_flow_dump(void) {
   /* Add. */
   TEST_ASSERT_FLOW_ADD_OK(bridge, &flow_mod, &match_list,
                           &instruction_list, &error);
-  TEST_ASSERT_TABLE_NFLOW(tablep, MISC_FLOWS, 6);
-  TEST_ASSERT_NOT_NULL((*tablep)->flow_list);
-  TEST_ASSERT_NOT_NULL((*tablep)->flow_list->flows);
-  TEST_ASSERT_NOT_NULL((*tablep)->flow_list->flows[0]);
+  TEST_ASSERT_TABLE_NFLOW(&table, MISC_FLOWS, 6);
+  TEST_ASSERT_NOT_NULL(table->flow_list);
+  TEST_ASSERT_NOT_NULL(table->flow_list->flows);
+  TEST_ASSERT_NOT_NULL(table->flow_list->flows[0]);
 
   fp = fopen("/dev/null", "rw");
   TEST_ASSERT_NOT_NULL(fp);
-  flow_dump((*tablep)->flow_list->flows[0], fp);
+  flow_dump(table->flow_list->flows[0], fp);
   fclose(fp);
 }

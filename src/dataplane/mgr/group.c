@@ -35,6 +35,8 @@
 #include "lagopus_types.h"
 #include "lagopus_error.h"
 
+#include "lock.h"
+
 #define GROUP_ID_KEY_LEN   32
 
 static struct bucket *

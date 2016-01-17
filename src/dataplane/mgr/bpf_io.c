@@ -44,6 +44,7 @@
 #include "packet.h"
 #include "csum.h"
 #include "thread.h"
+#include "lock.h"
 
 static struct port_stats *bpf_port_stats(struct port *port);
 

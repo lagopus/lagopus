@@ -24,6 +24,8 @@
 #include "lagopus/ofp_dp_apis.h"
 #include "lagopus/dp_apis.h"
 
+#include "lock.h"
+
 /**
  * @brief Meter table.
  */

@@ -30,6 +30,8 @@
 #include "lagopus/dp_apis.h"
 #include "lagopus/dataplane.h"
 
+#include "lock.h"
+
 struct dp_bridge_iter {
   struct flowdb *flowdb;
   int table_id;
@@ -975,7 +977,7 @@ dp_bridge_table_id_iter_get(dp_bridge_iter_t iter, uint8_t *idp) {
   int i;
 
   for (i = iter->table_id; i < OFPTT_ALL; i++) {
-    if (iter->flowdb->tables[i] != NULL) {
+    if (table_lookup(iter->flowdb, i) != NULL) {
       iter->table_id = i + 1;
       *idp = i;
       return LAGOPUS_RESULT_OK;
@@ -999,7 +1001,7 @@ dp_bridge_flow_iter_create(const char *name, uint8_t table_id,
   if (bridge == NULL) {
     return LAGOPUS_RESULT_NOT_FOUND;
   }
-  if (bridge->flowdb->tables[table_id] == NULL) {
+  if (table_lookup(bridge->flowdb, table_id) == NULL) {
     return LAGOPUS_RESULT_NOT_FOUND;
   }
   iter = calloc(1, sizeof(struct dp_bridge_iter));
@@ -1019,7 +1021,7 @@ dp_bridge_flow_iter_get(dp_bridge_iter_t iter, struct flow **flowp) {
   struct table *table;
   struct flow_list *flow_list;
 
-  table = iter->flowdb->tables[iter->table_id];
+  table = table_lookup(iter->flowdb, iter->table_id);
   if (table != NULL) {
     flow_list = table->flow_list;
     if (iter->flow_idx < flow_list->nflow) {

@@ -41,7 +41,24 @@
 #include "../agent/ofp_match.h"
 #include "../agent/openflow13packet.h"
 
+#include "lock.h"
+
 #include "callback.h"
+
+/**
+ * @brief Flow database.
+ */
+struct flowdb {
+#ifdef HAVE_DPDK
+  rte_rwlock_t rwlock;          /** Read-write lock. */
+#else
+  pthread_rwlock_t rwlock;      /** Read-write lock. */
+#endif /* HAVE_DPDK */
+  uint8_t table_size;           /** Flow table size. */
+  struct table **tables;        /** Flow table. */
+  enum switch_mode switch_mode; /** Switch mode. */
+
+};
 
 #define MBTREE_TIMEOUT 2
 
@@ -260,6 +277,11 @@ table_get(struct flowdb *flowdb, uint8_t table_id) {
   return flowdb->tables[table_id];
 }
 
+struct table *
+table_lookup(struct flowdb *flowdb, uint8_t table_id) {
+  return flowdb->tables[table_id];
+}
+
 static void
 table_free(struct table *table) {
   struct flow_list *flow_list;
@@ -275,6 +297,12 @@ table_free(struct table *table) {
   }
   free(flow_list);
   free(table);
+}
+
+void
+flowdb_lock_init(struct flowdb *flowdb) {
+  (void) flowdb;
+  FLOWDB_RWLOCK_INIT();
 }
 
 /* Allocate flowdb. */
@@ -338,18 +366,14 @@ flowdb_free(struct flowdb *flowdb) {
 
 lagopus_result_t
 flowdb_switch_mode_get(struct flowdb *flowdb, enum switch_mode *switch_mode) {
-  flowdb_rdlock(flowdb);
   *switch_mode = flowdb->switch_mode;
-  flowdb_rdunlock(flowdb);
 
   return LAGOPUS_RESULT_OK;
 }
 
 lagopus_result_t
 flowdb_switch_mode_set(struct flowdb *flowdb, enum switch_mode switch_mode) {
-  flowdb_wrlock(flowdb);
   flowdb->switch_mode = switch_mode;
-  flowdb_wrunlock(flowdb);
 
   return LAGOPUS_RESULT_OK;
 }
