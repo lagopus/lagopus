@@ -93,7 +93,6 @@
 #include "lagopus/port.h"
 #include "lagopus_gstate.h"
 #include "lagopus/ofp_dp_apis.h"
-#include "lagopus/vector.h"
 
 #include "lagopus/dataplane.h"
 #include "pktbuf.h"

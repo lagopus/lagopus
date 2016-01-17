@@ -30,7 +30,6 @@
 #ifdef HYBRID
 #include "lagopus/mactable.h"
 #endif /* HYBRID */
-#include "lagopus/vector.h"
 
 #include "lagopus/dp_apis.h"
 
@@ -218,8 +217,8 @@ bridge_alloc(const char *name) {
   bridge->switch_config.flags = OFPC_FRAG_NORMAL;
   bridge->switch_config.miss_send_len = 128;
 
-  /* Prepare bridge's port vector. */
-  bridge->ports = vector_alloc();
+  /* Prepare bridge's port hashmap. */
+  lagopus_hashmap_create(&bridge->ports, LAGOPUS_HASHMAP_TYPE_ONE_WORD, NULL);
   if (bridge->ports == NULL) {
     goto out;
   }
@@ -256,6 +255,16 @@ out:
   return NULL;
 }
 
+static bool
+bridge_do_ports_free_iterate(void *key, void *val,
+                             lagopus_hashentry_t he, void *arg) {
+  struct port *port;
+
+  port = val;
+  port->bridge = NULL;
+  return true;
+}
+
 /**
  *Bridge free.
  */
@@ -263,17 +272,11 @@ void
 bridge_free(struct bridge *bridge) {
   if (bridge->ports != NULL) {
     struct port *port;
-    vindex_t i, max;
 
-    max = bridge->ports->allocated;
-    for (i = 0; i < max; i++) {
-      port = vector_slot(bridge->ports, i);
-      if (port == NULL) {
-        continue;
-      }
-      port->bridge = NULL;
-    }
-    vector_free(bridge->ports);
+    lagopus_hashmap_iterate(&bridge->ports,
+                            bridge_do_ports_free_iterate,
+                            NULL);
+    lagopus_hashmap_destroy(&bridge->ports, false);
   }
   if (bridge->group_table != NULL) {
     group_table_free(bridge->group_table);

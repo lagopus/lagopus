@@ -30,6 +30,7 @@
 void
 setUp(void) {
   datastore_bridge_info_t info;
+  datastore_interface_info_t ifinfo;
   TEST_ASSERT_EQUAL(dp_api_init(), LAGOPUS_RESULT_OK);
 
   /* setup bridge and port */
@@ -40,6 +41,11 @@ setUp(void) {
   TEST_ASSERT_EQUAL(dp_port_create("port1"), LAGOPUS_RESULT_OK);
   TEST_ASSERT_EQUAL(dp_interface_create("if0"), LAGOPUS_RESULT_OK);
   TEST_ASSERT_EQUAL(dp_interface_create("if1"), LAGOPUS_RESULT_OK);
+  memset(&ifinfo, 0, sizeof(ifinfo));
+  ifinfo.eth.port_number = 0;
+  TEST_ASSERT_EQUAL(dp_interface_info_set("if0", &ifinfo), LAGOPUS_RESULT_OK);
+  ifinfo.eth.port_number = 1;
+  TEST_ASSERT_EQUAL(dp_interface_info_set("if1", &ifinfo), LAGOPUS_RESULT_OK);
   TEST_ASSERT_EQUAL(dp_port_interface_set("port0", "if0"), LAGOPUS_RESULT_OK);
   TEST_ASSERT_EQUAL(dp_port_interface_set("port1", "if1"), LAGOPUS_RESULT_OK);
   TEST_ASSERT_EQUAL(dp_bridge_port_set("br0", "port0", 1), LAGOPUS_RESULT_OK);
@@ -52,6 +58,8 @@ tearDown(void) {
   TEST_ASSERT_EQUAL(dp_port_interface_unset("port1"), LAGOPUS_RESULT_OK);
   TEST_ASSERT_EQUAL(dp_bridge_port_unset("br0", "port0"), LAGOPUS_RESULT_OK);
   TEST_ASSERT_EQUAL(dp_bridge_port_unset("br0", "port1"), LAGOPUS_RESULT_OK);
+  dp_interface_destroy("if0");
+  dp_interface_destroy("if1");
   dp_port_destroy("port0");
   dp_port_destroy("port1");
   dp_bridge_destroy("br0");
@@ -82,7 +90,7 @@ test_action_OUTPUT(void) {
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
   m = pkt->mbuf;
 
-  lagopus_packet_init(pkt, m, port_lookup(bridge->ports, 1));
+  lagopus_packet_init(pkt, m, port_lookup(&bridge->ports, 1));
   TEST_ASSERT_NOT_NULL(pkt->in_port);
 
   /* output action always decrement reference count. */
@@ -172,7 +180,7 @@ test_lagopus_match_and_action(void) {
   m = pkt->mbuf;
   m->refcnt = 2;
 
-  port = port_lookup(bridge->ports, 1);
+  port = port_lookup(&bridge->ports, 1);
   TEST_ASSERT_NOT_NULL(port);
   pkt->table_id = 0;
   pkt->cache = NULL;

@@ -25,7 +25,6 @@
 #include "lagopus/bridge.h"
 #include "lagopus/port.h"
 #include "lagopus/interface.h"
-#include "lagopus/vector.h"
 
 #include "lagopus_apis.h"
 #include "lagopus/dp_apis.h"
@@ -47,7 +46,7 @@ static lagopus_hashmap_t queueid_hashmap;
 /**
  * physical port id --> struct port table
  */
-static struct vector *port_vector[DATASTORE_INTERFACE_TYPE_MAX + 1];
+static lagopus_hashmap_t portid_hashmap[DATASTORE_INTERFACE_TYPE_MAX + 1];
 
 static void dp_port_interface_unset_internal(struct port *port);
 static void dp_queue_free(void *queue);
@@ -58,9 +57,10 @@ dp_api_init(void) {
   lagopus_result_t rv;
 
   for (i = 0; i < DATASTORE_INTERFACE_TYPE_MAX + 1; i++) {
-    port_vector[i] = ports_alloc();
-    if (port_vector[i] == NULL) {
-      return LAGOPUS_RESULT_NO_MEMORY;
+    rv = lagopus_hashmap_create(&portid_hashmap[i],
+                                LAGOPUS_HASHMAP_TYPE_ONE_WORD, NULL);
+    if (rv != LAGOPUS_RESULT_OK) {
+      return rv;
     }
   }
   rv = lagopus_hashmap_create(&interface_hashmap,
@@ -110,8 +110,7 @@ dp_api_fini(void) {
   lagopus_hashmap_destroy(&queue_hashmap, true);
   lagopus_hashmap_destroy(&queueid_hashmap, true);
   for (i = 0; i < DATASTORE_INTERFACE_TYPE_MAX + 1; i++) {
-    ports_free(port_vector[i]);
-    port_vector[i] = NULL;
+    lagopus_hashmap_destroy(&portid_hashmap[i], false);
   }
 }
 
@@ -433,15 +432,13 @@ dp_port_interface_set(const char *name, const char *ifname) {
   port->interface = ifp;
   port->ifindex = ifp->info.eth.port_number;
   ifp->port = port;
-  rv = vector_set_index(port_vector[ifp->info.type],
-                        ifp->info.eth.port_number,
-                        port);
+  rv = lagopus_hashmap_add(&portid_hashmap[ifp->info.type],
+                           (void *)ifp->info.eth.port_number,
+                           (void *)&port, true);
   if (rv != LAGOPUS_RESULT_OK) {
     goto out;
   }
-  if (port->interface != NULL) {
-    rv = dp_interface_queue_configure(port->interface);
-  }
+  rv = dp_interface_queue_configure(ifp->port->interface);
 out:
   flowdb_wrunlock(NULL);
   return rv;
@@ -453,8 +450,8 @@ dp_port_interface_unset_internal(struct port *port) {
 #ifdef HAVE_DPDK
     dpdk_queue_unconfigure(port->interface);
 #endif /* HAVE_DPDK */
-    vector_set_index(port_vector[port->interface->info.type],
-                     port->ifindex, NULL);
+    lagopus_hashmap_delete(&portid_hashmap[port->interface->info.type],
+                           (void *)port->ifindex, NULL, false);
     port->interface->port = NULL;
     port->interface = NULL;
   }
@@ -462,7 +459,10 @@ dp_port_interface_unset_internal(struct port *port) {
 
 struct port *
 dp_port_lookup(int type, uint32_t portid) {
-  return port_lookup(port_vector[type], portid);
+  struct port *port = NULL;
+
+  lagopus_hashmap_find(&portid_hashmap[type], (void *)portid, &port);
+  return port;
 }
 
 uint32_t
@@ -472,11 +472,7 @@ dp_port_count(void) {
 
   count = 0;
   for (i = 0; i < DATASTORE_INTERFACE_TYPE_MAX + 1; i++) {
-    for (idx = 0; idx <= vector_max(port_vector[i]); idx++) {
-      if (vector_slot(port_vector[i], idx) != NULL) {
-        count++;
-      }
-    }
+    count += lagopus_hashmap_size(&portid_hashmap[i]);
   }
   return count;
 }
@@ -832,6 +828,7 @@ dp_bridge_port_set(const char *name,
                    uint32_t port_num) {
   struct bridge *bridge;
   struct port *port;
+  void *val;
   lagopus_result_t rv;
 
   flowdb_wrlock(NULL);
@@ -850,7 +847,9 @@ dp_bridge_port_set(const char *name,
     goto out;
   }
   port->ofp_port.port_no = port_num;
-  rv = vector_set_index(bridge->ports, port->ofp_port.port_no, port);
+  val = port;
+  rv = lagopus_hashmap_add(&bridge->ports,
+                           (void *)port->ofp_port.port_no, &val, false);
   if (rv != LAGOPUS_RESULT_OK) {
     goto out;
   }
@@ -880,7 +879,8 @@ dp_bridge_port_unset(const char *name, const char *port_name) {
     goto out;
   }
 
-  rv = vector_set_index(bridge->ports, port->ofp_port.port_no, NULL);
+  rv = lagopus_hashmap_delete(&bridge->ports,
+                              (void *)port->ofp_port.port_no, NULL, false);
   if (rv != LAGOPUS_RESULT_OK) {
     goto out;
   }
@@ -905,13 +905,14 @@ dp_bridge_port_unset_num(const char *name, uint32_t port_no) {
     goto out;
   }
 
-  port = port_lookup(bridge->ports, port_no);
+  port = port_lookup(&bridge->ports, port_no);
   if (port == NULL) {
     rv = LAGOPUS_RESULT_NOT_FOUND;
     goto out;
   }
 
-  rv = vector_set_index(bridge->ports, port_no, NULL);
+  rv = lagopus_hashmap_delete(&bridge->ports,
+                              (void *)port_no, NULL, false);
   if (rv != LAGOPUS_RESULT_OK) {
     goto out;
   }
@@ -1044,16 +1045,7 @@ dp_bridge_port_count(const char *name) {
   if (rv != LAGOPUS_RESULT_OK) {
     return 0;
   }
-  count = 0;
-  for (id = 0; id <= bridge->ports->allocated; id++) {
-    struct port *port;
-
-    port = bridge->ports->index[id];
-    if (port != NULL) {
-      count++;
-    }
-  }
-  return count;
+  return lagopus_hashmap_size(&bridge->ports);
 }
 
 lagopus_result_t

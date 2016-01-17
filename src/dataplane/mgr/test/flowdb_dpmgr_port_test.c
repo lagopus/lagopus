@@ -225,7 +225,7 @@ static uint64_t dpid_base;
     snprintf(_buf, sizeof(_buf), "%s, find ports in a bridge", (_msg));	\
     \
     for (size_t _s = (_b); _s < (_e); _s++) {				\
-      TEST_ASSERT_TRUE_MESSAGE(NULL != port_lookup(bridge[_s]->ports, TEST_PORT_OFPNO(_s)), _buf); \
+      TEST_ASSERT_TRUE_MESSAGE(NULL != port_lookup(&bridge[_s]->ports, TEST_PORT_OFPNO(_s)), _buf); \
     }									\
   } while (0);
 
@@ -237,7 +237,7 @@ static uint64_t dpid_base;
     snprintf(_buf, sizeof(_buf), "%s, find ports in a bridge", (_msg));	\
     \
     for (size_t _s = (_b); _s < (_e); _s++) {				\
-      TEST_ASSERT_TRUE_MESSAGE(NULL == port_lookup(bridge[_s]->ports, TEST_PORT_OFPNO(_s)), _buf); \
+      TEST_ASSERT_TRUE_MESSAGE(NULL == port_lookup(&bridge[_s]->ports, TEST_PORT_OFPNO(_s)), _buf); \
     }									\
   } while (0);
 

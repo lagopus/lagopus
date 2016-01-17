@@ -36,7 +36,6 @@
 #include "lagopus/ofp_handler.h"
 #include "lagopus/ethertype.h"
 #include "lagopus/flowdb.h"
-#include "lagopus/vector.h"
 #include "lagopus/bridge.h"
 #include "lagopus/port.h"
 #include "lagopus/group.h"
@@ -679,10 +678,9 @@ execute_action_set_field(struct lagopus_packet *pkt,
       OS_MEMCPY(&val32, oxm_value, sizeof(uint32_t));
       DP_PRINT("set_field in_port: %d\n", OS_NTOHL(val32));
       if (pkt->in_port != NULL && pkt->in_port->bridge != NULL) {
-        struct vector *v;
 
-        v = pkt->in_port->bridge->ports;
-        pkt->in_port = port_lookup(v, OS_NTOHL(val32));
+        pkt->in_port = port_lookup(&pkt->in_port->bridge->ports,
+                                   OS_NTOHL(val32));
         pkt->oob_data.in_port = val32;
       }
       break;
@@ -1438,12 +1436,30 @@ send_packet_in(struct lagopus_packet *pkt,
   return rv;
 }
 
+static bool
+lagopus_do_send_iterate(void *key, void *val,
+                        lagopus_hashentry_t he, void *arg) {
+  struct port *port;
+  struct lagopus_packet *pkt;
+
+  port = val;
+  pkt = arg;
+  if ((port->ofp_port.config & OFPPC_PORT_DOWN) == 0 &&
+      port->interface != NULL &&
+      port != pkt->in_port &&
+      (port->ofp_port.config & OFPPC_NO_FWD) == 0) {
+    /* send packet */
+    OS_M_ADDREF(pkt->mbuf);
+    lagopus_send_packet_physical(pkt, port->interface);
+  }
+  return true;
+}
+
 void
 lagopus_forward_packet_to_port(struct lagopus_packet *pkt,
                                uint32_t out_port) {
   struct port *port;
   uint32_t in_port;
-  struct vector *v;
   unsigned int id;
 
   in_port = pkt->in_port->ofp_port.port_no;
@@ -1485,30 +1501,9 @@ lagopus_forward_packet_to_port(struct lagopus_packet *pkt,
       /* required: send packet to all physical ports except in_port. */
       /* XXX destination mac address learning should be needed for flooding. */
       DP_PRINT("OFPP_ALL\n");
-      v = pkt->in_port->bridge->ports;
-      for (id = 0; id < v->allocated; id++) {
-        port = v->index[id];
-        if (port == NULL ||
-            (port->ofp_port.config & OFPPC_PORT_DOWN) != 0 ||
-            port->interface == NULL) {
-          continue;
-        }
-
-        /* skip except physical port */
-
-        /* skip ingress port */
-        if (port->ofp_port.port_no == in_port) {
-          continue;
-        }
-        /* skip 'no fowrad' port */
-        if ((port->ofp_port.config & OFPPC_NO_FWD) != 0) {
-          continue;
-        }
-
-        /* send packet */
-        OS_M_ADDREF(pkt->mbuf);
-        lagopus_send_packet_physical(pkt, port->interface);
-      }
+      lagopus_hashmap_iterate(&pkt->in_port->bridge->ports,
+                              lagopus_do_send_iterate,
+                              pkt);
       lagopus_packet_free(pkt);
       break;
 
@@ -1536,8 +1531,7 @@ lagopus_forward_packet_to_port(struct lagopus_packet *pkt,
       out_port = in_port;
       /*FALLTHROUGH*/
     default:
-      v = pkt->in_port->bridge->ports;
-      port = port_lookup(v, out_port);
+      port = port_lookup(&pkt->in_port->bridge->ports, out_port);
       if (port != NULL && (port->ofp_port.config & OFPPC_NO_FWD) == 0) {
         /* so far, we support only physical port. */
         DP_PRINT("Forwarding packet to port %d\n", port->ifindex);

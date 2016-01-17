@@ -21,7 +21,6 @@
 
 #include "lagopus_apis.h"
 #include "lagopus/port.h"
-#include "lagopus/vector.h"
 #include "lagopus/ofp_dp_apis.h"
 #include "lagopus/dp_apis.h"
 #include "lagopus/datastore/bridge.h"
@@ -34,15 +33,6 @@ setUp(void) {
 void
 tearDown(void) {
   dp_api_fini();
-}
-
-void
-test_ports_alloc(void) {
-  struct vector *ports;
-
-  ports = ports_alloc();
-  TEST_ASSERT_NOT_NULL_MESSAGE(ports, "ports_alloc error");
-  ports_free(ports);
 }
 
 void
@@ -181,12 +171,12 @@ test_lagopus_get_port_statistics(void) {
   TEST_ASSERT_NOT_NULL_MESSAGE(bridge, "dp_bridge_lookup error");
   req.port_no = 1;
   TAILQ_INIT(&list);
-  rv = lagopus_get_port_statistics(bridge->ports, &req, &list, &error);
+  rv = lagopus_get_port_statistics(&bridge->ports, &req, &list, &error);
   TEST_ASSERT_EQUAL_MESSAGE(rv, LAGOPUS_RESULT_OFP_ERROR, "result error");
 
   req.port_no = OFPP_ANY;
   TAILQ_INIT(&list);
-  rv = lagopus_get_port_statistics(bridge->ports, &req, &list, &error);
+  rv = lagopus_get_port_statistics(&bridge->ports, &req, &list, &error);
   TEST_ASSERT_EQUAL_MESSAGE(rv, LAGOPUS_RESULT_OK, "result error");
   TEST_ASSERT_NULL_MESSAGE(TAILQ_FIRST(&list), "empty list error");
 
@@ -200,7 +190,7 @@ test_lagopus_get_port_statistics(void) {
 
   req.port_no = OFPP_ANY;
   TAILQ_INIT(&list);
-  rv = lagopus_get_port_statistics(bridge->ports, &req, &list, &error);
+  rv = lagopus_get_port_statistics(&bridge->ports, &req, &list, &error);
   TEST_ASSERT_EQUAL_MESSAGE(rv, LAGOPUS_RESULT_OK, "result error");
   TEST_ASSERT_NOT_NULL_MESSAGE(TAILQ_FIRST(&list), "list error");
   TAILQ_FOREACH(stats, &list, entry) {
@@ -216,7 +206,7 @@ test_lagopus_get_port_statistics(void) {
 
   req.port_no = 1;
   TAILQ_INIT(&list);
-  rv = lagopus_get_port_statistics(bridge->ports, &req, &list, &error);
+  rv = lagopus_get_port_statistics(&bridge->ports, &req, &list, &error);
   TEST_ASSERT_EQUAL_MESSAGE(rv, LAGOPUS_RESULT_OK, "result error");
   TEST_ASSERT_NOT_NULL_MESSAGE(TAILQ_FIRST(&list), "list error");
   TAILQ_FOREACH(stats, &list, entry) {
@@ -232,7 +222,7 @@ test_lagopus_get_port_statistics(void) {
 
   req.port_no = 5;
   TAILQ_INIT(&list);
-  rv = lagopus_get_port_statistics(bridge->ports, &req, &list, &error);
+  rv = lagopus_get_port_statistics(&bridge->ports, &req, &list, &error);
   TEST_ASSERT_EQUAL_MESSAGE(rv, LAGOPUS_RESULT_OFP_ERROR, "result error");
 }
 

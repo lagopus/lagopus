@@ -27,7 +27,6 @@
 #include "lagopus_apis.h"
 #include "lagopus/flowdb.h"
 #include "lagopus/ofp_handler.h"
-#include "lagopus/vector.h"
 #include "lagopus/port.h"
 #include "lagopus/group.h"
 #include "lagopus/dataplane.h"
@@ -128,8 +127,6 @@ group_table_alloc(struct bridge *parent) {
 
 void
 group_table_free(struct group_table *group_table) {
-  struct group *group;
-
   lagopus_hashmap_destroy(&group_table->hashmap, true);
   free(group_table);
 }
@@ -299,30 +296,36 @@ group_alloc(struct ofp_group_mod *group_mod,
       merge_action_set(bucket->actions, &bucket->action_list);
     }
   }
-  group->flows = vector_alloc();
+  lagopus_hashmap_create(&group->flows, LAGOPUS_HASHMAP_TYPE_ONE_WORD, NULL);
   clock_gettime(CLOCK_MONOTONIC, &group->create_time);
 
   return group;
 }
 
+static bool
+group_do_flow_iterate(void *key, void *val,
+                      lagopus_hashentry_t he, void *arg) {
+  struct bridge *bridge;
+  struct flow *flow;
+  struct ofp_error error;
+
+  flow = val;
+  bridge = arg;
+  flow_remove_with_reason_nolock(flow,
+                                 bridge,
+                                 OFPRR_GROUP_DELETE,
+                                 &error);
+  return true;
+}
+
 void
 group_free(struct group *group) {
-  struct ofp_error error;
-  vindex_t i, nflow;
-
   bucket_list_free(&group->bucket_list);
   /* remove group action from each flows. */
-  nflow = group->flows->max;
-  for (i = 0; i < nflow; i++) {
-    struct flow *flow = vector_slot(group->flows, i);
-    if (flow != NULL) {
-      flow_remove_with_reason_nolock(flow,
-                                     group->group_table->bridge,
-                                     OFPRR_GROUP_DELETE,
-                                     &error);
-    }
-  }
-  vector_free(group->flows);
+  lagopus_hashmap_iterate_no_lock(&group->flows,
+                                  group_do_flow_iterate,
+                                  group->group_table->bridge);
+  lagopus_hashmap_destroy(&group->flows, false);
   free(group);
 }
 
@@ -357,7 +360,8 @@ void
 group_add_ref_flow(struct group *group,
                    struct flow *flow) {
   if (group != NULL) {
-    vector_set(group->flows, flow);
+    lagopus_hashmap_add_no_lock(&group->flows,
+                                (void *)flow, (void *)&flow, true);
   }
 }
 
@@ -365,7 +369,7 @@ void
 group_remove_ref_flow(struct group *group,
                       struct flow *flow) {
   if (group != NULL) {
-    vector_unset(group->flows, flow);
+    lagopus_hashmap_delete_no_lock(&group->flows, flow, NULL, false);
   }
 }
 
@@ -375,7 +379,7 @@ set_group_stats(struct group_stats *stats, const struct group *group) {
   struct bucket *bucket;
 
   stats->ofp.group_id = group->id;
-  stats->ofp.ref_count = (uint32_t)group->flows->max;
+  stats->ofp.ref_count = (uint32_t)lagopus_hashmap_size(&group->flows);
   stats->ofp.packet_count = group->packet_count;
   stats->ofp.byte_count = group->byte_count;
 

@@ -102,7 +102,7 @@ dp_process_event_data(uint64_t dpid, struct eventq_data *data) {
           ofp_packet_out = &data->packet_out.ofp_packet_out;
           if (ofp_packet_out->in_port != OFPP_CONTROLLER &&
               ofp_packet_out->in_port != OFPP_ANY) {
-            port = port_lookup(bridge->ports,
+            port = port_lookup(&bridge->ports,
                                ofp_packet_out->in_port);
           }
           if (port == NULL) {

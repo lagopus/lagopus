@@ -103,7 +103,6 @@
 #include "lagopus_gstate.h"
 #include "lagopus/ofp_dp_apis.h"
 #include "lagopus/dp_apis.h"
-#include "lagopus/vector.h"
 
 #include "lagopus/datastore/interface.h"
 #include "lagopus/interface.h"
@@ -222,30 +221,40 @@ struct lagopus_port_statistics port_statistics[RTE_MAX_ETHPORTS];
 
 static struct port_stats *dpdk_port_stats(struct port *port);
 
-static struct vector *ifp_vector;
+static lagopus_hashmap_t ifp_hashmap;
 
 static void
 dpdk_interface_set_index(struct interface *ifp) {
-  if (ifp_vector == NULL) {
-    ifp_vector = vector_alloc();
+  void *val;
+
+  if (ifp_hashmap == NULL) {
+    lagopus_hashmap_create(&ifp_hashmap, LAGOPUS_HASHMAP_TYPE_ONE_WORD, NULL);
   }
-  vector_set_index(ifp_vector, ifp->info.eth_dpdk_phy.port_number, ifp);
+  val = ifp;
+  lagopus_hashmap_add(&ifp_hashmap,
+                      (void *)ifp->info.eth_dpdk_phy.port_number,
+                      (void *)&val,
+                      false);
 }
 
 static void
 dpdk_interface_unset_index(struct interface *ifp) {
-  if (ifp_vector == NULL) {
+  if (ifp_hashmap == NULL) {
     return;
   }
-  vector_set_index(ifp_vector, ifp->info.eth_dpdk_phy.port_number, NULL);
+  lagopus_hashmap_delete(&ifp_hashmap,
+                         (void *)ifp->info.eth_dpdk_phy.port_number,
+                         NULL, false);
 }
 
 static inline struct interface *
 dpdk_interface_lookup(uint8_t portid) {
-  if (ifp_vector == NULL || portid >= ifp_vector->allocated) {
+  struct interface *ifp;
+  if (ifp_hashmap == NULL) {
     return NULL;
   }
-  return (struct interface *)ifp_vector->index[portid];
+  lagopus_hashmap_find(&ifp_hashmap, (void *)portid, (void *)&ifp);
+  return ifp;
 }
 
 static inline int

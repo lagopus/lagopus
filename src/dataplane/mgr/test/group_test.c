@@ -20,7 +20,6 @@
 #include "lagopus/pbuf.h"
 #include "lagopus/flowdb.h"
 #include "lagopus/group.h"
-#include "lagopus/vector.h"
 #include "lagopus/bridge.h"
 #include "lagopus/datastore/bridge.h"
 #include "lagopus/dp_apis.h"

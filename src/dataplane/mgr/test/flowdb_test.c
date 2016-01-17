@@ -21,7 +21,6 @@
 #include "lagopus/flowdb.h"
 #include "lagopus/flowinfo.h"
 #include "lagopus/group.h"
-#include "lagopus/vector.h"
 #include "lagopus/ethertype.h"
 #include "lagopus/dp_apis.h"
 #include "openflow13.h"
@@ -90,14 +89,10 @@ build_metadata(const uint8_t *b) {
  */
 static struct bridge *bridge;
 static struct flowdb *flowdb;
-static struct vector *ports;
+static lagopus_hashmap_t ports;
 static struct group_table *group_table;
 static const char bridge_name[] = "br0";
 static const uint64_t dpid = 12345678;
-
-/* XXX */
-struct vector *ports_alloc(void);
-void ports_free(struct vector *v);
 
 
 void
@@ -116,7 +111,9 @@ setUp(void) {
   TEST_ASSERT_TRUE(LAGOPUS_RESULT_OK == dp_bridge_create(bridge_name, &info));
   TEST_ASSERT_NOT_NULL(bridge = dp_bridge_lookup(bridge_name));
   TEST_ASSERT_NOT_NULL(flowdb = bridge->flowdb);
-  TEST_ASSERT_NOT_NULL(ports = ports_alloc());
+  TEST_ASSERT_EQUAL(lagopus_hashmap_create(&ports,
+                                           LAGOPUS_HASHMAP_TYPE_ONE_WORD,
+                                           NULL), LAGOPUS_RESULT_OK);
   TEST_ASSERT_NOT_NULL(group_table = group_table_alloc(bridge));
 }
 
@@ -128,7 +125,7 @@ tearDown(void) {
   TEST_ASSERT_NOT_NULL(group_table);
 
   TEST_ASSERT_TRUE(LAGOPUS_RESULT_OK == dp_bridge_destroy(bridge_name));
-  ports_free(ports);
+  lagopus_hashmap_destroy(&ports, false);
   group_table_free(group_table);
 
   ports = NULL;

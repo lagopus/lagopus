@@ -501,7 +501,6 @@ static lagopus_result_t
 flow_action_check(struct bridge *bridge,
                   struct flow *flow,
                   struct ofp_error *error) {
-  struct vector *ports;
   struct group_table *group_table;
   struct meter_table *meter_table;
   struct instruction *instruction;
@@ -512,7 +511,6 @@ flow_action_check(struct bridge *bridge,
   uint32_t group_id;
   int i;
 
-  ports = bridge->ports;
   group_table = bridge->group_table;
   meter_table = bridge->meter_table;
 
@@ -564,7 +562,7 @@ flow_action_check(struct bridge *bridge,
                   break;
 
                 default:
-                  if (port_lookup(ports, output->port) == NULL) {
+                  if (port_lookup(&bridge->ports, output->port) == NULL) {
                     error->type = OFPET_BAD_ACTION;
                     error->code = OFPBAC_BAD_OUT_PORT;
                     lagopus_msg_info("%d: no such port (%d:%d)",
