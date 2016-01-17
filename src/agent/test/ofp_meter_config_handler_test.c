@@ -80,7 +80,7 @@ create_data(struct meter_config_list *meter_config_list) {
         if (meter_band != NULL) {
           TAILQ_INSERT_TAIL(&meter_config->band_list, meter_band, entry);
         } else {
-          TEST_FAIL_MESSAGE("meter_band is NULL.")
+          TEST_FAIL_MESSAGE("meter_band is NULL.");
         }
       }
       TAILQ_INSERT_TAIL(meter_config_list, meter_config,  entry);

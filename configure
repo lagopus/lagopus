@@ -630,6 +630,8 @@ ac_includes_default="\
 
 ac_subst_vars='LTLIBOBJS
 LIBOBJS
+UNITY_SRC_DIR
+HAVE_UNITY
 PKG_PURGE_FILES
 PKG_PURGE_DIRS
 PKG_REMOVE_FILES
@@ -665,8 +667,6 @@ SNMP_DIR
 PCAP_LIBS
 HYBRID_CPPFLAGS
 HYBRID
-UNITY_SRC_DIR
-HAVE_UNITY
 HAVE_GCOVR
 HAVE_JQ
 HAVE_RUBY
@@ -16006,17 +16006,6 @@ fi
     as_fn_error $? "developer's build requires jq (Command-line JSON processor)." "$LINENO" 5
   fi
 
-  ./mk/unitycheck.sh ${CC}
-  if test $? -eq 0 ; then
-    HAVE_UNITY=yes
-    UNITY_SRC_DIR=unity/src
-    { $as_echo "$as_me:${as_lineno-$LINENO}: result: unity is available." >&5
-$as_echo "unity is available." >&6; }
-  else
-    HAVE_UNITY=
-    as_fn_error $? "Unity is not available. developer's build requires Unity. Please check https://github.com/lagopus/lagopus/blob/master/docs/how-to-write-tests-in-lagopus.md." "$LINENO" 5
-  fi
-
   # Extract the first word of "gcovr", so it can be a program name with args.
 set dummy gcovr; ac_word=$2
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
@@ -16058,8 +16047,6 @@ fi
     as_fn_error $? "taking coverage requires gcovr.." "$LINENO" 5
   fi
 fi
-
-
 
 
 
@@ -17680,7 +17667,7 @@ if test "x$?" != "x0"; then
 fi
 
 # emit.
-ac_config_files="$ac_config_files mk/vars.mk mk/doxygen.conf Makefile src/include/Makefile src/include/lagopus_platform.h src/lib/Makefile src/lib/test/Makefile src/lib/check/Makefile src/agent/Makefile src/agent/test/Makefile src/cmds/Makefile src/config/lagosh/Makefile src/config/lagosh/lagosh.py src/dataplane/Makefile src/dataplane/dpdk/test/Makefile src/dataplane/ofproto/test/Makefile src/dataplane/ofproto/test/lib/Makefile src/dataplane/mgr/test/Makefile src/datastore/Makefile src/datastore/test/Makefile src/datastore/check/Makefile src/snmp/Makefile src/snmp/test/Makefile test/dataplane/benchmark/Makefile tools/Makefile tools/unity/src/Makefile debian/Makefile debian/control debian/copyright debian/lagopus-DATAPLANE.install"
+ac_config_files="$ac_config_files mk/vars.mk mk/doxygen.conf Makefile src/include/Makefile src/include/lagopus_platform.h src/lib/Makefile src/lib/test/Makefile src/lib/check/Makefile src/agent/Makefile src/agent/test/Makefile src/cmds/Makefile src/config/lagosh/Makefile src/config/lagosh/lagosh.py src/dataplane/Makefile src/dataplane/dpdk/test/Makefile src/dataplane/ofproto/test/Makefile src/dataplane/ofproto/test/lib/Makefile src/dataplane/mgr/test/Makefile src/datastore/Makefile src/datastore/test/Makefile src/datastore/check/Makefile src/snmp/Makefile src/snmp/test/Makefile test/dataplane/benchmark/Makefile tools/Makefile debian/Makefile debian/control debian/copyright debian/lagopus-DATAPLANE.install"
 
 
 # emit and set executable attribute.
@@ -17692,16 +17679,13 @@ ac_config_files="$ac_config_files debian/lagopus-DATAPLANE.postrm"
 
 
 
-ac_config_commands="$ac_config_commands modify-config"
 
 
-ac_config_commands="$ac_config_commands initdepend"
 
 
-ac_config_commands="$ac_config_commands git-submodules"
 
 
-ac_config_commands="$ac_config_commands config-clean"
+
 
 
 cat >confcache <<\_ACEOF
@@ -17813,6 +17797,25 @@ LIBOBJS=$ac_libobjs
 LTLIBOBJS=$ac_ltlibobjs
 
 
+
+git submodule update --init
+
+	if test "X${developer}" != "Xno"; then
+		./mk/unitycheck.sh ${CC}; \
+		if test $? -eq 0 ; then
+			HAVE_UNITY=yes
+			UNITY_SRC_DIR=unity/src
+			{ $as_echo "$as_me:${as_lineno-$LINENO}: result: unity is available." >&5
+$as_echo "unity is available." >&6; }
+			cp ./mk/Makefile.in.unity tools/unity/src/Makefile.in
+			# emit.
+			ac_config_files="$ac_config_files tools/unity/src/Makefile"
+
+		else
+			HAVE_UNITY=
+			as_fn_error $? "Unity is not available. developer's build requires Unity. Please check https://github.com/lagopus/lagopus/blob/master/docs/how-to-write-tests-in-lagopus.md." "$LINENO" 5
+		fi
+	fi
 
 
 : "${CONFIG_STATUS=./config.status}"
@@ -18770,7 +18773,6 @@ fi
 
 
 
-OS_CPPFLAGS="${OS_CPPFLAGS}"
 
 _ACEOF
 
@@ -18807,17 +18809,13 @@ do
     "src/snmp/test/Makefile") CONFIG_FILES="$CONFIG_FILES src/snmp/test/Makefile" ;;
     "test/dataplane/benchmark/Makefile") CONFIG_FILES="$CONFIG_FILES test/dataplane/benchmark/Makefile" ;;
     "tools/Makefile") CONFIG_FILES="$CONFIG_FILES tools/Makefile" ;;
-    "tools/unity/src/Makefile") CONFIG_FILES="$CONFIG_FILES tools/unity/src/Makefile" ;;
     "debian/Makefile") CONFIG_FILES="$CONFIG_FILES debian/Makefile" ;;
     "debian/control") CONFIG_FILES="$CONFIG_FILES debian/control" ;;
     "debian/copyright") CONFIG_FILES="$CONFIG_FILES debian/copyright" ;;
     "debian/lagopus-DATAPLANE.install") CONFIG_FILES="$CONFIG_FILES debian/lagopus-DATAPLANE.install" ;;
     "debian/rules") CONFIG_FILES="$CONFIG_FILES debian/rules" ;;
     "debian/lagopus-DATAPLANE.postrm") CONFIG_FILES="$CONFIG_FILES debian/lagopus-DATAPLANE.postrm" ;;
-    "modify-config") CONFIG_COMMANDS="$CONFIG_COMMANDS modify-config" ;;
-    "initdepend") CONFIG_COMMANDS="$CONFIG_COMMANDS initdepend" ;;
-    "git-submodules") CONFIG_COMMANDS="$CONFIG_COMMANDS git-submodules" ;;
-    "config-clean") CONFIG_COMMANDS="$CONFIG_COMMANDS config-clean" ;;
+    "tools/unity/src/Makefile") CONFIG_FILES="$CONFIG_FILES tools/unity/src/Makefile" ;;
 
   *) as_fn_error $? "invalid argument: \`$ac_config_target'" "$LINENO" 5;;
   esac
@@ -20172,10 +20170,6 @@ _LT_EOF
  ;;
     "debian/rules":F) chmod +x debian/rules ;;
     "debian/lagopus-DATAPLANE.postrm":F) chmod +x debian/lagopus-DATAPLANE.postrm ;;
-    "modify-config":C) sh mk/finalizeconfig ${OS_CPPFLAGS} ;;
-    "initdepend":C) sh mk/initdepend ;;
-    "git-submodules":C) git submodule update --init ;;
-    "config-clean":C) rm -rf ./config.log ./config.status.* autom4te.cache ;;
 
   esac
 done # for ac_tag
@@ -20188,6 +20182,8 @@ ac_clean_files=$ac_clean_files_save
 test $ac_write_fail = 0 ||
   as_fn_error $? "write failure creating $CONFIG_STATUS" "$LINENO" 5
 
+sh mk/finalizeconfig ${OS_CPPFLAGS}
+rm -rf ./config.log ./config.status.* autom4te.cache
 
 # configure is writing to config.log, and then calls config.status.
 # config.status does its own redirection, appending to config.log.
@@ -20215,6 +20211,7 @@ $as_echo "$as_me: WARNING: unrecognized options: $ac_unrecognized_opts" >&2;}
 fi
 
 
+sh mk/initdepend && \
 ${MAKE} clean && \
 ${MAKE} generate && \
 ${MAKE} submodules && \

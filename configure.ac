@@ -175,16 +175,6 @@ if test "X${developer}" != "Xno"; then
     AC_MSG_ERROR([developer's build requires jq (Command-line JSON processor).])
   fi
 
-  ./mk/unitycheck.sh ${CC}
-  if test $? -eq 0 ; then
-    HAVE_UNITY=yes
-    UNITY_SRC_DIR=unity/src
-    AC_MSG_RESULT([unity is available.])
-  else
-    HAVE_UNITY=
-    AC_MSG_ERROR([Unity is not available. developer's build requires Unity. Please check https://github.com/lagopus/lagopus/blob/master/docs/how-to-write-tests-in-lagopus.md.])
-  fi
-
   AC_CHECK_PROG([HAVE_GCOVR], [gcovr], [yes],)
   if test "X${HAVE_GCOVR}" != "Xyes"; then
     AC_MSG_ERROR([taking coverage requires gcovr..])
@@ -192,8 +182,6 @@ if test "X${developer}" != "Xno"; then
 fi
 
 AC_SUBST(HAVE_RUBY)
-AC_SUBST(HAVE_UNITY)
-AC_SUBST(UNITY_SRC_DIR)
 AC_SUBST(HAVE_NKF)
 AC_SUBST(HAVE_GCOVR)
 
@@ -642,7 +630,6 @@ AC_CONFIG_FILES(
 	src/snmp/test/Makefile
 	test/dataplane/benchmark/Makefile
 	tools/Makefile
-	tools/unity/src/Makefile
 	debian/Makefile
 	debian/control
 	debian/copyright
@@ -663,21 +650,35 @@ CONFIG_EXECS(
 	debian/lagopus-DATAPLANE.postrm
 )
 
-AC_CONFIG_COMMANDS([modify-config],
-	[sh mk/finalizeconfig ${OS_CPPFLAGS}],
-	[OS_CPPFLAGS="${OS_CPPFLAGS}"])
+AC_CONFIG_COMMANDS_PRE([git submodule update --init])
+AC_CONFIG_COMMANDS_PRE([
+	if test "X${developer}" != "Xno"; then
+		./mk/unitycheck.sh ${CC}; \
+		if test $? -eq 0 ; then
+			HAVE_UNITY=yes
+			UNITY_SRC_DIR=unity/src
+			AC_MSG_RESULT([unity is available.])
+			cp ./mk/Makefile.in.unity tools/unity/src/Makefile.in
+			# emit.
+			AC_CONFIG_FILES(
+				tools/unity/src/Makefile
+			)
+		else
+			HAVE_UNITY=
+			AC_MSG_ERROR([Unity is not available. developer's build requires Unity. Please check https://github.com/lagopus/lagopus/blob/master/docs/how-to-write-tests-in-lagopus.md.])
+		fi
+	fi
+])
+AC_SUBST(HAVE_UNITY)
+AC_SUBST(UNITY_SRC_DIR)
 
-AC_CONFIG_COMMANDS([initdepend],
-	[sh mk/initdepend])
 
-AC_CONFIG_COMMANDS([git-submodules],
-	[git submodule update --init])
-
-AC_CONFIG_COMMANDS([config-clean],
-	[rm -rf ./config.log ./config.status.* autom4te.cache])
+AC_CONFIG_COMMANDS_POST([sh mk/finalizeconfig ${OS_CPPFLAGS}])
+AC_CONFIG_COMMANDS_POST([rm -rf ./config.log ./config.status.* autom4te.cache])
 
 AC_OUTPUT
 
+sh mk/initdepend && \
 ${MAKE} clean && \
 ${MAKE} generate && \
 ${MAKE} submodules && \

@@ -56,7 +56,7 @@ stage_alloc(void) {
 
   stage = (lagopus_pipeline_stage_t)malloc(1);
   if (stage == NULL) {
-    TEST_FAIL_MESSAGE("stage is NULL.")
+    TEST_FAIL_MESSAGE("stage is NULL.");
   }
   return stage;
 }

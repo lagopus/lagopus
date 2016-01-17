@@ -223,7 +223,6 @@ test_execute_instruction_APPLY_ACTIONS(void) {
                             "APPLY_ACTIONS TTL error.");
   TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[18], 0x45,
                             "APPLY_ACTIONS payload error.");
-  free(m);
 }
 
 void
@@ -250,7 +249,6 @@ test_execute_instruction_EXPERIMENTER(void) {
 
   lagopus_packet_init(pkt, m, &port);
   execute_instruction(pkt, (const struct instruction **)insns);
-  free(m);
 }
 
 void
@@ -280,5 +278,4 @@ test_execute_instruction_METER(void) {
   execute_instruction(pkt, (const struct instruction **)insns);
   TEST_ASSERT_EQUAL_MESSAGE(m->refcnt, 1,
                             "METER refcnt error.");
-  free(m);
 }
