@@ -29,7 +29,7 @@ struct flowinfo {
   int nflow;                    /** number of entries. */
   unsigned int nnext;           /** number of child flowinfo. */
   union {                       /** entries includes type specific match. */
-    struct ptree *ptree;        /** patricia tree entries. */
+    lagopus_hashmap_t hashmap;  /** hashmap entries. */
     struct flow **flows;        /** simple array entries. */
     struct flowinfo **next;     /** child flowinfo array. */
     /* add more types if needed. */

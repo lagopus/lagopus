@@ -412,11 +412,14 @@
   do {									\
     char __buf[TEST_ASSERT_MESSAGE_BUFSIZE];				\
     \
-    snprintf(__buf, sizeof(__buf), "%s, finding flow", (_msg));		\
-    if (_expected)							\
+    if (_expected) {							\
+      snprintf(__buf, sizeof(__buf), "%s, finding flow(ok)", (_msg));   \
       _TEST_ASSERT_FLOWINFO_FINDFLOW_OK((_fl), 0, TEST_FLOW_NUM, __buf); \
-    else								\
+    } else {								\
+      snprintf(__buf, sizeof(__buf), "%s, finding flow(ng)", (_msg));   \
       _TEST_ASSERT_FLOWINFO_FINDFLOW_NG((_fl), 0, TEST_FLOW_NUM, __buf); \
+    }                                                                   \
+    snprintf(__buf, sizeof(__buf), "%s, finding flow(extre)", (_msg));  \
     _TEST_ASSERT_FLOWINFO_FINDFLOW_NG((_fl),				\
                                       TEST_FLOW_NUM, TEST_FLOW_EXTRA_NUM, __buf); \
   } while (0)

@@ -23,7 +23,6 @@
 
 #include "openflow.h"
 #include "lagopus/flowdb.h"
-#include "lagopus/ptree.h"
 #include "pktbuf.h"
 #include "packet.h"
 
@@ -111,13 +110,22 @@ destroy_flowinfo_metadata_mask(struct flowinfo *self) {
   free(self);
 }
 
+static void
+freeup_flowinfo(void *val) {
+  struct flowinfo *flowinfo;
+
+  flowinfo = val;
+  flowinfo->destroy_func(flowinfo);
+}
+
 struct flowinfo *
 new_flowinfo_metadata(void) {
   struct flowinfo *self;
 
   self = calloc(1, sizeof(struct flowinfo));
   if (self != NULL) {
-    self->ptree = ptree_init(METADATA_BITLEN);
+    lagopus_hashmap_create(&self->hashmap, LAGOPUS_HASHMAP_TYPE_ONE_WORD,
+                           freeup_flowinfo);
     /* misc is not used */
     self->add_func = add_flow_metadata;
     self->del_func = del_flow_metadata;
@@ -130,18 +138,7 @@ new_flowinfo_metadata(void) {
 
 static void
 destroy_flowinfo_metadata(struct flowinfo *self) {
-  struct ptree_node *node;
-  struct flowinfo *flowinfo;
-
-  node = ptree_top(self->ptree);
-  while (node != NULL) {
-    flowinfo = node->info;
-    if (flowinfo != NULL) {
-      flowinfo->destroy_func(flowinfo);
-    }
-    node = ptree_next(node);
-  }
-  ptree_free(self->ptree);
+  lagopus_hashmap_destroy(&self->hashmap, true);
   free(self);
 }
 
@@ -283,19 +280,21 @@ find_flow_metadata_mask(struct flowinfo *self, struct flow *flow) {
 static lagopus_result_t
 add_flow_metadata(struct flowinfo *self, struct flow *flow) {
   struct flowinfo *flowinfo;
-  struct ptree_node *node;
   uint64_t metadata, mask;
   lagopus_result_t rv;
 
   rv = get_match_metadata(&flow->match_list, &metadata, &mask);
   if (rv == LAGOPUS_RESULT_OK) {
-    node = ptree_node_get(self->ptree, (uint8_t *)&metadata,
-                          METADATA_BITLEN);
-    if (node->info == NULL) {
-      /* new node. */
-      node->info = new_flowinfo_eth_type();
+    rv = lagopus_hashmap_find_no_lock(&self->hashmap,
+                                      (void *)metadata, (void *)&flowinfo);
+    if (rv != LAGOPUS_RESULT_OK) {
+      void *val;
+
+      flowinfo = new_flowinfo_eth_type();
+      val = flowinfo;
+      rv = lagopus_hashmap_add_no_lock(&self->hashmap, (void *)metadata,
+                                       (void *)&val, false);
     }
-    flowinfo = node->info;
     rv = flowinfo->add_func(flowinfo, flow);
     if (rv == LAGOPUS_RESULT_OK) {
       self->nflow++;
@@ -306,20 +305,18 @@ add_flow_metadata(struct flowinfo *self, struct flow *flow) {
 
 static lagopus_result_t
 del_flow_metadata(struct flowinfo *self, struct flow *flow) {
-  struct flowinfo *flowinfo;
-  struct ptree_node *node;
   uint64_t metadata, mask;
   lagopus_result_t rv;
 
   rv = get_match_metadata(&flow->match_list, &metadata, &mask);
   if (rv == LAGOPUS_RESULT_OK) {
-    node = ptree_node_get(self->ptree, (uint8_t *)&metadata,
-                          METADATA_BITLEN);
-    if (node->info == NULL) {
-      return LAGOPUS_RESULT_NOT_FOUND;
+    struct flowinfo *flowinfo;
+
+    rv = lagopus_hashmap_find_no_lock(&self->hashmap, (void *)metadata,
+                                      (void *)&flowinfo);
+    if (rv == LAGOPUS_RESULT_OK) {
+      flowinfo->del_func(flowinfo, flow);
     }
-    flowinfo = node->info;
-    rv = flowinfo->del_func(flowinfo, flow);
     if (rv == LAGOPUS_RESULT_OK) {
       self->nflow--;
     }
@@ -331,17 +328,17 @@ static struct flow *
 match_flow_metadata(struct flowinfo *self, struct lagopus_packet *pkt,
                     int32_t *pri) {
   struct flowinfo *flowinfo;
-  struct ptree_node *node;
   uint64_t metadata;
   struct flow *flow;
+  lagopus_result_t rv;
 
   flow = NULL;
   metadata = (pkt->oob_data.metadata & self->userdata);
-  node = ptree_node_lookup(self->ptree, (uint8_t *)&metadata, METADATA_BITLEN);
-  if (node != NULL) {
-    flowinfo = node->info;
+  rv = lagopus_hashmap_find_no_lock(&self->hashmap,
+                                    (void *)metadata,
+                                    (void *)&flowinfo);
+  if (rv == LAGOPUS_RESULT_OK) {
     flow = flowinfo->match_func(flowinfo, pkt, pri);
-    ptree_unlock_node(node);
   }
   return flow;
 }
@@ -349,18 +346,17 @@ match_flow_metadata(struct flowinfo *self, struct lagopus_packet *pkt,
 static struct flow *
 find_flow_metadata(struct flowinfo *self, struct flow *flow) {
   struct flowinfo *flowinfo;
-  struct ptree_node *node;
   uint64_t metadata, mask;
   lagopus_result_t rv;
 
   rv = get_match_metadata(&flow->match_list, &metadata, &mask);
   if (rv == LAGOPUS_RESULT_OK) {
-    node = ptree_node_get(self->ptree, (uint8_t *)&metadata,
-                          METADATA_BITLEN);
-    if (node->info == NULL) {
+    rv = lagopus_hashmap_find_no_lock(&self->hashmap,
+                                      (void *)metadata,
+                                      (void *)&flowinfo);
+    if (rv != LAGOPUS_RESULT_OK) {
       return NULL;
     }
-    flowinfo = node->info;
   } else {
     flowinfo = self->misc;
   }

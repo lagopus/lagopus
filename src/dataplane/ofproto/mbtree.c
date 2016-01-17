@@ -48,7 +48,6 @@
 #include "lagopus/ethertype.h"
 #include "lagopus/flowdb.h"
 #include "lagopus/flowinfo.h"
-#include "lagopus/ptree.h"
 #include "pktbuf.h"
 #include "packet.h"
 #include "mbtree.h"
@@ -70,6 +69,7 @@ enum {
   DECISION32,
   DECISION64,
   RADIXTREE,
+  HASHMAP,
 };
 
 #define DPRINTF(...)
@@ -533,8 +533,8 @@ get_child_flow_list(struct flow_list *flow_list,
                     struct match_stats *most_match,
                     void *child_array[]) {
   uint8_t key[sizeof(uint64_t)];
-  struct ptree_node *node;
   void *child;
+  lagopus_result_t rv;
 
   get_shifted_value(match->oxm_value,
                     OXM_MATCH_VALUE_LEN(match),
@@ -568,20 +568,21 @@ get_child_flow_list(struct flow_list *flow_list,
       child = NULL;
       break;
 
-    case RADIXTREE:
-      /* use only child_array[0] */
+    case HASHMAP:
       if (child_array[0] == NULL) {
-        child_array[0] = ptree_init(flow_list->keylen);
+        child_array[0] = calloc(1, sizeof(lagopus_hashmap_t));
+        lagopus_hashmap_create(&child_array[0],
+                               LAGOPUS_HASHMAP_TYPE_ONE_WORD, cleanup_mbtree);
       }
-      node = ptree_node_get(child_array[0], key, flow_list->keylen);
-      if (node->info == NULL) {
-        node->info = calloc(1, sizeof(struct flow_list)
-                            + sizeof(void *) * BRANCH_NUM);
-        DPRINTF("key %d,%d,%d,%d, new node %p\n",
-                key[0], key[1], key[2], key[3],
-                node->info);
+      rv = lagopus_hashmap_find_no_lock(&child_array[0], key, &child);
+      if (rv != LAGOPUS_RESULT_OK) {
+        void *val;
+
+        child = calloc(1, sizeof(struct flow_list)
+                       + sizeof(void *) * BRANCH_NUM);
+        val = child;
+        lagopus_hashmap_add_no_lock(&child_array[0], key, &val, false);
       }
-      child = node->info;
       break;
 
     default:
@@ -596,7 +597,7 @@ set_flow_list_desc(struct flow_list *flow_list,
                    struct match_stats *match_stats) {
   int idx;
 
-  flow_list->type = RADIXTREE;
+  flow_list->type = HASHMAP;
   idx = OXM_FIELD_TYPE(match_stats->match.oxm_field);
   flow_list->base = match_idx[idx].base;
   flow_list->match_off = match_idx[idx].off;
@@ -653,6 +654,16 @@ build_mbtree_sequencial(struct flow_list *flow_list) {
   }
 }
 
+static bool
+mbtree_do_build_iterate(void *key, void *val,
+                       lagopus_hashentry_t he, void *arg) {
+  struct flow_list *flow_list;
+
+  flow_list = val;
+  build_mbtree_child(flow_list);
+  return true;
+}
+
 /*
  * flow_list: already stored flows in flow_list->flows[] and nflow.
  */
@@ -660,7 +671,6 @@ static void
 build_mbtree_child(struct flow_list *flow_list) {
   const int min_count = 4;
   struct match_stats *most_match;
-  struct ptree_node *node;
   int i;
 
   if (flow_list == NULL) {
@@ -712,14 +722,9 @@ build_mbtree_child(struct flow_list *flow_list) {
         build_mbtree_child(flow_list->branch);
       }
       break;
-    case RADIXTREE:
-      node = ptree_top(flow_list->branch[0]);
-      while (node != NULL) {
-        if (node->info != NULL) {
-          build_mbtree_child(node->info);
-        }
-        node = ptree_next(node);
-      }
+    case HASHMAP:
+      lagopus_hashmap_iterate(&flow_list->branch[0],
+                              mbtree_do_build_iterate, NULL);
       break;
   }
   if (flow_list->flows_dontcare->nflow > 0) {
@@ -734,7 +739,6 @@ build_mbtree_child(struct flow_list *flow_list) {
 static void
 free_mbtree(int type, void *arg) {
   struct flow_list *flow_list;
-  struct ptree_node *node;
   int i;
 
   if (arg != NULL) {
@@ -756,15 +760,8 @@ free_mbtree(int type, void *arg) {
         free(flow_list);
         break;
 
-      case RADIXTREE:
-        for (node = ptree_top(arg);
-             node != NULL;
-             node = ptree_next(node)) {
-          if (node->info != NULL) {
-            cleanup_mbtree(node->info);
-          }
-        }
-        ptree_free(arg);
+      case HASHMAP:
+        lagopus_hashmap_destroy(arg, true);
         break;
 
       case SEQUENCIAL:
@@ -829,12 +826,12 @@ find_mbtree(struct lagopus_packet *pkt, struct flow_list *flows) {
 static struct flow *
 find_mbtree_child(struct lagopus_packet *pkt, struct flow_list *flows) {
   struct flow *flow;
-  struct ptree_node *node;
   uint8_t val8;
   uint16_t val16;
   uint32_t val32;
   uint64_t val64;
   uint8_t *src;
+  lagopus_result_t rv;
 
   if (flows == NULL) {
     return NULL;
@@ -892,14 +889,11 @@ find_mbtree_child(struct lagopus_packet *pkt, struct flow_list *flows) {
                 (val64 & flows->match_mask64), BRANCH64i(val64, flows->threshold64));
         flows = BRANCH64(val64 & flows->match_mask64);
         break;
-      case RADIXTREE:
-        node = ptree_node_lookup(flows->branch[0], key, flows->keylen);
-        if (node != NULL && node->info != NULL) {
-          flows = node->info;
-        } else {
+      case HASHMAP:
+        rv = lagopus_hashmap_find_no_lock(&flows->branch[0], key, &flows);
+        if (rv != LAGOPUS_RESULT_OK) {
           return NULL;
         }
-        break;
       default:
         printf("XXX\n");
         break;

@@ -24,7 +24,6 @@
 
 #include "lagopus_config.h"
 #include "lagopus_apis.h"
-#include "lagopus/ptree.h"
 #include "openflow.h"
 
 #ifdef HAVE_BSD_SYS_QUEUE_H
@@ -72,13 +71,7 @@ struct meter {
   void *driverdata;                     /** Driver specific data */
 };
 
-/**
- * @brief Meter table.
- */
-struct meter_table {                    /** Meter table. */
-  pthread_rwlock_t rwlock;              /** Read-write lock. */
-  struct ptree *ptree;                  /** Meter id tree. */
-};
+struct meter_table;
 
 /**
  * Allocate meter table.

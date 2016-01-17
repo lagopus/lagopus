@@ -24,7 +24,6 @@
 #include "packet.h"
 #include "lagopus/dataplane.h"
 #include "lagopus/flowinfo.h"
-#include "lagopus/ptree.h"
 #include "datapath_test_misc.h"
 #include "datapath_test_misc_macros.h"
 #include "datapath_test_match.h"

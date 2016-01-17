@@ -50,7 +50,6 @@
 #include "lagopus/flowdb.h"
 #include "lagopus/port.h"
 #include "lagopus/dataplane.h"
-#include "lagopus/ptree.h"
 #include "pktbuf.h"
 #include "packet.h"
 
