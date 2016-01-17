@@ -15,7 +15,6 @@
  */
 
 #include "unity.h"
-#include "event.h"
 #include "string.h"
 #include "lagopus_apis.h"
 #include "lagopus_session.h"

@@ -20211,11 +20211,7 @@ $as_echo "$as_me: WARNING: unrecognized options: $ac_unrecognized_opts" >&2;}
 fi
 
 
-sh mk/initdepend && \
-${MAKE} clean && \
-${MAKE} generate && \
-${MAKE} submodules && \
-${MAKE} depend
+sh mk/initdepend && ${MAKE} prerequisite
 
 if test $? -ne 0; then
     as_fn_error $? "Prerequisite failure." "$LINENO" 5

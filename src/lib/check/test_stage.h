@@ -64,6 +64,7 @@ typedef test_stage_record	*test_stage_t;
 typedef struct test_stage_spec_t {
   size_t m_n_workers;
   size_t m_n_qs;
+  size_t m_q_len;
   size_t m_n_events;
   size_t m_batch_size;
   base_stage_sched_t m_sched_type;

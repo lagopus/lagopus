@@ -297,7 +297,18 @@ dpdk-clean::
 
 endif
 
-submodules::	dpdk
+submodules::	$(SUBMODULES)
+	@true
+
+.PHONY:	prerequisite
+prerequisite::
+	@( \
+		$(MAKE) clean && \
+		$(MAKE) generate && \
+		$(MAKE) submodules && \
+		$(MAKE) depend; \
+		exit $$?; \
+	)
 
 clean:: pkg-clean
 	$(LTCLEAN) $(OBJS) *.i *~ *.~*~ core core.* *.core $(TARGETS) \
@@ -351,7 +362,7 @@ doxygen::
 
 fortify::
 	@( \
-		$(MAKE) clean ; \
+		$(MAKE) prerequisite ; \
 		$(RM) -rf ./fortify.mk ./fortify.fpr ; \
 		echo 'ifeq ($$(__SITECONF__),.pre.)' > ./fortify.mk ; \
 		echo 'ORGCC=$(CC)' >> ./fortify.mk ; \
@@ -370,7 +381,7 @@ fortify::
 
 scan-build::
 	@( \
-		$(MAKE) clean > /dev/null 2>&1 ; \
+		$(MAKE) prerequisite > /dev/null 2>&1 ; \
 		$(RM) -rf ./scan-build.mk ./scan-result ; \
 		scan-build sh -c 'echo CC = $${CC} > ./scan-build.mk' \
 			> /dev/null 2>&1 ; \
@@ -394,7 +405,7 @@ scan-build-blame::
 
 gcc-full-opt::
 	@( \
-		$(MAKE) clean ; \
+		$(MAKE) prerequisite ; \
 		$(RM) -rf ./gcc-full-opt.mk ; \
 		echo "DEBUG_CFLAGS = -g0" > ./gcc-full-opt.mk ; \
 		echo "DEBUG_CXXFLAGS = -g0" >> ./gcc-full-opt.mk ; \
@@ -410,7 +421,7 @@ gcc-full-opt::
 
 clang::
 	@( \
-		$(MAKE) clean ; \
+		$(MAKE) prerequisite ; \
 		$(RM) -rf ./clang.mk ; \
 		echo "CC = clang" > ./clang.mk ; \
 		if test $$? -eq 0; then \
@@ -421,7 +432,7 @@ clang::
 
 icc::
 	@( \
-		$(MAKE) clean ; \
+		$(MAKE) prerequisite ; \
 		$(RM) -rf ./icc.mk ; \
 		echo "CC = icc" > ./icc.mk ; \
 		if test $$? -eq 0; then \
@@ -442,7 +453,7 @@ gcov::
 
 und::
 	@( \
-		$(MAKE) clean > /dev/null 2>&1 ; \
+		$(MAKE) prerequisite ; \
 		$(RM) -rf ./und.mk ./und.udb ./und.txt und_html ; \
 		echo "CC = gccwrapper" > ./und.mk ; \
 		if test $$? -eq 0; then \
@@ -460,7 +471,7 @@ und::
 
 cov::
 	@( \
-		$(MAKE) clean > /dev/null 2>&1 ; \
+		$(MAKE) prerequisite ; \
 		$(RM) -rf ./cov ; \
 		cov-build --dir ./cov sh -c "$(MAKE)" > /dev/null 2>&1 && \
 		cov-analyze --dir ./cov --all > /dev/null 2>&1 && \
@@ -473,7 +484,7 @@ wc::
 
 warn-check::
 	@( \
-		$(MAKE) clean > /dev/null 2>&1 ; \
+		$(MAKE) prerequisite > /dev/null 2>&1 ; \
 		$(MAKE) > ./m.out 2>&1 ; \
 		if test $$? -eq 0 -a -f ./m.out ; then \
 			grep ' warning:' ./m.out | awk -F: '{ print $$1 }' | \
@@ -484,7 +495,7 @@ warn-check::
 
 warn-blame::
 	@( \
-		$(MAKE) clean > /dev/null 2>&1 ; \
+		$(MAKE) prerequisite > /dev/null 2>&1 ; \
 		$(MAKE) > ./m.out 2>&1 ; \
 		if test $$? -eq 0 -a -f ./m.out ; then \
 			sh $(MKRULESDIR)/warn-blame.sh ./m.out ; \

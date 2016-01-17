@@ -19,7 +19,6 @@
 #include "lagopus/port.h"
 #include "lagopus/flowdb.h"
 #include "lagopus/dp_apis.h"
-#include "event.h"
 #include "../channel.h"
 #include "../channel_mgr.h"
 

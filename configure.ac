@@ -678,11 +678,7 @@ AC_CONFIG_COMMANDS_POST([rm -rf ./config.log ./config.status.* autom4te.cache])
 
 AC_OUTPUT
 
-sh mk/initdepend && \
-${MAKE} clean && \
-${MAKE} generate && \
-${MAKE} submodules && \
-${MAKE} depend
+sh mk/initdepend && ${MAKE} prerequisite
 
 if test $? -ne 0; then
     AC_MSG_ERROR([Prerequisite failure.])

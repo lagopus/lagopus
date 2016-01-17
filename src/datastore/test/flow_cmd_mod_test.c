@@ -33,7 +33,6 @@ static lagopus_dstring_t ds = NULL;
 static lagopus_hashmap_t tbl = NULL;
 static datastore_interp_t interp = NULL;
 static bool destroy = false;
-static struct event_manager *em = NULL;
 
 
 void
@@ -43,7 +42,7 @@ setUp(void) {
   char *str = NULL;
 
   /* create interp. */
-  INTERP_CREATE(ret, NULL, interp, tbl, ds, em);
+  INTERP_CREATE(ret, NULL, interp, tbl, ds);
 
   /* bridge create cmd. */
   TEST_BRIDGE_CREATE(ret, &interp, state, &tbl, &ds, str,
@@ -61,7 +60,7 @@ tearDown(void) {
                       "b1", "cha1", "c1", "i1", "p1");
 
   /* destroy interp. */
-  INTERP_DESTROY(NULL, interp, tbl, ds, em, destroy);
+  INTERP_DESTROY(NULL, interp, tbl, ds, destroy);
 }
 
 static void

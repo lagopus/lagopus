@@ -30,20 +30,19 @@ static lagopus_dstring_t ds = NULL;
 static lagopus_hashmap_t tbl = NULL;
 static datastore_interp_t interp = NULL;
 static bool destroy = false;
-static struct event_manager *em = NULL;
 
 void
 setUp(void) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
 
   /* create interp. */
-  INTERP_CREATE(ret, "port", interp, tbl, ds, em);
+  INTERP_CREATE(ret, "port", interp, tbl, ds);
 }
 
 void
 tearDown(void) {
   /* destroy interp. */
-  INTERP_DESTROY("port", interp, tbl, ds, em, destroy);
+  INTERP_DESTROY("port", interp, tbl, ds, destroy);
 }
 
 void

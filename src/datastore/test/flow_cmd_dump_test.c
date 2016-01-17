@@ -43,7 +43,6 @@ static lagopus_hashmap_t tbl = NULL;
 static datastore_interp_t interp = NULL;
 static bool destroy = false;
 static const uint64_t dpid = 1;
-static struct event_manager *em = NULL;
 static const char *bridge_name = DATASTORE_NAMESPACE_DELIMITER"test_bridge01";
 
 static void
@@ -117,7 +116,7 @@ setUp(void) {
   char *str = NULL;
 
   /* create interp. */
-  INTERP_CREATE(ret, NULL, interp, tbl, ds, em);
+  INTERP_CREATE(ret, NULL, interp, tbl, ds);
 
   /* bridge create cmd. */
   TEST_BRIDGE_CREATE(ret, &interp, state, &tbl, &ds, str,
@@ -137,7 +136,7 @@ tearDown(void) {
                       "test_if01", "test_port01");
 
   /* destroy interp. */
-  INTERP_DESTROY(NULL, interp, tbl, ds, em, destroy);
+  INTERP_DESTROY(NULL, interp, tbl, ds, destroy);
 }
 
 void

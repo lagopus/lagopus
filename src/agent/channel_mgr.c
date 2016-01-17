@@ -17,7 +17,6 @@
 #include "lagopus_apis.h"
 #include "lagopus_thread.h"
 #include "channel.h"
-#include "event.h"
 #include "lagopus/datastore.h"
 #include "channel_mgr.h"
 #include "agent.h"

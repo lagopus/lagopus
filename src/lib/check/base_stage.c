@@ -295,7 +295,7 @@ s_base_sched_rr_para(const lagopus_pipeline_stage_t *sptr,
     base_stage_t bs = (base_stage_t)*sptr;
     size_t qidx = __sync_fetch_and_add(&(bs->m_put_next_q_idx), 1);
     size_t stride = n_evs / bs->m_n_qs;
-    size_t mod = (n_evs - stride * bs->m_n_qs) + stride;
+    size_t mod = n_evs - stride * bs->m_n_qs;
     size_t i = 0;
     size_t n;
     size_t n_total = 0;
@@ -383,7 +383,8 @@ s_base_fetch_rr(const lagopus_pipeline_stage_t *sptr,
   if (likely(sptr != NULL && *sptr != NULL &&
              buf != NULL && max > 0)) {
     base_stage_t bs = (base_stage_t)(*sptr);
-    size_t baseidx = __sync_fetch_and_add(&(bs->m_get_next_q_idx), 0);
+    size_t baseidx = __sync_fetch_and_add(&(bs->m_get_next_q_idx), 0) + 
+                     bs->m_n_qs - 1;
     size_t curidx = baseidx;
     size_t i = 0;
     bool is_first_wait = true;
@@ -540,6 +541,7 @@ s_base_create(base_stage_t *bsptr,
               size_t max_stage,
               size_t n_workers,
               size_t n_qs,
+	      size_t q_len,
               size_t batch_size,
               lagopus_chrono_t to,
               lagopus_pipeline_stage_sched_proc_t sched_proc,
@@ -565,7 +567,7 @@ s_base_create(base_stage_t *bsptr,
       goto bailout;
     }
 
-    if (n_qs > 0 && batch_size > 0) {
+    if (n_qs > 0 && q_len > 0) {
       qs = (lagopus_bbq_t *)malloc(sizeof(lagopus_bbq_t) * n_qs);
       if (likely(qs != NULL)) {
         size_t i;
@@ -573,7 +575,7 @@ s_base_create(base_stage_t *bsptr,
         for (i = 0; i < n_qs; i++) {
           qs[i] = NULL;
           ret = lagopus_bbq_create(&(qs[i]), int64_t,
-                                   (int64_t)batch_size, NULL);
+                                   (int64_t)q_len, NULL);
           if (unlikely(ret != LAGOPUS_RESULT_OK)) {
             size_t j;
 
@@ -596,7 +598,7 @@ s_base_create(base_stage_t *bsptr,
           (lagopus_pipeline_stage_t *)&bs,
           (alloc_size == 0) ? sizeof(base_stage_record) : alloc_size,
           name, n_workers,
-          sizeof(int64_t), batch_size,
+          sizeof(uint64_t), batch_size,
           s_base_pre_pause,		/* pre_pause */
           sched_proc,			/* sched */
           s_base_setup,			/* setup */

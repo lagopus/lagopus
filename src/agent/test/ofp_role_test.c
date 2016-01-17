@@ -16,7 +16,6 @@
 
 #include <sys/queue.h>
 #include "unity.h"
-#include "event.h"
 #include "lagopus_apis.h"
 #include "lagopus_session.h"
 #include "lagopus/pbuf.h"
