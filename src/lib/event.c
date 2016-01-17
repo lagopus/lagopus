@@ -16,6 +16,8 @@
 
 #include "lagopus_apis.h"
 
+#define __USE_BSD /* for timercmp/timeradd/timersub */
+
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/select.h>
@@ -341,7 +343,7 @@ event_register_timer(struct event_manager *em, void (*func)(struct event *),
   /* Sort by timeval. */
   for (et = TAILQ_LAST(&em->timer[em->index], event_list); et;
        et = TAILQ_PREV(et, event_list, entry))
-    if (timeval_cmp (event->sands, et->sands) >= 0) {
+    if (timercmp (&event->sands, &et->sands, -) >= 0) {
       break;
     }
   if (et != NULL) {
@@ -385,21 +387,21 @@ event_timer_wait(struct event_manager *em, struct timeval *timer_val,
     if ((event = TAILQ_FIRST(&em->timer[i])) != NULL) {
       if (! timer_wait) {
         timer_wait = &event->sands;
-      } else if (timeval_cmp(event->sands, *timer_wait) < 0) {
+      } else if (timercmp(&event->sands, timer_wait, -) < 0) {
         timer_wait = &event->sands;
       }
     }
 
   if (timer_wait) {
     timer_min = *timer_wait;
-    timer_min = timeval_subtract(timer_min, *timer_now);
+    timersub(&timer_min, timer_now, &timer_min);
 
     if (timer_min.tv_sec < 0) {
       timer_min.tv_sec = 0;
       timer_min.tv_usec = 10;
     }
 
-    if (timeval_cmp(timer_min, timer_default) > 0) {
+    if (timercmp(&timer_min, &timer_default, -) > 0) {
       *timer_val = timer_default;
     } else {
       *timer_val = timer_min;
@@ -475,7 +477,7 @@ event_fetch(struct event_manager *em) {
       for (event = TAILQ_FIRST(&em->timer[i]); event; event = next) {
         next = TAILQ_NEXT(event, entry);
 
-        if (timeval_cmp(timer_now, event->sands) >= 0) {
+        if (timercmp(&timer_now, &event->sands, -) >= 0) {
           TAILQ_REMOVE(&em->timer[i], event, entry);
           event_ready_add(em, event);
         } else {
