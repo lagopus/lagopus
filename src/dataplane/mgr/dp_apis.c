@@ -433,6 +433,7 @@ dp_port_interface_set(const char *name, const char *ifname) {
   }
   port->interface = ifp;
   port->ifindex = ifp->info.eth.port_number;
+  dp_interface_hw_addr_get(ifname, port->ofp_port.hw_addr);
   ifp->port = port;
   rv = lagopus_hashmap_add(&portid_hashmap[ifp->info.type],
                            (void *)ifp->info.eth.port_number,
@@ -456,6 +457,7 @@ dp_port_interface_unset_internal(struct port *port) {
                            (void *)port->ifindex, NULL, false);
     port->interface->port = NULL;
     port->interface = NULL;
+    memset(port->ofp_port.hw_addr, 0, sizeof(port->ofp_port.hw_addr));
   }
 }
 
