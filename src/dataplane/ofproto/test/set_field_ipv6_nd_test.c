@@ -41,7 +41,7 @@ test_set_field_IPV6_ND_TARGET(void) {
   struct action_list action_list;
   struct action *action;
   struct ofp_action_set_field *action_set;
-  struct lagopus_packet pkt;
+  struct lagopus_packet *pkt;
   OS_MBUF *m;
   int i;
 
@@ -53,92 +53,92 @@ test_set_field_IPV6_ND_TARGET(void) {
   TAILQ_INSERT_TAIL(&action_list, action, entry);
 
 
-  m = calloc(1, sizeof(*m));
-  TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
-  m->data = &m->dat[128];
+  pkt = alloc_lagopus_packet();
+  TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
+  m = pkt->mbuf;
 
-  OS_M_PKTLEN(m) = 64;
-  m->data[12] = 0x86;
-  m->data[13] = 0xdd;
-  m->data[20] = IPPROTO_ICMPV6;
+  OS_M_APPEND(m, 64);
+  OS_MTOD(m, uint8_t *)[12] = 0x86;
+  OS_MTOD(m, uint8_t *)[13] = 0xdd;
+  OS_MTOD(m, uint8_t *)[20] = IPPROTO_ICMPV6;
 
-  lagopus_packet_init(&pkt, m, &port);
+  lagopus_packet_init(pkt, m, &port);
   set_match(action_set->field, 16, OFPXMT_OFB_IPV6_ND_TARGET << 1,
             0x20, 0x01, 0x00, 0x00, 0xe0, 0x45, 0x22, 0xeb,
             0x09, 0x00, 0x00, 0x08, 0xdc, 0x18, 0x94, 0xad);
-  execute_action(&pkt, &action_list);
+  execute_action(pkt, &action_list);
   i = 62;
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[i++], 0x20,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[i++], 0x20,
                             "SET_FIELD IPV6_ND_TARGET[0] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[i++], 0x01,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[i++], 0x01,
                             "SET_FIELD IPV6_ND_TARGET[1] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[i++], 0x00,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[i++], 0x00,
                             "SET_FIELD IPV6_ND_TARGET[2] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[i++], 0x00,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[i++], 0x00,
                             "SET_FIELD IPV6_ND_TARGET[3] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[i++], 0xe0,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[i++], 0xe0,
                             "SET_FIELD IPV6_ND_TARGET[4] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[i++], 0x45,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[i++], 0x45,
                             "SET_FIELD IPV6_ND_TARGET[5] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[i++], 0x22,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[i++], 0x22,
                             "SET_FIELD IPV6_ND_TARGET[6] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[i++], 0xeb,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[i++], 0xeb,
                             "SET_FIELD IPV6_ND_TARGET[7] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[i++], 0x09,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[i++], 0x09,
                             "SET_FIELD IPV6_ND_TARGET[8] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[i++], 0x00,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[i++], 0x00,
                             "SET_FIELD IPV6_ND_TARGET[9] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[i++], 0x00,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[i++], 0x00,
                             "SET_FIELD IPV6_ND_TARGET[10] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[i++], 0x08,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[i++], 0x08,
                             "SET_FIELD IPV6_ND_TARGET[11] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[i++], 0xdc,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[i++], 0xdc,
                             "SET_FIELD IPV6_ND_TARGET[12] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[i++], 0x18,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[i++], 0x18,
                             "SET_FIELD IPV6_ND_TARGET[13] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[i++], 0x94,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[i++], 0x94,
                             "SET_FIELD IPV6_ND_TARGET[14] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[i++], 0xad,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[i++], 0xad,
                             "SET_FIELD IPV6_ND_TARGET[15] error.");
-  m->data[20] = IPPROTO_DSTOPTS;
-  m->data[54] = IPPROTO_ICMPV6;
-  m->data[55] = 0;
-  lagopus_packet_init(&pkt, m, &port);
-  execute_action(&pkt, &action_list);
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[54], IPPROTO_ICMPV6,
+  OS_MTOD(m, uint8_t *)[20] = IPPROTO_DSTOPTS;
+  OS_MTOD(m, uint8_t *)[54] = IPPROTO_ICMPV6;
+  OS_MTOD(m, uint8_t *)[55] = 0;
+  lagopus_packet_init(pkt, m, &port);
+  execute_action(pkt, &action_list);
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[54], IPPROTO_ICMPV6,
                             "SET_FIELD IPV6_ND_TARGET proto error.");
   i = 70;
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[i++], 0x20,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[i++], 0x20,
                             "SET_FIELD IPV6_ND_TARGET[0](next hdr) error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[i++], 0x01,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[i++], 0x01,
                             "SET_FIELD IPV6_ND_TARGET[1](next hdr) error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[i++], 0x00,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[i++], 0x00,
                             "SET_FIELD IPV6_ND_TARGET[2](next hdr) error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[i++], 0x00,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[i++], 0x00,
                             "SET_FIELD IPV6_ND_TARGET[3](next hdr) error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[i++], 0xe0,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[i++], 0xe0,
                             "SET_FIELD IPV6_ND_TARGET[4](next hdr) error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[i++], 0x45,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[i++], 0x45,
                             "SET_FIELD IPV6_ND_TARGET[5](next hdr) error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[i++], 0x22,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[i++], 0x22,
                             "SET_FIELD IPV6_ND_TARGET[6](next hdr) error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[i++], 0xeb,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[i++], 0xeb,
                             "SET_FIELD IPV6_ND_TARGET[7](next hdr) error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[i++], 0x09,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[i++], 0x09,
                             "SET_FIELD IPV6_ND_TARGET[8](next hdr) error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[i++], 0x00,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[i++], 0x00,
                             "SET_FIELD IPV6_ND_TARGET[9](next hdr) error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[i++], 0x00,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[i++], 0x00,
                             "SET_FIELD IPV6_ND_TARGET[10](next hdr) error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[i++], 0x08,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[i++], 0x08,
                             "SET_FIELD IPV6_ND_TARGET[11](next hdr) error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[i++], 0xdc,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[i++], 0xdc,
                             "SET_FIELD IPV6_ND_TARGET[12](next hdr) error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[i++], 0x18,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[i++], 0x18,
                             "SET_FIELD IPV6_ND_TARGET[13](next hdr) error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[i++], 0x94,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[i++], 0x94,
                             "SET_FIELD IPV6_ND_TARGET[14](next hdr) error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[i++], 0xad,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[i++], 0xad,
                             "SET_FIELD IPV6_ND_TARGET[15](next hdr) error.");
 }
 
@@ -148,7 +148,7 @@ test_set_field_IPV6_ND_SLL(void) {
   struct action_list action_list;
   struct action *action;
   struct ofp_action_set_field *action_set;
-  struct lagopus_packet pkt;
+  struct lagopus_packet *pkt;
   OS_MBUF *m;
   int i;
 
@@ -159,36 +159,36 @@ test_set_field_IPV6_ND_SLL(void) {
   lagopus_set_action_function(action);
   TAILQ_INSERT_TAIL(&action_list, action, entry);
 
-  m = calloc(1, sizeof(*m));
-  TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
-  m->data = &m->dat[128];
+  pkt = alloc_lagopus_packet();
+  TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
+  m = pkt->mbuf;
 
   OS_M_PKTLEN(m) = 96;
-  m->data[12] = 0x86;
-  m->data[13] = 0xdd;
-  m->data[19] = 0x80; /* PLEN */
-  m->data[20] = IPPROTO_ICMPV6;
-  m->data[54] = ND_NEIGHBOR_SOLICIT;
-  m->data[78] = ND_OPT_SOURCE_LINKADDR;
-  m->data[79] = 1;
-  m->data[86] = ND_OPT_TARGET_LINKADDR;
-  m->data[87] = 1;
-  lagopus_packet_init(&pkt, m, &port);
+  OS_MTOD(m, uint8_t *)[12] = 0x86;
+  OS_MTOD(m, uint8_t *)[13] = 0xdd;
+  OS_MTOD(m, uint8_t *)[19] = 0x80; /* PLEN */
+  OS_MTOD(m, uint8_t *)[20] = IPPROTO_ICMPV6;
+  OS_MTOD(m, uint8_t *)[54] = ND_NEIGHBOR_SOLICIT;
+  OS_MTOD(m, uint8_t *)[78] = ND_OPT_SOURCE_LINKADDR;
+  OS_MTOD(m, uint8_t *)[79] = 1;
+  OS_MTOD(m, uint8_t *)[86] = ND_OPT_TARGET_LINKADDR;
+  OS_MTOD(m, uint8_t *)[87] = 1;
+  lagopus_packet_init(pkt, m, &port);
   set_match(action_set->field, ETH_ALEN, OFPXMT_OFB_IPV6_ND_SLL << 1,
             0xe0, 0x4d, 0x01, 0x34, 0x56, 0x78);
-  execute_action(&pkt, &action_list);
+  execute_action(pkt, &action_list);
   i = 80;
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[i++], 0xe0,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[i++], 0xe0,
                             "SET_FIELD IPV6_ND_SLL[0] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[i++], 0x4d,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[i++], 0x4d,
                             "SET_FIELD IPV6_ND_SLL[1] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[i++], 0x01,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[i++], 0x01,
                             "SET_FIELD IPV6_ND_SLL[2] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[i++], 0x34,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[i++], 0x34,
                             "SET_FIELD IPV6_ND_SLL[3] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[i++], 0x56,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[i++], 0x56,
                             "SET_FIELD IPV6_ND_SLL[4] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[i++], 0x78,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[i++], 0x78,
                             "SET_FIELD IPV6_ND_SLL[5] error.");
 }
 
@@ -198,7 +198,7 @@ test_set_field_IPV6_ND_TLL(void) {
   struct action_list action_list;
   struct action *action;
   struct ofp_action_set_field *action_set;
-  struct lagopus_packet pkt;
+  struct lagopus_packet *pkt;
   OS_MBUF *m;
   int i;
 
@@ -209,35 +209,35 @@ test_set_field_IPV6_ND_TLL(void) {
   lagopus_set_action_function(action);
   TAILQ_INSERT_TAIL(&action_list, action, entry);
 
-  m = calloc(1, sizeof(*m));
-  TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
-  m->data = &m->dat[128];
+  pkt = alloc_lagopus_packet();
+  TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
+  m = pkt->mbuf;
 
   OS_M_PKTLEN(m) = 128;
-  m->data[12] = 0x86;
-  m->data[13] = 0xdd;
-  m->data[19] = 0x80; /* PLEN */
-  m->data[20] = IPPROTO_ICMPV6;
-  m->data[54] = ND_NEIGHBOR_ADVERT;
-  m->data[78] = ND_OPT_SOURCE_LINKADDR;
-  m->data[79] = 1;
-  m->data[86] = ND_OPT_TARGET_LINKADDR;
-  m->data[87] = 1;
-  lagopus_packet_init(&pkt, m, &port);
+  OS_MTOD(m, uint8_t *)[12] = 0x86;
+  OS_MTOD(m, uint8_t *)[13] = 0xdd;
+  OS_MTOD(m, uint8_t *)[19] = 0x80; /* PLEN */
+  OS_MTOD(m, uint8_t *)[20] = IPPROTO_ICMPV6;
+  OS_MTOD(m, uint8_t *)[54] = ND_NEIGHBOR_ADVERT;
+  OS_MTOD(m, uint8_t *)[78] = ND_OPT_SOURCE_LINKADDR;
+  OS_MTOD(m, uint8_t *)[79] = 1;
+  OS_MTOD(m, uint8_t *)[86] = ND_OPT_TARGET_LINKADDR;
+  OS_MTOD(m, uint8_t *)[87] = 1;
+  lagopus_packet_init(pkt, m, &port);
   set_match(action_set->field, ETH_ALEN, OFPXMT_OFB_IPV6_ND_TLL << 1,
             0xe0, 0x4d, 0x01, 0x34, 0x56, 0x78);
-  execute_action(&pkt, &action_list);
+  execute_action(pkt, &action_list);
   i = 88;
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[i++], 0xe0,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[i++], 0xe0,
                             "SET_FIELD IPV6_ND_TLL[0] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[i++], 0x4d,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[i++], 0x4d,
                             "SET_FIELD IPV6_ND_TLL[1] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[i++], 0x01,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[i++], 0x01,
                             "SET_FIELD IPV6_ND_TLL[2] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[i++], 0x34,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[i++], 0x34,
                             "SET_FIELD IPV6_ND_TLL[3] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[i++], 0x56,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[i++], 0x56,
                             "SET_FIELD IPV6_ND_TLL[4] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[i++], 0x78,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[i++], 0x78,
                             "SET_FIELD IPV6_ND_TLL[5] error.");
 }

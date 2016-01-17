@@ -19,6 +19,8 @@
  *      @brief  Bridge (a.k.a. OpenFlow Switch) management.
  */
 
+#include "lagopus_config.h"
+
 #include "openflow.h"
 #include "lagopus/bridge.h"
 #include "lagopus/port.h"

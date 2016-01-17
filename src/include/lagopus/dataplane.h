@@ -823,6 +823,4 @@ void copy_dataplane_info(char *buf, int len);
  */
 void dataplane_usage(FILE *fp);
 
-bool rawsocket_only_mode;
-
 #endif /* SRC_INCLUDE_LAGOPUS_DATAPLANE_H_ */

@@ -43,7 +43,7 @@ test_lagopus_find_flow(void) {
   struct bridge *bridge;
   struct port *port;
   struct port nport;
-  struct lagopus_packet pkt;
+  struct lagopus_packet *pkt;
   struct table *table;
   struct flow *flow;
   OS_MBUF *m;
@@ -57,67 +57,67 @@ test_lagopus_find_flow(void) {
   TEST_ASSERT_EQUAL(dp_bridge_port_set("br0", "port0", 1), LAGOPUS_RESULT_OK);
   TEST_ASSERT_EQUAL(dp_bridge_port_set("br0", "port1", 2), LAGOPUS_RESULT_OK);
 
-  m = calloc(1, sizeof(*m));
-  TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
-  m->data = &m->dat[128];
-  OS_M_PKTLEN(m) = 64;
+  pkt = alloc_lagopus_packet();
+  TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
+  m = pkt->mbuf;
+  OS_M_APPEND(m, 64);
   m->refcnt = 2;
 
   bridge = dp_bridge_lookup("br0");
   TEST_ASSERT_NOT_NULL(bridge);
-  lagopus_packet_init(&pkt, m, port_lookup(bridge->ports, 1));
-  table = table_get(pkt.in_port->bridge->flowdb, 0);
+  lagopus_packet_init(pkt, m, port_lookup(bridge->ports, 1));
+  table = table_get(pkt->in_port->bridge->flowdb, 0);
   table->userdata = new_flowinfo_eth_type();
-  flow = lagopus_find_flow(&pkt, table);
+  flow = lagopus_find_flow(pkt, table);
   TEST_ASSERT_EQUAL_MESSAGE(table->lookup_count, 0,
                             "lookup_count(misc) error.");
   TEST_ASSERT_NULL_MESSAGE(flow,
                            "flow(misc) error.");
-  m->data[14] = 0x08;
-  m->data[15] = 0x06;
-  lagopus_packet_init(&pkt, m, &port);
-  flow = lagopus_find_flow(&pkt, table);
+  OS_MTOD(m, uint8_t *)[14] = 0x08;
+  OS_MTOD(m, uint8_t *)[15] = 0x06;
+  lagopus_packet_init(pkt, m, &port);
+  flow = lagopus_find_flow(pkt, table);
   TEST_ASSERT_EQUAL_MESSAGE(table->lookup_count, 0,
                             "lookup_count(arp) error.");
   TEST_ASSERT_NULL_MESSAGE(flow,
                            "flow(arp) error.");
-  m->data[14] = 0x08;
-  m->data[15] = 0x00;
-  lagopus_packet_init(&pkt, m, port_lookup(bridge->ports, 1));
-  flow = lagopus_find_flow(&pkt, table);
+  OS_MTOD(m, uint8_t *)[14] = 0x08;
+  OS_MTOD(m, uint8_t *)[15] = 0x00;
+  lagopus_packet_init(pkt, m, port_lookup(bridge->ports, 1));
+  flow = lagopus_find_flow(pkt, table);
   TEST_ASSERT_EQUAL_MESSAGE(table->lookup_count, 0,
                             "lookup_count(ipv4) error.");
   TEST_ASSERT_NULL_MESSAGE(flow,
                            "flow(ipv4) error.");
-  m->data[14] = 0x86;
-  m->data[15] = 0xdd;
-  m->data[20] = IPPROTO_TCP;
-  lagopus_packet_init(&pkt, m, port_lookup(bridge->ports, 1));
-  flow = lagopus_find_flow(&pkt, table);
+  OS_MTOD(m, uint8_t *)[14] = 0x86;
+  OS_MTOD(m, uint8_t *)[15] = 0xdd;
+  OS_MTOD(m, uint8_t *)[20] = IPPROTO_TCP;
+  lagopus_packet_init(pkt, m, port_lookup(bridge->ports, 1));
+  flow = lagopus_find_flow(pkt, table);
   TEST_ASSERT_EQUAL_MESSAGE(table->lookup_count, 0,
                             "lookup_count(ipv6) error.");
   TEST_ASSERT_NULL_MESSAGE(flow,
                            "flow(ipv6) error.");
-  m->data[14] = 0x88;
-  m->data[15] = 0x47;
-  lagopus_packet_init(&pkt, m, port_lookup(bridge->ports, 1));
-  flow = lagopus_find_flow(&pkt, table);
+  OS_MTOD(m, uint8_t *)[14] = 0x88;
+  OS_MTOD(m, uint8_t *)[15] = 0x47;
+  lagopus_packet_init(pkt, m, port_lookup(bridge->ports, 1));
+  flow = lagopus_find_flow(pkt, table);
   TEST_ASSERT_EQUAL_MESSAGE(table->lookup_count, 0,
                             "lookup_count(mpls) error.");
   TEST_ASSERT_NULL_MESSAGE(flow,
                            "flow(mpls) error.");
-  m->data[14] = 0x88;
-  m->data[15] = 0x48;
-  lagopus_packet_init(&pkt, m, port_lookup(bridge->ports, 1));
-  flow = lagopus_find_flow(&pkt, table);
+  OS_MTOD(m, uint8_t *)[14] = 0x88;
+  OS_MTOD(m, uint8_t *)[15] = 0x48;
+  lagopus_packet_init(pkt, m, port_lookup(bridge->ports, 1));
+  flow = lagopus_find_flow(pkt, table);
   TEST_ASSERT_EQUAL_MESSAGE(table->lookup_count, 0,
                             "lookup_count(mpls-mc) error.");
   TEST_ASSERT_NULL_MESSAGE(flow,
                            "flow(mpls-mc) error.");
-  m->data[14] = 0x88;
-  m->data[15] = 0xe7;
-  lagopus_packet_init(&pkt, m, port_lookup(bridge->ports, 1));
-  flow = lagopus_find_flow(&pkt, table);
+  OS_MTOD(m, uint8_t *)[14] = 0x88;
+  OS_MTOD(m, uint8_t *)[15] = 0xe7;
+  lagopus_packet_init(pkt, m, port_lookup(bridge->ports, 1));
+  flow = lagopus_find_flow(pkt, table);
   TEST_ASSERT_EQUAL_MESSAGE(table->lookup_count, 0,
                             "lookup_count(pbb) error.");
   TEST_ASSERT_NULL_MESSAGE(flow,

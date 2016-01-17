@@ -19,6 +19,8 @@
  * @brief       "interface" resource internal management routines.
  */
 
+#include "lagopus_config.h"
+
 #include "lagopus_apis.h"
 #include "lagopus/interface.h"
 
@@ -90,6 +92,8 @@ dp_interface_configure_internal(struct interface *ifp) {
 #ifdef HYBRID
     rv = dp_tap_interface_create(ifp->name, ifp);
 #endif /* HYBRID */
+  } else {
+    ifp->info.type = DATASTORE_INTERFACE_TYPE_UNKNOWN;
   }
 
   return rv;

@@ -41,7 +41,7 @@ tearDown(void) {
 
 void
 test_match_flow_basic(void) {
-  struct lagopus_packet pkt;
+  struct lagopus_packet *pkt;
   struct flowinfo *flowinfo;
   struct flow *flow;
   struct port port;
@@ -70,106 +70,106 @@ test_match_flow_basic(void) {
   }
 
   /* prepare packet */
-  m = calloc(1, sizeof(*m));
-  TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
-  m->data = &m->dat[128];
-  OS_M_PKTLEN(m) = 64;
-  lagopus_packet_init(&pkt, m, &port);
+  pkt = alloc_lagopus_packet();
+  TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "alloc_lagopus_packet error.");
+  m = pkt->mbuf;
+  OS_M_APPEND(m, 64);
+  lagopus_packet_init(pkt, m, &port);
 
   /* test */
   prio = 0;
-  pkt.oob_data.in_port = htonl(1);
-  flow = flowinfo->match_func(flowinfo, &pkt, &prio);
+  pkt->oob_data.in_port = htonl(1);
+  flow = flowinfo->match_func(flowinfo, pkt, &prio);
   TEST_ASSERT_EQUAL_MESSAGE(flow, test_flow[0],
                             "Port 1 match (prio 0) flow error.");
   TEST_ASSERT_EQUAL_MESSAGE(prio, 3,
                             "Port 1 match (prio 0) prio error.");
   prio = 1;
-  flow = flowinfo->match_func(flowinfo, &pkt, &prio);
+  flow = flowinfo->match_func(flowinfo, pkt, &prio);
   TEST_ASSERT_EQUAL_MESSAGE(flow, test_flow[0],
                             "Port 1 match (prio 1) flow error.");
   TEST_ASSERT_EQUAL_MESSAGE(prio, 3,
                             "Port 1 match (prio 1) prio error.");
   prio = 2;
-  flow = flowinfo->match_func(flowinfo, &pkt, &prio);
+  flow = flowinfo->match_func(flowinfo, pkt, &prio);
   TEST_ASSERT_EQUAL_MESSAGE(flow, test_flow[0],
                             "Port 1 match (prio 2) flow error.");
   TEST_ASSERT_EQUAL_MESSAGE(prio, 3,
                             "Port 1 match (prio 2) prio error.");
-  flow = flowinfo->match_func(flowinfo, &pkt, &prio);
+  flow = flowinfo->match_func(flowinfo, pkt, &prio);
   TEST_ASSERT_EQUAL_MESSAGE(flow, NULL,
                             "Port 1 match (prio 3) flow error.");
   prio = 0;
-  pkt.oob_data.in_port = htonl(2);
-  flow = flowinfo->match_func(flowinfo, &pkt, &prio);
+  pkt->oob_data.in_port = htonl(2);
+  flow = flowinfo->match_func(flowinfo, pkt, &prio);
   TEST_ASSERT_EQUAL_MESSAGE(flow, test_flow[1],
                             "Port 2 match (prio 0) flow error.");
   TEST_ASSERT_EQUAL_MESSAGE(prio, 2,
                             "Port 2 match (prio 0) prio error.");
   prio = 1;
-  flow = flowinfo->match_func(flowinfo, &pkt, &prio);
+  flow = flowinfo->match_func(flowinfo, pkt, &prio);
   TEST_ASSERT_EQUAL_MESSAGE(flow, test_flow[1],
                             "Port 2 match (prio 1) flow error.");
   TEST_ASSERT_EQUAL_MESSAGE(prio, 2,
                             "Port 2 match (prio 1) prio error.");
-  flow = flowinfo->match_func(flowinfo, &pkt, &prio);
+  flow = flowinfo->match_func(flowinfo, pkt, &prio);
   TEST_ASSERT_EQUAL_MESSAGE(flow, NULL,
                             "Port 2 match (prio 2) flow error.");
   TEST_ASSERT_EQUAL_MESSAGE(prio, 2,
                             "Port 2 match (prio 2) prio error.");
   prio = 3;
-  flow = flowinfo->match_func(flowinfo, &pkt, &prio);
+  flow = flowinfo->match_func(flowinfo, pkt, &prio);
   TEST_ASSERT_EQUAL_MESSAGE(flow, NULL,
                             "Port 2 match (prio 3) flow error.");
 
   prio = 0;
-  pkt.oob_data.in_port = htonl(3);
-  flow = flowinfo->match_func(flowinfo, &pkt, &prio);
+  pkt->oob_data.in_port = htonl(3);
+  flow = flowinfo->match_func(flowinfo, pkt, &prio);
   TEST_ASSERT_EQUAL_MESSAGE(flow, test_flow[2],
                             "Port 3 match (prio 0) flow error.");
   TEST_ASSERT_EQUAL_MESSAGE(prio, 1,
                             "Port 3 match (prio 0) prio error.");
-  flow = flowinfo->match_func(flowinfo, &pkt, &prio);
+  flow = flowinfo->match_func(flowinfo, pkt, &prio);
   TEST_ASSERT_EQUAL_MESSAGE(flow, NULL,
                             "Port 3 match (prio 1) error.");
   prio = 0;
-  pkt.oob_data.in_port = htonl(4);
-  flow = flowinfo->match_func(flowinfo, &pkt, &prio);
+  pkt->oob_data.in_port = htonl(4);
+  flow = flowinfo->match_func(flowinfo, pkt, &prio);
   TEST_ASSERT_NULL_MESSAGE(flow, "mismatch error.");
 }
 
 void
 test_match_basic_IN_PORT(void) {
-  struct lagopus_packet pkt;
+  struct lagopus_packet *pkt;
   struct port port;
   struct flow *flow;
   OS_MBUF *m;
   bool rv;
 
   /* prepare packet */
-  m = calloc(1, sizeof(*m));
-  TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
-  m->data = &m->dat[128];
-  OS_M_PKTLEN(m) = 64;
+  pkt = alloc_lagopus_packet();
+  TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "alloc_lagopus_packet error.");
+  m = pkt->mbuf;
+  OS_M_APPEND(m, 64);
 
   /* prepare flow */
   flow = allocate_test_flow(10 * sizeof(struct match));
   refresh_match(flow);
 
   /* Port */
-  pkt.oob_data.in_port = htonl(2);
-  lagopus_packet_init(&pkt, m, &port);
-  rv = match_basic(&pkt, flow);
+  pkt->oob_data.in_port = htonl(2);
+  lagopus_packet_init(pkt, m, &port);
+  rv = match_basic(pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, true,
                             "IN_PORT wildcard match error.");
   FLOW_ADD_PORT_MATCH(flow, 1);
   refresh_match(flow);
-  pkt.oob_data.in_port = htonl(2);
-  rv = match_basic(&pkt, flow);
+  pkt->oob_data.in_port = htonl(2);
+  rv = match_basic(pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "IN_PORT mismatch error.");
-  pkt.oob_data.in_port = htonl(1);
-  rv = match_basic(&pkt, flow);
+  pkt->oob_data.in_port = htonl(1);
+  rv = match_basic(pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, true,
                             "IN_PORT match error.");
   free(m);
@@ -177,7 +177,7 @@ test_match_basic_IN_PORT(void) {
 
 void
 test_match_basic_PHY_PORT(void) {
-  struct lagopus_packet pkt;
+  struct lagopus_packet *pkt;
   struct port port;
   struct flow *flow;
   OS_MBUF *m;
@@ -185,10 +185,10 @@ test_match_basic_PHY_PORT(void) {
 
   /* prepare packet */
   memset(&port, 0, sizeof(port));
-  m = calloc(1, sizeof(*m));
-  TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
-  m->data = &m->dat[128];
-  OS_M_PKTLEN(m) = 64;
+  pkt = alloc_lagopus_packet();
+  TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "alloc_lagopus_packet error.");
+  m = pkt->mbuf;
+  OS_M_APPEND(m, 64);
 
   /* prepare flow */
   flow = allocate_test_flow(10 * sizeof(struct match));
@@ -198,14 +198,14 @@ test_match_basic_PHY_PORT(void) {
   add_match(&flow->match_list, 4, OFPXMT_OFB_IN_PHY_PORT << 1,
             0x00, 0x00, 0x00, 0x04);
   refresh_match(flow);
-  lagopus_packet_init(&pkt, m, &port);
-  pkt.oob_data.in_port = htonl(4);
-  pkt.oob_data.in_phy_port = htonl(1);
-  rv = match_basic(&pkt, flow);
+  lagopus_packet_init(pkt, m, &port);
+  pkt->oob_data.in_port = htonl(4);
+  pkt->oob_data.in_phy_port = htonl(1);
+  rv = match_basic(pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "IN_PHY_PORT mismatch error.");
-  pkt.oob_data.in_phy_port = htonl(4);
-  rv = match_basic(&pkt, flow);
+  pkt->oob_data.in_phy_port = htonl(4);
+  rv = match_basic(pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, true,
                             "IN_PHY_PORT match error.");
 }
@@ -214,33 +214,33 @@ void
 test_match_basic_METADATA(void) {
   static const uint8_t metadata[] =
   { 0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0 };
-  struct lagopus_packet pkt;
+  struct lagopus_packet *pkt;
   struct port port;
   struct flow *flow;
   OS_MBUF *m;
   bool rv;
 
   /* prepare packet */
-  m = calloc(1, sizeof(*m));
-  TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
-  m->data = &m->dat[128];
-  OS_M_PKTLEN(m) = 64;
+  pkt = alloc_lagopus_packet();
+  TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "alloc_lagopus_packet error.");
+  m = pkt->mbuf;
+  OS_M_APPEND(m, 64);
 
   /* prepare flow */
   flow = calloc(1, sizeof(struct flow) + 10 * sizeof(struct match));
   TAILQ_INIT(&flow->match_list);
 
   /* metadata */
-  pkt.oob_data.metadata = 0;
+  pkt->oob_data.metadata = 0;
   add_match(&flow->match_list, 8, OFPXMT_OFB_METADATA << 1,
             0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0);
   refresh_match(flow);
-  lagopus_packet_init(&pkt, m, &port);
-  rv = match_basic(&pkt, flow);
+  lagopus_packet_init(pkt, m, &port);
+  rv = match_basic(pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "METAADTA mismatch error.");
-  memcpy(&pkt.oob_data.metadata, metadata, sizeof(pkt.oob_data.metadata));
-  rv = match_basic(&pkt, flow);
+  memcpy(&pkt->oob_data.metadata, metadata, sizeof(pkt->oob_data.metadata));
+  rv = match_basic(pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, true,
                             "METADATA match error.");
 }
@@ -249,34 +249,34 @@ void
 test_match_basic_METADATA_W(void) {
   static const uint8_t metadata[] =
   { 0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0 };
-  struct lagopus_packet pkt;
+  struct lagopus_packet *pkt;
   struct port port;
   struct flow *flow;
   OS_MBUF *m;
   bool rv;
 
   /* prepare packet */
-  m = calloc(1, sizeof(*m));
-  TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
-  m->data = &m->dat[128];
-  OS_M_PKTLEN(m) = 64;
+  pkt = alloc_lagopus_packet();
+  TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "alloc_lagopus_packet error.");
+  m = pkt->mbuf;
+  OS_M_APPEND(m, 64);
 
   /* prepare flow */
   flow = calloc(1, sizeof(struct flow) + 10 * sizeof(struct match));
   TAILQ_INIT(&flow->match_list);
 
   /* metadata */
-  pkt.oob_data.metadata = 0;
+  pkt->oob_data.metadata = 0;
   add_match(&flow->match_list, 16, (OFPXMT_OFB_METADATA << 1) + 1,
             0x12, 0x34, 0x56, 0x78, 0x00, 0x00, 0x00, 0x00,
             0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00);
   refresh_match(flow);
-  lagopus_packet_init(&pkt, m, &port);
-  rv = match_basic(&pkt, flow);
+  lagopus_packet_init(pkt, m, &port);
+  rv = match_basic(pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "METAADTA_W mismatch error.");
-  memcpy(&pkt.oob_data.metadata, metadata, sizeof(pkt.oob_data.metadata));
-  rv = match_basic(&pkt, flow);
+  memcpy(&pkt->oob_data.metadata, metadata, sizeof(pkt->oob_data.metadata));
+  rv = match_basic(pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, true,
                             "METADATA_W match error.");
 }

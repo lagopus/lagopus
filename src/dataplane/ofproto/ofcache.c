@@ -19,6 +19,8 @@
  *      @brief  OpenFlow flowcache implementation.
  */
 
+#include "lagopus_config.h"
+
 #include <sys/queue.h>
 #include <stdlib.h>
 #include <inttypes.h>

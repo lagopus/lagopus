@@ -19,6 +19,8 @@
  *      @brief  Datapath driver use with Berkelay Packet Filter
  */
 
+#include "lagopus_config.h"
+
 #include <stdio.h>
 #include <stdbool.h>
 #include <inttypes.h>

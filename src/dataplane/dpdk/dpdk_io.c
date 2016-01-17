@@ -1025,6 +1025,9 @@ dpdk_configure_interface(struct interface *ifp) {
   uint8_t portid;
   struct rte_mempool *pool;
 
+  if (is_rawsocket_only_mode() == true) {
+    return LAGOPUS_RESULT_INVALID_ARGS;
+  }
 #if defined(RTE_VERSION_NUM) && RTE_VERSION >= RTE_VERSION_NUM(2, 0, 0, 4)
   if (strlen(ifp->info.eth_dpdk_phy.device) > 0) {
     uint8_t actual_portid;
@@ -1093,9 +1096,9 @@ dpdk_configure_interface(struct interface *ifp) {
     socket = rte_lcore_to_socket_id(lcore);
     pool = app.lcore_params[lcore].pool;
 
-    printf("Initializing NIC port %u RX queue %u ...\n",
-           (unsigned) portid,
-           (unsigned) queue);
+    lagopus_msg_info("Initializing NIC port %u RX queue %u ...\n",
+                     (unsigned) portid,
+                     (unsigned) queue);
     ret = rte_eth_rx_queue_setup(portid,
                                  queue,
                                  (uint16_t) app.nic_rx_ring_size,
@@ -1126,8 +1129,8 @@ dpdk_configure_interface(struct interface *ifp) {
   if (app.nic_tx_port_mask[portid] == 1) {
     app_get_lcore_for_nic_tx(portid, &lcore);
     socket = rte_lcore_to_socket_id(lcore);
-    printf("Initializing NIC port %u TX queue 0 ...\n",
-           (unsigned) portid);
+    lagopus_msg_info("Initializing NIC port %u TX queue 0 ...\n",
+                     (unsigned) portid);
     ret = rte_eth_tx_queue_setup(portid,
                                  0,
                                  (uint16_t) app.nic_tx_ring_size,
@@ -1473,7 +1476,7 @@ lagopus_is_portid_enabled(int portid) {
 
 void
 lagopus_packet_free(struct lagopus_packet *pkt) {
-  if (rawsocket_only_mode != true) {
+  if (is_rawsocket_only_mode() != true) {
     rte_pktmbuf_free(pkt->mbuf);
   } else {
     if (rte_mbuf_refcnt_update(pkt->mbuf, -1) == 0) {

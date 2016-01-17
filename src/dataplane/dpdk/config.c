@@ -142,7 +142,7 @@ static const char usage[] =
 
 void
 dp_dpdk_thread_usage(FILE *fp) {
-  eal_common_usage(); /* XXX stdout */
+  //  eal_common_usage(); /* XXX stdout */
   fprintf(fp, usage,
           APP_DEFAULT_NIC_RX_RING_SIZE,
           APP_DEFAULT_RING_RX_SIZE,
@@ -811,7 +811,7 @@ app_parse_args(int argc, const char *argv[]) {
 
   /* Check that all mandatory arguments are provided */
   if ((arg_rx == 0 || arg_tx == 0 || arg_w == 0) && arg_p == 0) {
-    if (rawsocket_only_mode == true) {
+    if (is_rawsocket_only_mode() == true) {
       goto out;
     }
     lagopus_exit_error(EXIT_FAILURE,

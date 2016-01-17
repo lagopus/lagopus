@@ -649,7 +649,10 @@ NUMA_LIBS
 SSE42_CPPFLAGS
 MBTREE_FLAGS
 RTE_MBUF_HAS_PKT
+RTE_OS
+RTE_ARCH
 RTE_LIBS
+RTE_LIBDIR
 RTE_TARGET
 RTE_SDK
 FRAME_CPPFLAGS
@@ -791,7 +794,7 @@ enable_developer
 enable_hybrid
 enable_snmp
 enable_jumbo_frame
-with_dpdk_dir
+enable_dpdk
 enable_mbtree
 enable_sse4_2
 enable_numa
@@ -1437,6 +1440,8 @@ Optional Features:
 
   --enable-jumbo-frame    enable jumbo frame [default is no]
 
+  --enable-dpdk           enable DPDK [default is yes]
+
   --enable-mbtree         use multiple branch tree lookup [default is no]
   --enable-sse4.2         build with SSE4.2 instruction [default is yes]
   --enable-numa           Support NUMA (if supported).
@@ -1449,7 +1454,6 @@ Optional Packages:
   --with-gnu-ld           assume the C compiler uses GNU ld [default=no]
   --with-sysroot=DIR Search for dependent libraries within DIR
                         (or the compiler's sysroot if not specified).
-  --with-dpdk-dir=PATH    specify top directory of extracted DPDK
 
 Some influential environment variables:
   CC          C compiler command
@@ -17344,860 +17348,57 @@ else
 fi
 
 
-
-# Check whether --with-dpdk-dir was given.
-if test "${with_dpdk_dir+set}" = set; then :
-  withval=$with_dpdk_dir;
+# Check whether --enable-dpdk was given.
+if test "${enable_dpdk+set}" = set; then :
+  enableval=$enable_dpdk; dpdk="$enableval"
 else
-  with_dpdk_dir=""
+  dpdk=yes
 fi
 
-if test "x$with_dpdk_dir" != "x"; then
-  RTE_SDK=$with_dpdk_dir
-  RTE_TARGET=build
-  as_ac_Header=`$as_echo "ac_cv_header_${RTE_SDK}/${RTE_TARGET}/include/rte_common.h" | $as_tr_sh`
-ac_fn_c_check_header_mongrel "$LINENO" "${RTE_SDK}/${RTE_TARGET}/include/rte_common.h" "$as_ac_Header" "$ac_includes_default"
-if eval test \"x\$"$as_ac_Header"\" = x"yes"; then :
-
-else
-  RTE_ARCH=`uname -p`
-     if test "x$RTE_ARCH" = "xunknown"; then
+if test "X${dpdk}" != "Xno"; then
+    RTE_SDK=${TOPDIR}/src/dpdk
+    RTE_TARGET=build
+    RTE_ARCH=`uname -p`
+    if test "x$RTE_ARCH" = "xunknown"; then
         RTE_ARCH=`uname -m`
-     fi
-     case `uname` in
-     Linux)
-     RTE_OS=linuxapp
-     ;;
-     FreeBSD)
-     RTE_OS=bsdapp
-     ;;
-     *)
-     as_fn_error $? "DPDK must be supported your OS." "$LINENO" 5
-     ;;
-     esac
-     RTE_TARGET=${RTE_ARCH}-native-${RTE_OS}-${CC}
-     as_ac_Header=`$as_echo "ac_cv_header_${RTE_SDK}/${RTE_TARGET}/include/rte_common.h" | $as_tr_sh`
-ac_fn_c_check_header_mongrel "$LINENO" "${RTE_SDK}/${RTE_TARGET}/include/rte_common.h" "$as_ac_Header" "$ac_includes_default"
-if eval test \"x\$"$as_ac_Header"\" = x"yes"; then :
-
-else
-  RTE_TARGET=${RTE_ARCH}-default-${RTE_OS}-${CC}
-        as_ac_Header=`$as_echo "ac_cv_header_${RTE_SDK}/${RTE_TARGET}/include/rte_common.h" | $as_tr_sh`
-ac_fn_c_check_header_mongrel "$LINENO" "${RTE_SDK}/${RTE_TARGET}/include/rte_common.h" "$as_ac_Header" "$ac_includes_default"
-if eval test \"x\$"$as_ac_Header"\" = x"yes"; then :
-
-else
-  as_fn_error $? "DPDK must be installed." "$LINENO" 5
-fi
-
-
-fi
-
-
-fi
-
-
-  RTE_LIBS=-L$RTE_SDK/$RTE_TARGET/lib
-  RTE_LIBS="$RTE_LIBS -Xlinker --whole-archive"
-  as_ac_File=`$as_echo "ac_cv_file_${RTE_SDK}/${RTE_TARGET}/lib/librte_distributor.a" | $as_tr_sh`
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_distributor.a" >&5
-$as_echo_n "checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_distributor.a... " >&6; }
-if eval \${$as_ac_File+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  test "$cross_compiling" = yes &&
-  as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
-if test -r "${RTE_SDK}/${RTE_TARGET}/lib/librte_distributor.a"; then
-  eval "$as_ac_File=yes"
-else
-  eval "$as_ac_File=no"
-fi
-fi
-eval ac_res=\$$as_ac_File
-	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
-if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
-  RTE_LIBS="$RTE_LIBS -Xlinker -lrte_distributor"
-fi
-
-  as_ac_File=`$as_echo "ac_cv_file_${RTE_SDK}/${RTE_TARGET}/lib/librte_reorder.a" | $as_tr_sh`
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_reorder.a" >&5
-$as_echo_n "checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_reorder.a... " >&6; }
-if eval \${$as_ac_File+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  test "$cross_compiling" = yes &&
-  as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
-if test -r "${RTE_SDK}/${RTE_TARGET}/lib/librte_reorder.a"; then
-  eval "$as_ac_File=yes"
-else
-  eval "$as_ac_File=no"
-fi
-fi
-eval ac_res=\$$as_ac_File
-	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
-if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
-  RTE_LIBS="$RTE_LIBS -Xlinker -lrte_reorder"
-fi
-
-  as_ac_File=`$as_echo "ac_cv_file_${RTE_SDK}/${RTE_TARGET}/lib/librte_kni.a" | $as_tr_sh`
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_kni.a" >&5
-$as_echo_n "checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_kni.a... " >&6; }
-if eval \${$as_ac_File+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  test "$cross_compiling" = yes &&
-  as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
-if test -r "${RTE_SDK}/${RTE_TARGET}/lib/librte_kni.a"; then
-  eval "$as_ac_File=yes"
-else
-  eval "$as_ac_File=no"
-fi
-fi
-eval ac_res=\$$as_ac_File
-	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
-if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
-  RTE_LIBS="$RTE_LIBS -Xlinker -lrte_kni"
-fi
-
-  as_ac_File=`$as_echo "ac_cv_file_${RTE_SDK}/${RTE_TARGET}/lib/librte_ivshmem.a" | $as_tr_sh`
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_ivshmem.a" >&5
-$as_echo_n "checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_ivshmem.a... " >&6; }
-if eval \${$as_ac_File+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  test "$cross_compiling" = yes &&
-  as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
-if test -r "${RTE_SDK}/${RTE_TARGET}/lib/librte_ivshmem.a"; then
-  eval "$as_ac_File=yes"
-else
-  eval "$as_ac_File=no"
-fi
-fi
-eval ac_res=\$$as_ac_File
-	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
-if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
-  RTE_LIBS="$RTE_LIBS -Xlinker -lrte_ivshmem"
-fi
-
-  as_ac_File=`$as_echo "ac_cv_file_${RTE_SDK}/${RTE_TARGET}/lib/librte_pipeline.a" | $as_tr_sh`
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_pipeline.a" >&5
-$as_echo_n "checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_pipeline.a... " >&6; }
-if eval \${$as_ac_File+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  test "$cross_compiling" = yes &&
-  as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
-if test -r "${RTE_SDK}/${RTE_TARGET}/lib/librte_pipeline.a"; then
-  eval "$as_ac_File=yes"
-else
-  eval "$as_ac_File=no"
-fi
-fi
-eval ac_res=\$$as_ac_File
-	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
-if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
-  RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pipeline"
-fi
-
-  as_ac_File=`$as_echo "ac_cv_file_${RTE_SDK}/${RTE_TARGET}/lib/librte_table.a" | $as_tr_sh`
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_table.a" >&5
-$as_echo_n "checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_table.a... " >&6; }
-if eval \${$as_ac_File+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  test "$cross_compiling" = yes &&
-  as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
-if test -r "${RTE_SDK}/${RTE_TARGET}/lib/librte_table.a"; then
-  eval "$as_ac_File=yes"
-else
-  eval "$as_ac_File=no"
-fi
-fi
-eval ac_res=\$$as_ac_File
-	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
-if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
-  RTE_LIBS="$RTE_LIBS -Xlinker -lrte_table"
-fi
-
-  as_ac_File=`$as_echo "ac_cv_file_${RTE_SDK}/${RTE_TARGET}/lib/librte_port.a" | $as_tr_sh`
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_port.a" >&5
-$as_echo_n "checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_port.a... " >&6; }
-if eval \${$as_ac_File+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  test "$cross_compiling" = yes &&
-  as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
-if test -r "${RTE_SDK}/${RTE_TARGET}/lib/librte_port.a"; then
-  eval "$as_ac_File=yes"
-else
-  eval "$as_ac_File=no"
-fi
-fi
-eval ac_res=\$$as_ac_File
-	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
-if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
-  RTE_LIBS="$RTE_LIBS -Xlinker -lrte_port"
-fi
-
-  as_ac_File=`$as_echo "ac_cv_file_${RTE_SDK}/${RTE_TARGET}/lib/librte_timer.a" | $as_tr_sh`
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_timer.a" >&5
-$as_echo_n "checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_timer.a... " >&6; }
-if eval \${$as_ac_File+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  test "$cross_compiling" = yes &&
-  as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
-if test -r "${RTE_SDK}/${RTE_TARGET}/lib/librte_timer.a"; then
-  eval "$as_ac_File=yes"
-else
-  eval "$as_ac_File=no"
-fi
-fi
-eval ac_res=\$$as_ac_File
-	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
-if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
-  RTE_LIBS="$RTE_LIBS -Xlinker -lrte_timer"
-fi
-
-  as_ac_File=`$as_echo "ac_cv_file_${RTE_SDK}/${RTE_TARGET}/lib/librte_jobstats.a" | $as_tr_sh`
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_jobstats.a" >&5
-$as_echo_n "checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_jobstats.a... " >&6; }
-if eval \${$as_ac_File+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  test "$cross_compiling" = yes &&
-  as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
-if test -r "${RTE_SDK}/${RTE_TARGET}/lib/librte_jobstats.a"; then
-  eval "$as_ac_File=yes"
-else
-  eval "$as_ac_File=no"
-fi
-fi
-eval ac_res=\$$as_ac_File
-	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
-if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
-  RTE_LIBS="$RTE_LIBS -Xlinker -lrte_jobstats"
-fi
-
-  as_ac_File=`$as_echo "ac_cv_file_${RTE_SDK}/${RTE_TARGET}/lib/librte_hash.a" | $as_tr_sh`
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_hash.a" >&5
-$as_echo_n "checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_hash.a... " >&6; }
-if eval \${$as_ac_File+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  test "$cross_compiling" = yes &&
-  as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
-if test -r "${RTE_SDK}/${RTE_TARGET}/lib/librte_hash.a"; then
-  eval "$as_ac_File=yes"
-else
-  eval "$as_ac_File=no"
-fi
-fi
-eval ac_res=\$$as_ac_File
-	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
-if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
-  RTE_LIBS="$RTE_LIBS -Xlinker -lrte_hash"
-fi
-
-  as_ac_File=`$as_echo "ac_cv_file_${RTE_SDK}/${RTE_TARGET}/lib/librte_lpm.a" | $as_tr_sh`
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_lpm.a" >&5
-$as_echo_n "checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_lpm.a... " >&6; }
-if eval \${$as_ac_File+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  test "$cross_compiling" = yes &&
-  as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
-if test -r "${RTE_SDK}/${RTE_TARGET}/lib/librte_lpm.a"; then
-  eval "$as_ac_File=yes"
-else
-  eval "$as_ac_File=no"
-fi
-fi
-eval ac_res=\$$as_ac_File
-	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
-if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
-  RTE_LIBS="$RTE_LIBS -Xlinker -lrte_lpm"
-fi
-
-  as_ac_File=`$as_echo "ac_cv_file_${RTE_SDK}/${RTE_TARGET}/lib/librte_power.a" | $as_tr_sh`
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_power.a" >&5
-$as_echo_n "checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_power.a... " >&6; }
-if eval \${$as_ac_File+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  test "$cross_compiling" = yes &&
-  as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
-if test -r "${RTE_SDK}/${RTE_TARGET}/lib/librte_power.a"; then
-  eval "$as_ac_File=yes"
-else
-  eval "$as_ac_File=no"
-fi
-fi
-eval ac_res=\$$as_ac_File
-	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
-if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
-  RTE_LIBS="$RTE_LIBS -Xlinker -lrte_power"
-fi
-
-  as_ac_File=`$as_echo "ac_cv_file_${RTE_SDK}/${RTE_TARGET}/lib/librte_acl.a" | $as_tr_sh`
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_acl.a" >&5
-$as_echo_n "checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_acl.a... " >&6; }
-if eval \${$as_ac_File+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  test "$cross_compiling" = yes &&
-  as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
-if test -r "${RTE_SDK}/${RTE_TARGET}/lib/librte_acl.a"; then
-  eval "$as_ac_File=yes"
-else
-  eval "$as_ac_File=no"
-fi
-fi
-eval ac_res=\$$as_ac_File
-	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
-if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
-  RTE_LIBS="$RTE_LIBS -Xlinker -lrte_acl"
-fi
-
-  as_ac_File=`$as_echo "ac_cv_file_${RTE_SDK}/${RTE_TARGET}/lib/librte_meter.a" | $as_tr_sh`
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_meter.a" >&5
-$as_echo_n "checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_meter.a... " >&6; }
-if eval \${$as_ac_File+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  test "$cross_compiling" = yes &&
-  as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
-if test -r "${RTE_SDK}/${RTE_TARGET}/lib/librte_meter.a"; then
-  eval "$as_ac_File=yes"
-else
-  eval "$as_ac_File=no"
-fi
-fi
-eval ac_res=\$$as_ac_File
-	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
-if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
-  RTE_LIBS="$RTE_LIBS -Xlinker -lrte_meter"
-fi
-
-  as_ac_File=`$as_echo "ac_cv_file_${RTE_SDK}/${RTE_TARGET}/lib/librte_sched.a" | $as_tr_sh`
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_sched.a" >&5
-$as_echo_n "checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_sched.a... " >&6; }
-if eval \${$as_ac_File+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  test "$cross_compiling" = yes &&
-  as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
-if test -r "${RTE_SDK}/${RTE_TARGET}/lib/librte_sched.a"; then
-  eval "$as_ac_File=yes"
-else
-  eval "$as_ac_File=no"
-fi
-fi
-eval ac_res=\$$as_ac_File
-	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
-if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
-  RTE_LIBS="$RTE_LIBS -Xlinker -lrte_sched -lm -lrt"
-fi
-
-  as_ac_File=`$as_echo "ac_cv_file_${RTE_SDK}/${RTE_TARGET}/lib/librte_vhost.a" | $as_tr_sh`
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_vhost.a" >&5
-$as_echo_n "checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_vhost.a... " >&6; }
-if eval \${$as_ac_File+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  test "$cross_compiling" = yes &&
-  as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
-if test -r "${RTE_SDK}/${RTE_TARGET}/lib/librte_vhost.a"; then
-  eval "$as_ac_File=yes"
-else
-  eval "$as_ac_File=no"
-fi
-fi
-eval ac_res=\$$as_ac_File
-	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
-if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
-  RTE_LIBS="$RTE_LIBS -Xlinker -lrte_vhost"
-fi
-
-  RTE_LIBS="$RTE_LIBS -Xlinker --start-group"
-  as_ac_File=`$as_echo "ac_cv_file_${RTE_SDK}/${RTE_TARGET}/lib/librte_kvargs.a" | $as_tr_sh`
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_kvargs.a" >&5
-$as_echo_n "checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_kvargs.a... " >&6; }
-if eval \${$as_ac_File+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  test "$cross_compiling" = yes &&
-  as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
-if test -r "${RTE_SDK}/${RTE_TARGET}/lib/librte_kvargs.a"; then
-  eval "$as_ac_File=yes"
-else
-  eval "$as_ac_File=no"
-fi
-fi
-eval ac_res=\$$as_ac_File
-	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
-if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
-  RTE_LIBS="$RTE_LIBS -Xlinker -lrte_kvargs"
-fi
-
-  RTE_LIBS="$RTE_LIBS -Xlinker -lrte_mbuf"
-  as_ac_File=`$as_echo "ac_cv_file_${RTE_SDK}/${RTE_TARGET}/lib/librte_ip_frag.a" | $as_tr_sh`
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_ip_frag.a" >&5
-$as_echo_n "checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_ip_frag.a... " >&6; }
-if eval \${$as_ac_File+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  test "$cross_compiling" = yes &&
-  as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
-if test -r "${RTE_SDK}/${RTE_TARGET}/lib/librte_ip_frag.a"; then
-  eval "$as_ac_File=yes"
-else
-  eval "$as_ac_File=no"
-fi
-fi
-eval ac_res=\$$as_ac_File
-	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
-if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
-  RTE_LIBS="$RTE_LIBS -Xlinker -lrte_ip_frag"
-fi
-
-  RTE_LIBS="$RTE_LIBS -lrte_ring -lrte_eal"
-  as_ac_File=`$as_echo "ac_cv_file_${RTE_SDK}/${RTE_TARGET}/lib/librte_cmdline.a" | $as_tr_sh`
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_cmdline.a" >&5
-$as_echo_n "checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_cmdline.a... " >&6; }
-if eval \${$as_ac_File+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  test "$cross_compiling" = yes &&
-  as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
-if test -r "${RTE_SDK}/${RTE_TARGET}/lib/librte_cmdline.a"; then
-  eval "$as_ac_File=yes"
-else
-  eval "$as_ac_File=no"
-fi
-fi
-eval ac_res=\$$as_ac_File
-	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
-if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
-  RTE_LIBS="$RTE_LIBS -lrte_cmdline"
-fi
-
-  as_ac_File=`$as_echo "ac_cv_file_${RTE_SDK}/${RTE_TARGET}/lib/librte_cfgfile.a" | $as_tr_sh`
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_cfgfile.a" >&5
-$as_echo_n "checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_cfgfile.a... " >&6; }
-if eval \${$as_ac_File+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  test "$cross_compiling" = yes &&
-  as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
-if test -r "${RTE_SDK}/${RTE_TARGET}/lib/librte_cfgfile.a"; then
-  eval "$as_ac_File=yes"
-else
-  eval "$as_ac_File=no"
-fi
-fi
-eval ac_res=\$$as_ac_File
-	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
-if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
-  RTE_LIBS="$RTE_LIBS -lrte_cfgfile"
-fi
-
-  as_ac_File=`$as_echo "ac_cv_file_${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_bond.a" | $as_tr_sh`
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_bond.a" >&5
-$as_echo_n "checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_bond.a... " >&6; }
-if eval \${$as_ac_File+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  test "$cross_compiling" = yes &&
-  as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
-if test -r "${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_bond.a"; then
-  eval "$as_ac_File=yes"
-else
-  eval "$as_ac_File=no"
-fi
-fi
-eval ac_res=\$$as_ac_File
-	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
-if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
-  RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_bond"
-fi
-
-  as_ac_File=`$as_echo "ac_cv_file_${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_xenvirt.a" | $as_tr_sh`
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_xenvirt.a" >&5
-$as_echo_n "checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_xenvirt.a... " >&6; }
-if eval \${$as_ac_File+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  test "$cross_compiling" = yes &&
-  as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
-if test -r "${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_xenvirt.a"; then
-  eval "$as_ac_File=yes"
-else
-  eval "$as_ac_File=no"
-fi
-fi
-eval ac_res=\$$as_ac_File
-	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
-if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
-  RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_xenvirt -lxenstore"
-fi
-
-  as_ac_File=`$as_echo "ac_cv_file_${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_vmxnet3.a" | $as_tr_sh`
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_vmxnet3.a" >&5
-$as_echo_n "checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_vmxnet3.a... " >&6; }
-if eval \${$as_ac_File+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  test "$cross_compiling" = yes &&
-  as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
-if test -r "${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_vmxnet3.a"; then
-  eval "$as_ac_File=yes"
-else
-  eval "$as_ac_File=no"
-fi
-fi
-eval ac_res=\$$as_ac_File
-	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
-if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
-  RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_vmxnet3"
-fi
-
-  as_ac_File=`$as_echo "ac_cv_file_${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_virtio.a" | $as_tr_sh`
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_virtio.a" >&5
-$as_echo_n "checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_virtio.a... " >&6; }
-if eval \${$as_ac_File+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  test "$cross_compiling" = yes &&
-  as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
-if test -r "${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_virtio.a"; then
-  eval "$as_ac_File=yes"
-else
-  eval "$as_ac_File=no"
-fi
-fi
-eval ac_res=\$$as_ac_File
-	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
-if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
-  RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_virtio"
-fi
-
-  as_ac_File=`$as_echo "ac_cv_file_${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_vmxnet3_uio.a" | $as_tr_sh`
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_vmxnet3_uio.a" >&5
-$as_echo_n "checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_vmxnet3_uio.a... " >&6; }
-if eval \${$as_ac_File+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  test "$cross_compiling" = yes &&
-  as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
-if test -r "${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_vmxnet3_uio.a"; then
-  eval "$as_ac_File=yes"
-else
-  eval "$as_ac_File=no"
-fi
-fi
-eval ac_res=\$$as_ac_File
-	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
-if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
-  RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_vmxnet3_uio"
-fi
-
-  as_ac_File=`$as_echo "ac_cv_file_${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_virtio_uio.a" | $as_tr_sh`
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_virtio_uio.a" >&5
-$as_echo_n "checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_virtio_uio.a... " >&6; }
-if eval \${$as_ac_File+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  test "$cross_compiling" = yes &&
-  as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
-if test -r "${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_virtio_uio.a"; then
-  eval "$as_ac_File=yes"
-else
-  eval "$as_ac_File=no"
-fi
-fi
-eval ac_res=\$$as_ac_File
-	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
-if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
-  RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_virtio_uio"
-fi
-
-  as_ac_File=`$as_echo "ac_cv_file_${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_enic.a" | $as_tr_sh`
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_enic.a" >&5
-$as_echo_n "checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_enic.a... " >&6; }
-if eval \${$as_ac_File+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  test "$cross_compiling" = yes &&
-  as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
-if test -r "${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_enic.a"; then
-  eval "$as_ac_File=yes"
-else
-  eval "$as_ac_File=no"
-fi
-fi
-eval ac_res=\$$as_ac_File
-	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
-if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
-  RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_enic"
-fi
-
-  as_ac_File=`$as_echo "ac_cv_file_${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_i40e.a" | $as_tr_sh`
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_i40e.a" >&5
-$as_echo_n "checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_i40e.a... " >&6; }
-if eval \${$as_ac_File+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  test "$cross_compiling" = yes &&
-  as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
-if test -r "${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_i40e.a"; then
-  eval "$as_ac_File=yes"
-else
-  eval "$as_ac_File=no"
-fi
-fi
-eval ac_res=\$$as_ac_File
-	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
-if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
-  RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_i40e"
-fi
-
-  as_ac_File=`$as_echo "ac_cv_file_${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_fm10k.a" | $as_tr_sh`
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_fm10k.a" >&5
-$as_echo_n "checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_fm10k.a... " >&6; }
-if eval \${$as_ac_File+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  test "$cross_compiling" = yes &&
-  as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
-if test -r "${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_fm10k.a"; then
-  eval "$as_ac_File=yes"
-else
-  eval "$as_ac_File=no"
-fi
-fi
-eval ac_res=\$$as_ac_File
-	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
-if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
-  RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_fm10k"
-fi
-
-  as_ac_File=`$as_echo "ac_cv_file_${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_ixgbe.a" | $as_tr_sh`
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_ixgbe.a" >&5
-$as_echo_n "checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_ixgbe.a... " >&6; }
-if eval \${$as_ac_File+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  test "$cross_compiling" = yes &&
-  as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
-if test -r "${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_ixgbe.a"; then
-  eval "$as_ac_File=yes"
-else
-  eval "$as_ac_File=no"
-fi
-fi
-eval ac_res=\$$as_ac_File
-	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
-if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
-  RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_ixgbe"
-fi
-
-  as_ac_File=`$as_echo "ac_cv_file_${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_e1000.a" | $as_tr_sh`
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_e1000.a" >&5
-$as_echo_n "checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_e1000.a... " >&6; }
-if eval \${$as_ac_File+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  test "$cross_compiling" = yes &&
-  as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
-if test -r "${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_e1000.a"; then
-  eval "$as_ac_File=yes"
-else
-  eval "$as_ac_File=no"
-fi
-fi
-eval ac_res=\$$as_ac_File
-	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
-if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
-  RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_e1000"
-fi
-
-  as_ac_File=`$as_echo "ac_cv_file_${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_mlx4.a" | $as_tr_sh`
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_mlx4.a" >&5
-$as_echo_n "checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_mlx4.a... " >&6; }
-if eval \${$as_ac_File+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  test "$cross_compiling" = yes &&
-  as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
-if test -r "${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_mlx4.a"; then
-  eval "$as_ac_File=yes"
-else
-  eval "$as_ac_File=no"
-fi
-fi
-eval ac_res=\$$as_ac_File
-	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
-if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
-  RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_mlx4"
-fi
-
-  as_ac_File=`$as_echo "ac_cv_file_${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_ring.a" | $as_tr_sh`
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_ring.a" >&5
-$as_echo_n "checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_ring.a... " >&6; }
-if eval \${$as_ac_File+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  test "$cross_compiling" = yes &&
-  as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
-if test -r "${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_ring.a"; then
-  eval "$as_ac_File=yes"
-else
-  eval "$as_ac_File=no"
-fi
-fi
-eval ac_res=\$$as_ac_File
-	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
-if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
-  RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_ring"
-fi
-
-  as_ac_File=`$as_echo "ac_cv_file_${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_pcap.a" | $as_tr_sh`
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_pcap.a" >&5
-$as_echo_n "checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_pcap.a... " >&6; }
-if eval \${$as_ac_File+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  test "$cross_compiling" = yes &&
-  as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
-if test -r "${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_pcap.a"; then
-  eval "$as_ac_File=yes"
-else
-  eval "$as_ac_File=no"
-fi
-fi
-eval ac_res=\$$as_ac_File
-	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
-if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
-  RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_pcap"
-fi
-
-  as_ac_File=`$as_echo "ac_cv_file_${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_af_packet.a" | $as_tr_sh`
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_af_packet.a" >&5
-$as_echo_n "checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_af_packet.a... " >&6; }
-if eval \${$as_ac_File+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  test "$cross_compiling" = yes &&
-  as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
-if test -r "${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_af_packet.a"; then
-  eval "$as_ac_File=yes"
-else
-  eval "$as_ac_File=no"
-fi
-fi
-eval ac_res=\$$as_ac_File
-	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
-if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
-  RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_af_packet"
-fi
-
-  as_ac_File=`$as_echo "ac_cv_file_${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_null.a" | $as_tr_sh`
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_null.a" >&5
-$as_echo_n "checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_null.a... " >&6; }
-if eval \${$as_ac_File+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  test "$cross_compiling" = yes &&
-  as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
-if test -r "${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_null.a"; then
-  eval "$as_ac_File=yes"
-else
-  eval "$as_ac_File=no"
-fi
-fi
-eval ac_res=\$$as_ac_File
-	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
-if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
-  RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_null"
-fi
-
-  RTE_LIBS="$RTE_LIBS -Xlinker --end-group -Xlinker --no-whole-archive"
-  RTE_LIBS="$RTE_LIBS -lethdev"
-  as_ac_File=`$as_echo "ac_cv_file_${RTE_SDK}/${RTE_TARGET}/lib/librte_malloc.a" | $as_tr_sh`
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_malloc.a" >&5
-$as_echo_n "checking for ${RTE_SDK}/${RTE_TARGET}/lib/librte_malloc.a... " >&6; }
-if eval \${$as_ac_File+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  test "$cross_compiling" = yes &&
-  as_fn_error $? "cannot check for file existence when cross compiling" "$LINENO" 5
-if test -r "${RTE_SDK}/${RTE_TARGET}/lib/librte_malloc.a"; then
-  eval "$as_ac_File=yes"
-else
-  eval "$as_ac_File=no"
-fi
-fi
-eval ac_res=\$$as_ac_File
-	       { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_res" >&5
-$as_echo "$ac_res" >&6; }
-if eval test \"x\$"$as_ac_File"\" = x"yes"; then :
-  RTE_LIBS="$RTE_LIBS -Xlinker -lrte_malloc"
-fi
-
-  RTE_LIBS="$RTE_LIBS  -lrte_mempool"
-  CPPFLAGS_BKUP="$CPPFLAGS"
-  CPPFLAGS="$CPPFLAGS -I$RTE_SDK/$RTE_TARGET/include"
-  ac_fn_c_check_member "$LINENO" "struct rte_mbuf" "pkt" "ac_cv_member_struct_rte_mbuf_pkt" "#include \"rte_config.h\"
+    fi
+    case `uname` in
+        Linux)
+            RTE_OS=linuxapp
+        ;;
+        FreeBSD)
+            RTE_OS=bsdapp
+        ;;
+	*)
+            as_fn_error $? "DPDK must be supported your OS." "$LINENO" 5
+        ;;
+    esac
+    RTE_LIBDIR="${RTE_SDK}/${RTE_TARGET}/lib"
+    RTE_LIBS="-L${RTE_LIBDIR} -ldpdk"
+    CPPFLAGS_BKUP="${CPPFLAGS}"
+    CPPFLAGS="${CPPFLAGS} -I${RTE_SDK}/lib/librte_mbuf/include"
+    ac_fn_c_check_member "$LINENO" "struct rte_mbuf" "pkt" "ac_cv_member_struct_rte_mbuf_pkt" "#include \"rte_config.h\"
 		   #include \"rte_mbuf.h\"
 "
 if test "x$ac_cv_member_struct_rte_mbuf_pkt" = xyes; then :
   RTE_MBUF_HAS_PKT=1
 fi
 
-  CPPFLAGS="$CPPFLAGS_BKUP"
+    CPPFLAGS="{$CPPFLAGS_BKUP}"
+    $as_echo "#define HAVE_DPDK 1" >>confdefs.h
+
 else
- RTE_SDK=
- RTE_TARGET=
- RTE_LIBS=
- RTE_MBUF_HAS_PKT=
+    RTE_SDK=
+    RTE_TARGET=
+    RTE_LIBDIR=
+    RTE_LIBS=
+    RTE_ARCH=
+    RTE_OS=
+    RTE_MBUF_HAS_PKT=
 fi
+
+
+
 
 
 
@@ -18494,7 +17695,10 @@ ac_config_files="$ac_config_files debian/lagopus-DATAPLANE.postrm"
 ac_config_commands="$ac_config_commands modify-config"
 
 
-ac_config_commands="$ac_config_commands depend"
+ac_config_commands="$ac_config_commands initdepend"
+
+
+ac_config_commands="$ac_config_commands git-submodules"
 
 
 ac_config_commands="$ac_config_commands config-clean"
@@ -19567,7 +18771,6 @@ fi
 
 
 OS_CPPFLAGS="${OS_CPPFLAGS}"
-MAKE=${MAKE}
 
 _ACEOF
 
@@ -19612,7 +18815,8 @@ do
     "debian/rules") CONFIG_FILES="$CONFIG_FILES debian/rules" ;;
     "debian/lagopus-DATAPLANE.postrm") CONFIG_FILES="$CONFIG_FILES debian/lagopus-DATAPLANE.postrm" ;;
     "modify-config") CONFIG_COMMANDS="$CONFIG_COMMANDS modify-config" ;;
-    "depend") CONFIG_COMMANDS="$CONFIG_COMMANDS depend" ;;
+    "initdepend") CONFIG_COMMANDS="$CONFIG_COMMANDS initdepend" ;;
+    "git-submodules") CONFIG_COMMANDS="$CONFIG_COMMANDS git-submodules" ;;
     "config-clean") CONFIG_COMMANDS="$CONFIG_COMMANDS config-clean" ;;
 
   *) as_fn_error $? "invalid argument: \`$ac_config_target'" "$LINENO" 5;;
@@ -20969,7 +20173,8 @@ _LT_EOF
     "debian/rules":F) chmod +x debian/rules ;;
     "debian/lagopus-DATAPLANE.postrm":F) chmod +x debian/lagopus-DATAPLANE.postrm ;;
     "modify-config":C) sh mk/finalizeconfig ${OS_CPPFLAGS} ;;
-    "depend":C) sh mk/initdepend && ${MAKE} depend ;;
+    "initdepend":C) sh mk/initdepend ;;
+    "git-submodules":C) git submodule update --init ;;
     "config-clean":C) rm -rf ./config.log ./config.status.* autom4te.cache ;;
 
   esac
@@ -21010,8 +20215,14 @@ $as_echo "$as_me: WARNING: unrecognized options: $ac_unrecognized_opts" >&2;}
 fi
 
 
-${MAKE} clean
-${MAKE} generate
+${MAKE} clean && \
+${MAKE} generate && \
+${MAKE} submodules && \
+${MAKE} depend
+
+if test $? -ne 0; then
+    as_fn_error $? "Prerequisite failure." "$LINENO" 5
+fi
 
 echo ""
 echo "CC:	'${CC}'"

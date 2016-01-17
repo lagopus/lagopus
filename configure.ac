@@ -395,134 +395,54 @@ else
 fi
 AC_SUBST(FRAME_CPPFLAGS)
 
-AC_ARG_WITH(dpdk-dir,
-            [AC_HELP_STRING([--with-dpdk-dir=PATH],
-	                    [specify top directory of extracted DPDK])],
-            [],
-            [with_dpdk_dir=""])
-if test "x$with_dpdk_dir" != "x"; then
-  RTE_SDK=$with_dpdk_dir
-  RTE_TARGET=build
-  AC_CHECK_HEADER(${RTE_SDK}/${RTE_TARGET}/include/rte_common.h, [],
-    [RTE_ARCH=`uname -p`
-     if test "x$RTE_ARCH" = "xunknown"; then
+AC_ARG_ENABLE([dpdk],
+	[AC_HELP_STRING([--enable-dpdk],
+	 [enable DPDK [default is yes]])]
+	 ,[dpdk="$enableval"], [dpdk=yes])
+if test "X${dpdk}" != "Xno"; then
+    RTE_SDK=${TOPDIR}/src/dpdk
+    RTE_TARGET=build
+    RTE_ARCH=`uname -p`
+    if test "x$RTE_ARCH" = "xunknown"; then
         RTE_ARCH=`uname -m`
-     fi
-     case `uname` in
-     Linux)
-     RTE_OS=linuxapp
-     ;;
-     FreeBSD)
-     RTE_OS=bsdapp
-     ;;
-     *)
-     AC_MSG_ERROR([DPDK must be supported your OS.])
-     ;;
-     esac
-     RTE_TARGET=${RTE_ARCH}-native-${RTE_OS}-${CC}
-     AC_CHECK_HEADER(${RTE_SDK}/${RTE_TARGET}/include/rte_common.h, [],
-       [RTE_TARGET=${RTE_ARCH}-default-${RTE_OS}-${CC}
-        AC_CHECK_HEADER(${RTE_SDK}/${RTE_TARGET}/include/rte_common.h, [],
-          [AC_MSG_ERROR([DPDK must be installed.])])])])
-  RTE_LIBS=-L$RTE_SDK/$RTE_TARGET/lib
-  RTE_LIBS="$RTE_LIBS -Xlinker --whole-archive"
-  AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_distributor.a,
-                RTE_LIBS="$RTE_LIBS -Xlinker -lrte_distributor",)
-  AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_reorder.a,
-                RTE_LIBS="$RTE_LIBS -Xlinker -lrte_reorder",)
-  AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_kni.a,
-                RTE_LIBS="$RTE_LIBS -Xlinker -lrte_kni",)
-  AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_ivshmem.a,
-                RTE_LIBS="$RTE_LIBS -Xlinker -lrte_ivshmem",)
-  AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_pipeline.a,
-                RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pipeline",)
-  AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_table.a,
-                RTE_LIBS="$RTE_LIBS -Xlinker -lrte_table",)
-  AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_port.a,
-                RTE_LIBS="$RTE_LIBS -Xlinker -lrte_port",)
-  AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_timer.a,
-                RTE_LIBS="$RTE_LIBS -Xlinker -lrte_timer",)
-  AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_jobstats.a,
-                RTE_LIBS="$RTE_LIBS -Xlinker -lrte_jobstats",)
-  AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_hash.a,
-                RTE_LIBS="$RTE_LIBS -Xlinker -lrte_hash",)
-  AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_lpm.a,
-                RTE_LIBS="$RTE_LIBS -Xlinker -lrte_lpm",)
-  AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_power.a,
-                RTE_LIBS="$RTE_LIBS -Xlinker -lrte_power",)
-  AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_acl.a,
-                RTE_LIBS="$RTE_LIBS -Xlinker -lrte_acl",)
-  AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_meter.a,
-                RTE_LIBS="$RTE_LIBS -Xlinker -lrte_meter",)
-  AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_sched.a,
-                RTE_LIBS="$RTE_LIBS -Xlinker -lrte_sched -lm -lrt",)
-  AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_vhost.a,
-                RTE_LIBS="$RTE_LIBS -Xlinker -lrte_vhost",)
-  RTE_LIBS="$RTE_LIBS -Xlinker --start-group"
-  AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_kvargs.a,
-                RTE_LIBS="$RTE_LIBS -Xlinker -lrte_kvargs",)
-  RTE_LIBS="$RTE_LIBS -Xlinker -lrte_mbuf"
-  AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_ip_frag.a,
-                RTE_LIBS="$RTE_LIBS -Xlinker -lrte_ip_frag",)
-  RTE_LIBS="$RTE_LIBS -lrte_ring -lrte_eal"
-  AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_cmdline.a,
-                RTE_LIBS="$RTE_LIBS -lrte_cmdline",)
-  AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_cfgfile.a,
-                RTE_LIBS="$RTE_LIBS -lrte_cfgfile",)
-  AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_bond.a,
-                RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_bond",)
-  AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_xenvirt.a,
-                RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_xenvirt -lxenstore",)
-  AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_vmxnet3.a,
-                RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_vmxnet3",)
-  AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_virtio.a,
-                RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_virtio",)
-  AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_vmxnet3_uio.a,
-                RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_vmxnet3_uio",)
-  AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_virtio_uio.a,
-                RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_virtio_uio",)
-  AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_enic.a,
-                RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_enic",)
-  AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_i40e.a,
-                RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_i40e",)
-  AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_fm10k.a,
-                RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_fm10k",)
-  AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_ixgbe.a,
-                RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_ixgbe",)
-  AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_e1000.a,
-                RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_e1000",)
-  AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_mlx4.a,
-                RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_mlx4",)
-  AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_ring.a,
-                RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_ring",)
-  AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_pcap.a,
-                RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_pcap",)
-  AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_af_packet.a,
-                RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_af_packet",)
-  AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_pmd_null.a,
-                RTE_LIBS="$RTE_LIBS -Xlinker -lrte_pmd_null",)
-  RTE_LIBS="$RTE_LIBS -Xlinker --end-group -Xlinker --no-whole-archive"
-  RTE_LIBS="$RTE_LIBS -lethdev"
-  AC_CHECK_FILE(${RTE_SDK}/${RTE_TARGET}/lib/librte_malloc.a,
-                RTE_LIBS="$RTE_LIBS -Xlinker -lrte_malloc",)
-  RTE_LIBS="$RTE_LIBS  -lrte_mempool"
-  CPPFLAGS_BKUP="$CPPFLAGS"
-  CPPFLAGS="$CPPFLAGS -I$RTE_SDK/$RTE_TARGET/include"
-  AC_CHECK_MEMBER([struct rte_mbuf.pkt],
+    fi
+    case `uname` in
+        Linux)
+            RTE_OS=linuxapp
+        ;;
+        FreeBSD)
+            RTE_OS=bsdapp
+        ;;
+	*)
+            AC_MSG_ERROR([DPDK must be supported your OS.])
+        ;;
+    esac
+    RTE_LIBDIR="${RTE_SDK}/${RTE_TARGET}/lib"
+    RTE_LIBS="-L${RTE_LIBDIR} -ldpdk"
+    CPPFLAGS_BKUP="${CPPFLAGS}"
+    CPPFLAGS="${CPPFLAGS} -I${RTE_SDK}/lib/librte_mbuf/include"
+    AC_CHECK_MEMBER([struct rte_mbuf.pkt],
                   [RTE_MBUF_HAS_PKT=1],
 		  [],
 		  [[#include "rte_config.h"]
 		   [#include "rte_mbuf.h"]])
-  CPPFLAGS="$CPPFLAGS_BKUP"
+    CPPFLAGS="{$CPPFLAGS_BKUP}"
+    AC_DEFINE(HAVE_DPDK)
 else
- RTE_SDK=
- RTE_TARGET=
- RTE_LIBS=
- RTE_MBUF_HAS_PKT=
+    RTE_SDK=
+    RTE_TARGET=
+    RTE_LIBDIR=
+    RTE_LIBS=
+    RTE_ARCH=
+    RTE_OS=
+    RTE_MBUF_HAS_PKT=
 fi
 AC_SUBST(RTE_SDK)
 AC_SUBST(RTE_TARGET)
+AC_SUBST(RTE_LIBDIR)
 AC_SUBST(RTE_LIBS)
+AC_SUBST(RTE_ARCH)
+AC_SUBST(RTE_OS)
 AC_SUBST(RTE_MBUF_HAS_PKT)
 
 AC_ARG_ENABLE([mbtree],
@@ -747,17 +667,25 @@ AC_CONFIG_COMMANDS([modify-config],
 	[sh mk/finalizeconfig ${OS_CPPFLAGS}],
 	[OS_CPPFLAGS="${OS_CPPFLAGS}"])
 
-AC_CONFIG_COMMANDS([depend],
-	[sh mk/initdepend && ${MAKE} depend],
-	[MAKE=${MAKE}])
+AC_CONFIG_COMMANDS([initdepend],
+	[sh mk/initdepend])
+
+AC_CONFIG_COMMANDS([git-submodules],
+	[git submodule update --init])
 
 AC_CONFIG_COMMANDS([config-clean],
 	[rm -rf ./config.log ./config.status.* autom4te.cache])
 
 AC_OUTPUT
 
-${MAKE} clean
-${MAKE} generate
+${MAKE} clean && \
+${MAKE} generate && \
+${MAKE} submodules && \
+${MAKE} depend
+
+if test $? -ne 0; then
+    AC_MSG_ERROR([Prerequisite failure.])
+fi
 
 echo ""
 echo "CC:	'${CC}'"

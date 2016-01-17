@@ -19,6 +19,8 @@
  *      @brief  Dataplane driver use with raw socket
  */
 
+#include "lagopus_config.h"
+
 #include <stdio.h>
 #include <stdbool.h>
 #include <inttypes.h>

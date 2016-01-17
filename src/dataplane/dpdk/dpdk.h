@@ -432,4 +432,7 @@ void app_print_params(void);
  */
 void clear_worker_flowcache(bool);
 
+bool is_rawsocket_only_mode(void);
+bool set_rawsocket_only_mode(bool newval);
+
 #endif /* SRC_DATAPLANE_DPDK_DPDK_H_ */

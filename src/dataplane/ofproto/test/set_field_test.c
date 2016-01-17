@@ -40,7 +40,7 @@ test_push_MPLS_and_set_field_ETH_DST_SRC(void) {
   struct action *action;
   struct ofp_action_push *action_push;
   struct ofp_action_set_field *action_set;
-  struct lagopus_packet pkt;
+  struct lagopus_packet *pkt;
   OS_MBUF *m;
 
   TAILQ_INIT(&action_list);
@@ -69,52 +69,52 @@ test_push_MPLS_and_set_field_ETH_DST_SRC(void) {
             0x22, 0x44, 0x66, 0x88, 0xaa, 0xcc);
   TAILQ_INSERT_TAIL(&action_list, action, entry);
 
-  m = calloc(1, sizeof(*m));
-  TEST_ASSERT_NOT_EQUAL_MESSAGE(m, NULL, "calloc error.");
-  m->data = &m->dat[128];
+  pkt = alloc_lagopus_packet();
+  TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
+  m = pkt->mbuf;
 
-  OS_M_PKTLEN(m) = 64;
-  m->data[12] = 0x08;
-  m->data[13] = 0x00;
-  m->data[14] = 0x45;
-  m->data[22] = 240;
+  OS_M_APPEND(m, 64);
+  OS_MTOD(m, uint8_t *)[12] = 0x08;
+  OS_MTOD(m, uint8_t *)[13] = 0x00;
+  OS_MTOD(m, uint8_t *)[14] = 0x45;
+  OS_MTOD(m, uint8_t *)[22] = 240;
 
-  lagopus_packet_init(&pkt, m, &port);
-  execute_action(&pkt, &action_list);
+  lagopus_packet_init(pkt, m, &port);
+  execute_action(pkt, &action_list);
   TEST_ASSERT_EQUAL_MESSAGE(OS_M_PKTLEN(m), 64 + 4,
                             "PUSH_MPLS length error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[12], 0x88,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[12], 0x88,
                             "PUSH_MPLS ethertype[0] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[13], 0x47,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[13], 0x47,
                             "PUSH_MPLS ethertype[1] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[16], 1,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[16], 1,
                             "PUSH_MPLS BOS error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[17], 240,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[17], 240,
                             "PUSH_MPLS TTL error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[18], 0x45,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[18], 0x45,
                             "PUSH_MPLS payload error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[0], 0x23,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[0], 0x23,
                             "SET_FIELD ETH_DST[0] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[1], 0x45,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[1], 0x45,
                             "SET_FIELD ETH_DST[1] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[2], 0x67,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[2], 0x67,
                             "SET_FIELD ETH_DST[2] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[3], 0x89,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[3], 0x89,
                             "SET_FIELD ETH_DST[3] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[4], 0xab,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[4], 0xab,
                             "SET_FIELD ETH_DST[4] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[5], 0xcd,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[5], 0xcd,
                             "SET_FIELD ETH_DST[5] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[6], 0x22,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[6], 0x22,
                             "SET_FIELD ETH_SRC[0] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[7], 0x44,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[7], 0x44,
                             "SET_FIELD ETH_SRC[1] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[8], 0x66,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[8], 0x66,
                             "SET_FIELD ETH_SRC[2] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[9], 0x88,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[9], 0x88,
                             "SET_FIELD ETH_SRC[3] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[10], 0xaa,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[10], 0xaa,
                             "SET_FIELD ETH_SRC[4] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[11], 0xcc,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[11], 0xcc,
                             "SET_FIELD ETH_SRC[5] error.");
 }

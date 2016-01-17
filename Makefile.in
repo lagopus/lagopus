@@ -16,8 +16,11 @@ DIRS	=	tools \
 
 include $(MKRULESDIR)/rules.mk
 
-clean::
+install:: dpdk-install
+
+clean:: dpdk-clean
 	$(RM) -r autom4te.cache config.log
+	$(RM) -f src/config/lagosh/lagosh.py
 	find . -type f \( \
 		-name '*~' -o \
 		-name 'core' -o \
@@ -26,6 +29,7 @@ clean::
 	\) -exec rm -f {} \;
 
 distclean::	clean
+	$(RM) -r ./src/dpdk/* ./src/dpdk/.git*
 	$(RM) config.* mk/vars.mk mk/doxygen.conf ./libtool
 	find . -type f \( \
 		-name '.depend' \

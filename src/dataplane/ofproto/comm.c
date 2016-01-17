@@ -19,6 +19,8 @@
  *      @brief  Dataplane communicator thread functions.
  */
 
+#include "lagopus_config.h"
+
 #ifdef HAVE_DPDK
 #include <rte_config.h>
 #include <rte_lcore.h>

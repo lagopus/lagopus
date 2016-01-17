@@ -45,7 +45,7 @@ test_set_field_IN_PORT(void) {
   struct action *action;
   struct ofp_action_set_field *action_set;
   struct port nport;
-  struct lagopus_packet pkt;
+  struct lagopus_packet *pkt;
   OS_MBUF *m;
 
   /* setup bridge and port */
@@ -65,19 +65,19 @@ test_set_field_IN_PORT(void) {
   TAILQ_INSERT_TAIL(&action_list, action, entry);
 
 
-  m = calloc(1, sizeof(*m));
-  TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
-  m->data = &m->dat[128];
+  pkt = alloc_lagopus_packet();
+  TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
+  m = pkt->mbuf;
 
   bridge = dp_bridge_lookup("br0");
   TEST_ASSERT_NOT_NULL(bridge);
-  pkt.in_port = port_lookup(bridge->ports, 1);
-  TEST_ASSERT_NOT_NULL(pkt.in_port);
-  lagopus_packet_init(&pkt, m, pkt.in_port);
+  pkt->in_port = port_lookup(bridge->ports, 1);
+  TEST_ASSERT_NOT_NULL(pkt->in_port);
+  lagopus_packet_init(pkt, m, pkt->in_port);
   set_match(action_set->field, 4, OFPXMT_OFB_IN_PORT << 1,
             0x00, 0x00, 0x00, 0x02);
-  execute_action(&pkt, &action_list);
-  TEST_ASSERT_EQUAL_MESSAGE(pkt.in_port->ofp_port.port_no, 2,
+  execute_action(pkt, &action_list);
+  TEST_ASSERT_EQUAL_MESSAGE(pkt->in_port->ofp_port.port_no, 2,
                             "SET_FIELD IN_PORT error.");
 }
 
@@ -89,7 +89,7 @@ test_set_field_METADATA(void) {
   struct action_list action_list;
   struct action *action;
   struct ofp_action_set_field *action_set;
-  struct lagopus_packet pkt;
+  struct lagopus_packet *pkt;
   OS_MBUF *m;
 
   TAILQ_INIT(&action_list);
@@ -99,15 +99,15 @@ test_set_field_METADATA(void) {
   lagopus_set_action_function(action);
   TAILQ_INSERT_TAIL(&action_list, action, entry);
 
-  m = calloc(1, sizeof(*m));
-  TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
-  m->data = &m->dat[128];
+  pkt = alloc_lagopus_packet();
+  TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
+  m = pkt->mbuf;
 
-  pkt.oob_data.metadata = 0;
-  lagopus_packet_init(&pkt, m, &port);
+  pkt->oob_data.metadata = 0;
+  lagopus_packet_init(pkt, m, &port);
   set_match(action_set->field, 8, OFPXMT_OFB_METADATA << 1,
             0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0);
-  execute_action(&pkt, &action_list);
-  TEST_ASSERT_EQUAL_UINT8_ARRAY_MESSAGE(&pkt.oob_data.metadata, metadata, 8,
+  execute_action(pkt, &action_list);
+  TEST_ASSERT_EQUAL_UINT8_ARRAY_MESSAGE(&pkt->oob_data.metadata, metadata, 8,
                                         "SET_FIELD METADATA error.");
 }

@@ -3,6 +3,7 @@ MKRULESDIR	= @MKRULESDIR@
 
 RTE_SDK         = @RTE_SDK@
 RTE_TARGET      = @RTE_TARGET@
+RTE_LIBDIR	= @RTE_LIBDIR@
 
 OSDEF		= @OSDEF@
 HYBRID		= @HYBRID@
@@ -17,7 +18,6 @@ DPMGRDIR=mgr
 ifeq ($(RTE_SDK),)
 DATAPATHDIR=sock
 else
-# so far, hardcoded to use dpdk version.
 DATAPATHDIR=dpdk
 endif
 
@@ -41,6 +41,9 @@ WARN_CFLAGS += -Werror=missing-prototypes
 WARN_CFLAGS += -Werror=uninitialized
 
 DEP_LIBS	+= $(DEP_LAGOPUS_UTIL_LIB)
+ifneq ($(RTE_SDK),)
+DEP_LIBS	+= $(DEP_DPDK_LIB)
+endif
 
 TARGETS	=	$(TARGET_LIB)
 

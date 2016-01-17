@@ -37,17 +37,17 @@ tearDown(void) {
 
 void
 test_match_basic_PBB_ISID(void) {
-  struct lagopus_packet pkt;
+  struct lagopus_packet *pkt;
   struct port port;
   struct flow *flow;
   OS_MBUF *m;
   bool rv;
 
   /* prepare packet */
-  m = calloc(1, sizeof(*m));
-  TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
-  m->data = &m->dat[128];
-  OS_M_PKTLEN(m) = 64;
+  pkt = alloc_lagopus_packet();
+  TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
+  m = pkt->mbuf;
+  OS_M_APPEND(m, 64);
 
   /* prepare flow */
   flow = calloc(1, sizeof(struct flow) + 10 * sizeof(struct match));
@@ -57,42 +57,42 @@ test_match_basic_PBB_ISID(void) {
   add_match(&flow->match_list, 2, OFPXMT_OFB_ETH_TYPE << 1,
             0x88, 0xe7);
 #endif
-  m->data[12] = 0x88;
-  m->data[13] = 0xe7;
+  OS_MTOD(m, uint8_t *)[12] = 0x88;
+  OS_MTOD(m, uint8_t *)[13] = 0xe7;
   add_match(&flow->match_list, 3, OFPXMT_OFB_PBB_ISID << 1,
             0x5a, 0xc3, 0x3c);
   refresh_match(flow);
-  lagopus_packet_init(&pkt, m, &port);
-  rv = match_basic(&pkt, flow);
+  lagopus_packet_init(pkt, m, &port);
+  rv = match_basic(pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "PBB_ISID mismatch(1) error.");
-  m->data[15] = 0x3c;
-  m->data[16] = 0xc3;
-  m->data[17] = 0x5a;
-  rv = match_basic(&pkt, flow);
+  OS_MTOD(m, uint8_t *)[15] = 0x3c;
+  OS_MTOD(m, uint8_t *)[16] = 0xc3;
+  OS_MTOD(m, uint8_t *)[17] = 0x5a;
+  rv = match_basic(pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "PBB_ISID mismatch(2) error.");
-  m->data[15] = 0x5a;
-  m->data[16] = 0xc3;
-  m->data[17] = 0x3c;
-  rv = match_basic(&pkt, flow);
+  OS_MTOD(m, uint8_t *)[15] = 0x5a;
+  OS_MTOD(m, uint8_t *)[16] = 0xc3;
+  OS_MTOD(m, uint8_t *)[17] = 0x3c;
+  rv = match_basic(pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, true,
                             "PBB_ISID match error.");
 }
 
 void
 test_match_basic_PBB_ISID_W(void) {
-  struct lagopus_packet pkt;
+  struct lagopus_packet *pkt;
   struct port port;
   struct flow *flow;
   OS_MBUF *m;
   bool rv;
 
   /* prepare packet */
-  m = calloc(1, sizeof(*m));
-  TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
-  m->data = &m->dat[128];
-  OS_M_PKTLEN(m) = 64;
+  pkt = alloc_lagopus_packet();
+  TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
+  m = pkt->mbuf;
+  OS_M_APPEND(m, 64);
 
   /* prepare flow */
   flow = calloc(1, sizeof(struct flow) + 10 * sizeof(struct match));
@@ -102,25 +102,25 @@ test_match_basic_PBB_ISID_W(void) {
   add_match(&flow->match_list, 2, OFPXMT_OFB_ETH_TYPE << 1,
             0x88, 0xe7);
 #endif
-  m->data[12] = 0x88;
-  m->data[13] = 0xe7;
+  OS_MTOD(m, uint8_t *)[12] = 0x88;
+  OS_MTOD(m, uint8_t *)[13] = 0xe7;
   add_match(&flow->match_list, 6, (OFPXMT_OFB_PBB_ISID << 1) + 1,
             0x5a, 0xc3, 0x00, 0xff, 0xff, 0x00);
   refresh_match(flow);
-  lagopus_packet_init(&pkt, m, &port);
-  rv = match_basic(&pkt, flow);
+  lagopus_packet_init(pkt, m, &port);
+  rv = match_basic(pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "PBB_ISID_W mismatch(1) error.");
-  m->data[15] = 0x3c;
-  m->data[16] = 0xc3;
-  m->data[17] = 0x5a;
-  rv = match_basic(&pkt, flow);
+  OS_MTOD(m, uint8_t *)[15] = 0x3c;
+  OS_MTOD(m, uint8_t *)[16] = 0xc3;
+  OS_MTOD(m, uint8_t *)[17] = 0x5a;
+  rv = match_basic(pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "PBB_ISID_W mismatch(2) error.");
-  m->data[15] = 0x5a;
-  m->data[16] = 0xc3;
-  m->data[17] = 0x3c;
-  rv = match_basic(&pkt, flow);
+  OS_MTOD(m, uint8_t *)[15] = 0x5a;
+  OS_MTOD(m, uint8_t *)[16] = 0xc3;
+  OS_MTOD(m, uint8_t *)[17] = 0x3c;
+  rv = match_basic(pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, true,
                             "PBB_ISID_W match error.");
 }

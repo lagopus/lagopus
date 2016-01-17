@@ -19,6 +19,8 @@
  *      @brief  Dataplane public APIs.
  */
 
+#include "lagopus_config.h"
+
 #include "openflow.h"
 #include "lagopus/bridge.h"
 #include "lagopus/port.h"

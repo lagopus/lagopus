@@ -218,7 +218,7 @@ pkg-clean::
 	$(RM) -rf $(PKGDIR)/
 
 pkg-deb:: clean
-	sh $(MKRULESDIR)/make_pkg.sh $(TOPDIR) $(PKGDIR)
+	sh $(MKRULESDIR)/make_pkg.sh $(TOPDIR) $(PKGDIR) $(RTE_TARGET)
 
 ifdef TARGET_LIB
 $(TARGET_LIB):	$(OBJS)
@@ -253,14 +253,51 @@ $(DEP_LAGOPUS_CONFIG_LIB)::
 $(DEP_SNMP_HANDLER_LIB)::
 	(cd $(BUILD_SNMPDIR) && $(MAKE) $(SNMP_HANDLER_LIB))
 
-$(DEP_LAGOPUS_OFCONF_LIB)::
-	(cd $(BUILD_OFCONFDIR) && $(MAKE) $(LAGOPUS_OFCONF_LIB))
+# Obsolete/Depricated modules:
+#---------------------------------------------------------------------
+#$(DEP_LAGOPUS_OFCONF_LIB)::
+#	(cd $(BUILD_OFCONFDIR) && $(MAKE) $(LAGOPUS_OFCONF_LIB))
 
-$(DEP_LAGOPUS_OVSDB_LIB)::
-	(cd $(BUILD_OVSDBDIR) && $(MAKE) $(LAGOPUS_OVSDB_LIB))
+#$(DEP_LAGOPUS_OVSDB_LIB)::
+#	(cd $(BUILD_OVSDBDIR) && $(MAKE) $(LAGOPUS_OVSDB_LIB))
 
-$(DEP_LAGOPUS_ETHOAM_LIB)::
-	(cd $(BUILD_ETHOAMDIR) && $(MAKE) $(LAGOPUS_ETHOAM_LIB))
+#$(DEP_LAGOPUS_ETHOAM_LIB)::
+#	(cd $(BUILD_ETHOAMDIR) && $(MAKE) $(LAGOPUS_ETHOAM_LIB))
+#---------------------------------------------------------------------
+
+ifneq ($(RTE_SDK),)
+
+dpdk::
+	$(MKRULESDIR)/make_dpdk.sh ${TOPDIR} src/dpdk \
+		"${RTE_ARCH}" "${RTE_OS}" ${CC}
+
+dpdk-install::
+	$(INSTALL_DATA) $(TOPDIR)/src/dpdk/build/lib/libdpdk.so $(DEST_LIBDIR)
+
+dpdk-clean::
+	@if test -r "${TOPDIR}/src/dpdk/build/.config"; then \
+		cd ${TOPDIR}/src/dpdk && $(MAKE) clean; \
+	fi
+
+$(DEP_DPDK_LIB)::
+	@if test ! -f $$(DEP_DPDK_LIB); then \
+		$(MAKE) dpdk; \
+	fi
+
+else
+
+dpdk::
+	@true
+
+dpdk-install::
+	@true
+
+dpdk-clean::
+	@true
+
+endif
+
+submodules::	dpdk
 
 clean:: pkg-clean
 	$(LTCLEAN) $(OBJS) *.i *~ *.~*~ core core.* *.core $(TARGETS) \
