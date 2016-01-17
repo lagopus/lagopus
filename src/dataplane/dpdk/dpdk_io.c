@@ -611,7 +611,8 @@ app_lcore_io_tx(struct app_lcore_params_io *lp,
   }
 }
 
-static inline void
+
+void
 dpdk_update_link_status(struct app_lcore_params_io *lp) {
   int i;
 
