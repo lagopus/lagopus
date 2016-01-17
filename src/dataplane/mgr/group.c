@@ -36,13 +36,34 @@
 #include "lagopus_types.h"
 #include "lagopus_error.h"
 
-#include "../agent/ofp_bucket.h"
-#include "../agent/ofp_group_handler.h"
-
 #define GROUP_ID_KEY_LEN   32
 
-void
-ofp_bucket_list_free(struct bucket_list *bucket_list);
+static struct bucket *
+bucket_alloc(void) {
+  struct bucket *bucket;
+
+  bucket = (struct bucket *)
+           calloc(1, sizeof(struct bucket));
+  if (bucket != NULL) {
+    TAILQ_INIT(&bucket->action_list);
+  }
+
+  return bucket;
+}
+
+static void
+bucket_list_free(struct bucket_list *bucket_list) {
+  struct bucket *bucket;
+
+  while (TAILQ_EMPTY(bucket_list) == false) {
+    bucket = TAILQ_FIRST(bucket_list);
+    if (TAILQ_EMPTY(&bucket->action_list) == false) {
+      ofp_action_list_elem_free(&bucket->action_list);
+    }
+    TAILQ_REMOVE(bucket_list, bucket, entry);
+    free(bucket);
+  }
+}
 
 struct ref_flow {
   struct flow *flow;
@@ -330,7 +351,7 @@ group_free(struct group *group) {
   struct ofp_error error;
   vindex_t i, nflow;
 
-  ofp_bucket_list_free(&group->bucket_list);
+  bucket_list_free(&group->bucket_list);
   /* remove group action from each flows. */
   nflow = group->flows->max;
   for (i = 0; i < nflow; i++) {
@@ -349,7 +370,7 @@ group_free(struct group *group) {
 void
 group_modify(struct group *group, struct ofp_group_mod *group_mod,
              struct bucket_list *bucket_list) {
-  ofp_bucket_list_free(&group->bucket_list);
+  bucket_list_free(&group->bucket_list);
   group->type = group_mod->type;
   TAILQ_INIT(&group->bucket_list);
   copy_bucket_list(&group->bucket_list, bucket_list);
@@ -568,7 +589,7 @@ ofp_group_mod_add(uint64_t dpid,
     /* Allocate a new group. */
     group = group_alloc(group_mod, bucket_list);
     if (group == NULL) {
-      ofp_bucket_list_free(bucket_list);
+      bucket_list_free(bucket_list);
       rv = LAGOPUS_RESULT_NO_MEMORY;
     } else {
       /* Add a group. */

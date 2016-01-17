@@ -41,6 +41,8 @@
 #include "../agent/ofp_match.h"
 #include "../agent/openflow13packet.h"
 
+#include "callback.h"
+
 #define MBTREE_TIMEOUT 2
 
 #define PUT_TIMEOUT 100LL * 1000LL * 1000LL
@@ -373,9 +375,6 @@ flow_pre_requisite_check(struct flow *flow,
   /* Iterate match entry. */
   TAILQ_FOREACH(match, match_list, entry) {
     field_type = OXM_FIELD_TYPE(match->oxm_field);
-    lagopus_dprint("match type %s (field_type_bit: 0x%lx)\n",
-                   oxm_ofb_match_fields_str(field_type),
-                   FIELD_TYPE_BIT(field_type));
 
     /* Duplication field error. */
     if (CHECK_FIELD_BIT(flow->field_bits, field_type)) {
@@ -609,7 +608,7 @@ copy_match_list(struct match_list *dst,
   struct match *src_match;
   struct match *dst_match;
   TAILQ_FOREACH(src_match, src, entry) {
-    dst_match = match_alloc(src_match->oxm_length);
+    dst_match = calloc(1, sizeof(struct match) + src_match->oxm_length);
     if (dst_match == NULL) {
       return LAGOPUS_RESULT_NO_MEMORY;
     }
@@ -628,7 +627,7 @@ copy_action_list(struct action_list *dst,
   const struct action *src_action;
   struct action *dst_action;
   TAILQ_FOREACH(src_action, src, entry) {
-    dst_action = action_alloc(src_action->ofpat.len);
+    dst_action = calloc(1, sizeof(struct action) + src_action->ofpat.len);
     if (dst_action == NULL) {
       return LAGOPUS_RESULT_NO_MEMORY;
     }
@@ -651,7 +650,7 @@ copy_instruction_list(struct instruction_list *dst,
   lagopus_result_t rv;
 
   TAILQ_FOREACH(src_inst, src, entry) {
-    dst_inst = instruction_alloc();
+    dst_inst = calloc(1, sizeof(struct instruction));
     if (dst_inst == NULL) {
       return LAGOPUS_RESULT_NO_MEMORY;
     }
@@ -1261,6 +1260,14 @@ flow_del_from_group(struct group_table *group_table, struct flow *flow) {
   }
 }
 
+static void
+flow_removed_free(struct eventq_data *data) {
+  if (data != NULL) {
+    ofp_match_list_elem_free(&data->flow_removed.match_list);
+    free(data);
+  }
+}
+
 static lagopus_result_t
 send_flow_removed(uint64_t dpid,
                   struct flow *flow,
@@ -1312,8 +1319,8 @@ send_flow_removed(uint64_t dpid,
   TAILQ_INIT(&flow_removed->match_list);
   TAILQ_CONCAT(&flow_removed->match_list, &flow->match_list, entry);
   eventq_data->type = LAGOPUS_EVENTQ_FLOW_REMOVED;
-  eventq_data->free = ofp_flow_removed_free;
-  rv = ofp_handler_eventq_data_put(dpid, &eventq_data, PUT_TIMEOUT);
+  eventq_data->free = flow_removed_free;
+  rv = dp_eventq_data_put(dpid, &eventq_data, PUT_TIMEOUT);
   if (rv != LAGOPUS_RESULT_OK) {
     lagopus_perror(rv);
   }

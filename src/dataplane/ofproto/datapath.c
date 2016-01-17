@@ -1326,12 +1326,23 @@ send_port_status(struct port *port, uint8_t reason) {
   entry->port_status.ofp_port_status.reason = reason;
   entry->port_status.ofp_port_status.desc = port->ofp_port;
 
-  rv = ofp_handler_eventq_data_put(port->bridge->dpid,
-                                   &entry, PUT_TIMEOUT);
+  rv = dp_eventq_data_put(port->bridge->dpid,
+                          &entry, PUT_TIMEOUT);
   if (rv != LAGOPUS_RESULT_OK) {
     lagopus_perror(rv);
   }
   return rv;
+}
+
+static void
+packet_in_free(struct eventq_data *data) {
+  if (data != NULL) {
+    ofp_match_list_elem_free(&data->packet_in.match_list);
+    if (data->packet_in.data != NULL) {
+      pbuf_free(data->packet_in.data);
+    }
+    free(data);
+  }
 }
 
 static lagopus_result_t
@@ -1359,14 +1370,15 @@ send_packet_in(struct lagopus_packet *pkt,
     free(data);
     return LAGOPUS_RESULT_NO_MEMORY;
   }
-  port_match = match_alloc(sizeof(port_no));
+  port_match = calloc(1, sizeof(struct match) + sizeof(port_no));
   if (port_match == NULL) {
     pbuf_free(pbuf);
     free(data);
     return LAGOPUS_RESULT_NO_MEMORY;
   }
   if (pkt->oob_data.metadata != 0) {
-    metadata_match = match_alloc(sizeof(pkt->oob_data.metadata));
+    metadata_match = calloc(1, sizeof(struct match) +
+                            sizeof(pkt->oob_data.metadata));
     if (metadata_match == NULL) {
       pbuf_free(pbuf);
       free(data);
@@ -1377,7 +1389,7 @@ send_packet_in(struct lagopus_packet *pkt,
     metadata_match = NULL;
   }
   data->type = LAGOPUS_EVENTQ_PACKET_IN;
-  data->free = ofp_packet_in_free;
+  data->free = packet_in_free;
   data->packet_in.ofp_packet_in.buffer_id = OFP_NO_BUFFER;
   data->packet_in.ofp_packet_in.reason = reason;
   data->packet_in.ofp_packet_in.table_id = pkt->table_id;
@@ -1417,8 +1429,8 @@ send_packet_in(struct lagopus_packet *pkt,
   /* TUNNEL_ID for physical port is omitted. */
 
   DP_PRINT("%s: put packet to dataq\n", __func__);
-  rv = ofp_handler_dataq_data_put(pkt->in_port->bridge->dpid,
-                                  &data, PUT_TIMEOUT);
+  rv = dp_dataq_data_put(pkt->in_port->bridge->dpid,
+                         &data, PUT_TIMEOUT);
   if (rv != LAGOPUS_RESULT_OK) {
     DP_PRINT("%s: %s\n", __func__, lagopus_error_get_string(rv));
     data->free(data);

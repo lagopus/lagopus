@@ -42,6 +42,8 @@ setUp(void) {
 
   /* create interp. */
   INTERP_CREATE(ret, "bridge", interp, tbl, ds, em);
+  dp_dataq_put_func_register(ofp_handler_dataq_data_put);
+  dp_eventq_put_func_register(ofp_handler_eventq_data_put);
 
   ret = datastore_find_table("port", &tbl_port,
                              NULL, NULL, NULL,

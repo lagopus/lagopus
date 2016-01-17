@@ -24,6 +24,7 @@
 #include "lagopus/snmpmgr.h"
 #endif /* ENABLE_SNMP_MODULE */
 #include "agent.h"
+#include "ofp_dpqueue_mgr.h"
 #include "lagopus/datastore.h"
 
 
@@ -147,14 +148,14 @@ s_once_proc(void) {
     lagopus_perror(r);
     lagopus_exit_fatal("can't register the \"%s\" module.\n", name);
   }
-  name = "dp_comm";
+  name = "dpqueuemgr";
   r = lagopus_module_register(name,
-                              dp_comm_thread_init,
+                              ofp_dpqueue_mgr_initialize,
                               NULL,
-                              dp_comm_thread_start,
-                              dp_comm_thread_shutdown,
-                              dp_comm_thread_stop,
-                              dp_comm_thread_fini,
+                              ofp_dpqueue_mgr_start,
+                              ofp_dpqueue_mgr_shutdown,
+                              ofp_dpqueue_mgr_stop,
+                              ofp_dpqueue_mgr_finalize,
                               NULL);
   if (r != LAGOPUS_RESULT_OK) {
     lagopus_perror(r);

@@ -26,8 +26,10 @@
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <net/if.h>
+
+#ifdef __linux__
 #include <linux/if_tun.h>
-#include <linux/rtnetlink.h>
+#endif /* __linux__ */
 
 #include "lagopus/dp_apis.h"
 #include "lagopus/interface.h"

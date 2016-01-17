@@ -22,6 +22,7 @@
 #ifndef SRC_INCLUDE_LAGOPUS_DP_APIS_H_
 #define SRC_INCLUDE_LAGOPUS_DP_APIS_H_
 
+#include "lagopus_types.h"
 #include "lagopus/datastore.h"
 
 /**
@@ -602,5 +603,53 @@ struct bridge;
  */
 void
 dp_get_flowcache_statistics(struct bridge *bridge, struct ofcachestat *st);
+
+struct eventq_data;
+
+typedef lagopus_result_t (*dp_dataq_put_func_t)(uint64_t dpid,
+                                                struct eventq_data **data,
+                                                lagopus_chrono_t timeout);
+typedef lagopus_result_t (*dp_eventq_put_func_t)(uint64_t dpid,
+                                                 struct eventq_data **data,
+                                                 lagopus_chrono_t timeout);
+
+/**
+ * Register data queue put function.
+ *
+ *      @param[in]      func    pointer of put function.
+ *      @retval         Previous pointer of put function.
+ *
+ * Use put function for:
+ * - packet-in
+ */
+dp_dataq_put_func_t
+dp_dataq_put_func_register(dp_dataq_put_func_t func);
+
+/**
+ * Register event queue put function.
+ *
+ *      @param[in]      func    Pointer of put function.
+ *      @retval         Previous pointer of put function.
+ *
+ * Use put function for:
+ * - barrier reply
+ * - port stats
+ */
+dp_eventq_put_func_t
+dp_eventq_put_func_register(dp_dataq_put_func_t func);
+
+/**
+ * Process event data from agent.
+ *
+ *      @param[in]      dpid    Datapath id of the bridge.
+ *      @param[in]      data    Data.
+ *      @retval         LAGOPUS_RESULT_OK       Success.
+ *
+ * Event data is one of:
+ * - Packet-out
+ * - Barrier request
+ */
+lagopus_result_t
+dp_process_event_data(uint64_t dpid, struct eventq_data *data);
 
 #endif /* SRC_INCLUDE_LAGOPUS_DP_APIS_H_ */
