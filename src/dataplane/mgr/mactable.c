@@ -77,8 +77,8 @@ macentry_free(struct macentry *macentry) {
  * Only if the address type is dynamic.
  * @param[in] mactable MAC address table.
  */
-static lagopus_result_t
-age_out(struct mactable *mactable) {
+lagopus_result_t
+mactable_age_out(struct mactable *mactable) {
   lagopus_result_t rv = LAGOPUS_RESULT_OK;
   int cstate;
   struct macentry *macentry;
@@ -91,6 +91,7 @@ age_out(struct mactable *mactable) {
     struct timespec now = get_current_time();
 
     if (now.tv_sec - macentry->update_time.tv_sec >= mactable->ageing_time) {
+      lagopus_msg_info("mactable_age_out: expired mac entry.\n");
       /* this entry is expired. */
       /* remove mac entry from macentry_list. */
       TAILQ_REMOVE(&mactable->macentry_list, macentry, next);
@@ -329,6 +330,10 @@ init_mactable(struct mactable *mactable) {
                                 LAGOPUS_HASHMAP_TYPE_ONE_WORD,
                                 macentry_free);
   }
+
+  /* set cleanup timer. */
+  add_mactable_timer(mactable, MACTABLE_CLEANUP_TIME);
+
   return rv;
 }
 
@@ -345,7 +350,7 @@ uint32_t
 find_and_learn_port_in_mac_table(struct lagopus_packet *pkt) {
   struct macentry *entry;
 
-  age_out(&pkt->in_port->bridge->mactable);
+  mactable_age_out(&pkt->in_port->bridge->mactable);
 
   learn_port(&pkt->in_port->bridge->mactable,
              pkt->in_port->ofp_port.port_no,
