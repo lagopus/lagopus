@@ -371,13 +371,29 @@ test_lagopus_pipeline_stage_create_invalid_args(void) {
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS, ret,
                             "not invalid args.");
 
-#if 0
   ret = lagopus_pipeline_stage_create(&stage, 0,
                                       "test_error",
                                       nthd,
                                       sizeof(void *), 0,
                                       pipeline_pre_pause,
                                       pipeline_sched,
+                                      pipeline_setup,
+                                      pipeline_fetch,
+                                      pipeline_main,
+                                      pipeline_throw,
+                                      pipeline_shutdown,
+                                      pipeline_finalize,
+                                      pipeline_freeup);
+  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS, ret,
+                            "not invalid args.");
+
+#if 0
+  ret = lagopus_pipeline_stage_create(&stage, 0,
+                                      "test_error",
+                                      nthd,
+                                      sizeof(void *), 1024,
+                                      pipeline_pre_pause,
+                                      NULL,
                                       pipeline_setup,
                                       pipeline_fetch,
                                       pipeline_main,
@@ -394,22 +410,6 @@ test_lagopus_pipeline_stage_create_invalid_args(void) {
    * support "ingress" stages.
    */
 #endif
-
-  ret = lagopus_pipeline_stage_create(&stage, 0,
-                                      "test_error",
-                                      nthd,
-                                      sizeof(void *), 1024,
-                                      pipeline_pre_pause,
-                                      NULL,
-                                      pipeline_setup,
-                                      pipeline_fetch,
-                                      pipeline_main,
-                                      pipeline_throw,
-                                      pipeline_shutdown,
-                                      pipeline_finalize,
-                                      pipeline_freeup);
-  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS, ret,
-                            "not invalid args.");
 
   ret = lagopus_pipeline_stage_create(&stage, 0,
                                       "test_error",
