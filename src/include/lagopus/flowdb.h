@@ -22,75 +22,9 @@
 #ifndef SRC_INCLUDE_LAGOPUS_FLOWDB_H_
 #define SRC_INCLUDE_LAGOPUS_FLOWDB_H_
 
-#ifdef HAVE_DPDK
-#include "rte_config.h"
-#include "rte_rwlock.h"
-#endif /* HAVE_DPDK */
-
 #include "lagopus_apis.h"
 #include "openflow.h"
 #include "ofcache.h"
-
-/*
- * flowdb lock primitive.
- */
-#ifdef HAVE_DPDK
-rte_rwlock_t flowdb_update_lock;
-rte_rwlock_t dpmgr_lock;
-
-#define FLOWDB_RWLOCK_INIT()
-#define FLOWDB_RWLOCK_RDLOCK()  do {                                    \
-    rte_rwlock_read_lock(&dpmgr_lock);                                  \
-  } while(0)
-#define FLOWDB_RWLOCK_WRLOCK()  do {                                    \
-    rte_rwlock_write_lock(&dpmgr_lock);                                 \
-  } while(0)
-#define FLOWDB_RWLOCK_RDUNLOCK() do {                                   \
-    rte_rwlock_read_unlock(&dpmgr_lock);                                \
-  } while(0)
-#define FLOWDB_RWLOCK_WRUNLOCK() do {                                   \
-    rte_rwlock_write_unlock(&dpmgr_lock);                               \
-  } while(0)
-#define FLOWDB_UPDATE_CHECK() do {                      \
-    rte_rwlock_read_lock(&flowdb_update_lock);          \
-    rte_rwlock_read_unlock(&flowdb_update_lock);        \
-  } while (0)
-#define FLOWDB_UPDATE_BEGIN() do {               \
-    rte_rwlock_write_lock(&flowdb_update_lock);  \
-  } while (0)
-#define FLOWDB_UPDATE_END() do {                        \
-    rte_rwlock_write_unlock(&flowdb_update_lock);       \
-  } while (0)
-#else
-pthread_rwlock_t flowdb_update_lock;
-pthread_rwlock_t dpmgr_lock;
-#define FLOWDB_RWLOCK_INIT() do {                                       \
-    pthread_rwlock_init(&flowdb_update_lock, NULL);                     \
-    pthread_rwlock_init(&dpmgr_lock, NULL);                             \
-  } while(0)
-#define FLOWDB_RWLOCK_RDLOCK()  do {                                    \
-    pthread_rwlock_rdlock(&dpmgr_lock);                                 \
-  } while(0)
-#define FLOWDB_RWLOCK_WRLOCK()  do {                                    \
-    pthread_rwlock_wrlock(&dpmgr_lock);                                 \
-  } while(0)
-#define FLOWDB_RWLOCK_RDUNLOCK() do {                                   \
-    pthread_rwlock_unlock(&dpmgr_lock);                                 \
-  } while(0)
-#define FLOWDB_RWLOCK_WRUNLOCK() do {                                   \
-    pthread_rwlock_unlock(&dpmgr_lock);                                 \
-  } while(0)
-#define FLOWDB_UPDATE_CHECK() do {                      \
-    pthread_rwlock_rdlock(&flowdb_update_lock);    \
-    pthread_rwlock_unlock(&flowdb_update_lock);     \
-  } while (0)
-#define FLOWDB_UPDATE_BEGIN() do {                      \
-    pthread_rwlock_wrlock(&flowdb_update_lock);    \
-  } while (0)
-#define FLOWDB_UPDATE_END() do {                        \
-    pthread_rwlock_unlock(&flowdb_update_lock);     \
-  } while (0)
-#endif /* HAVE_DPDK */
 
 struct channel;
 struct bridge;
@@ -99,7 +33,6 @@ struct flow_stats_list;
 struct table_stats_list;
 struct table_features_list;
 struct group_table;
-struct vector;
 
 /**
  * @brief Match structure.
@@ -311,20 +244,7 @@ enum switch_mode {
   SWITCH_MODE_STANDALONE = 2
 };
 
-/**
- * @brief Flow database.
- */
-struct flowdb {
-#ifdef HAVE_DPDK
-  rte_rwlock_t rwlock;          /** Read-write lock. */
-#else
-  pthread_rwlock_t rwlock;      /** Read-write lock. */
-#endif /* HAVE_DPDK */
-  uint8_t table_size;           /** Flow table size. */
-  struct table **tables;        /** Flow table. */
-  enum switch_mode switch_mode; /** Switch mode. */
-
-};
+struct flowdb;
 
 void (*lagopus_register_action_hook)(struct action *);
 void (*lagopus_register_instruction_hook)(struct instruction *);
@@ -487,74 +407,6 @@ flowdb_get_table_features(struct flowdb *,
                           struct ofp_error *);
 
 /**
- * Initialize lock of the flow database.
- *
- * @param[in]   flowdb  Flow database to be locked.
- */
-static inline void
-flowdb_lock_init(struct flowdb *flowdb) {
-  (void) flowdb;
-  FLOWDB_RWLOCK_INIT();
-}
-
-/**
- * Read lock the flow database.
- *
- * @param[in]   flowdb  Flow database to be locked.
- */
-static inline void
-flowdb_rdlock(struct flowdb *flowdb) {
-  (void) flowdb;
-  FLOWDB_RWLOCK_RDLOCK();
-}
-
-/**
- * Check write lock the flow database.
- *
- * @param[in]   flowdb  Flow database to be locked.
- */
-static inline void
-flowdb_check_update(struct flowdb *flowdb) {
-  (void) flowdb;
-  FLOWDB_UPDATE_CHECK();
-}
-
-/**
- * Write lock the flow database.
- *
- * @param[in]   flowdb  Flow database to be locked.
- */
-static inline void
-flowdb_wrlock(struct flowdb *flowdb) {
-  (void) flowdb;
-  FLOWDB_UPDATE_BEGIN();
-  FLOWDB_RWLOCK_WRLOCK();
-}
-
-/**
- * Unlock read lock the flow database.
- *
- * @param[in]   flowdb  Flow database to be unlocked.
- */
-static inline void
-flowdb_rdunlock(struct flowdb *flowdb) {
-  (void) flowdb;
-  FLOWDB_RWLOCK_RDUNLOCK();
-}
-
-/**
- * Unlock write lock the flow database.
- *
- * @param[in]   flowdb  Flow database to be unlocked.
- */
-static inline void
-flowdb_wrunlock(struct flowdb *flowdb) {
-  (void) flowdb;
-  FLOWDB_RWLOCK_WRUNLOCK();
-  FLOWDB_UPDATE_END();
-}
-
-/**
  * Add flow to flow list.
  *
  * @param[in]   flow    Flow entry.
@@ -704,9 +556,6 @@ ofp_action_list_elem_free(struct action_list *action_list);
  * @retval      !=NULL          Flow table.
  * @retval      ==NULL          table is not found.
  */
-static inline struct table *
-table_lookup(struct flowdb *flowdb, uint8_t table_id) {
-  return flowdb->tables[table_id];
-}
+struct table *table_lookup(struct flowdb *flowdb, uint8_t table_id);
 
 #endif /* SRC_INCLUDE_LAGOPUS_FLOWDB_H_ */

@@ -18,7 +18,6 @@
 #define __CMD_TEST_UTILS_H__
 
 #include "lagopus_apis.h"
-#include "event.h"
 #include "lagopus/dp_apis.h"
 #include "lagopus/ofp_bridgeq_mgr.h"
 #include "lagopus/ofp_dp_apis.h"
@@ -27,7 +26,7 @@
 
 #define ARGV_SIZE(_argv) ((sizeof(_argv) / sizeof(_argv[0])) - 1)
 
-#define INTERP_CREATE(_ret, _name,_interp, _tbl, _ds, _em) {            \
+#define INTERP_CREATE(_ret, _name,_interp, _tbl, _ds) {                 \
     if (_interp == NULL) {                                              \
       const char *argv0 =                                               \
          ((IS_VALID_STRING(lagopus_get_command_name()) == true) ?       \
@@ -67,13 +66,10 @@
       TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, ret,                 \
                                 "lagopus_dstring_create error.");       \
     }                                                                   \
-    if (_em == NULL) {                                                  \
-      _em = event_manager_alloc();                                      \
-    }                                                                   \
   }
 
 #define INTERP_DESTROY(_name, _interp, _tbl, _ds,                       \
-                       _em, _destroy) {                                 \
+                       _destroy) {                                      \
     if (_interp != NULL && destroy == true) {                           \
       lagopus_result_t _ret;                                            \
       datastore_destroy_interp(&(_interp));                             \
@@ -96,10 +92,6 @@
     }                                                                   \
     if (_ds != NULL) {                                                  \
       lagopus_dstring_destroy(&(_ds));                                  \
-    }                                                                   \
-    if (_em != NULL && destroy == true) {                               \
-      event_manager_free(_em);                                          \
-      _em = NULL;                                                       \
     }                                                                   \
   }
 

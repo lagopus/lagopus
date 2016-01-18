@@ -19,12 +19,13 @@
  *      @brief  OpenFlow flowcache implementation.
  */
 
+#include "lagopus_config.h"
+
 #include <sys/queue.h>
 #include <stdlib.h>
 #include <inttypes.h>
 
 #include "lagopus_apis.h"
-#include "lagopus/ptree.h"
 #include "lagopus/flowdb.h"
 
 #include "pktbuf.h"
@@ -60,7 +61,6 @@
 struct flowcache_bank {
   int kvs_type;
   union {
-    struct ptree *ptree;
     lagopus_hashmap_t hashmap;
 #ifdef HAVE_DPDK
 #if RTE_VERSION >= RTE_VERSION_NUM(2, 1, 0, 0)
@@ -100,10 +100,6 @@ init_flowcache_bank(int kvs_type) {
   }
   cache->kvs_type = kvs_type;
   switch (cache->kvs_type) {
-    case FLOWCACHE_PTREE:
-      cache->ptree = ptree_init(FLOWCACHE_BITLEN);
-      break;
-
 #ifdef HAVE_DPDK
 #if RTE_VERSION >= RTE_VERSION_NUM(2, 1, 0, 0)
     case FLOWCACHE_RTE_HASH:
@@ -140,7 +136,6 @@ register_cache_bank(struct flowcache_bank *cache,
   struct cache_entry *cache_entry, *remove_entry;
   struct cache_list *list;
   uint32_t hash32_h;
-  struct ptree_node *node;
 
   DPRINTF("register cache (nmatched %d) to %p\n", nmatched, cache);
   cache_entry = calloc(1, sizeof(struct cache_entry) +
@@ -151,32 +146,6 @@ register_cache_bank(struct flowcache_bank *cache,
   hash32_h = cache_entry->hash32_h;
 
   switch (cache->kvs_type) {
-    case FLOWCACHE_PTREE:
-      node = ptree_node_get(cache->ptree,
-                            (uint8_t *)&hash32_h,
-                            FLOWCACHE_BITLEN);
-      if (node == NULL) {
-        DPRINTF("node_get failed\n");
-        free(cache_entry);
-        return;
-      }
-      if (node->info == NULL) {
-        list = calloc(1, sizeof(struct cache_list));
-        node->info = list;
-        list->nentries = 0;
-        TAILQ_INIT(&list->entries);
-      } else {
-        list = node->info;
-        if (list->nentries == CACHE_NODE_MAX_ENTRIES) {
-          /* so far, remove old entry */
-          remove_entry = TAILQ_FIRST(&list->entries);
-          TAILQ_REMOVE(&list->entries, remove_entry, next);
-          free(remove_entry);
-          list->nentries--;
-        }
-      }
-      break;
-
 #ifdef HAVE_DPDK
 #if RTE_VERSION >= RTE_VERSION_NUM(2, 1, 0, 0)
     case FLOWCACHE_RTE_HASH:
@@ -264,33 +233,12 @@ register_cache_bank(struct flowcache_bank *cache,
 static void
 clear_all_cache_bank(struct flowcache_bank *cache) {
   struct cache_entry *cache_entry;
-  struct ptree_node *node;
 
   if (cache->nentries == 0) {
     /* no entries.  nothing to do. */
     return;
   }
   switch (cache->kvs_type) {
-    case FLOWCACHE_PTREE:
-      node = ptree_top(cache->ptree);
-      while (node != NULL) {
-        if (node->info != NULL) {
-          struct cache_list *list;
-
-          list = node->info;
-          if (list != NULL) {
-            while ((cache_entry = TAILQ_FIRST(&list->entries)) != NULL) {
-              TAILQ_REMOVE(&list->entries, cache_entry, next);
-              free(cache_entry);
-            }
-            free(list);
-            node->info = NULL;
-          }
-        }
-        node = ptree_next(node);
-      }
-      break;
-
 #ifdef HAVE_DPDK
 #if RTE_VERSION >= RTE_VERSION_NUM(2, 1, 0, 0)
     case FLOWCACHE_RTE_HASH:
@@ -317,7 +265,6 @@ static struct cache_entry *
 cache_lookup_bank(struct flowcache_bank *cache, struct lagopus_packet *pkt) {
   struct cache_entry *cache_entry;
   struct cache_list *list;
-  struct ptree_node *node;
 
   if (unlikely(cache == NULL)) {
     DPRINTF("cache_lookup: cache disabled\n");
@@ -325,16 +272,6 @@ cache_lookup_bank(struct flowcache_bank *cache, struct lagopus_packet *pkt) {
   }
   DPRINTF("cache_lookup (hit %lu, miss %lu)\n", cache->hit, cache->miss);
   switch (cache->kvs_type) {
-    case FLOWCACHE_PTREE:
-      node = ptree_node_lookup(cache->ptree, (uint8_t *)&pkt->hash32_h,
-                               FLOWCACHE_BITLEN);
-      if (node != NULL && node->info != NULL) {
-        list = node->info;
-      } else {
-        list = NULL;
-      }
-      break;
-
 #ifdef HAVE_DPDK
 #if RTE_VERSION >= RTE_VERSION_NUM(2, 1, 0, 0)
     case FLOWCACHE_RTE_HASH:
@@ -381,10 +318,6 @@ fini_flowcache_bank(struct flowcache_bank *cache) {
   clear_all_cache_bank(cache);
 
   switch (cache->kvs_type) {
-    case  FLOWCACHE_PTREE:
-      ptree_free(cache->ptree);
-      break;
-
 #ifdef HAVE_DPDK
 #if RTE_VERSION >= RTE_VERSION_NUM(2, 1, 0, 0)
     case FLOWCACHE_RTE_HASH:

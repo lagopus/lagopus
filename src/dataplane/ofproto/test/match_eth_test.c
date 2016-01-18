@@ -40,7 +40,7 @@ tearDown(void) {
 
 void
 test_match_flow_eth_type(void) {
-  struct lagopus_packet pkt;
+  struct lagopus_packet *pkt;
   struct flowinfo *flowinfo;
   struct flow *flow;
   struct port port;
@@ -49,10 +49,10 @@ test_match_flow_eth_type(void) {
   int i, nflow;
 
   /* prepare packet */
-  m = calloc(1, sizeof(*m));
-  TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
-  m->data = &m->dat[128];
-  OS_M_PKTLEN(m) = 64;
+  pkt = alloc_lagopus_packet();
+  TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
+  m = pkt->mbuf;
+  OS_M_APPEND(m, 64);
 
   /* prepare flow table */
   test_flow[0] = calloc(1, sizeof(struct flow) + 10 * sizeof(struct match));
@@ -80,37 +80,37 @@ test_match_flow_eth_type(void) {
     flowinfo->add_func(flowinfo, test_flow[i]);
   }
   /* test */
-  m->data[12] = 0x00;
-  m->data[13] = 0x00;
+  OS_MTOD(m, uint8_t *)[12] = 0x00;
+  OS_MTOD(m, uint8_t *)[13] = 0x00;
 
   prio = 0;
-  lagopus_packet_init(&pkt, m, &port);
-  flow = flowinfo->match_func(flowinfo, &pkt, &prio);
+  lagopus_packet_init(pkt, m, &port);
+  flow = flowinfo->match_func(flowinfo, pkt, &prio);
   TEST_ASSERT_NULL_MESSAGE(flow, "match_flow_eth_type mismatch error");
 
   prio = 0;
-  m->data[12] = 0x12;
-  m->data[13] = 0x34;
-  lagopus_packet_init(&pkt, m, &port);
-  flow = flowinfo->match_func(flowinfo, &pkt, &prio);
+  OS_MTOD(m, uint8_t *)[12] = 0x12;
+  OS_MTOD(m, uint8_t *)[13] = 0x34;
+  lagopus_packet_init(pkt, m, &port);
+  flow = flowinfo->match_func(flowinfo, pkt, &prio);
   TEST_ASSERT_EQUAL_MESSAGE(flow, test_flow[0],
                             "match_flow_eth_type[0] match flow error.");
   TEST_ASSERT_EQUAL_MESSAGE(prio, 3,
                             "match_flow_eth_type[0] match prio error.");
   prio = 0;
-  m->data[12] = 0x08;
-  m->data[13] = 0x00;
-  lagopus_packet_init(&pkt, m, &port);
-  flow = flowinfo->match_func(flowinfo, &pkt, &prio);
+  OS_MTOD(m, uint8_t *)[12] = 0x08;
+  OS_MTOD(m, uint8_t *)[13] = 0x00;
+  lagopus_packet_init(pkt, m, &port);
+  flow = flowinfo->match_func(flowinfo, pkt, &prio);
   TEST_ASSERT_EQUAL_MESSAGE(flow, test_flow[1],
                             "match_flow_eth_type[1] match flow error.");
   TEST_ASSERT_EQUAL_MESSAGE(prio, 2,
                             "match_flow_eth_type[1] match prio error.");
   prio = 0;
-  m->data[12] = 0x88;
-  m->data[13] = 0x47;
-  lagopus_packet_init(&pkt, m, &port);
-  flow = flowinfo->match_func(flowinfo, &pkt, &prio);
+  OS_MTOD(m, uint8_t *)[12] = 0x88;
+  OS_MTOD(m, uint8_t *)[13] = 0x47;
+  lagopus_packet_init(pkt, m, &port);
+  flow = flowinfo->match_func(flowinfo, pkt, &prio);
   TEST_ASSERT_EQUAL_MESSAGE(flow, test_flow[2],
                             "match_flow_eth_type[2] match flow error.");
   TEST_ASSERT_EQUAL_MESSAGE(prio, 1,
@@ -119,18 +119,17 @@ test_match_flow_eth_type(void) {
 
 void
 test_match_basic_ETH_DST(void) {
-  struct lagopus_packet pkt;
+  struct lagopus_packet *pkt;
   struct port port;
   struct flow *flow;
   OS_MBUF *m;
   bool rv;
 
   /* prepare packet */
-  m = calloc(1, sizeof(*m));
-  TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
-  m->data = &m->dat[128];
-  OS_M_PKTLEN(m) = 64;
-  OS_M_PKTLEN(m) = 64;
+  pkt = alloc_lagopus_packet();
+  TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
+  m = pkt->mbuf;
+  OS_M_APPEND(m, 64);
 
   /* prepare flow */
   flow = calloc(1, sizeof(struct flow) + 10 * sizeof(struct match));
@@ -138,31 +137,31 @@ test_match_basic_ETH_DST(void) {
   refresh_match(flow);
 
   /* Ether dest */
-  m->data[0] = 0x11;
-  m->data[1] = 0x22;
-  m->data[2] = 0x33;
-  m->data[3] = 0x44;
-  m->data[4] = 0x55;
-  m->data[5] = 0x60;
-  lagopus_packet_init(&pkt, m, &port);
-  rv = match_basic(&pkt, flow);
+  OS_MTOD(m, uint8_t *)[0] = 0x11;
+  OS_MTOD(m, uint8_t *)[1] = 0x22;
+  OS_MTOD(m, uint8_t *)[2] = 0x33;
+  OS_MTOD(m, uint8_t *)[3] = 0x44;
+  OS_MTOD(m, uint8_t *)[4] = 0x55;
+  OS_MTOD(m, uint8_t *)[5] = 0x60;
+  lagopus_packet_init(pkt, m, &port);
+  rv = match_basic(pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, true,
                             "ETH_DST wildcard match error.");
   add_match(&flow->match_list, 6, OFPXMT_OFB_ETH_DST << 1,
             0x11, 0x22, 0x33, 0x44, 0x55, 0x66);
   refresh_match(flow);
-  lagopus_packet_init(&pkt, m, &port);
-  rv = match_basic(&pkt, flow);
+  lagopus_packet_init(pkt, m, &port);
+  rv = match_basic(pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "ETH_DST mismatch error.");
-  m->data[0] = 0x11;
-  m->data[1] = 0x22;
-  m->data[2] = 0x33;
-  m->data[3] = 0x44;
-  m->data[4] = 0x55;
-  m->data[5] = 0x66;
-  lagopus_packet_init(&pkt, m, &port);
-  rv = match_basic(&pkt, flow);
+  OS_MTOD(m, uint8_t *)[0] = 0x11;
+  OS_MTOD(m, uint8_t *)[1] = 0x22;
+  OS_MTOD(m, uint8_t *)[2] = 0x33;
+  OS_MTOD(m, uint8_t *)[3] = 0x44;
+  OS_MTOD(m, uint8_t *)[4] = 0x55;
+  OS_MTOD(m, uint8_t *)[5] = 0x66;
+  lagopus_packet_init(pkt, m, &port);
+  rv = match_basic(pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, true,
                             "ETH_DST match error.");
   free(m);
@@ -170,45 +169,45 @@ test_match_basic_ETH_DST(void) {
 
 void
 test_match_basic_ETH_DST_W(void) {
-  struct lagopus_packet pkt;
+  struct lagopus_packet *pkt;
   struct port port;
   struct flow *flow;
   OS_MBUF *m;
   bool rv;
 
   /* prepare packet */
-  m = calloc(1, sizeof(*m));
-  TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
-  m->data = &m->dat[128];
-  OS_M_PKTLEN(m) = 64;
+  pkt = alloc_lagopus_packet();
+  TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
+  m = pkt->mbuf;
+  OS_M_APPEND(m, 64);
 
   /* prepare flow */
   flow = calloc(1, sizeof(struct flow) + 10 * sizeof(struct match));
   TAILQ_INIT(&flow->match_list);
 
   /* Ether dest */
-  m->data[0] = 0x33;
-  m->data[1] = 0x22;
-  m->data[2] = 0x11;
-  m->data[3] = 0x44;
-  m->data[4] = 0x55;
-  m->data[5] = 0x66;
+  OS_MTOD(m, uint8_t *)[0] = 0x33;
+  OS_MTOD(m, uint8_t *)[1] = 0x22;
+  OS_MTOD(m, uint8_t *)[2] = 0x11;
+  OS_MTOD(m, uint8_t *)[3] = 0x44;
+  OS_MTOD(m, uint8_t *)[4] = 0x55;
+  OS_MTOD(m, uint8_t *)[5] = 0x66;
   add_match(&flow->match_list, 12, (OFPXMT_OFB_ETH_DST << 1) + 1,
             0x11, 0x22, 0x33, 0x00, 0x00, 0x00,
             0xff, 0xff, 0xff, 0x00, 0x00, 0x00);
   refresh_match(flow);
-  lagopus_packet_init(&pkt, m, &port);
-  rv = match_basic(&pkt, flow);
+  lagopus_packet_init(pkt, m, &port);
+  rv = match_basic(pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "ETH_DST_W mismatch error.");
-  m->data[0] = 0x11;
-  m->data[1] = 0x22;
-  m->data[2] = 0x33;
-  m->data[3] = 0x44;
-  m->data[4] = 0x55;
-  m->data[5] = 0x66;
-  lagopus_packet_init(&pkt, m, &port);
-  rv = match_basic(&pkt, flow);
+  OS_MTOD(m, uint8_t *)[0] = 0x11;
+  OS_MTOD(m, uint8_t *)[1] = 0x22;
+  OS_MTOD(m, uint8_t *)[2] = 0x33;
+  OS_MTOD(m, uint8_t *)[3] = 0x44;
+  OS_MTOD(m, uint8_t *)[4] = 0x55;
+  OS_MTOD(m, uint8_t *)[5] = 0x66;
+  lagopus_packet_init(pkt, m, &port);
+  rv = match_basic(pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, true,
                             "ETH_DST_W match error.");
   free(m);
@@ -216,17 +215,17 @@ test_match_basic_ETH_DST_W(void) {
 
 void
 test_match_basic_ETH_SRC(void) {
-  struct lagopus_packet pkt;
+  struct lagopus_packet *pkt;
   struct port port;
   struct flow *flow;
   OS_MBUF *m;
   bool rv;
 
   /* prepare packet */
-  m = calloc(1, sizeof(*m));
-  TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
-  m->data = &m->dat[128];
-  OS_M_PKTLEN(m) = 64;
+  pkt = alloc_lagopus_packet();
+  TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
+  m = pkt->mbuf;
+  OS_M_APPEND(m, 64);
 
   /* prepare flow */
   flow = calloc(1, sizeof(struct flow) + 10 * sizeof(struct match));
@@ -234,31 +233,31 @@ test_match_basic_ETH_SRC(void) {
   refresh_match(flow);
 
   /* Ether src */
-  m->data[6] = 0xa0;
-  m->data[7] = 0xa0;
-  m->data[8] = 0xa0;
-  m->data[9] = 0xa0;
-  m->data[10] = 0xa0;
-  m->data[11] = 0xa0;
-  lagopus_packet_init(&pkt, m, &port);
-  rv = match_basic(&pkt, flow);
+  OS_MTOD(m, uint8_t *)[6] = 0xa0;
+  OS_MTOD(m, uint8_t *)[7] = 0xa0;
+  OS_MTOD(m, uint8_t *)[8] = 0xa0;
+  OS_MTOD(m, uint8_t *)[9] = 0xa0;
+  OS_MTOD(m, uint8_t *)[10] = 0xa0;
+  OS_MTOD(m, uint8_t *)[11] = 0xa0;
+  lagopus_packet_init(pkt, m, &port);
+  rv = match_basic(pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, true,
                             "ETH_SRC wildcard match error.");
   add_match(&flow->match_list, 6, OFPXMT_OFB_ETH_SRC << 1,
             0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff);
   refresh_match(flow);
-  lagopus_packet_init(&pkt, m, &port);
-  rv = match_basic(&pkt, flow);
+  lagopus_packet_init(pkt, m, &port);
+  rv = match_basic(pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "ETH_SRC mismatch error.");
-  m->data[6] = 0xaa;
-  m->data[7] = 0xbb;
-  m->data[8] = 0xcc;
-  m->data[9] = 0xdd;
-  m->data[10] = 0xee;
-  m->data[11] = 0xff;
-  lagopus_packet_init(&pkt, m, &port);
-  rv = match_basic(&pkt, flow);
+  OS_MTOD(m, uint8_t *)[6] = 0xaa;
+  OS_MTOD(m, uint8_t *)[7] = 0xbb;
+  OS_MTOD(m, uint8_t *)[8] = 0xcc;
+  OS_MTOD(m, uint8_t *)[9] = 0xdd;
+  OS_MTOD(m, uint8_t *)[10] = 0xee;
+  OS_MTOD(m, uint8_t *)[11] = 0xff;
+  lagopus_packet_init(pkt, m, &port);
+  rv = match_basic(pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, true,
                             "ETH_SRC match error.");
   free(m);
@@ -266,45 +265,45 @@ test_match_basic_ETH_SRC(void) {
 
 void
 test_match_basic_ETH_SRC_W(void) {
-  struct lagopus_packet pkt;
+  struct lagopus_packet *pkt;
   struct port port;
   struct flow *flow;
   OS_MBUF *m;
   bool rv;
 
   /* prepare packet */
-  m = calloc(1, sizeof(*m));
-  TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
-  m->data = &m->dat[128];
-  OS_M_PKTLEN(m) = 64;
+  pkt = alloc_lagopus_packet();
+  TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
+  m = pkt->mbuf;
+  OS_M_APPEND(m, 64);
 
   /* prepare flow */
   flow = calloc(1, sizeof(struct flow) + 10 * sizeof(struct match));
   TAILQ_INIT(&flow->match_list);
 
   /* Ether src */
-  m->data[6] = 0xa0;
-  m->data[7] = 0xa0;
-  m->data[8] = 0xa0;
-  m->data[9] = 0xa0;
-  m->data[10] = 0xa0;
-  m->data[11] = 0xa0;
+  OS_MTOD(m, uint8_t *)[6] = 0xa0;
+  OS_MTOD(m, uint8_t *)[7] = 0xa0;
+  OS_MTOD(m, uint8_t *)[8] = 0xa0;
+  OS_MTOD(m, uint8_t *)[9] = 0xa0;
+  OS_MTOD(m, uint8_t *)[10] = 0xa0;
+  OS_MTOD(m, uint8_t *)[11] = 0xa0;
   add_match(&flow->match_list, 12, (OFPXMT_OFB_ETH_SRC << 1) + 1,
             0xaa, 0xbb, 0xcc, 0x00, 0x00, 0x00,
             0xff, 0xff, 0xff, 0x00, 0x00, 0x00);
   refresh_match(flow);
-  lagopus_packet_init(&pkt, m, &port);
-  rv = match_basic(&pkt, flow);
+  lagopus_packet_init(pkt, m, &port);
+  rv = match_basic(pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "ETH_SRC_W mismatch error.");
-  m->data[6] = 0xaa;
-  m->data[7] = 0xbb;
-  m->data[8] = 0xcc;
-  m->data[9] = 0xdd;
-  m->data[10] = 0xee;
-  m->data[11] = 0xff;
-  lagopus_packet_init(&pkt, m, &port);
-  rv = match_basic(&pkt, flow);
+  OS_MTOD(m, uint8_t *)[6] = 0xaa;
+  OS_MTOD(m, uint8_t *)[7] = 0xbb;
+  OS_MTOD(m, uint8_t *)[8] = 0xcc;
+  OS_MTOD(m, uint8_t *)[9] = 0xdd;
+  OS_MTOD(m, uint8_t *)[10] = 0xee;
+  OS_MTOD(m, uint8_t *)[11] = 0xff;
+  lagopus_packet_init(pkt, m, &port);
+  rv = match_basic(pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, true,
                             "ETH_SRC_W match error.");
   free(m);

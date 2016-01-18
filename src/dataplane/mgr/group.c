@@ -24,10 +24,9 @@
 #include <stdint.h>
 
 #include "openflow.h"
+#include "lagopus_apis.h"
 #include "lagopus/flowdb.h"
 #include "lagopus/ofp_handler.h"
-#include "lagopus/ptree.h"
-#include "lagopus/vector.h"
 #include "lagopus/port.h"
 #include "lagopus/group.h"
 #include "lagopus/dataplane.h"
@@ -36,13 +35,36 @@
 #include "lagopus_types.h"
 #include "lagopus_error.h"
 
-#include "../agent/ofp_bucket.h"
-#include "../agent/ofp_group_handler.h"
+#include "lock.h"
 
 #define GROUP_ID_KEY_LEN   32
 
-void
-ofp_bucket_list_free(struct bucket_list *bucket_list);
+static struct bucket *
+bucket_alloc(void) {
+  struct bucket *bucket;
+
+  bucket = (struct bucket *)
+           calloc(1, sizeof(struct bucket));
+  if (bucket != NULL) {
+    TAILQ_INIT(&bucket->action_list);
+  }
+
+  return bucket;
+}
+
+static void
+bucket_list_free(struct bucket_list *bucket_list) {
+  struct bucket *bucket;
+
+  while (TAILQ_EMPTY(bucket_list) == false) {
+    bucket = TAILQ_FIRST(bucket_list);
+    if (TAILQ_EMPTY(&bucket->action_list) == false) {
+      ofp_action_list_elem_free(&bucket->action_list);
+    }
+    TAILQ_REMOVE(bucket_list, bucket, entry);
+    free(bucket);
+  }
+}
 
 struct ref_flow {
   struct flow *flow;
@@ -50,8 +72,7 @@ struct ref_flow {
 };
 
 struct group_table {
-  /* Ptree with group_id key. */
-  struct ptree *ptree;
+  lagopus_hashmap_t hashmap;
   struct bridge *bridge;
 };
 
@@ -93,7 +114,12 @@ group_table_alloc(struct bridge *parent) {
   }
 
   /* Group id 32 bit key. */
-  group_table->ptree = ptree_init(GROUP_ID_KEY_LEN);
+  if (lagopus_hashmap_create(&group_table->hashmap,
+                             LAGOPUS_HASHMAP_TYPE_ONE_WORD,
+                             group_free) != LAGOPUS_RESULT_OK) {
+    free(group_table);
+    return NULL;
+  }
 
   /* Reference parent bridge. */
   group_table->bridge = parent;
@@ -103,21 +129,7 @@ group_table_alloc(struct bridge *parent) {
 
 void
 group_table_free(struct group_table *group_table) {
-  struct ptree_node *node;
-  struct group *group;
-
-  for (node = ptree_top(group_table->ptree); node != NULL;
-       node = ptree_next(node)) {
-    group = (struct group *)node->info;
-    if (group != NULL) {
-      group_free(group);
-      node->info = NULL;
-    }
-    ptree_unlock_node(node);
-  }
-
-  ptree_free(group_table->ptree);
-
+  lagopus_hashmap_destroy(&group_table->hashmap, true);
   free(group_table);
 }
 
@@ -186,7 +198,8 @@ group_table_add(struct group_table *group_table,
                 struct group *group,
                 struct ofp_error *error) {
   uint32_t key;
-  struct ptree_node *node;
+  lagopus_result_t rv;
+  void *val;
 
   if (group_loop_detect(group_table, group, group->id) == true) {
     error->type = OFPET_GROUP_MOD_FAILED;
@@ -196,55 +209,27 @@ group_table_add(struct group_table *group_table,
     return LAGOPUS_RESULT_OFP_ERROR;
   }
   key = htonl(group->id);
-  node = ptree_node_get(group_table->ptree, (uint8_t *)&key,
-                        GROUP_ID_KEY_LEN);
-  if (node == NULL) {
-    return LAGOPUS_RESULT_NO_MEMORY;
+  val = group;
+  rv = lagopus_hashmap_add_no_lock(&group_table->hashmap,
+                                   (void *)key, &val, false);
+  if (rv != LAGOPUS_RESULT_OK) {
+    return rv;
   }
   /* Reference table. */
   group->group_table = group_table;
-  node->info = group;
   return LAGOPUS_RESULT_OK;
 }
 
 lagopus_result_t
 group_table_delete(struct group_table *group_table, uint32_t group_id) {
   uint32_t key;
-  struct ptree_node *node;
-  struct group *group;
 
   if (group_id == OFPG_ALL) {
-    for (node = ptree_top(group_table->ptree); node != NULL;
-         node = ptree_next(node)) {
-      group = node->info;
-      if (group != NULL) {
-        /* Free existing group. */
-        group_free(group);
-
-        /* Clear node value. */
-        node->info = NULL;
-
-      }
-      /* Node should be unlocked twice.  One for lookup lock, one for
-       * node value lock. */
-      ptree_unlock_node(node);
-      ptree_unlock_node(node);
-    }
+    lagopus_hashmap_clear_no_lock(&group_table->hashmap, true);
   } else {
     key = htonl(group_id);
-    node = ptree_node_lookup(group_table->ptree, (uint8_t *)&key,
-                             GROUP_ID_KEY_LEN);
-    if (node == NULL) {
-      return LAGOPUS_RESULT_NOT_FOUND;
-    }
-    group = (struct group *)node->info;
-    if (group != NULL) {
-      group_free(group);
-    }
-    node->info = NULL;
-
-    ptree_unlock_node(node);
-    ptree_unlock_node(node);
+    lagopus_hashmap_delete_no_lock(&group_table->hashmap,
+                                   (void *)key, NULL, true);
   }
 
   return LAGOPUS_RESULT_OK;
@@ -256,16 +241,10 @@ group_table_delete(struct group_table *group_table, uint32_t group_id) {
 struct group *
 group_table_lookup(struct group_table *group_table, uint32_t id) {
   uint32_t key;
-  struct ptree_node *node;
   struct group *group = NULL;
 
   key = htonl(id);
-  node = ptree_node_lookup(group_table->ptree, (uint8_t *)&key,
-                           GROUP_ID_KEY_LEN);
-  if (node) {
-    group = (struct group *)node->info;
-    ptree_unlock_node(node);
-  }
+  lagopus_hashmap_find_no_lock(&group_table->hashmap, (uint8_t *)key, &group);
   return group;
 }
 
@@ -319,37 +298,43 @@ group_alloc(struct ofp_group_mod *group_mod,
       merge_action_set(bucket->actions, &bucket->action_list);
     }
   }
-  group->flows = vector_alloc();
+  lagopus_hashmap_create(&group->flows, LAGOPUS_HASHMAP_TYPE_ONE_WORD, NULL);
   clock_gettime(CLOCK_MONOTONIC, &group->create_time);
 
   return group;
 }
 
+static bool
+group_do_flow_iterate(void *key, void *val,
+                      lagopus_hashentry_t he, void *arg) {
+  struct bridge *bridge;
+  struct flow *flow;
+  struct ofp_error error;
+
+  flow = val;
+  bridge = arg;
+  flow_remove_with_reason_nolock(flow,
+                                 bridge,
+                                 OFPRR_GROUP_DELETE,
+                                 &error);
+  return true;
+}
+
 void
 group_free(struct group *group) {
-  struct ofp_error error;
-  vindex_t i, nflow;
-
-  ofp_bucket_list_free(&group->bucket_list);
+  bucket_list_free(&group->bucket_list);
   /* remove group action from each flows. */
-  nflow = group->flows->max;
-  for (i = 0; i < nflow; i++) {
-    struct flow *flow = vector_slot(group->flows, i);
-    if (flow != NULL) {
-      flow_remove_with_reason_nolock(flow,
-                                     group->group_table->bridge,
-                                     OFPRR_GROUP_DELETE,
-                                     &error);
-    }
-  }
-  vector_free(group->flows);
+  lagopus_hashmap_iterate_no_lock(&group->flows,
+                                  group_do_flow_iterate,
+                                  group->group_table->bridge);
+  lagopus_hashmap_destroy(&group->flows, false);
   free(group);
 }
 
 void
 group_modify(struct group *group, struct ofp_group_mod *group_mod,
              struct bucket_list *bucket_list) {
-  ofp_bucket_list_free(&group->bucket_list);
+  bucket_list_free(&group->bucket_list);
   group->type = group_mod->type;
   TAILQ_INIT(&group->bucket_list);
   copy_bucket_list(&group->bucket_list, bucket_list);
@@ -376,13 +361,18 @@ group_modify(struct group *group, struct ofp_group_mod *group_mod,
 void
 group_add_ref_flow(struct group *group,
                    struct flow *flow) {
-  vector_set(group->flows, flow);
+  if (group != NULL) {
+    lagopus_hashmap_add_no_lock(&group->flows,
+                                (void *)flow, (void *)&flow, true);
+  }
 }
 
 void
 group_remove_ref_flow(struct group *group,
                       struct flow *flow) {
-  vector_unset(group->flows, flow);
+  if (group != NULL) {
+    lagopus_hashmap_delete_no_lock(&group->flows, flow, NULL, false);
+  }
 }
 
 static lagopus_result_t
@@ -391,7 +381,7 @@ set_group_stats(struct group_stats *stats, const struct group *group) {
   struct bucket *bucket;
 
   stats->ofp.group_id = group->id;
-  stats->ofp.ref_count = (uint32_t)group->flows->max;
+  stats->ofp.ref_count = (uint32_t)lagopus_hashmap_size(&group->flows);
   stats->ofp.packet_count = group->packet_count;
   stats->ofp.byte_count = group->byte_count;
 
@@ -421,77 +411,88 @@ set_group_stats(struct group_stats *stats, const struct group *group) {
   return LAGOPUS_RESULT_OK;
 }
 
+static lagopus_result_t
+group_add_stats(struct group *group, struct group_stats_list *list) {
+  struct group_stats *stats;
+
+  if (group != NULL) {
+    stats = calloc(1, sizeof(struct group_stats));
+    if (stats == NULL) {
+      return LAGOPUS_RESULT_NO_MEMORY;
+    }
+    set_group_stats(stats, group);
+    TAILQ_INSERT_TAIL(list, stats, entry);
+  }
+  return LAGOPUS_RESULT_OK;
+}
+
+static bool
+group_do_stats_iterate(void *key, void *val,
+                       lagopus_hashentry_t he, void *arg) {
+  struct group_stats_list *list;
+
+  list = arg;
+  if (group_add_stats(val, list) == LAGOPUS_RESULT_OK) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
 lagopus_result_t
 group_stats(struct group_table *group_table,
             struct ofp_group_stats_request *request,
             struct group_stats_list *list,
             struct ofp_error *error) {
-  struct group_stats *stats;
   struct group *group;
 
   (void)error;
 
   if (request->group_id == OFPG_ALL) {
-    struct ptree_node *node;
-
-    node = ptree_top(group_table->ptree);
-    while (node != NULL) {
-      group = node->info;
-      if (group == NULL) {
-        node = ptree_next(node);
-        continue;
-      }
-      stats = calloc(1, sizeof(struct group_stats));
-      if (stats == NULL) {
-        group_table_rdunlock(group_table);
-        return LAGOPUS_RESULT_NO_MEMORY;
-      }
-      set_group_stats(stats, group);
-      TAILQ_INSERT_TAIL(list, stats, entry);
-      node = ptree_next(node);
-    }
+    lagopus_hashmap_iterate(&group_table->hashmap,
+                            group_do_stats_iterate,
+                            list);
   } else {
     group = group_table_lookup(group_table, request->group_id);
-    if (group != NULL) {
-      stats = calloc(1, sizeof(struct group_stats));
-      if (stats == NULL) {
-        return LAGOPUS_RESULT_NO_MEMORY;
-      }
-      set_group_stats(stats, group);
-      TAILQ_INSERT_TAIL(list, stats, entry);
-    }
+    return group_add_stats(group, list);
   }
 
   return LAGOPUS_RESULT_OK;
 }
 
+static bool
+group_do_descs_iterate(void *key, void *val,
+                       lagopus_hashentry_t he, void *arg) {
+  struct group *group;
+  struct group_desc_list *list;
+
+  group = val;
+  list = arg;
+  if (group != NULL) {
+    struct group_desc *desc;
+
+    desc = calloc(1, sizeof(*desc));
+    if (desc == NULL) {
+      return LAGOPUS_RESULT_NO_MEMORY;
+    }
+    desc->ofp.type = group->type;
+    desc->ofp.group_id = group->id;
+    TAILQ_INIT(&desc->bucket_list);
+    copy_bucket_list(&desc->bucket_list, &group->bucket_list);
+    TAILQ_INSERT_TAIL(list, desc, entry);
+  }
+  return true;
+}
+
+
 lagopus_result_t
 group_descs(struct group_table *group_table,
             struct group_desc_list *group_desc_list,
             struct ofp_error *error) {
-
-  struct ptree_node *node;
-  struct group *group;
-
   (void)error;
-
-  for (node = ptree_top(group_table->ptree); node != NULL;
-       node = ptree_next(node)) {
-    group = (struct group *)node->info;
-    if (group != NULL) {
-      struct group_desc *desc;
-
-      desc = calloc(1, sizeof(*desc));
-      if (desc == NULL) {
-        return LAGOPUS_RESULT_NO_MEMORY;
-      }
-      desc->ofp.type = group->type;
-      desc->ofp.group_id = group->id;
-      TAILQ_INIT(&desc->bucket_list);
-      copy_bucket_list(&desc->bucket_list, &group->bucket_list);
-      TAILQ_INSERT_TAIL(group_desc_list, desc, entry);
-    }
-  }
+  lagopus_hashmap_iterate(&group_table->hashmap,
+                          group_do_descs_iterate,
+                          group_desc_list);
   return LAGOPUS_RESULT_OK;
 }
 
@@ -568,7 +569,7 @@ ofp_group_mod_add(uint64_t dpid,
     /* Allocate a new group. */
     group = group_alloc(group_mod, bucket_list);
     if (group == NULL) {
-      ofp_bucket_list_free(bucket_list);
+      bucket_list_free(bucket_list);
       rv = LAGOPUS_RESULT_NO_MEMORY;
     } else {
       /* Add a group. */

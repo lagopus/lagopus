@@ -28,6 +28,7 @@ s_test_stage_create(test_stage_t *tsptr,
                     test_stage_type_t type,
                     size_t n_workers,
                     size_t n_qs,
+		    size_t q_len,
                     size_t n_events,
                     size_t batch_size,
                     lagopus_chrono_t to,
@@ -62,6 +63,7 @@ s_test_stage_create(test_stage_t *tsptr,
                                     max_stage,	/* max_stage */
                                     n_workers,	/* n_workers */
                                     n_qs,	/* n_qs */
+				    q_len,	/* q_len */
                                     batch_size,	/* batch_size */
                                     to,		/* to */
                                     sched_proc,		/* sched_proc */
@@ -286,6 +288,7 @@ s_ingress_create(test_stage_t *tsptr,
                               test_stage_type_ingress,
                               n_workers,	/* n_workers */
                               0,		/* n_qs */
+			      0,		/* q_len */
                               n_events,		/* n_events */
                               1,		/* batch_size (dummy) */
                               0,		/* to */
@@ -403,6 +406,7 @@ static inline lagopus_result_t
 s_intermediate_create(test_stage_t *tsptr,
                       size_t n_workers,
                       size_t n_qs,
+		      size_t q_len,
                       size_t n_events,
                       size_t batch_size,
                       lagopus_chrono_t to,
@@ -414,7 +418,7 @@ s_intermediate_create(test_stage_t *tsptr,
 
   if (likely(tsptr != NULL && 
              n_workers > 0 && n_qs > 0 && n_events > 0 &&
-             batch_size > 0 &&
+             q_len > 0 && batch_size > 0 &&
              sched_proc != NULL &&
              fetch_proc != NULL &&
              stage_idx > 0 && stage_idx < max_stage &&
@@ -423,6 +427,7 @@ s_intermediate_create(test_stage_t *tsptr,
                               test_stage_type_intermediate,
                               n_workers,	/* n_workers */
                               n_qs,		/* n_qs */
+			      q_len,		/* q_len */
                               n_events,		/* n_events */
                               batch_size,	/* batch_size */
                               to,		/* to */
@@ -447,6 +452,7 @@ static inline lagopus_result_t
 s_egress_create(test_stage_t *tsptr,
                 size_t n_workers,
                 size_t n_qs,
+		size_t q_len,
                 size_t n_events,
                 size_t batch_size,
                 lagopus_chrono_t to,
@@ -457,7 +463,7 @@ s_egress_create(test_stage_t *tsptr,
 
   if (likely(tsptr != NULL && 
              n_workers > 0 && n_qs > 0 && n_events > 0 &&
-             batch_size > 0 &&
+             q_len > 0 && batch_size > 0 &&
              sched_proc != NULL &&
              fetch_proc != NULL &&
              max_stage > 0)) {
@@ -465,6 +471,7 @@ s_egress_create(test_stage_t *tsptr,
                               test_stage_type_egress,
                               n_workers,	/* n_workers */
                               n_qs,		/* n_qs */
+			      q_len,		/* q_len */
                               n_events,		/* n_events */
                               batch_size,	/* batch_size */
                               to,		/* to */
@@ -503,6 +510,7 @@ s_test_stage_create_by_spec(test_stage_t *tsptr,
                              max_stage);
     } else {
       if (likely(spec->m_n_qs > 0 &&
+		 spec->m_q_len > 0 &&
                  spec->m_batch_size > 0)) {
         lagopus_pipeline_stage_sched_proc_t sched_proc = NULL;
         lagopus_pipeline_stage_fetch_proc_t fetch_proc = NULL;
@@ -525,6 +533,7 @@ s_test_stage_create_by_spec(test_stage_t *tsptr,
           ret = s_egress_create(tsptr,
                                 spec->m_n_workers,
                                 spec->m_n_qs,
+				spec->m_q_len,
                                 spec->m_n_events,
                                 spec->m_batch_size,
                                 spec->m_to,
@@ -535,6 +544,7 @@ s_test_stage_create_by_spec(test_stage_t *tsptr,
           ret = s_intermediate_create(tsptr,
                                       spec->m_n_workers,
                                       spec->m_n_qs,
+				      spec->m_q_len,
                                       spec->m_n_events,
                                       spec->m_batch_size,
                                       spec->m_to,

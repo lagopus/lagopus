@@ -17,7 +17,6 @@
 #include "unity.h"
 #include "lagopus_apis.h"
 #include "cmd_test_utils.h"
-#include "event.h"
 #include "lagopus/ofp_bridgeq_mgr.h"
 #include "lagopus/bridge.h"
 #include "../datastore_apis.h"
@@ -34,14 +33,15 @@ static lagopus_hashmap_t tbl = NULL;
 static lagopus_hashmap_t tbl_port = NULL;
 static datastore_interp_t interp = NULL;
 static bool destroy = false;
-static struct event_manager *em = NULL;
 
 void
 setUp(void) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
 
   /* create interp. */
-  INTERP_CREATE(ret, "bridge", interp, tbl, ds, em);
+  INTERP_CREATE(ret, "bridge", interp, tbl, ds);
+  dp_dataq_put_func_register(ofp_handler_dataq_data_put);
+  dp_eventq_put_func_register(ofp_handler_eventq_data_put);
 
   ret = datastore_find_table("port", &tbl_port,
                              NULL, NULL, NULL,
@@ -53,7 +53,7 @@ setUp(void) {
 void
 tearDown(void) {
   /* destroy interp. */
-  INTERP_DESTROY("bridge", interp, tbl, ds, em, destroy);
+  INTERP_DESTROY("bridge", interp, tbl, ds, destroy);
 }
 
 void

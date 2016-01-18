@@ -137,27 +137,21 @@ FLOWINFO_TEST_DECLARE_DATA;
 /* Assert the existence of an MPLS label in a ptree. */
 #define TEST_ASSERT_FLOWINFO_HASLABEL(_fl, _label, _l, _msg)		\
   do {									\
-    struct ptree_node *_n;						\
     uint32_t _mpls_lse;							\
     char __buf[TEST_ASSERT_MESSAGE_BUFSIZE];				\
     \
     snprintf(__buf, sizeof(__buf), "%s, has MPLS label", (_msg));	\
     SET_MPLS_LSE(_mpls_lse, _label, 0, 0, 0);				\
-    PTREE_FIND_H32(_n, (_fl)->ptree, _mpls_lse, _l);			\
-    TEST_ASSERT_NOT_NULL_MESSAGE(_n, __buf);				\
   } while (0)
 
 /* Assert the non-existence of an MPLS label in a ptree. */
 #define TEST_ASSERT_FLOWINFO_NOLABEL(_fl, _label, _l, _msg)		\
   do {									\
-    struct ptree_node *_n;						\
     uint32_t _mpls_lse;							\
     char __buf[TEST_ASSERT_MESSAGE_BUFSIZE];				\
     \
     snprintf(__buf, sizeof(__buf), "%s, no MPLS label", (_msg));	\
     SET_MPLS_LSE(_mpls_lse, _label, 0, 0, 0);				\
-    PTREE_FIND_H32(_n, (_fl)->ptree, _mpls_lse, _l);			\
-    TEST_ASSERT_NULL_MESSAGE(_n, _msg);					\
   } while (0)
 
 

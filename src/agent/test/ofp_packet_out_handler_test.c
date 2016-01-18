@@ -33,7 +33,7 @@ setUp(void) {
   /* for request data in ofp_error. */
   req_pbuf = pbuf_alloc(OFP_ERROR_MAX_SIZE);
   if (req_pbuf == NULL) {
-    TEST_FAIL_MESSAGE("pbuf_alloc error.")
+    TEST_FAIL_MESSAGE("pbuf_alloc error.");
   }
 }
 

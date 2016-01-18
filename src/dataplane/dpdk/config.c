@@ -103,7 +103,6 @@ static const char usage[] =
   "    --kvstype TYPE: Select key-value store type for flow cache                 \n"
   "           hashmap_nolock  Use hashmap without rwlock (default)                \n"
   "           hashmap         Use hashmap                                         \n"
-  "           ptree           Use ptree                                           \n"
 #ifdef __SSE4_2__
 #if RTE_VERSION >= RTE_VERSION_NUM(2, 1, 0, 0)
   "           rte_hash        Use DPDK hash table                                 \n"
@@ -142,7 +141,7 @@ static const char usage[] =
 
 void
 dp_dpdk_thread_usage(FILE *fp) {
-  eal_common_usage(); /* XXX stdout */
+  //  eal_common_usage(); /* XXX stdout */
   fprintf(fp, usage,
           APP_DEFAULT_NIC_RX_RING_SIZE,
           APP_DEFAULT_RING_RX_SIZE,
@@ -569,8 +568,6 @@ parse_arg_kvstype(const char *arg) {
     app.kvs_type = FLOWCACHE_HASHMAP_NOLOCK;
   } else if (!strcmp(arg, "hashmap")) {
     app.kvs_type = FLOWCACHE_HASHMAP;
-  } else if (!strcmp(arg, "ptree")) {
-    app.kvs_type = FLOWCACHE_PTREE;
 #if RTE_VERSION >= RTE_VERSION_NUM(2, 1, 0, 0)
   } else if (!strcmp(arg, "rte_hash")) {
     app.kvs_type = FLOWCACHE_RTE_HASH;
@@ -811,7 +808,7 @@ app_parse_args(int argc, const char *argv[]) {
 
   /* Check that all mandatory arguments are provided */
   if ((arg_rx == 0 || arg_tx == 0 || arg_w == 0) && arg_p == 0) {
-    if (rawsocket_only_mode == true) {
+    if (is_rawsocket_only_mode() == true) {
       goto out;
     }
     lagopus_exit_error(EXIT_FAILURE,

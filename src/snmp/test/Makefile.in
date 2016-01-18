@@ -33,7 +33,7 @@ TEST_SRCS  = 	ifnumber_test.c iftable_test.c \
 TESTS = $(TEST_SRCS:.c= )
 SRCS = $(TEST_SRCS)
 
-DEP_LIBS += $(DEP_LAGOPUS_UTIL_LIB) $(DEP_LAGOPUS_CONFIG_LIB)
+DEP_LIBS += $(DEP_LAGOPUS_UTIL_LIB)
 
 TEST_DEPS	= \
 	$(TEST_UTIL_OBJS) \

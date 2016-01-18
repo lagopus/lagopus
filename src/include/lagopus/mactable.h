@@ -23,6 +23,9 @@
 #ifndef SRC_INCLUDE_LAGOPUS_MACTABLE_H_
 #define SRC_INCLUDE_LAGOPUS_MACTABLE_H_
 
+/* cleanup timer */
+#define MACTABLE_CLEANUP_TIME  (60 * 24)
+
 /**
  * Address type.
  */
@@ -53,6 +56,8 @@ struct mactable {
   TAILQ_HEAD(macentry_list, macentry) macentry_list; /**< MAC address entry list. */
 
   uint32_t ageing_time;  /**< Aging time(default 300sec). */
+
+  struct mactable **mactable_timer;  /**< Timer for cleanup mactable. */
 };
 
 /**
@@ -144,5 +149,22 @@ mactable_get_ageing_time(struct mactable *mactable);
  */
 uint32_t
 mactable_get_max_entries(struct mactable *mactable);
+
+/**
+ * Age out process.
+ * @param[in] mactable MAC address table.
+ * @retval    LAGOPUS_RESULT_OK               Succeeded.
+ */
+lagopus_result_t
+mactable_age_out(struct mactable *mactable);
+
+/**
+ * Set timer for clean up mactable.
+ * @param[in] mactable MAC address table.
+ * @param[in] timer value.
+ * @retval    LAGOPUS_RESULT_OK               Succeeded.
+ */
+lagopus_result_t
+add_mactable_timer(struct mactable *mactable, time_t timeout);
 
 #endif /* SRC_INCLUDE_LAGOPUS_MACTABLE_H_ */

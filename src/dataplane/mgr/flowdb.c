@@ -41,6 +41,25 @@
 #include "../agent/ofp_match.h"
 #include "../agent/openflow13packet.h"
 
+#include "lock.h"
+
+#include "callback.h"
+
+/**
+ * @brief Flow database.
+ */
+struct flowdb {
+#ifdef HAVE_DPDK
+  rte_rwlock_t rwlock;          /** Read-write lock. */
+#else
+  pthread_rwlock_t rwlock;      /** Read-write lock. */
+#endif /* HAVE_DPDK */
+  uint8_t table_size;           /** Flow table size. */
+  struct table **tables;        /** Flow table. */
+  enum switch_mode switch_mode; /** Switch mode. */
+
+};
+
 #define MBTREE_TIMEOUT 2
 
 #define PUT_TIMEOUT 100LL * 1000LL * 1000LL
@@ -258,6 +277,11 @@ table_get(struct flowdb *flowdb, uint8_t table_id) {
   return flowdb->tables[table_id];
 }
 
+struct table *
+table_lookup(struct flowdb *flowdb, uint8_t table_id) {
+  return flowdb->tables[table_id];
+}
+
 static void
 table_free(struct table *table) {
   struct flow_list *flow_list;
@@ -273,6 +297,12 @@ table_free(struct table *table) {
   }
   free(flow_list);
   free(table);
+}
+
+void
+flowdb_lock_init(struct flowdb *flowdb) {
+  (void) flowdb;
+  FLOWDB_RWLOCK_INIT();
 }
 
 /* Allocate flowdb. */
@@ -336,18 +366,14 @@ flowdb_free(struct flowdb *flowdb) {
 
 lagopus_result_t
 flowdb_switch_mode_get(struct flowdb *flowdb, enum switch_mode *switch_mode) {
-  flowdb_rdlock(flowdb);
   *switch_mode = flowdb->switch_mode;
-  flowdb_rdunlock(flowdb);
 
   return LAGOPUS_RESULT_OK;
 }
 
 lagopus_result_t
 flowdb_switch_mode_set(struct flowdb *flowdb, enum switch_mode switch_mode) {
-  flowdb_wrlock(flowdb);
   flowdb->switch_mode = switch_mode;
-  flowdb_wrunlock(flowdb);
 
   return LAGOPUS_RESULT_OK;
 }
@@ -373,9 +399,6 @@ flow_pre_requisite_check(struct flow *flow,
   /* Iterate match entry. */
   TAILQ_FOREACH(match, match_list, entry) {
     field_type = OXM_FIELD_TYPE(match->oxm_field);
-    lagopus_dprint("match type %s (field_type_bit: 0x%lx)\n",
-                   oxm_ofb_match_fields_str(field_type),
-                   FIELD_TYPE_BIT(field_type));
 
     /* Duplication field error. */
     if (CHECK_FIELD_BIT(flow->field_bits, field_type)) {
@@ -502,7 +525,6 @@ static lagopus_result_t
 flow_action_check(struct bridge *bridge,
                   struct flow *flow,
                   struct ofp_error *error) {
-  struct vector *ports;
   struct group_table *group_table;
   struct meter_table *meter_table;
   struct instruction *instruction;
@@ -513,7 +535,6 @@ flow_action_check(struct bridge *bridge,
   uint32_t group_id;
   int i;
 
-  ports = bridge->ports;
   group_table = bridge->group_table;
   meter_table = bridge->meter_table;
 
@@ -565,7 +586,7 @@ flow_action_check(struct bridge *bridge,
                   break;
 
                 default:
-                  if (port_lookup(ports, output->port) == NULL) {
+                  if (port_lookup(&bridge->ports, output->port) == NULL) {
                     error->type = OFPET_BAD_ACTION;
                     error->code = OFPBAC_BAD_OUT_PORT;
                     lagopus_msg_info("%d: no such port (%d:%d)",
@@ -609,7 +630,7 @@ copy_match_list(struct match_list *dst,
   struct match *src_match;
   struct match *dst_match;
   TAILQ_FOREACH(src_match, src, entry) {
-    dst_match = match_alloc(src_match->oxm_length);
+    dst_match = calloc(1, sizeof(struct match) + src_match->oxm_length);
     if (dst_match == NULL) {
       return LAGOPUS_RESULT_NO_MEMORY;
     }
@@ -628,7 +649,7 @@ copy_action_list(struct action_list *dst,
   const struct action *src_action;
   struct action *dst_action;
   TAILQ_FOREACH(src_action, src, entry) {
-    dst_action = action_alloc(src_action->ofpat.len);
+    dst_action = calloc(1, sizeof(struct action) + src_action->ofpat.len);
     if (dst_action == NULL) {
       return LAGOPUS_RESULT_NO_MEMORY;
     }
@@ -651,7 +672,7 @@ copy_instruction_list(struct instruction_list *dst,
   lagopus_result_t rv;
 
   TAILQ_FOREACH(src_inst, src, entry) {
-    dst_inst = instruction_alloc();
+    dst_inst = calloc(1, sizeof(struct instruction));
     if (dst_inst == NULL) {
       return LAGOPUS_RESULT_NO_MEMORY;
     }
@@ -1261,6 +1282,14 @@ flow_del_from_group(struct group_table *group_table, struct flow *flow) {
   }
 }
 
+static void
+flow_removed_free(struct eventq_data *data) {
+  if (data != NULL) {
+    ofp_match_list_elem_free(&data->flow_removed.match_list);
+    free(data);
+  }
+}
+
 static lagopus_result_t
 send_flow_removed(uint64_t dpid,
                   struct flow *flow,
@@ -1312,8 +1341,8 @@ send_flow_removed(uint64_t dpid,
   TAILQ_INIT(&flow_removed->match_list);
   TAILQ_CONCAT(&flow_removed->match_list, &flow->match_list, entry);
   eventq_data->type = LAGOPUS_EVENTQ_FLOW_REMOVED;
-  eventq_data->free = ofp_flow_removed_free;
-  rv = ofp_handler_eventq_data_put(dpid, &eventq_data, PUT_TIMEOUT);
+  eventq_data->free = flow_removed_free;
+  rv = dp_eventq_data_put(dpid, &eventq_data, PUT_TIMEOUT);
   if (rv != LAGOPUS_RESULT_OK) {
     lagopus_perror(rv);
   }

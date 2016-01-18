@@ -22,7 +22,7 @@ Enjoy coding!
 Unity Test Framework
 --------------------
 
-The lagopus uses Unity for unit tests.
+The lagopus uses Unity (https://github.com/ThrowTheSwitch/Unity.git) for unit tests.
 
 Unity is a xUnit like test framework for C.
 Unity uses C for providing basic faculties such as assertion macros.
@@ -30,34 +30,18 @@ And it uses Ruby for more complex faculties; test discovery, test runner generat
 
 By the support of Unity, you can write the Four-Phase test case (i.e. Fixture setup, Exercise System, Verify outcome, Fixture teardown) in C.
 
+### Recommended
+* Unity v2.1.0 (hash: 731e0f6b5f96b83adb94c209b582765c14215b2c)
+* Ruby 1.9.3
+* gcovr 2.4
+* jq 1.3
+
 ### Install Ruby
 
 Install ruby (on Debian GNU/Linux or Ubuntu).
 
 ```
 $ sudo apt-get install ruby
-```
-
-### Install Unity
-
-To install Unity,
-get Unity from github at first.
-
-```
-$ git clone https://github.com/ThrowTheSwitch/Unity.git
-```
-
-Then checkout the latest tag `v2.1.0`.
-
-```
-$ cd Unity
-$ git checkout v2.1.0 -b latest
-```
-
-Copy Unity to the lagopus.
-
-```
-$ git archive HEAD | (cd <path to the lagopus>/tools/unity; tar xf -)
 ```
 
 ### Install gcovr

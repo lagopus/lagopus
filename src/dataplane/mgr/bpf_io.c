@@ -19,6 +19,8 @@
  *      @brief  Datapath driver use with Berkelay Packet Filter
  */
 
+#include "lagopus_config.h"
+
 #include <stdio.h>
 #include <stdbool.h>
 #include <inttypes.h>
@@ -42,6 +44,7 @@
 #include "packet.h"
 #include "csum.h"
 #include "thread.h"
+#include "lock.h"
 
 static struct port_stats *bpf_port_stats(struct port *port);
 
@@ -142,9 +145,6 @@ rawsock_dataplane_init(int argc, const char *const argv[]) {
             kvs_type = FLOWCACHE_HASHMAP_NOLOCK;
           } else if (!strcmp(optarg, "hashmap")) {
             kvs_type = FLOWCACHE_HASHMAP;
-          } else if (!strcmp(optarg, "ptree")) {
-            kvs_type = FLOWCACHE_PTREE;
-          } else {
             return -1;
           }
         }

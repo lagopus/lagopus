@@ -22,26 +22,14 @@
 #ifndef SRC_INCLUDE_LAGOPUS_DATAPLANE_H_
 #define SRC_INCLUDE_LAGOPUS_DATAPLANE_H_
 
-#ifdef HAVE_DPDK
-#include <rte_config.h>
-#include <rte_ether.h>
-#else
-#ifdef HAVE_NET_ETHERNET_H
-#include <net/ethernet.h>
-#else
-#include <net/if.h>
-#include <net/if_ether.h>
-#endif /* HAVE_NET_ETHERNET_H */
-#endif /* HAVE_DPDK */
-#include <netinet/in.h>
-
 #include "lagopus_thread.h"
 #include "lagopus_gstate.h"
 #include "lagopus/ethertype.h"
 #include "lagopus/flowdb.h"
 #include "lagopus/flowinfo.h"
 #include "lagopus/port.h"
-#include "lagopus/interface.h"
+
+struct interface;
 
 #define LAGOPUS_DATAPLANE_VERSION "0.9"
 
@@ -97,147 +85,6 @@ int
 dpdk_send_packet_physical(struct lagopus_packet *pkt, struct interface *);
 int
 rawsock_send_packet_physical(struct lagopus_packet *pkt, uint32_t portid);
-
-
-/* Inline functions. */
-/**
- * calc packet header size.
- * it like packet classification.
- */
-static inline size_t
-calc_packet_header_size(const char *pkt_data, size_t len) {
-  const uint8_t *s, *p;
-  uint16_t ether_type;
-  uint8_t proto;
-
-  s = p = (uint8_t *)pkt_data;
-  p += ETHER_ADDR_LEN * 2;
-  while (p - s < (int)len) {
-    ether_type = (uint16_t)(*p << 8 | *(p +1));
-    p += ETHER_TYPE_LEN;
-  skip:
-    switch (ether_type) {
-      case ETHERTYPE_VLAN:
-      case 0x88a8:
-        p += 2;
-        break;
-      case ETHERTYPE_ARP:
-        p += 8 + 6 + 4 + 6 + 4;
-        goto done;
-      case ETHERTYPE_IP:
-        proto = *(p + 9);
-        if ((*p & 0x0f) == 0) {
-          goto done;
-        }
-        p += (*p & 0x0f) << 2;
-      ipproto:
-        switch (proto) {
-          case IPPROTO_ICMP:
-          case IPPROTO_ICMPV6:
-            /* OpenFlow look up type and code. */
-            p += 2;
-            goto done;
-          case IPPROTO_TCP:
-            /* OpenFlow look up src and dst port. */
-            p += 4;
-            goto done;
-          case IPPROTO_UDP:
-            /* OpenFlow look up src and dst port. */
-#if 0
-            if (port == vxlan) {
-              p += sizeof udphdr;
-              p += vxlanhdr;
-              break;
-            }
-#endif
-            p += 4;
-            goto done;
-          case IPPROTO_SCTP:
-            /* OpenFlow look up src and dst port. */
-            p += 4;
-            goto done;
-#if 0
-          case IPPROTO_GRE:
-            p += 4; /* XXX depend on flags */
-            ether_type = ETHERTYPE_IP;
-            goto skip;
-#endif
-          case IPPROTO_HOPOPTS:
-          case IPPROTO_ROUTING:
-          case IPPROTO_ESP:
-          case IPPROTO_DSTOPTS:
-            proto = *p;
-            if (p[1] == 0) {
-              goto done;
-            }
-            p += p[1] << 3;
-            goto ipproto;
-          case IPPROTO_FRAGMENT:
-            proto = *p;
-            p += 8;
-            goto ipproto;
-          case IPPROTO_AH:
-            proto = *p;
-            if (p[1] == 0) {
-              goto done;
-            }
-            p += p[1] << 2;
-            goto ipproto;
-          case IPPROTO_NONE:
-            proto = *p;
-            p += 2;
-            goto ipproto;
-          default:
-            goto done;
-        }
-        break;
-      case ETHERTYPE_IPV6:
-        proto = p[6];
-        p += 8 + 16 + 16;
-        goto ipproto;
-      case ETHERTYPE_MPLS:
-      case ETHERTYPE_MPLS_MCAST:
-        if ((p[2] & 1) == 0) {
-          /* not bos */
-          ether_type = ETHERTYPE_MPLS;
-        } else {
-          /* inner ether type is not exist in packet.  guess it. */
-          if (p[4] >= 0x45 && p[4] <= 0x4f) {
-            ether_type = ETHERTYPE_IP;
-          } else if (p[4] >= 0x60 && p[4] <= 0x6f) {
-            ether_type = ETHERTYPE_IPV6;
-          } else if (p[4] == 0x00 && p[5] == 0x01 &&
-                     p[6] == 0x00 && p[7] == 0x80) {
-            ether_type = ETHERTYPE_ARP;
-          } else if ((p[6] == 0x08 && p[7] == 0x00 &&
-                      p[8] >= 0x45 && p[8] <= 0x4f) ||
-                     (p[6] == 0x86 && p[7] == 0xdd &&
-                      p[8] >= 0x45 && p[8] <= 0x4f) ||
-                     (p[6] == 0x08 && p[7] == 0x06 &&
-                      p[8] == 0x00 && p[9] == 0x80) ||
-                     (p[6] == 0x81 && p[7] == 0x00) ||
-                     (p[6] == 0x88 && p[7] == 0xa8)) {
-            /* L3 over VLAN */
-            ether_type = (uint16_t)((p[6] << 8) | p[7]);
-            p += 2;
-          } else {
-            /* guess other protocols? */
-            p += 4;
-            goto done;
-          }
-        }
-        p += 4;
-        goto skip;
-      case ETHERTYPE_PBB:
-        p += 16;
-        break;
-      default:
-        goto done;
-    }
-  }
-done:
-  return (size_t)(p - s);
-}
 
 lagopus_result_t
 execute_instruction_meter(struct lagopus_packet *pkt,
@@ -459,38 +306,9 @@ execute_action(struct lagopus_packet *pkt,
  * @param[in]   port    physical port number (ifindex).
  *
  */
-static inline int
+int
 lagopus_send_packet_physical(struct lagopus_packet *pkt,
-                             struct interface *ifp) {
-  if (ifp == NULL) {
-    return LAGOPUS_RESULT_OK;
-  }
-  switch (ifp->info.type) {
-    case DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_PHY:
-    case DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_VDEV:
-#ifdef HAVE_DPDK
-      return dpdk_send_packet_physical(pkt, ifp);
-#else
-      break;
-#endif
-    case DATASTORE_INTERFACE_TYPE_ETHERNET_RAWSOCK:
-      return rawsock_send_packet_physical(pkt,
-                                          ifp->info.eth_rawsock.port_number);
-
-    case DATASTORE_INTERFACE_TYPE_GRE:
-    case DATASTORE_INTERFACE_TYPE_NVGRE:
-    case DATASTORE_INTERFACE_TYPE_VXLAN:
-    case DATASTORE_INTERFACE_TYPE_VHOST_USER:
-    case DATASTORE_INTERFACE_TYPE_UNKNOWN:
-      /* TODO */
-      lagopus_packet_free(pkt);
-      return LAGOPUS_RESULT_OK;
-    default:
-      break;
-  }
-
-  return LAGOPUS_RESULT_INVALID_ARGS;
-}
+                             struct interface *ifp);
 
 /**
  * Return if port is using by lagopus vswitch.
@@ -822,7 +640,5 @@ void copy_dataplane_info(char *buf, int len);
  * @param[in]   fp      Output file pointer.
  */
 void dataplane_usage(FILE *fp);
-
-bool rawsocket_only_mode;
 
 #endif /* SRC_INCLUDE_LAGOPUS_DATAPLANE_H_ */

@@ -36,9 +36,9 @@
 #include "lagopus/ofp_handler.h"
 #include "lagopus/ethertype.h"
 #include "lagopus/flowdb.h"
-#include "lagopus/vector.h"
 #include "lagopus/bridge.h"
 #include "lagopus/port.h"
+#include "lagopus/interface.h"
 #include "lagopus/group.h"
 #include "lagopus/meter.h"
 #include "lagopus/dataplane.h"
@@ -679,10 +679,9 @@ execute_action_set_field(struct lagopus_packet *pkt,
       OS_MEMCPY(&val32, oxm_value, sizeof(uint32_t));
       DP_PRINT("set_field in_port: %d\n", OS_NTOHL(val32));
       if (pkt->in_port != NULL && pkt->in_port->bridge != NULL) {
-        struct vector *v;
 
-        v = pkt->in_port->bridge->ports;
-        pkt->in_port = port_lookup(v, OS_NTOHL(val32));
+        pkt->in_port = port_lookup(&pkt->in_port->bridge->ports,
+                                   OS_NTOHL(val32));
         pkt->oob_data.in_port = val32;
       }
       break;
@@ -1326,12 +1325,56 @@ send_port_status(struct port *port, uint8_t reason) {
   entry->port_status.ofp_port_status.reason = reason;
   entry->port_status.ofp_port_status.desc = port->ofp_port;
 
-  rv = ofp_handler_eventq_data_put(port->bridge->dpid,
-                                   &entry, PUT_TIMEOUT);
+  rv = dp_eventq_data_put(port->bridge->dpid,
+                          &entry, PUT_TIMEOUT);
   if (rv != LAGOPUS_RESULT_OK) {
     lagopus_perror(rv);
   }
   return rv;
+}
+
+static void
+packet_in_free(struct eventq_data *data) {
+  if (data != NULL) {
+    ofp_match_list_elem_free(&data->packet_in.match_list);
+    if (data->packet_in.data != NULL) {
+      pbuf_free(data->packet_in.data);
+    }
+    free(data);
+  }
+}
+
+int
+lagopus_send_packet_physical(struct lagopus_packet *pkt,
+                             struct interface *ifp) {
+  if (ifp == NULL) {
+    return LAGOPUS_RESULT_OK;
+  }
+  switch (ifp->info.type) {
+    case DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_PHY:
+    case DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_VDEV:
+#ifdef HAVE_DPDK
+      return dpdk_send_packet_physical(pkt, ifp);
+#else
+      break;
+#endif
+    case DATASTORE_INTERFACE_TYPE_ETHERNET_RAWSOCK:
+      return rawsock_send_packet_physical(pkt,
+                                          ifp->info.eth_rawsock.port_number);
+
+    case DATASTORE_INTERFACE_TYPE_GRE:
+    case DATASTORE_INTERFACE_TYPE_NVGRE:
+    case DATASTORE_INTERFACE_TYPE_VXLAN:
+    case DATASTORE_INTERFACE_TYPE_VHOST_USER:
+    case DATASTORE_INTERFACE_TYPE_UNKNOWN:
+      /* TODO */
+      lagopus_packet_free(pkt);
+      return LAGOPUS_RESULT_OK;
+    default:
+      break;
+  }
+
+  return LAGOPUS_RESULT_INVALID_ARGS;
 }
 
 static lagopus_result_t
@@ -1359,14 +1402,15 @@ send_packet_in(struct lagopus_packet *pkt,
     free(data);
     return LAGOPUS_RESULT_NO_MEMORY;
   }
-  port_match = match_alloc(sizeof(port_no));
+  port_match = calloc(1, sizeof(struct match) + sizeof(port_no));
   if (port_match == NULL) {
     pbuf_free(pbuf);
     free(data);
     return LAGOPUS_RESULT_NO_MEMORY;
   }
   if (pkt->oob_data.metadata != 0) {
-    metadata_match = match_alloc(sizeof(pkt->oob_data.metadata));
+    metadata_match = calloc(1, sizeof(struct match) +
+                            sizeof(pkt->oob_data.metadata));
     if (metadata_match == NULL) {
       pbuf_free(pbuf);
       free(data);
@@ -1377,7 +1421,7 @@ send_packet_in(struct lagopus_packet *pkt,
     metadata_match = NULL;
   }
   data->type = LAGOPUS_EVENTQ_PACKET_IN;
-  data->free = ofp_packet_in_free;
+  data->free = packet_in_free;
   data->packet_in.ofp_packet_in.buffer_id = OFP_NO_BUFFER;
   data->packet_in.ofp_packet_in.reason = reason;
   data->packet_in.ofp_packet_in.table_id = pkt->table_id;
@@ -1417,8 +1461,8 @@ send_packet_in(struct lagopus_packet *pkt,
   /* TUNNEL_ID for physical port is omitted. */
 
   DP_PRINT("%s: put packet to dataq\n", __func__);
-  rv = ofp_handler_dataq_data_put(pkt->in_port->bridge->dpid,
-                                  &data, PUT_TIMEOUT);
+  rv = dp_dataq_data_put(pkt->in_port->bridge->dpid,
+                         &data, PUT_TIMEOUT);
   if (rv != LAGOPUS_RESULT_OK) {
     DP_PRINT("%s: %s\n", __func__, lagopus_error_get_string(rv));
     data->free(data);
@@ -1426,12 +1470,30 @@ send_packet_in(struct lagopus_packet *pkt,
   return rv;
 }
 
+static bool
+lagopus_do_send_iterate(void *key, void *val,
+                        lagopus_hashentry_t he, void *arg) {
+  struct port *port;
+  struct lagopus_packet *pkt;
+
+  port = val;
+  pkt = arg;
+  if ((port->ofp_port.config & OFPPC_PORT_DOWN) == 0 &&
+      port->interface != NULL &&
+      port != pkt->in_port &&
+      (port->ofp_port.config & OFPPC_NO_FWD) == 0) {
+    /* send packet */
+    OS_M_ADDREF(pkt->mbuf);
+    lagopus_send_packet_physical(pkt, port->interface);
+  }
+  return true;
+}
+
 void
 lagopus_forward_packet_to_port(struct lagopus_packet *pkt,
                                uint32_t out_port) {
   struct port *port;
   uint32_t in_port;
-  struct vector *v;
   unsigned int id;
 
   in_port = pkt->in_port->ofp_port.port_no;
@@ -1473,30 +1535,9 @@ lagopus_forward_packet_to_port(struct lagopus_packet *pkt,
       /* required: send packet to all physical ports except in_port. */
       /* XXX destination mac address learning should be needed for flooding. */
       DP_PRINT("OFPP_ALL\n");
-      v = pkt->in_port->bridge->ports;
-      for (id = 0; id < v->allocated; id++) {
-        port = v->index[id];
-        if (port == NULL ||
-            (port->ofp_port.config & OFPPC_PORT_DOWN) != 0 ||
-            port->interface == NULL) {
-          continue;
-        }
-
-        /* skip except physical port */
-
-        /* skip ingress port */
-        if (port->ofp_port.port_no == in_port) {
-          continue;
-        }
-        /* skip 'no fowrad' port */
-        if ((port->ofp_port.config & OFPPC_NO_FWD) != 0) {
-          continue;
-        }
-
-        /* send packet */
-        OS_M_ADDREF(pkt->mbuf);
-        lagopus_send_packet_physical(pkt, port->interface);
-      }
+      lagopus_hashmap_iterate(&pkt->in_port->bridge->ports,
+                              lagopus_do_send_iterate,
+                              pkt);
       lagopus_packet_free(pkt);
       break;
 
@@ -1524,8 +1565,7 @@ lagopus_forward_packet_to_port(struct lagopus_packet *pkt,
       out_port = in_port;
       /*FALLTHROUGH*/
     default:
-      v = pkt->in_port->bridge->ports;
-      port = port_lookup(v, out_port);
+      port = port_lookup(&pkt->in_port->bridge->ports, out_port);
       if (port != NULL && (port->ofp_port.config & OFPPC_NO_FWD) == 0) {
         /* so far, we support only physical port. */
         DP_PRINT("Forwarding packet to port %d\n", port->ifindex);

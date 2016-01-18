@@ -19,6 +19,8 @@
  *      @brief  version information API.
  */
 
+#include "lagopus_config.h"
+
 #include <stdio.h>
 #include <stdbool.h>
 #include <inttypes.h>

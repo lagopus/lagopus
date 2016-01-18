@@ -100,9 +100,9 @@
 #include "lagopus/flowdb.h"
 #include "lagopus/meter.h"
 #include "lagopus/port.h"
+#include "lagopus/interface.h"
 #include "lagopus_gstate.h"
 #include "lagopus/ofp_dp_apis.h"
-#include "lagopus/vector.h"
 #include "lagopus/ofcache.h"
 
 #include "lagopus/dataplane.h"
@@ -110,6 +110,7 @@
 #include "pktbuf.h"
 #include "packet.h"
 #include "csum.h"
+#include "lock.h"
 #include "dpdk/dpdk.h"
 
 #ifndef APP_LCORE_WORKER_FLUSH
@@ -143,6 +144,7 @@ app_lcore_worker(struct app_lcore_params_worker *lp,
   static const uint8_t eth_bcast[] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
   struct port *port;
   struct lagopus_packet *pkt;
+  enum switch_mode mode;
   uint32_t i;
 
 
@@ -203,7 +205,8 @@ app_lcore_worker(struct app_lcore_params_worker *lp,
       dp_interface_send_packet_kernel(pkt, pkt->in_port->interface);
 #endif /* HYBRID */
 
-      if (port->bridge->flowdb->switch_mode == SWITCH_MODE_STANDALONE) {
+      flowdb_switch_mode_get(port->bridge->flowdb, &mode);
+      if (mode == SWITCH_MODE_STANDALONE) {
         lagopus_forward_packet_to_port(pkt, OFPP_NORMAL);
         lp->mbuf_in.array[j] = NULL;
         continue;
@@ -324,6 +327,7 @@ app_lcore_main_loop_io_worker(void *arg) {
       app_lcore_io_flush(lp_io, n_workers, arg);
       flowdb_check_update(NULL);
       app_lcore_worker_flush(lp);
+      dpdk_update_link_status(lp);
       i = 0;
     }
     app_lcore_io(lp_io, n_workers);

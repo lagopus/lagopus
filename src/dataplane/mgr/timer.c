@@ -26,6 +26,9 @@
 #include "lagopus_apis.h"
 #include "lagopus/dataplane.h"
 #include "lagopus/flowdb.h"
+#ifdef HYBRID
+#include "lagopus/mactable.h"
+#endif /* HYBRID */
 #include "mbtree.h"
 #include "thread.h"
 
@@ -42,7 +45,8 @@
 
 enum {
   FLOW_TIMER,
-  MBTREE_TIMER
+  MBTREE_TIMER,
+  MACTABLE_TIMER
 };
 
 struct dp_timer {
@@ -96,6 +100,53 @@ find_dp_timer(time_t timeout,
   *prev_timep = prev_time;
   return dp_timer;
 }
+
+#ifdef HYBRID
+lagopus_result_t
+add_mactable_timer(struct mactable *mactable, time_t timeout) {
+  struct dp_timer *dp_timer, *prev;
+  time_t prev_time;
+
+  lagopus_msg_info("add timeout %d sec\n", timeout);
+
+  dp_timer = find_dp_timer(timeout, MACTABLE_TIMER, &prev, &prev_time);
+  if (dp_timer != NULL) {
+    int i;
+
+    for (i = 0; i < MAX_TIMEOUT_ENTRIES; i++) {
+      if (dp_timer->timer_entry[i] == NULL) {
+        break;
+      }
+    }
+    dp_timer->timer_entry[i] = mactable;
+    mactable->mactable_timer = &dp_timer->timer_entry[i];
+    if (i == dp_timer->nentries) {
+      dp_timer->nentries++;
+    }
+  } else {
+    dp_timer = calloc(1, sizeof(struct dp_timer));
+    if (dp_timer == NULL) {
+      return LAGOPUS_RESULT_NO_MEMORY;
+    }
+    dp_timer->type = MACTABLE_TIMER;
+    dp_timer->timer_entry[0] = mactable;
+    mactable->mactable_timer = &dp_timer->timer_entry[0];
+    dp_timer->nentries++;
+    if (prev == NULL) {
+      dp_timer->timeout = timeout;
+      TAILQ_INSERT_HEAD(&dp_timer_list, dp_timer, next);
+    } else {
+      timeout -= prev_time;
+      dp_timer->timeout = timeout;
+      TAILQ_INSERT_AFTER(&dp_timer_list, prev, dp_timer, next);
+    }
+    if ((dp_timer = TAILQ_NEXT(dp_timer, next)) != NULL) {
+      dp_timer->timeout -= timeout;
+    }
+  }
+  return LAGOPUS_RESULT_OK;
+}
+#endif /* HYBRID */
 
 lagopus_result_t
 add_flow_timer(struct flow *flow) {
@@ -248,6 +299,27 @@ mbtree_timer_expire(struct dp_timer *dp_timer) {
   }
 }
 
+#ifdef HYBRID
+static void
+mactable_timer_expire(struct dp_timer *dp_timer) {
+  struct mactable *mactable;
+  int i;
+
+  lagopus_msg_info("mactable timer expired!\n");
+  for (i = 0; i < dp_timer->nentries; i++) {
+    mactable = dp_timer->timer_entry[i];
+    if (mactable == NULL) {
+      continue;
+    }
+    /* age out */
+    mactable_age_out(mactable);
+
+    /* timer reset */
+    add_mactable_timer(mactable, MACTABLE_CLEANUP_TIME);
+  }
+}
+#endif /* HYBRID */
+
 static void
 dp_timer_expire(struct dp_timer *dp_timer) {
   switch (dp_timer->type) {
@@ -256,6 +328,11 @@ dp_timer_expire(struct dp_timer *dp_timer) {
       break;
     case MBTREE_TIMER:
       mbtree_timer_expire(dp_timer);
+      break;
+#ifdef HYBRID
+    case MACTABLE_TIMER:
+      mactable_timer_expire(dp_timer);
+#endif /* HYBRID */
     default:
       break;
   }

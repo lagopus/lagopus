@@ -22,7 +22,6 @@
 #include <stdlib.h>
 
 #include "openflow.h"
-#include "lagopus/ptree.h"
 #include "lagopus/flowdb.h"
 #include "lagopus/port.h"
 #include "pktbuf.h"
@@ -56,13 +55,22 @@ get_match_in_port(struct match_list *match_list, uint32_t *port) {
   return match;
 }
 
+static void
+freeup_flowinfo(void *val) {
+  struct flowinfo *flowinfo;
+
+  flowinfo = val;
+  flowinfo->destroy_func(flowinfo);
+}
+
 struct flowinfo *
 new_flowinfo_in_port(void) {
   struct flowinfo *self;
 
   self = calloc(1, sizeof(struct flowinfo));
   if (self != NULL) {
-    self->ptree = ptree_init(32); /* use vector? */
+    lagopus_hashmap_create(&self->hashmap, LAGOPUS_HASHMAP_TYPE_ONE_WORD,
+                           freeup_flowinfo);
     self->misc = new_flowinfo_vlan_vid();
     self->add_func = add_flow_in_port;
     self->del_func = del_flow_in_port;
@@ -75,16 +83,7 @@ new_flowinfo_in_port(void) {
 
 static void
 destroy_flowinfo_in_port(struct flowinfo *self) {
-  struct ptree_node *node;
-  struct flowinfo *flowinfo;
-
-  node = ptree_top(self->ptree);
-  while (node != NULL) {
-    flowinfo = node->info;
-    flowinfo->destroy_func(flowinfo);
-    node = ptree_next(node);
-  }
-  ptree_free(self->ptree);
+  lagopus_hashmap_destroy(&self->hashmap, true);
   self->misc->destroy_func(self->misc);
   free(self);
 }
@@ -93,60 +92,63 @@ static lagopus_result_t
 add_flow_in_port(struct flowinfo *self, struct flow *flow) {
   struct match *match;
   struct flowinfo *flowinfo;
-  struct ptree_node *node;
   uint32_t in_port;
+  lagopus_result_t rv;
 
   match = get_match_in_port(&flow->match_list, &in_port);
   if (match != NULL) {
     in_port = OS_NTOHL(in_port);
-    node = ptree_node_get(self->ptree, (uint8_t *)&in_port, 32);
-    if (node->info == NULL) {
-      /* new node. */
-      node->info = new_flowinfo_vlan_vid();
-    }
-    match->except_flag = true;
-    flowinfo = node->info;
-    return flowinfo->add_func(flowinfo, flow);
-  } else {
-    return self->misc->add_func(self->misc, flow);
-  }
+    rv = lagopus_hashmap_find_no_lock(&self->hashmap,
+                                      (void *)in_port, (void *)&flowinfo);
+    if (rv != LAGOPUS_RESULT_OK) {
+      void *val;
 
-  return LAGOPUS_RESULT_OK;
+      flowinfo = new_flowinfo_vlan_vid();
+      val = flowinfo;
+      rv = lagopus_hashmap_add_no_lock(&self->hashmap, (void *)in_port,
+                                       (void *)&val, false);
+    }
+    rv = flowinfo->add_func(flowinfo, flow);
+    match->except_flag = true;
+  } else {
+    rv = self->misc->add_func(self->misc, flow);
+  }
+  return rv;
 }
 
 static lagopus_result_t
 del_flow_in_port(struct flowinfo *self, struct flow *flow) {
-  struct flowinfo *flowinfo;
-  struct ptree_node *node;
+  lagopus_result_t rv;
   uint32_t in_port;
 
   if (get_match_in_port(&flow->match_list, &in_port) != NULL) {
+    struct flowinfo *flowinfo;
+
     in_port = OS_NTOHL(in_port);
-    node = ptree_node_get(self->ptree, (uint8_t *)&in_port, 32);
-    if (node->info == NULL) {
-      return LAGOPUS_RESULT_NOT_FOUND;
+    rv = lagopus_hashmap_find_no_lock(&self->hashmap, (void *)in_port,
+                                      (void *)&flowinfo);
+    if (rv == LAGOPUS_RESULT_OK) {
+      flowinfo->del_func(flowinfo, flow);
     }
-    flowinfo = node->info;
-    return flowinfo->del_func(flowinfo, flow);
   } else {
-    return self->misc->del_func(self->misc, flow);
+    rv = self->misc->del_func(self->misc, flow);
   }
+  return rv;
 }
 
 static struct flow *
 match_flow_in_port(struct flowinfo *self, struct lagopus_packet *pkt,
                    int32_t *pri) {
   struct flowinfo *flowinfo;
-  struct ptree_node *node;
   struct flow *flow, *alt_flow;
+  lagopus_result_t rv;
 
   flow = NULL;
-  node = ptree_node_lookup(self->ptree,
-                           (uint8_t *)&pkt->in_port->ofp_port.port_no, 32);
-  if (node != NULL) {
-    flowinfo = node->info;
+  rv = lagopus_hashmap_find_no_lock(&self->hashmap,
+                                    (void *)pkt->in_port->ofp_port.port_no,
+                                    (void *)&flowinfo);
+  if (rv == LAGOPUS_RESULT_OK) {
     flow = flowinfo->match_func(flowinfo, pkt, pri);
-    ptree_unlock_node(node);
   }
   alt_flow = self->misc->match_func(self->misc, pkt, pri);
   if (alt_flow != NULL) {
@@ -158,18 +160,19 @@ match_flow_in_port(struct flowinfo *self, struct lagopus_packet *pkt,
 static struct flow *
 find_flow_in_port(struct flowinfo *self, struct flow *flow) {
   struct flowinfo *flowinfo;
-  struct ptree_node *node;
   uint32_t in_port;
+  lagopus_result_t rv;
 
   if (get_match_in_port(&flow->match_list, &in_port) != NULL) {
     in_port = OS_NTOHL(in_port);
-    node = ptree_node_get(self->ptree, (uint8_t *)&in_port, 32);
-    if (node->info == NULL) {
+    rv = lagopus_hashmap_find_no_lock(&self->hashmap,
+                                      (void *)in_port,
+                                      (void *)&flowinfo);
+    if (rv != LAGOPUS_RESULT_OK) {
       return NULL;
     }
-    flowinfo = node->info;
-    return flowinfo->find_func(flowinfo, flow);
   } else {
-    return self->misc->find_func(self->misc, flow);
+    flowinfo = self->misc;
   }
+  return flowinfo->find_func(flowinfo, flow);
 }

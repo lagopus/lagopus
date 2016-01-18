@@ -67,7 +67,7 @@ struct bridge {
   uint8_t version;                      /** Wire protocol version. */
   uint32_t version_bitmap;              /** Wire protocol version bitmap. */
   struct ofp_switch_features features;  /** OpenFlow features. */
-  struct vector *ports;                 /** Ports. */
+  lagopus_hashmap_t ports;              /** Ports. */
   struct flowdb *flowdb;                /** Flow database. */
   struct group_table *group_table;      /** Group table. */
   struct meter_table *meter_table;      /** Meter table. */

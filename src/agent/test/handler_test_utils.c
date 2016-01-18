@@ -15,7 +15,6 @@
  */
 
 #include "unity.h"
-#include "event.h"
 #include "string.h"
 #include "lagopus_apis.h"
 #include "lagopus_session.h"
@@ -628,7 +627,7 @@ check_pbuf_list_packet_create(ofp_reply_list_create_proc_t create_proc,
                                   "handler_test_utils.c: packet compare error.");
         i++;
       } else {
-        TEST_FAIL_MESSAGE("handler_test_utils.c: test_pbuf is NULL.")
+        TEST_FAIL_MESSAGE("handler_test_utils.c: test_pbuf is NULL.");
         break;
       }
     }

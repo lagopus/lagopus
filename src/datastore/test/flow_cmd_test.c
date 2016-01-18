@@ -37,7 +37,6 @@ static datastore_interp_t interp = NULL;
 static bool destroy = false;
 static bool is_init = false;
 static const char bridge_name[] = "br0";
-static struct event_manager *em = NULL;
 
 void
 setUp(void) {
@@ -48,7 +47,7 @@ setUp(void) {
   const char test_str1[] = "{\"ret\":\"OK\"}";
 
   /* create interp. */
-  INTERP_CREATE(ret, NULL,interp, tbl, ds, em);
+  INTERP_CREATE(ret, NULL,interp, tbl, ds);
 
   /* bridge create cmd. */
   if (is_init == false) {
@@ -80,7 +79,7 @@ tearDown(void) {
   }
 
   /* destroy interp. */
-  INTERP_DESTROY(NULL, interp, tbl, ds, em, destroy);
+  INTERP_DESTROY(NULL, interp, tbl, ds, destroy);
 
   /* delete file. */
   dp = opendir(TMP_DIR);

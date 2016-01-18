@@ -156,7 +156,7 @@ done:
 /*
  * % := "|" | ":"
  *
- * str := worker % q % batch % sched % fetch
+ * str := worker % q % qlen % batch % sched % fetch
 */
 static inline lagopus_result_t
 s_set_stage_spec(test_stage_spec_t *spec, const char *str) {
@@ -169,21 +169,25 @@ s_set_stage_spec(test_stage_spec_t *spec, const char *str) {
     if (IS_VALID_STRING(cstr) == true) {
       char *tokens[5];
 
-      if ((lagopus_str_tokenize_with_limit(cstr, tokens, 5, 5, ":|")) == 5) {
+      if ((lagopus_str_tokenize_with_limit(cstr, tokens, 6, 6, ":|")) == 6) {
         size_t n_workers = 0;
         size_t n_qs = 0;
+	size_t q_len = 0;
         size_t batch = 0;
-        base_stage_sched_t sched = s_str2sched(tokens[3]);
-        base_stage_fetch_t fetch = s_str2fetch(tokens[4]);
+        base_stage_sched_t sched = s_str2sched(tokens[4]);
+        base_stage_fetch_t fetch = s_str2fetch(tokens[5]);
 
         if ((ret = lagopus_str_parse_uint64(tokens[0], &n_workers)) ==
             LAGOPUS_RESULT_OK &&
             (ret = lagopus_str_parse_uint64(tokens[1], &n_qs)) ==
             LAGOPUS_RESULT_OK &&
-            (ret = lagopus_str_parse_uint64(tokens[2], &batch)) ==
+            (ret = lagopus_str_parse_uint64(tokens[2], &q_len)) ==
+            LAGOPUS_RESULT_OK &&
+            (ret = lagopus_str_parse_uint64(tokens[3], &batch)) ==
             LAGOPUS_RESULT_OK) {
           spec->m_n_workers = n_workers;
           spec->m_n_qs = n_qs;
+	  spec->m_q_len = q_len;
           spec->m_batch_size = batch;
 
           if ((ret = s_allowed_queue_types(spec->m_n_qs, sched, fetch)) ==
@@ -233,8 +237,8 @@ static uint64_t *s_start_clocks = NULL;
 static test_stage_t *s_stages;
 static size_t s_n_stages = 2;
 static size_t s_n_ing_workers = 1;
-static const char *s_int_spec_str = "1:1:1000:single:single";
-static const char *s_egr_spec_str = "1:1:1000:single:single";
+static const char *s_int_spec_str = "1:1:1000:1000:single:single";
+static const char *s_egr_spec_str = "1:1:1000:1000:single:single";
 static size_t s_weight = 100;
 
 static test_stage_spec_t s_ingres_spec;
@@ -383,7 +387,7 @@ s_parse_args(int argc, const char * const argv[]) {
           goto done;
         }
       } else {
-        lagopus_msg_error("An event size is not specified.\n");
+        lagopus_msg_error("A test run # is not specified.\n");
         goto done;
       }
     } else if (strcasecmp(*argv, "-ns") == 0) {

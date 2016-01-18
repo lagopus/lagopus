@@ -19,6 +19,8 @@
  *      @brief  Dataplane driver use with raw socket
  */
 
+#include "lagopus_config.h"
+
 #include <stdio.h>
 #include <stdbool.h>
 #include <inttypes.h>
@@ -49,7 +51,7 @@
 #include "packet.h"
 #include "csum.h"
 #include "thread.h"
-#include "pcap.h"
+#include "lock.h"
 
 static struct port_stats *rawsock_port_stats(struct port *port);
 
@@ -183,8 +185,6 @@ rawsock_dataplane_init(int argc, const char *const argv[]) {
             kvs_type = FLOWCACHE_HASHMAP_NOLOCK;
           } else if (!strcmp(optarg, "hashmap")) {
             kvs_type = FLOWCACHE_HASHMAP;
-          } else if (!strcmp(optarg, "ptree")) {
-            kvs_type = FLOWCACHE_PTREE;
           } else {
             return -1;
           }
@@ -635,6 +635,7 @@ dp_rawsock_thread_loop(__UNUSED const lagopus_thread_t *selfptr,
   struct port_stats *stats;
   ssize_t len;
   unsigned int i;
+  enum switch_mode mode;
   lagopus_result_t rv;
   global_state_t cur_state;
   shutdown_grace_level_t cur_grace;
@@ -719,6 +720,7 @@ dp_rawsock_thread_loop(__UNUSED const lagopus_thread_t *selfptr,
         }
         OS_M_TRIM(pkt->mbuf, MAX_PACKET_SZ - len);
         lagopus_packet_init(pkt, pkt->mbuf, port);
+        flowdb_switch_mode_get(port->bridge->flowdb, &mode);
         if (
 #ifdef HYBRID
                 !memcmp(OS_MTOD(pkt->mbuf, uint8_t *),
@@ -726,7 +728,7 @@ dp_rawsock_thread_loop(__UNUSED const lagopus_thread_t *selfptr,
                 !memcmp(OS_MTOD(pkt->mbuf, uint8_t *),
                         eth_bcast, ETHER_ADDR_LEN) ||
 #endif /* HYBRID */
-            port->bridge->flowdb->switch_mode == SWITCH_MODE_STANDALONE) {
+                mode == SWITCH_MODE_STANDALONE) {
           lagopus_forward_packet_to_port(pkt, OFPP_NORMAL);
         } else {
           lagopus_match_and_action(pkt);

@@ -23,6 +23,7 @@
 #define SRC_DATAPLANE_OFPROTO_PACKET_H_
 
 #ifdef HAVE_DPDK
+#include "rte_config.h"
 #include "rte_ether.h"
 #define ether_header ether_hdr
 #define ether_dhost  d_addr.addr_bytes

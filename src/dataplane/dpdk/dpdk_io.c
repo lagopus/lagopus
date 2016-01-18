@@ -103,7 +103,6 @@
 #include "lagopus_gstate.h"
 #include "lagopus/ofp_dp_apis.h"
 #include "lagopus/dp_apis.h"
-#include "lagopus/vector.h"
 
 #include "lagopus/datastore/interface.h"
 #include "lagopus/interface.h"
@@ -222,30 +221,40 @@ struct lagopus_port_statistics port_statistics[RTE_MAX_ETHPORTS];
 
 static struct port_stats *dpdk_port_stats(struct port *port);
 
-static struct vector *ifp_vector;
+static lagopus_hashmap_t ifp_hashmap;
 
 static void
 dpdk_interface_set_index(struct interface *ifp) {
-  if (ifp_vector == NULL) {
-    ifp_vector = vector_alloc();
+  void *val;
+
+  if (ifp_hashmap == NULL) {
+    lagopus_hashmap_create(&ifp_hashmap, LAGOPUS_HASHMAP_TYPE_ONE_WORD, NULL);
   }
-  vector_set_index(ifp_vector, ifp->info.eth_dpdk_phy.port_number, ifp);
+  val = ifp;
+  lagopus_hashmap_add(&ifp_hashmap,
+                      (void *)ifp->info.eth_dpdk_phy.port_number,
+                      (void *)&val,
+                      false);
 }
 
 static void
 dpdk_interface_unset_index(struct interface *ifp) {
-  if (ifp_vector == NULL) {
+  if (ifp_hashmap == NULL) {
     return;
   }
-  vector_set_index(ifp_vector, ifp->info.eth_dpdk_phy.port_number, NULL);
+  lagopus_hashmap_delete(&ifp_hashmap,
+                         (void *)ifp->info.eth_dpdk_phy.port_number,
+                         NULL, false);
 }
 
 static inline struct interface *
 dpdk_interface_lookup(uint8_t portid) {
-  if (ifp_vector == NULL || portid >= ifp_vector->allocated) {
+  struct interface *ifp;
+  if (ifp_hashmap == NULL) {
     return NULL;
   }
-  return (struct interface *)ifp_vector->index[portid];
+  lagopus_hashmap_find(&ifp_hashmap, (void *)portid, (void *)&ifp);
+  return ifp;
 }
 
 static inline int
@@ -602,7 +611,8 @@ app_lcore_io_tx(struct app_lcore_params_io *lp,
   }
 }
 
-static inline void
+
+void
 dpdk_update_link_status(struct app_lcore_params_io *lp) {
   int i;
 
@@ -1025,6 +1035,9 @@ dpdk_configure_interface(struct interface *ifp) {
   uint8_t portid;
   struct rte_mempool *pool;
 
+  if (is_rawsocket_only_mode() == true) {
+    return LAGOPUS_RESULT_INVALID_ARGS;
+  }
 #if defined(RTE_VERSION_NUM) && RTE_VERSION >= RTE_VERSION_NUM(2, 0, 0, 4)
   if (strlen(ifp->info.eth_dpdk_phy.device) > 0) {
     uint8_t actual_portid;
@@ -1093,9 +1106,9 @@ dpdk_configure_interface(struct interface *ifp) {
     socket = rte_lcore_to_socket_id(lcore);
     pool = app.lcore_params[lcore].pool;
 
-    printf("Initializing NIC port %u RX queue %u ...\n",
-           (unsigned) portid,
-           (unsigned) queue);
+    lagopus_msg_info("Initializing NIC port %u RX queue %u ...\n",
+                     (unsigned) portid,
+                     (unsigned) queue);
     ret = rte_eth_rx_queue_setup(portid,
                                  queue,
                                  (uint16_t) app.nic_rx_ring_size,
@@ -1126,8 +1139,8 @@ dpdk_configure_interface(struct interface *ifp) {
   if (app.nic_tx_port_mask[portid] == 1) {
     app_get_lcore_for_nic_tx(portid, &lcore);
     socket = rte_lcore_to_socket_id(lcore);
-    printf("Initializing NIC port %u TX queue 0 ...\n",
-           (unsigned) portid);
+    lagopus_msg_info("Initializing NIC port %u TX queue 0 ...\n",
+                     (unsigned) portid);
     ret = rte_eth_tx_queue_setup(portid,
                                  0,
                                  (uint16_t) app.nic_tx_ring_size,
@@ -1473,7 +1486,7 @@ lagopus_is_portid_enabled(int portid) {
 
 void
 lagopus_packet_free(struct lagopus_packet *pkt) {
-  if (rawsocket_only_mode != true) {
+  if (is_rawsocket_only_mode() != true) {
     rte_pktmbuf_free(pkt->mbuf);
   } else {
     if (rte_mbuf_refcnt_update(pkt->mbuf, -1) == 0) {

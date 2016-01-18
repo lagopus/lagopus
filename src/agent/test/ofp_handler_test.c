@@ -316,7 +316,7 @@ test_put_eventq(void) {
           SLEEP_SHORT();
           j++;
         } else {
-          TEST_FAIL_MESSAGE("TIME OUT.")
+          TEST_FAIL_MESSAGE("TIME OUT.");
           break;
         }
       } else {
@@ -375,7 +375,7 @@ test_put_dataq(void) {
           SLEEP_SHORT();
           j++;
         } else {
-          TEST_FAIL_MESSAGE("TIME OUT.")
+          TEST_FAIL_MESSAGE("TIME OUT.");
           break;
         }
       } else {

@@ -17,7 +17,6 @@
 #include "unity.h"
 #include "lagopus_apis.h"
 #include "lagopus_session.h"
-#include "event.h"
 #include "../channel.h"
 
 ssize_t

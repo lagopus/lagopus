@@ -30,6 +30,7 @@
 void
 setUp(void) {
   datastore_bridge_info_t info;
+  datastore_interface_info_t ifinfo;
   TEST_ASSERT_EQUAL(dp_api_init(), LAGOPUS_RESULT_OK);
 
   /* setup bridge and port */
@@ -40,6 +41,11 @@ setUp(void) {
   TEST_ASSERT_EQUAL(dp_port_create("port1"), LAGOPUS_RESULT_OK);
   TEST_ASSERT_EQUAL(dp_interface_create("if0"), LAGOPUS_RESULT_OK);
   TEST_ASSERT_EQUAL(dp_interface_create("if1"), LAGOPUS_RESULT_OK);
+  memset(&ifinfo, 0, sizeof(ifinfo));
+  ifinfo.eth.port_number = 0;
+  TEST_ASSERT_EQUAL(dp_interface_info_set("if0", &ifinfo), LAGOPUS_RESULT_OK);
+  ifinfo.eth.port_number = 1;
+  TEST_ASSERT_EQUAL(dp_interface_info_set("if1", &ifinfo), LAGOPUS_RESULT_OK);
   TEST_ASSERT_EQUAL(dp_port_interface_set("port0", "if0"), LAGOPUS_RESULT_OK);
   TEST_ASSERT_EQUAL(dp_port_interface_set("port1", "if1"), LAGOPUS_RESULT_OK);
   TEST_ASSERT_EQUAL(dp_bridge_port_set("br0", "port0", 1), LAGOPUS_RESULT_OK);
@@ -52,6 +58,8 @@ tearDown(void) {
   TEST_ASSERT_EQUAL(dp_port_interface_unset("port1"), LAGOPUS_RESULT_OK);
   TEST_ASSERT_EQUAL(dp_bridge_port_unset("br0", "port0"), LAGOPUS_RESULT_OK);
   TEST_ASSERT_EQUAL(dp_bridge_port_unset("br0", "port1"), LAGOPUS_RESULT_OK);
+  dp_interface_destroy("if0");
+  dp_interface_destroy("if1");
   dp_port_destroy("port0");
   dp_port_destroy("port1");
   dp_bridge_destroy("br0");
@@ -65,7 +73,7 @@ test_action_OUTPUT(void) {
   struct port *port;
   struct action *action;
   struct ofp_action_output *action_set;
-  struct lagopus_packet pkt;
+  struct lagopus_packet *pkt;
   OS_MBUF *m;
 
   bridge = dp_bridge_lookup("br0");
@@ -78,67 +86,65 @@ test_action_OUTPUT(void) {
   lagopus_set_action_function(action);
   TAILQ_INSERT_TAIL(&action_list, action, entry);
 
-  memset(&pkt, 0, sizeof(pkt));
+  pkt = alloc_lagopus_packet();
+  TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
+  m = pkt->mbuf;
 
-  m = calloc(1, sizeof(*m));
-  TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
-  m->data = &m->dat[128];
-
-  lagopus_packet_init(&pkt, m, port_lookup(bridge->ports, 1));
-  TEST_ASSERT_NOT_NULL(pkt.in_port);
+  lagopus_packet_init(pkt, m, port_lookup(&bridge->ports, 1));
+  TEST_ASSERT_NOT_NULL(pkt->in_port);
 
   /* output action always decrement reference count. */
   m->refcnt = 2;
   action_set->port = 1;
-  execute_action(&pkt, &action_list);
+  execute_action(pkt, &action_list);
   TEST_ASSERT_EQUAL_MESSAGE(m->refcnt, 1,
                             "OUTPUT refcnt error.");
 
   m->refcnt = 2;
   action_set->port = 2;
-  execute_action(&pkt, &action_list);
+  execute_action(pkt, &action_list);
   TEST_ASSERT_EQUAL_MESSAGE(m->refcnt, 1,
                             "OUTPUT refcnt error.");
 
   m->refcnt = 2;
   action_set->port = OFPP_ALL;
-  execute_action(&pkt, &action_list);
+  execute_action(pkt, &action_list);
   TEST_ASSERT_EQUAL_MESSAGE(m->refcnt, 1,
                             "OUTPUT refcnt error.");
 
   m->refcnt = 2;
   action_set->port = OFPP_NORMAL;
-  execute_action(&pkt, &action_list);
+  execute_action(pkt, &action_list);
   TEST_ASSERT_EQUAL_MESSAGE(m->refcnt, 1,
                             "OUTPUT refcnt error.");
 
   m->refcnt = 2;
   action_set->port = OFPP_IN_PORT;
-  execute_action(&pkt, &action_list);
+  execute_action(pkt, &action_list);
   TEST_ASSERT_EQUAL_MESSAGE(m->refcnt, 1,
                             "OUTPUT refcnt error.");
 
   m->refcnt = 2;
   action_set->port = OFPP_CONTROLLER;
-  execute_action(&pkt, &action_list);
+  execute_action(pkt, &action_list);
   TEST_ASSERT_EQUAL_MESSAGE(m->refcnt, 1,
                             "OUTPUT refcnt error.");
 
   m->refcnt = 2;
   action_set->port = OFPP_FLOOD;
-  execute_action(&pkt, &action_list);
+  execute_action(pkt, &action_list);
   TEST_ASSERT_EQUAL_MESSAGE(m->refcnt, 1,
                             "OUTPUT refcnt error.");
 
   m->refcnt = 2;
   action_set->port = OFPP_LOCAL;
-  execute_action(&pkt, &action_list);
+  execute_action(pkt, &action_list);
   TEST_ASSERT_EQUAL_MESSAGE(m->refcnt, 1,
                             "OUTPUT refcnt error.");
 
   m->refcnt = 2;
   action_set->port = 0;
-  execute_action(&pkt, &action_list);
+  execute_action(pkt, &action_list);
   TEST_ASSERT_EQUAL_MESSAGE(m->refcnt, 1,
                             "OUTPUT refcnt error.");
   free(m);
@@ -152,7 +158,7 @@ test_lagopus_match_and_action(void) {
   struct action *action;
   struct ofp_action_output *action_set;
   struct port *port;
-  struct lagopus_packet pkt;
+  struct lagopus_packet *pkt;
   OS_MBUF *m;
 
   bridge = dp_bridge_lookup("br0");
@@ -169,19 +175,19 @@ test_lagopus_match_and_action(void) {
   lagopus_set_action_function(action);
   TAILQ_INSERT_TAIL(&action_list, action, entry);
 
-  m = calloc(1, sizeof(*m));
-  TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
-  m->data = &m->dat[128];
+  pkt = alloc_lagopus_packet();
+  TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
+  m = pkt->mbuf;
   m->refcnt = 2;
 
-  port = port_lookup(bridge->ports, 1);
+  port = port_lookup(&bridge->ports, 1);
   TEST_ASSERT_NOT_NULL(port);
-  pkt.table_id = 0;
-  pkt.cache = NULL;
-  lagopus_packet_init(&pkt, m, port);
-  TEST_ASSERT_EQUAL(pkt.in_port, port);
-  TEST_ASSERT_EQUAL(pkt.in_port->bridge, bridge);
-  lagopus_match_and_action(&pkt);
+  pkt->table_id = 0;
+  pkt->cache = NULL;
+  lagopus_packet_init(pkt, m, port);
+  TEST_ASSERT_EQUAL(pkt->in_port, port);
+  TEST_ASSERT_EQUAL(pkt->in_port->bridge, bridge);
+  lagopus_match_and_action(pkt);
   TEST_ASSERT_EQUAL_MESSAGE(m->refcnt, 1,
                             "match_and_action refcnt error.");
   free(m);

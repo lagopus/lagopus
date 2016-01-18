@@ -17,7 +17,6 @@
 #include "unity.h"
 #include "../ofp_group_mod_handler.h"
 #include "handler_test_utils.h"
-#include "event.h"
 #include "lagopus/pbuf.h"
 #include "../channel_mgr.h"
 

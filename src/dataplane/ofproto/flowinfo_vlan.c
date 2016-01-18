@@ -22,7 +22,7 @@
 #include <stdlib.h>
 
 #include "openflow.h"
-#include "lagopus/ptree.h"
+#include "lagopus_apis.h"
 #include "lagopus/flowdb.h"
 #include "pktbuf.h"
 #include "packet.h"
@@ -61,13 +61,22 @@ get_match_vlan_vid(struct match_list *match_list, uint16_t *vid) {
   return match;
 }
 
+static void
+freeup_flowinfo(void *val) {
+  struct flowinfo *flowinfo;
+
+  flowinfo = val;
+  flowinfo->destroy_func(flowinfo);
+}
+
 struct flowinfo *
 new_flowinfo_vlan_vid(void) {
   struct flowinfo *self;
 
   self = calloc(1, sizeof(struct flowinfo));
   if (self != NULL) {
-    self->ptree = ptree_init(VLAN_VID_BITLEN);
+    lagopus_hashmap_create(&self->hashmap, LAGOPUS_HASHMAP_TYPE_ONE_WORD,
+                           freeup_flowinfo);
     self->misc = new_flowinfo_eth_type();
     self->add_func = add_flow_vlan_vid;
     self->del_func = del_flow_vlan_vid;
@@ -80,18 +89,7 @@ new_flowinfo_vlan_vid(void) {
 
 static void
 destroy_flowinfo_vlan_vid(struct flowinfo *self) {
-  struct ptree_node *node;
-  struct flowinfo *flowinfo;
-
-  node = ptree_top(self->ptree);
-  while (node != NULL) {
-    if (node->info != NULL) {
-      flowinfo = node->info;
-      flowinfo->destroy_func(flowinfo);
-    }
-    node = ptree_next(node);
-  }
-  ptree_free(self->ptree);
+  lagopus_hashmap_destroy(&self->hashmap, true);
   self->misc->destroy_func(self->misc);
   free(self);
 }
@@ -100,64 +98,61 @@ static lagopus_result_t
 add_flow_vlan_vid(struct flowinfo *self, struct flow *flow) {
   struct match *match;
   struct flowinfo *flowinfo;
-  struct ptree_node *node;
   uint16_t vlan_vid;  /* network byte order */
-  lagopus_result_t ret;
+  lagopus_result_t rv;
 
   match = get_match_vlan_vid(&flow->match_list, &vlan_vid);
   if (match != NULL) {
-    node = ptree_node_get(self->ptree, (uint8_t *)&vlan_vid, VLAN_VID_BITLEN);
-    if (node == NULL) {
-      /* fatal. */
-      return LAGOPUS_RESULT_NO_MEMORY;
+    rv = lagopus_hashmap_find_no_lock(&self->hashmap,
+                                      (void *)vlan_vid, (void *)&flowinfo);
+    if (rv != LAGOPUS_RESULT_OK) {
+      void *val;
+
+      flowinfo = new_flowinfo_eth_type();
+      val = flowinfo;
+      rv = lagopus_hashmap_add_no_lock(&self->hashmap, (void *)vlan_vid,
+                                       (void *)&val, false);
     }
-    if (node->info == NULL) {
-      /* new node. */
-      node->info = new_flowinfo_eth_type();
-    }
-    flowinfo = node->info;
+    rv = flowinfo->add_func(flowinfo, flow);
     /*match->except_flag = true;*/ /* XXX vid match with mask */
-    ret = flowinfo->add_func(flowinfo, flow);
   } else {
-    ret = self->misc->add_func(self->misc, flow);
+    rv = self->misc->add_func(self->misc, flow);
   }
-  if (LAGOPUS_RESULT_OK == ret) {
+  if (rv == LAGOPUS_RESULT_OK) {
     self->nflow++;
   }
-  return ret;
+  return rv;
 }
 
 static lagopus_result_t
 del_flow_vlan_vid(struct flowinfo *self, struct flow *flow) {
-  struct flowinfo *flowinfo;
-  struct ptree_node *node;
   uint16_t vlan_vid;  /* network byte order */
-  lagopus_result_t ret;
+  lagopus_result_t rv;
 
   if (get_match_vlan_vid(&flow->match_list, &vlan_vid) != NULL) {
-    node = ptree_node_lookup(self->ptree, (uint8_t *)&vlan_vid,
-                             VLAN_VID_BITLEN);
-    if (node->info == NULL) {
-      return LAGOPUS_RESULT_NOT_FOUND;
+    struct flowinfo *flowinfo;
+
+    rv = lagopus_hashmap_find_no_lock(&self->hashmap, (void *)vlan_vid,
+                                      (void *)&flowinfo);
+    if (rv == LAGOPUS_RESULT_OK) {
+      rv = flowinfo->del_func(flowinfo, flow);
     }
-    flowinfo = node->info;
-    ret = flowinfo->del_func(flowinfo, flow);
   } else {
-    ret = self->misc->del_func(self->misc, flow);
+    rv = self->misc->del_func(self->misc, flow);
   }
-  if (LAGOPUS_RESULT_OK == ret) {
+  if (rv == LAGOPUS_RESULT_OK) {
     self->nflow--;
   }
-  return ret;
+  return rv;
 }
 
 static struct flow *
 match_flow_vlan_vid(struct flowinfo *self, struct lagopus_packet *pkt,
                     int32_t *pri) {
   struct flowinfo *flowinfo;
-  struct ptree_node *node;
   struct flow *flow, *alt_flow;
   uint16_t vlan_vid;  /* network byte order */
+  lagopus_result_t rv;
 
   flow = NULL;
   if (pkt->vlan != NULL) {
@@ -166,9 +161,9 @@ match_flow_vlan_vid(struct flowinfo *self, struct lagopus_packet *pkt,
   } else {
     vlan_vid = 0;
   }
-  node = ptree_node_lookup(self->ptree, (uint8_t *)&vlan_vid, VLAN_VID_BITLEN);
-  if (node != NULL && node->info != NULL) {
-    flowinfo = node->info;
+  rv = lagopus_hashmap_find_no_lock(&self->hashmap, (void *)vlan_vid,
+                                    (void *)&flowinfo);
+  if (rv == LAGOPUS_RESULT_OK) {
     flow = flowinfo->match_func(flowinfo, pkt, pri);
   }
   alt_flow = self->misc->match_func(self->misc, pkt, pri);
@@ -181,15 +176,13 @@ match_flow_vlan_vid(struct flowinfo *self, struct lagopus_packet *pkt,
 static struct flow *
 find_flow_vlan_vid(struct flowinfo *self, struct flow *flow) {
   struct flowinfo *flowinfo;
-  struct ptree_node *node;
   uint16_t vlan_vid;  /* network byte order */
 
   if (get_match_vlan_vid(&flow->match_list, &vlan_vid) != NULL) {
-    node = ptree_node_get(self->ptree, (uint8_t *)&vlan_vid, VLAN_VID_BITLEN);
-    if (node == NULL || node->info == NULL) {
+    if (lagopus_hashmap_find_no_lock(&self->hashmap, (void *)vlan_vid,
+                                     (void *)&flowinfo) != LAGOPUS_RESULT_OK) {
       return NULL;
     }
-    flowinfo = node->info;
     return flowinfo->find_func(flowinfo, flow);
   } else {
     return self->misc->find_func(self->misc, flow);

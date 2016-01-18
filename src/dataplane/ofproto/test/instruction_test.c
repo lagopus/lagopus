@@ -28,15 +28,18 @@
 #include "datapath_test_misc_macros.h"
 
 static struct port port;
-static struct lagopus_packet pkt;
+static struct lagopus_packet *pkt;
 
 void
 setUp(void) {
   TEST_ASSERT_EQUAL(dp_api_init(), LAGOPUS_RESULT_OK);
+  pkt = alloc_lagopus_packet();
+  TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
 }
 
 void
 tearDown(void) {
+  lagopus_packet_free(pkt);
   dp_api_fini();
 }
 
@@ -47,10 +50,8 @@ test_execute_instruction_GOTO_TABLE(void) {
   struct ofp_instruction_goto_table *ofp_insn;
   OS_MBUF *m;
 
-  m = calloc(1, sizeof(*m));
-  TEST_ASSERT_NOT_NULL_MESSAGE(m, "m: calloc error.");
-  m->data = &m->dat[128];
-  OS_M_PKTLEN(m) = 64;
+  m = pkt->mbuf;
+  OS_M_APPEND(m, 64);
 
   insn = calloc(1, sizeof(struct instruction) +
                 sizeof(struct ofp_instruction_goto_table) -
@@ -64,8 +65,8 @@ test_execute_instruction_GOTO_TABLE(void) {
   memset(insns, 0, sizeof(insns));
   insns[INSTRUCTION_INDEX_GOTO_TABLE] = insn;
 
-  lagopus_packet_init(&pkt, m, &port);
-  execute_instruction(&pkt, (const struct instruction **)insns);
+  lagopus_packet_init(pkt, m, &port);
+  execute_instruction(pkt, (const struct instruction **)insns);
 }
 
 void
@@ -90,7 +91,7 @@ test_execute_instruction_WRITE_METADATA(void) {
   ofp_insn = (struct ofp_instruction_write_metadata *)&insn->ofpit;
   ofp_insn->type = OFPIT_WRITE_METADATA;
   lagopus_set_instruction_function(insn);
-  OS_MEMCPY(&pkt.oob_data.metadata, md_i, sizeof(uint64_t));
+  OS_MEMCPY(&pkt->oob_data.metadata, md_i, sizeof(uint64_t));
   ofp_insn->metadata =  /* host byte order */
     (uint64_t)md_n[0] << 56 | (uint64_t)md_n[1] << 48
     | (uint64_t)md_n[2] << 40 | (uint64_t)md_n[3] << 32
@@ -104,8 +105,8 @@ test_execute_instruction_WRITE_METADATA(void) {
   memset(insns, 0, sizeof(insns));
   insns[INSTRUCTION_INDEX_WRITE_METADATA] = insn;
 
-  execute_instruction(&pkt, (const struct instruction **)insns);
-  TEST_ASSERT_EQUAL_UINT8_ARRAY_MESSAGE(&pkt.oob_data.metadata, md_r, 8,
+  execute_instruction(pkt, (const struct instruction **)insns);
+  TEST_ASSERT_EQUAL_UINT8_ARRAY_MESSAGE(&pkt->oob_data.metadata, md_r, 8,
                                         "WRITE_METADATA error.");
 }
 
@@ -118,10 +119,8 @@ test_execute_instruction_WRITE_ACTIONS(void) {
   struct ofp_action_push *action_push;
   OS_MBUF *m;
 
-  m = calloc(1, sizeof(*m));
-  TEST_ASSERT_NOT_NULL_MESSAGE(m, "m: calloc error.");
-  m->data = &m->dat[128];
-  OS_M_PKTLEN(m) = 64;
+  m = pkt->mbuf;
+  OS_M_APPEND(m, 64);
 
   ofp_insn = &insn.ofpit;
   ofp_insn->type = OFPIT_WRITE_ACTIONS;
@@ -138,9 +137,9 @@ test_execute_instruction_WRITE_ACTIONS(void) {
   memset(insns, 0, sizeof(insns));
   insns[INSTRUCTION_INDEX_WRITE_ACTIONS] = &insn;
 
-  lagopus_packet_init(&pkt, m, &port);
-  execute_instruction(&pkt, (const struct instruction **)insns);
-  TEST_ASSERT_NOT_NULL_MESSAGE(TAILQ_FIRST(&pkt.actions[2]),
+  lagopus_packet_init(pkt, m, &port);
+  execute_instruction(pkt, (const struct instruction **)insns);
+  TEST_ASSERT_NOT_NULL_MESSAGE(TAILQ_FIRST(&pkt->actions[2]),
                                "WRITE_ACTIONS(push_mpls) error.");
 }
 
@@ -153,10 +152,8 @@ test_execute_instruction_CLEAR_ACTIONS(void) {
   struct ofp_action_push *action_push;
   OS_MBUF *m;
 
-  m = calloc(1, sizeof(*m));
-  TEST_ASSERT_NOT_NULL_MESSAGE(m, "m: calloc error.");
-  m->data = &m->dat[128];
-  OS_M_PKTLEN(m) = 64;
+  m = pkt->mbuf;
+  OS_M_APPEND(m, 64);
 
   ofp_insn = &insn.ofpit;
   ofp_insn->type = OFPIT_CLEAR_ACTIONS;
@@ -164,7 +161,8 @@ test_execute_instruction_CLEAR_ACTIONS(void) {
   memset(insns, 0, sizeof(insns));
   insns[INSTRUCTION_INDEX_CLEAR_ACTIONS] = &insn;
 
-  lagopus_packet_init(&pkt, m, &port);
+  lagopus_packet_init(pkt, m, &port);
+  TAILQ_INIT(&pkt->actions[2]);
   action = calloc(1, sizeof(*action) +
                   sizeof(*action_push) - sizeof(struct ofp_action_header));
   TEST_ASSERT_NOT_NULL_MESSAGE(action, "action: calloc error.");
@@ -172,11 +170,11 @@ test_execute_instruction_CLEAR_ACTIONS(void) {
   action_push->type = OFPAT_PUSH_MPLS;
   action_push->ethertype = 0x8847;
   lagopus_set_action_function(action);
-  TAILQ_INSERT_TAIL(&pkt.actions[2], action, entry);
-  pkt.flags |= PKT_FLAG_HAS_ACTION;
+  TAILQ_INSERT_TAIL(&pkt->actions[2], action, entry);
+  pkt->flags |= PKT_FLAG_HAS_ACTION;
 
-  execute_instruction(&pkt, (const struct instruction **)insns);
-  TEST_ASSERT_NULL_MESSAGE(TAILQ_FIRST(&pkt.actions[2]),
+  execute_instruction(pkt, (const struct instruction **)insns);
+  TEST_ASSERT_NULL_MESSAGE(TAILQ_FIRST(&pkt->actions[2]),
                            "CLEAR_ACTIONS(push_mpls) error.");
 }
 
@@ -189,14 +187,12 @@ test_execute_instruction_APPLY_ACTIONS(void) {
   struct ofp_action_push *action_push;
   OS_MBUF *m;
 
-  m = calloc(1, sizeof(*m));
-  TEST_ASSERT_NOT_NULL_MESSAGE(m, "m: calloc error.");
-  m->data = &m->dat[128];
-  OS_M_PKTLEN(m) = 64;
-  m->data[12] = 0x08;
-  m->data[13] = 0x00;
-  m->data[14] = 0x45;
-  m->data[22] = 240;
+  m = pkt->mbuf;
+  OS_M_APPEND(m, 64);
+  OS_MTOD(m, uint8_t *)[12] = 0x08;
+  OS_MTOD(m, uint8_t *)[13] = 0x00;
+  OS_MTOD(m, uint8_t *)[14] = 0x45;
+  OS_MTOD(m, uint8_t *)[22] = 240;
 
   ofp_insn = &insn.ofpit;
   ofp_insn->type = OFPIT_APPLY_ACTIONS;
@@ -213,21 +209,20 @@ test_execute_instruction_APPLY_ACTIONS(void) {
   memset(insns, 0, sizeof(insns));
   insns[INSTRUCTION_INDEX_APPLY_ACTIONS] = &insn;
 
-  lagopus_packet_init(&pkt, m, &port);
-  execute_instruction(&pkt, (const struct instruction **)insns);
+  lagopus_packet_init(pkt, m, &port);
+  execute_instruction(pkt, (const struct instruction **)insns);
   TEST_ASSERT_EQUAL_MESSAGE(OS_M_PKTLEN(m), 64 + 4,
                             "APPLY_ACTIONS length error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[12], 0x88,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[12], 0x88,
                             "APPLY_ACTIONS ethertype[0] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[13], 0x47,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[13], 0x47,
                             "APPLY_ACTIONS ethertype[1] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[16], 1,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[16], 1,
                             "APPLY_ACTIONS BOS error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[17], 240,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[17], 240,
                             "APPLY_ACTIONS TTL error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[18], 0x45,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[18], 0x45,
                             "APPLY_ACTIONS payload error.");
-  free(m);
 }
 
 void
@@ -237,10 +232,8 @@ test_execute_instruction_EXPERIMENTER(void) {
   struct ofp_instruction_experimenter *ofp_insn;
   OS_MBUF *m;
 
-  m = calloc(1, sizeof(*m));
-  TEST_ASSERT_NOT_NULL_MESSAGE(m, "m: calloc error.");
-  m->data = &m->dat[128];
-  OS_M_PKTLEN(m) = 64;
+  m = pkt->mbuf;
+  OS_M_APPEND(m, 64);
 
   insn = calloc(1, sizeof(struct instruction) +
                 sizeof(struct ofp_instruction_experimenter) -
@@ -254,9 +247,8 @@ test_execute_instruction_EXPERIMENTER(void) {
   memset(insns, 0, sizeof(insns));
   /* insns[INSTRUCTION_INDEX_EXPERIMENTER] = insn; */
 
-  lagopus_packet_init(&pkt, m, &port);
-  execute_instruction(&pkt, (const struct instruction **)insns);
-  free(m);
+  lagopus_packet_init(pkt, m, &port);
+  execute_instruction(pkt, (const struct instruction **)insns);
 }
 
 void
@@ -266,10 +258,8 @@ test_execute_instruction_METER(void) {
   struct ofp_instruction_meter *ofp_insn;
   OS_MBUF *m;
 
-  m = calloc(1, sizeof(*m));
-  TEST_ASSERT_NOT_NULL_MESSAGE(m, "m: calloc error.");
-  m->data = &m->dat[128];
-  OS_M_PKTLEN(m) = 64;
+  m = pkt->mbuf;
+  OS_M_APPEND(m, 64);
   m->refcnt = 1;
 
   insn = calloc(1, sizeof(struct instruction) +
@@ -284,9 +274,8 @@ test_execute_instruction_METER(void) {
   memset(insns, 0, sizeof(insns));
   insns[INSTRUCTION_INDEX_METER] = insn;
 
-  lagopus_packet_init(&pkt, m, &port);
-  execute_instruction(&pkt, (const struct instruction **)insns);
+  lagopus_packet_init(pkt, m, &port);
+  execute_instruction(pkt, (const struct instruction **)insns);
   TEST_ASSERT_EQUAL_MESSAGE(m->refcnt, 1,
                             "METER refcnt error.");
-  free(m);
 }

@@ -93,7 +93,6 @@
 #include "lagopus/port.h"
 #include "lagopus_gstate.h"
 #include "lagopus/ofp_dp_apis.h"
-#include "lagopus/vector.h"
 
 #include "lagopus/dataplane.h"
 #include "pktbuf.h"
@@ -102,7 +101,22 @@
 #include "mgr/thread.h"
 
 rte_atomic32_t dpdk_stop = RTE_ATOMIC32_INIT(0);
-bool rawsocket_only_mode;
+volatile bool rawsocket_only_mode = true;
+
+bool
+is_rawsocket_only_mode(void) {
+  return rawsocket_only_mode;
+}
+
+bool
+set_rawsocket_only_mode(bool newval) {
+  bool oldval;
+
+  oldval = rawsocket_only_mode;
+  rawsocket_only_mode = newval;
+
+  return oldval;
+}
 
 int
 app_lcore_main_loop(void *arg) {
@@ -170,7 +184,7 @@ alloc_lagopus_packet(void) {
   unsigned sock;
 
   mbuf = NULL;
-  if (rawsocket_only_mode != true) {
+  if (is_rawsocket_only_mode() != true) {
     for (sock = 0; sock < APP_MAX_SOCKETS; sock++) {
       if (app.pools[sock] != NULL) {
         mbuf = rte_pktmbuf_alloc(app.pools[sock]);
@@ -308,7 +322,7 @@ dpdk_dataplane_init(int argc, const char *const argv[]) {
     return LAGOPUS_RESULT_INVALID_ARGS;
   }
 
-  if (rawsocket_only_mode != true) {
+  if (is_rawsocket_only_mode() != true) {
     /* Init */
     app_init();
     app_print_params();
@@ -329,7 +343,7 @@ dp_dpdk_thread_init(int argc,
                     lagopus_thread_t **thdptr) {
   static struct dataplane_arg dparg;
 
-  if (rawsocket_only_mode != true) {
+  if (is_rawsocket_only_mode() != true) {
     dparg.threadptr = &dpdk_thread;
     dparg.lock = &dpdk_lock;
     lagopus_thread_create(&dpdk_thread, dp_dpdk_thread_loop,
@@ -348,7 +362,7 @@ dp_dpdk_thread_start(void) {
 
   rv = LAGOPUS_RESULT_OK;
   /* launch per-lcore init on every lcore */
-  if (dpdk_run == false && rawsocket_only_mode != true) {
+  if (dpdk_run == false && is_rawsocket_only_mode() != true) {
     rte_eal_mp_remote_launch(app_lcore_main_loop, NULL, SKIP_MASTER);
     rv = dp_thread_start(&dpdk_thread, &dpdk_lock, &dpdk_run);
   }
@@ -357,7 +371,7 @@ dp_dpdk_thread_start(void) {
 
 void
 dp_dpdk_thread_fini(void) {
-  if (rawsocket_only_mode != true) {
+  if (is_rawsocket_only_mode() != true) {
     dp_thread_finalize(&dpdk_thread);
   }
 }
@@ -367,7 +381,7 @@ dp_dpdk_thread_shutdown(shutdown_grace_level_t level) {
   lagopus_result_t rv;
 
   rv = LAGOPUS_RESULT_OK;
-  if (rawsocket_only_mode != true) {
+  if (is_rawsocket_only_mode() != true) {
     rv = dp_thread_shutdown(&dpdk_thread, &dpdk_lock, &dpdk_run, level);
   }
   return rv;
@@ -377,16 +391,11 @@ lagopus_result_t
 dp_dpdk_thread_stop(void) {
   lagopus_result_t rv;
 
-#ifdef HAVE_DPDK
   rte_atomic32_inc(&dpdk_stop);
-#endif /* HAVE_DPDK */
-
   rv = LAGOPUS_RESULT_OK;
-#ifdef HAVE_DPDK
-  if (rawsocket_only_mode != true) {
+  if (is_rawsocket_only_mode() != true) {
     rv = dp_thread_stop(&dpdk_thread, &dpdk_run);
   }
-#endif /* HAVE_DPDK */
   return rv;
 }
 
