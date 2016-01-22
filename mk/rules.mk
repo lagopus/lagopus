@@ -218,7 +218,7 @@ pkg-clean::
 	$(RM) -rf $(PKGDIR)/
 
 pkg-deb:: clean
-	sh $(MKRULESDIR)/make_pkg.sh $(TOPDIR) $(PKGDIR)
+	sh $(MKRULESDIR)/make_pkg.sh $(TOPDIR) $(PKGDIR) $(RTE_TARGET)
 
 ifdef TARGET_LIB
 $(TARGET_LIB):	$(OBJS)
@@ -253,14 +253,62 @@ $(DEP_LAGOPUS_CONFIG_LIB)::
 $(DEP_SNMP_HANDLER_LIB)::
 	(cd $(BUILD_SNMPDIR) && $(MAKE) $(SNMP_HANDLER_LIB))
 
-$(DEP_LAGOPUS_OFCONF_LIB)::
-	(cd $(BUILD_OFCONFDIR) && $(MAKE) $(LAGOPUS_OFCONF_LIB))
+# Obsolete/Depricated modules:
+#---------------------------------------------------------------------
+#$(DEP_LAGOPUS_OFCONF_LIB)::
+#	(cd $(BUILD_OFCONFDIR) && $(MAKE) $(LAGOPUS_OFCONF_LIB))
 
-$(DEP_LAGOPUS_OVSDB_LIB)::
-	(cd $(BUILD_OVSDBDIR) && $(MAKE) $(LAGOPUS_OVSDB_LIB))
+#$(DEP_LAGOPUS_OVSDB_LIB)::
+#	(cd $(BUILD_OVSDBDIR) && $(MAKE) $(LAGOPUS_OVSDB_LIB))
 
-$(DEP_LAGOPUS_ETHOAM_LIB)::
-	(cd $(BUILD_ETHOAMDIR) && $(MAKE) $(LAGOPUS_ETHOAM_LIB))
+#$(DEP_LAGOPUS_ETHOAM_LIB)::
+#	(cd $(BUILD_ETHOAMDIR) && $(MAKE) $(LAGOPUS_ETHOAM_LIB))
+#---------------------------------------------------------------------
+
+ifneq ($(RTE_SDK),)
+
+dpdk::
+	$(MKRULESDIR)/make_dpdk.sh ${TOPDIR} src/dpdk \
+		"${RTE_ARCH}" "${RTE_OS}" ${CC}
+
+dpdk-install::
+	$(INSTALL_DATA) $(TOPDIR)/src/dpdk/build/lib/libdpdk.so $(DEST_LIBDIR)
+
+dpdk-clean::
+	@if test -r "${TOPDIR}/src/dpdk/build/.config"; then \
+		cd ${TOPDIR}/src/dpdk && $(MAKE) clean; \
+	fi
+
+$(DEP_DPDK_LIB)::
+	@if test ! -f $$(DEP_DPDK_LIB); then \
+		$(MAKE) dpdk; \
+	fi
+
+else
+
+dpdk::
+	@true
+
+dpdk-install::
+	@true
+
+dpdk-clean::
+	@true
+
+endif
+
+submodules::	$(SUBMODULES)
+	@true
+
+.PHONY:	prerequisite
+prerequisite::
+	@( \
+		$(MAKE) clean && \
+		$(MAKE) generate && \
+		$(MAKE) submodules && \
+		$(MAKE) depend; \
+		exit $$?; \
+	)
 
 clean:: pkg-clean
 	$(LTCLEAN) $(OBJS) *.i *~ *.~*~ core core.* *.core $(TARGETS) \
@@ -314,7 +362,7 @@ doxygen::
 
 fortify::
 	@( \
-		$(MAKE) clean ; \
+		$(MAKE) prerequisite ; \
 		$(RM) -rf ./fortify.mk ./fortify.fpr ; \
 		echo 'ifeq ($$(__SITECONF__),.pre.)' > ./fortify.mk ; \
 		echo 'ORGCC=$(CC)' >> ./fortify.mk ; \
@@ -333,7 +381,7 @@ fortify::
 
 scan-build::
 	@( \
-		$(MAKE) clean > /dev/null 2>&1 ; \
+		$(MAKE) prerequisite > /dev/null 2>&1 ; \
 		$(RM) -rf ./scan-build.mk ./scan-result ; \
 		scan-build sh -c 'echo CC = $${CC} > ./scan-build.mk' \
 			> /dev/null 2>&1 ; \
@@ -355,9 +403,25 @@ scan-build-blame::
 		$(RM) -f ./m.out ; \
 	)
 
+gcc-full-opt::
+	@( \
+		$(MAKE) prerequisite ; \
+		$(RM) -rf ./gcc-full-opt.mk ; \
+		echo "DEBUG_CFLAGS = -g0" > ./gcc-full-opt.mk ; \
+		echo "DEBUG_CXXFLAGS = -g0" >> ./gcc-full-opt.mk ; \
+		echo "OPT_CFLAGS = -O6" >> ./gcc-full-opt.mk ; \
+		echo "OPT_CXXFLAGS = -O6" >> ./gcc-full-opt.mk ; \
+		echo "CODEGEN_CFLAGS = -fno-keep-inline-functions" >> ./gcc-full-opt.mk ; \
+		echo "CODEGEN_CXXFLAGS = -fno-keep-inline-functions" >> ./gcc-full-opt.mk ; \
+		if test $$? -eq 0; then \
+			(SITECONF_MK=`pwd`/gcc-full-opt.mk $(MAKE)) ; \
+		fi ; \
+		$(RM) -f ./gcc-full-opt.mk ; \
+	)
+
 clang::
 	@( \
-		$(MAKE) clean ; \
+		$(MAKE) prerequisite ; \
 		$(RM) -rf ./clang.mk ; \
 		echo "CC = clang" > ./clang.mk ; \
 		if test $$? -eq 0; then \
@@ -368,7 +432,7 @@ clang::
 
 icc::
 	@( \
-		$(MAKE) clean ; \
+		$(MAKE) prerequisite ; \
 		$(RM) -rf ./icc.mk ; \
 		echo "CC = icc" > ./icc.mk ; \
 		if test $$? -eq 0; then \
@@ -389,7 +453,7 @@ gcov::
 
 und::
 	@( \
-		$(MAKE) clean > /dev/null 2>&1 ; \
+		$(MAKE) prerequisite ; \
 		$(RM) -rf ./und.mk ./und.udb ./und.txt und_html ; \
 		echo "CC = gccwrapper" > ./und.mk ; \
 		if test $$? -eq 0; then \
@@ -407,7 +471,7 @@ und::
 
 cov::
 	@( \
-		$(MAKE) clean > /dev/null 2>&1 ; \
+		$(MAKE) prerequisite ; \
 		$(RM) -rf ./cov ; \
 		cov-build --dir ./cov sh -c "$(MAKE)" > /dev/null 2>&1 && \
 		cov-analyze --dir ./cov --all > /dev/null 2>&1 && \
@@ -420,7 +484,7 @@ wc::
 
 warn-check::
 	@( \
-		$(MAKE) clean > /dev/null 2>&1 ; \
+		$(MAKE) prerequisite > /dev/null 2>&1 ; \
 		$(MAKE) > ./m.out 2>&1 ; \
 		if test $$? -eq 0 -a -f ./m.out ; then \
 			grep ' warning:' ./m.out | awk -F: '{ print $$1 }' | \
@@ -431,7 +495,7 @@ warn-check::
 
 warn-blame::
 	@( \
-		$(MAKE) clean > /dev/null 2>&1 ; \
+		$(MAKE) prerequisite > /dev/null 2>&1 ; \
 		$(MAKE) > ./m.out 2>&1 ; \
 		if test $$? -eq 0 -a -f ./m.out ; then \
 			sh $(MKRULESDIR)/warn-blame.sh ./m.out ; \

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,7 +24,6 @@
 
 #include "openflow.h"
 #include "lagopus/ethertype.h"
-#include "lagopus/ptree.h"
 #include "lagopus/flowdb.h"
 #include "pktbuf.h"
 #include "packet.h"
@@ -58,13 +57,22 @@ get_match_mpls_label(struct match_list *match_list, uint32_t *label) {
   return match;
 }
 
+static void
+freeup_flowinfo(void *val) {
+  struct flowinfo *flowinfo;
+
+  flowinfo = val;
+  flowinfo->destroy_func(flowinfo);
+}
+
 struct flowinfo *
 new_flowinfo_mpls(void) {
   struct flowinfo *self;
 
   self = calloc(1, sizeof(struct flowinfo));
   if (self != NULL) {
-    self->ptree = ptree_init(MPLS_LABEL_BITLEN);
+    lagopus_hashmap_create(&self->hashmap, LAGOPUS_HASHMAP_TYPE_ONE_WORD,
+                           freeup_flowinfo);
     self->misc = new_flowinfo_basic();
     self->add_func = add_flow_mpls;
     self->del_func = del_flow_mpls;
@@ -77,18 +85,7 @@ new_flowinfo_mpls(void) {
 
 static void
 destroy_flowinfo_mpls(struct flowinfo *self) {
-  struct ptree_node *node;
-  struct flowinfo *flowinfo;
-
-  node = ptree_top(self->ptree);
-  while (node != NULL) {
-    if (node->info != NULL) {
-      flowinfo = node->info;
-      flowinfo->destroy_func(flowinfo);
-    }
-    node = ptree_next(node);
-  }
-  ptree_free(self->ptree);
+  lagopus_hashmap_destroy(&self->hashmap, true);
   self->misc->destroy_func(self->misc);
   free(self);
 }
@@ -97,76 +94,71 @@ static lagopus_result_t
 add_flow_mpls(struct flowinfo *self, struct flow *flow) {
   struct match *match;
   struct flowinfo *flowinfo;
-  struct ptree_node *node;
   uint32_t label;
   uint32_t mpls_lse;
-  lagopus_result_t ret;
+  lagopus_result_t rv;
 
   match = get_match_mpls_label(&flow->match_list, &label);
   if (match != NULL) {
     SET_MPLS_LSE(mpls_lse, OS_NTOHL(label), 0, 0, 0);
-    node = ptree_node_get(self->ptree, (uint8_t *)&mpls_lse,
-                          MPLS_LABEL_BITLEN);
-    if (node == NULL) {
-      /* fatal. */
-      return LAGOPUS_RESULT_NO_MEMORY;
+    rv = lagopus_hashmap_find_no_lock(&self->hashmap,
+                                      (void *)mpls_lse, (void *)&flowinfo);
+    if (rv != LAGOPUS_RESULT_OK) {
+      void *val;
+
+      flowinfo = new_flowinfo_basic();
+      val = flowinfo;
+      rv = lagopus_hashmap_add_no_lock(&self->hashmap, (void *)mpls_lse,
+                                       (void *)&val, false);
     }
-    if (node->info == NULL) {
-      /* new node. */
-      node->info = new_flowinfo_basic();
-    }
+    rv = flowinfo->add_func(flowinfo, flow);
     match->except_flag = true;
-    flowinfo = node->info;
-    ret = flowinfo->add_func(flowinfo, flow);
   } else {
-    ret = self->misc->add_func(self->misc, flow);
+    rv = self->misc->add_func(self->misc, flow);
   }
-  if (LAGOPUS_RESULT_OK == ret) {
+  if (rv == LAGOPUS_RESULT_OK) {
     self->nflow++;
   }
-  return ret;
+  return rv;
 }
 
 static lagopus_result_t
 del_flow_mpls(struct flowinfo *self, struct flow *flow) {
   struct flowinfo *flowinfo;
-  struct ptree_node *node;
   uint32_t label;
   uint32_t mpls_lse;
-  lagopus_result_t ret;
+  lagopus_result_t rv;
 
   if (get_match_mpls_label(&flow->match_list, &label) != NULL) {
     SET_MPLS_LSE(mpls_lse, OS_NTOHL(label), 0, 0, 0);
-    node = ptree_node_lookup(self->ptree, (uint8_t *)&mpls_lse,
-                             MPLS_LABEL_BITLEN);
-    if (node == NULL || node->info == NULL) {
-      return LAGOPUS_RESULT_NOT_FOUND;
+    rv = lagopus_hashmap_find_no_lock(&self->hashmap,
+                                      (void *)mpls_lse, (void *)&flowinfo);
+    if (rv == LAGOPUS_RESULT_OK) {
+      rv = flowinfo->del_func(flowinfo, flow);
     }
-    flowinfo = node->info;
-    ret = flowinfo->del_func(flowinfo, flow);
   } else {
-    ret = self->misc->del_func(self->misc, flow);
+    rv = self->misc->del_func(self->misc, flow);
   }
-  if (LAGOPUS_RESULT_OK == ret) {
+  if (rv == LAGOPUS_RESULT_OK) {
     self->nflow--;
   }
-  return ret;
+  return rv;
 }
 
 static struct flow *
 match_flow_mpls(struct flowinfo *self, struct lagopus_packet *pkt,
                 int32_t *pri) {
   struct flowinfo *flowinfo;
-  struct ptree_node *node;
   struct flow *flow, *alt_flow;
+  uint32_t mpls_lse;
+  lagopus_result_t rv;
 
   flow = NULL;
-  node = ptree_node_lookup(self->ptree, (uint8_t *)&pkt->mpls->mpls_lse,
-                           MPLS_LABEL_BITLEN);
-  if (node != NULL && node->info != NULL) {
-    flowinfo = node->info;
+  SET_MPLS_LSE(mpls_lse, MPLS_LBL(pkt->mpls->mpls_lse), 0, 0, 0);
+  rv = lagopus_hashmap_find_no_lock(&self->hashmap, (void *)mpls_lse,
+                                    (void *)&flowinfo);
+  if (rv == LAGOPUS_RESULT_OK) {
     flow = flowinfo->match_func(flowinfo, pkt, pri);
-    ptree_unlock_node(node);
   }
   alt_flow = self->misc->match_func(self->misc, pkt, pri);
   if (alt_flow != NULL) {
@@ -178,18 +170,15 @@ match_flow_mpls(struct flowinfo *self, struct lagopus_packet *pkt,
 static struct flow *
 find_flow_mpls(struct flowinfo *self, struct flow *flow) {
   struct flowinfo *flowinfo;
-  struct ptree_node *node;
   uint32_t label;
   uint32_t mpls_lse;
 
   if (get_match_mpls_label(&flow->match_list, &label) != NULL) {
     SET_MPLS_LSE(mpls_lse, OS_NTOHL(label), 0, 0, 0);
-    node = ptree_node_get(self->ptree, (uint8_t *)&mpls_lse,
-                          MPLS_LABEL_BITLEN);
-    if (node == NULL || node->info == NULL) {
+    if (lagopus_hashmap_find_no_lock(&self->hashmap, (void *)mpls_lse,
+                                     (void *)&flowinfo) != LAGOPUS_RESULT_OK) {
       return NULL;
     }
-    flowinfo = node->info;
     return flowinfo->find_func(flowinfo, flow);
   } else {
     return self->misc->find_func(self->misc, flow);

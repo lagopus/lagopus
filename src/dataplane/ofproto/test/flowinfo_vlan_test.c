@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,14 +16,12 @@
 
 #include "unity.h"
 
-#include "lagopus/dpmgr.h"
 #include "lagopus/flowdb.h"
 #include "lagopus/port.h"
 #include "pktbuf.h"
 #include "packet.h"
 #include "lagopus/dataplane.h"
 #include "lagopus/flowinfo.h"
-#include "lagopus/ptree.h"
 #include "datapath_test_misc.h"
 #include "datapath_test_misc_macros.h"
 #include "datapath_test_match.h"
@@ -68,8 +66,6 @@ FLOWINFO_TEST_DECLARE_DATA;
     for (_s = (_bi); _s < (_ei); _s++)					\
       TEST_ASSERT_FLOWINFO_ADD_OK((_fl), test_flow[_s], (_msg));	\
     TEST_ASSERT_FLOWINFO_FLOW_NUM((_fl), (_flnum), (_msg));		\
-    for (_s = (_bi); _s < (_ei); _s++)					\
-      TEST_ASSERT_FLOWINFO_HASVID((_fl), TEST_VID(_s), (_fl)->ptree->max_key_len, (_msg)); \
   } while (0)
 
 /* Positively assert flow deletion. */
@@ -79,8 +75,6 @@ FLOWINFO_TEST_DECLARE_DATA;
     for (_s = (_bi); _s < (_ei); _s++)					\
       TEST_ASSERT_FLOWINFO_DEL_OK((_fl), test_flow[_s], (_msg));	\
     TEST_ASSERT_FLOWINFO_FLOW_NUM((_fl), (_flnum), (_msg));		\
-    for (_s = (_bi); _s < (_ei); _s++)					\
-      TEST_ASSERT_FLOWINFO_HASVID((_fl), TEST_VID(_s), (_fl)->ptree->max_key_len, (_msg)); \
   } while (0)
 
 /* Negatively assert flow deletion. */
@@ -90,8 +84,6 @@ FLOWINFO_TEST_DECLARE_DATA;
     for (_s = (_bi); _s < (_ei); _s++)					\
       TEST_ASSERT_FLOWINFO_DEL_NG((_fl), test_flow[_s], (_msg));	\
     TEST_ASSERT_FLOWINFO_FLOW_NUM((_fl), (_flnum), (_msg));		\
-    for (_s = (_bi); _s < (_ei); _s++)					\
-      TEST_ASSERT_FLOWINFO_HASVID((_fl), TEST_VID(_s), (_fl)->ptree->max_key_len, (_msg)); \
   } while (0)
 
 /* Assert flow numbers. */
@@ -100,28 +92,6 @@ FLOWINFO_TEST_DECLARE_DATA;
     TEST_ASSERT_FLOWINFO_NFLOW((_fl), (_flnum), (_msg));	\
     TEST_ASSERT_FLOWINFO_NFLOW((_fl)->misc, 0, (_msg));		\
     TEST_ASSERT_FLOWINFO_NFLOW((_fl)->misc->misc, 0, (_msg));	\
-  } while (0)
-
-/* Assert the existence of a VLAN VID in a ptree. */
-#define TEST_ASSERT_FLOWINFO_HASVID(_fl, _vid, _l, _msg)	\
-  do {								\
-    struct ptree_node *_n;					\
-    char __buf[TEST_ASSERT_MESSAGE_BUFSIZE];			\
-    \
-    snprintf(__buf, sizeof(__buf), "%s, has VID", (_msg));	\
-    PTREE_FIND_N16(_n, (_fl)->ptree, _vid, _l);			\
-    TEST_ASSERT_NOT_NULL_MESSAGE(_n, __buf);			\
-  } while (0)
-
-/* Assert the non-existence of a VLAN VID in a ptree. */
-#define TEST_ASSERT_FLOWINFO_NOVID(_fl, _vid, _l, _msg)	  \
-  do {							  \
-    struct ptree_node *_n;				  \
-    char __buf[TEST_ASSERT_MESSAGE_BUFSIZE];		  \
-    \
-    snprintf(__buf, sizeof(__buf), "%s, no VID", (_msg)); \
-    PTREE_FIND_N16(_n, (_fl)->ptree, _vid, _l);		  \
-    TEST_ASSERT_NULL_MESSAGE(_n, __buf);		  \
   } while (0)
 
 void
@@ -180,11 +150,6 @@ test_flowinfo_vlan_vid_adddel(void) {
   size_t s;
 
   TEST_ASSERT_OBJECTS();
-  /* The ptree should be clean. */
-  for (s = 0; s < ARRAY_LEN(test_flow); s++) {
-    TEST_ASSERT_FLOWINFO_NOVID(flowinfo, TEST_VID(s),
-                               flowinfo->ptree->max_key_len, __func__);
-  }
 
   /* Add VLAN VID matches. */
   for (s = 0; s < ARRAY_LEN(test_flow); s++) {
@@ -251,11 +216,6 @@ test_flowinfo_vlan_vid_w_adddel(void) {
   size_t s;
 
   TEST_ASSERT_OBJECTS();
-  /* The ptree should be clean. */
-  for (s = 0; s < ARRAY_LEN(test_flow); s++) {
-    TEST_ASSERT_FLOWINFO_NOVID(flowinfo, TEST_VID(s),
-                               flowinfo->ptree->max_key_len, __func__);
-  }
 
   /* Add VLAN VID matches. */
   for (s = 0; s < ARRAY_LEN(test_flow); s++) {
@@ -276,11 +236,6 @@ test_flowinfo_vlan_pcp_adddel(void) {
   size_t s;
 
   TEST_ASSERT_OBJECTS();
-  /* The ptree should be clean. */
-  for (s = 0; s < ARRAY_LEN(test_flow); s++) {
-    TEST_ASSERT_FLOWINFO_NOVID(flowinfo, TEST_VID(s), flowinfo->ptree->max_key_len,
-                               __func__);
-  }
 
   /* Add the VLAN PCP matches. */
   for (s = 0; s < ARRAY_LEN(test_flow); s++) {

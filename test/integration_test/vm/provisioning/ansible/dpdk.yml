@@ -1,0 +1,8 @@
+---
+- hosts: all
+  vars_files:
+    - ../../conf/ansible_conf.yml
+  roles:
+    - role: dpdk
+      when: dpdk.is_used
+      tags: dpdk

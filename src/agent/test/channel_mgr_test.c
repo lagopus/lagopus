@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,6 @@
 #include "lagopus/port.h"
 #include "lagopus/flowdb.h"
 #include "lagopus/dp_apis.h"
-#include "event.h"
 #include "../channel.h"
 #include "../channel_mgr.h"
 

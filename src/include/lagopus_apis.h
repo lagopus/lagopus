@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -51,6 +51,7 @@
 #include "lagopus_session.h"
 #include "lagopus_session_tls.h"
 #include "lagopus_ip_addr.h"
+#include "lagopus_qsort.h"
 #include "lagopus/datastore/controller.h"
 #include "lagopus/datastore/channel.h"
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@
 #include "lagopus/ofp_bridgeq_mgr.h"
 #include "lagopus/ofp_handler.h"
 #include "lagopus/ofp_bridge.h"
+#include "lagopus/dp_apis.h"
 #include "ofp_apis.h"
 
 /* qmuxer timeout in thread_main */
@@ -466,6 +467,10 @@ s_initialize_once(void) {
     lagopus_exit_fatal("ofp_handler_initialize:lagopus_qmuxer_create (%s)",
                        lagopus_error_get_string(res));
   }
+
+  /* Register queue put function. */
+  dp_dataq_put_func_register(ofp_handler_dataq_data_put);
+  dp_eventq_put_func_register(ofp_handler_eventq_data_put);
 
   ofp_bridgeq_mgr_initialize(NULL);
 

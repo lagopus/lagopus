@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -614,7 +614,6 @@ lagopus_pipeline_stage_create(lagopus_pipeline_stage_t *sptr,
       (checked_ps = s_find_stage(name)) == NULL &&
       event_size > 0 &&
       max_batch_size > 0 &&
-      sched_proc != NULL &&
       ((main_proc != NULL) ||
        (fetch_proc != NULL && main_proc != NULL) ||
        (main_proc != NULL && throw_proc != NULL) ||
@@ -1263,6 +1262,80 @@ lagopus_pipeline_stage_set_post_start_hook(
     } else {
       ret = LAGOPUS_RESULT_INVALID_OBJECT;
     }
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  return ret;
+}
+
+
+
+
+
+lagopus_result_t
+lagopus_pipeline_stage_get_worker_nubmer(lagopus_pipeline_stage_t *sptr) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+
+  if (sptr != NULL && *sptr != NULL) {
+    ret = (lagopus_result_t)((*sptr)->m_n_workers);
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  return ret;
+}
+
+
+lagopus_result_t
+lagopus_pipeline_stage_get_worker_event_buffer(lagopus_pipeline_stage_t *sptr,
+                                               size_t index, void **buf) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+
+  if (sptr != NULL && *sptr != NULL && buf != NULL &&
+      index < (*sptr)->m_n_workers) {
+    *buf = s_worker_get_buffer(&((*sptr)->m_workers[index]));
+    ret = LAGOPUS_RESULT_OK;
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  return ret;
+}
+
+
+lagopus_result_t
+lagopus_pipeline_stage_set_worker_event_buffer(
+    lagopus_pipeline_stage_t *sptr,
+    size_t index, void *buf,
+    lagopus_pipeline_stage_event_buffer_freeup_proc_t freeup_proc) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+
+  if (sptr != NULL && *sptr != NULL && buf != NULL &&
+      index < (*sptr)->m_n_workers) {
+    void *obuf = s_worker_set_buffer(&((*sptr)->m_workers[index]),
+                                     buf, freeup_proc);
+    if (obuf != NULL) {
+      ret = LAGOPUS_RESULT_OK;
+    } else {
+      ret = LAGOPUS_RESULT_INVALID_ARGS;
+    }
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  return ret;
+}
+
+
+lagopus_result_t
+lagopus_pipeline_stage_get_name(const lagopus_pipeline_stage_t *sptr,
+                                const char **name) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+
+  if (sptr != NULL && *sptr != NULL && name != NULL) {
+    *name = (*sptr)->m_name;
+    ret = LAGOPUS_RESULT_OK;
   } else {
     ret = LAGOPUS_RESULT_INVALID_ARGS;
   }

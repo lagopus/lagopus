@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,6 @@
 
 #include "unity.h"
 
-#include "lagopus/dpmgr.h"
 #include "lagopus/flowdb.h"
 #include "lagopus/port.h"
 #include "pktbuf.h"
@@ -43,7 +42,7 @@ tearDown(void) {
 
 void
 test_match_flow_mpls(void) {
-  struct lagopus_packet pkt;
+  struct lagopus_packet *pkt;
   struct flowinfo *flowinfo;
   struct flow *flow;
   struct port port;
@@ -52,10 +51,10 @@ test_match_flow_mpls(void) {
   int i, nflow;
 
   /* prepare packet */
-  m = calloc(1, sizeof(*m));
-  TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
-  m->data = &m->dat[128];
-  OS_M_PKTLEN(m) = 64;
+  pkt = alloc_lagopus_packet();
+  TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
+  m = pkt->mbuf;
+  OS_M_APPEND(m, 64);
 
   /* prepare flow table */
   test_flow[0] = allocate_test_flow(10 * sizeof(struct match));
@@ -82,21 +81,21 @@ test_match_flow_mpls(void) {
 
   /* test */
   prio = 0;
-  m->data[12] = 0x88;
-  m->data[13] = 0x47;
+  OS_MTOD(m, uint8_t *)[12] = 0x88;
+  OS_MTOD(m, uint8_t *)[13] = 0x47;
 
-  m->data[14] = 0xff;
-  m->data[15] = 0xff;
-  m->data[16] = 0xff;
-  m->data[17] = 0xff;
-  lagopus_packet_init(&pkt, m, &port);
-  flow = flowinfo->match_func(flowinfo, &pkt, &prio);
+  OS_MTOD(m, uint8_t *)[14] = 0xff;
+  OS_MTOD(m, uint8_t *)[15] = 0xff;
+  OS_MTOD(m, uint8_t *)[16] = 0xff;
+  OS_MTOD(m, uint8_t *)[17] = 0xff;
+  lagopus_packet_init(pkt, m, &port);
+  flow = flowinfo->match_func(flowinfo, pkt, &prio);
   TEST_ASSERT_NULL_MESSAGE(flow, "match_flow_mpls mismatch error");
-  m->data[14] = 0x00;
-  m->data[15] = 0x00;
-  m->data[16] = 0x1f;
-  m->data[17] = 0xff;
-  flow = flowinfo->match_func(flowinfo, &pkt, &prio);
+  OS_MTOD(m, uint8_t *)[14] = 0x00;
+  OS_MTOD(m, uint8_t *)[15] = 0x00;
+  OS_MTOD(m, uint8_t *)[16] = 0x1f;
+  OS_MTOD(m, uint8_t *)[17] = 0xff;
+  flow = flowinfo->match_func(flowinfo, pkt, &prio);
   TEST_ASSERT_EQUAL_MESSAGE(flow, test_flow[0],
                             "match_flow_mpls match flow error.");
   TEST_ASSERT_EQUAL_MESSAGE(prio, 3,
@@ -105,17 +104,17 @@ test_match_flow_mpls(void) {
 
 void
 test_match_basic_MPLS_LABEL(void) {
-  struct lagopus_packet pkt;
+  struct lagopus_packet *pkt;
   struct port port;
   struct flow *flow;
   OS_MBUF *m;
   bool rv;
 
   /* prepare packet */
-  m = calloc(1, sizeof(*m));
-  TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
-  m->data = &m->dat[128];
-  OS_M_PKTLEN(m) = 64;
+  pkt = alloc_lagopus_packet();
+  TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
+  m = pkt->mbuf;
+  OS_M_APPEND(m, 64);
 
   /* prepare flow */
   flow = calloc(1, sizeof(struct flow) + 10 * sizeof(struct match));
@@ -123,52 +122,52 @@ test_match_basic_MPLS_LABEL(void) {
 
   add_match(&flow->match_list, 2, OFPXMT_OFB_ETH_TYPE << 1,
             0x88, 0x47);
-  m->data[12] = 0x88;
-  m->data[13] = 0x47;
+  OS_MTOD(m, uint8_t *)[12] = 0x88;
+  OS_MTOD(m, uint8_t *)[13] = 0x47;
 
   /* MPLS_LABEL */
   add_match(&flow->match_list, 4, OFPXMT_OFB_MPLS_LABEL << 1,
             0x00, 0x00, 0x00, 0x01);
-  m->data[14] = 0xff;
-  m->data[15] = 0xff;
-  m->data[16] = 0xff;
-  m->data[17] = 0xff;
+  OS_MTOD(m, uint8_t *)[14] = 0xff;
+  OS_MTOD(m, uint8_t *)[15] = 0xff;
+  OS_MTOD(m, uint8_t *)[16] = 0xff;
+  OS_MTOD(m, uint8_t *)[17] = 0xff;
   refresh_match(flow);
-  lagopus_packet_init(&pkt, m, &port);
-  rv = match_basic(&pkt, flow);
+  lagopus_packet_init(pkt, m, &port);
+  rv = match_basic(pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "MPLS_LABEL mismatch(1) error.");
-  m->data[14] = 0xff;
-  m->data[15] = 0x1f;
-  m->data[16] = 0x00;
-  m->data[17] = 0x00;
-  lagopus_packet_init(&pkt, m, &port);
-  rv = match_basic(&pkt, flow);
+  OS_MTOD(m, uint8_t *)[14] = 0xff;
+  OS_MTOD(m, uint8_t *)[15] = 0x1f;
+  OS_MTOD(m, uint8_t *)[16] = 0x00;
+  OS_MTOD(m, uint8_t *)[17] = 0x00;
+  lagopus_packet_init(pkt, m, &port);
+  rv = match_basic(pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "MPLS_LABEL mismatch(2) error.");
-  m->data[14] = 0x00;
-  m->data[15] = 0x00;
-  m->data[16] = 0x1f;
-  m->data[17] = 0xff;
-  lagopus_packet_init(&pkt, m, &port);
-  rv = match_basic(&pkt, flow);
+  OS_MTOD(m, uint8_t *)[14] = 0x00;
+  OS_MTOD(m, uint8_t *)[15] = 0x00;
+  OS_MTOD(m, uint8_t *)[16] = 0x1f;
+  OS_MTOD(m, uint8_t *)[17] = 0xff;
+  lagopus_packet_init(pkt, m, &port);
+  rv = match_basic(pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, true,
                             "MPLS_LABEL match error.");
 }
 
 void
 test_match_basic_MPLS_TC(void) {
-  struct lagopus_packet pkt;
+  struct lagopus_packet *pkt;
   struct port port;
   struct flow *flow;
   OS_MBUF *m;
   bool rv;
 
   /* prepare packet */
-  m = calloc(1, sizeof(*m));
-  TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
-  m->data = &m->dat[128];
-  OS_M_PKTLEN(m) = 64;
+  pkt = alloc_lagopus_packet();
+  TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
+  m = pkt->mbuf;
+  OS_M_APPEND(m, 64);
 
   /* prepare flow */
   flow = calloc(1, sizeof(struct flow) + 10 * sizeof(struct match));
@@ -176,52 +175,52 @@ test_match_basic_MPLS_TC(void) {
 
   add_match(&flow->match_list, 2, OFPXMT_OFB_ETH_TYPE << 1,
             0x88, 0x47);
-  m->data[12] = 0x88;
-  m->data[13] = 0x47;
+  OS_MTOD(m, uint8_t *)[12] = 0x88;
+  OS_MTOD(m, uint8_t *)[13] = 0x47;
 
   /* MPLS_TC */
   add_match(&flow->match_list, 1, OFPXMT_OFB_MPLS_TC << 1,
             2);
-  m->data[14] = 0xff;
-  m->data[15] = 0xff;
-  m->data[16] = 0xff;
-  m->data[17] = 0xff;
+  OS_MTOD(m, uint8_t *)[14] = 0xff;
+  OS_MTOD(m, uint8_t *)[15] = 0xff;
+  OS_MTOD(m, uint8_t *)[16] = 0xff;
+  OS_MTOD(m, uint8_t *)[17] = 0xff;
   refresh_match(flow);
-  lagopus_packet_init(&pkt, m, &port);
-  rv = match_basic(&pkt, flow);
+  lagopus_packet_init(pkt, m, &port);
+  rv = match_basic(pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "MPLS_TC mismatch(1) error.");
-  m->data[14] = 0xff;
-  m->data[15] = 0xf4;
-  m->data[16] = 0xff;
-  m->data[17] = 0xff;
-  lagopus_packet_init(&pkt, m, &port);
-  rv = match_basic(&pkt, flow);
+  OS_MTOD(m, uint8_t *)[14] = 0xff;
+  OS_MTOD(m, uint8_t *)[15] = 0xf4;
+  OS_MTOD(m, uint8_t *)[16] = 0xff;
+  OS_MTOD(m, uint8_t *)[17] = 0xff;
+  lagopus_packet_init(pkt, m, &port);
+  rv = match_basic(pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "MPLS_TC mismatch(2) error.");
-  m->data[14] = 0xff;
-  m->data[15] = 0xff;
-  m->data[16] = 0xf4;
-  m->data[17] = 0xff;
-  lagopus_packet_init(&pkt, m, &port);
-  rv = match_basic(&pkt, flow);
+  OS_MTOD(m, uint8_t *)[14] = 0xff;
+  OS_MTOD(m, uint8_t *)[15] = 0xff;
+  OS_MTOD(m, uint8_t *)[16] = 0xf4;
+  OS_MTOD(m, uint8_t *)[17] = 0xff;
+  lagopus_packet_init(pkt, m, &port);
+  rv = match_basic(pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, true,
                             "MPLS_TC match error.");
 }
 
 void
 test_match_basic_MPLS_BOS(void) {
-  struct lagopus_packet pkt;
+  struct lagopus_packet *pkt;
   struct port port;
   struct flow *flow;
   OS_MBUF *m;
   bool rv;
 
   /* prepare packet */
-  m = calloc(1, sizeof(*m));
-  TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
-  m->data = &m->dat[128];
-  OS_M_PKTLEN(m) = 64;
+  pkt = alloc_lagopus_packet();
+  TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
+  m = pkt->mbuf;
+  OS_M_APPEND(m, 64);
 
   /* prepare flow */
   flow = calloc(1, sizeof(struct flow) + 10 * sizeof(struct match));
@@ -229,52 +228,52 @@ test_match_basic_MPLS_BOS(void) {
 
   add_match(&flow->match_list, 2, OFPXMT_OFB_ETH_TYPE << 1,
             0x88, 0x47);
-  m->data[12] = 0x88;
-  m->data[13] = 0x47;
+  OS_MTOD(m, uint8_t *)[12] = 0x88;
+  OS_MTOD(m, uint8_t *)[13] = 0x47;
 
   /* MPLS_BOS */
   add_match(&flow->match_list, 1, OFPXMT_OFB_MPLS_BOS << 1,
             1);
-  m->data[14] = 0xff;
-  m->data[15] = 0xff;
-  m->data[16] = 0xfe;
-  m->data[17] = 0xff;
+  OS_MTOD(m, uint8_t *)[14] = 0xff;
+  OS_MTOD(m, uint8_t *)[15] = 0xff;
+  OS_MTOD(m, uint8_t *)[16] = 0xfe;
+  OS_MTOD(m, uint8_t *)[17] = 0xff;
   refresh_match(flow);
-  lagopus_packet_init(&pkt, m, &port);
-  rv = match_basic(&pkt, flow);
+  lagopus_packet_init(pkt, m, &port);
+  rv = match_basic(pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "MPLS_BOS mismatch(1) error.");
-  m->data[14] = 0x00;
-  m->data[15] = 0x01;
-  m->data[16] = 0x00;
-  m->data[17] = 0x00;
-  lagopus_packet_init(&pkt, m, &port);
-  rv = match_basic(&pkt, flow);
+  OS_MTOD(m, uint8_t *)[14] = 0x00;
+  OS_MTOD(m, uint8_t *)[15] = 0x01;
+  OS_MTOD(m, uint8_t *)[16] = 0x00;
+  OS_MTOD(m, uint8_t *)[17] = 0x00;
+  lagopus_packet_init(pkt, m, &port);
+  rv = match_basic(pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "MPLS_BOS mismatch(2) error.");
-  m->data[14] = 0x00;
-  m->data[15] = 0x00;
-  m->data[16] = 0x01;
-  m->data[17] = 0x00;
-  lagopus_packet_init(&pkt, m, &port);
-  rv = match_basic(&pkt, flow);
+  OS_MTOD(m, uint8_t *)[14] = 0x00;
+  OS_MTOD(m, uint8_t *)[15] = 0x00;
+  OS_MTOD(m, uint8_t *)[16] = 0x01;
+  OS_MTOD(m, uint8_t *)[17] = 0x00;
+  lagopus_packet_init(pkt, m, &port);
+  rv = match_basic(pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, true,
                             "MPLS_BOS match error.");
 }
 
 void
 test_match_basic_MPLSMC_LABEL(void) {
-  struct lagopus_packet pkt;
+  struct lagopus_packet *pkt;
   struct port port;
   struct flow *flow;
   OS_MBUF *m;
   bool rv;
 
   /* prepare packet */
-  m = calloc(1, sizeof(*m));
-  TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
-  m->data = &m->dat[128];
-  OS_M_PKTLEN(m) = 64;
+  pkt = alloc_lagopus_packet();
+  TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
+  m = pkt->mbuf;
+  OS_M_APPEND(m, 64);
 
   /* prepare flow */
   flow = calloc(1, sizeof(struct flow) + 10 * sizeof(struct match));
@@ -282,52 +281,52 @@ test_match_basic_MPLSMC_LABEL(void) {
 
   add_match(&flow->match_list, 2, OFPXMT_OFB_ETH_TYPE << 1,
             0x88, 0x48);
-  m->data[12] = 0x88;
-  m->data[13] = 0x48;
+  OS_MTOD(m, uint8_t *)[12] = 0x88;
+  OS_MTOD(m, uint8_t *)[13] = 0x48;
 
   /* MPLSMC_LABEL */
   add_match(&flow->match_list, 4, OFPXMT_OFB_MPLS_LABEL << 1,
             0x00, 0x00, 0x00, 0x01);
-  m->data[14] = 0xff;
-  m->data[15] = 0xff;
-  m->data[16] = 0xff;
-  m->data[17] = 0xff;
+  OS_MTOD(m, uint8_t *)[14] = 0xff;
+  OS_MTOD(m, uint8_t *)[15] = 0xff;
+  OS_MTOD(m, uint8_t *)[16] = 0xff;
+  OS_MTOD(m, uint8_t *)[17] = 0xff;
   refresh_match(flow);
-  lagopus_packet_init(&pkt, m, &port);
-  rv = match_basic(&pkt, flow);
+  lagopus_packet_init(pkt, m, &port);
+  rv = match_basic(pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "MPLSMC_LABEL mismatch(1) error.");
-  m->data[14] = 0xff;
-  m->data[15] = 0x1f;
-  m->data[16] = 0x00;
-  m->data[17] = 0x00;
-  lagopus_packet_init(&pkt, m, &port);
-  rv = match_basic(&pkt, flow);
+  OS_MTOD(m, uint8_t *)[14] = 0xff;
+  OS_MTOD(m, uint8_t *)[15] = 0x1f;
+  OS_MTOD(m, uint8_t *)[16] = 0x00;
+  OS_MTOD(m, uint8_t *)[17] = 0x00;
+  lagopus_packet_init(pkt, m, &port);
+  rv = match_basic(pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "MPLSMC_LABEL mismatch(2) error.");
-  m->data[14] = 0x00;
-  m->data[15] = 0x00;
-  m->data[16] = 0x1f;
-  m->data[17] = 0xff;
-  lagopus_packet_init(&pkt, m, &port);
-  rv = match_basic(&pkt, flow);
+  OS_MTOD(m, uint8_t *)[14] = 0x00;
+  OS_MTOD(m, uint8_t *)[15] = 0x00;
+  OS_MTOD(m, uint8_t *)[16] = 0x1f;
+  OS_MTOD(m, uint8_t *)[17] = 0xff;
+  lagopus_packet_init(pkt, m, &port);
+  rv = match_basic(pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, true,
                             "MPLSMC_LABEL match error.");
 }
 
 void
 test_match_basic_MPLSMC_TC(void) {
-  struct lagopus_packet pkt;
+  struct lagopus_packet *pkt;
   struct port port;
   struct flow *flow;
   OS_MBUF *m;
   bool rv;
 
   /* prepare packet */
-  m = calloc(1, sizeof(*m));
-  TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
-  m->data = &m->dat[128];
-  OS_M_PKTLEN(m) = 64;
+  pkt = alloc_lagopus_packet();
+  TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
+  m = pkt->mbuf;
+  OS_M_APPEND(m, 64);
 
   /* prepare flow */
   flow = calloc(1, sizeof(struct flow) + 10 * sizeof(struct match));
@@ -335,52 +334,52 @@ test_match_basic_MPLSMC_TC(void) {
 
   add_match(&flow->match_list, 2, OFPXMT_OFB_ETH_TYPE << 1,
             0x88, 0x48);
-  m->data[12] = 0x88;
-  m->data[13] = 0x48;
+  OS_MTOD(m, uint8_t *)[12] = 0x88;
+  OS_MTOD(m, uint8_t *)[13] = 0x48;
 
   /* MPLSMC_TC */
   add_match(&flow->match_list, 1, OFPXMT_OFB_MPLS_TC << 1,
             2);
-  m->data[14] = 0xff;
-  m->data[15] = 0xff;
-  m->data[16] = 0xff;
-  m->data[17] = 0xff;
+  OS_MTOD(m, uint8_t *)[14] = 0xff;
+  OS_MTOD(m, uint8_t *)[15] = 0xff;
+  OS_MTOD(m, uint8_t *)[16] = 0xff;
+  OS_MTOD(m, uint8_t *)[17] = 0xff;
   refresh_match(flow);
-  lagopus_packet_init(&pkt, m, &port);
-  rv = match_basic(&pkt, flow);
+  lagopus_packet_init(pkt, m, &port);
+  rv = match_basic(pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "MPLSMC_TC mismatch(1) error.");
-  m->data[14] = 0xff;
-  m->data[15] = 0xf4;
-  m->data[16] = 0xff;
-  m->data[17] = 0xff;
-  lagopus_packet_init(&pkt, m, &port);
-  rv = match_basic(&pkt, flow);
+  OS_MTOD(m, uint8_t *)[14] = 0xff;
+  OS_MTOD(m, uint8_t *)[15] = 0xf4;
+  OS_MTOD(m, uint8_t *)[16] = 0xff;
+  OS_MTOD(m, uint8_t *)[17] = 0xff;
+  lagopus_packet_init(pkt, m, &port);
+  rv = match_basic(pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "MPLSMC_TC mismatch(2) error.");
-  m->data[14] = 0xff;
-  m->data[15] = 0xff;
-  m->data[16] = 0xf4;
-  m->data[17] = 0xff;
-  lagopus_packet_init(&pkt, m, &port);
-  rv = match_basic(&pkt, flow);
+  OS_MTOD(m, uint8_t *)[14] = 0xff;
+  OS_MTOD(m, uint8_t *)[15] = 0xff;
+  OS_MTOD(m, uint8_t *)[16] = 0xf4;
+  OS_MTOD(m, uint8_t *)[17] = 0xff;
+  lagopus_packet_init(pkt, m, &port);
+  rv = match_basic(pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, true,
                             "MPLSMC_TC match error.");
 }
 
 void
 test_match_basic_MPLSMC_BOS(void) {
-  struct lagopus_packet pkt;
+  struct lagopus_packet *pkt;
   struct port port;
   struct flow *flow;
   OS_MBUF *m;
   bool rv;
 
   /* prepare packet */
-  m = calloc(1, sizeof(*m));
-  TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
-  m->data = &m->dat[128];
-  OS_M_PKTLEN(m) = 64;
+  pkt = alloc_lagopus_packet();
+  TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
+  m = pkt->mbuf;
+  OS_M_APPEND(m, 64);
 
   /* prepare flow */
   flow = calloc(1, sizeof(struct flow) + 10 * sizeof(struct match));
@@ -388,35 +387,35 @@ test_match_basic_MPLSMC_BOS(void) {
 
   add_match(&flow->match_list, 2, OFPXMT_OFB_ETH_TYPE << 1,
             0x88, 0x48);
-  m->data[12] = 0x88;
-  m->data[13] = 0x48;
+  OS_MTOD(m, uint8_t *)[12] = 0x88;
+  OS_MTOD(m, uint8_t *)[13] = 0x48;
 
   /* MPLSMC_BOS */
   add_match(&flow->match_list, 1, OFPXMT_OFB_MPLS_BOS << 1,
             1);
-  m->data[14] = 0xff;
-  m->data[15] = 0xff;
-  m->data[16] = 0xfe;
-  m->data[17] = 0xff;
+  OS_MTOD(m, uint8_t *)[14] = 0xff;
+  OS_MTOD(m, uint8_t *)[15] = 0xff;
+  OS_MTOD(m, uint8_t *)[16] = 0xfe;
+  OS_MTOD(m, uint8_t *)[17] = 0xff;
   refresh_match(flow);
-  lagopus_packet_init(&pkt, m, &port);
-  rv = match_basic(&pkt, flow);
+  lagopus_packet_init(pkt, m, &port);
+  rv = match_basic(pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "MPLSMC_BOS mismatch(1) error.");
-  m->data[14] = 0x00;
-  m->data[15] = 0x01;
-  m->data[16] = 0x00;
-  m->data[17] = 0x00;
-  lagopus_packet_init(&pkt, m, &port);
-  rv = match_basic(&pkt, flow);
+  OS_MTOD(m, uint8_t *)[14] = 0x00;
+  OS_MTOD(m, uint8_t *)[15] = 0x01;
+  OS_MTOD(m, uint8_t *)[16] = 0x00;
+  OS_MTOD(m, uint8_t *)[17] = 0x00;
+  lagopus_packet_init(pkt, m, &port);
+  rv = match_basic(pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "MPLSMC_BOS mismatch(2) error.");
-  m->data[14] = 0x00;
-  m->data[15] = 0x00;
-  m->data[16] = 0x01;
-  m->data[17] = 0x00;
-  lagopus_packet_init(&pkt, m, &port);
-  rv = match_basic(&pkt, flow);
+  OS_MTOD(m, uint8_t *)[14] = 0x00;
+  OS_MTOD(m, uint8_t *)[15] = 0x00;
+  OS_MTOD(m, uint8_t *)[16] = 0x01;
+  OS_MTOD(m, uint8_t *)[17] = 0x00;
+  lagopus_packet_init(pkt, m, &port);
+  rv = match_basic(pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, true,
                             "MPLSMC_BOS match error.");
 }

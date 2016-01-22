@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,14 +29,8 @@
 #include <sys/ioctl.h>
 #include <sys/queue.h>
 #include <sys/socket.h>
-//#include <net/ethernet.h>
 #include <net/if.h>
 #include <pthread.h>
-
-#include <linux/if_packet.h>
-#include <linux/if_link.h>
-#include <linux/netlink.h>
-#include <linux/rtnetlink.h>
 
 #include "lagopus/dp_apis.h"
 #include "lagopus/flowdb.h"
@@ -79,13 +73,6 @@ lagopus_packet_free(struct lagopus_packet *pkt) {
   OS_M_FREE(pkt->mbuf);
 }
 
-int
-lagopus_send_packet_normal(__UNUSED struct lagopus_packet *pkt,
-                           __UNUSED uint32_t portid) {
-  /* not implemented yet */
-  return 0;
-}
-
 struct lagopus_packet *
 copy_packet(struct lagopus_packet *src_pkt) {
   OS_MBUF *mbuf;
@@ -102,6 +89,7 @@ copy_packet(struct lagopus_packet *src_pkt) {
   (void)OS_M_APPEND(mbuf, pktlen);
   memcpy(OS_MTOD(pkt->mbuf, char *), OS_MTOD(src_pkt->mbuf, char *), pktlen);
   pkt->in_port = src_pkt->in_port;
+  pkt->flags = src_pkt->flags;
   /* other pkt members are not used in physical output. */
   return pkt;
 }
@@ -125,20 +113,10 @@ lagopus_meter_init(void) {
   /* XXX not implemented */
 }
 
-lagopus_result_t
-lagopus_dataplane_init(int argc, const char *const argv[]) {
-  return rawsock_dataplane_init(argc, argv);
-}
-
 void
 dp_get_flowcache_statistics(struct bridge *bridge, struct ofcachestat *st) {
   st->nentries = 0;
   st->hit = 0;
   st->miss = 0;
   /* not implemented yet */
-}
-
-void
-dataplane_usage(__UNUSED FILE *fp) {
-  /* so far, nothing additional options. */
 }

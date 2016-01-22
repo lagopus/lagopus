@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -62,29 +62,13 @@
 #include <rte_common.h>
 #include <rte_byteorder.h>
 #include <rte_log.h>
-#include <rte_memory.h>
-#include <rte_memcpy.h>
-#include <rte_memzone.h>
-#include <rte_tailq.h>
 #include <rte_eal.h>
 #include <rte_per_lcore.h>
-#include <rte_launch.h>
-#include <rte_atomic.h>
 #include <rte_cycles.h>
-#include <rte_prefetch.h>
 #include <rte_lcore.h>
-#include <rte_branch_prediction.h>
-#include <rte_interrupts.h>
-#include <rte_pci.h>
-#include <rte_random.h>
 #include <rte_debug.h>
 #include <rte_ether.h>
 #include <rte_ethdev.h>
-#include <rte_ring.h>
-#include <rte_mempool.h>
-#include <rte_mbuf.h>
-#include <rte_ip.h>
-#include <rte_tcp.h>
 #include <rte_string_fns.h>
 #include <rte_version.h>
 
@@ -119,7 +103,6 @@ static const char usage[] =
   "    --kvstype TYPE: Select key-value store type for flow cache                 \n"
   "           hashmap_nolock  Use hashmap without rwlock (default)                \n"
   "           hashmap         Use hashmap                                         \n"
-  "           ptree           Use ptree                                           \n"
 #ifdef __SSE4_2__
 #if RTE_VERSION >= RTE_VERSION_NUM(2, 1, 0, 0)
   "           rte_hash        Use DPDK hash table                                 \n"
@@ -157,7 +140,8 @@ static const char usage[] =
   "           F = I/O TX lcore write burst size to NIC TX (default value is %u)   \n";
 
 void
-dataplane_usage(FILE *fp) {
+dp_dpdk_thread_usage(FILE *fp) {
+  //  eal_common_usage(); /* XXX stdout */
   fprintf(fp, usage,
           APP_DEFAULT_NIC_RX_RING_SIZE,
           APP_DEFAULT_RING_RX_SIZE,
@@ -584,8 +568,6 @@ parse_arg_kvstype(const char *arg) {
     app.kvs_type = FLOWCACHE_HASHMAP_NOLOCK;
   } else if (!strcmp(arg, "hashmap")) {
     app.kvs_type = FLOWCACHE_HASHMAP;
-  } else if (!strcmp(arg, "ptree")) {
-    app.kvs_type = FLOWCACHE_PTREE;
 #if RTE_VERSION >= RTE_VERSION_NUM(2, 1, 0, 0)
   } else if (!strcmp(arg, "rte_hash")) {
     app.kvs_type = FLOWCACHE_RTE_HASH;
@@ -826,7 +808,7 @@ app_parse_args(int argc, const char *argv[]) {
 
   /* Check that all mandatory arguments are provided */
   if ((arg_rx == 0 || arg_tx == 0 || arg_w == 0) && arg_p == 0) {
-    if (rawsocket_only_mode == true) {
+    if (is_rawsocket_only_mode() == true) {
       goto out;
     }
     lagopus_exit_error(EXIT_FAILURE,

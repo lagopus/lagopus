@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,7 +28,6 @@
 
 #include "openflow.h"
 #include "openflow13packet.h"
-#include "lagopus/dpmgr.h"
 #include "lagopus/flowdb.h"
 #include "lagopus/ofp_handler.h"
 #include "lagopus/meter.h"
@@ -590,13 +589,13 @@ channel_stop(struct channel *channel) {
     lagopus_result_t ret;
     enum fail_mode sm;
 
-    ret = dpmgr_bridge_fail_mode_get(channel->dpid, &sm);
+    ret = ofp_switch_fail_mode_get(channel->dpid, &sm);
     if (ret == LAGOPUS_RESULT_OK) {
       if (sm == FAIL_SECURE_MODE) {
-        ret = dpmgr_switch_mode_set(channel->dpid, SWITCH_MODE_SECURE);
+        ret = ofp_switch_mode_set(channel->dpid, SWITCH_MODE_SECURE);
         lagopus_msg_info("switch to SWITCH_MODE_SECURE\n");
       } else {
-        ret = dpmgr_switch_mode_set(channel->dpid, SWITCH_MODE_STANDALONE);
+        ret = ofp_switch_mode_set(channel->dpid, SWITCH_MODE_STANDALONE);
         lagopus_msg_info("switch to SWITCH_MODE_STANDALONE\n");
       }
       if (ret != LAGOPUS_RESULT_OK) {
@@ -696,7 +695,7 @@ channel_hello_confirm(struct channel *channel) {
 
   /* Debug ping event. */
   lagopus_msg_info("channel_hello_confirm in\n");
-  ret = dpmgr_switch_mode_set(channel->dpid, SWITCH_MODE_OPENFLOW);
+  ret = ofp_switch_mode_set(channel->dpid, SWITCH_MODE_OPENFLOW);
   if (ret != LAGOPUS_RESULT_OK) {
     lagopus_perror(ret);
   }

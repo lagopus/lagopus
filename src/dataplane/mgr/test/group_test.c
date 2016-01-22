@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,6 @@
 #include "lagopus/pbuf.h"
 #include "lagopus/flowdb.h"
 #include "lagopus/group.h"
-#include "lagopus/vector.h"
 #include "lagopus/bridge.h"
 #include "lagopus/datastore/bridge.h"
 #include "lagopus/dp_apis.h"
@@ -219,16 +218,31 @@ test_group_desc(void) {
                             "get desc error");
   desc = TAILQ_FIRST(&group_desc_list);
   TEST_ASSERT_NOT_NULL_MESSAGE(desc, "group not found");
-  TEST_ASSERT_EQUAL_MESSAGE(desc->ofp.group_id, 1,
-                            "group id error");
-  TEST_ASSERT_EQUAL_MESSAGE(desc->ofp.type, OFPGT_ALL,
-                            "group type error");
+  if (desc->ofp.group_id == 1) {
+    TEST_ASSERT_EQUAL_MESSAGE(desc->ofp.group_id, 1,
+                              "group id error");
+    TEST_ASSERT_EQUAL_MESSAGE(desc->ofp.type, OFPGT_ALL,
+                              "group type error");
+    desc = TAILQ_NEXT(desc, entry);
+    TEST_ASSERT_NOT_NULL_MESSAGE(desc, "number of groups error");
+    TEST_ASSERT_EQUAL_MESSAGE(desc->ofp.group_id, 1000000,
+                              "group id error");
+    TEST_ASSERT_EQUAL_MESSAGE(desc->ofp.type, OFPGT_SELECT,
+                              "group type error");
+  } else {
+    TEST_ASSERT_EQUAL_MESSAGE(desc->ofp.group_id, 1000000,
+                              "group id error");
+    TEST_ASSERT_EQUAL_MESSAGE(desc->ofp.type, OFPGT_SELECT,
+                              "group type error");
+    desc = TAILQ_NEXT(desc, entry);
+    TEST_ASSERT_NOT_NULL_MESSAGE(desc, "number of groups error");
+    TEST_ASSERT_EQUAL_MESSAGE(desc->ofp.group_id, 1,
+                              "group id error");
+    TEST_ASSERT_EQUAL_MESSAGE(desc->ofp.type, OFPGT_ALL,
+                              "group type error");
+  }
   desc = TAILQ_NEXT(desc, entry);
-  TEST_ASSERT_NOT_NULL_MESSAGE(desc, "number of groups error");
-  TEST_ASSERT_EQUAL_MESSAGE(desc->ofp.group_id, 1000000,
-                            "group id error");
-  TEST_ASSERT_EQUAL_MESSAGE(desc->ofp.type, OFPGT_SELECT,
-                            "group type error");
+  TEST_ASSERT_NULL_MESSAGE(desc, "number of groups error");
 }
 
 void
@@ -274,7 +288,7 @@ test_group_stats(void) {
   TAILQ_INIT(&group_stats_list);
   ret = group_stats(group_table, &request, &group_stats_list, &error);
   TEST_ASSERT_EQUAL_MESSAGE(ret, LAGOPUS_RESULT_OK,
-                            "get stats error");
+                            "get group stats(single) error");
   stats = TAILQ_FIRST(&group_stats_list);
   TEST_ASSERT_NOT_NULL_MESSAGE(stats, "group not found");
   TEST_ASSERT_EQUAL_MESSAGE(stats->ofp.group_id, 1,
@@ -328,7 +342,7 @@ test_group_stats(void) {
   TAILQ_INIT(&group_stats_list);
   ret = group_stats(group_table, &request, &group_stats_list, &error);
   TEST_ASSERT_EQUAL_MESSAGE(ret, LAGOPUS_RESULT_OK,
-                            "get stats error");
+                            "get stats(single) error");
   stats = TAILQ_FIRST(&group_stats_list);
   TEST_ASSERT_NOT_NULL_MESSAGE(stats, "group not found");
   TEST_ASSERT_EQUAL_MESSAGE(stats->ofp.group_id, 1,
@@ -347,14 +361,25 @@ test_group_stats(void) {
                             "get stats error");
   stats = TAILQ_FIRST(&group_stats_list);
   TEST_ASSERT_NOT_NULL_MESSAGE(stats, "group not found");
-  TEST_ASSERT_EQUAL_MESSAGE(stats->ofp.group_id, 1,
-                            "group id error");
-  TEST_ASSERT_EQUAL_MESSAGE(stats->ofp.duration_sec, 0,
-                            "duration sec error");
-  stats = TAILQ_NEXT(stats, entry);
-  TEST_ASSERT_NOT_NULL_MESSAGE(stats, "group not found");
-  TEST_ASSERT_EQUAL_MESSAGE(stats->ofp.group_id, 1000000,
-                            "group id error");
+  if (stats->ofp.group_id == 1) {
+    TEST_ASSERT_EQUAL_MESSAGE(stats->ofp.group_id, 1,
+                              "group id error");
+    TEST_ASSERT_EQUAL_MESSAGE(stats->ofp.duration_sec, 0,
+                              "duration sec error");
+    stats = TAILQ_NEXT(stats, entry);
+    TEST_ASSERT_NOT_NULL_MESSAGE(stats, "group not found");
+    TEST_ASSERT_EQUAL_MESSAGE(stats->ofp.group_id, 1000000,
+                              "group id error");
+  } else {
+    TEST_ASSERT_EQUAL_MESSAGE(stats->ofp.group_id, 1000000,
+                              "group id error");
+    stats = TAILQ_NEXT(stats, entry);
+    TEST_ASSERT_NOT_NULL_MESSAGE(stats, "group not found");
+    TEST_ASSERT_EQUAL_MESSAGE(stats->ofp.group_id, 1,
+                              "group id error");
+    TEST_ASSERT_EQUAL_MESSAGE(stats->ofp.duration_sec, 0,
+                              "duration sec error");
+  }
   stats = TAILQ_NEXT(stats, entry);
   TEST_ASSERT_NULL_MESSAGE(stats, "number of groups error");
 
@@ -365,8 +390,6 @@ test_group_stats(void) {
                             "get stats error");
   stats = TAILQ_FIRST(&group_stats_list);
   TEST_ASSERT_NOT_NULL_MESSAGE(stats, "group not found");
-  TEST_ASSERT_EQUAL_MESSAGE(stats->ofp.group_id, 1,
-                            "group id error");
   TEST_ASSERT_EQUAL_MESSAGE(stats->ofp.duration_sec, 1,
                             "duration sec error");
 

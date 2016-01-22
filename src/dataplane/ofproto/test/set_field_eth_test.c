@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,6 @@
 
 #include "unity.h"
 
-#include "lagopus/dpmgr.h"
 #include "lagopus/flowdb.h"
 #include "lagopus/port.h"
 #include "lagopus/dataplane.h"
@@ -40,7 +39,7 @@ test_set_field_ETH_DST(void) {
   struct action_list action_list;
   struct action *action;
   struct ofp_action_set_field *action_set;
-  struct lagopus_packet pkt;
+  struct lagopus_packet *pkt;
   OS_MBUF *m;
 
   TAILQ_INIT(&action_list);
@@ -51,29 +50,29 @@ test_set_field_ETH_DST(void) {
   TAILQ_INSERT_TAIL(&action_list, action, entry);
 
 
-  m = calloc(1, sizeof(*m));
-  TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
-  m->data = &m->dat[128];
+  pkt = alloc_lagopus_packet();
+  TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
+  m = pkt->mbuf;
 
-  OS_M_PKTLEN(m) = 64;
-  m->data[12] = 0x08;
-  m->data[13] = 0x00;
+  OS_M_APPEND(m, 64);
+  OS_MTOD(m, uint8_t *)[12] = 0x08;
+  OS_MTOD(m, uint8_t *)[13] = 0x00;
 
-  lagopus_packet_init(&pkt, m, &port);
+  lagopus_packet_init(pkt, m, &port);
   set_match(action_set->field, 6, OFPXMT_OFB_ETH_DST << 1,
             0x23, 0x45, 0x67, 0x89, 0xab, 0xcd);
-  execute_action(&pkt, &action_list);
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[0], 0x23,
+  execute_action(pkt, &action_list);
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[0], 0x23,
                             "SET_FIELD ETH_DST[0] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[1], 0x45,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[1], 0x45,
                             "SET_FIELD ETH_DST[1] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[2], 0x67,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[2], 0x67,
                             "SET_FIELD ETH_DST[2] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[3], 0x89,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[3], 0x89,
                             "SET_FIELD ETH_DST[3] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[4], 0xab,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[4], 0xab,
                             "SET_FIELD ETH_DST[4] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[5], 0xcd,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[5], 0xcd,
                             "SET_FIELD ETH_DST[5] error.");
 }
 
@@ -83,7 +82,7 @@ test_set_field_ETH_SRC(void) {
   struct action_list action_list;
   struct action *action;
   struct ofp_action_set_field *action_set;
-  struct lagopus_packet pkt;
+  struct lagopus_packet *pkt;
   OS_MBUF *m;
 
   TAILQ_INIT(&action_list);
@@ -94,29 +93,29 @@ test_set_field_ETH_SRC(void) {
   TAILQ_INSERT_TAIL(&action_list, action, entry);
 
 
-  m = calloc(1, sizeof(*m));
-  TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
-  m->data = &m->dat[128];
+  pkt = alloc_lagopus_packet();
+  TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
+  m = pkt->mbuf;
 
-  OS_M_PKTLEN(m) = 64;
-  m->data[12] = 0x08;
-  m->data[13] = 0x00;
+  OS_M_APPEND(m, 64);
+  OS_MTOD(m, uint8_t *)[12] = 0x08;
+  OS_MTOD(m, uint8_t *)[13] = 0x00;
 
-  lagopus_packet_init(&pkt, m, &port);
+  lagopus_packet_init(pkt, m, &port);
   set_match(action_set->field, 6, OFPXMT_OFB_ETH_SRC << 1,
             0x22, 0x44, 0x66, 0x88, 0xaa, 0xcc);
-  execute_action(&pkt, &action_list);
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[6], 0x22,
+  execute_action(pkt, &action_list);
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[6], 0x22,
                             "SET_FIELD ETH_SRC[0] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[7], 0x44,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[7], 0x44,
                             "SET_FIELD ETH_SRC[1] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[8], 0x66,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[8], 0x66,
                             "SET_FIELD ETH_SRC[2] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[9], 0x88,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[9], 0x88,
                             "SET_FIELD ETH_SRC[3] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[10], 0xaa,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[10], 0xaa,
                             "SET_FIELD ETH_SRC[4] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[11], 0xcc,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[11], 0xcc,
                             "SET_FIELD ETH_SRC[5] error.");
 }
 
@@ -126,7 +125,7 @@ test_set_field_ETH_TYPE(void) {
   struct action_list action_list;
   struct action *action;
   struct ofp_action_set_field *action_set;
-  struct lagopus_packet pkt;
+  struct lagopus_packet *pkt;
   OS_MBUF *m;
 
   TAILQ_INIT(&action_list);
@@ -136,31 +135,31 @@ test_set_field_ETH_TYPE(void) {
   lagopus_set_action_function(action);
   TAILQ_INSERT_TAIL(&action_list, action, entry);
 
-  m = calloc(1, sizeof(*m));
-  TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
-  m->data = &m->dat[128];
+  pkt = alloc_lagopus_packet();
+  TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
+  m = pkt->mbuf;
 
-  OS_M_PKTLEN(m) = 64;
-  m->data[12] = 0x08;
-  m->data[13] = 0x00;
+  OS_M_APPEND(m, 64);
+  OS_MTOD(m, uint8_t *)[12] = 0x08;
+  OS_MTOD(m, uint8_t *)[13] = 0x00;
 
-  lagopus_packet_init(&pkt, m, &port);
+  lagopus_packet_init(pkt, m, &port);
   set_match(action_set->field, 2, OFPXMT_OFB_ETH_TYPE << 1,
             0x20, 0xf1);
-  execute_action(&pkt, &action_list);
+  execute_action(pkt, &action_list);
 
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[12], 0x20,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[12], 0x20,
                             "SET_FIELD ETH_TYPE[0] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[13], 0xf1,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[13], 0xf1,
                             "SET_FIELD ETH_TYPE[1] error.");
-  m->data[12] = 0x81;
-  m->data[13] = 0x00;
+  OS_MTOD(m, uint8_t *)[12] = 0x81;
+  OS_MTOD(m, uint8_t *)[13] = 0x00;
 
-  lagopus_packet_init(&pkt, m, &port);
-  execute_action(&pkt, &action_list);
+  lagopus_packet_init(pkt, m, &port);
+  execute_action(pkt, &action_list);
 
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[16], 0x20,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[16], 0x20,
                             "SET_FIELD(vlan) ETH_TYPE[0] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[17], 0xf1,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[17], 0xf1,
                             "SET_FIELD(vlan) ETH_TYPE[1] error.");
 }

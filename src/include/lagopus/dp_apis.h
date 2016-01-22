@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@
 #ifndef SRC_INCLUDE_LAGOPUS_DP_APIS_H_
 #define SRC_INCLUDE_LAGOPUS_DP_APIS_H_
 
+#include "lagopus_types.h"
 #include "lagopus/datastore.h"
 
 /**
@@ -438,44 +439,6 @@ lagopus_result_t
 dp_bridge_stats_get(const char *name,
                     datastore_bridge_stats_t *stats);
 
-/**
- * Clear L2 bridge mac address learning table.
- *
- * @param[in]   name    Name of bridge.
- *
- * @retval      LAGOPUS_RESULT_OK               Succeeded.
- * @retval      LAGOPUS_RESULT_NOT_FOUND        Bridge is not exist.
- */
-lagopus_result_t
-dp_bridge_l2_clear(const char *name);
-
-/**
- * Set expire value of mac address learning table.
- *
- * @param[in]   name    Name of bridge.
- * @param[in]   expire  Expire value (second)
- *
- * @retval      LAGOPUS_RESULT_OK               Succeeded.
- * @retval      LAGOPUS_RESULT_NOT_FOUND        Bridge is not exist.
- *
- * New expire value is applied to new mac address entry.
- */
-lagopus_result_t
-dp_bridge_l2_expire_set(const char *name, uint64_t expire);
-
-lagopus_result_t
-dp_bridge_l2_max_entries_set(const char *name,
-                             uint64_t max_entries);
-
-lagopus_result_t
-dp_bridge_l2_entries_get(const char *name, uint64_t *entries);
-
-lagopus_result_t
-dp_bridge_l2_info_get(const char *name,
-                      datastore_l2_dump_proc_t proc,
-                      FILE *fp,
-                      lagopus_dstring_t *result);
-
 lagopus_result_t
 dp_bridge_meter_list_get(const char *name,
                          datastore_bridge_meter_info_list_t *list);
@@ -491,6 +454,79 @@ dp_bridge_group_list_get(const char *name,
 lagopus_result_t
 dp_bridge_group_stats_list_get(const char *name,
                                datastore_bridge_group_stats_list_t *list);
+
+#ifdef HYBRID
+/* mactable */
+/**
+ * Set the MAC address entry to MAC address table.
+ * @param[in]  name      Name of bridge.
+ * @param[in]  macaddr   MAC address.
+ * @param[in]  port_num  Port number that corresponding to MAC address.
+ * @retval      LAGOPUS_RESULT_OK               Succeeded.
+ * @retval      LAGOPUS_RESULT_NOT_FOUND        Bridge is not exist.
+ * @retval      LAGOPUS_RESULT_INVALID_ARGS     Arguments are invalid.
+ * @retval      LAGOPUS_RESULT_NO_MEMORY        Memory exhausted.
+ */
+lagopus_result_t
+dp_bridge_mactable_entry_set(const char *name, const uint8_t macaddr[], uint32_t port_num);
+
+/**
+ * Modify the MAC address entry to MAC address table.
+ * @param[in]   name      Name of bridge.
+ * @param[in]   macaddr   MAC address.
+ * @param[in]   port_num  Port number that corresponding to MAC address.
+ * @retval      LAGOPUS_RESULT_OK               Succeeded.
+ */
+lagopus_result_t
+dp_bridge_mactable_entry_modify(const char *name, const uint8_t macaddr[], uint32_t port_num);
+
+/**
+ * Delete the MAC address entry from MAC address table.
+ * @param[in]   name      Name of bridge.
+ * @param[in]   macaddr   MAC address.
+ * @retval      LAGOPUS_RESULT_OK               Succeeded.
+ */
+lagopus_result_t
+dp_bridge_mactable_entry_delete(const char *name, const uint8_t macaddr[]);
+
+/**
+ * Clear all MAC address entries from MAC address table.
+ * @param[in]   name      Name of bridge.
+ * @retval      LAGOPUS_RESULT_OK               Succeeded.
+ */
+lagopus_result_t
+dp_bridge_mactable_entry_clear(const char *name);
+
+/**
+ * Get entries in MAC address table.
+ * @param[in]   name      Name of bridge.
+ * @param[out]  e         MAC address table entry.
+ * @param[in]   num       Number of entries.
+ * @retval      LAGOPUS_RESULT_OK               Succeeded.
+ */
+lagopus_result_t
+dp_bridge_mactable_entries_get(const char *name, datastore_macentry_t *e, unsigned int num);
+
+/**
+ * Get number of entries in MAC address table.
+ * @param[in]   name      Name of bridge.
+ * @param[out]  num       Number of entries.
+ * @retval      LAGOPUS_RESULT_OK               Succeeded.
+ */
+lagopus_result_t
+dp_bridge_mactable_num_entries_get(const char *name, unsigned int *num);
+
+/**
+ * Get configs from MAC address table.
+ * @param[in]   name         Name of bridge.
+ * @param[out]  ageing_time  Ageing time.
+ * @param[out]  max_entries  Number of max entries.
+ * @retval      LAGOPUS_RESULT_OK               Succeeded.
+ */
+lagopus_result_t
+dp_bridge_mactable_configs_get(const char *name, uint32_t *ageing_time, uint32_t *max_entries);
+#endif /* HYBRID */
+
 /*
  * affinition API
  */
@@ -567,5 +603,53 @@ struct bridge;
  */
 void
 dp_get_flowcache_statistics(struct bridge *bridge, struct ofcachestat *st);
+
+struct eventq_data;
+
+typedef lagopus_result_t (*dp_dataq_put_func_t)(uint64_t dpid,
+                                                struct eventq_data **data,
+                                                lagopus_chrono_t timeout);
+typedef lagopus_result_t (*dp_eventq_put_func_t)(uint64_t dpid,
+                                                 struct eventq_data **data,
+                                                 lagopus_chrono_t timeout);
+
+/**
+ * Register data queue put function.
+ *
+ *      @param[in]      func    pointer of put function.
+ *      @retval         Previous pointer of put function.
+ *
+ * Use put function for:
+ * - packet-in
+ */
+dp_dataq_put_func_t
+dp_dataq_put_func_register(dp_dataq_put_func_t func);
+
+/**
+ * Register event queue put function.
+ *
+ *      @param[in]      func    Pointer of put function.
+ *      @retval         Previous pointer of put function.
+ *
+ * Use put function for:
+ * - barrier reply
+ * - port stats
+ */
+dp_eventq_put_func_t
+dp_eventq_put_func_register(dp_dataq_put_func_t func);
+
+/**
+ * Process event data from agent.
+ *
+ *      @param[in]      dpid    Datapath id of the bridge.
+ *      @param[in]      data    Data.
+ *      @retval         LAGOPUS_RESULT_OK       Success.
+ *
+ * Event data is one of:
+ * - Packet-out
+ * - Barrier request
+ */
+lagopus_result_t
+dp_process_event_data(uint64_t dpid, struct eventq_data *data);
 
 #endif /* SRC_INCLUDE_LAGOPUS_DP_APIS_H_ */

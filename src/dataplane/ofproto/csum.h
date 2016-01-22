@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -80,7 +80,7 @@ get_16b_sum(uint16_t *u16, uint32_t len, uint32_t sum) {
     sum += u16[1];
     sum += u16[2];
     sum += u16[3];
-    len -= sizeof(uint16_t) * 4;
+    len -= (uint32_t)(sizeof(uint16_t) * 4);
     u16 += 4;
   }
   while (len > 1) {

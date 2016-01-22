@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -274,6 +274,15 @@ typedef void
 typedef void
 (*lagopus_pipeline_stage_post_start_proc_t)(
   const lagopus_pipeline_stage_t *sptr, size_t idx, void *arg);
+
+
+/**
+ * The signature of pipeline stage event buffer free up functions.
+ *
+ *	@param[in]	buf	A buffer address.
+ */
+typedef void
+(*lagopus_pipeline_stage_event_buffer_freeup_proc_t)(void *buf);
 
 
 

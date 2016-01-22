@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,6 +26,11 @@
 #include "../agent/ofp_match.h"
 #include "../agent/ofp_instruction.h"
 #include "../agent/ofp_action.h"
+#include "../channel_cmd_internal.h"
+#include "../controller_cmd_internal.h"
+#include "../interface_cmd_internal.h"
+#include "../port_cmd_internal.h"
+#include "../bridge_cmd_internal.h"
 
 #define OUT_LEN 0x10
 #define GROUP_LEN 0x08
@@ -37,17 +42,8 @@ static lagopus_dstring_t ds = NULL;
 static lagopus_hashmap_t tbl = NULL;
 static datastore_interp_t interp = NULL;
 static bool destroy = false;
-static const uint64_t dpid = 12345678;
-static struct event_manager *em = NULL;
-static const char *bridge_name = "test_bridge01";
-static const char *port_name01 = "test_port01";
-static const char *port_name02 = "test_port02";
-static const char *interface_name01 = "test_if01";
-static const char *interface_name02 = "test_if02";
-
-static datastore_interface_info_t interface_info01;
-static datastore_interface_info_t interface_info02;
-static datastore_bridge_info_t bridge_info;
+static const uint64_t dpid = 1;
+static const char *bridge_name = DATASTORE_NAMESPACE_DELIMITER"test_bridge01";
 
 static void
 create_instructions(struct instruction_list *instruction_list) {
@@ -116,83 +112,31 @@ create_buckets(struct bucket_list *bucket_list) {
 void
 setUp(void) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
 
   /* create interp. */
-  INTERP_CREATE(ret, NULL, interp, tbl, ds, em);
+  INTERP_CREATE(ret, NULL, interp, tbl, ds);
 
-  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, dp_api_init());
-
-  /* interface 01. */
-  interface_info01.type = DATASTORE_INTERFACE_TYPE_ETHERNET_RAWSOCK;
-  interface_info01.eth_rawsock.port_number = 0;
-  interface_info01.eth_dpdk_phy.device = strdup("eth0");
-  if (interface_info01.eth_dpdk_phy.device == NULL) {
-    TEST_FAIL_MESSAGE("device is NULL.");
-  }
-  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK,
-                    dp_interface_create(interface_name01));
-  dp_interface_info_set(interface_name01, &interface_info01);
-
-  /* interface 02. */
-  interface_info02.type = DATASTORE_INTERFACE_TYPE_ETHERNET_RAWSOCK;
-  interface_info02.eth_rawsock.port_number = 1;
-  interface_info02.eth_dpdk_phy.device = strdup("eth1");
-  if (interface_info02.eth_dpdk_phy.device == NULL) {
-    TEST_FAIL_MESSAGE("device is NULL.");
-  }
-  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK,
-                    dp_interface_create(interface_name02));
-  dp_interface_info_set(interface_name02, &interface_info02);
-
-  /* port 01. */
-  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK,
-                    dp_port_create(port_name01));
-  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK,
-                    dp_port_interface_set(port_name01, interface_name01));
-
-  /* port 02. */
-  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK,
-                    dp_port_create(port_name02));
-  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK,
-                    dp_port_interface_set(port_name02, interface_name02));
-
-  /* bridge. */
-  bridge_info.dpid = dpid;
-  bridge_info.fail_mode = DATASTORE_BRIDGE_FAIL_MODE_SECURE;
-  bridge_info.max_buffered_packets = UINT32_MAX;
-  bridge_info.max_ports = UINT16_MAX;
-  bridge_info.max_tables = UINT8_MAX;
-  bridge_info.max_flows = UINT32_MAX;
-  bridge_info.capabilities = UINT64_MAX;
-  bridge_info.action_types = UINT64_MAX;
-  bridge_info.instruction_types = UINT64_MAX;
-  bridge_info.reserved_port_types = UINT64_MAX;
-  bridge_info.group_types = UINT64_MAX;
-  bridge_info.group_capabilities = UINT64_MAX;
-  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK,
-                    dp_bridge_create(bridge_name, &bridge_info));
-  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK,
-                    dp_bridge_port_set(bridge_name, port_name01, 0));
-  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK,
-                    dp_bridge_port_set(bridge_name, port_name02, 1));
+  /* bridge create cmd. */
+  TEST_BRIDGE_CREATE(ret, &interp, state, &tbl, &ds, str,
+                     "test_bridge01", "1", "cha1", "c1",
+                     "test_if01", "test_port01", "1");
 }
 
 void
 tearDown(void) {
-  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK,
-                    dp_bridge_destroy(bridge_name));
-  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK,
-                    dp_port_destroy(port_name01));
-  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK,
-                    dp_port_destroy(port_name02));
-  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK,
-                    dp_interface_destroy(interface_name01));
-  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK,
-                    dp_interface_destroy(interface_name02));
-  dp_api_fini();
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+
+  /* bridge destroy cmd.*/
+  TEST_BRIDGE_DESTROY(ret, &interp, state, &tbl, &ds, str,
+                      "test_bridge01", "cha1", "c1",
+                      "test_if01", "test_port01");
 
   /* destroy interp. */
-  INTERP_DESTROY(NULL, interp, tbl, ds, em, destroy);
+  INTERP_DESTROY(NULL, interp, tbl, ds, destroy);
 }
 
 void
@@ -207,7 +151,7 @@ test_flow_cmd_dump_01(void) {
   struct ofp_error error;
   char *str = NULL;
   const char test_str1[] =
-    "{\"name\":\"test_bridge01\",\n"
+    "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_bridge01\",\n"
     "\"tables\":[{\"table\":0,\n"
     "\"flows\":[{\"priority\":1,\n"
     "\"idle_timeout\":4,\n"
@@ -258,6 +202,7 @@ test_flow_cmd_dump_01(void) {
   TEST_ASSERT_FLOW_ADD(ret, dpid, &flow_mod, &match_list,
                        &instruction_list2, &error);
 
+  (void) lagopus_dstring_clear(&ds);
   ret = dump_bridge_domains_flow(bridge_name, OFPTT_ALL,
                                  false, true, &ds);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, ret,
@@ -282,7 +227,7 @@ test_flow_cmd_dump_with_stats(void) {
   struct ofp_error error;
   char *str = NULL;
   const char test_str1[] =
-    "{\"name\":\"test_bridge01\",\n"
+    "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_bridge01\",\n"
     "\"tables\":[{\"table\":0,\n"
     "\"flows\":[{\"priority\":1,\n"
     "\"idle_timeout\":4,\n"
@@ -337,6 +282,7 @@ test_flow_cmd_dump_with_stats(void) {
   TEST_ASSERT_FLOW_ADD(ret, dpid, &flow_mod, &match_list,
                        &instruction_list2, &error);
 
+  (void) lagopus_dstring_clear(&ds);
   ret = dump_bridge_domains_flow(bridge_name, OFPTT_ALL,
                                  true, true, &ds);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, ret,

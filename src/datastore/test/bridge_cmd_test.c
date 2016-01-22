@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@
 #include "unity.h"
 #include "lagopus_apis.h"
 #include "cmd_test_utils.h"
-#include "event.h"
 #include "lagopus/ofp_bridgeq_mgr.h"
 #include "lagopus/bridge.h"
 #include "../datastore_apis.h"
@@ -25,7 +24,6 @@
 #include "../controller_cmd_internal.h"
 #include "../interface_cmd_internal.h"
 #include "../port_cmd_internal.h"
-#include "../l2_bridge_cmd_internal.h"
 #include "../bridge_cmd_internal.h"
 #include "../datastore_internal.h"
 #include "../../agent/channel_mgr.h"
@@ -35,14 +33,15 @@ static lagopus_hashmap_t tbl = NULL;
 static lagopus_hashmap_t tbl_port = NULL;
 static datastore_interp_t interp = NULL;
 static bool destroy = false;
-static struct event_manager *em = NULL;
 
 void
 setUp(void) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
 
   /* create interp. */
-  INTERP_CREATE(ret, "bridge", interp, tbl, ds, em);
+  INTERP_CREATE(ret, "bridge", interp, tbl, ds);
+  dp_dataq_put_func_register(ofp_handler_dataq_data_put);
+  dp_eventq_put_func_register(ofp_handler_eventq_data_put);
 
   ret = datastore_find_table("port", &tbl_port,
                              NULL, NULL, NULL,
@@ -54,7 +53,7 @@ setUp(void) {
 void
 tearDown(void) {
   /* destroy interp. */
-  INTERP_DESTROY("bridge", interp, tbl, ds, em, destroy);
+  INTERP_DESTROY("bridge", interp, tbl, ds, destroy);
 }
 
 void
@@ -67,7 +66,6 @@ test_bridge_cmd_parse_create_01(void) {
                         "-controller", "c2",
                         "-port", "p1", "1",
                         "-port", "p2", "2",
-                        "-l2-bridge", "l1",
                         "-dpid", "18446744073709551615",
                         "-fail-mode", "secure",
                         "-flow-statistics", "true",
@@ -95,7 +93,6 @@ test_bridge_cmd_parse_create_01(void) {
   const char *argv1[] = {"bridge", "test_name02", "create",
                          "-controller", "c5",
                          "-port", "p5", "5",
-                         "-l2-bridge", "l2",
                          "-dpid", "5",
                          "-fail-mode", "standalone",
                          "-flow-statistics", "false",
@@ -130,7 +127,6 @@ test_bridge_cmd_parse_create_01(void) {
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name02\",\n"
     "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c5\"],\n"
     "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p5\":5},\n"
-    "\"l2-bridge\":\""DATASTORE_NAMESPACE_DELIMITER"l2\",\n"
     "\"dpid\":5,\n"
     "\"fail-mode\":\"standalone\",\n"
     "\"flow-statistics\":false,\n"
@@ -167,7 +163,6 @@ test_bridge_cmd_parse_create_01(void) {
     "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c1\",\""DATASTORE_NAMESPACE_DELIMITER"c2\"],\n"
     "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p1\":1,\n"
     "\""DATASTORE_NAMESPACE_DELIMITER"p2\":2},\n"
-    "\"l2-bridge\":\""DATASTORE_NAMESPACE_DELIMITER"l1\",\n"
     "\"dpid\":18446744073709551615,\n"
     "\"fail-mode\":\"secure\",\n"
     "\"flow-statistics\":true,\n"
@@ -206,7 +201,6 @@ test_bridge_cmd_parse_create_01(void) {
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name02\",\n"
     "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c5\"],\n"
     "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p5\":5},\n"
-    "\"l2-bridge\":\""DATASTORE_NAMESPACE_DELIMITER"l2\",\n"
     "\"dpid\":5,\n"
     "\"fail-mode\":\"standalone\",\n"
     "\"flow-statistics\":false,\n"
@@ -289,35 +283,13 @@ test_bridge_cmd_parse_create_01(void) {
     "\"connection-type\":\"main\",\n"
     "\"is-used\":false,\n"
     "\"is-enabled\":false}]}";
-  const char *l2b_argv1[] = {"l2-bridge", "l2", NULL};
-  const char l2b_test_str1[] =
-    "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"l2\",\n"
-    "\"expire\":1,\n"
-    "\"max-entries\":1,\n"
-    "\"tmp-dir\":\"\\/tmp\",\n"
-    "\"bridge\":\""DATASTORE_NAMESPACE_DELIMITER"test_name02\",\n"
-    "\"is-used\":true,\n"
-    "\"is-enabled\":true}]}";
-  const char *l2b_argv2[] = {"l2-bridge", "l2", NULL};
-  const char l2b_test_str2[] =
-    "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"l2\",\n"
-    "\"expire\":1,\n"
-    "\"max-entries\":1,\n"
-    "\"tmp-dir\":\"\\/tmp\",\n"
-    "\"bridge\":\"\",\n"
-    "\"is-used\":false,\n"
-    "\"is-enabled\":false}]}";
 
   TEST_CONTROLLER_CREATE(ret, &interp, state, &tbl, &ds, str, "cha1", "c1");
   TEST_CONTROLLER_CREATE(ret, &interp, state, &tbl, &ds, str, "cha2", "c2");
-  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i1", "p1", "1");
-  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i2", "p2", "2");
+  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i1", "p1");
+  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i2", "p2");
   TEST_CONTROLLER_CREATE(ret, &interp, state, &tbl, &ds, str, "cha5", "c5");
-  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i5", "p5", "5");
-  TEST_L2_BRIDGE_CREATE(ret, &interp, state, &tbl, &ds, str, "l1");
-  TEST_L2_BRIDGE_CREATE(ret, &interp, state, &tbl, &ds, str, "l2");
+  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i5", "p5");
 
   /* create cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
@@ -354,11 +326,6 @@ test_bridge_cmd_parse_create_01(void) {
                  ARGV_SIZE(ctrler_argv1), ctrler_argv1, &tbl, controller_cmd_update,
                  &ds, str, ctrler_test_str1);
 
-  /* l2 bridge show cmd. */
-  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, l2_bridge_cmd_parse, &interp, state,
-                 ARGV_SIZE(l2b_argv1), l2b_argv1, &tbl, l2_bridge_cmd_update,
-                 &ds, str, l2b_test_str1);
-
   /* disable cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
                  ARGV_SIZE(argv5), argv5, &tbl, bridge_cmd_update,
@@ -384,19 +351,12 @@ test_bridge_cmd_parse_create_01(void) {
                  ARGV_SIZE(ctrler_argv2), ctrler_argv2, &tbl, controller_cmd_update,
                  &ds, str, ctrler_test_str2);
 
-  /* l2 bridge show cmd. */
-  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, l2_bridge_cmd_parse, &interp, state,
-                 ARGV_SIZE(l2b_argv2), l2b_argv2, &tbl, l2_bridge_cmd_update,
-                 &ds, str, l2b_test_str2);
-
   TEST_CONTROLLER_DESTROY(ret, &interp, state, &tbl, &ds, str, "cha1", "c1");
   TEST_CONTROLLER_DESTROY(ret, &interp, state, &tbl, &ds, str, "cha2", "c2");
   TEST_PORT_DESTROY(ret, &interp, state, &tbl, &ds, str, "i1", "p1");
   TEST_PORT_DESTROY(ret, &interp, state, &tbl, &ds, str, "i2", "p2");
   TEST_CONTROLLER_DESTROY(ret, &interp, state, &tbl, &ds, str, "cha5", "c5");
   TEST_PORT_DESTROY(ret, &interp, state, &tbl, &ds, str, "i5", "p5");
-  TEST_L2_BRIDGE_DESTROY(ret, &interp, state, &tbl, &ds, str, "l1");
-  TEST_L2_BRIDGE_DESTROY(ret, &interp, state, &tbl, &ds, str, "l2");
 }
 
 void
@@ -867,7 +827,7 @@ test_bridge_cmd_parse_create_controller_not_exists(void) {
     "{\"ret\":\"NOT_FOUND\",\n"
     "\"data\":\"controller name = "DATASTORE_NAMESPACE_DELIMITER"c7.\"}";
 
-  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i7", "p7", "7");
+  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i7", "p7");
 
   /* create cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR, bridge_cmd_parse,
@@ -886,7 +846,6 @@ test_bridge_cmd_enable_destroy_propagation(void) {
   const char *argv1[] = {"bridge", "test_name24", "create",
                          "-controller", "c8",
                          "-port", "p8", "8",
-                         "-l2-bridge", "l8",
                          "-dpid", "18446744073709551615",
                          "-fail-mode", "standalone",
                          "-flow-statistics", "false",
@@ -917,7 +876,6 @@ test_bridge_cmd_enable_destroy_propagation(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"i8\",\n"
     "\"type\":\"ethernet-rawsock\",\n"
-    "\"port-number\":8,\n"
     "\"device\":\"i8\",\n"
     "\"mtu\":1500,\n"
     "\"ip-addr\":\"127.0.0.1\",\n"
@@ -928,7 +886,6 @@ test_bridge_cmd_enable_destroy_propagation(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"i8\",\n"
     "\"type\":\"ethernet-rawsock\",\n"
-    "\"port-number\":8,\n"
     "\"device\":\"i8\",\n"
     "\"mtu\":1500,\n"
     "\"ip-addr\":\"127.0.0.1\",\n"
@@ -994,31 +951,9 @@ test_bridge_cmd_enable_destroy_propagation(void) {
     "\"connection-type\":\"main\",\n"
     "\"is-used\":false,\n"
     "\"is-enabled\":false}]}";
-  const char *l2b_argv1[] = {"l2-bridge", "l8", NULL};
-  const char l2b_test_str1[] =
-    "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"l8\",\n"
-    "\"expire\":1,\n"
-    "\"max-entries\":1,\n"
-    "\"tmp-dir\":\"\\/tmp\",\n"
-    "\"bridge\":\""DATASTORE_NAMESPACE_DELIMITER"test_name24\",\n"
-    "\"is-used\":true,\n"
-    "\"is-enabled\":true}]}";
-  const char *l2b_argv2[] = {"l2-bridge", "l8", NULL};
-  const char l2b_test_str2[] =
-    "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"l8\",\n"
-    "\"expire\":1,\n"
-    "\"max-entries\":1,\n"
-    "\"tmp-dir\":\"\\/tmp\",\n"
-    "\"bridge\":\"\",\n"
-    "\"is-used\":false,\n"
-    "\"is-enabled\":false}]}";
 
   TEST_CONTROLLER_CREATE(ret, &interp, state, &tbl, &ds, str, "cha8", "c8");
-  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i8", "p8", "8");
-  TEST_L2_BRIDGE_CREATE(ret, &interp, state, &tbl, &ds, str, "l8");
-
+  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i8", "p8");
   /* create cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
                  ARGV_SIZE(argv1), argv1, &tbl, bridge_cmd_update,
@@ -1050,11 +985,6 @@ test_bridge_cmd_enable_destroy_propagation(void) {
                  ARGV_SIZE(ctrler_argv1), ctrler_argv1, &tbl, controller_cmd_update,
                  &ds, str, ctrler_test_str1);
 
-  /* l2 bridge show cmd. */
-  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, l2_bridge_cmd_parse, &interp, state,
-                 ARGV_SIZE(l2b_argv1), l2b_argv1, &tbl, l2_bridge_cmd_update,
-                 &ds, str, l2b_test_str1);
-
   /* destroy cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
                  ARGV_SIZE(argv3), argv3, &tbl, bridge_cmd_update,
@@ -1081,14 +1011,8 @@ test_bridge_cmd_enable_destroy_propagation(void) {
                  ARGV_SIZE(ctrler_argv2), ctrler_argv2, &tbl, controller_cmd_update,
                  &ds, str, ctrler_test_str2);
 
-  /* l2 bridge show cmd. */
-  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, l2_bridge_cmd_parse, &interp, state,
-                 ARGV_SIZE(l2b_argv2), l2b_argv2, &tbl, l2_bridge_cmd_update,
-                 &ds, str, l2b_test_str2);
-
   TEST_CONTROLLER_DESTROY(ret, &interp, state, &tbl, &ds, str, "cha8", "c8");
   TEST_PORT_DESTROY(ret, &interp, state, &tbl, &ds, str, "i8", "p8");
-  TEST_L2_BRIDGE_DESTROY(ret, &interp, state, &tbl, &ds, str, "l8");
 }
 
 void
@@ -1099,7 +1023,6 @@ test_bridge_cmd_parse_config_01(void) {
   const char *argv1[] = {"bridge", "test_name25", "create",
                          "-controller", "c25",
                          "-port", "p25", "25",
-                         "-l2-bridge", "l25",
                          "-dpid", "18446744073709551615",
                          "-fail-mode", "standalone",
                          "-flow-statistics", "false",
@@ -1130,7 +1053,6 @@ test_bridge_cmd_parse_config_01(void) {
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name25\",\n"
     "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c25\"],\n"
     "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p25\":25},\n"
-    "\"l2-bridge\":\""DATASTORE_NAMESPACE_DELIMITER"l25\",\n"
     "\"dpid\":18446744073709551615,\n"
     "\"fail-mode\":\"standalone\",\n"
     "\"flow-statistics\":false,\n"
@@ -1166,7 +1088,6 @@ test_bridge_cmd_parse_config_01(void) {
   const char *argv3[] = {"bridge", "test_name25", "config",
                          "-controller", "c26",
                          "-port", "p26", "26",
-                         "-l2-bridge", "l26",
                          NULL
                         };
   const char test_str3[] = "{\"ret\":\"OK\"}";
@@ -1177,7 +1098,6 @@ test_bridge_cmd_parse_config_01(void) {
     "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c25\",\""DATASTORE_NAMESPACE_DELIMITER"c26\"],\n"
     "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p25\":25,\n"
     "\""DATASTORE_NAMESPACE_DELIMITER"p26\":26},\n"
-    "\"l2-bridge\":\""DATASTORE_NAMESPACE_DELIMITER"l26\",\n"
     "\"dpid\":18446744073709551615,\n"
     "\"fail-mode\":\"standalone\",\n"
     "\"flow-statistics\":false,\n"
@@ -1290,53 +1210,11 @@ test_bridge_cmd_parse_config_01(void) {
     "\"connection-type\":\"main\",\n"
     "\"is-used\":true,\n"
     "\"is-enabled\":false}]}";
-  const char *l2b_argv1[] = {"l2-bridge", "l25", NULL};
-  const char l2b_test_str1[] =
-    "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"l25\",\n"
-    "\"expire\":1,\n"
-    "\"max-entries\":1,\n"
-    "\"tmp-dir\":\"\\/tmp\",\n"
-    "\"bridge\":\""DATASTORE_NAMESPACE_DELIMITER"test_name25\",\n"
-    "\"is-used\":true,\n"
-    "\"is-enabled\":false}]}";
-  const char *l2b_argv2[] = {"l2-bridge", "l25", NULL};
-  const char l2b_test_str2[] =
-    "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"l25\",\n"
-    "\"expire\":1,\n"
-    "\"max-entries\":1,\n"
-    "\"tmp-dir\":\"\\/tmp\",\n"
-    "\"bridge\":\"\",\n"
-    "\"is-used\":false,\n"
-    "\"is-enabled\":false}]}";
-  const char *l2b_argv3[] = {"l2-bridge", "l26", NULL};
-  const char l2b_test_str3[] =
-    "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"l26\",\n"
-    "\"expire\":1,\n"
-    "\"max-entries\":1,\n"
-    "\"tmp-dir\":\"\\/tmp\",\n"
-    "\"bridge\":\"\",\n"
-    "\"is-used\":false,\n"
-    "\"is-enabled\":false}]}";
-  const char *l2b_argv4[] = {"l2-bridge", "l26", NULL};
-  const char l2b_test_str4[] =
-    "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"l26\",\n"
-    "\"expire\":1,\n"
-    "\"max-entries\":1,\n"
-    "\"tmp-dir\":\"\\/tmp\",\n"
-    "\"bridge\":\""DATASTORE_NAMESPACE_DELIMITER"test_name25\",\n"
-    "\"is-used\":true,\n"
-    "\"is-enabled\":false}]}";
 
   TEST_CONTROLLER_CREATE(ret, &interp, state, &tbl, &ds, str, "cha25", "c25");
-  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i25", "p25", "25");
-  TEST_L2_BRIDGE_CREATE(ret, &interp, state, &tbl, &ds, str, "l25");
+  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i25", "p25");
   TEST_CONTROLLER_CREATE(ret, &interp, state, &tbl, &ds, str, "cha26", "c26");
-  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i26", "p26", "26");
-  TEST_L2_BRIDGE_CREATE(ret, &interp, state, &tbl, &ds, str, "l26");
+  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i26", "p26");
 
   /* create cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
@@ -1368,16 +1246,6 @@ test_bridge_cmd_parse_config_01(void) {
                  ARGV_SIZE(ctrler_argv3), ctrler_argv3, &tbl, controller_cmd_update,
                  &ds, str, ctrler_test_str3);
 
-  /* l2 bridge show cmd. */
-  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, l2_bridge_cmd_parse, &interp, state,
-                 ARGV_SIZE(l2b_argv1), l2b_argv1, &tbl, l2_bridge_cmd_update,
-                 &ds, str, l2b_test_str1);
-
-  /* l2 bridge show cmd. */
-  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, l2_bridge_cmd_parse, &interp, state,
-                 ARGV_SIZE(l2b_argv3), l2b_argv3, &tbl, l2_bridge_cmd_update,
-                 &ds, str, l2b_test_str3);
-
   /* config cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
                  ARGV_SIZE(argv3), argv3, &tbl, bridge_cmd_update,
@@ -1408,16 +1276,6 @@ test_bridge_cmd_parse_config_01(void) {
                  ARGV_SIZE(ctrler_argv4), ctrler_argv4, &tbl, controller_cmd_update,
                  &ds, str, ctrler_test_str4);
 
-  /* l2 bridge show cmd. */
-  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, l2_bridge_cmd_parse, &interp, state,
-                 ARGV_SIZE(l2b_argv2), l2b_argv2, &tbl, l2_bridge_cmd_update,
-                 &ds, str, l2b_test_str2);
-
-  /* l2 bridge show cmd. */
-  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, l2_bridge_cmd_parse, &interp, state,
-                 ARGV_SIZE(l2b_argv4), l2b_argv4, &tbl, l2_bridge_cmd_update,
-                 &ds, str, l2b_test_str4);
-
   /* destroy cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
                  ARGV_SIZE(argv5), argv5, &tbl, bridge_cmd_update,
@@ -1425,10 +1283,8 @@ test_bridge_cmd_parse_config_01(void) {
 
   TEST_CONTROLLER_DESTROY(ret, &interp, state, &tbl, &ds, str, "cha25", "c25");
   TEST_PORT_DESTROY(ret, &interp, state, &tbl, &ds, str, "i25", "p25");
-  TEST_L2_BRIDGE_DESTROY(ret, &interp, state, &tbl, &ds, str, "l25");
   TEST_CONTROLLER_DESTROY(ret, &interp, state, &tbl, &ds, str, "cha26", "c26");
   TEST_PORT_DESTROY(ret, &interp, state, &tbl, &ds, str, "i26", "p26");
-  TEST_L2_BRIDGE_DESTROY(ret, &interp, state, &tbl, &ds, str, "l26");
 }
 
 void
@@ -1439,7 +1295,6 @@ test_bridge_cmd_parse_config_02(void) {
   const char *argv1[] = {"bridge", "test_name\"27", "create",
                          "-controller", "c\"27",
                          "-port", "p\"27", "27",
-                         "-l2-bridge", "l\"27",
                          "-dpid", "18446744073709551615",
                          "-fail-mode", "standalone",
                          "-flow-statistics", "false",
@@ -1474,7 +1329,6 @@ test_bridge_cmd_parse_config_02(void) {
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name\\\"27\",\n"
     "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c\\\"27\"],\n"
     "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p\\\"27\":27},\n"
-    "\"l2-bridge\":\""DATASTORE_NAMESPACE_DELIMITER"l\\\"27\",\n"
     "\"dpid\":18446744073709551615,\n"
     "\"fail-mode\":\"standalone\",\n"
     "\"flow-statistics\":false,\n"
@@ -1538,7 +1392,6 @@ test_bridge_cmd_parse_config_02(void) {
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name\\\"27\",\n"
     "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c\\\"27\"],\n"
     "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p\\\"27\":27},\n"
-    "\"l2-bridge\":\""DATASTORE_NAMESPACE_DELIMITER"l\\\"27\",\n"
     "\"dpid\":1,\n"
     "\"fail-mode\":\"standalone\",\n"
     "\"flow-statistics\":false,\n"
@@ -1581,8 +1434,7 @@ test_bridge_cmd_parse_config_02(void) {
   const char test_str7[] = "{\"ret\":\"OK\"}";
 
   TEST_CONTROLLER_CREATE(ret, &interp, state, &tbl, &ds, str, "cha27", "c\"27");
-  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i27", "p\"27", "27");
-  TEST_L2_BRIDGE_CREATE(ret, &interp, state, &tbl, &ds, str, "l\"27");
+  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i27", "p\"27");
 
   /* create cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
@@ -1621,7 +1473,6 @@ test_bridge_cmd_parse_config_02(void) {
 
   TEST_CONTROLLER_DESTROY(ret, &interp, state, &tbl, &ds, str, "cha27", "c\"27");
   TEST_PORT_DESTROY(ret, &interp, state, &tbl, &ds, str, "i27", "p\"27");
-  TEST_L2_BRIDGE_DESTROY(ret, &interp, state, &tbl, &ds, str, "l\"27");
 }
 
 void
@@ -1666,7 +1517,6 @@ test_bridge_cmd_parse_config_delete_port_ctrler(void) {
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name28\",\n"
     "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c28\"],\n"
     "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p28\":28},\n"
-    "\"l2-bridge\":\"\",\n"
     "\"dpid\":18446744073709551615,\n"
     "\"fail-mode\":\"standalone\",\n"
     "\"flow-statistics\":false,\n"
@@ -1732,7 +1582,6 @@ test_bridge_cmd_parse_config_delete_port_ctrler(void) {
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name28\",\n"
     "\"controllers\":[],\n"
     "\"ports\":{},\n"
-    "\"l2-bridge\":\"\",\n"
     "\"dpid\":1,\n"
     "\"fail-mode\":\"standalone\",\n"
     "\"flow-statistics\":false,\n"
@@ -1775,7 +1624,7 @@ test_bridge_cmd_parse_config_delete_port_ctrler(void) {
   const char test_str7[] = "{\"ret\":\"OK\"}";
 
   TEST_CONTROLLER_CREATE(ret, &interp, state, &tbl, &ds, str, "cha28", "c28");
-  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i28", "p28", "28");
+  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i28", "p28");
 
   /* create cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
@@ -1854,7 +1703,6 @@ test_bridge_cmd_parse_config_show_01(void) {
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name29\",\n"
     "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c29\"],\n"
     "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p29\":29},\n"
-    "\"l2-bridge\":\"\",\n"
     "\"dpid\":18446744073709551615,\n"
     "\"fail-mode\":\"standalone\",\n"
     "\"flow-statistics\":false,\n"
@@ -1905,7 +1753,7 @@ test_bridge_cmd_parse_config_show_01(void) {
   const char test_str5[] = "{\"ret\":\"OK\"}";
 
   TEST_CONTROLLER_CREATE(ret, &interp, state, &tbl, &ds, str, "cha29", "c29");
-  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i29", "p29", "29");
+  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i29", "p29");
 
   /* create cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
@@ -1976,7 +1824,6 @@ test_bridge_cmd_show_01(void) {
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name30\",\n"
     "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c30\"],\n"
     "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p30\":30},\n"
-    "\"l2-bridge\":\"\",\n"
     "\"dpid\":18446744073709551615,\n"
     "\"fail-mode\":\"standalone\",\n"
     "\"flow-statistics\":false,\n"
@@ -2032,7 +1879,7 @@ test_bridge_cmd_show_01(void) {
   const char test_str6[] = "{\"ret\":\"OK\"}";
 
   TEST_CONTROLLER_CREATE(ret, &interp, state1, &tbl, &ds, str, "cha30", "c30");
-  TEST_PORT_CREATE(ret, &interp, state1, &tbl, &ds, str, "i30", "p30", "30");
+  TEST_PORT_CREATE(ret, &interp, state1, &tbl, &ds, str, "i30", "p30");
 
   /* create cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state1,
@@ -2110,7 +1957,6 @@ test_bridge_cmd_parse_config_port_number_01(void) {
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name31\",\n"
     "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c31\"],\n"
     "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p31\":31},\n"
-    "\"l2-bridge\":\"\",\n"
     "\"dpid\":18446744073709551615,\n"
     "\"fail-mode\":\"standalone\",\n"
     "\"flow-statistics\":false,\n"
@@ -2155,7 +2001,6 @@ test_bridge_cmd_parse_config_port_number_01(void) {
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name31\",\n"
     "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c31\"],\n"
     "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p31\":32},\n"
-    "\"l2-bridge\":\"\",\n"
     "\"dpid\":18446744073709551615,\n"
     "\"fail-mode\":\"standalone\",\n"
     "\"flow-statistics\":false,\n"
@@ -2198,7 +2043,7 @@ test_bridge_cmd_parse_config_port_number_01(void) {
   const char test_str7[] = "{\"ret\":\"OK\"}";
 
   TEST_CONTROLLER_CREATE(ret, &interp, state, &tbl, &ds, str, "cha31", "c31");
-  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i31", "p31", "31");
+  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i31", "p31");
 
   /* create cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
@@ -2281,7 +2126,6 @@ test_bridge_cmd_parse_config_port_number_02(void) {
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name32\",\n"
     "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c32\"],\n"
     "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p32\":32},\n"
-    "\"l2-bridge\":\"\",\n"
     "\"dpid\":32,\n"
     "\"fail-mode\":\"standalone\",\n"
     "\"flow-statistics\":false,\n"
@@ -2354,8 +2198,8 @@ test_bridge_cmd_parse_config_port_number_02(void) {
     "\"is-enabled\":true}]}";
 
   TEST_CONTROLLER_CREATE(ret, &interp, state, &tbl, &ds, str, "cha32", "c32");
-  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i32", "p32", "32");
-  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i33", "p33", "33");
+  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i32", "p32");
+  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i33", "p33");
 
   /* create cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
@@ -2449,7 +2293,6 @@ test_bridge_cmd_parse_config_controller_02(void) {
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name36\",\n"
     "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c36\"],\n"
     "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p36\":36},\n"
-    "\"l2-bridge\":\"\",\n"
     "\"dpid\":36,\n"
     "\"fail-mode\":\"standalone\",\n"
     "\"flow-statistics\":false,\n"
@@ -2502,7 +2345,7 @@ test_bridge_cmd_parse_config_controller_02(void) {
   const char test_str7[] = "{\"ret\":\"OK\"}";
 
   TEST_CONTROLLER_CREATE(ret, &interp, state, &tbl, &ds, str, "cha36", "c36");
-  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i36", "p36", "36");
+  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i36", "p36");
 
   /* create cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
@@ -2722,7 +2565,6 @@ test_bridge_cmd_serialize_all_opt(void) {
   const char *argv1[] = {"bridge", "test_name40", "create",
                          "-controller", "c40",
                          "-port", "p40", "40",
-                         "-l2-bridge", "l40",
                          "-dpid", "4321",
                          "-flow-statistics", "true",
                          "-group-statistics", "true",
@@ -2765,7 +2607,6 @@ test_bridge_cmd_serialize_all_opt(void) {
                                 "-dpid 4321 "
                                 "-controller "DATASTORE_NAMESPACE_DELIMITER"c40 "
                                 "-port "DATASTORE_NAMESPACE_DELIMITER"p40 40 "
-                                "-l2-bridge "DATASTORE_NAMESPACE_DELIMITER"l40 "
                                 "-fail-mode secure "
                                 "-flow-statistics true "
                                 "-group-statistics true "
@@ -2796,8 +2637,7 @@ test_bridge_cmd_serialize_all_opt(void) {
                                 "-group-capability ~select-liveness\n";
 
   TEST_CONTROLLER_CREATE(ret, &interp, state, &tbl, &ds, str, "cha40", "c40");
-  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i40", "p40", "40");
-  TEST_L2_BRIDGE_CREATE(ret, &interp, state, &tbl, &ds, str, "l40");
+  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i40", "p40");
 
   /* bridge create cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
@@ -2816,7 +2656,6 @@ test_bridge_cmd_serialize_all_opt(void) {
 
   TEST_CONTROLLER_DESTROY(ret, &interp, state, &tbl, &ds, str, "cha40", "c40");
   TEST_PORT_DESTROY(ret, &interp, state, &tbl, &ds, str, "i40", "p40");
-  TEST_L2_BRIDGE_DESTROY(ret, &interp, state, &tbl, &ds, str, "l40");
 }
 
 void
@@ -2902,7 +2741,6 @@ test_bridge_cmd_parse_atomic_commit(void) {
   const char *argv1[] = {"bridge", "test_name43", "create",
                          "-controller", "c43",
                          "-port", "p43", "43",
-                         "-l2-bridge", "l43",
                          "-dpid", "43",
                          "-fail-mode", "standalone",
                          "-flow-statistics", "false",
@@ -2937,7 +2775,6 @@ test_bridge_cmd_parse_atomic_commit(void) {
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name43\",\n"
     "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c43\"],\n"
     "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p43\":43},\n"
-    "\"l2-bridge\":\""DATASTORE_NAMESPACE_DELIMITER"l43\",\n"
     "\"dpid\":43,\n"
     "\"fail-mode\":\"standalone\",\n"
     "\"flow-statistics\":false,\n"
@@ -2973,7 +2810,6 @@ test_bridge_cmd_parse_atomic_commit(void) {
   const char *argv4[] = {"bridge", "test_name43", "config",
                          "-controller", "c43_2",
                          "-port", "p43_2", "143",
-                         "-l2-bridge", "l43_2",
                          NULL
                         };
   const char test_str4[] = "{\"ret\":\"OK\"}";
@@ -2988,7 +2824,6 @@ test_bridge_cmd_parse_atomic_commit(void) {
     "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c43\",\""DATASTORE_NAMESPACE_DELIMITER"c43_2\"],\n"
     "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p43\":43,\n"
     "\""DATASTORE_NAMESPACE_DELIMITER"p43_2\":143},\n"
-    "\"l2-bridge\":\""DATASTORE_NAMESPACE_DELIMITER"l43_2\",\n"
     "\"dpid\":43,\n"
     "\"fail-mode\":\"standalone\",\n"
     "\"flow-statistics\":false,\n"
@@ -3028,7 +2863,6 @@ test_bridge_cmd_parse_atomic_commit(void) {
     "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c43\",\""DATASTORE_NAMESPACE_DELIMITER"c43_2\"],\n"
     "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p43\":43,\n"
     "\""DATASTORE_NAMESPACE_DELIMITER"p43_2\":143},\n"
-    "\"l2-bridge\":\""DATASTORE_NAMESPACE_DELIMITER"l43_2\",\n"
     "\"dpid\":43,\n"
     "\"fail-mode\":\"standalone\",\n"
     "\"flow-statistics\":false,\n"
@@ -3073,12 +2907,8 @@ test_bridge_cmd_parse_atomic_commit(void) {
   TEST_CONTROLLER_CREATE(ret, &interp, state4, &tbl, &ds, str, "cha43", "c43");
   TEST_CONTROLLER_CREATE(ret, &interp, state4, &tbl, &ds, str, "cha43_2",
                          "c43_2");
-  TEST_PORT_CREATE(ret, &interp, state4, &tbl_port, &ds, str, "i43", "p43",
-                   "43");
-  TEST_PORT_CREATE(ret, &interp, state4, &tbl_port, &ds, str, "i43_2", "p43_2",
-                   "143");
-  TEST_L2_BRIDGE_CREATE(ret, &interp, state4, &tbl, &ds, str, "l43");
-  TEST_L2_BRIDGE_CREATE(ret, &interp, state4, &tbl, &ds, str, "l43_2");
+  TEST_PORT_CREATE(ret, &interp, state4, &tbl_port, &ds, str, "i43", "p43");
+  TEST_PORT_CREATE(ret, &interp, state4, &tbl_port, &ds, str, "i43_2", "p43_2");
 
   /* create cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state1,
@@ -3157,8 +2987,6 @@ test_bridge_cmd_parse_atomic_commit(void) {
                           "c43_2");
   TEST_PORT_DESTROY(ret, &interp, state4, &tbl_port, &ds, str, "i43", "p43");
   TEST_PORT_DESTROY(ret, &interp, state4, &tbl_port, &ds, str, "i43_2", "p43_2");
-  TEST_L2_BRIDGE_DESTROY(ret, &interp, state4, &tbl, &ds, str, "l43");
-  TEST_L2_BRIDGE_DESTROY(ret, &interp, state4, &tbl, &ds, str, "l43_2");
 }
 
 void
@@ -3173,7 +3001,6 @@ test_bridge_cmd_parse_atomic_rollback(void) {
   const char *argv1[] = {"bridge", "test_name44", "create",
                          "-controller", "c44",
                          "-port", "p44", "44",
-                         "-l2-bridge", "l44",
                          "-dpid", "44",
                          "-fail-mode", "standalone",
                          "-flow-statistics", "false",
@@ -3208,7 +3035,6 @@ test_bridge_cmd_parse_atomic_rollback(void) {
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name44\",\n"
     "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c44\"],\n"
     "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p44\":44},\n"
-    "\"l2-bridge\":\""DATASTORE_NAMESPACE_DELIMITER"l44\",\n"
     "\"dpid\":44,\n"
     "\"fail-mode\":\"standalone\",\n"
     "\"flow-statistics\":false,\n"
@@ -3244,7 +3070,6 @@ test_bridge_cmd_parse_atomic_rollback(void) {
   const char *argv4[] = {"bridge", "test_name44", "config",
                          "-controller", "c44_2",
                          "-port", "p44_2", "144",
-                         "-l2-bridge", "l44_2",
                          NULL
                         };
   const char test_str4[] = "{\"ret\":\"OK\"}";
@@ -3259,7 +3084,6 @@ test_bridge_cmd_parse_atomic_rollback(void) {
     "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c44\",\""DATASTORE_NAMESPACE_DELIMITER"c44_2\"],\n"
     "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p44\":44,\n"
     "\""DATASTORE_NAMESPACE_DELIMITER"p44_2\":144},\n"
-    "\"l2-bridge\":\""DATASTORE_NAMESPACE_DELIMITER"l44_2\",\n"
     "\"dpid\":44,\n"
     "\"fail-mode\":\"standalone\",\n"
     "\"flow-statistics\":false,\n"
@@ -3300,12 +3124,8 @@ test_bridge_cmd_parse_atomic_rollback(void) {
   TEST_CONTROLLER_CREATE(ret, &interp, state4, &tbl, &ds, str, "cha44", "c44");
   TEST_CONTROLLER_CREATE(ret, &interp, state4, &tbl, &ds, str, "cha44_2",
                          "c44_2");
-  TEST_PORT_CREATE(ret, &interp, state4, &tbl_port, &ds, str, "i44", "p44",
-                   "44");
-  TEST_PORT_CREATE(ret, &interp, state4, &tbl_port, &ds, str, "i44_2", "p44_2",
-                   "144");
-  TEST_L2_BRIDGE_CREATE(ret, &interp, state4, &tbl, &ds, str, "l44");
-  TEST_L2_BRIDGE_CREATE(ret, &interp, state4, &tbl, &ds, str, "l44_2");
+  TEST_PORT_CREATE(ret, &interp, state4, &tbl_port, &ds, str, "i44", "p44");
+  TEST_PORT_CREATE(ret, &interp, state4, &tbl_port, &ds, str, "i44_2", "p44_2");
 
   /* create cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state1,
@@ -3374,8 +3194,6 @@ test_bridge_cmd_parse_atomic_rollback(void) {
                           "c44_2");
   TEST_PORT_DESTROY(ret, &interp, state4, &tbl_port, &ds, str, "i44", "p44");
   TEST_PORT_DESTROY(ret, &interp, state4, &tbl_port, &ds, str, "i44_2", "p44_2");
-  TEST_L2_BRIDGE_DESTROY(ret, &interp, state4, &tbl, &ds, str, "l44");
-  TEST_L2_BRIDGE_DESTROY(ret, &interp, state4, &tbl, &ds, str, "l44_2");
 }
 
 void
@@ -3390,7 +3208,6 @@ test_bridge_cmd_parse_atomic_delay_enable(void) {
   const char *argv1[] = {"bridge", "test_name45", "create",
                          "-controller", "c45",
                          "-port", "p45", "45",
-                         "-l2-bridge", "l45",
                          "-dpid", "45",
                          "-fail-mode", "standalone",
                          "-flow-statistics", "false",
@@ -3429,7 +3246,6 @@ test_bridge_cmd_parse_atomic_delay_enable(void) {
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name45\",\n"
     "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c45\"],\n"
     "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p45\":45},\n"
-    "\"l2-bridge\":\""DATASTORE_NAMESPACE_DELIMITER"l45\",\n"
     "\"dpid\":45,\n"
     "\"fail-mode\":\"standalone\",\n"
     "\"flow-statistics\":false,\n"
@@ -3472,7 +3288,6 @@ test_bridge_cmd_parse_atomic_delay_enable(void) {
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name45\",\n"
     "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c45\"],\n"
     "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p45\":45},\n"
-    "\"l2-bridge\":\""DATASTORE_NAMESPACE_DELIMITER"l45\",\n"
     "\"dpid\":45,\n"
     "\"fail-mode\":\"standalone\",\n"
     "\"flow-statistics\":false,\n"
@@ -3511,7 +3326,6 @@ test_bridge_cmd_parse_atomic_delay_enable(void) {
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name45\",\n"
     "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c45\"],\n"
     "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p45\":45},\n"
-    "\"l2-bridge\":\""DATASTORE_NAMESPACE_DELIMITER"l45\",\n"
     "\"dpid\":45,\n"
     "\"fail-mode\":\"standalone\",\n"
     "\"flow-statistics\":false,\n"
@@ -3554,9 +3368,7 @@ test_bridge_cmd_parse_atomic_delay_enable(void) {
   const char test_str9[] = "{\"ret\":\"OK\"}";
 
   TEST_CONTROLLER_CREATE(ret, &interp, state4, &tbl, &ds, str, "cha45", "c45");
-  TEST_PORT_CREATE(ret, &interp, state4, &tbl_port, &ds, str, "i45", "p45",
-                   "45");
-  TEST_L2_BRIDGE_CREATE(ret, &interp, state4, &tbl, &ds, str, "l45");
+  TEST_PORT_CREATE(ret, &interp, state4, &tbl_port, &ds, str, "i45", "p45");
 
   /* create cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state1,
@@ -3624,7 +3436,6 @@ test_bridge_cmd_parse_atomic_delay_enable(void) {
 
   TEST_CONTROLLER_DESTROY(ret, &interp, state4, &tbl, &ds, str, "cha45", "c45");
   TEST_PORT_DESTROY(ret, &interp, state4, &tbl_port, &ds, str, "i45", "p45");
-  TEST_L2_BRIDGE_DESTROY(ret, &interp, state4, &tbl, &ds, str, "l45");
 }
 
 void
@@ -3639,7 +3450,6 @@ test_bridge_cmd_parse_atomic_delay_disable(void) {
   const char *argv1[] = {"bridge", "test_name46", "create",
                          "-controller", "c46",
                          "-port", "p46", "46",
-                         "-l2-bridge", "l46",
                          "-dpid", "46",
                          "-fail-mode", "standalone",
                          "-flow-statistics", "false",
@@ -3678,7 +3488,6 @@ test_bridge_cmd_parse_atomic_delay_disable(void) {
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name46\",\n"
     "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c46\"],\n"
     "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p46\":46},\n"
-    "\"l2-bridge\":\""DATASTORE_NAMESPACE_DELIMITER"l46\",\n"
     "\"dpid\":46,\n"
     "\"fail-mode\":\"standalone\",\n"
     "\"flow-statistics\":false,\n"
@@ -3717,7 +3526,6 @@ test_bridge_cmd_parse_atomic_delay_disable(void) {
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name46\",\n"
     "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c46\"],\n"
     "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p46\":46},\n"
-    "\"l2-bridge\":\""DATASTORE_NAMESPACE_DELIMITER"l46\",\n"
     "\"dpid\":46,\n"
     "\"fail-mode\":\"standalone\",\n"
     "\"flow-statistics\":false,\n"
@@ -3756,7 +3564,6 @@ test_bridge_cmd_parse_atomic_delay_disable(void) {
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name46\",\n"
     "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c46\"],\n"
     "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p46\":46},\n"
-    "\"l2-bridge\":\""DATASTORE_NAMESPACE_DELIMITER"l46\",\n"
     "\"dpid\":46,\n"
     "\"fail-mode\":\"standalone\",\n"
     "\"flow-statistics\":false,\n"
@@ -3795,9 +3602,7 @@ test_bridge_cmd_parse_atomic_delay_disable(void) {
   const char test_str7[] = "{\"ret\":\"OK\"}";
 
   TEST_CONTROLLER_CREATE(ret, &interp, state4, &tbl, &ds, str, "cha46", "c46");
-  TEST_PORT_CREATE(ret, &interp, state4, &tbl_port, &ds, str, "i46", "p46",
-                   "46");
-  TEST_L2_BRIDGE_CREATE(ret, &interp, state4, &tbl, &ds, str, "l46");
+  TEST_PORT_CREATE(ret, &interp, state4, &tbl_port, &ds, str, "i46", "p46");
 
   /* create cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state4,
@@ -3852,7 +3657,6 @@ test_bridge_cmd_parse_atomic_delay_disable(void) {
 
   TEST_CONTROLLER_DESTROY(ret, &interp, state4, &tbl, &ds, str, "cha46", "c46");
   TEST_PORT_DESTROY(ret, &interp, state4, &tbl_port, &ds, str, "i46", "p46");
-  TEST_L2_BRIDGE_DESTROY(ret, &interp, state4, &tbl, &ds, str, "l46");
 }
 
 void
@@ -3867,7 +3671,6 @@ test_bridge_cmd_parse_atomic_delay_destroy(void) {
   const char *argv1[] = {"bridge", "test_name47", "create",
                          "-controller", "c47",
                          "-port", "p47", "47",
-                         "-l2-bridge", "l47",
                          "-dpid", "47",
                          "-fail-mode", "standalone",
                          "-flow-statistics", "false",
@@ -3924,9 +3727,7 @@ test_bridge_cmd_parse_atomic_delay_destroy(void) {
     "\"data\":\"name = "DATASTORE_NAMESPACE_DELIMITER"test_name47\"}";
 
   TEST_CONTROLLER_CREATE(ret, &interp, state4, &tbl, &ds, str, "cha47", "c47");
-  TEST_PORT_CREATE(ret, &interp, state4, &tbl_port, &ds, str, "i47", "p47",
-                   "47");
-  TEST_L2_BRIDGE_CREATE(ret, &interp, state4, &tbl, &ds, str, "l47");
+  TEST_PORT_CREATE(ret, &interp, state4, &tbl_port, &ds, str, "i47", "p47");
 
   /* create cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state4,
@@ -3986,7 +3787,6 @@ test_bridge_cmd_parse_atomic_delay_destroy(void) {
 
   TEST_CONTROLLER_DESTROY(ret, &interp, state4, &tbl, &ds, str, "cha47", "c47");
   TEST_PORT_DESTROY(ret, &interp, state4, &tbl_port, &ds, str, "i47", "p47");
-  TEST_L2_BRIDGE_DESTROY(ret, &interp, state4, &tbl, &ds, str, "l47");
 }
 
 void
@@ -4001,7 +3801,6 @@ test_bridge_cmd_parse_atomic_abort_01(void) {
   const char *argv1[] = {"bridge", "test_name48", "create",
                          "-controller", "c48",
                          "-port", "p48", "48",
-                         "-l2-bridge", "l48",
                          "-dpid", "48",
                          "-fail-mode", "standalone",
                          "-flow-statistics", "false",
@@ -4036,7 +3835,6 @@ test_bridge_cmd_parse_atomic_abort_01(void) {
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name48\",\n"
     "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c48\"],\n"
     "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p48\":48},\n"
-    "\"l2-bridge\":\""DATASTORE_NAMESPACE_DELIMITER"l48\",\n"
     "\"dpid\":48,\n"
     "\"fail-mode\":\"standalone\",\n"
     "\"flow-statistics\":false,\n"
@@ -4072,7 +3870,6 @@ test_bridge_cmd_parse_atomic_abort_01(void) {
   const char *argv4[] = {"bridge", "test_name48", "config",
                          "-controller", "c48_2",
                          "-port", "p48_2", "148",
-                         "-l2-bridge", "l48_2",
                          NULL
                         };
   const char test_str4[] = "{\"ret\":\"OK\"}";
@@ -4087,7 +3884,6 @@ test_bridge_cmd_parse_atomic_abort_01(void) {
     "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c48\",\""DATASTORE_NAMESPACE_DELIMITER"c48_2\"],\n"
     "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p48\":48,\n"
     "\""DATASTORE_NAMESPACE_DELIMITER"p48_2\":148},\n"
-    "\"l2-bridge\":\""DATASTORE_NAMESPACE_DELIMITER"l48_2\",\n"
     "\"dpid\":48,\n"
     "\"fail-mode\":\"standalone\",\n"
     "\"flow-statistics\":false,\n"
@@ -4131,7 +3927,6 @@ test_bridge_cmd_parse_atomic_abort_01(void) {
     "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c48\",\""DATASTORE_NAMESPACE_DELIMITER"c48_2\"],\n"
     "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p48\":48,\n"
     "\""DATASTORE_NAMESPACE_DELIMITER"p48_2\":148},\n"
-    "\"l2-bridge\":\""DATASTORE_NAMESPACE_DELIMITER"l48_2\",\n"
     "\"dpid\":48,\n"
     "\"fail-mode\":\"standalone\",\n"
     "\"flow-statistics\":false,\n"
@@ -4172,12 +3967,8 @@ test_bridge_cmd_parse_atomic_abort_01(void) {
   TEST_CONTROLLER_CREATE(ret, &interp, state4, &tbl, &ds, str, "cha48", "c48");
   TEST_CONTROLLER_CREATE(ret, &interp, state4, &tbl, &ds, str, "cha48_2",
                          "c48_2");
-  TEST_PORT_CREATE(ret, &interp, state4, &tbl_port, &ds, str, "i48", "p48",
-                   "48");
-  TEST_PORT_CREATE(ret, &interp, state4, &tbl_port, &ds, str, "i48_2", "p48_2",
-                   "148");
-  TEST_L2_BRIDGE_CREATE(ret, &interp, state4, &tbl, &ds, str, "l48");
-  TEST_L2_BRIDGE_CREATE(ret, &interp, state4, &tbl, &ds, str, "l48_2");
+  TEST_PORT_CREATE(ret, &interp, state4, &tbl_port, &ds, str, "i48", "p48");
+  TEST_PORT_CREATE(ret, &interp, state4, &tbl_port, &ds, str, "i48_2", "p48_2");
 
   /* create cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state1,
@@ -4257,8 +4048,6 @@ test_bridge_cmd_parse_atomic_abort_01(void) {
                           "c48_2");
   TEST_PORT_DESTROY(ret, &interp, state4, &tbl_port, &ds, str, "i48", "p48");
   TEST_PORT_DESTROY(ret, &interp, state4, &tbl_port, &ds, str, "i48_2", "p48_2");
-  TEST_L2_BRIDGE_DESTROY(ret, &interp, state4, &tbl, &ds, str, "l48");
-  TEST_L2_BRIDGE_DESTROY(ret, &interp, state4, &tbl, &ds, str, "l48_2");
 
 }
 
@@ -4274,7 +4063,6 @@ test_bridge_cmd_parse_atomic_abort_02(void) {
   const char *argv1[] = {"bridge", "test_name49", "create",
                          "-controller", "c49",
                          "-port", "p49", "49",
-                         "-l2-bridge", "l49",
                          "-dpid", "49",
                          "-fail-mode", "standalone",
                          "-flow-statistics", "false",
@@ -4305,7 +4093,6 @@ test_bridge_cmd_parse_atomic_abort_02(void) {
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name49\",\n"
     "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c49\"],\n"
     "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p49\":49},\n"
-    "\"l2-bridge\":\""DATASTORE_NAMESPACE_DELIMITER"l49\",\n"
     "\"dpid\":49,\n"
     "\"fail-mode\":\"standalone\",\n"
     "\"flow-statistics\":false,\n"
@@ -4345,7 +4132,6 @@ test_bridge_cmd_parse_atomic_abort_02(void) {
   const char *argv4[] = {"bridge", "test_name49", "config",
                          "-controller", "c49_2",
                          "-port", "p49_2", "149",
-                         "-l2-bridge", "l49_2",
                          NULL
                         };
   const char test_str4[] = "{\"ret\":\"OK\"}";
@@ -4355,7 +4141,6 @@ test_bridge_cmd_parse_atomic_abort_02(void) {
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name49\",\n"
     "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c49\"],\n"
     "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p49\":49},\n"
-    "\"l2-bridge\":\""DATASTORE_NAMESPACE_DELIMITER"l49\",\n"
     "\"dpid\":49,\n"
     "\"fail-mode\":\"standalone\",\n"
     "\"flow-statistics\":false,\n"
@@ -4395,7 +4180,6 @@ test_bridge_cmd_parse_atomic_abort_02(void) {
     "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c49\",\""DATASTORE_NAMESPACE_DELIMITER"c49_2\"],\n"
     "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p49\":49,\n"
     "\""DATASTORE_NAMESPACE_DELIMITER"p49_2\":149},\n"
-    "\"l2-bridge\":\""DATASTORE_NAMESPACE_DELIMITER"l49_2\",\n"
     "\"dpid\":49,\n"
     "\"fail-mode\":\"standalone\",\n"
     "\"flow-statistics\":false,\n"
@@ -4434,7 +4218,6 @@ test_bridge_cmd_parse_atomic_abort_02(void) {
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name49\",\n"
     "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c49\"],\n"
     "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p49\":49},\n"
-    "\"l2-bridge\":\""DATASTORE_NAMESPACE_DELIMITER"l49\",\n"
     "\"dpid\":49,\n"
     "\"fail-mode\":\"standalone\",\n"
     "\"flow-statistics\":false,\n"
@@ -4474,7 +4257,6 @@ test_bridge_cmd_parse_atomic_abort_02(void) {
     "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c49\",\""DATASTORE_NAMESPACE_DELIMITER"c49_2\"],\n"
     "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p49\":49,\n"
     "\""DATASTORE_NAMESPACE_DELIMITER"p49_2\":149},\n"
-    "\"l2-bridge\":\""DATASTORE_NAMESPACE_DELIMITER"l49_2\",\n"
     "\"dpid\":49,\n"
     "\"fail-mode\":\"standalone\",\n"
     "\"flow-statistics\":false,\n"
@@ -4513,7 +4295,6 @@ test_bridge_cmd_parse_atomic_abort_02(void) {
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name49\",\n"
     "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c49\"],\n"
     "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p49\":49},\n"
-    "\"l2-bridge\":\""DATASTORE_NAMESPACE_DELIMITER"l49\",\n"
     "\"dpid\":49,\n"
     "\"fail-mode\":\"standalone\",\n"
     "\"flow-statistics\":false,\n"
@@ -4558,12 +4339,8 @@ test_bridge_cmd_parse_atomic_abort_02(void) {
   TEST_CONTROLLER_CREATE(ret, &interp, state4, &tbl, &ds, str, "cha49", "c49");
   TEST_CONTROLLER_CREATE(ret, &interp, state4, &tbl, &ds, str, "cha49_2",
                          "c49_2");
-  TEST_PORT_CREATE(ret, &interp, state4, &tbl_port, &ds, str, "i49", "p49",
-                   "49");
-  TEST_PORT_CREATE(ret, &interp, state4, &tbl_port, &ds, str, "i49_2", "p49_2",
-                   "149");
-  TEST_L2_BRIDGE_CREATE(ret, &interp, state4, &tbl, &ds, str, "l49");
-  TEST_L2_BRIDGE_CREATE(ret, &interp, state4, &tbl, &ds, str, "l49_2");
+  TEST_PORT_CREATE(ret, &interp, state4, &tbl_port, &ds, str, "i49", "p49");
+  TEST_PORT_CREATE(ret, &interp, state4, &tbl_port, &ds, str, "i49_2", "p49_2");
 
   /* create cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state4,
@@ -4651,8 +4428,6 @@ test_bridge_cmd_parse_atomic_abort_02(void) {
                           "c49_2");
   TEST_PORT_DESTROY(ret, &interp, state4, &tbl_port, &ds, str, "i49", "p49");
   TEST_PORT_DESTROY(ret, &interp, state4, &tbl_port, &ds, str, "i49_2", "p49_2");
-  TEST_L2_BRIDGE_DESTROY(ret, &interp, state4, &tbl, &ds, str, "l49");
-  TEST_L2_BRIDGE_DESTROY(ret, &interp, state4, &tbl, &ds, str, "l49_2");
 }
 
 void
@@ -4667,7 +4442,6 @@ test_bridge_cmd_parse_atomic_destroy_create(void) {
   const char *argv1[] = {"bridge", "test_name50", "create",
                          "-controller", "c50",
                          "-port", "p50", "50",
-                         "-l2-bridge", "l50",
                          "-dpid", "50",
                          "-fail-mode", "standalone",
                          "-flow-statistics", "false",
@@ -4703,7 +4477,6 @@ test_bridge_cmd_parse_atomic_destroy_create(void) {
   const char *argv4[] = {"bridge", "test_name50", "create",
                          "-controller", "c50_2",
                          "-port", "p50_2", "150",
-                         "-l2-bridge", "l50_2",
                          "-dpid", "150",
                          "-fail-mode", "standalone",
                          "-flow-statistics", "false",
@@ -4734,7 +4507,6 @@ test_bridge_cmd_parse_atomic_destroy_create(void) {
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name50\",\n"
     "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c50\"],\n"
     "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p50\":50},\n"
-    "\"l2-bridge\":\""DATASTORE_NAMESPACE_DELIMITER"l50\",\n"
     "\"dpid\":50,\n"
     "\"fail-mode\":\"standalone\",\n"
     "\"flow-statistics\":false,\n"
@@ -4774,7 +4546,6 @@ test_bridge_cmd_parse_atomic_destroy_create(void) {
     "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c50\",\""DATASTORE_NAMESPACE_DELIMITER"c50_2\"],\n"
     "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p50\":50,\n"
     "\""DATASTORE_NAMESPACE_DELIMITER"p50_2\":150},\n"
-    "\"l2-bridge\":\""DATASTORE_NAMESPACE_DELIMITER"l50_2\",\n"
     "\"dpid\":150,\n"
     "\"fail-mode\":\"standalone\",\n"
     "\"flow-statistics\":false,\n"
@@ -4814,7 +4585,6 @@ test_bridge_cmd_parse_atomic_destroy_create(void) {
     "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c50\",\""DATASTORE_NAMESPACE_DELIMITER"c50_2\"],\n"
     "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p50\":50,\n"
     "\""DATASTORE_NAMESPACE_DELIMITER"p50_2\":150},\n"
-    "\"l2-bridge\":\""DATASTORE_NAMESPACE_DELIMITER"l50_2\",\n"
     "\"dpid\":150,\n"
     "\"fail-mode\":\"standalone\",\n"
     "\"flow-statistics\":false,\n"
@@ -4859,12 +4629,8 @@ test_bridge_cmd_parse_atomic_destroy_create(void) {
   TEST_CONTROLLER_CREATE(ret, &interp, state4, &tbl, &ds, str, "cha50", "c50");
   TEST_CONTROLLER_CREATE(ret, &interp, state4, &tbl, &ds, str, "cha50_2",
                          "c50_2");
-  TEST_PORT_CREATE(ret, &interp, state4, &tbl_port, &ds, str, "i50", "p50",
-                   "50");
-  TEST_PORT_CREATE(ret, &interp, state4, &tbl_port, &ds, str, "i50_2", "p50_2",
-                   "150");
-  TEST_L2_BRIDGE_CREATE(ret, &interp, state4, &tbl, &ds, str, "l50");
-  TEST_L2_BRIDGE_CREATE(ret, &interp, state4, &tbl, &ds, str, "l50_2");
+  TEST_PORT_CREATE(ret, &interp, state4, &tbl_port, &ds, str, "i50", "p50");
+  TEST_PORT_CREATE(ret, &interp, state4, &tbl_port, &ds, str, "i50_2", "p50_2");
 
   /* create cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state4,
@@ -4942,8 +4708,6 @@ test_bridge_cmd_parse_atomic_destroy_create(void) {
                           "c50_2");
   TEST_PORT_DESTROY(ret, &interp, state4, &tbl_port, &ds, str, "i50", "p50");
   TEST_PORT_DESTROY(ret, &interp, state4, &tbl_port, &ds, str, "i50_2", "p50_2");
-  TEST_L2_BRIDGE_DESTROY(ret, &interp, state4, &tbl, &ds, str, "l50");
-  TEST_L2_BRIDGE_DESTROY(ret, &interp, state4, &tbl, &ds, str, "l50_2");
 }
 
 void
@@ -5019,10 +4783,10 @@ test_bridge_cmd_parse_port_no_already_exists(void) {
                         };
   const char test_str5[] = "{\"ret\":\"OK\"}";
 
-  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i52", "p52", "52");
-  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i52_2", "p52_2", "125");
-  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i52_3", "p52_3", "126");
-  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i52_4", "p52_4", "127");
+  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i52", "p52");
+  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i52_2", "p52_2");
+  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i52_3", "p52_3");
+  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i52_4", "p52_4");
 
   /* create cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
@@ -5074,7 +4838,6 @@ test_bridge_cmd_parse_create_action_type(void) {
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name53\",\n"
     "\"controllers\":[],\n"
     "\"ports\":{},\n"
-    "\"l2-bridge\":\"\",\n"
     "\"dpid\":53,\n"
     "\"fail-mode\":\"secure\",\n"
     "\"flow-statistics\":true,\n"
@@ -5118,7 +4881,6 @@ test_bridge_cmd_parse_create_action_type(void) {
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name53\",\n"
     "\"controllers\":[],\n"
     "\"ports\":{},\n"
-    "\"l2-bridge\":\"\",\n"
     "\"dpid\":53,\n"
     "\"fail-mode\":\"secure\",\n"
     "\"flow-statistics\":true,\n"
@@ -5220,7 +4982,6 @@ test_bridge_cmd_parse_create_instruction_type(void) {
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name55\",\n"
     "\"controllers\":[],\n"
     "\"ports\":{},\n"
-    "\"l2-bridge\":\"\",\n"
     "\"dpid\":55,\n"
     "\"fail-mode\":\"secure\",\n"
     "\"flow-statistics\":true,\n"
@@ -5264,7 +5025,6 @@ test_bridge_cmd_parse_create_instruction_type(void) {
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name55\",\n"
     "\"controllers\":[],\n"
     "\"ports\":{},\n"
-    "\"l2-bridge\":\"\",\n"
     "\"dpid\":55,\n"
     "\"fail-mode\":\"secure\",\n"
     "\"flow-statistics\":true,\n"
@@ -5366,7 +5126,6 @@ test_bridge_cmd_parse_create_reserved_port_type(void) {
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name57\",\n"
     "\"controllers\":[],\n"
     "\"ports\":{},\n"
-    "\"l2-bridge\":\"\",\n"
     "\"dpid\":57,\n"
     "\"fail-mode\":\"secure\",\n"
     "\"flow-statistics\":true,\n"
@@ -5410,7 +5169,6 @@ test_bridge_cmd_parse_create_reserved_port_type(void) {
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name57\",\n"
     "\"controllers\":[],\n"
     "\"ports\":{},\n"
-    "\"l2-bridge\":\"\",\n"
     "\"dpid\":57,\n"
     "\"fail-mode\":\"secure\",\n"
     "\"flow-statistics\":true,\n"
@@ -5512,7 +5270,6 @@ test_bridge_cmd_parse_create_group_type(void) {
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name59\",\n"
     "\"controllers\":[],\n"
     "\"ports\":{},\n"
-    "\"l2-bridge\":\"\",\n"
     "\"dpid\":59,\n"
     "\"fail-mode\":\"secure\",\n"
     "\"flow-statistics\":true,\n"
@@ -5556,7 +5313,6 @@ test_bridge_cmd_parse_create_group_type(void) {
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name59\",\n"
     "\"controllers\":[],\n"
     "\"ports\":{},\n"
-    "\"l2-bridge\":\"\",\n"
     "\"dpid\":59,\n"
     "\"fail-mode\":\"secure\",\n"
     "\"flow-statistics\":true,\n"
@@ -5658,7 +5414,6 @@ test_bridge_cmd_parse_create_group_capability(void) {
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name61\",\n"
     "\"controllers\":[],\n"
     "\"ports\":{},\n"
-    "\"l2-bridge\":\"\",\n"
     "\"dpid\":61,\n"
     "\"fail-mode\":\"secure\",\n"
     "\"flow-statistics\":true,\n"
@@ -5702,7 +5457,6 @@ test_bridge_cmd_parse_create_group_capability(void) {
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name61\",\n"
     "\"controllers\":[],\n"
     "\"ports\":{},\n"
-    "\"l2-bridge\":\"\",\n"
     "\"dpid\":61,\n"
     "\"fail-mode\":\"secure\",\n"
     "\"flow-statistics\":true,\n"
@@ -5840,7 +5594,7 @@ test_bridge_cmd_parse_stats_01(void) {
   const char test_str3[] = "{\"ret\":\"OK\"}";
 
   TEST_CONTROLLER_CREATE(ret, &interp, state, &tbl, &ds, str, "cha63", "c63");
-  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i63", "p63", "63");
+  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i63", "p63");
 
   /* create cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
@@ -5859,65 +5613,6 @@ test_bridge_cmd_parse_stats_01(void) {
 
   TEST_CONTROLLER_DESTROY(ret, &interp, state, &tbl, &ds, str, "cha63", "c63");
   TEST_PORT_DESTROY(ret, &interp, state, &tbl, &ds, str, "i63", "p63");
-}
-
-void
-test_bridge_cmd_parse_create_not_l2_bridge_name_val(void) {
-  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
-  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
-  char *str = NULL;
-  const char *argv[] = {"bridge", "test_name64", "create",
-                        "-l2-bridge", NULL
-                       };
-  const char test_str[] =
-    "{\"ret\":\"INVALID_ARGS\",\n"
-    "\"data\":\"Bad opt value.\"}";
-
-  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR, bridge_cmd_parse,
-                 &interp, state, ARGV_SIZE(argv), argv,
-                 &tbl, bridge_cmd_update, &ds, str, test_str);
-}
-
-void
-test_bridge_cmd_parse_create_l2_bridge_not_exists(void) {
-  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
-  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
-  char *str = NULL;
-  const char *argv1[] = {"bridge", "test_name65", "create",
-                         "-controller", "c65",
-                         "-port", "p65", "65",
-                         "-l2-bridge", "l65",
-                         "-dpid", "18446744073709551615",
-                         "-fail-mode", "standalone",
-                         "-flow-statistics", "false",
-                         "-group-statistics", "false",
-                         "-port-statistics", "false",
-                         "-queue-statistics", "false",
-                         "-table-statistics", "false",
-                         "-reassemble-ip-fragments", "false",
-                         "-max-buffered-packets", "4294967295",
-                         "-max-ports", "65535",
-                         "-max-tables", "255",
-                         "-block-looping-ports", "false",
-                         "-action-type", "copy-ttl-out",
-                         "-instruction-type", "apply-actions",
-                         NULL
-                        };
-  const char test_str1[] =
-    "{\"ret\":\"NOT_FOUND\",\n"
-    "\"data\":\"l2 bridge name = "DATASTORE_NAMESPACE_DELIMITER"l65.\"}";
-
-  TEST_CONTROLLER_CREATE(ret, &interp, state, &tbl, &ds, str, "cha65", "c65");
-  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i65", "p65", "65");
-
-  /* create cmd. */
-  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR, bridge_cmd_parse,
-                 &interp, state,
-                 ARGV_SIZE(argv1), argv1, &tbl, bridge_cmd_update,
-                 &ds, str, test_str1);
-
-  TEST_CONTROLLER_DESTROY(ret, &interp, state, &tbl, &ds, str, "cha65", "c65");
-  TEST_PORT_DESTROY(ret, &interp, state, &tbl, &ds, str, "i65", "p65");
 }
 
 void
@@ -6355,7 +6050,6 @@ test_bridge_cmd_parse_dryrun(void) {
   const char *argv1[] = {"bridge", "test_name84", "create",
                          "-controller", "c84",
                          "-port", "p84", "84",
-                         "-l2-bridge", "l84",
                          "-dpid", "84",
                          "-fail-mode", "standalone",
                          "-flow-statistics", "false",
@@ -6386,7 +6080,6 @@ test_bridge_cmd_parse_dryrun(void) {
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name84\",\n"
     "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c84\"],\n"
     "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p84\":84},\n"
-    "\"l2-bridge\":\""DATASTORE_NAMESPACE_DELIMITER"l84\",\n"
     "\"dpid\":84,\n"
     "\"fail-mode\":\"standalone\",\n"
     "\"flow-statistics\":false,\n"
@@ -6426,7 +6119,6 @@ test_bridge_cmd_parse_dryrun(void) {
   const char *argv4[] = {"bridge", "test_name84", "config",
                          "-controller", "c84_2",
                          "-port", "p84_2", "184",
-                         "-l2-bridge", "l84_2",
                          NULL
                         };
   const char test_str4[] = "{\"ret\":\"OK\"}";
@@ -6438,7 +6130,6 @@ test_bridge_cmd_parse_dryrun(void) {
                      "\""DATASTORE_NAMESPACE_DELIMITER"c84_2\"],\n"
     "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p84\":84,\n"
                "\""DATASTORE_NAMESPACE_DELIMITER"p84_2\":0},\n"
-    "\"l2-bridge\":\""DATASTORE_NAMESPACE_DELIMITER"l84_2\",\n"
     "\"dpid\":84,\n"
     "\"fail-mode\":\"standalone\",\n"
     "\"flow-statistics\":false,\n"
@@ -6479,12 +6170,8 @@ test_bridge_cmd_parse_dryrun(void) {
   TEST_CONTROLLER_CREATE(ret, &interp, state1, &tbl, &ds, str, "cha84", "c84");
   TEST_CONTROLLER_CREATE(ret, &interp, state1, &tbl, &ds, str, "cha84_2",
                          "c84_2");
-  TEST_PORT_CREATE(ret, &interp, state1, &tbl_port, &ds, str, "i84", "p84",
-                   "84");
-  TEST_PORT_CREATE(ret, &interp, state1, &tbl_port, &ds, str, "i84_2", "p84_2",
-                   "184");
-  TEST_L2_BRIDGE_CREATE(ret, &interp, state1, &tbl, &ds, str, "l84");
-  TEST_L2_BRIDGE_CREATE(ret, &interp, state1, &tbl, &ds, str, "l84_2");
+  TEST_PORT_CREATE(ret, &interp, state1, &tbl_port, &ds, str, "i84", "p84");
+  TEST_PORT_CREATE(ret, &interp, state1, &tbl_port, &ds, str, "i84_2", "p84_2");
 
   /* create cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state1,
@@ -6524,8 +6211,6 @@ test_bridge_cmd_parse_dryrun(void) {
   TEST_CONTROLLER_DESTROY(ret, &interp, state1, &tbl, &ds, str, "cha84_2",
                           "c84_2");
   TEST_PORT_DESTROY(ret, &interp, state1, &tbl_port, &ds, str, "i84_2", "p84_2");
-  TEST_L2_BRIDGE_DESTROY(ret, &interp, state1, &tbl, &ds, str, "l84");
-  TEST_L2_BRIDGE_DESTROY(ret, &interp, state1, &tbl, &ds, str, "l84_2");
 }
 
 void

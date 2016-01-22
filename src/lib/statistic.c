@@ -1,4 +1,18 @@
-/* %COPYRIGHT% */
+/*
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 
 #include "lagopus_apis.h"
@@ -211,23 +225,8 @@ s_record_stat(lagopus_statistic_t s, int64_t val) {
     (void)__sync_add_and_fetch(&(s->m_sum), val);
     (void)__sync_add_and_fetch(&(s->m_sum2), sum2);
 
- do_min:
-    old_min = __sync_add_and_fetch(&(s->m_min), 0);
-    if (old_min > val) {
-      if (unlikely(__sync_bool_compare_and_swap(&(s->m_min), old_min, val) ==
-                   false)) {
-        goto do_min;
-      }
-    }
-
- do_max:
-    old_max = __sync_add_and_fetch(&(s->m_max), 0);
-    if (old_max < val) {
-      if (unlikely(__sync_bool_compare_and_swap(&(s->m_max), old_max, val) ==
-                   false)) {
-        goto do_max;
-      }
-    }
+    lagopus_atomic_update_min(int64_t, &(s->m_min), LLONG_MAX, val);
+    lagopus_atomic_update_max(int64_t, &(s->m_max), LLONG_MIN, val);
 
     return LAGOPUS_RESULT_OK;
   } else {

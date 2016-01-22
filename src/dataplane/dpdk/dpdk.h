@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -431,5 +431,10 @@ void app_print_params(void);
  * @param[in]   wait_flush      Wait for flush if true.
  */
 void clear_worker_flowcache(bool);
+
+bool is_rawsocket_only_mode(void);
+bool set_rawsocket_only_mode(bool newval);
+
+void dpdk_update_link_status(struct app_lcore_params_io *lp);
 
 #endif /* SRC_DATAPLANE_DPDK_DPDK_H_ */

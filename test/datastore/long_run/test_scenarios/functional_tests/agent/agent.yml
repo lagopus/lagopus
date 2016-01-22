@@ -1,0 +1,128 @@
+use:
+  - lagopus
+
+setup:
+  - repetition_count: 1
+    cmds:
+      - cmd_type: ds
+        cmd: log -debuglevel 10000
+        result: '{"ret": "OK"}'
+      - cmd_type: ds
+        cmd: destroy-all-obj
+        result: '{"ret": "OK"}'
+      - cmd_type: shell
+        cmd: "{{ shell_dir }}/dummy_eth_up.sh lago_eth 2"
+        result: "0"
+
+teardown:
+  - repetition_count: 1
+    cmds:
+      - cmd_type: ds
+        cmd: destroy-all-obj
+        result: '{"ret": "OK"}'
+      - cmd_type: shell
+        cmd: "{{ shell_dir }}/dummy_eth_down.sh lago_eth 2"
+        result: "0"
+
+testcases:
+  - testcase: show agent setting
+    test:
+      - repetition_count: 1
+        cmds:
+          - cmd_type: ds
+            cmd: agent
+            result: |-
+              {"ret":"OK",
+              "data":[{"channelq-size":1000,
+              "channelq-max-batches":1000}]}
+          - cmd_type: ds
+            cmd: agent -channelq-size
+            result: |-
+              {"ret":"OK",
+              "data":[{"channelq-size":1000}]}
+          - cmd_type: ds
+            cmd: agent -channelq-max-batches
+            result: |-
+              {"ret":"OK",
+              "data":[{"channelq-max-batches":1000}]}
+
+  - testcase: channelq-size
+    test:
+      - repetition_count: 1
+        cmds:
+          - cmd_type: ds
+            cmd: agent -channelq-size 1111
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: agent
+            result: |-
+              {"ret":"OK",
+              "data":[{"channelq-size":1111,
+              "channelq-max-batches":1000}]}
+
+  - testcase: channelq-size dryrun
+    test:
+      - repetition_count: 1
+        cmds:
+          - cmd_type: ds
+            cmd: dryrun begin
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: agent -channelq-size 1111
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: agent
+            result: |-
+              {"ret":"OK",
+              "data":[{"channelq-size":1000,
+              "channelq-max-batches":1000}]}
+          - cmd_type: ds
+            cmd: dryrun end
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: agent
+            result: |-
+              {"ret":"OK",
+              "data":[{"channelq-size":1000,
+              "channelq-max-batches":1000}]}
+
+  - testcase: channelq-max-batches
+    test:
+      - repetition_count: 1
+        cmds:
+          - cmd_type: ds
+            cmd: agent -channelq-max-batches 1111
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: agent
+            result: |-
+              {"ret":"OK",
+              "data":[{"channelq-size":1000,
+              "channelq-max-batches":1111}]}
+
+  - testcase: channelq-max-batches dryrun
+    test:
+      - repetition_count: 1
+        cmds:
+          - cmd_type: ds
+            cmd: dryrun begin
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: agent -channelq-max-batches 1111
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: agent
+            result: |-
+              {"ret":"OK",
+              "data":[{"channelq-size":1000,
+              "channelq-max-batches":1000}]}
+          - cmd_type: ds
+            cmd: dryrun end
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: agent
+            result: |-
+              {"ret":"OK",
+              "data":[{"channelq-size":1000,
+              "channelq-max-batches":1000}]}
+

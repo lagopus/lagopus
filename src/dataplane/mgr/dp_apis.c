@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,15 +19,18 @@
  *      @brief  Dataplane public APIs.
  */
 
+#include "lagopus_config.h"
+
 #include "openflow.h"
 #include "lagopus/bridge.h"
 #include "lagopus/port.h"
 #include "lagopus/interface.h"
-#include "lagopus/vector.h"
 
 #include "lagopus_apis.h"
 #include "lagopus/dp_apis.h"
 #include "lagopus/dataplane.h"
+
+#include "lock.h"
 
 struct dp_bridge_iter {
   struct flowdb *flowdb;
@@ -45,7 +48,7 @@ static lagopus_hashmap_t queueid_hashmap;
 /**
  * physical port id --> struct port table
  */
-static struct vector *port_vector[DATASTORE_INTERFACE_TYPE_MAX + 1];
+static lagopus_hashmap_t portid_hashmap[DATASTORE_INTERFACE_TYPE_MAX + 1];
 
 static void dp_port_interface_unset_internal(struct port *port);
 static void dp_queue_free(void *queue);
@@ -56,9 +59,10 @@ dp_api_init(void) {
   lagopus_result_t rv;
 
   for (i = 0; i < DATASTORE_INTERFACE_TYPE_MAX + 1; i++) {
-    port_vector[i] = ports_alloc();
-    if (port_vector[i] == NULL) {
-      return LAGOPUS_RESULT_NO_MEMORY;
+    rv = lagopus_hashmap_create(&portid_hashmap[i],
+                                LAGOPUS_HASHMAP_TYPE_ONE_WORD, NULL);
+    if (rv != LAGOPUS_RESULT_OK) {
+      return rv;
     }
   }
   rv = lagopus_hashmap_create(&interface_hashmap,
@@ -108,7 +112,7 @@ dp_api_fini(void) {
   lagopus_hashmap_destroy(&queue_hashmap, true);
   lagopus_hashmap_destroy(&queueid_hashmap, true);
   for (i = 0; i < DATASTORE_INTERFACE_TYPE_MAX + 1; i++) {
-    ports_free(port_vector[i]);
+    lagopus_hashmap_destroy(&portid_hashmap[i], false);
   }
 }
 
@@ -429,13 +433,15 @@ dp_port_interface_set(const char *name, const char *ifname) {
   }
   port->interface = ifp;
   port->ifindex = ifp->info.eth.port_number;
+  dp_interface_hw_addr_get(ifname, port->ofp_port.hw_addr);
   ifp->port = port;
-  vector_set_index(port_vector[ifp->info.type],
-                   ifp->info.eth.port_number,
-                   port);
-  if (port->interface != NULL) {
-    rv = dp_interface_queue_configure(port->interface);
+  rv = lagopus_hashmap_add(&portid_hashmap[ifp->info.type],
+                           (void *)ifp->info.eth.port_number,
+                           (void *)&port, true);
+  if (rv != LAGOPUS_RESULT_OK) {
+    goto out;
   }
+  rv = dp_interface_queue_configure(ifp->port->interface);
 out:
   flowdb_wrunlock(NULL);
   return rv;
@@ -447,16 +453,20 @@ dp_port_interface_unset_internal(struct port *port) {
 #ifdef HAVE_DPDK
     dpdk_queue_unconfigure(port->interface);
 #endif /* HAVE_DPDK */
-    vector_set_index(port_vector[port->interface->info.type],
-                     port->ifindex, NULL);
+    lagopus_hashmap_delete(&portid_hashmap[port->interface->info.type],
+                           (void *)port->ifindex, NULL, false);
     port->interface->port = NULL;
     port->interface = NULL;
+    memset(port->ofp_port.hw_addr, 0, sizeof(port->ofp_port.hw_addr));
   }
 }
 
 struct port *
 dp_port_lookup(int type, uint32_t portid) {
-  return port_lookup(port_vector[type], portid);
+  struct port *port = NULL;
+
+  lagopus_hashmap_find(&portid_hashmap[type], (void *)portid, &port);
+  return port;
 }
 
 uint32_t
@@ -466,11 +476,7 @@ dp_port_count(void) {
 
   count = 0;
   for (i = 0; i < DATASTORE_INTERFACE_TYPE_MAX + 1; i++) {
-    for (idx = 0; idx <= vector_max(port_vector[i]); idx++) {
-      if (vector_slot(port_vector[i], idx) != NULL) {
-        count++;
-      }
-    }
+    count += lagopus_hashmap_size(&portid_hashmap[i]);
   }
   return count;
 }
@@ -574,6 +580,9 @@ dp_port_policer_unset(const char *name) {
 /*
  * bridge API
  */
+/**
+ * Create bridge object.
+ */
 lagopus_result_t
 dp_bridge_create(const char *name,
                  datastore_bridge_info_t *info) {
@@ -603,6 +612,14 @@ dp_bridge_create(const char *name,
       rv = LAGOPUS_RESULT_INVALID_ARGS;
       goto uout;
   }
+
+#ifdef HYBRID
+  /* set mactable info */
+  bridge->l2_bridge = info->l2_bridge;
+  bridge_mactable_ageing_time_set(bridge, info->mactable_ageing_time);
+  bridge_mactable_max_entries_set(bridge, info->mactable_max_entries);
+#endif /* HYBRID */
+
   /* other parameter is just ignored. */
   rv = lagopus_hashmap_add(&bridge_hashmap, name, (void **)&bridge, false);
   if (rv == LAGOPUS_RESULT_OK) {
@@ -674,12 +691,148 @@ out:
   return rv;
 }
 
+#ifdef HYBRID
+lagopus_result_t
+dp_bridge_mactable_entry_set(const char *name,
+                             const uint8_t macaddr[],
+                             uint32_t port_num) {
+  struct bridge *bridge;
+  lagopus_result_t rv;
+
+  /* Lookup bridge by name. */
+  bridge = dp_bridge_lookup(name);
+  if (bridge != NULL) {
+    rv = bridge_mactable_entry_set(bridge, macaddr, port_num);
+  } else {
+    rv = LAGOPUS_RESULT_NOT_FOUND;
+  }
+  return rv;
+}
+
+lagopus_result_t
+dp_bridge_mactable_entry_modify(const char *name,
+                                const uint8_t macaddr[],
+                                uint32_t port_num) {
+  struct bridge *bridge;
+  lagopus_result_t rv;
+
+  /* Lookup bridge by name. */
+  bridge = dp_bridge_lookup(name);
+  if (bridge != NULL) {
+    rv = bridge_mactable_entry_modify(bridge, macaddr, port_num);
+  } else {
+    rv = LAGOPUS_RESULT_NOT_FOUND;
+  }
+  return rv;
+}
+
+lagopus_result_t
+dp_bridge_mactable_entry_delete(const char *name, const uint8_t macaddr[]) {
+  struct bridge *bridge;
+  lagopus_result_t rv;
+
+  /* Lookup bridge by name. */
+  bridge = dp_bridge_lookup(name);
+  if (bridge != NULL) {
+    rv = bridge_mactable_entry_delete(bridge, macaddr);
+  } else {
+    rv = LAGOPUS_RESULT_NOT_FOUND;
+  }
+  return rv;
+}
+
+lagopus_result_t
+dp_bridge_mactable_entry_clear(const char *name) {
+  struct bridge *bridge;
+  lagopus_result_t rv;
+
+  /* Lookup bridge by name. */
+  bridge = dp_bridge_lookup(name);
+  if (bridge != NULL) {
+    rv = bridge_mactable_entry_clear(bridge);
+  } else {
+    rv = LAGOPUS_RESULT_NOT_FOUND;
+  }
+  return rv;
+}
+
+lagopus_result_t
+dp_bridge_mactable_num_entries_get(const char *name, unsigned int *num) {
+  struct bridge *bridge;
+  lagopus_result_t rv;
+
+  bridge = dp_bridge_lookup(name);
+  if (bridge != NULL) {
+    *num  = bridge_mactable_num_entries_get(bridge);
+    rv = LAGOPUS_RESULT_OK;
+  } else {
+    rv = LAGOPUS_RESULT_NOT_FOUND;
+  }
+
+  return rv;
+}
+
+lagopus_result_t
+dp_bridge_mactable_entries_get(const char *name,
+                               datastore_macentry_t *e,
+                               unsigned int num) {
+  struct bridge *bridge;
+  lagopus_result_t rv;
+  struct macentry *entries;
+  int i;
+
+  bridge = dp_bridge_lookup(name);
+  if (bridge != NULL) {
+    entries = malloc(sizeof(struct macentry) * num);
+    rv = bridge_mactable_entries_get(bridge, entries, num);
+    for (i = 0; i < num; i++) {
+      e[i].mac_addr = entries[i].inteth;
+      e[i].port_no = entries[i].portid;
+      e[i].update_time = (uint32_t)entries[i].update_time.tv_sec;
+      e[i].address_type = entries[i].address_type;
+    }
+    free(entries);
+  } else {
+    rv = LAGOPUS_RESULT_NOT_FOUND;
+  }
+
+  return rv;
+}
+
+lagopus_result_t
+dp_bridge_mactable_configs_get(const char *name,
+                               uint32_t *ageing_time,
+                               uint32_t *max_entries) {
+  struct bridge *bridge;
+  lagopus_result_t rv;
+
+  bridge = dp_bridge_lookup(name);
+  if (bridge != NULL) {
+    if((rv = bridge_mactable_ageing_time_get(bridge, ageing_time))
+        != LAGOPUS_RESULT_OK) {
+      goto out;
+    }
+    if((rv = bridge_mactable_max_entries_get(bridge, max_entries))
+        != LAGOPUS_RESULT_OK) {
+      goto out;
+    }
+    rv = LAGOPUS_RESULT_OK;
+  } else {
+    rv = LAGOPUS_RESULT_NOT_FOUND;
+  }
+
+out:
+  return rv;
+}
+#endif /* HYBRID */
+
 lagopus_result_t
 dp_bridge_port_set(const char *name,
                    const char *port_name,
                    uint32_t port_num) {
   struct bridge *bridge;
   struct port *port;
+  void *val;
   lagopus_result_t rv;
 
   flowdb_wrlock(NULL);
@@ -698,7 +851,12 @@ dp_bridge_port_set(const char *name,
     goto out;
   }
   port->ofp_port.port_no = port_num;
-  vector_set_index(bridge->ports, port->ofp_port.port_no, port);
+  val = port;
+  rv = lagopus_hashmap_add(&bridge->ports,
+                           (void *)port->ofp_port.port_no, &val, false);
+  if (rv != LAGOPUS_RESULT_OK) {
+    goto out;
+  }
   port->bridge = bridge;
   send_port_status(port, OFPPR_ADD);
 
@@ -725,7 +883,11 @@ dp_bridge_port_unset(const char *name, const char *port_name) {
     goto out;
   }
 
-  vector_set_index(bridge->ports, port->ofp_port.port_no, NULL);
+  rv = lagopus_hashmap_delete(&bridge->ports,
+                              (void *)port->ofp_port.port_no, NULL, false);
+  if (rv != LAGOPUS_RESULT_OK) {
+    goto out;
+  }
   send_port_status(port, OFPPR_DELETE);
   port->bridge = NULL;
 
@@ -747,13 +909,17 @@ dp_bridge_port_unset_num(const char *name, uint32_t port_no) {
     goto out;
   }
 
-  port = port_lookup(bridge->ports, port_no);
+  port = port_lookup(&bridge->ports, port_no);
   if (port == NULL) {
     rv = LAGOPUS_RESULT_NOT_FOUND;
     goto out;
   }
 
-  vector_set_index(bridge->ports, port_no, NULL);
+  rv = lagopus_hashmap_delete(&bridge->ports,
+                              (void *)port_no, NULL, false);
+  if (rv != LAGOPUS_RESULT_OK) {
+    goto out;
+  }
   send_port_status(port, OFPPR_DELETE);
   port->bridge = NULL;
 
@@ -813,7 +979,7 @@ dp_bridge_table_id_iter_get(dp_bridge_iter_t iter, uint8_t *idp) {
   int i;
 
   for (i = iter->table_id; i < OFPTT_ALL; i++) {
-    if (iter->flowdb->tables[i] != NULL) {
+    if (table_lookup(iter->flowdb, i) != NULL) {
       iter->table_id = i + 1;
       *idp = i;
       return LAGOPUS_RESULT_OK;
@@ -837,7 +1003,7 @@ dp_bridge_flow_iter_create(const char *name, uint8_t table_id,
   if (bridge == NULL) {
     return LAGOPUS_RESULT_NOT_FOUND;
   }
-  if (bridge->flowdb->tables[table_id] == NULL) {
+  if (table_lookup(bridge->flowdb, table_id) == NULL) {
     return LAGOPUS_RESULT_NOT_FOUND;
   }
   iter = calloc(1, sizeof(struct dp_bridge_iter));
@@ -857,7 +1023,7 @@ dp_bridge_flow_iter_get(dp_bridge_iter_t iter, struct flow **flowp) {
   struct table *table;
   struct flow_list *flow_list;
 
-  table = iter->flowdb->tables[iter->table_id];
+  table = table_lookup(iter->flowdb, iter->table_id);
   if (table != NULL) {
     flow_list = table->flow_list;
     if (iter->flow_idx < flow_list->nflow) {
@@ -871,6 +1037,19 @@ dp_bridge_flow_iter_get(dp_bridge_iter_t iter, struct flow **flowp) {
 void
 dp_bridge_flow_iter_destroy(dp_bridge_iter_t iter) {
   free(iter);
+}
+
+uint32_t
+dp_bridge_port_count(const char *name) {
+  struct bridge *bridge;
+  uint32_t id, count;
+  lagopus_result_t rv;
+
+  rv = lagopus_hashmap_find(&bridge_hashmap, (void *)name, (void **)&bridge);
+  if (rv != LAGOPUS_RESULT_OK) {
+    return 0;
+  }
+  return lagopus_hashmap_size(&bridge->ports);
 }
 
 lagopus_result_t
@@ -913,95 +1092,6 @@ dp_bridge_stats_get(const char *name,
   stats->flowcache_entries = cache_stats.nentries;
   stats->flowcache_hit = cache_stats.hit;
   stats->flowcache_miss = cache_stats.miss;
-
-out:
-  flowdb_wrunlock(NULL);
-  return rv;
-}
-
-lagopus_result_t
-dp_bridge_l2_clear(const char *name) {
-  struct bridge *bridge;
-  lagopus_result_t rv;
-
-  flowdb_wrlock(NULL);
-  rv = lagopus_hashmap_find(&bridge_hashmap, (void *)name, (void **)&bridge);
-  if (rv != LAGOPUS_RESULT_OK) {
-    goto out;
-  }
-  /* not implemented yet */
-
-out:
-  flowdb_wrunlock(NULL);
-  return rv;
-}
-
-lagopus_result_t
-dp_bridge_l2_expire_set(const char *name, uint64_t expire) {
-  struct bridge *bridge;
-  lagopus_result_t rv;
-
-  flowdb_wrlock(NULL);
-  rv = lagopus_hashmap_find(&bridge_hashmap, (void *)name, (void **)&bridge);
-  if (rv != LAGOPUS_RESULT_OK) {
-    goto out;
-  }
-  /* not implemented yet */
-
-out:
-  flowdb_wrunlock(NULL);
-  return rv;
-}
-
-lagopus_result_t
-dp_bridge_l2_max_entries_set(const char *name,
-                             uint64_t max_entries) {
-  struct bridge *bridge;
-  lagopus_result_t rv;
-
-  flowdb_wrlock(NULL);
-  rv = lagopus_hashmap_find(&bridge_hashmap, (void *)name, (void **)&bridge);
-  if (rv != LAGOPUS_RESULT_OK) {
-    goto out;
-  }
-  /* not implemented yet */
-
-out:
-  flowdb_wrunlock(NULL);
-  return rv;
-}
-
-lagopus_result_t
-dp_bridge_l2_entries_get(const char *name, uint64_t *entries) {
-  struct bridge *bridge;
-  lagopus_result_t rv;
-
-  flowdb_wrlock(NULL);
-  rv = lagopus_hashmap_find(&bridge_hashmap, (void *)name, (void **)&bridge);
-  if (rv != LAGOPUS_RESULT_OK) {
-    goto out;
-  }
-  /* not implemented yet */
-
-out:
-  flowdb_wrunlock(NULL);
-  return rv;
-}
-
-lagopus_result_t
-dp_bridge_l2_info_get(const char *name,
-                      datastore_l2_dump_proc_t proc,
-                      FILE *fp,
-                      lagopus_dstring_t *result) {
-  struct bridge *bridge;
-  lagopus_result_t rv;
-
-  flowdb_wrlock(NULL);
-  rv = lagopus_hashmap_find(&bridge_hashmap, (void *)name, (void **)&bridge);
-  if (rv != LAGOPUS_RESULT_OK) {
-    goto out;
-  }
-  /* not implemented yet */
 
 out:
   flowdb_wrunlock(NULL);

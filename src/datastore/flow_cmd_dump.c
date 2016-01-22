@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -2131,14 +2131,14 @@ dump_bridge_domains_flow(const char *name,
   dp_bridge_iter_t iter = NULL;
 
   if ((ret = lagopus_dstring_appendf(
-               result, "{")) !=
+          result, DS_JSON_DELIMITER(is_bridge_first, "{"))) !=
       LAGOPUS_RESULT_OK) {
     lagopus_perror(ret);
     goto done;
   }
 
   if ((ret = lagopus_dstring_appendf(
-          result, DS_JSON_DELIMITER(is_bridge_first, KEY_FMT "\"%s\""),
+          result, KEY_FMT "\"%s\"",
           FLOW_NAME,
           name)) !=
       LAGOPUS_RESULT_OK) {
@@ -2279,6 +2279,7 @@ flow_cmd_dump(datastore_interp_t *iptr,
               "Can't write file.");
           goto done;
         }
+        (void) lagopus_dstring_clear(result);
       }
     }
 

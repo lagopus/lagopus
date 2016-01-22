@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,6 @@
 
 #include "unity.h"
 
-#include "lagopus/dpmgr.h"
 #include "lagopus/flowdb.h"
 #include "lagopus/port.h"
 #include "pktbuf.h"
@@ -38,17 +37,17 @@ tearDown(void) {
 
 void
 test_match_basic_VLAN_VID(void) {
-  struct lagopus_packet pkt;
+  struct lagopus_packet *pkt;
   struct port port;
   struct flow *flow;
   OS_MBUF *m;
   bool rv;
 
   /* prepare packet */
-  m = calloc(1, sizeof(*m));
-  TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
-  m->data = &m->dat[128];
-  OS_M_PKTLEN(m) = 64;
+  pkt = alloc_lagopus_packet();
+  TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
+  m = pkt->mbuf;
+  OS_M_APPEND(m, 64);
 
   /* prepare flow */
   flow = calloc(1, sizeof(struct flow) + 10 * sizeof(struct match));
@@ -58,16 +57,16 @@ test_match_basic_VLAN_VID(void) {
   add_match(&flow->match_list, 2, OFPXMT_OFB_VLAN_VID << 1,
             0x10, 0x01);
   refresh_match(flow);
-  lagopus_packet_init(&pkt, m, &port);
-  rv = match_basic(&pkt, flow);
+  lagopus_packet_init(pkt, m, &port);
+  rv = match_basic(pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "VLAN_VID mismatch error.");
-  m->data[12] = 0x81;
-  m->data[13] = 0x00;
-  m->data[14] = 0x00;
-  m->data[15] = 0x01;
-  lagopus_packet_init(&pkt, m, &port);
-  rv = match_basic(&pkt, flow);
+  OS_MTOD(m, uint8_t *)[12] = 0x81;
+  OS_MTOD(m, uint8_t *)[13] = 0x00;
+  OS_MTOD(m, uint8_t *)[14] = 0x00;
+  OS_MTOD(m, uint8_t *)[15] = 0x01;
+  lagopus_packet_init(pkt, m, &port);
+  rv = match_basic(pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, true,
                             "VLAN VID match error.");
   free(m);
@@ -75,17 +74,17 @@ test_match_basic_VLAN_VID(void) {
 
 void
 test_match_basic_VLAN_VID_W(void) {
-  struct lagopus_packet pkt;
+  struct lagopus_packet *pkt;
   struct port port;
   struct flow *flow;
   OS_MBUF *m;
   bool rv;
 
   /* prepare packet */
-  m = calloc(1, sizeof(*m));
-  TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
-  m->data = &m->dat[128];
-  OS_M_PKTLEN(m) = 64;
+  pkt = alloc_lagopus_packet();
+  TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
+  m = pkt->mbuf;
+  OS_M_APPEND(m, 64);
 
   /* prepare flow */
   flow = calloc(1, sizeof(struct flow) + 10 * sizeof(struct match));
@@ -95,18 +94,18 @@ test_match_basic_VLAN_VID_W(void) {
   add_match(&flow->match_list, 4, (OFPXMT_OFB_VLAN_VID << 1) + 1,
             0x10, 0x00, 0x10, 0x00);
   refresh_match(flow);
-  m->data[12] = 0x08;
-  m->data[13] = 0x00;
-  lagopus_packet_init(&pkt, m, &port);
-  rv = match_basic(&pkt, flow);
+  OS_MTOD(m, uint8_t *)[12] = 0x08;
+  OS_MTOD(m, uint8_t *)[13] = 0x00;
+  lagopus_packet_init(pkt, m, &port);
+  rv = match_basic(pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, false,
                             "VLAN_VID_W mismatch error.");
-  m->data[12] = 0x81;
-  m->data[13] = 0x00;
-  m->data[14] = 0x00;
-  m->data[15] = 0xff;
-  lagopus_packet_init(&pkt, m, &port);
-  rv = match_basic(&pkt, flow);
+  OS_MTOD(m, uint8_t *)[12] = 0x81;
+  OS_MTOD(m, uint8_t *)[13] = 0x00;
+  OS_MTOD(m, uint8_t *)[14] = 0x00;
+  OS_MTOD(m, uint8_t *)[15] = 0xff;
+  lagopus_packet_init(pkt, m, &port);
+  rv = match_basic(pkt, flow);
   TEST_ASSERT_EQUAL_MESSAGE(rv, true,
                             "VLAN VID_W match error.");
   free(m);

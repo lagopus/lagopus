@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -55,8 +55,8 @@
 #define SHOW_OPT_CURRENT "current"
 #define SHOW_OPT_MODIFIED "modified"
 
-/* number of update retry for auto commit. */
-#define UPDATE_RETRY_MAX 1
+/* number of update for auto commit. */
+#define UPDATE_CNT_MAX 2
 
 #define OPTS_MAX UINT64_MAX
 
@@ -221,5 +221,11 @@ lagopus_result_t
 cmd_uint_parse(const char *const str,
                enum cmd_uint_type type,
                union cmd_uint *cmd_uint);
+
+/**
+ * Check if delete command.
+ */
+lagopus_result_t
+cmd_opt_macaddr_get(const char *in_mac, char **out_mac, bool *is_added);
 
 #endif /* __CMD_COMMON_H__ */

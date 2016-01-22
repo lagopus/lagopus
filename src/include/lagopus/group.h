@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,7 +41,7 @@ struct group {                          /** Internal group structure. */
   uint32_t duration_sec;                /** Duration (sec part) */
   uint32_t duration_nsec;               /** Duration (nano sec part */
   struct timespec create_time;          /** Creation time. */
-  struct vector *flows;                 /** Relationship with flow entries */
+  lagopus_hashmap_t flows;              /** Relationship with flow entries */
   struct group_table *group_table;      /** Relationship with group taable. */
 };
 

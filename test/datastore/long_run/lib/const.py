@@ -34,6 +34,7 @@ CONF_SEC_LAGOPUS_OPTS = "lagopus_opts"
 CONF_SEC_RYU = "ryu"
 CONF_SEC_RYU_PATH = "ryu_path"
 CONF_SEC_RYU_OPTS = "ryu_opts"
+CONF_SEC_RYU_APP = "ryu_app"
 
 CONF_SEC_TLS = "tls"
 CONF_SEC_TLS_IS_ENABLE = "is_enable"
@@ -64,7 +65,7 @@ SCE_USE_LAGOPUS = "lagopus"
 SCE_USE_RYU = "ryu"
 
 SCE_REPETITION_COUNT_DEFAULT = 1
-SCE_TIMEOUT_DEFAULT = 30
+SCE_TIMEOUT_DEFAULT = 60
 
 SCE_MODE_SYNC = "sync"
 SCE_MODE_ASYNC = "async"

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -285,6 +285,34 @@ lagopus_thread_get_pthread_id(const lagopus_thread_t *thdptr,
 lagopus_result_t
 lagopus_thread_set_cpu_affinity(const lagopus_thread_t *thdptr,
                                 int cpu);
+
+
+/**
+ * Get a CPU affinity of a thread.
+ *
+ *	@param[in]	thdptr	A pointer to a thread.
+ *
+ *	@retval LAGOPUS_RESULT_OK		Succeeded.
+ *	@retval LAGOPUS_RESULT_INVALID_OBJECT	Failed, invalid thread.
+ *	@retval LAGOPUS_RESULT_POSIX_API_ERROR	Failed, posix API error.
+ *	@retval LAGOPUS_RESULT_ALREADY_HALTED	Failed, thread already halted.
+ *	@retval LAGOPUS_RESULT_INVALID_ARGS	Failed, invalid args.
+ *	@retval LAGOPUS_RESULT_NOT_DEFINED	Failed, Not defined/sepcified.
+ *	@retval LAGOPUS_RESULT_ANY_FAILURES	Failed.
+ *
+ *	@details This API is available only on Linux and eqivalent to
+ *	CPU_SET(3).
+ *
+ *	@details If users called the \b
+ *	lagopus_thread_set_cpu_affinity(), this API returns the
+ *	smallest # of the CPU set by the \b
+ *	lagopus_thread_set_cpu_affinity().
+ *
+ *	@details Users can call this API before and after starting the
+ *	thread.
+ */
+lagopus_result_t
+lagopus_thread_get_cpu_affinity(const lagopus_thread_t *thdptr);
 
 
 /**

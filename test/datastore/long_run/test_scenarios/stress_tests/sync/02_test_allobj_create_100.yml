@@ -32,7 +32,7 @@ testcases:
           - cmd_type: ds
             cmd: >-
               interface interface{{ index }} create -type ethernet-rawsock
-              -device lago_eth{{ index }} -port-number {{ index + 1 }}
+              -device lago_eth{{ index }}
             result: '{"ret": "OK"}'
           - cmd_type: ds
             cmd: port port{{ index }} create -interface interface{{ index }}

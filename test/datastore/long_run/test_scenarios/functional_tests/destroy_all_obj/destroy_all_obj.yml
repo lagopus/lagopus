@@ -1,0 +1,94 @@
+use:
+  - lagopus
+
+setup:
+  - repetition_count: 1
+    cmds:
+      - cmd_type: ds
+        cmd: log -debuglevel 10000
+        result: '{"ret": "OK"}'
+      - cmd_type: ds
+        cmd: destroy-all-obj
+        result: '{"ret": "OK"}'
+      - cmd_type: shell
+        cmd: "{{ shell_dir }}/dummy_eth_up.sh lago_eth 2"
+        result: "0"
+
+teardown:
+  - repetition_count: 1
+    cmds:
+      - cmd_type: ds
+        cmd: destroy-all-obj
+        result: '{"ret": "OK"}'
+      - cmd_type: shell
+        cmd: "{{ shell_dir }}/dummy_eth_down.sh lago_eth 2"
+        result: "0"
+
+testcases:
+  - testcase: destroy all
+    test:
+      - repetition_count: 1
+        cmds:
+          - cmd_type: ds
+            cmd: interface if01 create -type ethernet-rawsock -device lago_eth0
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: interface if02 create -type ethernet-rawsock -device lago_eth1
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: interface if01
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":":if01",
+              "type":"ethernet-rawsock",
+              "device":"lago_eth0",
+              "mtu":1500,
+              "ip-addr":"127.0.0.1",
+              "is-used":false,
+              "is-enabled":false}]}
+          - cmd_type: ds
+            cmd: interface if02
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":":if02",
+              "type":"ethernet-rawsock",
+              "device":"lago_eth1",
+              "mtu":1500,
+              "ip-addr":"127.0.0.1",
+              "is-used":false,
+              "is-enabled":false}]}
+          - cmd_type: ds
+            cmd: destroy-all-obj
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: interface if01
+            result: |-
+              {"ret":"NOT_FOUND",
+              "data":"name = :if01"}
+          - cmd_type: ds
+            cmd: interface if02
+            result: |-
+              {"ret":"NOT_FOUND",
+              "data":"name = :if02"}
+
+  - testcase: destroy all without object
+    test:
+      - repetition_count: 1
+        cmds:
+          - cmd_type: ds
+            cmd: destroy-all-obj
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: interface
+            result: '{"ret": "OK"}'
+
+  - testcase: invalid args
+    test:
+      - repetition_count: 1
+        cmds:
+          - cmd_type: ds
+            cmd: destroy-all-obj invalid_args
+            result: |-
+              {"ret":"INVALID_ARGS",
+              "data":"Unknown option 'invalid_args'"}
+

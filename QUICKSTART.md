@@ -4,54 +4,31 @@ Quick Start
 Software Installation
 --------------------------
 
-### Intel DPDK install
-You should install Intel DPDK before Lagopus vswitch compilation.
-
-Install necessary packages
-
-```
-	$ sudo apt-get install make coreutils gcc binutils
-```
-
-Install kernel headers
-
-```
-	$ sudo apt-get install linux-headers-`uname -r`
-```
-
-Get Intel DPDK 1.8.0 and extract Intel DPDK zip file
-
-```
-	$ wget http://dpdk.org/browse/dpdk/snapshot/dpdk-1.8.0.zip
-	$ unzip dpdk-1.8.0.zip
-```
-
-Compile
-
-```
-	$ export RTE_SDK=<Absolute Path of Intel DPDK>
-	$ export RTE_TARGET="x86_64-native-linuxapp-gcc"
-	$ make config T=${RTE_TARGET}
-	$ make
-```
-
 ### Lagopus vswitch installation
 
 Install necessary packages
 
 ```
 	$ sudo apt-get install build-essential libexpat-dev libgmp-dev \
-	  libssl-dev libpcap-dev byacc flex \
+	  libssl-dev libpcap-dev byacc flex git \
 	  python-dev python-pastedeploy python-paste python-twisted
 ```
 
 Compile vswitch
 
-In configure phase, you must speicify Intel DPDK option with abosolute path in which you installed
+* DPDK version
 
 ```
 	$ cd lagopus
-	$ ./configure --with-dpdk-dir=${RTE_SDK}
+	$ ./configure
+	$ make
+```
+
+* raw socket version
+
+```
+	$ cd lagopus
+	$ ./configure --disable-dpdk
 	$ make
 ```
 
@@ -73,14 +50,14 @@ Install necessary packages
 Using pip command is the easiest option:
 
 ```
-	$ pip install ryu
+	$ sudo pip install ryu
 ```
 
 Or install from the source code if you prefer:
 
 ```
 	$ git clone git://github.com/osrg/ryu.git
-	$ cd ryu; python ./setup.py install
+	$ cd ryu; sudo python ./setup.py install
 ```
 
 Environmental Setup
@@ -94,8 +71,8 @@ Loading the kernel module
 
 ```
 	$ sudo modprobe uio
-	$ sudo insmod ${RTE_SDK}/build/kmod/igb_uio.ko
-	$ sudo insmod ${RTE_SDK}/build/kmod/rte_kni.ko
+	$ sudo insmod ./src/dpdk/build/kmod/igb_uio.ko
+	$ sudo insmod ./src/dpdk/build/kmod/rte_kni.ko
 ```
 
 
@@ -130,7 +107,7 @@ Check PCI ID to enable DPDK on 2nd, 3rd, and 4th NIC.
 If NIC used for management (ex: ssh) was selected, you will lose connection.
 
 ```
-	$ sudo ${RTE_SDK}/tools/dpdk_nic_bind.py --status
+	$ sudo ./src/dpdk/tools/dpdk_nic_bind.py --status
 
 	Network devices using IGB_UIO driver
 	====================================
@@ -152,11 +129,11 @@ If NIC used for management (ex: ssh) was selected, you will lose connection.
 Unbound NICs from ixgbe driver.
 
 ```
-	$ sudo ${RTE_SDK}/tools/dpdk_nic_bind.py --bind=igb_uio 0000:02:02.0 0000:02:03.0 0000:02:04.0
+	$ sudo ./src/dpdk/tools/dpdk_nic_bind.py --bind=igb_uio 0000:02:02.0 0000:02:03.0 0000:02:04.0
 
 Check the current status of NICs whehter the 2nd, 3rd and 4th interface is registerd with igb_uio driver
 
-	$ sudo ${RTE_SDK}/tools/dpdk_nic_bind.py --status
+	$ sudo ./src/dpdk/tools/dpdk_nic_bind.py --status
 
 	Network devices using IGB_UIO driver
 	====================================

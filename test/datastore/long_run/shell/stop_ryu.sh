@@ -1,10 +1,10 @@
 #!/bin/sh
 
-# ./stop_ryu.sh <LOG_DIR>
+# ./stop_ryu.sh <LOG_DIR> <TIME_OUT>
 
 LOG_DIR=${1:-"."}
 PID_FILE="/var/run/ryu.pid"
-RETRY_MAX=10
+RETRY_MAX=${2:-30}
 
 if [ -f "${PID_FILE}" ]; then
     PID=`cat ${PID_FILE}`

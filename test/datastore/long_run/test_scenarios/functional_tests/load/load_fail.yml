@@ -1,0 +1,53 @@
+use:
+  - lagopus
+
+setup:
+  - repetition_count: 1
+    cmds:
+      - cmd_type: ds
+        cmd: log -debuglevel 10000
+        result: '{"ret": "OK"}'
+      - cmd_type: ds
+        cmd: destroy-all-obj
+        result: '{"ret": "OK"}'
+      - cmd_type: shell
+        cmd: "{{ shell_dir }}/dummy_eth_up.sh lago_eth 2"
+        result: "0"
+      - cmd_type: shell
+        cmd: cp -f {{ test_home  }}/test_scenarios/functional_tests/load/load_fail.dsl /tmp/load_fail.dsl
+        result: "0"
+
+teardown:
+  - repetition_count: 1
+    cmds:
+      - cmd_type: ds
+        cmd: destroy-all-obj
+        result: '{"ret": "OK"}'
+      - cmd_type: shell
+        cmd: "{{ shell_dir }}/dummy_eth_down.sh lago_eth 2"
+        result: "0"
+      - cmd_type: shell
+        cmd: rm -rf /tmp/load_fail.dsl
+        result: "0"
+
+testcases:
+  - testcase: load fail
+    test:
+      - repetition_count: 1
+        cmds:
+          - cmd_type: ds
+            cmd: load /tmp/load_fail.dsl
+            result: |-
+              {"ret":"NOT_FOUND",
+              "data":"name = :invalid_opt", "line": 2, "file": "\/tmp\/load_fail.dsl"}
+
+  - testcase: invalid args
+    test:
+      - repetition_count: 1
+        cmds:
+          - cmd_type: ds
+            cmd: load invalid_args
+            result: |-
+              {"ret": "INVALID_ARGS",
+              "data": "invalid_args is unreadable."}
+

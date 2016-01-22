@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,9 +19,20 @@
  *      @brief  OpenFlow Meter management.
  */
 
+#include "lagopus_apis.h"
 #include "lagopus/meter.h"
 #include "lagopus/ofp_dp_apis.h"
 #include "lagopus/dp_apis.h"
+
+#include "lock.h"
+
+/**
+ * @brief Meter table.
+ */
+struct meter_table {                    /** Meter table. */
+  pthread_rwlock_t rwlock;              /** Read-write lock. */
+  lagopus_hashmap_t hashmap;            /** Meter id hashtable. */
+};
 
 static inline void
 meter_table_lock_init(struct meter_table *meter_table) {
@@ -127,7 +138,12 @@ meter_table_alloc(void) {
   }
 
   /* 32bit meter_id table. */
-  meter_table->ptree = ptree_init(32);
+  if (lagopus_hashmap_create(&meter_table->hashmap,
+                             LAGOPUS_HASHMAP_TYPE_ONE_WORD,
+                             meter_free) != LAGOPUS_RESULT_OK) {
+    free(meter_table);
+    return NULL;
+  }
 
   meter_table_lock_init(meter_table);
 
@@ -136,7 +152,7 @@ meter_table_alloc(void) {
 
 void
 meter_table_free(struct meter_table *meter_table) {
-  ptree_free(meter_table->ptree);
+  lagopus_hashmap_destroy(&meter_table->hashmap, true);
   free(meter_table);
 }
 
@@ -146,9 +162,8 @@ meter_table_meter_add(struct meter_table *meter_table,
                       struct meter_band_list *band_list,
                       struct ofp_error *error) {
   uint32_t key;
-  struct ptree_node *node;
   struct meter *meter;
-  lagopus_result_t ret = LAGOPUS_RESULT_OK;
+  lagopus_result_t rv = LAGOPUS_RESULT_OK;
   (void)error;
 
   /* Write lock the meter_table. */
@@ -158,37 +173,34 @@ meter_table_meter_add(struct meter_table *meter_table,
   key = htonl(mod->meter_id);
 
   /* Lookup node. */
-  node = ptree_node_lookup(meter_table->ptree, (uint8_t *)&key, 32);
-  if (node != NULL) {
-    ofp_error_set(error, OFPET_METER_MOD_FAILED, OFPMMFC_METER_EXISTS);
-    ret = LAGOPUS_RESULT_OFP_ERROR;
-    goto out;
-  }
-
-  node = ptree_node_get(meter_table->ptree, (uint8_t *)&key, 32);
-  if (node == NULL) {
-    ret = LAGOPUS_RESULT_NO_MEMORY;
+  rv = lagopus_hashmap_find_no_lock(&meter_table->hashmap,
+                                    (void *)key, &meter);
+  if (rv == LAGOPUS_RESULT_OK) {
+    error->type = OFPET_METER_MOD_FAILED;
+    error->code = OFPMMFC_METER_EXISTS;
+    lagopus_msg_info("meter add: %d: meter is exist (%d:%d)",
+                     mod->meter_id, error->type, error->code);
+    rv = LAGOPUS_RESULT_OFP_ERROR;
     goto out;
   }
 
   meter = meter_alloc(mod->meter_id, mod->flags, band_list);
   if (meter == NULL) {
-    ret = LAGOPUS_RESULT_NO_MEMORY;
+    rv = LAGOPUS_RESULT_NO_MEMORY;
     goto out;
   }
-
-  node->info = meter;
-
-#ifdef METER_DEBUG
-  meter_table_dump(meter_table);
-#endif /* METER_DEBUG */
+  rv = lagopus_hashmap_add_no_lock(&meter_table->hashmap,
+                                   (void *)key, &meter, false);
+  if (rv != LAGOPUS_RESULT_OK) {
+    goto out;
+  }
 
 out:
   ofp_meter_band_list_elem_free(band_list);
 
   /* Unlock the meter_table then return result. */
   meter_table_wrunlock(meter_table);
-  return ret;
+  return rv;
 }
 
 lagopus_result_t
@@ -197,7 +209,6 @@ meter_table_meter_modify(struct meter_table *meter_table,
                          struct meter_band_list *band_list,
                          struct ofp_error *error) {
   uint32_t key;
-  struct ptree_node *node;
   struct meter *meter;
   lagopus_result_t ret = LAGOPUS_RESULT_OK;
   (void)error;
@@ -209,18 +220,13 @@ meter_table_meter_modify(struct meter_table *meter_table,
   key = htonl(mod->meter_id);
 
   /* Lookup node. */
-  node = ptree_node_lookup(meter_table->ptree, (uint8_t *)&key, 32);
-  if (node == NULL) {
-    ofp_error_set(error, OFPET_METER_MOD_FAILED, OFPMMFC_UNKNOWN_METER);
-    ret = LAGOPUS_RESULT_OFP_ERROR;
-    goto out;
-  }
-
-  /* Get meter. */
-  meter = (struct meter *)node->info;
-  if (meter == NULL) {
-    ptree_unlock_node(node);
-    ofp_error_set(error, OFPET_METER_MOD_FAILED, OFPMMFC_UNKNOWN_METER);
+  ret = lagopus_hashmap_find_no_lock(&meter_table->hashmap,
+                                     (void *)key, &meter);
+  if (ret != LAGOPUS_RESULT_OK) {
+    error->type = OFPET_METER_MOD_FAILED;
+    error->code = OFPMMFC_UNKNOWN_METER;
+    lagopus_msg_info("meter modify: %d: meter is not exist (%d:%d)",
+                     mod->meter_id, error->type, error->code);
     ret = LAGOPUS_RESULT_OFP_ERROR;
     goto out;
   }
@@ -230,11 +236,6 @@ meter_table_meter_modify(struct meter_table *meter_table,
   if (ret != LAGOPUS_RESULT_OK) {
     goto out;
   }
-
-#ifdef METER_DEBUG
-  /* Debug. */
-  meter_table_dump(meter_table);
-#endif /* METER_DEBUG */
 
 out:
   ofp_meter_band_list_elem_free(band_list);
@@ -249,8 +250,6 @@ meter_table_meter_delete(struct meter_table *meter_table,
                          struct ofp_meter_mod *mod,
                          struct ofp_error *error) {
   uint32_t key;
-  struct ptree_node *node;
-  struct meter *meter;
   lagopus_result_t ret = LAGOPUS_RESULT_OK;
   (void)error;
 
@@ -258,58 +257,16 @@ meter_table_meter_delete(struct meter_table *meter_table,
   meter_table_wrlock(meter_table);
 
   if (mod->meter_id == OFPM_ALL) {
-    for (node = ptree_top(meter_table->ptree); node != NULL;
-         node = ptree_next(node)) {
-      meter = node->info;
-      if (meter != NULL) {
-        /* Free existing meter. */
-        meter_free(meter);
-
-        /* Clear node value. */
-        node->info = NULL;
-      }
-      /* Node should be unlocked twice.  One for lookup lock, one for
-       * node value lock. */
-      ptree_unlock_node(node);
-      ptree_unlock_node(node);
-    }
+    lagopus_hashmap_clear_no_lock(&meter_table->hashmap, true);
   } else {
 
     /* Key is network byte order. */
     key = htonl(mod->meter_id);
 
     /* Lookup node. */
-    node = ptree_node_lookup(meter_table->ptree, (uint8_t *)&key, 32);
-    if (node == NULL) {
-      /* no error. */
-      goto out;
-    }
-
-    /* Get meter. */
-    meter = (struct meter *)node->info;
-    if (meter == NULL) {
-      ptree_unlock_node(node);
-      /* no error. */
-      goto out;
-    }
-
-    /* Free existing meter. */
-    meter_free(meter);
-
-    /* Clear node value. */
-    node->info = NULL;
-
-#ifdef METER_DEBUG
-    /* Debug. */
-    meter_table_dump(meter_table);
-#endif /* METER_DEBUG */
-
-    /* Node should be unlocked twice.  One for lookup lock, one for
-     * node value lock. */
-    ptree_unlock_node(node);
-    ptree_unlock_node(node);
+    ret = lagopus_hashmap_delete_no_lock(&meter_table->hashmap,
+                                         (void *)key, NULL, true);
   }
-out:
   /* Unlock the meter_table then return result. */
   meter_table_wrunlock(meter_table);
   return ret;
@@ -318,18 +275,14 @@ out:
 struct meter *
 meter_table_lookup(struct meter_table *meter_table, uint32_t meter_id) {
   uint32_t key = htonl(meter_id);
-  struct ptree_node *node;
   struct meter *meter;
+  lagopus_result_t rv;
 
-  node = ptree_node_lookup(meter_table->ptree, (uint8_t *)&key, 32);
-  if (node == NULL) {
+  rv = lagopus_hashmap_find_no_lock(&meter_table->hashmap,
+                                    (void *)key, &meter);
+  if (rv != LAGOPUS_RESULT_OK) {
     return NULL;
   }
-
-  meter = (struct meter *)node->info;
-
-  ptree_unlock_node(node);
-
   return meter;
 }
 
@@ -386,22 +339,6 @@ meter_band_free(struct meter_band *band) {
   free(band);
 }
 
-#ifdef METER_DEBUG
-void
-meter_table_dump(struct meter_table *meter_table) {
-  struct ptree_node *node;
-  struct meter *meter;
-
-  for (node = ptree_top(meter_table->ptree); node!= NULL;
-       node = ptree_next(node)) {
-    meter = node->info;
-    if (meter != NULL) {
-      printf("meter_id %d\n", meter->meter_id);
-    }
-  }
-}
-#endif /* METER_DEBUG */
-
 static lagopus_result_t
 set_meter_stats(struct meter_stats *stats, const struct meter *meter) {
 
@@ -440,44 +377,49 @@ set_meter_stats(struct meter_stats *stats, const struct meter *meter) {
   return LAGOPUS_RESULT_OK;
 }
 
+static lagopus_result_t
+meter_add_stats(struct meter *meter, struct meter_stats_list *list) {
+  if (meter != NULL) {
+    struct meter_stats *stats;
+
+    stats = calloc(1, sizeof(struct meter_stats));
+    if (stats == NULL) {
+      return LAGOPUS_RESULT_NO_MEMORY;
+    }
+    set_meter_stats(stats, meter);
+    TAILQ_INSERT_TAIL(list, stats, entry);
+  }
+  return LAGOPUS_RESULT_OK;
+}
+
+static bool
+meter_do_stats_iterate(void *key, void *val,
+                       lagopus_hashentry_t he, void *arg) {
+  struct meter_stats_list *list;
+
+  list = arg;
+  if (meter_add_stats(val, list) == LAGOPUS_RESULT_OK) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
 lagopus_result_t
 get_meter_stats(struct meter_table *meter_table,
                 struct ofp_meter_multipart_request *request,
                 struct meter_stats_list *list,
                 struct ofp_error *error) {
-
-  struct meter_stats *stats;
-  struct meter *meter;
-
   (void)error;
   if (request->meter_id == OFPM_ALL) {
-    struct ptree_node *node;
-
-    node = ptree_top(meter_table->ptree);
-    while (node != NULL) {
-      meter = node->info;
-      if (meter == NULL) {
-        node = ptree_next(node);
-        continue;
-      }
-      stats = calloc(1, sizeof(struct meter_stats));
-      if (stats == NULL) {
-        return LAGOPUS_RESULT_NO_MEMORY;
-      }
-      set_meter_stats(stats, meter);
-      TAILQ_INSERT_TAIL(list, stats, entry);
-      node = ptree_next(node);
-    }
+    lagopus_hashmap_iterate(&meter_table->hashmap,
+                            meter_do_stats_iterate,
+                            list);
   } else {
+    struct meter *meter;
+
     meter = meter_table_lookup(meter_table, request->meter_id);
-    if (meter != NULL) {
-      stats = calloc(1, sizeof(struct meter_stats));
-      if (stats == NULL) {
-        return LAGOPUS_RESULT_NO_MEMORY;
-      }
-      set_meter_stats(stats, meter);
-      TAILQ_INSERT_TAIL(list, stats, entry);
-    }
+    return meter_add_stats(meter, list);
   }
 
   return LAGOPUS_RESULT_OK;
@@ -507,43 +449,49 @@ set_meter_config(struct meter_config *config, const struct meter *meter) {
   return LAGOPUS_RESULT_OK;
 }
 
+static lagopus_result_t
+meter_add_config(struct meter *meter, struct meter_config_list *list) {
+  if (meter != NULL) {
+    struct meter_config *config;
+
+    config = calloc(1, sizeof(struct meter_config));
+    if (config == NULL) {
+      return LAGOPUS_RESULT_NO_MEMORY;
+    }
+    set_meter_config(config, meter);
+    TAILQ_INSERT_TAIL(list, config, entry);
+  }
+  return LAGOPUS_RESULT_OK;
+}
+
+static bool
+meter_do_config_iterate(void *key, void *val,
+                       lagopus_hashentry_t he, void *arg) {
+  struct meter_config_list *list;
+
+  list = arg;
+  if (meter_add_config(val, list) == LAGOPUS_RESULT_OK) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
 lagopus_result_t
 get_meter_config(struct meter_table *meter_table,
                  struct ofp_meter_multipart_request *request,
                  struct meter_config_list *list,
                  struct ofp_error *error) {
-  struct meter_config *config;
-  struct meter *meter;
-
   (void)error;
   if (request->meter_id == OFPM_ALL) {
-    struct ptree_node *node;
-
-    node = ptree_top(meter_table->ptree);
-    while (node != NULL) {
-      meter = node->info;
-      if (meter == NULL) {
-        node = ptree_next(node);
-        continue;
-      }
-      config = calloc(1, sizeof(struct meter_config));
-      if (config == NULL) {
-        return LAGOPUS_RESULT_NO_MEMORY;
-      }
-      set_meter_config(config, meter);
-      TAILQ_INSERT_TAIL(list, config, entry);
-      node = ptree_next(node);
-    }
+    lagopus_hashmap_iterate(&meter_table->hashmap,
+                            meter_do_config_iterate,
+                            list);
   } else {
+    struct meter *meter;
+
     meter = meter_table_lookup(meter_table, request->meter_id);
-    if (meter != NULL) {
-      config = calloc(1, sizeof(struct meter_config));
-      if (config == NULL) {
-        return LAGOPUS_RESULT_NO_MEMORY;
-      }
-      set_meter_config(config, meter);
-      TAILQ_INSERT_TAIL(list, config, entry);
-    }
+    return meter_add_config(meter, list);
   }
 
   return LAGOPUS_RESULT_OK;

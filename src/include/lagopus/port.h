@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -70,23 +70,6 @@ lagopus_result_t (*lagopus_change_port_hook)(struct port *);
 lagopus_result_t (*lagopus_unregister_port_hook)(struct port *);
 
 /**
- * Create port database.
- *
- * @retval      !=NULL  Port database.
- * @retval      ==NULL  Memory exhausted.
- */
-struct vector *
-ports_alloc(void);
-
-/**
- * Destroy port database.
- *
- * @param[in]   v       Port database.
- */
-void
-ports_free(struct vector *v);
-
-/**
  * Alloc internal port structure.
  *
  * @retval      !=NULL  Port structure.
@@ -117,28 +100,7 @@ port_free(struct port *);
  * - If type is Physical port, port_no allows port id e.g. ifindex.
  */
 struct port *
-port_lookup(struct vector *v, uint32_t port_no);
-
-/**
- * Get internal port structure by OpenFlow flow number.
- *
- * @param[in]   port    Port database.
- * @param[in]   port_no OpenFlow Port number.
- * @retval      !=NULL  lagopus port object
- *              ==NULL  lagopus port is not configured
- */
-struct port *
-port_lookup_number(struct vector *v, uint32_t port_no);
-
-/**
- * Count number of ports.
- *
- * @param[in]   v               Port database.
- *
- * @retval      Number of ports.
- */
-unsigned int
-num_ports(struct vector *v) __attribute__ ((deprecated));
+port_lookup(lagopus_hashmap_t *hm, uint32_t port_no);
 
 /**
  * Get port statistics.
@@ -152,7 +114,7 @@ num_ports(struct vector *v) __attribute__ ((deprecated));
  * @retval      !=LAGOPUS_RESULT_OK     Failed.
  */
 lagopus_result_t
-lagopus_get_port_statistics(struct vector *ports,
+lagopus_get_port_statistics(lagopus_hashmap_t *hm,
                             struct ofp_port_stats_request *request,
                             struct port_stats_list *list,
                             struct ofp_error *error);
@@ -179,7 +141,7 @@ port_config(struct bridge *bridge,
  * @param[out]  error   Error indicated if error detected.
  */
 lagopus_result_t
-get_port_desc(struct vector *ports,
+get_port_desc(lagopus_hashmap_t *hm,
               struct port_desc_list *list,
               struct ofp_error *error);
 
@@ -216,7 +178,7 @@ enum {
 };
 
 /* Prototypes. */
-struct port *ifindex2port(struct vector *, uint32_t);
+struct port *ifindex2port(lagopus_hashmap_t *hm, uint32_t);
 void lagopus_send_packet(uint32_t, struct lagopus_packet *);
 
 #endif /* SRC_INCLUDE_LAGOPUS_PORT_H_ */

@@ -1,0 +1,766 @@
+use:
+  - ryu
+  - lagopus
+
+setup:
+  - repetition_count: 1
+    cmds:
+      - cmd_type: ds
+        cmd: log -debuglevel 10000
+        result: '{"ret": "OK"}'
+      - cmd_type: ds
+        cmd: destroy-all-obj
+        result: '{"ret": "OK"}'
+      - cmd_type: shell
+        cmd: "{{ shell_dir }}/dummy_eth_up.sh lago_eth 2"
+        result: "0"
+      - cmd_type: ds
+        cmd: "log -file /tmp/lagopus_ds_log_test.log"
+        result: '{"ret": "OK"}'
+
+teardown:
+  - repetition_count: 1
+    cmds:
+      - cmd_type: shell
+        cmd: "rm /tmp/lagopus_ds_log_test.log"
+        result: "0"
+      - cmd_type: ds
+        cmd: destroy-all-obj
+        result: '{"ret": "OK"}'
+      - cmd_type: shell
+        cmd: "{{ shell_dir }}/dummy_eth_down.sh lago_eth 2"
+        result: "0"
+
+testcases:
+  - testcase: show log setting
+    test:
+      - repetition_count: 1
+        cmds:
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":[""]}}
+
+  - testcase: debuglevel
+    test:
+      - repetition_count: 1
+        cmds:
+          - cmd_type: ds
+            cmd: log -debuglevel 11111
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":11111,
+              "packetdump":[""]}}
+
+  - testcase: packetdump
+    test:
+      - repetition_count: 1
+        cmds:
+          - cmd_type: ds
+            cmd: log -packetdump hello
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":["hello"]}}
+          - cmd_type: ds
+            cmd: log -packetdump -hello
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":[""]}}
+          - cmd_type: ds
+            cmd: log -packetdump error
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":["error"]}}
+          - cmd_type: ds
+            cmd: log -packetdump -error
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":[""]}}
+          - cmd_type: ds
+            cmd: log -packetdump echo_request
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":["echo_request"]}}
+          - cmd_type: ds
+            cmd: log -packetdump -echo_request
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":[""]}}
+          - cmd_type: ds
+            cmd: log -packetdump echo_reply
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":["echo_reply"]}}
+          - cmd_type: ds
+            cmd: log -packetdump -echo_reply
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":[""]}}
+          - cmd_type: ds
+            cmd: log -packetdump experimenter
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":["experimenter"]}}
+          - cmd_type: ds
+            cmd: log -packetdump -experimenter
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":[""]}}
+          - cmd_type: ds
+            cmd: log -packetdump features_request
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":["features_request"]}}
+          - cmd_type: ds
+            cmd: log -packetdump -features_request
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":[""]}}
+          - cmd_type: ds
+            cmd: log -packetdump features_reply
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":["features_reply"]}}
+          - cmd_type: ds
+            cmd: log -packetdump -features_reply
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":[""]}}
+          - cmd_type: ds
+            cmd: log -packetdump get_config_request
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":["get_config_request"]}}
+          - cmd_type: ds
+            cmd: log -packetdump -get_config_request
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":[""]}}
+          - cmd_type: ds
+            cmd: log -packetdump get_config_reply
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":["get_config_reply"]}}
+          - cmd_type: ds
+            cmd: log -packetdump -get_config_reply
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":[""]}}
+          - cmd_type: ds
+            cmd: log -packetdump set_config
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":["set_config"]}}
+          - cmd_type: ds
+            cmd: log -packetdump -set_config
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":[""]}}
+          - cmd_type: ds
+            cmd: log -packetdump packet_in
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":["packet_in"]}}
+          - cmd_type: ds
+            cmd: log -packetdump -packet_in
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":[""]}}
+          - cmd_type: ds
+            cmd: log -packetdump flow_removed
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":["flow_removed"]}}
+          - cmd_type: ds
+            cmd: log -packetdump -flow_removed
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":[""]}}
+          - cmd_type: ds
+            cmd: log -packetdump port_status
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":["port_status"]}}
+          - cmd_type: ds
+            cmd: log -packetdump -port_status
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":[""]}}
+          - cmd_type: ds
+            cmd: log -packetdump packet_out
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":["packet_out"]}}
+          - cmd_type: ds
+            cmd: log -packetdump -packet_out
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":[""]}}
+          - cmd_type: ds
+            cmd: log -packetdump flow_mod
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":["flow_mod"]}}
+          - cmd_type: ds
+            cmd: log -packetdump -flow_mod
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":[""]}}
+          - cmd_type: ds
+            cmd: log -packetdump group_mod
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":["group_mod"]}}
+          - cmd_type: ds
+            cmd: log -packetdump -group_mod
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":[""]}}
+          - cmd_type: ds
+            cmd: log -packetdump port_mod
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":["port_mod"]}}
+          - cmd_type: ds
+            cmd: log -packetdump -port_mod
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":[""]}}
+          - cmd_type: ds
+            cmd: log -packetdump table_mod
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":["table_mod"]}}
+          - cmd_type: ds
+            cmd: log -packetdump -table_mod
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":[""]}}
+          - cmd_type: ds
+            cmd: log -packetdump multipart_request
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":["multipart_request"]}}
+          - cmd_type: ds
+            cmd: log -packetdump -multipart_request
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":[""]}}
+          - cmd_type: ds
+            cmd: log -packetdump multipart_reply
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":["multipart_reply"]}}
+          - cmd_type: ds
+            cmd: log -packetdump -multipart_reply
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":[""]}}
+          - cmd_type: ds
+            cmd: log -packetdump barrier_request
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":["barrier_request"]}}
+          - cmd_type: ds
+            cmd: log -packetdump -barrier_request
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":[""]}}
+          - cmd_type: ds
+            cmd: log -packetdump barrier_reply
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":["barrier_reply"]}}
+          - cmd_type: ds
+            cmd: log -packetdump -barrier_reply
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":[""]}}
+          - cmd_type: ds
+            cmd: log -packetdump queue_get_config_request
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":["queue_get_config_request"]}}
+          - cmd_type: ds
+            cmd: log -packetdump -queue_get_config_request
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":[""]}}
+          - cmd_type: ds
+            cmd: log -packetdump queue_get_config_reply
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":["queue_get_config_reply"]}}
+          - cmd_type: ds
+            cmd: log -packetdump -queue_get_config_reply
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":[""]}}
+          - cmd_type: ds
+            cmd: log -packetdump role_request
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":["role_request"]}}
+          - cmd_type: ds
+            cmd: log -packetdump -role_request
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":[""]}}
+          - cmd_type: ds
+            cmd: log -packetdump role_reply
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":["role_reply"]}}
+          - cmd_type: ds
+            cmd: log -packetdump -role_reply
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":[""]}}
+          - cmd_type: ds
+            cmd: log -packetdump get_async_request
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":["get_async_request"]}}
+          - cmd_type: ds
+            cmd: log -packetdump -get_async_request
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":[""]}}
+          - cmd_type: ds
+            cmd: log -packetdump get_async_reply
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":["get_async_reply"]}}
+          - cmd_type: ds
+            cmd: log -packetdump -get_async_reply
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":[""]}}
+          - cmd_type: ds
+            cmd: log -packetdump set_async
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":["set_async"]}}
+          - cmd_type: ds
+            cmd: log -packetdump -set_async
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":[""]}}
+          - cmd_type: ds
+            cmd: log -packetdump meter_mod
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":["meter_mod"]}}
+          - cmd_type: ds
+            cmd: log -packetdump -meter_mod
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":[""]}}
+
+  - testcase: packetdump many elements
+    test:
+      - repetition_count: 1
+        cmds:
+          - cmd_type: ds
+            cmd: log -packetdump hello
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":["hello"]}}
+          - cmd_type: ds
+            cmd: log -packetdump error
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":["hello", "error"]}}
+          - cmd_type: ds
+            cmd: log -packetdump -hello
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":["error"]}}
+          - cmd_type: ds
+            cmd: log -packetdump -error
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":[""]}}
+
+  - testcase: emit
+    test:
+      - repetition_count: 1
+        cmds:
+          - cmd_type: ds
+            cmd: log emit "emit message"
+            result: '{"ret": "OK"}'
+
+  - testcase: connect controller
+    test:
+      - repetition_count: 1
+        cmds:
+          - cmd_type: ds
+            cmd: log -packetdump hello echo_request echo_reply
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: log
+            result: |-
+              {"ret":"OK",
+              "data":{"file":"\/tmp\/lagopus_ds_log_test.log",
+              "debuglevel":10000,
+              "packetdump":["hello","echo_request","echo_reply"]}}
+          - cmd_type: ds
+            cmd: interface interface01 create -type ethernet-rawsock -device lago_eth0
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: port port01 create -interface interface01
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: channel channel01 create -dst-addr 127.0.0.1 -protocol tcp
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: controller controller01 create -channel channel01 -role equal -connection-type main
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: bridge bridge01 create -controller controller01 -port port01 1
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: bridge bridge01 enable
+            result: '{"ret": "OK"}'
+          - cmd_type: shell
+            cmd: sleep 1
+            result: "0"
+          - cmd_type: ds
+            cmd: controller controller01 stats
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":":controller01",
+              "is-connected":true,
+              "supported-versions":["1.3"],
+              "role":"equal"}]}
+          - cmd_type: ds
+            cmd: bridge bridge01 disable
+            result: '{"ret": "OK"}'
+

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -63,32 +63,6 @@
  * order.
  */
 #define NBO_BYTE(_d, _idx) (((_d) >> ((sizeof(_d) - (_idx) - 1) * 8)) & 0xff)
-
-/* Count a ptree. */
-#define PTREE_COUNT(_count, _top)				    \
-  do {								    \
-    struct ptree_node *_n;					    \
-    (_count) = 0;						    \
-    for (_n = ptree_top(_top); NULL != _n; _n = ptree_next(_n))	    \
-      if (NULL != (_n)->info)					    \
-        (_count)++;						    \
-  } while (0)
-
-/* Look up a network byte order uint16_t key in a ptree. */
-#define PTREE_FIND_N16(_n, _pt, _k, _l)			\
-  do {							\
-    uint16_t k;						\
-    k = htons(_k);					\
-    (_n) = ptree_node_lookup(_pt, (uint8_t *)&k, _l);	\
-  } while (0)
-
-/* Look up a host byte order uint32_t key in a ptree. */
-#define PTREE_FIND_H32(_n, _pt, _k, _l)			\
-  do {							\
-    uint32_t k;						\
-    k = (_k);						\
-    (_n) = ptree_node_lookup(_pt, (uint8_t *)&k, _l);	\
-  } while (0)
 
 /* Count a tail queue. */
 #define TAILQ_COUNT(_count, _type, _head, _entry)	\
@@ -196,13 +170,15 @@
   } while (0)
 
 /* Positively assert a flow addition to a flowinfo. */
-#define TEST_ASSERT_FLOWINFO_ADD_OK(_fi, _fl, _msg)			\
-  do {									\
-    char ___buf[TEST_ASSERT_MESSAGE_BUFSIZE];				\
-    \
-    snprintf(___buf, sizeof(___buf), "%s, positive flow addition", (_msg)); \
-    TEST_ASSERT_TRUE_MESSAGE(LAGOPUS_RESULT_OK == (_fi)->add_func(_fi, (_fl)), ___buf); \
-  } while (0)
+#define TEST_ASSERT_FLOWINFO_ADD_OK(_fi, _fl, _msg)                     \
+    do {                                                                \
+    char ___buf[TEST_ASSERT_MESSAGE_BUFSIZE];                           \
+    lagopus_result_t _rv;                                               \
+                                                                        \
+    _rv = (_fi)->add_func(_fi, (_fl));                                  \
+    snprintf(___buf, sizeof(___buf), "%s, %d: positive flow addition", (_msg), (_rv)); \
+    TEST_ASSERT_TRUE_MESSAGE(LAGOPUS_RESULT_OK == _rv, ___buf);         \
+    } while (0)
 
 /* Negatively assert a flow addition to a flowinfo. */
 /* XXX seems this never happens. */
@@ -247,14 +223,6 @@
     const struct flow *__fl;				\
     __fl = (_fi)->find_func((_fi), (_fl));		\
     TEST_ASSERT_FALSE_MESSAGE(__fl == (_fl), (_msg));	\
-  } while (0)
-
-/* Assert a ptree flow counter. */
-#define TEST_ASSERT_FLOWINFO_PTREE_NFLOW(_fi, _num)	\
-  do {							\
-    int _count;						\
-    PTREE_COUNT(_count, (_fi)->ptree);			\
-    TEST_ASSERT_EQUAL_INT(_num, _count);		\
   } while (0)
 
 /* Positively assert an instruction of the given type. */

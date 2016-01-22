@@ -1,0 +1,227 @@
+use:
+  - lagopus
+
+setup:
+  - repetition_count: 1
+    cmds:
+      - cmd_type: ds
+        cmd: log -debuglevel 10000
+        result: '{"ret": "OK"}'
+      - cmd_type: ds
+        cmd: destroy-all-obj
+        result: '{"ret": "OK"}'
+      - cmd_type: shell
+        cmd: "{{ shell_dir }}/dummy_eth_up.sh lago_eth 2"
+        result: "0"
+
+teardown:
+  - repetition_count: 1
+    cmds:
+      - cmd_type: ds
+        cmd: destroy-all-obj
+        result: '{"ret": "OK"}'
+      - cmd_type: shell
+        cmd: "{{ shell_dir }}/dummy_eth_down.sh lago_eth 2"
+        result: "0"
+
+testcases:
+  - testcase: being, create, commit
+    test:
+      - repetition_count: 1
+        cmds:
+          - cmd_type: ds
+            cmd: atomic begin
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: interface if01 create -type ethernet-rawsock -device lago_eth0
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: atomic commit
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: interface if01
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":":if01",
+              "type":"ethernet-rawsock",
+              "device":"lago_eth0",
+              "mtu":1500,
+              "ip-addr":"127.0.0.1",
+              "is-used":false,
+              "is-enabled":false}]}
+          - cmd_type: ds
+            cmd: interface if01 destroy
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: interface if01
+            result: |-
+              {"ret":"NOT_FOUND",
+              "data":"name = :if01"}
+
+  - testcase: being, commit without object
+    test:
+      - repetition_count: 1
+        cmds:
+          - cmd_type: ds
+            cmd: atomic begin
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: atomic commit
+            result: '{"ret": "OK"}'
+
+  - testcase: being, create, abort
+    test:
+      - repetition_count: 1
+        cmds:
+          - cmd_type: ds
+            cmd: atomic begin
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: interface if01 create -type ethernet-rawsock -device lago_eth0
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: atomic abort
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: interface if01
+            result: |-
+              {"ret":"NOT_FOUND",
+              "data":"name = :if01"}
+
+  - testcase: create, being, destroy, abort
+    test:
+      - repetition_count: 1
+        cmds:
+          - cmd_type: ds
+            cmd: interface if01 create -type ethernet-rawsock -device lago_eth0
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: interface if01
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":":if01",
+              "type":"ethernet-rawsock",
+              "device":"lago_eth0",
+              "mtu":1500,
+              "ip-addr":"127.0.0.1",
+              "is-used":false,
+              "is-enabled":false}]}
+          - cmd_type: ds
+            cmd: atomic begin
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: interface if01 destroy
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: interface if01
+            result: |-
+              {"ret":"NOT_FOUND",
+              "data":"name = :if01"}
+          - cmd_type: ds
+            cmd: atomic abort
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: interface if01
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":":if01",
+              "type":"ethernet-rawsock",
+              "device":"lago_eth0",
+              "mtu":1500,
+              "ip-addr":"127.0.0.1",
+              "is-used":false,
+              "is-enabled":false}]}
+
+  - testcase: being, abort without object
+    test:
+      - repetition_count: 1
+        cmds:
+          - cmd_type: ds
+            cmd: atomic begin
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: atomic abort
+            result: '{"ret": "OK"}'
+
+  - testcase: being, create, rollback
+    test:
+      - repetition_count: 1
+        cmds:
+          - cmd_type: ds
+            cmd: atomic begin
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: interface if01 create -type ethernet-rawsock -device lago_eth0
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: atomic rollback-force
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: interface if01
+            result: |-
+              {"ret":"NOT_FOUND",
+              "data":"name = :if01"}
+
+  - testcase: create, being, destory, rollback
+    test:
+      - repetition_count: 1
+        cmds:
+          - cmd_type: ds
+            cmd: interface if01 create -type ethernet-rawsock -device lago_eth0
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: interface if01
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":":if01",
+              "type":"ethernet-rawsock",
+              "device":"lago_eth0",
+              "mtu":1500,
+              "ip-addr":"127.0.0.1",
+              "is-used":false,
+              "is-enabled":false}]}
+          - cmd_type: ds
+            cmd: atomic begin
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: interface if01 destroy
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: interface if01
+            result: |-
+              {"ret":"NOT_FOUND",
+              "data":"name = :if01"}
+          - cmd_type: ds
+            cmd: atomic rollback-force
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: interface if01
+            result: |-
+              {"ret":"NOT_FOUND",
+              "data":"name = :if01"}
+
+  - testcase: being, rollback without object
+    test:
+      - repetition_count: 1
+        cmds:
+          - cmd_type: ds
+            cmd: atomic begin
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: atomic rollback-force
+            result: '{"ret": "OK"}'
+
+  - testcase: invalid state transition
+    test:
+      - repetition_count: 1
+        cmds:
+          - cmd_type: ds
+            cmd: atomic commit
+            result: '{"ret":"INVALID_STATE_TRANSITION"}'
+          - cmd_type: ds
+            cmd: atomic abort
+            result: '{"ret":"INVALID_STATE_TRANSITION"}'
+          - cmd_type: ds
+            cmd: atomic rollback-force
+            result: '{"ret":"INVALID_STATE_TRANSITION"}'
+

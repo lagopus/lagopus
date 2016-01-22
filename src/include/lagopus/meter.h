@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,7 +24,6 @@
 
 #include "lagopus_config.h"
 #include "lagopus_apis.h"
-#include "lagopus/ptree.h"
 #include "openflow.h"
 
 #ifdef HAVE_BSD_SYS_QUEUE_H
@@ -72,13 +71,7 @@ struct meter {
   void *driverdata;                     /** Driver specific data */
 };
 
-/**
- * @brief Meter table.
- */
-struct meter_table {                    /** Meter table. */
-  pthread_rwlock_t rwlock;              /** Read-write lock. */
-  struct ptree *ptree;                  /** Meter id tree. */
-};
+struct meter_table;
 
 /**
  * Allocate meter table.

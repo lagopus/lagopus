@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,7 +39,7 @@ test_push_mpls(void) {
   struct action_list action_list;
   struct action *action;
   struct ofp_action_push *action_push;
-  struct lagopus_packet pkt;
+  struct lagopus_packet *pkt;
   OS_MBUF *m;
 
   TAILQ_INIT(&action_list);
@@ -52,54 +52,54 @@ test_push_mpls(void) {
   TAILQ_INSERT_TAIL(&action_list, action, entry);
 
 
-  m = calloc(1, sizeof(*m));
-  TEST_ASSERT_NOT_EQUAL_MESSAGE(m, NULL, "calloc error.");
-  m->data = &m->dat[128];
+  pkt = alloc_lagopus_packet();
+  TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
+  m = pkt->mbuf;
 
-  OS_M_PKTLEN(m) = 64;
-  m->data[12] = 0x08;
-  m->data[13] = 0x00;
-  m->data[14] = 0x45;
-  m->data[22] = 240;
+  OS_M_APPEND(m, 64);
+  OS_MTOD(m, uint8_t *)[12] = 0x08;
+  OS_MTOD(m, uint8_t *)[13] = 0x00;
+  OS_MTOD(m, uint8_t *)[14] = 0x45;
+  OS_MTOD(m, uint8_t *)[22] = 240;
 
-  lagopus_packet_init(&pkt, m, &port);
-  execute_action(&pkt, &action_list);
+  lagopus_packet_init(pkt, m, &port);
+  execute_action(pkt, &action_list);
   TEST_ASSERT_EQUAL_MESSAGE(OS_M_PKTLEN(m), 64 + 4,
                             "PUSH_MPLS length error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[12], 0x88,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[12], 0x88,
                             "PUSH_MPLS ethertype[0] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[13], 0x47,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[13], 0x47,
                             "PUSH_MPLS ethertype[1] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[16], 1,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[16], 1,
                             "PUSH_MPLS BOS error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[17], 240,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[17], 240,
                             "PUSH_MPLS TTL error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[18], 0x45,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[18], 0x45,
                             "PUSH_MPLS payload error.");
 
-  m->data[14] = 0x12;
-  m->data[15] = 0x34;
-  m->data[16] = 0x5f;
+  OS_MTOD(m, uint8_t *)[14] = 0x12;
+  OS_MTOD(m, uint8_t *)[15] = 0x34;
+  OS_MTOD(m, uint8_t *)[16] = 0x5f;
 
   action_push->ethertype = 0x8848;
-  execute_action(&pkt, &action_list);
+  execute_action(pkt, &action_list);
   TEST_ASSERT_EQUAL_MESSAGE(OS_M_PKTLEN(m), 64 + 8,
                             "PUSH_MPLS(2) length error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[12], 0x88,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[12], 0x88,
                             "PUSH_MPLS(2) ethertype[0] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[13], 0x48,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[13], 0x48,
                             "PUSH_MPLS(2) ethertype[1] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[14], 0x12,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[14], 0x12,
                             "PUSH_MPLS(2) LSE[0] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[15], 0x34,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[15], 0x34,
                             "PUSH_MPLS(2) LSE[1] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[16], 0x5e,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[16], 0x5e,
                             "PUSH_MPLS(2) LSE[2] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[17], 240,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[17], 240,
                             "PUSH_MPLS(2) LSE[3] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[18], 0x12,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[18], 0x12,
                             "PUSH_MPLS(2) payload[0] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[19], 0x34,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[19], 0x34,
                             "PUSH_MPLS(2) payload[1] error.");
 }
 
@@ -109,7 +109,7 @@ test_push_vlan(void) {
   struct action_list action_list;
   struct action *action;
   struct ofp_action_push *action_push;
-  struct lagopus_packet pkt;
+  struct lagopus_packet *pkt;
   OS_MBUF *m;
 
   TAILQ_INIT(&action_list);
@@ -122,45 +122,45 @@ test_push_vlan(void) {
   TAILQ_INSERT_TAIL(&action_list, action, entry);
 
 
-  m = calloc(1, sizeof(*m));
-  TEST_ASSERT_NOT_EQUAL_MESSAGE(m, NULL, "calloc error.");
-  m->data = &m->dat[128];
+  pkt = alloc_lagopus_packet();
+  TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
+  m = pkt->mbuf;
 
-  OS_M_PKTLEN(m) = 64;
-  m->data[12] = 0x08;
-  m->data[13] = 0x00;
-  m->data[14] = 0x45;
+  OS_M_APPEND(m, 64);
+  OS_MTOD(m, uint8_t *)[12] = 0x08;
+  OS_MTOD(m, uint8_t *)[13] = 0x00;
+  OS_MTOD(m, uint8_t *)[14] = 0x45;
 
-  lagopus_packet_init(&pkt, m, &port);
-  execute_action(&pkt, &action_list);
+  lagopus_packet_init(pkt, m, &port);
+  execute_action(pkt, &action_list);
   TEST_ASSERT_EQUAL_MESSAGE(OS_M_PKTLEN(m), 64 + 4,
                             "PUSH_VLAN length error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[12], 0x81,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[12], 0x81,
                             "PUSH_VLAN TPID[0] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[13], 0x00,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[13], 0x00,
                             "PUSH_VLAN TPID[1] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[16], 0x08,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[16], 0x08,
                             "PUSH_VLAN ethertype[0] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[17], 0x00,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[17], 0x00,
                             "PUSH_VLAN ethertype[1] error.");
 
-  m->data[14] = 0xef;
-  m->data[15] = 0xfe;
+  OS_MTOD(m, uint8_t *)[14] = 0xef;
+  OS_MTOD(m, uint8_t *)[15] = 0xfe;
   action_push->ethertype = 0x88a8;
-  execute_action(&pkt, &action_list);
+  execute_action(pkt, &action_list);
   TEST_ASSERT_EQUAL_MESSAGE(OS_M_PKTLEN(m), 64 + 8,
                             "PUSH_VLAN(2) length error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[12], 0x88,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[12], 0x88,
                             "PUSH_VLAN(2) TPID[0] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[13], 0xa8,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[13], 0xa8,
                             "PUSH_VLAN(2) TPID[1] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[14], 0xef,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[14], 0xef,
                             "PUSH_VLAN(2) TCI[0] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[15], 0xfe,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[15], 0xfe,
                             "PUSH_VLAN(2) TCI[1] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[16], 0x81,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[16], 0x81,
                             "PUSH_VLAN(2) ethertype[0] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[17], 0x00,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[17], 0x00,
                             "PUSH_VLAN(2) ethertype[1] error.");
 }
 
@@ -172,7 +172,7 @@ test_push_pbb(void) {
   struct action_list action_list;
   struct action *action;
   struct ofp_action_push *action_push;
-  struct lagopus_packet pkt;
+  struct lagopus_packet *pkt;
   OS_MBUF *m;
 
   TAILQ_INIT(&action_list);
@@ -185,45 +185,45 @@ test_push_pbb(void) {
   TAILQ_INSERT_TAIL(&action_list, action, entry);
 
 
-  m = calloc(1, sizeof(*m));
-  TEST_ASSERT_NOT_EQUAL_MESSAGE(m, NULL, "calloc error.");
-  m->data = &m->dat[128];
+  pkt = alloc_lagopus_packet();
+  TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
+  m = pkt->mbuf;
 
-  OS_M_PKTLEN(m) = 64;
-  OS_MEMCPY(&m->data[0], dhost, ETH_ALEN);
-  OS_MEMCPY(&m->data[6], shost, ETH_ALEN);
+  OS_M_APPEND(m, 64);
+  OS_MEMCPY(&OS_MTOD(m, uint8_t *)[0], dhost, ETH_ALEN);
+  OS_MEMCPY(&OS_MTOD(m, uint8_t *)[6], shost, ETH_ALEN);
 
-  lagopus_packet_init(&pkt, m, &port);
-  execute_action(&pkt, &action_list);
+  lagopus_packet_init(pkt, m, &port);
+  execute_action(pkt, &action_list);
   TEST_ASSERT_EQUAL_MESSAGE(OS_M_PKTLEN(m), 64 + 18,
                             "PUSH_PBB length error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[12], 0x88,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[12], 0x88,
                             "PUSH_PBB TPID[0] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[13], 0xe7,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[13], 0xe7,
                             "PUSH_PBB TPID[1] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[14], 0,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[14], 0,
                             "PUSH_PBB pcp_dei error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[15], 0x00,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[15], 0x00,
                             "PUSH_PBB i_sid[0] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[16], 0x00,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[16], 0x00,
                             "PUSH_PBB i_sid[1] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[17], 0x00,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[17], 0x00,
                             "PUSH_PBB i_sid[2] error.");
-  TEST_ASSERT_EQUAL_UINT8_ARRAY_MESSAGE(&m->data[18], dhost, ETH_ALEN,
+  TEST_ASSERT_EQUAL_UINT8_ARRAY_MESSAGE(&OS_MTOD(m, uint8_t *)[18], dhost, ETH_ALEN,
                                         "PUSH_PBB dhost error.");
-  TEST_ASSERT_EQUAL_UINT8_ARRAY_MESSAGE(&m->data[24], shost, ETH_ALEN,
+  TEST_ASSERT_EQUAL_UINT8_ARRAY_MESSAGE(&OS_MTOD(m, uint8_t *)[24], shost, ETH_ALEN,
                                         "PUSH_PBB shost error.");
-  m->data[15] = 0xab;
-  m->data[16] = 0xcd;
-  m->data[17] = 0xef;
-  execute_action(&pkt, &action_list);
+  OS_MTOD(m, uint8_t *)[15] = 0xab;
+  OS_MTOD(m, uint8_t *)[16] = 0xcd;
+  OS_MTOD(m, uint8_t *)[17] = 0xef;
+  execute_action(pkt, &action_list);
   TEST_ASSERT_EQUAL_MESSAGE(OS_M_PKTLEN(m), 64 + 18 + 18,
                             "PUSH_PBB length error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[15], 0xab,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[15], 0xab,
                             "PUSH_PBB(2) i_sid[0] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[16], 0xcd,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[16], 0xcd,
                             "PUSH_PBB(2) i_sid[1] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[17], 0xef,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[17], 0xef,
                             "PUSH_PBB(2) i_sid[2] error.");
 }
 
@@ -233,7 +233,7 @@ test_pop_mpls(void) {
   struct action_list action_list;
   struct action *action;
   struct ofp_action_pop_mpls *action_pop;
-  struct lagopus_packet pkt;
+  struct lagopus_packet *pkt;
   OS_MBUF *m;
 
   TAILQ_INIT(&action_list);
@@ -245,47 +245,47 @@ test_pop_mpls(void) {
   TAILQ_INSERT_TAIL(&action_list, action, entry);
 
 
-  m = calloc(1, sizeof(*m));
-  TEST_ASSERT_NOT_EQUAL_MESSAGE(m, NULL, "calloc error.");
-  m->data = &m->dat[128];
+  pkt = alloc_lagopus_packet();
+  TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
+  m = pkt->mbuf;
 
-  OS_M_PKTLEN(m) = 64 + 8;
+  OS_M_APPEND(m, 64 + 8);
   /* initial, double taged */
-  m->data[12] = 0x88;
-  m->data[13] = 0x48;
+  OS_MTOD(m, uint8_t *)[12] = 0x88;
+  OS_MTOD(m, uint8_t *)[13] = 0x48;
   /* outer LSE */
-  m->data[17] = 50;
+  OS_MTOD(m, uint8_t *)[17] = 50;
   /* innner LSE */
-  m->data[20] = 0x01;
-  m->data[21] = 100;
+  OS_MTOD(m, uint8_t *)[20] = 0x01;
+  OS_MTOD(m, uint8_t *)[21] = 100;
   /* IPv4 */
-  m->data[22] = 0x45;
-  m->data[30] = 240;
+  OS_MTOD(m, uint8_t *)[22] = 0x45;
+  OS_MTOD(m, uint8_t *)[30] = 240;
 
-  lagopus_packet_init(&pkt, m, &port);
+  lagopus_packet_init(pkt, m, &port);
   action_pop->ethertype = 0x8847;
-  execute_action(&pkt, &action_list);
+  TEST_ASSERT_EQUAL(execute_action(pkt, &action_list), LAGOPUS_RESULT_OK);
   TEST_ASSERT_EQUAL_MESSAGE(OS_M_PKTLEN(m), 64 + 4,
                             "POP_MPLS length error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[12], 0x88,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[12], 0x88,
                             "POP_MPLS ethertype[0] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[13], 0x47,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[13], 0x47,
                             "POP_MPLS ethertype[1] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[16], 1,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[16], 1,
                             "POP_MPLS BOS error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[17], 100,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[17], 100,
                             "POP_MPLS TTL error.");
   action_pop->ethertype = 0x0800;
-  execute_action(&pkt, &action_list);
+  execute_action(pkt, &action_list);
   TEST_ASSERT_EQUAL_MESSAGE(OS_M_PKTLEN(m), 64,
                             "POP_MPLS(2) length error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[12], 0x08,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[12], 0x08,
                             "POP_MPLS(2) ethertype[0] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[13], 0x00,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[13], 0x00,
                             "POP_MPLS(2) ethertype[1] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[14], 0x45,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[14], 0x45,
                             "POP_MPLS(2) ip_vhl error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[22], 240,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[22], 240,
                             "POP_MPLS(2) ip_ttl error.");
 }
 
@@ -295,7 +295,7 @@ test_pop_vlan(void) {
   struct action_list action_list;
   struct action *action;
   struct ofp_action_pop_mpls *action_pop;
-  struct lagopus_packet pkt;
+  struct lagopus_packet *pkt;
   OS_MBUF *m;
 
   TAILQ_INIT(&action_list);
@@ -306,31 +306,31 @@ test_pop_vlan(void) {
   TAILQ_INSERT_TAIL(&action_list, action, entry);
 
 
-  m = calloc(1, sizeof(*m));
-  TEST_ASSERT_NOT_EQUAL_MESSAGE(m, NULL, "calloc error.");
-  m->data = &m->dat[128];
+  pkt = alloc_lagopus_packet();
+  TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
+  m = pkt->mbuf;
 
-  OS_M_PKTLEN(m) = 64 + 4;
-  m->data[12] = 0x81;
-  m->data[13] = 0x00;
-  m->data[14] = 0x30;
-  m->data[15] = 50;
-  m->data[16] = 0x08;
-  m->data[17] = 0x00;
-  m->data[18] = 0x45;
-  m->data[26] = 240;
+  OS_M_APPEND(m, 64 + 4);
+  OS_MTOD(m, uint8_t *)[12] = 0x81;
+  OS_MTOD(m, uint8_t *)[13] = 0x00;
+  OS_MTOD(m, uint8_t *)[14] = 0x30;
+  OS_MTOD(m, uint8_t *)[15] = 50;
+  OS_MTOD(m, uint8_t *)[16] = 0x08;
+  OS_MTOD(m, uint8_t *)[17] = 0x00;
+  OS_MTOD(m, uint8_t *)[18] = 0x45;
+  OS_MTOD(m, uint8_t *)[26] = 240;
 
-  lagopus_packet_init(&pkt, m, &port);
-  execute_action(&pkt, &action_list);
+  lagopus_packet_init(pkt, m, &port);
+  execute_action(pkt, &action_list);
   TEST_ASSERT_EQUAL_MESSAGE(OS_M_PKTLEN(m), 64,
                             "POP_VLAN length error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[12], 0x08,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[12], 0x08,
                             "POP_VLAN ethertype[0] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[13], 0x00,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[13], 0x00,
                             "POP_VLAN ethertype[1] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[14], 0x45,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[14], 0x45,
                             "POP_VLAN ip_vhl error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[22], 240,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[22], 240,
                             "POP_VLAN ip_ttl error.");
 }
 
@@ -344,7 +344,7 @@ test_pop_pbb(void) {
   struct action_list action_list;
   struct action *action;
   struct ofp_action_pop_mpls *action_pop;
-  struct lagopus_packet pkt;
+  struct lagopus_packet *pkt;
   OS_MBUF *m;
 
   TAILQ_INIT(&action_list);
@@ -354,36 +354,36 @@ test_pop_pbb(void) {
   lagopus_set_action_function(action);
   TAILQ_INSERT_TAIL(&action_list, action, entry);
 
-  m = calloc(1, sizeof(*m));
-  TEST_ASSERT_NOT_EQUAL_MESSAGE(m, NULL, "calloc error.");
-  m->data = &m->dat[128];
+  pkt = alloc_lagopus_packet();
+  TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
+  m = pkt->mbuf;
 
-  OS_M_PKTLEN(m) = 64 + 18;
-  OS_MEMCPY(&m->data[0], odhost, ETH_ALEN);
-  OS_MEMCPY(&m->data[6], oshost, ETH_ALEN);
-  m->data[12] = 0x88;
-  m->data[13] = 0xe7;
-  m->data[14] = 0x00;
-  m->data[15] = 0x11;
-  m->data[16] = 0x22;
-  m->data[17] = 0x33;
+  OS_M_APPEND(m, 64 + 18);
+  OS_MEMCPY(&OS_MTOD(m, uint8_t *)[0], odhost, ETH_ALEN);
+  OS_MEMCPY(&OS_MTOD(m, uint8_t *)[6], oshost, ETH_ALEN);
+  OS_MTOD(m, uint8_t *)[12] = 0x88;
+  OS_MTOD(m, uint8_t *)[13] = 0xe7;
+  OS_MTOD(m, uint8_t *)[14] = 0x00;
+  OS_MTOD(m, uint8_t *)[15] = 0x11;
+  OS_MTOD(m, uint8_t *)[16] = 0x22;
+  OS_MTOD(m, uint8_t *)[17] = 0x33;
   /* dhost and shost */
-  OS_MEMCPY(&m->data[18], idhost, ETH_ALEN);
-  OS_MEMCPY(&m->data[24], ishost, ETH_ALEN);
-  m->data[30] = 0x08;
-  m->data[31] = 0x00;
-  m->data[32] = 0x45;
+  OS_MEMCPY(&OS_MTOD(m, uint8_t *)[18], idhost, ETH_ALEN);
+  OS_MEMCPY(&OS_MTOD(m, uint8_t *)[24], ishost, ETH_ALEN);
+  OS_MTOD(m, uint8_t *)[30] = 0x08;
+  OS_MTOD(m, uint8_t *)[31] = 0x00;
+  OS_MTOD(m, uint8_t *)[32] = 0x45;
 
-  lagopus_packet_init(&pkt, m, &port);
-  execute_action(&pkt, &action_list);
+  lagopus_packet_init(pkt, m, &port);
+  execute_action(pkt, &action_list);
   TEST_ASSERT_EQUAL_MESSAGE(OS_M_PKTLEN(m), 64,
                             "POP_PBB length error.");
-  TEST_ASSERT_EQUAL_UINT8_ARRAY_MESSAGE(&m->data[0], idhost, ETH_ALEN,
+  TEST_ASSERT_EQUAL_UINT8_ARRAY_MESSAGE(&OS_MTOD(m, uint8_t *)[0], idhost, ETH_ALEN,
                                         "POP_PBB ether_dhost error.");
-  TEST_ASSERT_EQUAL_UINT8_ARRAY_MESSAGE(&m->data[6], ishost, ETH_ALEN,
+  TEST_ASSERT_EQUAL_UINT8_ARRAY_MESSAGE(&OS_MTOD(m, uint8_t *)[6], ishost, ETH_ALEN,
                                         "POP_PBB ether_shost error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[12], 0x08,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[12], 0x08,
                             "POP_PBB ethertype[0] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[13], 0x00,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[13], 0x00,
                             "POP_PBB ethertype[1] error.");
 }

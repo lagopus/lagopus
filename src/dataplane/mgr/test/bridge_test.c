@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,8 @@
 #include "lagopus/dp_apis.h"
 #include "openflow13.h"
 #include "ofp_band.h"
+
+#include "bridge.c"
 
 static struct bridge *bridge;
 static const char bridge_name[] = "br0";
@@ -211,43 +213,3 @@ test_dp_bridge_group_stats(void) {
   TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
 }
 
-void
-test_dp_bridge_l2_clear(void) {
-  lagopus_result_t rv;
-
-  rv = dp_bridge_l2_clear("bad");
-  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_NOT_FOUND);
-  rv = dp_bridge_l2_clear(bridge_name);
-  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
-}
-
-void
-test_dp_bridge_l2_expire_set(void) {
-  lagopus_result_t rv;
-
-  rv = dp_bridge_l2_expire_set("bad", 600);
-  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_NOT_FOUND);
-  rv = dp_bridge_l2_expire_set(bridge_name, 600);
-  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
-}
-
-void
-test_dp_bridge_l2_max_entries_set(void) {
-  lagopus_result_t rv;
-
-  rv = dp_bridge_l2_max_entries_set("bad", 600);
-  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_NOT_FOUND);
-  rv = dp_bridge_l2_max_entries_set(bridge_name, 600);
-  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
-}
-
-void
-test_dp_bridge_l2_entries_get(void) {
-  uint64_t nentries;
-  lagopus_result_t rv;
-
-  rv = dp_bridge_l2_entries_get("bad", &nentries);
-  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_NOT_FOUND);
-  rv = dp_bridge_l2_entries_get(bridge_name, &nentries);
-  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
-}

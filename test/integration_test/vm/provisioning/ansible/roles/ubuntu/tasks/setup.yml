@@ -1,0 +1,8 @@
+---
+# Setup.
+- name: set proxy for apt
+  shell: >-
+    echo "Acquire::http::Proxy \"${http_proxy}\";" >> /etc/apt/apt.conf
+  when: proxy_env.http_proxy
+  environment: proxy_env
+  sudo: yes

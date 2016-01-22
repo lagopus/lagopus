@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -93,15 +93,30 @@
 #include "lagopus/port.h"
 #include "lagopus_gstate.h"
 #include "lagopus/ofp_dp_apis.h"
-#include "lagopus/vector.h"
 
 #include "lagopus/dataplane.h"
 #include "pktbuf.h"
 #include "packet.h"
 #include "dpdk/dpdk.h"
+#include "mgr/thread.h"
 
 rte_atomic32_t dpdk_stop = RTE_ATOMIC32_INIT(0);
-bool rawsocket_only_mode;
+volatile bool rawsocket_only_mode = true;
+
+bool
+is_rawsocket_only_mode(void) {
+  return rawsocket_only_mode;
+}
+
+bool
+set_rawsocket_only_mode(bool newval) {
+  bool oldval;
+
+  oldval = rawsocket_only_mode;
+  rawsocket_only_mode = newval;
+
+  return oldval;
+}
 
 int
 app_lcore_main_loop(void *arg) {
@@ -155,9 +170,6 @@ app_init(void) {
   app_init_rings_rx();
   app_init_rings_tx();
   app_init_nics();
-#ifdef __linux__
-  app_init_kni();
-#endif /* __linux__ */
 
   printf("Initialization completed.\n");
 }
@@ -172,7 +184,7 @@ alloc_lagopus_packet(void) {
   unsigned sock;
 
   mbuf = NULL;
-  if (rawsocket_only_mode != true) {
+  if (is_rawsocket_only_mode() != true) {
     for (sock = 0; sock < APP_MAX_SOCKETS; sock++) {
       if (app.pools[sock] != NULL) {
         mbuf = rte_pktmbuf_alloc(app.pools[sock]);
@@ -220,7 +232,7 @@ copy_packet(struct lagopus_packet *src_pkt) {
   OS_M_APPEND(mbuf, pktlen);
   memcpy(OS_MTOD(pkt->mbuf, char *), OS_MTOD(src_pkt->mbuf, char *), pktlen);
   pkt->in_port = src_pkt->in_port;
-  pkt->flags = PKT_FLAG_CACHED_FLOW;
+  pkt->flags = src_pkt->flags | PKT_FLAG_CACHED_FLOW;
   /* other pkt members are not used in physical output. */
   return pkt;
 }
@@ -232,9 +244,12 @@ lagopus_instruction_experimenter(__UNUSED struct lagopus_packet *pkt,
 
 /* --------------------------Lagopus code end---------------------------- */
 
-lagopus_result_t
-dpdk_thread_loop(__UNUSED const lagopus_thread_t *selfptr,
-                 __UNUSED void *arg) {
+/**
+ * loop function wait for finish all DPDK thread.
+ */
+static lagopus_result_t
+dp_dpdk_thread_loop(__UNUSED const lagopus_thread_t *selfptr,
+                    __UNUSED void *arg) {
   unsigned lcore_id;
 
   lagopus_result_t rv;
@@ -265,7 +280,7 @@ dpdk_thread_loop(__UNUSED const lagopus_thread_t *selfptr,
 }
 
 lagopus_result_t
-lagopus_dataplane_init(int argc, const char *const argv[]) {
+dpdk_dataplane_init(int argc, const char *const argv[]) {
   int ret;
   size_t argsize;
   char **copy_argv;
@@ -307,7 +322,7 @@ lagopus_dataplane_init(int argc, const char *const argv[]) {
     return LAGOPUS_RESULT_INVALID_ARGS;
   }
 
-  if (rawsocket_only_mode != true) {
+  if (is_rawsocket_only_mode() != true) {
     /* Init */
     app_init();
     app_print_params();
@@ -315,3 +330,97 @@ lagopus_dataplane_init(int argc, const char *const argv[]) {
 
   return LAGOPUS_RESULT_OK;
 }
+
+static lagopus_thread_t dpdk_thread = NULL;
+static bool dpdk_run = false;
+static lagopus_mutex_t dpdk_lock = NULL;
+rte_atomic32_t dpdk_stop;
+
+lagopus_result_t
+dp_dpdk_thread_init(int argc,
+                    const char *const argv[],
+                    __UNUSED void *extarg,
+                    lagopus_thread_t **thdptr) {
+  static struct dataplane_arg dparg;
+
+  if (is_rawsocket_only_mode() != true) {
+    dparg.threadptr = &dpdk_thread;
+    dparg.lock = &dpdk_lock;
+    lagopus_thread_create(&dpdk_thread, dp_dpdk_thread_loop,
+                          dp_finalproc, dp_freeproc, "dp_dpdk", &dparg);
+    if (lagopus_mutex_create(&dpdk_lock) != LAGOPUS_RESULT_OK) {
+      lagopus_exit_fatal("lagopus_mutex_create");
+    }
+  }
+  *thdptr = &dpdk_thread;
+  return LAGOPUS_RESULT_OK;
+}
+
+lagopus_result_t
+dp_dpdk_thread_start(void) {
+  lagopus_result_t rv;
+
+  rv = LAGOPUS_RESULT_OK;
+  /* launch per-lcore init on every lcore */
+  if (dpdk_run == false && is_rawsocket_only_mode() != true) {
+    rte_eal_mp_remote_launch(app_lcore_main_loop, NULL, SKIP_MASTER);
+    rv = dp_thread_start(&dpdk_thread, &dpdk_lock, &dpdk_run);
+  }
+  return rv;
+}
+
+void
+dp_dpdk_thread_fini(void) {
+  if (is_rawsocket_only_mode() != true) {
+    dp_thread_finalize(&dpdk_thread);
+  }
+}
+
+lagopus_result_t
+dp_dpdk_thread_shutdown(shutdown_grace_level_t level) {
+  lagopus_result_t rv;
+
+  rv = LAGOPUS_RESULT_OK;
+  if (is_rawsocket_only_mode() != true) {
+    rv = dp_thread_shutdown(&dpdk_thread, &dpdk_lock, &dpdk_run, level);
+  }
+  return rv;
+}
+
+lagopus_result_t
+dp_dpdk_thread_stop(void) {
+  lagopus_result_t rv;
+
+  rte_atomic32_inc(&dpdk_stop);
+  rv = LAGOPUS_RESULT_OK;
+  if (is_rawsocket_only_mode() != true) {
+    rv = dp_thread_stop(&dpdk_thread, &dpdk_run);
+  }
+  return rv;
+}
+
+#if 0
+#define MODIDX_DPDK  LAGOPUS_MODULE_CONSTRUCTOR_INDEX_BASE + 109
+#define MODNAME_DPDK "dp_dpdk"
+
+static void dpdk_ctors(void) __attr_constructor__(MODIDX_DPDK);
+static void dpdk_dtors(void) __attr_constructor__(MODIDX_DPDK);
+
+static void dpdk_ctors (void) {
+  lagopus_result_t rv;
+  const char *name = "dp_dpdk";
+
+  rv = lagopus_module_register(name,
+                               dp_dpdk_thread_init,
+                               NULL,
+                               dp_dpdk_thread_start,
+                               dp_dpdk_thread_shutdown,
+                               dp_dpdk_thread_stop,
+                               dp_dpdk_thread_fini,
+                               dp_dpdk_thread_usage);
+  if (rv != LAGOPUS_RESULT_OK) {
+    lagopus_perror(rv);
+    lagopus_exit_fatal("can't register the \"%s\" module.\n", name);
+  }
+}
+#endif /* 0 */

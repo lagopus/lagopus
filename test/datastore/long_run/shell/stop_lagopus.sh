@@ -1,10 +1,10 @@
 #!/bin/sh
 
-# ./stop_lagopus.sh <LOG_DIR>
+# ./stop_lagopus.sh <LOG_DIR> <TIME_OUT>
 
 LOG_DIR=${1:-"."}
 PID_FILE="/var/run/lagopus.pid"
-RETRY_MAX=10
+RETRY_MAX=${2:-30}
 PROC_STATUS_FILE="${LOG_DIR}/end_proc_status.txt"
 
 if [ -f "${PID_FILE}" ]; then

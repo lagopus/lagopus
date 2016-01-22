@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1111,7 +1111,7 @@ policer_cmd_update_internal(datastore_interp_t *iptr,
   switch (state) {
     case DATASTORE_INTERP_STATE_AUTO_COMMIT: {
       i = 0;
-      while (i < UPDATE_RETRY_MAX) {
+      while (i < UPDATE_CNT_MAX) {
         ret = policer_cmd_do_update(iptr, state, conf,
                                     is_propagation,
                                     is_enable_disable_cmd,

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,28 +25,10 @@
 #include "lagopus/flowdb.h"
 #include "lagopus/port.h"
 #include "lagopus/dataplane.h"
-#include "lagopus/vector.h"
 #include "lagopus/ofp_dp_apis.h"
 
 #include "lagopus/dp_apis.h"
 #include "lagopus/interface.h"
-
-struct vector *
-ports_alloc(void) {
-  struct vector *v;
-
-  v = vector_alloc();
-  if (v == NULL) {
-    return NULL;
-  }
-
-  return v;
-}
-
-void
-ports_free(struct vector *v) {
-  vector_free(v);
-}
 
 /**
  * no driver version of port_stats().
@@ -116,11 +98,30 @@ port_free(struct port *port) {
  * @retval    !=NULL  port structure
  */
 struct port *
-port_lookup(struct vector *v, uint32_t id) {
-  if (id >= v->allocated) {
-    return NULL;
+port_lookup(lagopus_hashmap_t *hm, uint32_t id) {
+  struct port *port;
+
+  lagopus_hashmap_find(hm, id, &port);
+  return port;
+}
+
+static bool
+ifindex2port_do_iterate(void *key, void *val,
+                        lagopus_hashentry_t he, void *arg) {
+  struct port **portp;
+  struct port *port;
+  uint32_t *idxp;
+
+  port = val;
+  portp = arg;
+  idxp = arg;
+  if (port->ifindex == *idxp) {
+    *portp = port;
+    return false;
+  } else {
+    *portp = NULL;
+    return true;
   }
-  return (struct port *)v->index[id];
 }
 
 /**
@@ -132,103 +133,61 @@ port_lookup(struct vector *v, uint32_t id) {
  *              ==NULL  lagopus port is not configured
  */
 struct port *
-ifindex2port(struct vector *v, uint32_t ifindex) {
+ifindex2port(lagopus_hashmap_t *hm, uint32_t ifindex) {
+  struct port *port;
   unsigned int id;
+  struct port **arg;
 
-  for (id = 0; id < v->allocated; id++) {
-    struct port *port;
-
-    port = v->index[id];
-    if (port != NULL && port->ifindex == ifindex) {
-      return port;
-    }
-  }
-  return NULL;
+  arg = (void *)ifindex;
+  lagopus_hashmap_iterate(hm, ifindex2port_do_iterate, &arg);
+  port = *arg;
+  return port;
 }
 
-struct port *
-port_lookup_number(struct vector *v, uint32_t port_no) {
-  unsigned int id;
+static void
+port_add_stats(struct port *port, struct port_stats_list *list) {
+  struct port_stats *stats;
 
-  for (id = 0; id < v->allocated; id++) {
-    struct port *port;
-
-    port = v->index[id];
-    if (port != NULL && port->ofp_port.port_no == port_no) {
-      return port;
+  if (port->interface != NULL && port->interface->stats != NULL) {
+    stats = port->interface->stats(port);
+    if (stats != NULL) {
+      TAILQ_INSERT_TAIL(list, stats, entry);
     }
   }
-  return NULL;
 }
 
-unsigned int
-num_ports(struct vector *v) {
-  unsigned int id, count;
+static bool
+port_do_stats_iterate(void *key, void *val,
+                      lagopus_hashentry_t he, void *arg) {
+  struct port *port;
+  struct port_stats_list *list;
 
-  count = 0;
-  for (id = 0; id <= v->allocated; id++) {
-    struct port *port;
+  port = val;
+  list = arg;
 
-    port = v->index[id];
-    if (port != NULL) {
-      count++;
-    }
-  }
-  return count;
+  port_add_stats(port, list);
+  return true;
 }
 
 lagopus_result_t
-lagopus_get_port_statistics(struct vector *ports,
+lagopus_get_port_statistics(lagopus_hashmap_t *hm,
                             struct ofp_port_stats_request *request,
                             struct port_stats_list *list,
                             struct ofp_error *error) {
   struct port *port;
-  struct port_stats *stats;
-  vindex_t i, max;
 
-  max = ports->allocated;
   if (request->port_no == OFPP_ANY) {
-    for (i = 0; i < max; i++) {
-      port = vector_slot(ports, i);
-      if (port == NULL) {
-        continue;
-      }
-      /* XXX read lock */
-      if (port->interface == NULL || port->interface->stats == NULL) {
-        continue;
-      }
-      stats = port->interface->stats(port);
-      /* XXX unlock */
-      if (stats == NULL) {
-        continue;
-      }
-      TAILQ_INSERT_TAIL(list, stats, entry);
-    }
+    lagopus_hashmap_iterate(hm, port_do_stats_iterate, list);
   } else {
-    for (i = 0; i < max; i++) {
-      port = vector_slot(ports, i);
-      if (port == NULL) {
-        continue;
-      }
-      if (port->ofp_port.port_no == request->port_no) {
-        break;
-      }
-    }
-    if (i == max) {
-      ofp_error_set(error, OFPET_BAD_REQUEST, OFPBRC_BAD_PORT);
+    if (lagopus_hashmap_find(hm, (void *)request->port_no, &port)
+        != LAGOPUS_RESULT_OK) {
+      error->type = OFPET_BAD_REQUEST;
+      error->code = OFPBRC_BAD_PORT;
+      lagopus_msg_info("port stats: %d: no such port (%d:%d)",
+                       request->port_no, error->type, error->code);
       return LAGOPUS_RESULT_OFP_ERROR;
     }
-    /* XXX read lock */
-    if (port->interface != NULL && port->interface->stats != NULL) {
-      stats = port->interface->stats(port);
-    } else {
-      stats = NULL;
-    }
-    /* XXX unlock */
-    if (stats == NULL) {
-      return LAGOPUS_RESULT_NO_MEMORY;
-    }
-    TAILQ_INSERT_TAIL(list, stats, entry);
+    port_add_stats(port, list);
   }
 
   return LAGOPUS_RESULT_OK;
@@ -261,14 +220,20 @@ port_config(struct bridge *bridge,
   uint32_t oldconfig, newconfig;
 
   if (port_mod->port_no != OFPP_CONTROLLER) {
-    port = port_lookup(bridge->ports, port_mod->port_no);
+    port = port_lookup(&bridge->ports, port_mod->port_no);
     if (port == NULL) {
-      ofp_error_set(error, OFPET_PORT_MOD_FAILED, OFPPMFC_BAD_PORT);
+      error->type = OFPET_PORT_MOD_FAILED;
+      error->code = OFPPMFC_BAD_PORT;
+      lagopus_msg_info("port config: %d: no such port (%d:%d)",
+                       port_mod->port_no, error->type, error->code);
       return LAGOPUS_RESULT_OFP_ERROR;
     }
     ofp_port = &port->ofp_port;
     if (port->interface == NULL) {
-      ofp_error_set(error, OFPET_PORT_MOD_FAILED, OFPPMFC_BAD_HW_ADDR);
+      error->type = OFPET_PORT_MOD_FAILED;
+      error->code = OFPPMFC_BAD_HW_ADDR;
+      lagopus_msg_info("port config: %d: do not assigned interface (%d:%d)",
+                       port_mod->port_no, error->type, error->code);
       return LAGOPUS_RESULT_OFP_ERROR;
     }
   } else {
@@ -277,7 +242,12 @@ port_config(struct bridge *bridge,
   }
   /* XXX write lock for thread safe */
   if ((port_mod->config & (uint32_t)~port_mod->mask) != 0) {
-    ofp_error_set(error, OFPET_PORT_MOD_FAILED, OFPPMFC_BAD_CONFIG);
+    error->type = OFPET_PORT_MOD_FAILED;
+    error->code = OFPPMFC_BAD_CONFIG;
+    lagopus_msg_info("port config: "
+                     "config(0x%x) and mask(0x%x) inconsistency (%d:%d)",
+                     port_mod->config, port_mod->mask,
+                     error->type, error->code);
     return LAGOPUS_RESULT_OFP_ERROR;
   }
   oldconfig = ofp_port->config;
@@ -297,31 +267,34 @@ port_config(struct bridge *bridge,
   return LAGOPUS_RESULT_OK;
 }
 
+static bool
+port_do_desc_iterate(void *key, void *val,
+                     lagopus_hashentry_t he, void *arg) {
+  struct port_desc *desc;
+  struct port *port;
+  struct port_stats_list *list;
+
+  port = val;
+  list = arg;
+
+  desc = calloc(1, sizeof(struct port_desc));
+  if (desc == NULL) {
+    return true;
+  }
+  memcpy(&desc->ofp, &port->ofp_port, sizeof(struct ofp_port));
+  TAILQ_INSERT_TAIL(list, desc, entry);
+  return true;
+}
+
 lagopus_result_t
-get_port_desc(struct vector *ports,
+get_port_desc(lagopus_hashmap_t *hm,
               struct port_desc_list *list,
               struct ofp_error *error) {
   struct port *port;
-  struct port_desc *desc;
-  vindex_t i, max;
 
   (void) error;
 
-  max = ports->allocated;
-  for (i = 0; i < max; i++) {
-    port = vector_slot(ports, i);
-    if (port == NULL) {
-      continue;
-    }
-    /**/
-    desc = calloc(1, sizeof(struct port_desc));
-    if (desc == NULL) {
-      return LAGOPUS_RESULT_NO_MEMORY;
-    }
-    memcpy(&desc->ofp, &port->ofp_port, sizeof(struct ofp_port));
-    TAILQ_INSERT_TAIL(list, desc, entry);
-  }
-
+  lagopus_hashmap_iterate(hm, port_do_desc_iterate, list);
   return LAGOPUS_RESULT_OK;
 }
 
@@ -332,7 +305,7 @@ port_liveness(struct bridge *bridge, uint32_t port_no) {
   if (port_no == OFPP_ANY) {
     return false;
   }
-  port = port_lookup(bridge->ports, port_no);
+  port = port_lookup(&bridge->ports, port_no);
   if (port == NULL) {
     return false;
   }
@@ -375,7 +348,7 @@ ofp_port_stats_request_get(uint64_t dpid,
     return LAGOPUS_RESULT_NOT_FOUND;
   }
 
-  return lagopus_get_port_statistics(bridge->ports,
+  return lagopus_get_port_statistics(&bridge->ports,
                                      port_stats_request,
                                      port_stats_list,
                                      error);
@@ -395,5 +368,5 @@ ofp_port_get(uint64_t dpid,
     return LAGOPUS_RESULT_NOT_FOUND;
   }
 
-  return get_port_desc(bridge->ports, port_desc_list, error);
+  return get_port_desc(&bridge->ports, port_desc_list, error);
 }

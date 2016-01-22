@@ -1,4 +1,18 @@
-/* %COPYRIGHT% */
+/*
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 #include "unity.h"
 #include "lagopus_apis.h"
@@ -19,7 +33,6 @@ static lagopus_dstring_t ds = NULL;
 static lagopus_hashmap_t tbl = NULL;
 static datastore_interp_t interp = NULL;
 static bool destroy = false;
-static struct event_manager *em = NULL;
 
 
 void
@@ -29,7 +42,7 @@ setUp(void) {
   char *str = NULL;
 
   /* create interp. */
-  INTERP_CREATE(ret, NULL, interp, tbl, ds, em);
+  INTERP_CREATE(ret, NULL, interp, tbl, ds);
 
   /* bridge create cmd. */
   TEST_BRIDGE_CREATE(ret, &interp, state, &tbl, &ds, str,
@@ -47,12 +60,17 @@ tearDown(void) {
                       "b1", "cha1", "c1", "i1", "p1");
 
   /* destroy interp. */
-  INTERP_DESTROY(NULL, interp, tbl, ds, em, destroy);
+  INTERP_DESTROY(NULL, interp, tbl, ds, destroy);
 }
 
 static void
 create_buckets(struct bucket_list *bucket_list) {
   TAILQ_INIT(bucket_list);
+}
+
+static void
+create_bands(struct meter_band_list *band_list) {
+  TAILQ_INIT(band_list);
 }
 
 void
@@ -9951,6 +9969,10 @@ test_flow_cmd_mod_add_meter_01(void) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
   char *str = NULL;
+  uint64_t dpid = 1;
+  struct ofp_meter_mod meter_mod;
+  struct meter_band_list band_list;
+  struct ofp_error error;
   const char *argv1[] = {"flow", "b1", "add",
                          "meter=1",
                          NULL
@@ -9965,6 +9987,14 @@ test_flow_cmd_mod_add_meter_01(void) {
       "\"cookie\":0,\n"
       "\"actions\":[{\"meter\":1}]}]}]}";
 
+  /* meter_mod (ADD). */
+  create_bands(&band_list);
+  memset(&meter_mod, 0, sizeof(meter_mod));
+  meter_mod.meter_id = 1;
+  meter_mod.command = OFPMC_ADD;
+  TEST_ASSERT_METER_ADD(ret, dpid, &meter_mod,
+                        &band_list, &error);
+
   /* add cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
                  flow_cmd_parse, &interp, state,
@@ -9974,6 +10004,9 @@ test_flow_cmd_mod_add_meter_01(void) {
   /* dump cmd. */
   TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
                      &ds, str, test_str2);
+
+  /* meter_mod (DEL). */
+  TEST_ASSERT_METER_DEL(ret, dpid, &meter_mod, &error);
 }
 
 void
@@ -9981,6 +10014,10 @@ test_flow_cmd_mod_add_meter_02(void) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
   char *str = NULL;
+  uint64_t dpid = 1;
+  struct ofp_meter_mod meter_mod;
+  struct meter_band_list band_list;
+  struct ofp_error error;
   const char *argv1[] = {"flow", "b1", "add",
                          "meter=4294967295",
                          NULL
@@ -9995,6 +10032,14 @@ test_flow_cmd_mod_add_meter_02(void) {
       "\"cookie\":0,\n"
       "\"actions\":[{\"meter\":4294967295}]}]}]}";
 
+  /* meter_mod (ADD). */
+  create_bands(&band_list);
+  memset(&meter_mod, 0, sizeof(meter_mod));
+  meter_mod.meter_id = 4294967295;
+  meter_mod.command = OFPMC_ADD;
+  TEST_ASSERT_METER_ADD(ret, dpid, &meter_mod,
+                        &band_list, &error);
+
   /* add cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
                  flow_cmd_parse, &interp, state,
@@ -10004,6 +10049,9 @@ test_flow_cmd_mod_add_meter_02(void) {
   /* dump cmd. */
   TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
                      &ds, str, test_str2);
+
+  /* meter_mod (DEL). */
+  TEST_ASSERT_METER_DEL(ret, dpid, &meter_mod, &error);
 }
 
 void

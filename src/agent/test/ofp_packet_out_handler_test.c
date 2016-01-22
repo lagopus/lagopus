@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,7 +33,7 @@ setUp(void) {
   /* for request data in ofp_error. */
   req_pbuf = pbuf_alloc(OFP_ERROR_MAX_SIZE);
   if (req_pbuf == NULL) {
-    TEST_FAIL_MESSAGE("pbuf_alloc error.")
+    TEST_FAIL_MESSAGE("pbuf_alloc error.");
   }
 }
 

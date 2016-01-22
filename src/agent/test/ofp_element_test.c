@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,6 @@
 
 #include <sys/queue.h>
 #include "unity.h"
-#include "event.h"
 #include "lagopus_apis.h"
 #include "lagopus/pbuf.h"
 #include "openflow.h"

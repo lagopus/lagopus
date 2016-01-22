@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,22 +22,20 @@
 #ifndef SRC_INCLUDE_LAGOPUS_DATAPLANE_H_
 #define SRC_INCLUDE_LAGOPUS_DATAPLANE_H_
 
-#ifdef HAVE_DPDK
-#include <rte_ether.h>
-#else
-#include <net/ethernet.h>
-#endif /* HAVE_DPDK */
-#include <netinet/in.h>
-
 #include "lagopus_thread.h"
 #include "lagopus_gstate.h"
 #include "lagopus/ethertype.h"
 #include "lagopus/flowdb.h"
 #include "lagopus/flowinfo.h"
 #include "lagopus/port.h"
-#include "lagopus/interface.h"
+
+struct interface;
 
 #define LAGOPUS_DATAPLANE_VERSION "0.9"
+
+#ifndef IPPROTO_SCTP
+#define IPPROTO_SCTP 132
+#endif /* IPPROTO_SCTP */
 
 /*
  * OpenFlow support level configuration.
@@ -87,147 +85,6 @@ int
 dpdk_send_packet_physical(struct lagopus_packet *pkt, struct interface *);
 int
 rawsock_send_packet_physical(struct lagopus_packet *pkt, uint32_t portid);
-
-
-/* Inline functions. */
-/**
- * calc packet header size.
- * it like packet classification.
- */
-static inline size_t
-calc_packet_header_size(const char *pkt_data, size_t len) {
-  const uint8_t *s, *p;
-  uint16_t ether_type;
-  uint8_t proto;
-
-  s = p = (uint8_t *)pkt_data;
-  p += ETHER_ADDR_LEN * 2;
-  while (p - s < (int)len) {
-    ether_type = (uint16_t)(*p << 8 | *(p +1));
-    p += ETHER_TYPE_LEN;
-  skip:
-    switch (ether_type) {
-      case ETHERTYPE_VLAN:
-      case 0x88a8:
-        p += 2;
-        break;
-      case ETHERTYPE_ARP:
-        p += 8 + 6 + 4 + 6 + 4;
-        goto done;
-      case ETHERTYPE_IP:
-        proto = *(p + 9);
-        if ((*p & 0x0f) == 0) {
-          goto done;
-        }
-        p += (*p & 0x0f) << 2;
-      ipproto:
-        switch (proto) {
-          case IPPROTO_ICMP:
-          case IPPROTO_ICMPV6:
-            /* OpenFlow look up type and code. */
-            p += 2;
-            goto done;
-          case IPPROTO_TCP:
-            /* OpenFlow look up src and dst port. */
-            p += 4;
-            goto done;
-          case IPPROTO_UDP:
-            /* OpenFlow look up src and dst port. */
-#if 0
-            if (port == vxlan) {
-              p += sizeof udphdr;
-              p += vxlanhdr;
-              break;
-            }
-#endif
-            p += 4;
-            goto done;
-          case IPPROTO_SCTP:
-            /* OpenFlow look up src and dst port. */
-            p += 4;
-            goto done;
-#if 0
-          case IPPROTO_GRE:
-            p += 4; /* XXX depend on flags */
-            ether_type = ETHERTYPE_IP;
-            goto skip;
-#endif
-          case IPPROTO_HOPOPTS:
-          case IPPROTO_ROUTING:
-          case IPPROTO_ESP:
-          case IPPROTO_DSTOPTS:
-            proto = *p;
-            if (p[1] == 0) {
-              goto done;
-            }
-            p += p[1] << 3;
-            goto ipproto;
-          case IPPROTO_FRAGMENT:
-            proto = *p;
-            p += 8;
-            goto ipproto;
-          case IPPROTO_AH:
-            proto = *p;
-            if (p[1] == 0) {
-              goto done;
-            }
-            p += p[1] << 2;
-            goto ipproto;
-          case IPPROTO_NONE:
-            proto = *p;
-            p += 2;
-            goto ipproto;
-          default:
-            goto done;
-        }
-        break;
-      case ETHERTYPE_IPV6:
-        proto = p[6];
-        p += 8 + 16 + 16;
-        goto ipproto;
-      case ETHERTYPE_MPLS:
-      case ETHERTYPE_MPLS_MCAST:
-        if ((p[2] & 1) == 0) {
-          /* not bos */
-          ether_type = ETHERTYPE_MPLS;
-        } else {
-          /* inner ether type is not exist in packet.  guess it. */
-          if (p[4] >= 0x45 && p[4] <= 0x4f) {
-            ether_type = ETHERTYPE_IP;
-          } else if (p[4] >= 0x60 && p[4] <= 0x6f) {
-            ether_type = ETHERTYPE_IPV6;
-          } else if (p[4] == 0x00 && p[5] == 0x01 &&
-                     p[6] == 0x00 && p[7] == 0x80) {
-            ether_type = ETHERTYPE_ARP;
-          } else if ((p[6] == 0x08 && p[7] == 0x00 &&
-                      p[8] >= 0x45 && p[8] <= 0x4f) ||
-                     (p[6] == 0x86 && p[7] == 0xdd &&
-                      p[8] >= 0x45 && p[8] <= 0x4f) ||
-                     (p[6] == 0x08 && p[7] == 0x06 &&
-                      p[8] == 0x00 && p[9] == 0x80) ||
-                     (p[6] == 0x81 && p[7] == 0x00) ||
-                     (p[6] == 0x88 && p[7] == 0xa8)) {
-            /* L3 over VLAN */
-            ether_type = (uint16_t)((p[6] << 8) | p[7]);
-            p += 2;
-          } else {
-            /* guess other protocols? */
-            p += 4;
-            goto done;
-          }
-        }
-        p += 4;
-        goto skip;
-      case ETHERTYPE_PBB:
-        p += 16;
-        break;
-      default:
-        goto done;
-    }
-  }
-done:
-  return (size_t)(p - s);
-}
 
 lagopus_result_t
 execute_instruction_meter(struct lagopus_packet *pkt,
@@ -449,44 +306,9 @@ execute_action(struct lagopus_packet *pkt,
  * @param[in]   port    physical port number (ifindex).
  *
  */
-static inline int
+int
 lagopus_send_packet_physical(struct lagopus_packet *pkt,
-                             struct interface *ifp) {
-  if (ifp == NULL) {
-    return LAGOPUS_RESULT_OK;
-  }
-  switch (ifp->info.type) {
-    case DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_PHY:
-    case DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_PCAP:
-#ifdef HAVE_DPDK
-      return dpdk_send_packet_physical(pkt, ifp);
-#else
-      break;
-#endif
-    case DATASTORE_INTERFACE_TYPE_ETHERNET_RAWSOCK:
-      return rawsock_send_packet_physical(pkt,
-                                          ifp->info.eth_rawsock.port_number);
-
-    case DATASTORE_INTERFACE_TYPE_UNKNOWN:
-    case DATASTORE_INTERFACE_TYPE_VXLAN:
-      /* TODO */
-      lagopus_packet_free(pkt);
-      return LAGOPUS_RESULT_OK;
-    default:
-      break;
-  }
-
-  return LAGOPUS_RESULT_INVALID_ARGS;
-}
-
-/**
- * Send packet to kernel normal path related with physical port.
- *
- * @param[in]   pkt     packet.
- * @param[in]   port    physical port number (ifindex).
- *
- */
-int lagopus_send_packet_normal(struct lagopus_packet *, uint32_t);
+                             struct interface *ifp);
 
 /**
  * Return if port is using by lagopus vswitch.
@@ -577,7 +399,7 @@ lagopus_get_switch_config(struct bridge *bridge,
                           struct ofp_error *error);
 
 /**
- * initialize dataplane.  e.g. setup Intel DPDK.
+ * initialize Intel DPDK related APIs.
  *
  * @param[in]   argc                    argc from command line
  * @param[in]   argv                    argv from commend line
@@ -589,7 +411,7 @@ lagopus_get_switch_config(struct bridge *bridge,
  * as soon as possible in the application's main() function.
  */
 lagopus_result_t
-lagopus_dataplane_init(int argc, const char * const argv[]);
+dpdk_dataplane_init(int argc, const char * const argv[]);
 
 /**
  */
@@ -597,80 +419,191 @@ lagopus_result_t
 rawsock_dataplane_init(int argc, const char *const argv[]);
 
 /**
+ * Dataplane rawsocket thread initialization.
  */
 lagopus_result_t
-dataplane_initialize(int argc, const char *const argv[],
-                     void *extarg, lagopus_thread_t **thdptr);
+dp_rawsock_thread_init(int argc, const char *const argv[],
+                       void *extarg, lagopus_thread_t **thdptr);
 
 /**
- */
-void dataplane_finalize(void);
-
-/**
- * loop function wait for finish all DPDK thread.
- */
-lagopus_result_t
-dpdk_thread_loop(const lagopus_thread_t *, void *);
-
-/**
- * dataplane start function.
+ * Dataplane rawsock thread start function.
  *
  * @retval      LAGOPUS_RESULT_OK       dataplane main thread is created.
  * @retval      !=LAGOPUS_RESULT_OK     dataplane main thread is not created.
+ */
+lagopus_result_t dp_rawsock_thread_start(void);
+
+/**
+ * Dataplane rawsock thread stop function.
+ */
+lagopus_result_t dp_rawsock_thread_stop(void);
+
+/**
+ * Dataplane rawsock thread shutdown function.
+ */
+lagopus_result_t dp_rawsock_thread_shutdown(shutdown_grace_level_t);
+
+/**
+ * Dataplane rawsock thread finalize function.
+ */
+void dp_rawsock_thread_fini(void);
+
+/**
+ * Dataplane dpdk thread initialization.
+ */
+lagopus_result_t
+dp_dpdk_thread_init(int argc, const char *const argv[],
+                       void *extarg, lagopus_thread_t **thdptr);
+
+/**
+ * Dataplane dpdk thread start function.
  *
- * Intel DPDK version note:
- * This function is to be executed on the MASTER lcore only.
+ * @retval      LAGOPUS_RESULT_OK       dataplane main thread is created.
+ * @retval      !=LAGOPUS_RESULT_OK     dataplane main thread is not created.
  */
-lagopus_result_t dataplane_start(void);
+lagopus_result_t dp_dpdk_thread_start(void);
 
 /**
- * dataplane shutdown function.
+ * Dataplane dpdk thread stop function.
  */
-lagopus_result_t dataplane_shutdown(shutdown_grace_level_t);
+lagopus_result_t dp_dpdk_thread_stop(void);
 
 /**
- * dataplane stop function.
+ * Dataplane dpdk thread shutdown function.
  */
-lagopus_result_t dataplane_stop(void);
+lagopus_result_t dp_dpdk_thread_shutdown(shutdown_grace_level_t);
 
 /**
- * Dataplane communicator thread
+ * Dataplane dpdk thread finalize function.
+ */
+void dp_dpdk_thread_fini(void);
+
+/**
+ * Dataplane dpdk thread usage function.
+ */
+void dp_dpdk_thread_usage(FILE *fp);
+
+/**
+ * Dataplane comm thread initialization.
  */
 lagopus_result_t
-dpcomm_initialize(int argc,
-                  const char *const argv[],
-                  void *extarg,
-                  lagopus_thread_t **thdptr);
+dp_comm_thread_init(int argc, const char *const argv[],
+                       void *extarg, lagopus_thread_t **thdptr);
 
 /**
- * Dataplane communicator thread
+ * Dataplane comm thread start function.
+ *
+ * @retval      LAGOPUS_RESULT_OK       dataplane main thread is created.
+ * @retval      !=LAGOPUS_RESULT_OK     dataplane main thread is not created.
+ */
+lagopus_result_t dp_comm_thread_start(void);
+
+/**
+ * Dataplane comm thread stop function.
+ */
+lagopus_result_t dp_comm_thread_stop(void);
+
+/**
+ * Dataplane comm thread shutdown function.
+ */
+lagopus_result_t dp_comm_thread_shutdown(shutdown_grace_level_t);
+
+/**
+ * Dataplane comm thread finalize function.
+ */
+void dp_comm_thread_fini(void);
+
+/**
+ * Dataplane timer thread initialization.
  */
 lagopus_result_t
-dpcomm_start(void);
+dp_timer_thread_init(int argc, const char *const argv[],
+                       void *extarg, lagopus_thread_t **thdptr);
 
 /**
- * Dataplane communicator thread
+ * Dataplane timer thread start function.
+ *
+ * @retval      LAGOPUS_RESULT_OK       dataplane main thread is created.
+ * @retval      !=LAGOPUS_RESULT_OK     dataplane main thread is not created.
  */
-void
-dpcomm_finalize(void);
+lagopus_result_t dp_timer_thread_start(void);
 
 /**
- * Dataplane communicator thread
+ * Dataplane timer thread stop function.
+ */
+lagopus_result_t dp_timer_thread_stop(void);
+
+/**
+ * Dataplane timer thread shutdown function.
+ */
+lagopus_result_t dp_timer_thread_shutdown(shutdown_grace_level_t);
+
+/**
+ * Dataplane timer thread finalize function.
+ */
+void dp_timer_thread_fini(void);
+
+#ifdef HYBRID
+/**
+ * Dataplane tapio thread initialization.
  */
 lagopus_result_t
-dpcomm_shutdown(shutdown_grace_level_t level);
+dp_tapio_thread_init(int argc, const char *const argv[],
+                       void *extarg, lagopus_thread_t **thdptr);
 
 /**
- * Dataplane communicator thread
+ * Dataplane tapio thread start function.
+ *
+ * @retval      LAGOPUS_RESULT_OK       dataplane main thread is created.
+ * @retval      !=LAGOPUS_RESULT_OK     dataplane main thread is not created.
  */
-lagopus_result_t
-dpcomm_stop(void);
+lagopus_result_t dp_tapio_thread_start(void);
 
 /**
- * dataplane communicator loop function.
+ * Dataplane tapio thread stop function.
+ */
+lagopus_result_t dp_tapio_thread_stop(void);
+
+/**
+ * Dataplane tapio thread shutdown function.
+ */
+lagopus_result_t dp_tapio_thread_shutdown(shutdown_grace_level_t);
+
+/**
+ * Dataplane tapio thread finalize function.
+ */
+void dp_tapio_thread_fini(void);
+
+/**
+ * Dataplane netlink thread initialization.
  */
 lagopus_result_t
-comm_thread_loop(const lagopus_thread_t *, void *);
+dp_netlink_thread_init(int argc, const char *const argv[],
+                       void *extarg, lagopus_thread_t **thdptr);
+
+/**
+ * Dataplane netlink thread start function.
+ *
+ * @retval      LAGOPUS_RESULT_OK       dataplane main thread is created.
+ * @retval      !=LAGOPUS_RESULT_OK     dataplane main thread is not created.
+ */
+lagopus_result_t dp_netlink_thread_start(void);
+
+/**
+ * Dataplane netlink thread stop function.
+ */
+lagopus_result_t dp_netlink_thread_stop(void);
+
+/**
+ * Dataplane netlink thread shutdown function.
+ */
+lagopus_result_t dp_netlink_thread_shutdown(shutdown_grace_level_t);
+
+/**
+ * Dataplane netlink thread finalize function.
+ */
+void dp_netlink_thread_fini(void);
+#endif /* HYBRID */
 
 /**
  */
@@ -702,20 +635,10 @@ struct lagopus_packet *copy_packet(struct lagopus_packet *);
 void copy_dataplane_info(char *buf, int len);
 
 /**
- * Raw socket I/O process function.
- *
- * @param[in]   t       Thread object pointer.
- * @param[in]   arg     Do not used argument.
- */
-lagopus_result_t rawsock_thread_loop(const lagopus_thread_t *t, void *arg);
-
-/**
  * Print usage.
  *
  * @param[in]   fp      Output file pointer.
  */
 void dataplane_usage(FILE *fp);
-
-bool rawsocket_only_mode;
 
 #endif /* SRC_INCLUDE_LAGOPUS_DATAPLANE_H_ */

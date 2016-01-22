@@ -1,0 +1,10 @@
+---
+- name: install pip pkgs
+  pip: name={{ item }} state=latest
+  with_items:
+    - ryu
+    - six
+    - greenlet
+    - stevedore
+  sudo: yes
+  environment: proxy_env

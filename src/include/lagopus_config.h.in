@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -62,12 +62,14 @@
 #undef HAVE_GMP_H
 #undef HAVE_NUMA_H
 #undef HAVE_NUMAIF_H
+#undef HAVE_NET_ETHERNET_H
 
 #undef HAVE_PRINT_FORMAT_FOR_SIZE_T
 #undef HAVE_PTHREAD_SETNAME_NP
 #undef HAVE_PTHREAD_SETAFFINITY_NP
 #undef HAVE_STRTOLD
 #undef HAVE_NUMA
+#undef HAVE_DPDK
 
 #undef WORDS_BIGENDIAN
 #undef SIZEOF_SHORT_INT
@@ -85,6 +87,7 @@
 #undef HAVE_STRLCAT
 #undef HAVE_VIS
 #undef HAVE_UNVIS
+#undef HAVE_PTHREAD_MUTEX_TIMEDLOCK
 
 #undef HAVE_PROCFS_SELF_EXE
 

@@ -1,0 +1,42 @@
+---
+- name: mkdir work/
+  file: path="{{ system.work_dir }}"
+  args:
+    state: directory
+
+- name: git clone lagopus
+  git: repo={{ lagopus.git }}
+  args:
+    dest: "{{ lagopus.dir }}"
+    accept_hostkey: >-
+      {{ lagopus.is_used_git_ssh and vagrant.ssh.forward_agent }}
+  environment: proxy_env
+
+- name: set configure opts for dpdk ver
+  set_fact:
+    configure_opts: --with-dpdk-dir="{{ dpdk_env.RTE_SDK }}"
+  when: dpdk.is_used
+
+- name: set configure opts for raw_socket ver
+  set_fact:
+    configure_opts: ""
+  when: not dpdk.is_used
+
+- name: config lagopus
+  shell: >-
+    ./configure {{ configure_opts }}
+  args:
+    chdir: "{{ lagopus.dir }}"
+
+- name: make lagopus
+  shell: >-
+    make
+  args:
+    chdir: "{{ lagopus.dir }}"
+
+- name: install lagopus
+  shell: >-
+    make install
+  args:
+    chdir: "{{ lagopus.dir }}"
+  sudo: yes

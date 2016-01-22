@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,6 @@
 
 #include "unity.h"
 
-#include "lagopus/dpmgr.h"
 #include "lagopus/flowdb.h"
 #include "lagopus/port.h"
 #include "lagopus/dataplane.h"
@@ -40,7 +39,7 @@ test_set_field_PBB_ISID(void) {
   struct action_list action_list;
   struct action *action;
   struct ofp_action_set_field *action_set;
-  struct lagopus_packet pkt;
+  struct lagopus_packet *pkt;
   OS_MBUF *m;
 
   TAILQ_INIT(&action_list);
@@ -50,22 +49,22 @@ test_set_field_PBB_ISID(void) {
   lagopus_set_action_function(action);
   TAILQ_INSERT_TAIL(&action_list, action, entry);
 
-  m = calloc(1, sizeof(*m));
-  TEST_ASSERT_NOT_NULL_MESSAGE(m, "calloc error.");
-  m->data = &m->dat[128];
+  pkt = alloc_lagopus_packet();
+  TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
+  m = pkt->mbuf;
 
-  OS_M_PKTLEN(m) = 64;
-  m->data[12] = 0x88;
-  m->data[13] = 0xe7;
+  OS_M_APPEND(m, 64);
+  OS_MTOD(m, uint8_t *)[12] = 0x88;
+  OS_MTOD(m, uint8_t *)[13] = 0xe7;
 
-  lagopus_packet_init(&pkt, m, &port);
+  lagopus_packet_init(pkt, m, &port);
   set_match(action_set->field, 3, OFPXMT_OFB_PBB_ISID << 1,
             0xa5, 0x5a, 0xc3);
-  execute_action(&pkt, &action_list);
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[15], 0xa5,
+  execute_action(pkt, &action_list);
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[15], 0xa5,
                             "SET_FIELD PBB_ISID[0] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[16], 0x5a,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[16], 0x5a,
                             "SET_FIELD PBB_ISID[1] error.");
-  TEST_ASSERT_EQUAL_MESSAGE(m->data[17], 0xc3,
+  TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[17], 0xc3,
                             "SET_FIELD PBB_ISID[2] error.");
 }

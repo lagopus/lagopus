@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,6 +40,25 @@
 #include "../agent/ofp_action.h"
 #include "../agent/ofp_match.h"
 #include "../agent/openflow13packet.h"
+
+#include "lock.h"
+
+#include "callback.h"
+
+/**
+ * @brief Flow database.
+ */
+struct flowdb {
+#ifdef HAVE_DPDK
+  rte_rwlock_t rwlock;          /** Read-write lock. */
+#else
+  pthread_rwlock_t rwlock;      /** Read-write lock. */
+#endif /* HAVE_DPDK */
+  uint8_t table_size;           /** Flow table size. */
+  struct table **tables;        /** Flow table. */
+  enum switch_mode switch_mode; /** Switch mode. */
+
+};
 
 #define MBTREE_TIMEOUT 2
 
@@ -157,12 +176,18 @@ map_instruction_list_to_array(struct instruction **dest,
   TAILQ_FOREACH(inst, list, entry) {
     idx = instruction_index(inst);
     if (idx == INSTRUCTION_INDEX_MAX) {
-      ofp_error_set(error, OFPET_BAD_INSTRUCTION, OFPBIC_UNKNOWN_INST);
+      error->type = OFPET_BAD_INSTRUCTION;
+      error->code = OFPBIC_UNKNOWN_INST;
+      lagopus_msg_info("%d: unknown instruction (%d:%d)",
+                       inst->ofpit.type, error->type, error->code);
       return LAGOPUS_RESULT_OFP_ERROR;
     }
     if (dest[idx] != NULL) {
       /* same type instruction has already registered. */
-      ofp_error_set(error, OFPET_FLOW_MOD_FAILED, OFPFMFC_UNKNOWN);
+      error->type = OFPET_FLOW_MOD_FAILED;
+      error->code = OFPFMFC_UNKNOWN;
+      lagopus_msg_info("%d: already specified instruction (%d:%d)",
+                       inst->ofpit.type, error->type, error->code);
       return LAGOPUS_RESULT_OFP_ERROR;
     }
     dest[idx] = inst;
@@ -252,6 +277,11 @@ table_get(struct flowdb *flowdb, uint8_t table_id) {
   return flowdb->tables[table_id];
 }
 
+struct table *
+table_lookup(struct flowdb *flowdb, uint8_t table_id) {
+  return flowdb->tables[table_id];
+}
+
 static void
 table_free(struct table *table) {
   struct flow_list *flow_list;
@@ -267,6 +297,12 @@ table_free(struct table *table) {
   }
   free(flow_list);
   free(table);
+}
+
+void
+flowdb_lock_init(struct flowdb *flowdb) {
+  (void) flowdb;
+  FLOWDB_RWLOCK_INIT();
 }
 
 /* Allocate flowdb. */
@@ -330,18 +366,14 @@ flowdb_free(struct flowdb *flowdb) {
 
 lagopus_result_t
 flowdb_switch_mode_get(struct flowdb *flowdb, enum switch_mode *switch_mode) {
-  flowdb_rdlock(flowdb);
   *switch_mode = flowdb->switch_mode;
-  flowdb_rdunlock(flowdb);
 
   return LAGOPUS_RESULT_OK;
 }
 
 lagopus_result_t
 flowdb_switch_mode_set(struct flowdb *flowdb, enum switch_mode switch_mode) {
-  flowdb_wrlock(flowdb);
   flowdb->switch_mode = switch_mode;
-  flowdb_wrunlock(flowdb);
 
   return LAGOPUS_RESULT_OK;
 }
@@ -367,15 +399,13 @@ flow_pre_requisite_check(struct flow *flow,
   /* Iterate match entry. */
   TAILQ_FOREACH(match, match_list, entry) {
     field_type = OXM_FIELD_TYPE(match->oxm_field);
-    lagopus_dprint("match type %s (field_type_bit: 0x%lx)\n",
-                   oxm_ofb_match_fields_str(field_type),
-                   FIELD_TYPE_BIT(field_type));
 
     /* Duplication field error. */
     if (CHECK_FIELD_BIT(flow->field_bits, field_type)) {
       lagopus_msg_info("Duplication field error at match type %s\n",
                        oxm_ofb_match_fields_str(field_type));
-      ofp_error_set(error, OFPET_BAD_MATCH, OFPBMC_DUP_FIELD);
+      error->type = OFPET_BAD_MATCH;
+      error->code = OFPBMC_DUP_FIELD;
       return LAGOPUS_RESULT_OFP_ERROR;
     }
 
@@ -486,7 +516,8 @@ flow_pre_requisite_check(struct flow *flow,
 bad_out:
   lagopus_msg_info("Pre-requisite error on match type %s\n",
                    oxm_ofb_match_fields_str(field_type));
-  ofp_error_set(error, OFPET_BAD_MATCH, OFPBMC_BAD_PREREQ);
+  error->type = OFPET_BAD_MATCH;
+  error->code = OFPBMC_BAD_PREREQ;
   return LAGOPUS_RESULT_OFP_ERROR;
 }
 
@@ -494,7 +525,6 @@ static lagopus_result_t
 flow_action_check(struct bridge *bridge,
                   struct flow *flow,
                   struct ofp_error *error) {
-  struct vector *ports;
   struct group_table *group_table;
   struct meter_table *meter_table;
   struct instruction *instruction;
@@ -505,7 +535,6 @@ flow_action_check(struct bridge *bridge,
   uint32_t group_id;
   int i;
 
-  ports = bridge->ports;
   group_table = bridge->group_table;
   meter_table = bridge->meter_table;
 
@@ -522,14 +551,21 @@ flow_action_check(struct bridge *bridge,
         if (meter != NULL) {
           meter->flow_count++;
         } else {
-          ofp_error_set(error, OFPET_METER_MOD_FAILED,
-                        OFPMMFC_UNKNOWN_METER);
+          error->type = OFPET_METER_MOD_FAILED;
+          error->code = OFPMMFC_UNKNOWN_METER;
+          lagopus_msg_info("%d: no such meter (%d:%d)",
+                           instruction->ofpit_meter.meter_id,
+                           error->type, error->code);
+          return LAGOPUS_RESULT_OFP_ERROR;
         }
         break;
       case OFPIT_GOTO_TABLE:
         if (instruction->ofpit_goto_table.table_id > OFPTT_MAX) {
-          ofp_error_set(error,
-                        OFPET_BAD_INSTRUCTION, OFPBIC_BAD_TABLE_ID);
+          error->type = OFPET_BAD_INSTRUCTION;
+          error->code = OFPBIC_BAD_TABLE_ID;
+          lagopus_msg_info("%d: bad table id (%d:%d)",
+                           instruction->ofpit_goto_table.table_id,
+                           error->type, error->code);
           return LAGOPUS_RESULT_OFP_ERROR;
         }
         break;
@@ -550,9 +586,11 @@ flow_action_check(struct bridge *bridge,
                   break;
 
                 default:
-                  if (port_lookup(ports, output->port) == NULL) {
-                    ofp_error_set(error,
-                                  OFPET_BAD_ACTION, OFPBAC_BAD_OUT_PORT);
+                  if (port_lookup(&bridge->ports, output->port) == NULL) {
+                    error->type = OFPET_BAD_ACTION;
+                    error->code = OFPBAC_BAD_OUT_PORT;
+                    lagopus_msg_info("%d: no such port (%d:%d)",
+                                     output->port, error->type, error->code);
                     return LAGOPUS_RESULT_OFP_ERROR;
                   }
               }
@@ -565,7 +603,10 @@ flow_action_check(struct bridge *bridge,
               group_id = ((struct ofp_action_group *)&action->ofpat)->group_id;
               group = group_table_lookup(group_table, group_id);
               if (group == NULL) {
-                ofp_error_set(error, OFPET_BAD_ACTION, OFPBAC_BAD_OUT_GROUP);
+                error->type = OFPET_BAD_ACTION;
+                error->code = OFPBAC_BAD_OUT_GROUP;
+                lagopus_msg_info("%d: group not found (%d:%d)",
+                                 group_id, error->type, error->code);
                 return LAGOPUS_RESULT_OFP_ERROR;
               }
               /* create relationship with specified group. */
@@ -589,7 +630,7 @@ copy_match_list(struct match_list *dst,
   struct match *src_match;
   struct match *dst_match;
   TAILQ_FOREACH(src_match, src, entry) {
-    dst_match = match_alloc(src_match->oxm_length);
+    dst_match = calloc(1, sizeof(struct match) + src_match->oxm_length);
     if (dst_match == NULL) {
       return LAGOPUS_RESULT_NO_MEMORY;
     }
@@ -608,7 +649,7 @@ copy_action_list(struct action_list *dst,
   const struct action *src_action;
   struct action *dst_action;
   TAILQ_FOREACH(src_action, src, entry) {
-    dst_action = action_alloc(src_action->ofpat.len);
+    dst_action = calloc(1, sizeof(struct action) + src_action->ofpat.len);
     if (dst_action == NULL) {
       return LAGOPUS_RESULT_NO_MEMORY;
     }
@@ -631,7 +672,7 @@ copy_instruction_list(struct instruction_list *dst,
   lagopus_result_t rv;
 
   TAILQ_FOREACH(src_inst, src, entry) {
-    dst_inst = instruction_alloc();
+    dst_inst = calloc(1, sizeof(struct instruction));
     if (dst_inst == NULL) {
       return LAGOPUS_RESULT_NO_MEMORY;
     }
@@ -951,7 +992,10 @@ flowdb_flow_add(struct bridge *bridge,
 
   /* OFPIT_ALL is invalid for add. */
   if (flow_mod->table_id == OFPTT_ALL) {
-    ofp_error_set(error, OFPET_FLOW_MOD_FAILED, OFPFMFC_BAD_TABLE_ID);
+    error->type = OFPET_FLOW_MOD_FAILED;
+    error->code = OFPFMFC_BAD_TABLE_ID;
+    lagopus_msg_info("flow add: OFPTT_ALL: bad tabld id (%d:%d)",
+                     error->type, error->code);
     return LAGOPUS_RESULT_OFP_ERROR;
   }
 
@@ -963,7 +1007,10 @@ flowdb_flow_add(struct bridge *bridge,
   /* Get table. */
   table = table_get(flowdb, flow_mod->table_id);
   if (table == NULL) {
-    ofp_error_set(error, OFPET_FLOW_MOD_FAILED, OFPFMFC_BAD_TABLE_ID);
+    error->type = OFPET_FLOW_MOD_FAILED;
+    error->code = OFPFMFC_BAD_TABLE_ID;
+    lagopus_msg_info("flow add: %d: table not found (%d:%d)",
+                     flow_mod->table_id, error->type, error->code);
     ret = LAGOPUS_RESULT_OFP_ERROR;
     goto out;
   }
@@ -995,7 +1042,10 @@ flowdb_flow_add(struct bridge *bridge,
      * Messages. */
     if (CHECK_FLAG(flow_mod->flags, OFPFF_CHECK_OVERLAP)) {
       flow_free(flow);
-      ofp_error_set(error, OFPET_FLOW_MOD_FAILED, OFPFMFC_OVERLAP);
+      error->type = OFPET_FLOW_MOD_FAILED;
+      error->code = OFPFMFC_OVERLAP;
+      lagopus_msg_info("flow add: overlapped entry detected (%d:%d)",
+                       error->type, error->code);
       ret = LAGOPUS_RESULT_OFP_ERROR;
       goto out;
     }
@@ -1232,6 +1282,14 @@ flow_del_from_group(struct group_table *group_table, struct flow *flow) {
   }
 }
 
+static void
+flow_removed_free(struct eventq_data *data) {
+  if (data != NULL) {
+    ofp_match_list_elem_free(&data->flow_removed.match_list);
+    free(data);
+  }
+}
+
 static lagopus_result_t
 send_flow_removed(uint64_t dpid,
                   struct flow *flow,
@@ -1283,8 +1341,8 @@ send_flow_removed(uint64_t dpid,
   TAILQ_INIT(&flow_removed->match_list);
   TAILQ_CONCAT(&flow_removed->match_list, &flow->match_list, entry);
   eventq_data->type = LAGOPUS_EVENTQ_FLOW_REMOVED;
-  eventq_data->free = ofp_flow_removed_free;
-  rv = ofp_handler_eventq_data_put(dpid, &eventq_data, PUT_TIMEOUT);
+  eventq_data->free = flow_removed_free;
+  rv = dp_eventq_data_put(dpid, &eventq_data, PUT_TIMEOUT);
   if (rv != LAGOPUS_RESULT_OK) {
     lagopus_perror(rv);
   }
@@ -1520,7 +1578,10 @@ flowdb_flow_modify(struct bridge *bridge,
 
   /* OFPIT_ALL is invalid for modify. */
   if (flow_mod->table_id == OFPTT_ALL) {
-    ofp_error_set(error, OFPET_FLOW_MOD_FAILED, OFPFMFC_BAD_TABLE_ID);
+    error->type = OFPET_FLOW_MOD_FAILED;
+    error->code = OFPFMFC_BAD_TABLE_ID;
+    lagopus_msg_info("flow modify: OFPTT_ALL: bad table id (%d:%d)",
+                     error->type, error->code);
     return LAGOPUS_RESULT_OFP_ERROR;
   }
 
@@ -1530,7 +1591,10 @@ flowdb_flow_modify(struct bridge *bridge,
   /* Get table. */
   table = table_get(bridge->flowdb, flow_mod->table_id);
   if (table == NULL) {
-    ofp_error_set(error, OFPET_FLOW_MOD_FAILED, OFPFMFC_BAD_TABLE_ID);
+    error->type = OFPET_FLOW_MOD_FAILED;
+    error->code = OFPFMFC_BAD_TABLE_ID;
+    lagopus_msg_info("flow modify: %d: table not found (%d:%d)",
+                     flow_mod->table_id, error->type, error->code);
     result = LAGOPUS_RESULT_OFP_ERROR;
     goto out;
   }
@@ -1596,7 +1660,10 @@ flowdb_flow_delete(struct bridge *bridge,
     /* Lookup table using table_id. */
     table = table_get(flowdb, flow_mod->table_id);
     if (table == NULL) {
-      ofp_error_set(error, OFPET_FLOW_MOD_FAILED, OFPFMFC_BAD_TABLE_ID);
+      error->type = OFPET_FLOW_MOD_FAILED;
+      error->code = OFPFMFC_BAD_TABLE_ID;
+      lagopus_msg_info("flow delete: %d: table not found (%d:%d)",
+                       flow_mod->table_id, error->type, error->code);
       result = LAGOPUS_RESULT_OFP_ERROR;
       goto out;
     }
@@ -1722,7 +1789,10 @@ flowdb_flow_stats(struct flowdb *flowdb,
     /* Lookup table using table_id. */
     table = table_get(flowdb, request->table_id);
     if (table == NULL) {
-      ofp_error_set(error, OFPET_BAD_REQUEST, OFPBRC_BAD_TABLE_ID);
+      error->type = OFPET_BAD_REQUEST;
+      error->code = OFPBRC_BAD_TABLE_ID;
+      lagopus_msg_info("flow stats: %d: table not found (%d:%d)",
+                       request->table_id, error->type, error->code);
       rv = LAGOPUS_RESULT_OFP_ERROR;
       goto out;
     }
@@ -1798,7 +1868,10 @@ flowdb_aggregate_stats(struct flowdb *flowdb,
     /* Lookup table using table_id. */
     table = table_get(flowdb, request->table_id);
     if (table == NULL) {
-      ofp_error_set(error, OFPET_BAD_REQUEST, OFPBRC_BAD_TABLE_ID);
+      error->type = OFPET_BAD_REQUEST;
+      error->code = OFPBRC_BAD_TABLE_ID;
+      lagopus_msg_info("flow aggr stats: %d: table not found (%d:%d)",
+                       request->table_id, error->type, error->code);
       result = LAGOPUS_RESULT_OFP_ERROR;
       goto out;
     }
@@ -2691,6 +2764,10 @@ ofp_flow_mod_modify(uint64_t dpid,
                                error);
       break;
     default:
+      error->type = OFPET_FLOW_MOD_FAILED;
+      error->code = OFPFMFC_BAD_COMMAND;
+      lagopus_msg_info("flow mod: %d: bad command (%d:%d)",
+                       flow_mod->command, error->type, error->code);
       ret = LAGOPUS_RESULT_OFP_ERROR;
   }
 
@@ -2716,6 +2793,10 @@ ofp_flow_mod_delete(uint64_t dpid,
       ret = flowdb_flow_delete(bridge, flow_mod, match_list, error);
       break;
     default:
+      error->type = OFPET_FLOW_MOD_FAILED;
+      error->code = OFPFMFC_BAD_COMMAND;
+      lagopus_msg_info("flow mod: %d: bad command (%d:%d)",
+                       flow_mod->command, error->type, error->code);
       ret = LAGOPUS_RESULT_OFP_ERROR;
   }
 
@@ -2808,7 +2889,10 @@ ofp_table_features_set(uint64_t dpid,
   (void) dpid;
   (void) table_features_list;
   /* so far, we cannot modify table features. */
-  ofp_error_set(error, OFPET_BAD_REQUEST, OFPBRC_BAD_LEN);
+  error->type = OFPET_BAD_REQUEST;
+  error->code = OFPBRC_BAD_LEN;
+  lagopus_msg_info("So far, cannot modify table features (%d:%d)",
+                   error->type, error->code);
   return LAGOPUS_RESULT_OFP_ERROR;
 }
 

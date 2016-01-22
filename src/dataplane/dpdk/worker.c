@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -95,17 +95,14 @@
 #include <rte_tcp.h>
 #include <rte_udp.h>
 #include <rte_sctp.h>
-#ifdef __linux__
-#include <rte_kni.h>
-#endif /* __linux__ */
 
 #include "lagopus/ethertype.h"
 #include "lagopus/flowdb.h"
 #include "lagopus/meter.h"
 #include "lagopus/port.h"
+#include "lagopus/interface.h"
 #include "lagopus_gstate.h"
 #include "lagopus/ofp_dp_apis.h"
-#include "lagopus/vector.h"
 #include "lagopus/ofcache.h"
 
 #include "lagopus/dataplane.h"
@@ -113,6 +110,7 @@
 #include "pktbuf.h"
 #include "packet.h"
 #include "csum.h"
+#include "lock.h"
 #include "dpdk/dpdk.h"
 
 #ifndef APP_LCORE_WORKER_FLUSH
@@ -143,8 +141,10 @@ static inline void
 app_lcore_worker(struct app_lcore_params_worker *lp,
                  uint32_t bsz_rd,
                  struct worker_arg *arg) {
+  static const uint8_t eth_bcast[] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
   struct port *port;
   struct lagopus_packet *pkt;
+  enum switch_mode mode;
   uint32_t i;
 
 
@@ -196,7 +196,17 @@ app_lcore_worker(struct app_lcore_params_worker *lp,
        * OFPP_NORMAL.
        */
       lagopus_packet_init(pkt, m, port);
-      if (port->bridge->flowdb->switch_mode == SWITCH_MODE_STANDALONE) {
+
+#ifdef HYBRID
+      /* count up refcnt(packet copy). */
+      OS_M_ADDREF(m);
+
+      /* send to tap */
+      dp_interface_send_packet_kernel(pkt, pkt->in_port->interface);
+#endif /* HYBRID */
+
+      flowdb_switch_mode_get(port->bridge->flowdb, &mode);
+      if (mode == SWITCH_MODE_STANDALONE) {
         lagopus_forward_packet_to_port(pkt, OFPP_NORMAL);
         lp->mbuf_in.array[j] = NULL;
         continue;
@@ -317,6 +327,7 @@ app_lcore_main_loop_io_worker(void *arg) {
       app_lcore_io_flush(lp_io, n_workers, arg);
       flowdb_check_update(NULL);
       app_lcore_worker_flush(lp);
+      dpdk_update_link_status(lp);
       i = 0;
     }
     app_lcore_io(lp_io, n_workers);

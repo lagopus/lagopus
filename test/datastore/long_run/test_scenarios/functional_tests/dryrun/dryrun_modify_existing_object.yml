@@ -38,7 +38,6 @@ testcases:
               {"ret":"OK",
               "data":[{"name":":if01",
               "type":"ethernet-rawsock",
-              "port-number":1,
               "device":"lago_eth0",
               "mtu":1,
               "ip-addr":"127.0.0.1",
@@ -46,7 +45,6 @@ testcases:
               "is-enabled":false},
               {"name":":if02",
               "type":"ethernet-rawsock",
-              "port-number":2,
               "device":"lago_eth1",
               "mtu":2,
               "ip-addr":"127.0.0.2",
@@ -58,7 +56,6 @@ testcases:
               {"ret":"OK",
               "data":[{"name":":if01",
               "type":"ethernet-rawsock",
-              "port-number":1,
               "device":"lago_eth0",
               "mtu":1,
               "ip-addr":"127.0.0.1",
@@ -70,7 +67,6 @@ testcases:
               {"ret":"OK",
               "data":[{"name":":if02",
               "type":"ethernet-rawsock",
-              "port-number":2,
               "device":"lago_eth1",
               "mtu":2,
               "ip-addr":"127.0.0.2",
@@ -299,28 +295,6 @@ testcases:
               "is-used":true,
               "is-enabled":false}]}
           - cmd_type: ds
-            cmd: l2-bridge
-            result: |-
-              {"ret":"OK",
-              "data":[{"name":":l2-bridge01",
-              "expire":1,
-              "max-entries":1,
-              "tmp-dir":"\/tmp",
-              "bridge":":bridge01",
-              "is-used":true,
-              "is-enabled":false}]}
-          - cmd_type: ds
-            cmd: l2-bridge l2-bridge01
-            result: |-
-              {"ret":"OK",
-              "data":[{"name":":l2-bridge01",
-              "expire":1,
-              "max-entries":1,
-              "tmp-dir":"\/tmp",
-              "bridge":":bridge01",
-              "is-used":true,
-              "is-enabled":false}]}
-          - cmd_type: ds
             cmd: bridge
             result: |-
               {"ret":"OK",
@@ -328,7 +302,6 @@ testcases:
               "controllers":[":controller01"],
               "ports":{":port01":1,
               ":port02":2},
-              "l2-bridge":":l2-bridge01",
               "dpid":1,
               "fail-mode":"secure",
               "flow-statistics":true,
@@ -369,7 +342,6 @@ testcases:
               "controllers":[":controller01"],
               "ports":{":port01":1,
               ":port02":2},
-              "l2-bridge":":l2-bridge01",
               "dpid":1,
               "fail-mode":"secure",
               "flow-statistics":true,
@@ -420,7 +392,6 @@ testcases:
               {"ret":"OK",
               "data":[{"name":"dryrun:if01",
               "type":"ethernet-rawsock",
-              "port-number":1,
               "device":"lago_eth0",
               "mtu":100,
               "ip-addr":"127.0.0.1",
@@ -428,7 +399,6 @@ testcases:
               "is-enabled":false},
               {"name":"dryrun:if02",
               "type":"ethernet-rawsock",
-              "port-number":2,
               "device":"lago_eth1",
               "mtu":200,
               "ip-addr":"127.0.0.2",
@@ -565,20 +535,6 @@ testcases:
               "is-used":true,
               "is-enabled":false}]}
           - cmd_type: ds
-            cmd: l2-bridge l2-bridge01 config -expire 11
-            result: '{"ret": "OK"}'
-          - cmd_type: ds
-            cmd: l2-bridge
-            result: |-
-              {"ret":"OK",
-              "data":[{"name":"dryrun:l2-bridge01",
-              "expire":11,
-              "max-entries":1,
-              "tmp-dir":"\/tmp",
-              "bridge":"dryrun:bridge01",
-              "is-used":true,
-              "is-enabled":false}]}
-          - cmd_type: ds
             cmd: bridge bridge01 config -dpid 11
             result: '{"ret": "OK"}'
           - cmd_type: ds
@@ -590,7 +546,6 @@ testcases:
               {"ret":"OK",
               "data":[{"name":":if01",
               "type":"ethernet-rawsock",
-              "port-number":1,
               "device":"lago_eth0",
               "mtu":1,
               "ip-addr":"127.0.0.1",
@@ -598,7 +553,6 @@ testcases:
               "is-enabled":false},
               {"name":":if02",
               "type":"ethernet-rawsock",
-              "port-number":2,
               "device":"lago_eth1",
               "mtu":2,
               "ip-addr":"127.0.0.2",
@@ -610,7 +564,6 @@ testcases:
               {"ret":"OK",
               "data":[{"name":":if01",
               "type":"ethernet-rawsock",
-              "port-number":1,
               "device":"lago_eth0",
               "mtu":1,
               "ip-addr":"127.0.0.1",
@@ -622,7 +575,6 @@ testcases:
               {"ret":"OK",
               "data":[{"name":":if02",
               "type":"ethernet-rawsock",
-              "port-number":2,
               "device":"lago_eth1",
               "mtu":2,
               "ip-addr":"127.0.0.2",
@@ -851,28 +803,6 @@ testcases:
               "is-used":true,
               "is-enabled":false}]}
           - cmd_type: ds
-            cmd: l2-bridge
-            result: |-
-              {"ret":"OK",
-              "data":[{"name":":l2-bridge01",
-              "expire":1,
-              "max-entries":1,
-              "tmp-dir":"\/tmp",
-              "bridge":":bridge01",
-              "is-used":true,
-              "is-enabled":false}]}
-          - cmd_type: ds
-            cmd: l2-bridge l2-bridge01
-            result: |-
-              {"ret":"OK",
-              "data":[{"name":":l2-bridge01",
-              "expire":1,
-              "max-entries":1,
-              "tmp-dir":"\/tmp",
-              "bridge":":bridge01",
-              "is-used":true,
-              "is-enabled":false}]}
-          - cmd_type: ds
             cmd: bridge
             result: |-
               {"ret":"OK",
@@ -880,7 +810,6 @@ testcases:
               "controllers":[":controller01"],
               "ports":{":port01":1,
               ":port02":2},
-              "l2-bridge":":l2-bridge01",
               "dpid":1,
               "fail-mode":"secure",
               "flow-statistics":true,
@@ -921,7 +850,6 @@ testcases:
               "controllers":[":controller01"],
               "ports":{":port01":1,
               ":port02":2},
-              "l2-bridge":":l2-bridge01",
               "dpid":1,
               "fail-mode":"secure",
               "flow-statistics":true,

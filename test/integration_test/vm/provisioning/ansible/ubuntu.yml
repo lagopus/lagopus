@@ -1,0 +1,8 @@
+---
+- hosts: all
+  vars_files:
+    - ../../conf/ansible_conf.yml
+  roles:
+    - role: ubuntu
+      tags: pkgs
+      when: ansible_distribution == "Ubuntu"

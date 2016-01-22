@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,20 +32,19 @@ static lagopus_dstring_t ds = NULL;
 static lagopus_hashmap_t tbl = NULL;
 static datastore_interp_t interp = NULL;
 static bool destroy = false;
-static struct event_manager *em = NULL;
 
 void
 setUp(void) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
 
   /* create interp. */
-  INTERP_CREATE(ret, NULL, interp, tbl, ds, em);
+  INTERP_CREATE(ret, NULL, interp, tbl, ds);
 }
 
 void
 tearDown(void) {
   /* destroy interp. */
-  INTERP_DESTROY(NULL, interp, tbl, ds, em, destroy)
+  INTERP_DESTROY(NULL, interp, tbl, ds, destroy)
 }
 
 void
@@ -239,10 +238,12 @@ test_meter_cmd_parse_dump_02(void) {
     "\"meters\":[{\"meter-id\":5,\n"
     "\"flags\":[\"kbps\",\n"
     "\"burst\"],\n"
-    "\"bands\":[{\"type\":\"drop\",\n"
+    "\"bands\":[{\"band-id\":0,\n"
+    "\"type\":\"drop\",\n"
     "\"rate\":1,\n"
     "\"burst-size\":2},\n"
-    "{\"type\":\"drop\",\n"
+    "{\"band-id\":1,\n"
+    "\"type\":\"drop\",\n"
     "\"rate\":2,\n"
     "\"burst-size\":3}]}]}]}";
 

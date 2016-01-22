@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -56,7 +56,7 @@ stage_alloc(void) {
 
   stage = (lagopus_pipeline_stage_t)malloc(1);
   if (stage == NULL) {
-    TEST_FAIL_MESSAGE("stage is NULL.")
+    TEST_FAIL_MESSAGE("stage is NULL.");
   }
   return stage;
 }
@@ -387,6 +387,7 @@ test_lagopus_pipeline_stage_create_invalid_args(void) {
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS, ret,
                             "not invalid args.");
 
+#if 0
   ret = lagopus_pipeline_stage_create(&stage, 0,
                                       "test_error",
                                       nthd,
@@ -402,6 +403,13 @@ test_lagopus_pipeline_stage_create_invalid_args(void) {
                                       pipeline_freeup);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS, ret,
                             "not invalid args.");
+#else
+  /*
+   * NULL check of the sched_proc is omitted from
+   * commit:e0495bc27542156c5ad85dd53e579611bb241c94, in order to
+   * support "ingress" stages.
+   */
+#endif
 
   ret = lagopus_pipeline_stage_create(&stage, 0,
                                       "test_error",

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,8 +22,8 @@
 #include <stdlib.h>
 
 #include "openflow.h"
+#include "lagopus_apis.h"
 #include "lagopus/flowdb.h"
-#include "lagopus/ptree.h"
 #include "pktbuf.h"
 #include "packet.h"
 
@@ -111,13 +111,22 @@ destroy_flowinfo_ipv4_dst_mask(struct flowinfo *self) {
   free(self);
 }
 
+static void
+freeup_flowinfo(void *val) {
+  struct flowinfo *flowinfo;
+
+  flowinfo = val;
+  flowinfo->destroy_func(flowinfo);
+}
+
 struct flowinfo *
 new_flowinfo_ipv4_dst(void) {
   struct flowinfo *self;
 
   self = calloc(1, sizeof(struct flowinfo));
   if (self != NULL) {
-    self->ptree = ptree_init(IPV4_DST_BITLEN);
+    lagopus_hashmap_create(&self->hashmap, LAGOPUS_HASHMAP_TYPE_ONE_WORD,
+                           freeup_flowinfo);
     /* misc is not used */
     self->add_func = add_flow_ipv4_dst;
     self->del_func = del_flow_ipv4_dst;
@@ -130,18 +139,7 @@ new_flowinfo_ipv4_dst(void) {
 
 static void
 destroy_flowinfo_ipv4_dst(struct flowinfo *self) {
-  struct ptree_node *node;
-  struct flowinfo *flowinfo;
-
-  node = ptree_top(self->ptree);
-  while (node != NULL) {
-    flowinfo = node->info;
-    if (flowinfo != NULL) {
-      flowinfo->destroy_func(flowinfo);
-    }
-    node = ptree_next(node);
-  }
-  ptree_free(self->ptree);
+  lagopus_hashmap_destroy(&self->hashmap, true);
   free(self);
 }
 
@@ -283,19 +281,21 @@ find_flow_ipv4_dst_mask(struct flowinfo *self, struct flow *flow) {
 static lagopus_result_t
 add_flow_ipv4_dst(struct flowinfo *self, struct flow *flow) {
   struct flowinfo *flowinfo;
-  struct ptree_node *node;
   uint32_t ipv4_dst, mask;
   lagopus_result_t rv;
 
   rv = get_match_ipv4_dst(&flow->match_list, &ipv4_dst, &mask);
   if (rv == LAGOPUS_RESULT_OK) {
-    node = ptree_node_get(self->ptree, (uint8_t *)&ipv4_dst,
-                          IPV4_DST_BITLEN);
-    if (node->info == NULL) {
-      /* new node. */
-      node->info = new_flowinfo_ipv4();
+    rv = lagopus_hashmap_find_no_lock(&self->hashmap,
+                                      (void *)ipv4_dst, (void *)&flowinfo);
+    if (rv != LAGOPUS_RESULT_OK) {
+      void *val;
+
+      flowinfo = new_flowinfo_ipv4();
+      val = flowinfo;
+      lagopus_hashmap_add_no_lock(&self->hashmap, (void *)ipv4_dst,
+                                  (void *)&val, false);
     }
-    flowinfo = node->info;
     rv = flowinfo->add_func(flowinfo, flow);
     if (rv == LAGOPUS_RESULT_OK) {
       self->nflow++;
@@ -306,20 +306,18 @@ add_flow_ipv4_dst(struct flowinfo *self, struct flow *flow) {
 
 static lagopus_result_t
 del_flow_ipv4_dst(struct flowinfo *self, struct flow *flow) {
-  struct flowinfo *flowinfo;
-  struct ptree_node *node;
   uint32_t ipv4_dst, mask;
   lagopus_result_t rv;
 
   rv = get_match_ipv4_dst(&flow->match_list, &ipv4_dst, &mask);
   if (rv == LAGOPUS_RESULT_OK) {
-    node = ptree_node_lookup(self->ptree, (uint8_t *)&ipv4_dst,
-                             IPV4_DST_BITLEN);
-    if (node == NULL || node->info == NULL) {
-      return LAGOPUS_RESULT_NOT_FOUND;
+    struct flowinfo *flowinfo;
+
+    rv = lagopus_hashmap_find_no_lock(&self->hashmap, (void *)ipv4_dst,
+                                      (void *)&flowinfo);
+    if (rv == LAGOPUS_RESULT_OK) {
+      flowinfo->del_func(flowinfo, flow);
     }
-    flowinfo = node->info;
-    rv = flowinfo->del_func(flowinfo, flow);
     if (rv == LAGOPUS_RESULT_OK) {
       self->nflow--;
     }
@@ -331,17 +329,16 @@ static struct flow *
 match_flow_ipv4_dst(struct flowinfo *self, struct lagopus_packet *pkt,
                     int32_t *pri) {
   struct flowinfo *flowinfo;
-  struct ptree_node *node;
   uint32_t ipv4_dst;
   struct flow *flow;
+  lagopus_result_t rv;
 
   flow = NULL;
   ipv4_dst = (pkt->ipv4->ip_dst.s_addr & (uint32_t)self->userdata);
-  node = ptree_node_lookup(self->ptree, (uint8_t *)&ipv4_dst, IPV4_DST_BITLEN);
-  if (node != NULL) {
-    flowinfo = node->info;
+  rv = lagopus_hashmap_find_no_lock(&self->hashmap, (void *)ipv4_dst,
+                                    (void *)&flowinfo);
+  if (rv == LAGOPUS_RESULT_OK) {
     flow = flowinfo->match_func(flowinfo, pkt, pri);
-    ptree_unlock_node(node);
   }
   return flow;
 }
@@ -349,18 +346,16 @@ match_flow_ipv4_dst(struct flowinfo *self, struct lagopus_packet *pkt,
 static struct flow *
 find_flow_ipv4_dst(struct flowinfo *self, struct flow *flow) {
   struct flowinfo *flowinfo;
-  struct ptree_node *node;
   uint32_t ipv4_dst, mask;
   lagopus_result_t rv;
 
   rv = get_match_ipv4_dst(&flow->match_list, &ipv4_dst, &mask);
   if (rv == LAGOPUS_RESULT_OK) {
-    node = ptree_node_get(self->ptree, (uint8_t *)&ipv4_dst,
-                          IPV4_DST_BITLEN);
-    if (node->info == NULL) {
+    rv = lagopus_hashmap_find_no_lock(&self->hashmap, (void *)ipv4_dst,
+                                      (void *)&flowinfo);
+    if (rv != LAGOPUS_RESULT_OK) {
       return NULL;
     }
-    flowinfo = node->info;
     return flowinfo->find_func(flowinfo, flow);
   } else {
     return self->misc->find_func(self->misc, flow);

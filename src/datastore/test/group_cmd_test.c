@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,20 +32,19 @@ static lagopus_dstring_t ds = NULL;
 static lagopus_hashmap_t tbl = NULL;
 static datastore_interp_t interp = NULL;
 static bool destroy = false;
-static struct event_manager *em = NULL;
 
 void
 setUp(void) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
 
   /* create interp. */
-  INTERP_CREATE(ret, NULL, interp, tbl, ds, em);
+  INTERP_CREATE(ret, NULL, interp, tbl, ds);
 }
 
 void
 tearDown(void) {
   /* destroy interp. */
-  INTERP_DESTROY(NULL, interp, tbl, ds, em, destroy)
+  INTERP_DESTROY(NULL, interp, tbl, ds, destroy)
 }
 
 void
@@ -245,12 +244,14 @@ test_group_cmd_parse_dump_02(void) {
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b5\",\n"
     "\"groups\":[{\"group-id\":5,\n"
     "\"type\":\"all\",\n"
-    "\"buckets\":[{\"weight\":2,\n"
+    "\"buckets\":[{\"bucket-id\":0,\n"
+    "\"weight\":2,\n"
     "\"watch-port\":3,\n"
     "\"watch-group\":4,\n"
     "\"actions\":[{\"output\":5},\n"
     "\{\"output\":6}]},\n"
-    "\{\"weight\":3,\n"
+    "\{\"bucket-id\":1,\n"
+    "\"weight\":3,\n"
     "\"watch-port\":4,\n"
     "\"watch-group\":5,\n"
     "\"actions\":[{\"output\":5},\n"

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,6 +32,9 @@
 #ifdef __FreeBSD__
 #define sighandler_t sig_t
 #endif /* __FreeBSD__ */
+#ifdef __NetBSD__
+typedef void (*sighandler_t)(int);
+#endif /* __NetBSD__ */
 
 
 #define SIG_CUR	__s_I_g_C_u_R__

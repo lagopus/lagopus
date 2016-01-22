@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -316,7 +316,7 @@ test_put_eventq(void) {
           SLEEP_SHORT();
           j++;
         } else {
-          TEST_FAIL_MESSAGE("TIME OUT.")
+          TEST_FAIL_MESSAGE("TIME OUT.");
           break;
         }
       } else {
@@ -375,7 +375,7 @@ test_put_dataq(void) {
           SLEEP_SHORT();
           j++;
         } else {
-          TEST_FAIL_MESSAGE("TIME OUT.")
+          TEST_FAIL_MESSAGE("TIME OUT.");
           break;
         }
       } else {

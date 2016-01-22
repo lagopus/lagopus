@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@
 typedef enum datastore_interface_type {
   DATASTORE_INTERFACE_TYPE_UNKNOWN = 0,
   DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_PHY,
-  DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_PCAP,
+  DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_VDEV,
   DATASTORE_INTERFACE_TYPE_ETHERNET_RAWSOCK,
   DATASTORE_INTERFACE_TYPE_GRE,
   DATASTORE_INTERFACE_TYPE_NVGRE,

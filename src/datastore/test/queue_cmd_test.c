@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,20 +26,19 @@ static lagopus_dstring_t ds = NULL;
 static lagopus_hashmap_t tbl = NULL;
 static datastore_interp_t interp = NULL;
 static bool destroy = false;
-static struct event_manager *em = NULL;
 
 void
 setUp(void) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
 
   /* create interp. */
-  INTERP_CREATE(ret, "queue", interp, tbl, ds, em);
+  INTERP_CREATE(ret, "queue", interp, tbl, ds);
 }
 
 void
 tearDown(void) {
   /* destroy interp. */
-  INTERP_DESTROY("queue", interp, tbl, ds, em, destroy);
+  INTERP_DESTROY("queue", interp, tbl, ds, destroy);
 }
 
 void

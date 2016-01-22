@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,7 +21,6 @@
 #include "openflow13packet.h"
 #include "ofp_apis.h"
 #include "lagopus/ofp_handler.h"
-#include "lagopus/dpmgr.h"
 
 /* Header only packet receive. */
 lagopus_result_t
@@ -286,7 +285,7 @@ ofp_header_version_check(struct channel *channel,
 
   if (channel != NULL && header != NULL) {
     dpid = channel_dpid_get(channel);
-    ret = dpmgr_bridge_ofp_version_get(dpid, &bridge_ofp_version);
+    ret = ofp_switch_version_get(dpid, &bridge_ofp_version);
 
     if (ret == LAGOPUS_RESULT_OK) {
       if (bridge_ofp_version == header->version) {
