@@ -217,6 +217,23 @@ struct lagopus_packet {
     };
   };
 
+  /*
+   * flowcache information.
+   */
+  void *cache;
+  unsigned nmatched;
+  const struct flow *matched_flow[LAGOPUS_DP_PIPELINE_MAX];
+
+  /*
+   * flow information.
+   */
+  uint8_t table_id;
+  struct flow *flow;
+
+  /* related port and bridge. */
+  struct port *in_port;
+  struct bridge *bridge;
+
   uint16_t ether_type;
   /*
    * access pointer placeholder, like skb
@@ -270,18 +287,10 @@ struct lagopus_packet {
       uint8_t *nd_tll;
     };
   };
-  struct port *in_port;
-
-  uint8_t table_id;
-  struct flow *flow;
   struct action_list actions[LAGOPUS_ACTION_SET_ORDER_MAX];
 
   uint32_t queue_id;
   uint32_t flags;
-
-  void *cache;
-  unsigned nmatched;
-  const struct flow *matched_flow[LAGOPUS_DP_PIPELINE_MAX];
 };
 
 #define ETHER_HDR     struct ether_header

@@ -350,13 +350,13 @@ uint32_t
 find_and_learn_port_in_mac_table(struct lagopus_packet *pkt) {
   struct macentry *entry;
 
-  mactable_age_out(&pkt->in_port->bridge->mactable);
+  mactable_age_out(&pkt->bridge->mactable);
 
-  learn_port(&pkt->in_port->bridge->mactable,
+  learn_port(&pkt->bridge->mactable,
              pkt->in_port->ofp_port.port_no,
              pkt->eth->ether_shost,
              MACTABLE_SETTYPE_DYNAMIC);
-  entry = find_entry_in_mactable(&pkt->in_port->bridge->mactable,
+  entry = find_entry_in_mactable(&pkt->bridge->mactable,
                                  pkt->eth->ether_dhost);
   if (entry != NULL) {
     return entry->portid;

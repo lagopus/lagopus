@@ -603,6 +603,7 @@ lagopus_packet_init(struct lagopus_packet *pkt, void *m, struct port *port) {
   /* set raw packet data and port */
   pkt->mbuf = (OS_MBUF *)m;
   pkt->in_port = port;
+  pkt->bridge = port->bridge;
   pkt->oob_data.in_port = htonl(port->ofp_port.port_no);
   pkt->oob_data.in_phy_port= htonl(port->ofp_port.port_no);
   /* pre match */
@@ -642,6 +643,31 @@ classify_ether_packet(struct lagopus_packet *pkt) {
       break;
   }
   pkt->hash64 = hash64;
+}
+
+/**
+ * Copy packet for output.
+ */
+struct lagopus_packet *
+copy_packet(struct lagopus_packet *src_pkt) {
+  struct rte_mbuf *mbuf;
+  struct lagopus_packet *pkt;
+  size_t pktlen;
+
+  pkt = alloc_lagopus_packet();
+  if (pkt == NULL) {
+    lagopus_msg_error("alloc_lagopus_packet failed\n");
+    return NULL;
+  }
+  mbuf = pkt->mbuf;
+  pktlen = OS_M_PKTLEN(src_pkt->mbuf);
+  OS_M_APPEND(mbuf, pktlen);
+  memcpy(OS_MTOD(pkt->mbuf, char *), OS_MTOD(src_pkt->mbuf, char *), pktlen);
+  pkt->in_port = src_pkt->in_port;
+  pkt->bridge = src_pkt->bridge;
+  pkt->flags = src_pkt->flags | PKT_FLAG_CACHED_FLOW;
+  /* other pkt members are not used in physical output. */
+  return pkt;
 }
 
 /*
@@ -698,9 +724,9 @@ execute_action_set_field(struct lagopus_packet *pkt,
     case OFPXMT_OFB_IN_PORT:
       OS_MEMCPY(&val32, oxm_value, sizeof(uint32_t));
       DP_PRINT("set_field in_port: %d\n", OS_NTOHL(val32));
-      if (pkt->in_port != NULL && pkt->in_port->bridge != NULL) {
+      if (pkt->bridge != NULL) {
 
-        pkt->in_port = port_lookup(&pkt->in_port->bridge->ports,
+        pkt->in_port = port_lookup(&pkt->bridge->ports,
                                    OS_NTOHL(val32));
         pkt->oob_data.in_port = val32;
       }
@@ -1261,10 +1287,10 @@ execute_group_action(struct lagopus_packet *pkt, uint32_t group_id) {
   struct bucket *bucket;
   lagopus_result_t rv;
 
-  if (pkt->in_port == NULL || pkt->in_port->bridge == NULL) {
+  if (pkt->bridge == NULL) {
     return LAGOPUS_RESULT_NOT_FOUND;
   }
-  group = group_table_lookup(pkt->in_port->bridge->group_table, group_id);
+  group = group_table_lookup(pkt->bridge->group_table, group_id);
 
   if (unlikely(group == NULL)) {
     return LAGOPUS_RESULT_NOT_FOUND;
@@ -1324,7 +1350,7 @@ execute_group_action(struct lagopus_packet *pkt, uint32_t group_id) {
 
     case OFPGT_FF:
       /* execute only one live bucket */
-      bucket = group_live_bucket(pkt->in_port->bridge, group);
+      bucket = group_live_bucket(pkt->bridge, group);
       if (bucket != NULL) {
         bucket->counter.packet_count++;
         bucket->counter.byte_count += OS_M_PKTLEN(pkt->mbuf);
@@ -1506,7 +1532,7 @@ send_packet_in(struct lagopus_packet *pkt,
   lagopus_result_t rv;
 
   DP_PRINT("%s\n", __func__);
-  if (pkt->in_port == NULL || pkt->in_port->bridge == NULL) {
+  if (pkt->bridge == NULL) {
     return LAGOPUS_RESULT_INVALID_OBJECT;
   }
   data = malloc(sizeof(*data));
@@ -1577,7 +1603,7 @@ send_packet_in(struct lagopus_packet *pkt,
   /* TUNNEL_ID for physical port is omitted. */
 
   DP_PRINT("%s: put packet to dataq\n", __func__);
-  rv = dp_dataq_data_put(pkt->in_port->bridge->dpid,
+  rv = dp_dataq_data_put(pkt->bridge->dpid,
                          &data, PUT_TIMEOUT);
   if (rv != LAGOPUS_RESULT_OK) {
     DP_PRINT("%s: %s\n", __func__, lagopus_error_get_string(rv));
@@ -1636,7 +1662,7 @@ lagopus_forward_packet_to_port(struct lagopus_packet *pkt,
     case OFPP_NORMAL:
       /* optional */
       DP_PRINT("OFPP_NORMAL\n");
-      dp_interface_send_packet_normal(pkt, pkt->in_port->interface, pkt->in_port->bridge->l2_bridge);
+      dp_interface_send_packet_normal(pkt, pkt->in_port->interface, pkt->bridge->l2_bridge);
       lagopus_packet_free(pkt);
       break;
 
@@ -1651,7 +1677,7 @@ lagopus_forward_packet_to_port(struct lagopus_packet *pkt,
       /* required: send packet to all physical ports except in_port. */
       /* XXX destination mac address learning should be needed for flooding. */
       DP_PRINT("OFPP_ALL\n");
-      lagopus_hashmap_iterate(&pkt->in_port->bridge->ports,
+      lagopus_hashmap_iterate(&pkt->bridge->ports,
                               lagopus_do_send_iterate,
                               pkt);
       lagopus_packet_free(pkt);
@@ -1681,7 +1707,7 @@ lagopus_forward_packet_to_port(struct lagopus_packet *pkt,
       out_port = in_port;
       /*FALLTHROUGH*/
     default:
-      port = port_lookup(&pkt->in_port->bridge->ports, out_port);
+      port = port_lookup(&pkt->bridge->ports, out_port);
       if (port != NULL && (port->ofp_port.config & OFPPC_NO_FWD) == 0) {
         /* so far, we support only physical port. */
         DP_PRINT("Forwarding packet to port %d\n", port->ifindex);
@@ -1725,7 +1751,7 @@ execute_action_output(struct lagopus_packet *pkt,
   } else {
     struct bridge *bridge;
 
-    bridge = pkt->in_port->bridge;
+    bridge = pkt->bridge;
     if ((bridge->controller_port.config & OFPPC_NO_PACKET_IN) == 0) {
       uint8_t reason;
 
@@ -1867,8 +1893,8 @@ execute_action_dec_mpls_ttl(struct lagopus_packet *pkt,
 
   /* if invalid.  send packet_in with OFPR_INVALID_TTL to controller. */
   if (unlikely(MPLS_TTL(pkt->mpls->mpls_lse) == 0)) {
-    if (pkt->in_port != NULL && pkt->in_port->bridge != NULL) {
-      miss_send_len = pkt->in_port->bridge->switch_config.miss_send_len;
+    if (pkt->bridge != NULL) {
+      miss_send_len = pkt->bridge->switch_config.miss_send_len;
     } else {
       miss_send_len = 128;
     }
@@ -2074,7 +2100,6 @@ execute_action_push_vlan(struct lagopus_packet *pkt,
                          struct action *action) {
   ETHER_HDR *new_hdr;
   VLAN_HDR *vlan_hdr;
-  uint16_t vlan_tci;
   OS_MBUF *m;
 
   DP_PRINT("action push_vlan: 0x%04x\n",
@@ -2083,12 +2108,6 @@ execute_action_push_vlan(struct lagopus_packet *pkt,
   m = pkt->mbuf;
 
   /* optional */
-  if (pkt->vlan != NULL) {
-    /* priority and VID */
-    vlan_tci = VLAN_TCI(pkt->vlan);
-  } else {
-    vlan_tci = 0;
-  }
   new_hdr = (ETHER_HDR *)OS_M_PREPEND(m, sizeof(VLAN_HDR));
   if (NEED_COPY_ETH_ADDR(action->flags)) {
     memmove(new_hdr, pkt->eth, ETHER_ADDR_LEN * 2);
@@ -2096,11 +2115,16 @@ execute_action_push_vlan(struct lagopus_packet *pkt,
   ETHER_TYPE(new_hdr) =
     OS_HTONS(((struct ofp_action_push *)&action->ofpat)->ethertype);
   vlan_hdr = (VLAN_HDR *)&new_hdr[1];
-  VLAN_TCI(vlan_hdr) = vlan_tci;
+  if (pkt->vlan != NULL) {
+    /* priority and VID */
+    VLAN_TCI(vlan_hdr) = VLAN_TCI(pkt->vlan);
+  } else {
+    VLAN_TCI(vlan_hdr) = 0;
+  }
   /* re-classify packet. */
   pkt->eth = new_hdr;
   pkt->vlan = vlan_hdr;
-  pkt->oob_data.vlan_tci = vlan_tci | htons(OFPVID_PRESENT);
+  pkt->oob_data.vlan_tci = VLAN_TCI(vlan_hdr) | htons(OFPVID_PRESENT);
   return LAGOPUS_RESULT_OK;
 }
 
@@ -2284,8 +2308,8 @@ execute_action_dec_nw_ttl(struct lagopus_packet *pkt,
 
     /* if invalid.  send packet_in with OFPR_INVALID_TTL to controller. */
     if (likely(IPV4_TTL(pkt->ipv4) == 0)) {
-      if (pkt->in_port != NULL && pkt->in_port->bridge != NULL) {
-        miss_send_len = pkt->in_port->bridge->switch_config.miss_send_len;
+      if (pkt->bridge != NULL) {
+        miss_send_len = pkt->bridge->switch_config.miss_send_len;
       } else {
         miss_send_len = 128;
       }
@@ -2303,8 +2327,8 @@ execute_action_dec_nw_ttl(struct lagopus_packet *pkt,
 
     /* if invalid.  send packet_in with OFPR_INVALID_TTL to controller. */
     if (IPV6_HLIM(pkt->ipv6) == 0) {
-      if (pkt->in_port != NULL && pkt->in_port->bridge != NULL) {
-        miss_send_len = pkt->in_port->bridge->switch_config.miss_send_len;
+      if (pkt->bridge != NULL) {
+        miss_send_len = pkt->bridge->switch_config.miss_send_len;
       } else {
         miss_send_len = 128;
       }
@@ -2543,12 +2567,12 @@ execute_instruction_meter(struct lagopus_packet *pkt,
                           const struct instruction *instruction) {
   /* optional */
   DP_PRINT("instruction meter: %d\n", instruction->ofpit_meter.meter_id);
-  if (pkt->in_port != NULL && pkt->in_port->bridge != NULL) {
+  if (pkt->bridge != NULL) {
     struct meter_table *meter_table;
     uint32_t meter_id;
 
     meter_id = instruction->ofpit_meter.meter_id;
-    meter_table = pkt->in_port->bridge->meter_table;
+    meter_table = pkt->bridge->meter_table;
     if (apply_meter(pkt, meter_table, meter_id) != 0) {
       /* dropped.  exit loop immediately */
       clear_action_set(pkt);
@@ -2616,7 +2640,7 @@ dp_openflow_do_cached_action(struct lagopus_packet *pkt) {
   lagopus_result_t rv;
   unsigned i;
 
-  flowdb = pkt->in_port->bridge->flowdb;
+  flowdb = pkt->bridge->flowdb;
 
   cache_entry = cache_lookup(pkt->cache, pkt);
   if (likely(cache_entry != NULL)) {
@@ -2667,7 +2691,7 @@ dp_openflow_match(struct lagopus_packet *pkt) {
   struct table *table;
   lagopus_result_t rv;
 
-  flowdb = pkt->in_port->bridge->flowdb;
+  flowdb = pkt->bridge->flowdb;
 
   /* Get table from tabile_id. */
   table = table_lookup(flowdb, pkt->table_id);

@@ -202,7 +202,7 @@
 
 /* Bursts */
 #ifndef APP_MBUF_ARRAY_SIZE
-#define APP_MBUF_ARRAY_SIZE   512
+#define APP_MBUF_ARRAY_SIZE   1024
 #endif
 
 #ifndef APP_DEFAULT_BURST_SIZE_IO_RX_READ
@@ -263,8 +263,8 @@ struct flowcache;
 struct interface;
 
 struct app_mbuf_array {
-  struct rte_mbuf *array[APP_MBUF_ARRAY_SIZE];
   uint32_t n_mbufs;
+  struct rte_mbuf *array[APP_MBUF_ARRAY_SIZE];
 };
 
 enum app_lcore_type {
