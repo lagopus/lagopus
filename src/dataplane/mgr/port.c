@@ -29,6 +29,7 @@
 
 #include "lagopus/dp_apis.h"
 #include "lagopus/interface.h"
+#include "dpdk.h"
 
 /**
  * no driver version of port_stats().
@@ -154,6 +155,23 @@ lagopus_get_port_statistics(lagopus_hashmap_t *hm,
   return LAGOPUS_RESULT_OK;
 }
 
+void
+dp_port_update_link_status(struct port *port) {
+  struct interface *ifp;
+
+  ifp = port->interface;
+  if (ifp == NULL) {
+    return;
+  }
+  switch (ifp->info.type) {
+    case DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_PHY:
+      dpdk_update_port_link_status(port);
+      break;
+    default:
+      break;
+  }
+}
+
 /**
  * Change physical port state.
  *
@@ -251,8 +269,6 @@ lagopus_result_t
 get_port_desc(lagopus_hashmap_t *hm,
               struct port_desc_list *list,
               struct ofp_error *error) {
-  struct port *port;
-
   (void) error;
 
   lagopus_hashmap_iterate(hm, port_do_desc_iterate, list);

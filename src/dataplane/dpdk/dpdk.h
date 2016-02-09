@@ -437,6 +437,5 @@ bool is_rawsocket_only_mode(void);
 bool set_rawsocket_only_mode(bool newval);
 
 struct interface *dpdk_interface_lookup(uint8_t portid);
-void dpdk_update_link_status(struct app_lcore_params_io *lp);
 
 #endif /* SRC_DATAPLANE_DPDK_DPDK_H_ */

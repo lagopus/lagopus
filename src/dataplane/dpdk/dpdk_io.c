@@ -123,7 +123,7 @@
 #define APP_LCORE_IO_FLUSH           100
 #endif
 
-#define DP_UPDATE_COUNT		     (100 * 1000)
+#define DP_UPDATE_COUNT		     (200 * 10000)
 
 #define APP_IO_RX_DROP_ALL_PACKETS   0
 #define APP_IO_TX_DROP_ALL_PACKETS   0
@@ -161,7 +161,7 @@ static struct ether_addr lagopus_ports_eth_addr[RTE_MAX_ETHPORTS];
 /* mask of enabled ports */
 static unsigned long lagopus_port_mask = 0;
 
-static const struct rte_eth_conf port_conf = {
+static struct rte_eth_conf port_conf = {
   .rxmode = {
     .split_hdr_size = 0,
     .header_split   = 0, /**< Header Split disabled */
@@ -185,6 +185,9 @@ static const struct rte_eth_conf port_conf = {
   },
   .txmode = {
     .mq_mode = ETH_MQ_TX_NONE,
+  },
+  .intr_conf = {
+    .lsc = 1,
   },
 };
 
@@ -592,23 +595,6 @@ app_lcore_io_tx(struct app_lcore_params_io *lp,
   }
 }
 
-
-void
-dpdk_update_link_status(struct app_lcore_params_io *lp) {
-  int i;
-
-  for (i = 0; i < lp->tx.n_nic_ports; i++) {
-    struct interface *ifp;
-    uint8_t portid;
-
-    portid = lp->tx.nic_ports[i];
-    ifp = dpdk_interface_lookup(portid);
-    if (ifp != NULL && ifp->port != NULL) {
-      update_port_link_status(ifp->port);
-    }
-  }
-}
-
 static inline void
 app_lcore_io_tx_flush(struct app_lcore_params_io *lp, __UNUSED void *arg) {
   uint8_t portid, i;
@@ -715,7 +701,6 @@ app_lcore_main_loop_io(void *arg) {
         if (rte_atomic32_read(&dpdk_stop) != 0) {
           break;
         }
-        dpdk_update_link_status(lp);
         update_count = 0;
       }
       app_lcore_io_tx(lp, n_workers, bsz_tx_rd, bsz_tx_wr);
@@ -733,7 +718,6 @@ app_lcore_main_loop_io(void *arg) {
         if (rte_atomic32_read(&dpdk_stop) != 0) {
           break;
         }
-        dpdk_update_link_status(lp);
         update_count = 0;
       }
       app_lcore_io_rx(lp, n_workers, bsz_rx_rd, bsz_rx_wr);
@@ -995,6 +979,23 @@ out:
 }
 #endif
 
+static void
+dpdk_intr_event_callback(uint8_t portid, enum rte_eth_event_type type,
+                         void *param) {
+  struct interface *ifp;
+
+  switch (type) {
+    case RTE_ETH_EVENT_INTR_LSC:
+      ifp = param;
+      if (ifp != NULL && ifp->port != NULL) {
+        dpdk_update_port_link_status(ifp->port);
+      }
+      break;
+    default:
+      break;
+  }
+}
+
 static inline const char *
 dpdk_remove_namespace(const char *device) {
   char *p;
@@ -1050,15 +1051,28 @@ dpdk_configure_interface(struct interface *ifp) {
 
   /* Init port */
   printf("Initializing NIC port %u ...\n", (unsigned) portid);
-
-  ret = rte_eth_dev_configure(portid,
-                              (uint8_t) n_rx_queues,
-                              (uint8_t) n_tx_queues,
-                              &port_conf);
+  if ((rte_eth_devices[portid].data->dev_flags & RTE_ETH_DEV_INTR_LSC) != 0) {
+    port_conf.intr_conf.lsc = 1;
+    ret = rte_eth_dev_configure(portid,
+                                (uint8_t) n_rx_queues,
+                                (uint8_t) n_tx_queues,
+                                &port_conf);
+  } else {
+    port_conf.intr_conf.lsc = 0;
+    ret = rte_eth_dev_configure(portid,
+                                (uint8_t) n_rx_queues,
+                                (uint8_t) n_tx_queues,
+                                &port_conf);
+    /* XXX register link update periodic timer */
+  }
   if (ret < 0) {
     rte_panic("Cannot init NIC port %u (%s)\n",
               (unsigned) portid, strerror(-ret));
   }
+  rte_eth_dev_callback_register(portid,
+                                RTE_ETH_EVENT_INTR_LSC,
+                                dpdk_intr_event_callback,
+                                ifp);
   ret = rte_eth_dev_set_mtu(portid, ifp->info.eth_dpdk_phy.mtu);
   if (ret < 0) {
     if (ret != -ENOTSUP) {
@@ -1258,7 +1272,7 @@ dpdk_port_stats(struct port *port) {
 }
 
 lagopus_result_t
-update_port_link_status(struct port *port) {
+dpdk_update_port_link_status(struct port *port) {
   struct rte_eth_link link;
   struct interface *ifp;
   uint8_t portid;

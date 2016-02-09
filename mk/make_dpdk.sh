@@ -5,6 +5,26 @@
 #   mk/make_dpdk.sh [opts] $(TOPDIR) $(DPDKDIR) $(RTE_ARCH) $(RTE_OS) $(CC)
 #
 
+#
+# usage
+#  edit_dpdk_config VAR=value file
+#
+edit_dpdk_config() {
+    NEWLINE="$1"
+    FILE="$2"
+    VAR="${NEWLINE%%=*}"
+    sed "s/^${VAR}=.*\$/$NEWLINE/" $FILE > $FILE.tmp
+    if test $? -ne 0; then
+	exit 1
+    fi
+    mv $FILE.tmp $FILE
+    if test $? -ne 0; then
+	exit 1
+    fi
+}
+
+echo "$@"
+
 TOPDIR=$1
 DPDKDIR=$2
 if test -z "${TOPDIR}" -o -z "${DPDKDIR}"; then
@@ -41,28 +61,28 @@ fi
 RTE_TARGET=${RTE_ARCH}-native-${RTE_OS}-${CC}
 NEW_TARGET=${RTE_ARCH}-native-lagopusapp-${CC}
 
-cat > config/defconfig_$NEW_TARGET <<EOF
-CONFIG_RTE_BUILD_SHARED_LIB=y
-CONFIG_RTE_BUILD_COMBINE_LIBS=y
-#CONFIG_RTE_PCI_EXTENDED_TAGS=on
-#CONFIG_RTE_LIBRTE_PMD_QAT=y
-#CONFIG_RTE_LIBRTE_PMD_AESNI_MB=y
-CONFIG_RTE_LIBRTE_PMD_PCAP=n
-CONFIG_RTE_APP_TEST=n
-CONFIG_RTE_TEST_PMD=n
-CONFIG_RTE_IXGBE_INC_VECTOR=n
-EOF
+NEWCONFIG=config/defconfig_$NEW_TARGET
 
-grep -v include config/defconfig_${RTE_TARGET} \
-    >> config/defconfig_${NEW_TARGET}
+grep -v include config/defconfig_${RTE_TARGET} > $NEWCONFIG
 if test $? -ne 0; then
     exit 1
 fi
-egrep -v "(SHARED_LIB|COMBINE_LIB|PMD_PCAP|APP_TEST|TEST_PMD|IXGBE_INC_VECTOR)" config/common_${RTE_OS} \
-    >> config/defconfig_${NEW_TARGET}
+
+cat config/common_${RTE_OS} >> $NEWCONFIG
 if test $? -ne 0; then
     exit 1
 fi
+
+edit_dpdk_config CONFIG_RTE_BUILD_SHARED_LIB=y $NEWCONFIG
+edit_dpdk_config CONFIG_RTE_BUILD_SHARED_LIB=y $NEWCONFIG
+edit_dpdk_config CONFIG_RTE_BUILD_COMBINE_LIBS=y $NEWCONFIG
+#edit_dpdk_config CONFIG_RTE_PCI_EXTENDED_TAGS=on $NEWCONFIG
+#edit_dpdk_config CONFIG_RTE_LIBRTE_PMD_QAT=y $NEWCONFIG
+#edit_dpdk_config CONFIG_RTE_LIBRTE_PMD_AESNI_MB=y $NEWCONFIG
+edit_dpdk_config CONFIG_RTE_LIBRTE_PMD_PCAP=n $NEWCONFIG
+edit_dpdk_config CONFIG_RTE_APP_TEST=n $NEWCONFIG
+edit_dpdk_config CONFIG_RTE_TEST_PMD=n $NEWCONFIG
+edit_dpdk_config CONFIG_RTE_IXGBE_INC_VECTOR=n $NEWCONFIG
 
 ${MAKE} T=${NEW_TARGET} config && ${MAKE} && \
     RTE_SDK="${TOPDIR}/${DPDKDIR}" \

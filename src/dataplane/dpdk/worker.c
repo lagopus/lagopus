@@ -326,7 +326,6 @@ app_lcore_main_loop_io_worker(void *arg) {
       app_lcore_io_flush(lp_io, n_workers, arg);
       flowdb_check_update(NULL);
       app_lcore_worker_flush(lp);
-      dpdk_update_link_status(lp);
       i = 0;
     }
     app_lcore_io(lp_io, n_workers);
