@@ -1058,6 +1058,12 @@ dpdk_configure_interface(struct interface *ifp) {
                                 (uint8_t) n_rx_queues,
                                 (uint8_t) n_tx_queues,
                                 &port_conf);
+    if (ret >= 0) {
+      rte_eth_dev_callback_register(portid,
+                                    RTE_ETH_EVENT_INTR_LSC,
+                                    dpdk_intr_event_callback,
+                                    ifp);
+    }
   } else {
     port_conf.intr_conf.lsc = 0;
     ret = rte_eth_dev_configure(portid,
@@ -1065,16 +1071,14 @@ dpdk_configure_interface(struct interface *ifp) {
                                 (uint8_t) n_tx_queues,
                                 &port_conf);
     /* register link update periodic timer */
-    add_link_timer(ifp);
+    if (ret >= 0) {
+      add_link_timer(ifp);
+    }
   }
   if (ret < 0) {
     rte_panic("Cannot init NIC port %u (%s)\n",
               (unsigned) portid, strerror(-ret));
   }
-  rte_eth_dev_callback_register(portid,
-                                RTE_ETH_EVENT_INTR_LSC,
-                                dpdk_intr_event_callback,
-                                ifp);
   ret = rte_eth_dev_set_mtu(portid, ifp->info.eth_dpdk_phy.mtu);
   if (ret < 0) {
     if (ret != -ENOTSUP) {
