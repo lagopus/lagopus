@@ -2304,6 +2304,506 @@ ipv6_exthdr_cmd_parse(const char *const argv[],
                           result);
 }
 
+/* oxm field (pbb_uca). */
+#define FLOW_CMD_PBB_UCA_MAX 1
+#define FLOW_CMD_PBB_UCA_MIN 0
+#define FLOW_CMD_PBB_UCA_LEN 1
+
+static lagopus_result_t
+pbb_uca_cmd_parse(const char *const argv[],
+                  struct ofp_flow_mod *flow_mod,
+                  struct match_list *match_list,
+                  struct instruction_list *instruction_list,
+                  enum flow_cmd_type ftype,
+                  lagopus_dstring_t *result) {
+  return uint_field_parse((char ***) &argv, flow_mod,
+                          match_list, instruction_list,
+                          ftype,
+                          FLOW_CMD_PBB_UCA_MIN,
+                          FLOW_CMD_PBB_UCA_MAX,
+                          OFPXMT_OFB_PBB_UCA,
+                          FLOW_CMD_PBB_UCA_LEN,
+                          NULL,
+                          NULL,
+                          false,
+                          result);
+}
+
+/* oxm field (packet_type). */
+#define FLOW_CMD_PACKET_TYPE_MAX UINT32_MAX
+#define FLOW_CMD_PACKET_TYPE_MIN 0
+#define FLOW_CMD_PACKET_TYPE_LEN 4
+
+static lagopus_result_t
+packet_type_cmd_parse(const char *const argv[],
+                      struct ofp_flow_mod *flow_mod,
+                      struct match_list *match_list,
+                      struct instruction_list *instruction_list,
+                      enum flow_cmd_type ftype,
+                      lagopus_dstring_t *result) {
+  return uint_field_parse((char ***) &argv, flow_mod,
+                          match_list, instruction_list,
+                          ftype,
+                          FLOW_CMD_PACKET_TYPE_MIN,
+                          FLOW_CMD_PACKET_TYPE_MAX,
+                          OFPXMT_OFB_PACKET_TYPE,
+                          FLOW_CMD_PACKET_TYPE_LEN,
+                          value_uint32_hook,
+                          NULL,
+                          false,
+                          result);
+}
+
+/* oxm field (gre_flags). */
+#define FLOW_CMD_GRE_FLAGS_MAX 8191
+#define FLOW_CMD_GRE_FLAGS_MIN 0
+#define FLOW_CMD_GRE_FLAGS_LEN 2
+
+static lagopus_result_t
+gre_flags_cmd_parse(const char *const argv[],
+                    struct ofp_flow_mod *flow_mod,
+                    struct match_list *match_list,
+                    struct instruction_list *instruction_list,
+                    enum flow_cmd_type ftype,
+                    lagopus_dstring_t *result) {
+  return uint_field_parse((char ***) &argv, flow_mod,
+                          match_list, instruction_list,
+                          ftype,
+                          FLOW_CMD_GRE_FLAGS_MIN,
+                          FLOW_CMD_GRE_FLAGS_MAX,
+                          OFPXMT_OFB_GRE_FLAGS,
+                          FLOW_CMD_GRE_FLAGS_LEN,
+                          value_uint16_hook,
+                          NULL,
+                          true,
+                          result);
+}
+
+/* oxm field (gre_ver). */
+#define FLOW_CMD_GRE_VER_MAX 7
+#define FLOW_CMD_GRE_VER_MIN 0
+#define FLOW_CMD_GRE_VER_LEN 1
+
+static lagopus_result_t
+gre_ver_cmd_parse(const char *const argv[],
+                  struct ofp_flow_mod *flow_mod,
+                  struct match_list *match_list,
+                  struct instruction_list *instruction_list,
+                  enum flow_cmd_type ftype,
+                  lagopus_dstring_t *result) {
+  return uint_field_parse((char ***) &argv, flow_mod,
+                          match_list, instruction_list,
+                          ftype,
+                          FLOW_CMD_GRE_VER_MIN,
+                          FLOW_CMD_GRE_VER_MAX,
+                          OFPXMT_OFB_GRE_VER,
+                          FLOW_CMD_GRE_VER_LEN,
+                          NULL,
+                          NULL,
+                          false,
+                          result);
+}
+
+/* oxm field (gre_protocol). */
+#define FLOW_CMD_GRE_PROTOCOL_MAX UINT16_MAX
+#define FLOW_CMD_GRE_PROTOCOL_MIN 0
+#define FLOW_CMD_GRE_PROTOCOL_LEN 2
+
+static lagopus_result_t
+gre_protocol_cmd_parse(const char *const argv[],
+                       struct ofp_flow_mod *flow_mod,
+                       struct match_list *match_list,
+                       struct instruction_list *instruction_list,
+                       enum flow_cmd_type ftype,
+                       lagopus_dstring_t *result) {
+  return uint_field_parse((char ***) &argv, flow_mod,
+                          match_list, instruction_list,
+                          ftype,
+                          FLOW_CMD_GRE_PROTOCOL_MIN,
+                          FLOW_CMD_GRE_PROTOCOL_MAX,
+                          OFPXMT_OFB_GRE_PROTOCOL,
+                          FLOW_CMD_GRE_PROTOCOL_LEN,
+                          value_uint16_hook,
+                          NULL,
+                          false,
+                          result);
+}
+
+/* oxm field (gre_key). */
+#define FLOW_CMD_GRE_KEY_MAX UINT32_MAX
+#define FLOW_CMD_GRE_KEY_MIN 0
+#define FLOW_CMD_GRE_KEY_LEN 4
+
+static lagopus_result_t
+gre_key_cmd_parse(const char *const argv[],
+                  struct ofp_flow_mod *flow_mod,
+                  struct match_list *match_list,
+                  struct instruction_list *instruction_list,
+                  enum flow_cmd_type ftype,
+                  lagopus_dstring_t *result) {
+  return uint_field_parse((char ***) &argv, flow_mod,
+                          match_list, instruction_list,
+                          ftype,
+                          FLOW_CMD_GRE_KEY_MIN,
+                          FLOW_CMD_GRE_KEY_MAX,
+                          OFPXMT_OFB_GRE_KEY,
+                          FLOW_CMD_GRE_KEY_LEN,
+                          value_uint32_hook,
+                          NULL,
+                          true,
+                          result);
+}
+
+/* oxm field (gre_seqnum). */
+#define FLOW_CMD_GRE_SEQNUM_MAX UINT32_MAX
+#define FLOW_CMD_GRE_SEQNUM_MIN 0
+#define FLOW_CMD_GRE_SEQNUM_LEN 4
+
+static lagopus_result_t
+gre_seqnum_cmd_parse(const char *const argv[],
+                     struct ofp_flow_mod *flow_mod,
+                     struct match_list *match_list,
+                     struct instruction_list *instruction_list,
+                     enum flow_cmd_type ftype,
+                     lagopus_dstring_t *result) {
+  return uint_field_parse((char ***) &argv, flow_mod,
+                          match_list, instruction_list,
+                          ftype,
+                          FLOW_CMD_GRE_SEQNUM_MIN,
+                          FLOW_CMD_GRE_SEQNUM_MAX,
+                          OFPXMT_OFB_GRE_SEQNUM,
+                          FLOW_CMD_GRE_SEQNUM_LEN,
+                          value_uint32_hook,
+                          NULL,
+                          false,
+                          result);
+}
+
+/* oxm field (lisp_flags). */
+#define FLOW_CMD_LISP_FLAGS_MAX UINT8_MAX
+#define FLOW_CMD_LISP_FLAGS_MIN 0
+#define FLOW_CMD_LISP_FLAGS_LEN 1
+
+static lagopus_result_t
+lisp_flags_cmd_parse(const char *const argv[],
+                     struct ofp_flow_mod *flow_mod,
+                     struct match_list *match_list,
+                     struct instruction_list *instruction_list,
+                     enum flow_cmd_type ftype,
+                     lagopus_dstring_t *result) {
+  return uint_field_parse((char ***) &argv, flow_mod,
+                          match_list, instruction_list,
+                          ftype,
+                          FLOW_CMD_LISP_FLAGS_MIN,
+                          FLOW_CMD_LISP_FLAGS_MAX,
+                          OFPXMT_OFB_LISP_FLAGS,
+                          FLOW_CMD_LISP_FLAGS_LEN,
+                          NULL,
+                          NULL,
+                          true,
+                          result);
+}
+
+/* oxm field (lisp_nonce). */
+#define FLOW_CMD_LISP_NONCE_MAX 16777215
+#define FLOW_CMD_LISP_NONCE_MIN 0
+#define FLOW_CMD_LISP_NONCE_LEN 3
+
+static lagopus_result_t
+lisp_nonce_cmd_parse(const char *const argv[],
+                     struct ofp_flow_mod *flow_mod,
+                     struct match_list *match_list,
+                     struct instruction_list *instruction_list,
+                     enum flow_cmd_type ftype,
+                     lagopus_dstring_t *result) {
+  return uint_field_parse((char ***) &argv, flow_mod,
+                          match_list, instruction_list,
+                          ftype,
+                          FLOW_CMD_LISP_NONCE_MIN,
+                          FLOW_CMD_LISP_NONCE_MAX,
+                          OFPXMT_OFB_LISP_NONCE,
+                          FLOW_CMD_LISP_NONCE_LEN,
+                          value_uint24_hook,
+                          NULL,
+                          true,
+                          result);
+}
+
+/* oxm field (lisp_id). */
+#define FLOW_CMD_LISP_ID_MAX UINT32_MAX
+#define FLOW_CMD_LISP_ID_MIN 0
+#define FLOW_CMD_LISP_ID_LEN 4
+
+static lagopus_result_t
+lisp_id_cmd_parse(const char *const argv[],
+                  struct ofp_flow_mod *flow_mod,
+                  struct match_list *match_list,
+                  struct instruction_list *instruction_list,
+                  enum flow_cmd_type ftype,
+                  lagopus_dstring_t *result) {
+  return uint_field_parse((char ***) &argv, flow_mod,
+                          match_list, instruction_list,
+                          ftype,
+                          FLOW_CMD_LISP_ID_MIN,
+                          FLOW_CMD_LISP_ID_MAX,
+                          OFPXMT_OFB_LISP_ID,
+                          FLOW_CMD_LISP_ID_LEN,
+                          value_uint32_hook,
+                          NULL,
+                          false,
+                          result);
+}
+
+/* oxm field (vxlan_flags). */
+#define FLOW_CMD_VXLAN_FLAGS_MAX UINT8_MAX
+#define FLOW_CMD_VXLAN_FLAGS_MIN 0
+#define FLOW_CMD_VXLAN_FLAGS_LEN 1
+
+static lagopus_result_t
+vxlan_flags_cmd_parse(const char *const argv[],
+                      struct ofp_flow_mod *flow_mod,
+                      struct match_list *match_list,
+                      struct instruction_list *instruction_list,
+                      enum flow_cmd_type ftype,
+                      lagopus_dstring_t *result) {
+  return uint_field_parse((char ***) &argv, flow_mod,
+                          match_list, instruction_list,
+                          ftype,
+                          FLOW_CMD_VXLAN_FLAGS_MIN,
+                          FLOW_CMD_VXLAN_FLAGS_MAX,
+                          OFPXMT_OFB_VXLAN_FLAGS,
+                          FLOW_CMD_VXLAN_FLAGS_LEN,
+                          NULL,
+                          NULL,
+                          true,
+                          result);
+}
+
+/* oxm field (vxlan_vni). */
+#define FLOW_CMD_VXLAN_VNI_MAX 16777215
+#define FLOW_CMD_VXLAN_VNI_MIN 0
+#define FLOW_CMD_VXLAN_VNI_LEN 3
+
+static lagopus_result_t
+vxlan_vni_cmd_parse(const char *const argv[],
+                    struct ofp_flow_mod *flow_mod,
+                    struct match_list *match_list,
+                    struct instruction_list *instruction_list,
+                    enum flow_cmd_type ftype,
+                    lagopus_dstring_t *result) {
+  return uint_field_parse((char ***) &argv, flow_mod,
+                          match_list, instruction_list,
+                          ftype,
+                          FLOW_CMD_VXLAN_VNI_MIN,
+                          FLOW_CMD_VXLAN_VNI_MAX,
+                          OFPXMT_OFB_VXLAN_VNI,
+                          FLOW_CMD_VXLAN_VNI_LEN,
+                          value_uint24_hook,
+                          NULL,
+                          false,
+                          result);
+}
+
+/* oxm field (mpls_data_first_nibble). */
+#define FLOW_CMD_MPLS_DATA_FIRST_NIBBLE_MAX 15
+#define FLOW_CMD_MPLS_DATA_FIRST_NIBBLE_MIN 0
+#define FLOW_CMD_MPLS_DATA_FIRST_NIBBLE_LEN 1
+
+static lagopus_result_t
+mpls_data_first_nibble_cmd_parse(const char *const argv[],
+                                 struct ofp_flow_mod *flow_mod,
+                                 struct match_list *match_list,
+                                 struct instruction_list *instruction_list,
+                                 enum flow_cmd_type ftype,
+                                 lagopus_dstring_t *result) {
+  return uint_field_parse((char ***) &argv, flow_mod,
+                          match_list, instruction_list,
+                          ftype,
+                          FLOW_CMD_MPLS_DATA_FIRST_NIBBLE_MIN,
+                          FLOW_CMD_MPLS_DATA_FIRST_NIBBLE_MAX,
+                          OFPXMT_OFB_MPLS_DATA_FIRST_NIBBLE,
+                          FLOW_CMD_MPLS_DATA_FIRST_NIBBLE_LEN,
+                          NULL,
+                          NULL,
+                          true,
+                          result);
+}
+
+/* oxm field (mpls_ach_version). */
+#define FLOW_CMD_MPLS_ACH_VERSION_MAX 15
+#define FLOW_CMD_MPLS_ACH_VERSION_MIN 0
+#define FLOW_CMD_MPLS_ACH_VERSION_LEN 1
+
+static lagopus_result_t
+mpls_ach_version_cmd_parse(const char *const argv[],
+                           struct ofp_flow_mod *flow_mod,
+                           struct match_list *match_list,
+                           struct instruction_list *instruction_list,
+                           enum flow_cmd_type ftype,
+                           lagopus_dstring_t *result) {
+  return uint_field_parse((char ***) &argv, flow_mod,
+                          match_list, instruction_list,
+                          ftype,
+                          FLOW_CMD_MPLS_ACH_VERSION_MIN,
+                          FLOW_CMD_MPLS_ACH_VERSION_MAX,
+                          OFPXMT_OFB_MPLS_ACH_VERSION,
+                          FLOW_CMD_MPLS_ACH_VERSION_LEN,
+                          NULL,
+                          NULL,
+                          false,
+                          result);
+}
+
+/* oxm field (mpls_ach_channel). */
+#define FLOW_CMD_MPLS_ACH_CHANNEL_MAX UINT16_MAX
+#define FLOW_CMD_MPLS_ACH_CHANNEL_MIN 0
+#define FLOW_CMD_MPLS_ACH_CHANNEL_LEN 2
+
+static lagopus_result_t
+mpls_ach_channel_cmd_parse(const char *const argv[],
+                           struct ofp_flow_mod *flow_mod,
+                           struct match_list *match_list,
+                           struct instruction_list *instruction_list,
+                           enum flow_cmd_type ftype,
+                           lagopus_dstring_t *result) {
+  return uint_field_parse((char ***) &argv, flow_mod,
+                          match_list, instruction_list,
+                          ftype,
+                          FLOW_CMD_MPLS_ACH_CHANNEL_MIN,
+                          FLOW_CMD_MPLS_ACH_CHANNEL_MAX,
+                          OFPXMT_OFB_MPLS_ACH_CHANNEL,
+                          FLOW_CMD_MPLS_ACH_CHANNEL_LEN,
+                          value_uint16_hook,
+                          NULL,
+                          true,
+                          result);
+}
+
+/* oxm field (mpls_pw_metadata). */
+#define FLOW_CMD_MPLS_PW_METADATA_MAX 1
+#define FLOW_CMD_MPLS_PW_METADATA_MIN 0
+#define FLOW_CMD_MPLS_PW_METADATA_LEN 1
+
+static lagopus_result_t
+mpls_pw_metadata_cmd_parse(const char *const argv[],
+                           struct ofp_flow_mod *flow_mod,
+                           struct match_list *match_list,
+                           struct instruction_list *instruction_list,
+                           enum flow_cmd_type ftype,
+                           lagopus_dstring_t *result) {
+  return uint_field_parse((char ***) &argv, flow_mod,
+                          match_list, instruction_list,
+                          ftype,
+                          FLOW_CMD_MPLS_PW_METADATA_MIN,
+                          FLOW_CMD_MPLS_PW_METADATA_MAX,
+                          OFPXMT_OFB_MPLS_PW_METADATA,
+                          FLOW_CMD_MPLS_PW_METADATA_LEN,
+                          NULL,
+                          NULL,
+                          true,
+                          result);
+}
+
+/* oxm field (mpls_cw_flags). */
+#define FLOW_CMD_MPLS_CW_FLAGS_MAX 15
+#define FLOW_CMD_MPLS_CW_FLAGS_MIN 0
+#define FLOW_CMD_MPLS_CW_FLAGS_LEN 1
+
+static lagopus_result_t
+mpls_cw_flags_cmd_parse(const char *const argv[],
+                        struct ofp_flow_mod *flow_mod,
+                        struct match_list *match_list,
+                        struct instruction_list *instruction_list,
+                        enum flow_cmd_type ftype,
+                        lagopus_dstring_t *result) {
+  return uint_field_parse((char ***) &argv, flow_mod,
+                          match_list, instruction_list,
+                          ftype,
+                          FLOW_CMD_MPLS_CW_FLAGS_MIN,
+                          FLOW_CMD_MPLS_CW_FLAGS_MAX,
+                          OFPXMT_OFB_MPLS_CW_FLAGS,
+                          FLOW_CMD_MPLS_CW_FLAGS_LEN,
+                          NULL,
+                          NULL,
+                          true,
+                          result);
+}
+
+/* oxm field (mpls_cw_frag). */
+#define FLOW_CMD_MPLS_CW_FRAG_MAX 3
+#define FLOW_CMD_MPLS_CW_FRAG_MIN 0
+#define FLOW_CMD_MPLS_CW_FRAG_LEN 1
+
+static lagopus_result_t
+mpls_cw_frag_cmd_parse(const char *const argv[],
+                       struct ofp_flow_mod *flow_mod,
+                       struct match_list *match_list,
+                       struct instruction_list *instruction_list,
+                       enum flow_cmd_type ftype,
+                       lagopus_dstring_t *result) {
+  return uint_field_parse((char ***) &argv, flow_mod,
+                          match_list, instruction_list,
+                          ftype,
+                          FLOW_CMD_MPLS_CW_FRAG_MIN,
+                          FLOW_CMD_MPLS_CW_FRAG_MAX,
+                          OFPXMT_OFB_MPLS_CW_FRAG,
+                          FLOW_CMD_MPLS_CW_FRAG_LEN,
+                          NULL,
+                          NULL,
+                          true,
+                          result);
+}
+
+/* oxm field (mpls_cw_len). */
+#define FLOW_CMD_MPLS_CW_LEN_MAX 63
+#define FLOW_CMD_MPLS_CW_LEN_MIN 0
+#define FLOW_CMD_MPLS_CW_LEN_LEN 1
+
+static lagopus_result_t
+mpls_cw_len_cmd_parse(const char *const argv[],
+                      struct ofp_flow_mod *flow_mod,
+                      struct match_list *match_list,
+                      struct instruction_list *instruction_list,
+                      enum flow_cmd_type ftype,
+                      lagopus_dstring_t *result) {
+  return uint_field_parse((char ***) &argv, flow_mod,
+                          match_list, instruction_list,
+                          ftype,
+                          FLOW_CMD_MPLS_CW_LEN_MIN,
+                          FLOW_CMD_MPLS_CW_LEN_MAX,
+                          OFPXMT_OFB_MPLS_CW_LEN,
+                          FLOW_CMD_MPLS_CW_LEN_LEN,
+                          NULL,
+                          NULL,
+                          false,
+                          result);
+}
+
+/* oxm field (mpls_cw_seq_num). */
+#define FLOW_CMD_MPLS_CW_SEQ_NUM_MAX UINT16_MAX
+#define FLOW_CMD_MPLS_CW_SEQ_NUM_MIN 0
+#define FLOW_CMD_MPLS_CW_SEQ_NUM_LEN 2
+
+static lagopus_result_t
+mpls_cw_seq_num_cmd_parse(const char *const argv[],
+                          struct ofp_flow_mod *flow_mod,
+                          struct match_list *match_list,
+                          struct instruction_list *instruction_list,
+                          enum flow_cmd_type ftype,
+                          lagopus_dstring_t *result) {
+  return uint_field_parse((char ***) &argv, flow_mod,
+                          match_list, instruction_list,
+                          ftype,
+                          FLOW_CMD_MPLS_CW_SEQ_NUM_MIN,
+                          FLOW_CMD_MPLS_CW_SEQ_NUM_MAX,
+                          OFPXMT_OFB_MPLS_CW_SEQ_NUM,
+                          FLOW_CMD_MPLS_CW_SEQ_NUM_LEN,
+                          value_uint16_hook,
+                          NULL,
+                          false,
+                          result);
+}
+
 /* output. */
 #define FLOW_CMD_OUTPUT_MAX UINT32_MAX
 #define FLOW_CMD_OUTPUT_MIN 0
@@ -3395,6 +3895,26 @@ flow_match_field_procs[FLOW_MATCH_FIELD_MAX]  = {
   pbb_isid_cmd_parse,                /* FLOW_MATCH_FIELD_PBB_ISID */
   tunnel_id_cmd_parse,               /* FLOW_MATCH_FIELD_TUNNEL_ID */
   ipv6_exthdr_cmd_parse,             /* FLOW_MATCH_FIELD_IPV6_EXTHDR */
+  pbb_uca_cmd_parse,                 /* FLOW_MATCH_FIELD_PBB_UCA */
+  packet_type_cmd_parse,             /* FLOW_MATCH_FIELD_PACKET_TYPE */
+  gre_flags_cmd_parse,               /* FLOW_MATCH_FIELD_GRE_FLAGS */
+  gre_ver_cmd_parse,                 /* FLOW_MATCH_FIELD_GRE_VER */
+  gre_protocol_cmd_parse,            /* FLOW_MATCH_FIELD_GRE_PROTOCOL */
+  gre_key_cmd_parse,                 /* FLOW_MATCH_FIELD_GRE_KEY */
+  gre_seqnum_cmd_parse,              /* FLOW_MATCH_FIELD_GRE_SEQNUM */
+  lisp_flags_cmd_parse,              /* FLOW_MATCH_FIELD_LISP_FLAGS */
+  lisp_nonce_cmd_parse,              /* FLOW_MATCH_FIELD_LISP_NONCE */
+  lisp_id_cmd_parse,                 /* FLOW_MATCH_FIELD_LISP_ID */
+  vxlan_flags_cmd_parse,             /* FLOW_MATCH_FIELD_VXLAN_FLAGS */
+  vxlan_vni_cmd_parse,               /* FLOW_MATCH_FIELD_VXLAN_VNI */
+  mpls_data_first_nibble_cmd_parse,  /* FLOW_MATCH_FIELD_MPLS_DATA_FIRST_NIBBLE */
+  mpls_ach_version_cmd_parse,        /* FLOW_MATCH_FIELD_MPLS_ACH_VERSION */
+  mpls_ach_channel_cmd_parse,        /* FLOW_MATCH_FIELD_MPLS_ACH_CHANNEL */
+  mpls_pw_metadata_cmd_parse,        /* FLOW_MATCH_FIELD_MPLS_PW_METADATA */
+  mpls_cw_flags_cmd_parse,           /* FLOW_MATCH_FIELD_MPLS_CW_FLAGS */
+  mpls_cw_frag_cmd_parse,            /* FLOW_MATCH_FIELD_MPLS_CW_FRAG */
+  mpls_cw_len_cmd_parse,             /* FLOW_MATCH_FIELD_MPLS_CW_LEN */
+  mpls_cw_seq_num_cmd_parse,         /* FLOW_MATCH_FIELD_MPLS_CW_SEQ_NUM */
 };
 
 static void*

@@ -143,8 +143,8 @@ static const struct match_idx match_idx[] = {
   { MPLS_BASE, 0, 0, 0, 0 },    /* 35 MPLS_TC */
   { MPLS_BASE, 0, 0, 0, 0 },    /* 36 MPLS_BOS */
   MAKE_MATCH_IDX(PBB_BASE, pbb_hdr, i_sid, 0x00ffffffffffffff, 0),       /* 37 PBB_ISID */
-  MAKE_MATCH_IDX(OOB_BASE, oob_data, tunnel_id, UINT64_MAX, 0),  /* 38 TUNNEL_ID */
-  MAKE_MATCH_IDX(OOB_BASE, oob_data, ipv6_exthdr, UINT16_MAX, 0) /* 39 IPV6_EXTHDR */
+  MAKE_MATCH_IDX(OOB2_BASE, oob2_data, tunnel_id, UINT64_MAX, 0),  /* 38 TUNNEL_ID */
+  MAKE_MATCH_IDX(OOB2_BASE, oob2_data, ipv6_exthdr, UINT16_MAX, 0) /* 39 IPV6_EXTHDR */
 };
 
 static void build_mbtree_child(struct flow_list *flows);

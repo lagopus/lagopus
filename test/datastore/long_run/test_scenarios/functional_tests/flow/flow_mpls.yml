@@ -1,0 +1,105 @@
+use:
+  - lagopus
+
+setup:
+  - repetition_count: 1
+    cmds:
+      - cmd_type: ds
+        cmd: log -debuglevel 10000
+        result: '{"ret": "OK"}'
+      - cmd_type: ds
+        cmd: destroy-all-obj
+        result: '{"ret": "OK"}'
+      - cmd_type: shell
+        cmd: "{{ shell_dir }}/dummy_eth_up.sh lago_eth 2"
+        result: "0"
+
+teardown:
+  - repetition_count: 1
+    cmds:
+      - cmd_type: ds
+        cmd: destroy-all-obj
+        result: '{"ret": "OK"}'
+      - cmd_type: shell
+        cmd: "{{ shell_dir }}/dummy_eth_down.sh lago_eth 2"
+        result: "0"
+
+testcases:
+  - testcase: mpls (match)
+    test:
+      - repetition_count: 1
+        cmds:
+          # load
+          - cmd_type: ds
+            cmd: load {{ test_home  }}/test_scenarios/functional_tests/flow/flow.dsl
+            result: '{"ret": "OK"}'
+          # add flow
+          - cmd_type: ds
+            cmd: >-
+               flow bridge01 add
+               mpls_data_first_nibble=1/0x2
+               mpls_ach_version=3
+               mpls_ach_channel=4/0x5
+               mpls_pw_metadata=1/1
+               mpls_cw_flags=6/0x7
+               mpls_cw_frag=1/0x3
+               mpls_cw_len=8
+               mpls_cw_seq_num=9
+            result: '{"ret":"OK"}'
+          # dump flow
+          - cmd_type: ds
+            cmd: flow
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":":bridge01",
+              "tables":[{"table":0,
+              "flows":[{"priority":0,
+              "idle_timeout":0,
+              "hard_timeout":0,
+              "cookie":0,
+              "mpls_data_first_nibble":"1\/0x02",
+              "mpls_ach_version":3,
+              "mpls_ach_channel":"4\/0x05",
+              "mpls_pw_metadata":"1\/0x01",
+              "mpls_cw_flags":"6\/0x07",
+              "mpls_cw_frag":"1\/0x03",
+              "mpls_cw_len":8,
+              "mpls_cw_seq_num":9,
+              "actions":[]}]}]}]}
+  - testcase: mpls (set_field)
+    test:
+      - repetition_count: 1
+        cmds:
+          # load
+          - cmd_type: ds
+            cmd: load {{ test_home  }}/test_scenarios/functional_tests/flow/flow.dsl
+            result: '{"ret": "OK"}'
+          # add flow
+          - cmd_type: ds
+            cmd: >-
+               flow bridge01 add
+               in_port=0
+               apply_actions=mpls_data_first_nibble:1,mpls_ach_version:2,mpls_ach_channel:3,mpls_pw_metadata:1,mpls_cw_flags:4,mpls_cw_frag:3,mpls_cw_len:5,mpls_cw_seq_num:6
+            result: '{"ret":"OK"}'
+          # dump flow
+          - cmd_type: ds
+            cmd: flow
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":":bridge01",
+              "tables":[{"table":0,
+              "flows":[{"priority":0,
+              "idle_timeout":0,
+              "hard_timeout":0,
+              "cookie":0,
+              "in_port":0,
+              "actions":[{
+              "apply_actions":[
+              {"mpls_data_first_nibble":1},
+              {"mpls_ach_version":2},
+              {"mpls_ach_channel":3},
+              {"mpls_pw_metadata":1},
+              {"mpls_cw_flags":4},
+              {"mpls_cw_frag":3},
+              {"mpls_cw_len":5},
+              {"mpls_cw_seq_num":6}]}]}]}]}]}

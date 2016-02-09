@@ -33,6 +33,9 @@ struct interface;
 
 #define LAGOPUS_DATAPLANE_VERSION "0.9"
 
+#undef PBB_UCA_SUPPORT
+#define GENERAL_TUNNEL_SUPPORT
+
 #ifndef IPPROTO_SCTP
 #define IPPROTO_SCTP 132
 #endif /* IPPROTO_SCTP */

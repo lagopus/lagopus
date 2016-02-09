@@ -108,7 +108,7 @@ test_classify_packet_IPV4_UDP(void) {
   OS_MTOD(m, uint8_t *)[27] = IPPROTO_UDP;
 
   pkt->mbuf = (OS_MBUF *)m;
-  classify_packet(pkt);
+  classify_ether_packet(pkt);
   TEST_ASSERT_EQUAL_MESSAGE(pkt->ether_type, ETHERTYPE_IP,
                             "ether_type(vlan) error.");
   TEST_ASSERT_EQUAL_MESSAGE(pkt->l3_hdr, &OS_MTOD(m, uint8_t *)[18],
@@ -150,7 +150,7 @@ test_classify_packet_IPV4_SCTP(void) {
   OS_MTOD(m, uint8_t *)[27] = IPPROTO_SCTP;
 
   pkt->mbuf = (OS_MBUF *)m;
-  classify_packet(pkt);
+  classify_ether_packet(pkt);
   TEST_ASSERT_EQUAL_MESSAGE(pkt->ether_type, ETHERTYPE_IP,
                             "ether_type(vlan) error.");
   TEST_ASSERT_EQUAL_MESSAGE(pkt->l3_hdr, &OS_MTOD(m, uint8_t *)[18],
@@ -192,7 +192,7 @@ test_classify_packet_IPV4_ICMP(void) {
   OS_MTOD(m, uint8_t *)[27] = IPPROTO_ICMP;
 
   pkt->mbuf = (OS_MBUF *)m;
-  classify_packet(pkt);
+  classify_ether_packet(pkt);
   TEST_ASSERT_EQUAL_MESSAGE(pkt->ether_type, ETHERTYPE_IP,
                             "ether_type(vlan) error.");
   TEST_ASSERT_EQUAL_MESSAGE(pkt->l3_hdr, &OS_MTOD(m, uint8_t *)[18],
@@ -229,7 +229,7 @@ test_classify_packet_IPV4_other(void) {
   OS_MTOD(m, uint8_t *)[27] = IPPROTO_RSVP;
 
   pkt->mbuf = (OS_MBUF *)m;
-  classify_packet(pkt);
+  classify_ether_packet(pkt);
   TEST_ASSERT_EQUAL_MESSAGE(pkt->ether_type, ETHERTYPE_IP,
                             "ether_type(vlan) error.");
 }
@@ -258,7 +258,7 @@ test_classify_packet_ARP(void) {
   OS_MTOD(m, uint8_t *)[17] = 0x06;
 
   pkt->mbuf = (OS_MBUF *)m;
-  classify_packet(pkt);
+  classify_ether_packet(pkt);
   TEST_ASSERT_EQUAL_MESSAGE(pkt->ether_type, ETHERTYPE_ARP,
                             "ether_type(vlan) error.");
 }
@@ -285,7 +285,7 @@ test_classify_packet_IPV6_TCP(void) {
   OS_MTOD(m, uint8_t *)[20] = IPPROTO_DSTOPTS;
   OS_MTOD(m, uint8_t *)[54] = IPPROTO_TCP;
   OS_MTOD(m, uint8_t *)[55] = 0;
-  classify_packet(pkt);
+  classify_ether_packet(pkt);
   TEST_ASSERT_EQUAL_MESSAGE(pkt->ether_type, ETHERTYPE_IPV6,
                             "ether_type(exthdr) error.");
   /* with VLAN */
@@ -294,14 +294,14 @@ test_classify_packet_IPV6_TCP(void) {
   OS_MTOD(m, uint8_t *)[16] = 0x86;
   OS_MTOD(m, uint8_t *)[17] = 0xdd;
   OS_MTOD(m, uint8_t *)[24] = IPPROTO_TCP;
-  classify_packet(pkt);
+  classify_ether_packet(pkt);
   TEST_ASSERT_EQUAL_MESSAGE(pkt->ether_type, ETHERTYPE_IPV6,
                             "ether_type(vlan) error.");
   /* with VLAN and exthdr */
   OS_MTOD(m, uint8_t *)[24] = IPPROTO_DSTOPTS;
   OS_MTOD(m, uint8_t *)[58] = IPPROTO_TCP;
   OS_MTOD(m, uint8_t *)[59] = 0;
-  classify_packet(pkt);
+  classify_ether_packet(pkt);
   TEST_ASSERT_EQUAL_MESSAGE(pkt->ether_type, ETHERTYPE_IPV6,
                             "ether_type(vlan+exthdr) error.");
 }
@@ -328,7 +328,7 @@ test_classify_packet_IPV6_UDP(void) {
   OS_MTOD(m, uint8_t *)[20] = IPPROTO_DSTOPTS;
   OS_MTOD(m, uint8_t *)[54] = IPPROTO_UDP;
   OS_MTOD(m, uint8_t *)[55] = 0;
-  classify_packet(pkt);
+  classify_ether_packet(pkt);
   TEST_ASSERT_EQUAL_MESSAGE(pkt->ether_type, ETHERTYPE_IPV6,
                             "ether_type(exthdr) error.");
   /* with VLAN */
@@ -337,14 +337,14 @@ test_classify_packet_IPV6_UDP(void) {
   OS_MTOD(m, uint8_t *)[16] = 0x86;
   OS_MTOD(m, uint8_t *)[17] = 0xdd;
   OS_MTOD(m, uint8_t *)[24] = IPPROTO_UDP;
-  classify_packet(pkt);
+  classify_ether_packet(pkt);
   TEST_ASSERT_EQUAL_MESSAGE(pkt->ether_type, ETHERTYPE_IPV6,
                             "ether_type(vlan) error.");
   /* with VLAN and exthdr */
   OS_MTOD(m, uint8_t *)[24] = IPPROTO_DSTOPTS;
   OS_MTOD(m, uint8_t *)[58] = IPPROTO_UDP;
   OS_MTOD(m, uint8_t *)[59] = 0;
-  classify_packet(pkt);
+  classify_ether_packet(pkt);
   TEST_ASSERT_EQUAL_MESSAGE(pkt->ether_type, ETHERTYPE_IPV6,
                             "ether_type(vlan+exthdr) error.");
 }
@@ -371,7 +371,7 @@ test_classify_packet_IPV6_SCTP(void) {
   OS_MTOD(m, uint8_t *)[20] = IPPROTO_DSTOPTS;
   OS_MTOD(m, uint8_t *)[54] = IPPROTO_SCTP;
   OS_MTOD(m, uint8_t *)[55] = 0;
-  classify_packet(pkt);
+  classify_ether_packet(pkt);
   TEST_ASSERT_EQUAL_MESSAGE(pkt->ether_type, ETHERTYPE_IPV6,
                             "ether_type(exthdr) error.");
   /* with VLAN */
@@ -380,14 +380,14 @@ test_classify_packet_IPV6_SCTP(void) {
   OS_MTOD(m, uint8_t *)[16] = 0x86;
   OS_MTOD(m, uint8_t *)[17] = 0xdd;
   OS_MTOD(m, uint8_t *)[24] = IPPROTO_SCTP;
-  classify_packet(pkt);
+  classify_ether_packet(pkt);
   TEST_ASSERT_EQUAL_MESSAGE(pkt->ether_type, ETHERTYPE_IPV6,
                             "ether_type(vlan) error.");
   /* with VLAN and exthdr */
   OS_MTOD(m, uint8_t *)[24] = IPPROTO_DSTOPTS;
   OS_MTOD(m, uint8_t *)[58] = IPPROTO_SCTP;
   OS_MTOD(m, uint8_t *)[59] = 0;
-  classify_packet(pkt);
+  classify_ether_packet(pkt);
   TEST_ASSERT_EQUAL_MESSAGE(pkt->ether_type, ETHERTYPE_IPV6,
                             "ether_type(vlan+exthdr) error.");
 }
@@ -414,7 +414,7 @@ test_classify_packet_IPV6_ICMPV6(void) {
   OS_MTOD(m, uint8_t *)[20] = IPPROTO_DSTOPTS;
   OS_MTOD(m, uint8_t *)[54] = IPPROTO_ICMPV6;
   OS_MTOD(m, uint8_t *)[55] = 0;
-  classify_packet(pkt);
+  classify_ether_packet(pkt);
   TEST_ASSERT_EQUAL_MESSAGE(pkt->ether_type, ETHERTYPE_IPV6,
                             "ether_type(exthdr) error.");
   /* with VLAN */
@@ -423,14 +423,14 @@ test_classify_packet_IPV6_ICMPV6(void) {
   OS_MTOD(m, uint8_t *)[16] = 0x86;
   OS_MTOD(m, uint8_t *)[17] = 0xdd;
   OS_MTOD(m, uint8_t *)[24] = IPPROTO_ICMPV6;
-  classify_packet(pkt);
+  classify_ether_packet(pkt);
   TEST_ASSERT_EQUAL_MESSAGE(pkt->ether_type, ETHERTYPE_IPV6,
                             "ether_type(vlan) error.");
   /* with VLAN and exthdr */
   OS_MTOD(m, uint8_t *)[24] = IPPROTO_DSTOPTS;
   OS_MTOD(m, uint8_t *)[58] = IPPROTO_ICMPV6;
   OS_MTOD(m, uint8_t *)[59] = 0;
-  classify_packet(pkt);
+  classify_ether_packet(pkt);
   TEST_ASSERT_EQUAL_MESSAGE(pkt->ether_type, ETHERTYPE_IPV6,
                             "ether_type(vlan+exthdr) error.");
 }
@@ -457,7 +457,7 @@ test_classify_packet_IPV6_other(void) {
   OS_MTOD(m, uint8_t *)[20] = IPPROTO_DSTOPTS;
   OS_MTOD(m, uint8_t *)[54] = IPPROTO_RSVP;
   OS_MTOD(m, uint8_t *)[55] = 0;
-  classify_packet(pkt);
+  classify_ether_packet(pkt);
   TEST_ASSERT_EQUAL_MESSAGE(pkt->ether_type, ETHERTYPE_IPV6,
                             "ether_type(exthdr) error.");
   /* with VLAN */
@@ -466,14 +466,14 @@ test_classify_packet_IPV6_other(void) {
   OS_MTOD(m, uint8_t *)[16] = 0x86;
   OS_MTOD(m, uint8_t *)[17] = 0xdd;
   OS_MTOD(m, uint8_t *)[24] = IPPROTO_RSVP;
-  classify_packet(pkt);
+  classify_ether_packet(pkt);
   TEST_ASSERT_EQUAL_MESSAGE(pkt->ether_type, ETHERTYPE_IPV6,
                             "ether_type(vlan) error.");
   /* with VLAN and exthdr */
   OS_MTOD(m, uint8_t *)[24] = IPPROTO_DSTOPTS;
   OS_MTOD(m, uint8_t *)[58] = IPPROTO_RSVP;
   OS_MTOD(m, uint8_t *)[59] = 0;
-  classify_packet(pkt);
+  classify_ether_packet(pkt);
   TEST_ASSERT_EQUAL_MESSAGE(pkt->ether_type, ETHERTYPE_IPV6,
                             "ether_type(vlan+exthdr) error.");
 }
@@ -502,7 +502,7 @@ test_classify_packet_MPLS(void) {
   OS_MTOD(m, uint8_t *)[17] = 0x47;
 
   pkt->mbuf = (OS_MBUF *)m;
-  classify_packet(pkt);
+  classify_ether_packet(pkt);
   TEST_ASSERT_EQUAL_MESSAGE(pkt->ether_type, ETHERTYPE_MPLS,
                             "ether_type(vlan) error.");
 }
@@ -531,7 +531,7 @@ test_classify_packet_MPLSMC(void) {
   OS_MTOD(m, uint8_t *)[17] = 0x48;
 
   pkt->mbuf = (OS_MBUF *)m;
-  classify_packet(pkt);
+  classify_ether_packet(pkt);
   TEST_ASSERT_EQUAL_MESSAGE(pkt->ether_type, ETHERTYPE_MPLS_MCAST,
                             "ether_type(vlan) error.");
 }
@@ -565,7 +565,7 @@ test_classify_packet_PBB(void) {
   OS_MTOD(m, uint8_t *)[35] = 0x00;
 
   pkt->mbuf = (OS_MBUF *)m;
-  classify_packet(pkt);
+  classify_ether_packet(pkt);
   TEST_ASSERT_EQUAL_MESSAGE(pkt->ether_type, ETHERTYPE_IP,
                             "ether_type(vlan) error.");
 #else
@@ -582,7 +582,7 @@ test_classify_packet_PBB(void) {
   OS_MTOD(m, uint8_t *)[17] = 0xe7;
 
   pkt->mbuf = (OS_MBUF *)m;
-  classify_packet(pkt);
+  classify_ether_packet(pkt);
   TEST_ASSERT_EQUAL_MESSAGE(pkt->ether_type, ETHERTYPE_PBB,
                             "ether_type(vlan) error.");
 #endif
