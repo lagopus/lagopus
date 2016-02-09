@@ -1,5 +1,5 @@
 lagopus_dsl:
-  file: "{{ test_home }}/sample_yaml/ofp.dsl"
+  file: "{{ test_home }}/test_scenarios_yaml/ofp/ofp.dsl"
   sw: target # target switch.
 
 #setup:
@@ -7,7 +7,7 @@ lagopus_dsl:
 #teardown:
 
 testcases:
-  - testcase: flow mod 1
+  - testcase: flow mod
     test:
       - repetition_count: 1
         cmds:

@@ -1,0 +1,74 @@
+lagopus_dsl:
+  file: "{{ test_home }}/test_scenarios_yaml/ofp/ofp.dsl"
+  sw: target # target switch.
+
+#setup:
+
+#teardown:
+
+testcases:
+  - testcase: flow mod
+    test:
+      - repetition_count: 1
+        cmds:
+          # ofp: send PortMod.
+          - cmd_type: ofp_send
+            cmd:
+              port_mod:
+                port_no: 2
+                hw_addr: "ff:ff:ff:ff:ff:ff"
+                config: 0x2
+                mask: 0x3
+                advertise: 0x4
+          ## ofp: send PortStatsRequest.
+          - cmd_type: ofp_send
+            cmd:
+              port_stats_request:
+                flags: 0
+                port_no: 1
+          # ofp: recv PortStatsReply.
+          - cmd_type: ofp_recv
+            result:
+              port_stats_reply:
+                flags: 0
+                body:
+                  - port_stats:
+                      port_no: 1
+                      rx_packets: 0
+                      tx_packets: 0
+                      rx_bytes: 0
+                      tx_bytes: 0
+                      rx_dropped: 0
+                      tx_dropped: 0xffffffffffffffff
+                      rx_errors: 0
+                      tx_errors: 0
+                      rx_frame_err: 0xffffffffffffffff
+                      rx_over_err: 0xffffffffffffffff
+                      rx_crc_err: 0xffffffffffffffff
+                      collisions: 0xffffffffffffffff
+                      duration_sec: 0
+                      duration_nsec: 0
+          # TODO: check hw_addr.
+          ## ofp: send PortDescStatsRequest.
+          #- cmd_type: ofp_send
+          #  cmd:
+          #    port_desc_stats_request:
+          #      flags: 0
+          ## ofp: recv PortDescStatsReply.
+          #- cmd_type: ofp_recv
+          #  result:
+          #    port_desc_stats_reply:
+          #      flags: 0
+          #      body:
+          #        - port:
+          #            port_no: 1
+          #            hw_addr: "00:00:00:00:00:00"
+          #            name: "port01"
+          #            config: 0x0
+          #            state: 0x4
+          #            curr: 0x20
+          #            advertised: 0x0
+          #            supported: 0x0
+          #            peer: 0x0
+          #            curr_speed: 1000000
+          #            max_speed: 0

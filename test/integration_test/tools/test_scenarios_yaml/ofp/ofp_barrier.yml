@@ -1,0 +1,21 @@
+lagopus_dsl:
+  file: "{{ test_home }}/test_scenarios_yaml/ofp/ofp.dsl"
+  sw: target # target switch.
+
+#setup:
+
+#teardown:
+
+testcases:
+  - testcase: flow mod
+    test:
+      - repetition_count: 1
+        cmds:
+          # ofp: send BarrierRequest.
+          - cmd_type: ofp_send
+            cmd:
+              barrier_request:
+          ## ofp: recv BarrierReply.
+          - cmd_type: ofp_recv
+            result:
+              barrier_reply:

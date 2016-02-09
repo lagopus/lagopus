@@ -8,22 +8,22 @@ from ofp import register_ofp_creators
 from ofp import OfpBase
 
 # YAML:
-# group_stats_request:
+# meter_stats_request:
 #   flags: 0
-#   group_id: 0
+#   meter_id: 0
 
-SCE_GROUP_STATS_REQUEST = "group_stats_request"
+SCE_METER_STATS_REQUEST = "meter_stats_request"
 
 
-@register_ofp_creators(SCE_GROUP_STATS_REQUEST)
-class OfpGroupStatsRequestCreator(OfpBase):
+@register_ofp_creators(SCE_METER_STATS_REQUEST)
+class OfpMeterStatsRequestCreator(OfpBase):
 
     @classmethod
     def create(cls, test_case_obj, dp, ofproto, ofp_parser, params):
-        # GroupStatsRequest.
+        # MeterStatsRequest.
         kws = copy.deepcopy(params)
 
-        # create GroupStatsRequest.
-        msg = ofp_parser.OFPGroupStatsRequest(dp, **kws)
+        # create MeterStatsRequest.
+        msg = ofp_parser.OFPMeterStatsRequest(dp, **kws)
 
         return msg

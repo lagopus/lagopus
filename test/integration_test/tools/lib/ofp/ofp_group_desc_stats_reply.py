@@ -49,7 +49,7 @@ class OfpGroupDescStatsReplyCreator(OfpBase):
 
         # create GroupDescStatsReply.
         msg = ofp_parser.OFPGroupDescStatsReply(dp, **kws)
-        msg.type = ofproto.OFPMP_GROUP
+        msg.type = ofproto.OFPMP_GROUP_DESC
 
         msg._set_targets(["version", "msg_type",
                           "body", "flags"])

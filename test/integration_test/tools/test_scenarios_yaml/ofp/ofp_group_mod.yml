@@ -1,5 +1,5 @@
 lagopus_dsl:
-  file: "{{ test_home }}/sample_yaml/ofp.dsl"
+  file: "{{ test_home }}/test_scenarios_yaml/ofp/ofp.dsl"
   sw: target # target switch.
 
 #setup:
@@ -7,7 +7,7 @@ lagopus_dsl:
 #teardown:
 
 testcases:
-  - testcase: flow mod 1
+  - testcase: group mod
     test:
       - repetition_count: 1
         cmds:
@@ -117,3 +117,27 @@ testcases:
               "actions":[
               {"set_nw_ttl":2},
               {"output":"normal"}]}]}]}]}
+          # ofp: send GroupFeaturesStatsRequest
+          - cmd_type: ofp_send
+            cmd:
+              group_features_stats_request:
+                flags: 0
+          # ofp: send GroupFeaturesStatsReply.
+          - cmd_type: ofp_recv
+            result:
+              group_features_stats_reply:
+                flags: 0
+                body:
+                  group_features_stats:
+                    types: 0x07
+                    capabilities: 0x0C
+                    max_groups:
+                      - 0xffffff00
+                      - 0xffffff00
+                      - 0xffffff00
+                      - 0x0
+                    actions:
+                      - 0xfdf9801
+                      - 0xfdf9801
+                      - 0xfdf9801
+                      - 0x0
