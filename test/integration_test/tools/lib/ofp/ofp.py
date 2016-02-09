@@ -46,3 +46,14 @@ import ofp_port_desc_stats_reply
 import ofp_port_status
 import ofp_barrier_request
 import ofp_barrier_reply
+import ofp_features_request
+import ofp_features_reply
+import ofp_echo_request
+import ofp_echo_reply
+import ofp_table_stats_request
+import ofp_table_stats_reply
+import ofp_get_config_request
+import ofp_get_config_reply
+import ofp_set_config
+import ofp_role_request
+import ofp_role_reply

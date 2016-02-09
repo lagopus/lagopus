@@ -47,6 +47,7 @@
 #include "lagopus/ofp_dp_apis.h"
 #include "lagopus/dp_apis.h"
 #include "../agent/ofp_match.h"
+#include "callback.h"
 #include "pktbuf.h"
 #include "packet.h"
 #include "csum.h"
@@ -478,8 +479,8 @@ classify_packet_l2(struct lagopus_packet *pkt) {
   pkt->pbb = NULL;
   pkt->mpls = NULL;
   pkt->proto = NULL;
-  pkt->base[OOB_BASE] = &pkt->oob_data;
-  pkt->base[OOB2_BASE] = &pkt->oob2_data;
+  pkt->base[OOB_BASE] = (void *)&pkt->oob_data;
+  pkt->base[OOB2_BASE] = (void *)&pkt->oob2_data;
 
   m = pkt->mbuf;
   pktlen = (ssize_t)OS_M_PKTLEN(m);
@@ -1618,6 +1619,9 @@ lagopus_do_send_iterate(void *key, void *val,
   struct port *port;
   struct lagopus_packet *pkt;
 
+  (void) key;
+  (void) he;
+
   port = val;
   pkt = arg;
   if ((port->ofp_port.config & OFPPC_PORT_DOWN) == 0 &&
@@ -1636,7 +1640,6 @@ lagopus_forward_packet_to_port(struct lagopus_packet *pkt,
                                uint32_t out_port) {
   struct port *port;
   uint32_t in_port;
-  unsigned int id;
 
   in_port = pkt->in_port->ofp_port.port_no;
 

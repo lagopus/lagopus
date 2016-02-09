@@ -311,6 +311,9 @@ group_do_flow_iterate(void *key, void *val,
   struct flow *flow;
   struct ofp_error error;
 
+  (void) key;
+  (void) he;
+
   flow = val;
   bridge = arg;
   flow_remove_with_reason_nolock(flow,
@@ -431,6 +434,10 @@ group_do_stats_iterate(void *key, void *val,
                        lagopus_hashentry_t he, void *arg) {
   struct group_stats_list *list;
 
+  (void) key;
+  (void) val;
+  (void) he;
+
   list = arg;
   if (group_add_stats(val, list) == LAGOPUS_RESULT_OK) {
     return true;
@@ -465,6 +472,9 @@ group_do_descs_iterate(void *key, void *val,
                        lagopus_hashentry_t he, void *arg) {
   struct group *group;
   struct group_desc_list *list;
+
+  (void) key;
+  (void) he;
 
   group = val;
   list = arg;

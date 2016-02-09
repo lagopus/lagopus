@@ -389,7 +389,11 @@ s_start_callout_main_loop(void) {
   ret = global_state_wait_for(GLOBAL_STATE_STARTED, &s, &l, -1LL);
   if (likely(ret == LAGOPUS_RESULT_OK)) {
     if (likely(s == GLOBAL_STATE_STARTED)) {
+#ifdef CO_MSG_DEBUG
       lagopus_chrono_t timeout = s_idle_interval;
+#else
+      lagopus_chrono_t timeout;
+#endif /* CO_MSG_DEBUG */
 
       lagopus_callout_task_t out_tasks[CALLOUT_TASK_MAX * 3];
       size_t n_out_tasks;
@@ -608,7 +612,6 @@ s_start_callout_main_loop(void) {
               }
             }
           } else {
-            timeout = 0LL;
             WHAT_TIME_IS_IT_NOW_IN_NSEC(next_wakeup);
 
             prev_wakeup = next_wakeup;

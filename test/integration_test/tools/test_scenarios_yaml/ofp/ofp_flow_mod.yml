@@ -86,3 +86,19 @@ testcases:
               "in_port":1,
               "priority":10}],
               "table":0}]}]}
+          # ofp: send TableStatsRequest
+          - cmd_type: ofp_send
+            cmd:
+              table_stats_request:
+                flags: 0
+          # ofp: recv TableStatsReply.
+          - cmd_type: ofp_recv
+            result:
+              table_stats_reply:
+                flags: 0
+                body:
+                  - table_stats:
+                      table_id: 0
+                      active_count: 1
+                      lookup_count: 0
+                      matched_count: 0

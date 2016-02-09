@@ -1,0 +1,37 @@
+lagopus_dsl:
+  file: "{{ test_home }}/test_scenarios_yaml/ofp/ofp.dsl"
+  sw: target # target switch.
+
+#setup:
+
+#teardown:
+
+testcases:
+  - testcase: role
+    test:
+      - repetition_count: 1
+        cmds:
+          # ofp: send RoleRequest.
+          - cmd_type: ofp_send
+            cmd:
+              role_request:
+                role: 0x0 # OFPCR_ROLE_NOCHANGE
+                generation_id: 1
+          # ofp: recv RoleReply.
+          - cmd_type: ofp_recv
+            result:
+              role_reply:
+                role: 0x1 # OFPCR_ROLE_EQUAL
+                generation_id: 1
+          # ofp: send RoleRequest.
+          - cmd_type: ofp_send
+            cmd:
+              role_request:
+                role: 0x2 # OFPCR_ROLE_MASTER
+                generation_id: 2
+          # ofp: recv RoleReply.
+          - cmd_type: ofp_recv
+            result:
+              role_reply:
+                role: 0x2 # OFPCR_ROLE_MASTER
+                generation_id: 2

@@ -123,6 +123,9 @@ port_do_stats_iterate(void *key, void *val,
   struct port *port;
   struct port_stats_list *list;
 
+  (void) key;
+  (void) he;
+
   port = val;
   list = arg;
 
@@ -253,6 +256,9 @@ port_do_desc_iterate(void *key, void *val,
   struct port_desc *desc;
   struct port *port;
   struct port_stats_list *list;
+
+  (void) key;
+  (void) he;
 
   port = val;
   list = arg;

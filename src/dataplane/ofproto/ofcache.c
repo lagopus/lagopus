@@ -238,8 +238,6 @@ register_cache_bank(struct flowcache_bank *cache,
 
 static void
 clear_all_cache_bank(struct flowcache_bank *cache) {
-  struct cache_entry *cache_entry;
-
   if (cache->nentries == 0) {
     /* no entries.  nothing to do. */
     return;

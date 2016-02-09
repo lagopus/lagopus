@@ -997,6 +997,7 @@ channel_alloc(struct addrunion *controller, uint64_t dpid) {
     ret = channel_dpid_set(channel, dpid);
     if (ret != LAGOPUS_RESULT_OK) {
       ret = channel_free(channel);
+      channel = NULL;
     }
     assert(ret == LAGOPUS_RESULT_OK);
   }

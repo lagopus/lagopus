@@ -21,7 +21,7 @@ How to run test
 ## 1. Install packages.
 
 ```
- % sudo apt-get install python python-dev python-pip iproute
+ % sudo apt-get install python python-dev python-pip iproute libxml libxslt
  % sudo pip install --requirement ./requirements.pip
 ```
 

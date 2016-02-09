@@ -571,17 +571,17 @@ get_child_flow_list(struct flow_list *flow_list,
     case HASHMAP:
       if (child_array[0] == NULL) {
         child_array[0] = calloc(1, sizeof(lagopus_hashmap_t));
-        lagopus_hashmap_create(&child_array[0],
+        lagopus_hashmap_create((void *)&child_array[0],
                                LAGOPUS_HASHMAP_TYPE_ONE_WORD, cleanup_mbtree);
       }
-      rv = lagopus_hashmap_find_no_lock(&child_array[0], key, &child);
+      rv = lagopus_hashmap_find_no_lock((void *)&child_array[0], key, &child);
       if (rv != LAGOPUS_RESULT_OK) {
         void *val;
 
         child = calloc(1, sizeof(struct flow_list)
                        + sizeof(void *) * BRANCH_NUM);
         val = child;
-        lagopus_hashmap_add_no_lock(&child_array[0], key, &val, false);
+        lagopus_hashmap_add_no_lock((void *)&child_array[0], key, &val, false);
       }
       break;
 
@@ -658,6 +658,10 @@ static bool
 mbtree_do_build_iterate(void *key, void *val,
                        lagopus_hashentry_t he, void *arg) {
   struct flow_list *flow_list;
+
+  (void) key;
+  (void) he;
+  (void) arg;
 
   flow_list = val;
   build_mbtree_child(flow_list);

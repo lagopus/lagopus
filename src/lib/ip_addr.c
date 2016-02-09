@@ -192,7 +192,9 @@ lagopus_ip_address_sockaddr_get(const lagopus_ip_address_t *ip,
                                 struct sockaddr **saddr) {
   if (ip != NULL && saddr != NULL) {
     if (*saddr == NULL) {
-      *saddr = malloc(sizeof(struct sockaddr_storage));
+      /* For avoiding build-scan warnings. */
+      struct sockaddr_storage *ss = malloc(sizeof(struct sockaddr_storage));
+      *saddr = (struct sockaddr *) ss;
     }
     if (*saddr != NULL) {
       memcpy(*saddr, &(ip->saddr), sizeof(struct sockaddr_storage));

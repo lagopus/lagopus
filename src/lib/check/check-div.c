@@ -57,6 +57,9 @@ main(int argc, const char *const argv[]) {
   lagopus_chrono_t now;
   uint64_t start0, start1, start2, end0, end1, end2;
 
+  (void)argc;
+  (void)argv;
+
   WHAT_TIME_IS_IT_NOW_IN_NSEC(now);
 
   NSEC_TO_TS(now, ts0);
@@ -77,19 +80,19 @@ main(int argc, const char *const argv[]) {
 
   start0 = lagopus_rdtsc();
   for (i = 0; i < 1000LL * 1000LL * 1000LL; i++) {
-    NSEC_TO_TS(i, ts0);
+    NSEC_TO_TS((lagopus_chrono_t)i, ts0);
   }
   end0 = lagopus_rdtsc();
 
   start1 = lagopus_rdtsc();
   for (i = 0; i < 1000LL * 1000LL * 1000LL; i++) {
-    NSEC_TO_TS_MOD(i, ts1);
+    NSEC_TO_TS_MOD((lagopus_chrono_t)i, ts1);
   }
   end1 = lagopus_rdtsc();
 
   start2 = lagopus_rdtsc();
   for (i = 0; i < 1000LL * 1000LL * 1000LL; i++) {
-    NSEC_TO_TS_ASM(i, ts0);
+    NSEC_TO_TS_ASM((lagopus_chrono_t)i, ts0);
   }
   end2 = lagopus_rdtsc();
 

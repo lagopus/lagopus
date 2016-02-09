@@ -7,15 +7,17 @@ lagopus_dsl:
 #teardown:
 
 testcases:
-  - testcase: barrier
+  - testcase: echo
     test:
       - repetition_count: 1
         cmds:
-          # ofp: send BarrierRequest.
+          # ofp: send EchoRequest.
           - cmd_type: ofp_send
             cmd:
-              barrier_request:
-          # ofp: recv BarrierReply.
+              echo_request:
+                data: "01 23 45 67 89 AB CD EF" # Hex
+          # ofp: recv EchoReply.
           - cmd_type: ofp_recv
             result:
-              barrier_reply:
+              echo_reply:
+                data: "01 23 45 67 89 AB CD EF" # Hex

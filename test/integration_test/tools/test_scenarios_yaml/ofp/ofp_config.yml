@@ -1,0 +1,39 @@
+lagopus_dsl:
+  file: "{{ test_home }}/test_scenarios_yaml/ofp/ofp.dsl"
+  sw: target # target switch.
+
+#setup:
+
+#teardown:
+
+testcases:
+  - testcase: config
+    test:
+      - repetition_count: 1
+        cmds:
+          # ofp: send GetConfigRequest.
+          - cmd_type: ofp_send
+            cmd:
+              get_config_request:
+          # ofp: recv GetConfigReply.
+          - cmd_type: ofp_recv
+            result:
+              get_config_reply:
+                flags: 0x0
+                miss_send_len: 128
+          # ofp: send SetConfig.
+          - cmd_type: ofp_send
+            cmd:
+              set_config:
+                flags: 0x01
+                miss_send_len: 64
+          # ofp: send GetConfigRequest.
+          - cmd_type: ofp_send
+            cmd:
+              get_config_request:
+          # ofp: recv GetConfigReply.
+          - cmd_type: ofp_recv
+            result:
+              get_config_reply:
+                flags: 0x01
+                miss_send_len: 64

@@ -7,7 +7,7 @@ lagopus_dsl:
 #teardown:
 
 testcases:
-  - testcase: flow mod
+  - testcase: flow removed
     test:
       - repetition_count: 1
         cmds:

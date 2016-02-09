@@ -7,7 +7,7 @@ lagopus_dsl:
 #teardown:
 
 testcases:
-  - testcase: flow mod
+  - testcase: port status
     test:
       - repetition_count: 1
         cmds:

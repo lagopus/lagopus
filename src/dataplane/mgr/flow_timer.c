@@ -67,9 +67,8 @@ flow_timer_expire(struct dp_timer *dp_timer) {
 
 lagopus_result_t
 add_flow_timer(struct flow *flow) {
-  struct dp_timer *dp_timer, *prev;
   void *entryp;
-  time_t timeout, idle_elapsed, hard_elapsed, prev_time;
+  time_t timeout, idle_elapsed, hard_elapsed;
 
   idle_elapsed =
     (time_t)flow->idle_timeout - (now_ts.tv_sec - flow->update_time.tv_sec);

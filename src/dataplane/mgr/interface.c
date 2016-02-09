@@ -59,13 +59,14 @@ lagopus_result_t
 dp_interface_configure_internal(struct interface *ifp) {
   lagopus_result_t rv;
 
-  rv = LAGOPUS_RESULT_INVALID_ARGS;
   switch (ifp->info.type) {
     case DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_PHY:
     case DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_VDEV:
 #ifdef HAVE_DPDK
       rv = dpdk_configure_interface(ifp);
-#endif
+#else
+      rv = LAGOPUS_RESULT_INVALID_ARGS;
+#endif /* HAVE_DPDK */
       break;
 
     case DATASTORE_INTERFACE_TYPE_ETHERNET_RAWSOCK:
@@ -85,6 +86,7 @@ dp_interface_configure_internal(struct interface *ifp) {
       break;
 
     default:
+      rv = LAGOPUS_RESULT_INVALID_ARGS;
       break;
   }
   if (rv == LAGOPUS_RESULT_OK) {
@@ -103,13 +105,14 @@ lagopus_result_t
 dp_interface_unconfigure_internal(struct interface *ifp) {
   lagopus_result_t rv;
 
-  rv = LAGOPUS_RESULT_OK;
   switch (ifp->info.type) {
     case DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_PHY:
     case DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_VDEV:
 #ifdef HAVE_DPDK
       rv = dpdk_unconfigure_interface(ifp);
-#endif
+#else
+      rv = LAGOPUS_RESULT_OK;
+#endif /* HAVE_DPDK */
       break;
 
     case DATASTORE_INTERFACE_TYPE_ETHERNET_RAWSOCK:
@@ -117,6 +120,7 @@ dp_interface_unconfigure_internal(struct interface *ifp) {
       break;
 
     case DATASTORE_INTERFACE_TYPE_UNKNOWN:
+      /* nothing to do. */
       rv = LAGOPUS_RESULT_OK;
       break;
 
@@ -129,6 +133,7 @@ dp_interface_unconfigure_internal(struct interface *ifp) {
       break;
 
     default:
+      rv = LAGOPUS_RESULT_OK;
       break;
   }
 #ifdef HYBRID
