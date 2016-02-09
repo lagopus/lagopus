@@ -178,7 +178,6 @@ enum {
 };
 
 /* Prototypes. */
-struct port *ifindex2port(lagopus_hashmap_t *hm, uint32_t);
 void lagopus_send_packet(uint32_t, struct lagopus_packet *);
 
 #endif /* SRC_INCLUDE_LAGOPUS_PORT_H_ */

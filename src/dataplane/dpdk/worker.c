@@ -142,7 +142,7 @@ app_lcore_worker(struct app_lcore_params_worker *lp,
                  uint32_t bsz_rd,
                  struct worker_arg *arg) {
   static const uint8_t eth_bcast[] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
-  struct port *port;
+  struct interface *ifp;
   struct lagopus_packet *pkt;
   enum switch_mode mode;
   uint32_t i;
@@ -176,15 +176,14 @@ app_lcore_worker(struct app_lcore_params_worker *lp,
       pkt = (struct lagopus_packet *)
             (m->buf_addr + APP_DEFAULT_MBUF_LOCALDATA_OFFSET);
 #ifdef RTE_MBUF_HAS_PKT
-      port = dp_port_lookup(DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_PHY,
-                            m->pkt.in_port);
+      ifp = dpdk_interface_lookup(m->pkt.in_port);
 #else
-      port = dp_port_lookup(DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_PHY,
-                            m->port);
+      ifp = dpdk_interface_lookup(m->port);
 #endif /* RTE_MBUF_HAS_PKT */
-      if (port == NULL ||
-          port->bridge == NULL ||
-          (port->ofp_port.config & OFPPC_NO_RECV) != 0) {
+      if (ifp == NULL ||
+          ifp->port == NULL ||
+          ifp->port->bridge == NULL ||
+          (ifp->port->ofp_port.config & OFPPC_NO_RECV) != 0) {
         /* drop m */
         rte_pktmbuf_free(m);
         lp->mbuf_in.array[j] = NULL;
@@ -195,17 +194,17 @@ app_lcore_worker(struct app_lcore_params_worker *lp,
        * if "fail standalone mode", all packets are send to
        * OFPP_NORMAL.
        */
-      lagopus_packet_init(pkt, m, port);
+      lagopus_packet_init(pkt, m, ifp->port);
 
 #ifdef HYBRID
       /* count up refcnt(packet copy). */
       OS_M_ADDREF(m);
 
       /* send to tap */
-      dp_interface_send_packet_kernel(pkt, pkt->in_port->interface);
+      dp_interface_send_packet_kernel(pkt, ifp);
 #endif /* HYBRID */
 
-      flowdb_switch_mode_get(port->bridge->flowdb, &mode);
+      flowdb_switch_mode_get(ifp->port->bridge->flowdb, &mode);
       if (mode == SWITCH_MODE_STANDALONE) {
         lagopus_forward_packet_to_port(pkt, OFPP_NORMAL);
         lp->mbuf_in.array[j] = NULL;

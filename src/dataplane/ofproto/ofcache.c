@@ -72,6 +72,7 @@ struct flowcache_bank {
   uint64_t nentries;
   uint64_t hit;
   uint64_t miss;
+  int bank;
 };
 
 /**
@@ -91,7 +92,7 @@ struct cache_list {
 };
 
 static struct flowcache_bank *
-init_flowcache_bank(int kvs_type) {
+init_flowcache_bank(int kvs_type, int bank) {
   struct flowcache_bank *cache;
 
   cache = calloc(1, sizeof(struct flowcache_bank));
@@ -99,14 +100,19 @@ init_flowcache_bank(int kvs_type) {
     return NULL;
   }
   cache->kvs_type = kvs_type;
+  cache->bank = bank;
   switch (cache->kvs_type) {
 #ifdef HAVE_DPDK
 #if RTE_VERSION >= RTE_VERSION_NUM(2, 1, 0, 0)
     case FLOWCACHE_RTE_HASH:
       {
         struct rte_hash_parameters params;
+        char name[80];
+
         memset(&params, 0, sizeof(params));
-        params.name = "lagopus flowcache";
+        snprintf(name, sizeof(name), "lagopus_fc_%d:%d",
+                 pthread_self(), bank);
+        params.name = name;
         params.entries = FLOWCACHE_MAX_ENTRIES;
         params.key_len = FLOWCACHE_BITLEN >> 3;
         params.hash_func = HASH_FUNC;
@@ -346,7 +352,7 @@ init_flowcache(int kvs_type) {
     return NULL;
   }
   for (bank = 0; bank < NBANK; bank++) {
-    cache->bank[bank] = init_flowcache_bank(kvs_type);
+    cache->bank[bank] = init_flowcache_bank(kvs_type, bank);
     if (cache->bank[bank] == NULL) {
       free(cache);
       return NULL;
@@ -366,7 +372,7 @@ register_cache(struct flowcache *cache,
   bank = cache->bank[0];
   register_cache_bank(bank, hash64, nmatched, flow);
   if (bank->nentries >= cache->max_entries / 2) {
-    alt_bank = init_flowcache_bank(bank->kvs_type);
+    alt_bank = init_flowcache_bank(bank->kvs_type, cache->bank[1]->bank + 1);
     alt_bank->hit = cache->bank[1]->hit;
     alt_bank->miss = cache->bank[1]->miss;
     fini_flowcache_bank(cache->bank[1]);

@@ -260,6 +260,7 @@
 #define NIC_RX_QUEUE_CONFIGURED   2
 
 struct flowcache;
+struct interface;
 
 struct app_mbuf_array {
   struct rte_mbuf *array[APP_MBUF_ARRAY_SIZE];
@@ -435,6 +436,7 @@ void clear_worker_flowcache(bool);
 bool is_rawsocket_only_mode(void);
 bool set_rawsocket_only_mode(bool newval);
 
+struct interface *dpdk_interface_lookup(uint8_t portid);
 void dpdk_update_link_status(struct app_lcore_params_io *lp);
 
 #endif /* SRC_DATAPLANE_DPDK_DPDK_H_ */

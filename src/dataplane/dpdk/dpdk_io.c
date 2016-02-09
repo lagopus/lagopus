@@ -221,40 +221,21 @@ struct lagopus_port_statistics port_statistics[RTE_MAX_ETHPORTS];
 
 static struct port_stats *dpdk_port_stats(struct port *port);
 
-static lagopus_hashmap_t ifp_hashmap;
+struct interface *ifp_table[UINT8_MAX + 1];
 
 static void
 dpdk_interface_set_index(struct interface *ifp) {
-  void *val;
-
-  if (ifp_hashmap == NULL) {
-    lagopus_hashmap_create(&ifp_hashmap, LAGOPUS_HASHMAP_TYPE_ONE_WORD, NULL);
-  }
-  val = ifp;
-  lagopus_hashmap_add(&ifp_hashmap,
-                      (void *)ifp->info.eth_dpdk_phy.port_number,
-                      (void *)&val,
-                      false);
+  ifp_table[ifp->info.eth_dpdk_phy.port_number] = ifp;
 }
 
 static void
 dpdk_interface_unset_index(struct interface *ifp) {
-  if (ifp_hashmap == NULL) {
-    return;
-  }
-  lagopus_hashmap_delete(&ifp_hashmap,
-                         (void *)ifp->info.eth_dpdk_phy.port_number,
-                         NULL, false);
+  ifp_table[ifp->info.eth_dpdk_phy.port_number] = NULL;
 }
 
-static inline struct interface *
+struct interface *
 dpdk_interface_lookup(uint8_t portid) {
-  struct interface *ifp;
-  if (ifp_hashmap == NULL) {
-    return NULL;
-  }
-  lagopus_hashmap_find(&ifp_hashmap, (void *)portid, (void *)&ifp);
-  return ifp;
+  return ifp_table[portid];
 }
 
 static inline int
@@ -617,13 +598,13 @@ dpdk_update_link_status(struct app_lcore_params_io *lp) {
   int i;
 
   for (i = 0; i < lp->tx.n_nic_ports; i++) {
-    struct port *port;
+    struct interface *ifp;
     uint8_t portid;
 
     portid = lp->tx.nic_ports[i];
-    port = dp_port_lookup(DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_PHY, portid);
-    if (port != NULL) {
-      update_port_link_status(port);
+    ifp = dpdk_interface_lookup(portid);
+    if (ifp != NULL && ifp->port != NULL) {
+      update_port_link_status(ifp->port);
     }
   }
 }

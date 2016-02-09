@@ -90,10 +90,10 @@ port_free(struct port *port) {
 }
 
 /**
- * lookup port structure from specified vector
+ * lookup port structure from specified table
  *
- * @param[in] v       vector associated with bridge
- * @param[in] id      OpenFlow Port number or Physical Index number
+ * @param[in] hm      hashmap table associated with bridge
+ * @param[in] id      OpenFlow Port number
  * @retval    ==NULL  port is not configured
  * @retval    !=NULL  port structure
  */
@@ -101,46 +101,7 @@ struct port *
 port_lookup(lagopus_hashmap_t *hm, uint32_t id) {
   struct port *port;
 
-  lagopus_hashmap_find(hm, id, &port);
-  return port;
-}
-
-static bool
-ifindex2port_do_iterate(void *key, void *val,
-                        lagopus_hashentry_t he, void *arg) {
-  struct port **portp;
-  struct port *port;
-  uint32_t *idxp;
-
-  port = val;
-  portp = arg;
-  idxp = arg;
-  if (port->ifindex == *idxp) {
-    *portp = port;
-    return false;
-  } else {
-    *portp = NULL;
-    return true;
-  }
-}
-
-/**
- * get port structure by physical ifindex
- *
- * @param[in]   vector owned by bridge
- * @param[in]   ifindex interface index
- * @retval      !=NULL  lagopus port object
- *              ==NULL  lagopus port is not configured
- */
-struct port *
-ifindex2port(lagopus_hashmap_t *hm, uint32_t ifindex) {
-  struct port *port;
-  unsigned int id;
-  struct port **arg;
-
-  arg = (void *)ifindex;
-  lagopus_hashmap_iterate(hm, ifindex2port_do_iterate, &arg);
-  port = *arg;
+  lagopus_hashmap_find_no_lock(hm, id, &port);
   return port;
 }
 
