@@ -46,12 +46,15 @@ add_dp_timer(int type,
 
 struct flow;
 struct flow_list;
+struct interface;
 struct mactable;
 
 lagopus_result_t
 add_flow_timer(struct flow *flow);
 lagopus_result_t
 add_mbtree_timer(struct flow_list *flow_list, time_t timeout);
+lagopus_result_t
+add_link_timer(struct interface *ifp);
 lagopus_result_t
 add_mactable_timer(struct mactable *mactable, time_t timeout);
 

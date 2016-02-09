@@ -172,6 +172,9 @@ dp_interface_destroy(const char *name) {
   if (ifp->port != NULL) {
     dp_port_interface_unset_internal(ifp->port);
   }
+  if (ifp->link_timer != NULL) {
+    *ifp->link_timer = NULL;
+  }
   if (ifp->name != NULL) {
     free(ifp->name);
   }

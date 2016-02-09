@@ -108,6 +108,7 @@
 #include "lagopus/interface.h"
 
 #include "lagopus/dataplane.h"
+#include "dp_timer.h"
 #include "pktbuf.h"
 #include "packet.h"
 #include "dpdk/dpdk.h"
@@ -1063,7 +1064,8 @@ dpdk_configure_interface(struct interface *ifp) {
                                 (uint8_t) n_rx_queues,
                                 (uint8_t) n_tx_queues,
                                 &port_conf);
-    /* XXX register link update periodic timer */
+    /* register link update periodic timer */
+    add_link_timer(ifp);
   }
   if (ret < 0) {
     rte_panic("Cannot init NIC port %u (%s)\n",
