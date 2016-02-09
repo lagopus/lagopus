@@ -278,6 +278,7 @@ dpdk_dataplane_init(int argc, const char *const argv[]) {
     /* "--" is not found in argv */
     memcpy(copy_argv, argv, argsize);
     rawsocket_only_mode = true;
+    rte_openlog_stream(stdout);
   } else {
     argc -= i;
     optind = 1;

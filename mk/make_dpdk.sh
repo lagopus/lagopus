@@ -23,8 +23,6 @@ edit_dpdk_config() {
     fi
 }
 
-echo "$@"
-
 TOPDIR=$1
 DPDKDIR=$2
 if test -z "${TOPDIR}" -o -z "${DPDKDIR}"; then

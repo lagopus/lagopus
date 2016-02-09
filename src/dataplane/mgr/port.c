@@ -29,7 +29,6 @@
 
 #include "lagopus/dp_apis.h"
 #include "lagopus/interface.h"
-#include "dpdk.h"
 
 /**
  * no driver version of port_stats().
@@ -164,9 +163,11 @@ dp_port_update_link_status(struct port *port) {
     return;
   }
   switch (ifp->info.type) {
+#ifdef HAVE_DPDK
     case DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_PHY:
       dpdk_update_port_link_status(port);
       break;
+#endif /* HAVE_DPDK */
     default:
       break;
   }

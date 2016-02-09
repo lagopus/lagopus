@@ -650,7 +650,7 @@ classify_ether_packet(struct lagopus_packet *pkt) {
  */
 struct lagopus_packet *
 copy_packet(struct lagopus_packet *src_pkt) {
-  struct rte_mbuf *mbuf;
+  OS_MBUF *mbuf;
   struct lagopus_packet *pkt;
   size_t pktlen;
 
