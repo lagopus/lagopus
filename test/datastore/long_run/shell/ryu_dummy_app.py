@@ -4,6 +4,7 @@ from ryu.controller.ofp_event import EventOFPSwitchFeatures
 from ryu.controller.handler import set_ev_cls
 from ryu.ofproto.ofproto_v1_3 import OFP_VERSION
 
+
 class DummyApp(RyuApp):
     OFP_VERSIONS = [OFP_VERSION]
 

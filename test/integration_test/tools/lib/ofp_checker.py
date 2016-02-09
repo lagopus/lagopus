@@ -19,8 +19,6 @@ from const import *
 from ofp_datapath import OFPDatapath, OFPServer
 
 # OFPMatch hook.
-
-
 def _match_eq_hook(self, obj):
     if not obj.fields:
         buf = bytearray()
@@ -29,8 +27,6 @@ def _match_eq_hook(self, obj):
     return obj
 
 # ofp Comparison func.
-
-
 def _ofp_eq_func(self, other):
     targets_tmp = []
     objs = {"self": self, "other": other}
@@ -39,26 +35,40 @@ def _ofp_eq_func(self, other):
         if hasattr(v, "_ofp_eq_hook"):
             objs[k] = self._ofp_eq_hook(v)
 
+    # target name.
     for obj in objs.values():
         if hasattr(obj, "_targets"):
             targets_tmp += obj._targets
-        if hasattr(obj, "buf"):
-            obj.buf = None
     targets = list(set(targets_tmp))
 
-    # target name.
-    func = None
-    if targets:
-        func = lambda obj: {i: getattr(obj, i) for i in dir(obj)
-                            if i in targets}
-    else:
-        func = lambda obj: {i: getattr(obj, i) for i in dir(obj)
-                            if (i[0] != "_" and
-                                type(getattr(obj, i)) != MethodType)}
+    for obj in objs.values():
+        obj._set_targets(targets)
 
-    logging.debug("cmp 1 : %s" % func(objs["self"]))
-    logging.debug("cmp 2 : %s" % func(objs["other"]))
-    return func(objs["self"]) == func(objs["other"])
+    # get atters.
+    self_atters = {k: v for k, v in self.stringify_attrs()}
+    other_atters = {k: v for k, v in other.stringify_attrs()}
+
+    logging.debug("expected : %s : %s" % (objs["self"].__class__.__name__,
+                                          self_atters))
+    logging.debug("actual   : %s : %s" % (objs["other"].__class__.__name__,
+                                          other_atters))
+
+    ret = self_atters == other_atters
+    if ret == False:
+        logging.error("expected : %s : %s" % (objs["self"].__class__.__name__,
+                                              self_atters))
+        logging.error("actual   : %s : %s" % (objs["other"].__class__.__name__,
+                                              other_atters))
+
+    return ret
+
+
+def _ofp_stringify_attrs(self):
+    for k, v in self.stringify_attrs_ori():
+        if hasattr(self, "_targets") and self._targets:
+            if k not in self._targets:
+                continue
+        yield (k, v)
 
 
 def _ofp_ne_func(self, other):
@@ -73,7 +83,10 @@ def set_hooks():
     ofproto_parser.StringifyMixin.__eq__ = _ofp_eq_func
     ofproto_parser.StringifyMixin.__ne__ = _ofp_ne_func
     ofproto_parser.StringifyMixin._set_targets = _set_targets_func
+    ofproto_parser.StringifyMixin._targets = []
     ofproto_parser.StringifyMixin.__repr__ = ofproto_parser.StringifyMixin.__str__
+    ofproto_parser.StringifyMixin.stringify_attrs_ori = ofproto_parser.StringifyMixin.stringify_attrs
+    ofproto_parser.StringifyMixin.stringify_attrs = _ofp_stringify_attrs
 
     for proto, parser in ofproto_protocol._versions.values():
         parser.OFPMatch._ofp_eq_hook = _match_eq_hook
@@ -118,6 +131,8 @@ class OFPChecker(object):
         self.server.close()
 
     def send(self, dpid, msg, timeout=DEFAULT_TIMEOUT):
+        msg = self.dps[dpid].set_send_msg(msg)
+        logging.debug("send msg: %s" % msg)
         self.dps[dpid].send_msg(msg, timeout)
 
     def recv(self, dpid, expected_msg=None, timeout=DEFAULT_TIMEOUT):
@@ -138,7 +153,7 @@ class OFPChecker(object):
                 raise TimeOut("timed out")
             time.sleep(0.1)
 
-        logging.debug("msg: %s" % msg)
+        logging.debug("recv msg: %s" % msg)
         return msg
 
     def handshake(self, dpid):

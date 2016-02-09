@@ -8,6 +8,9 @@ How To Run "log run tests"
 ## Related packages
  * Python 2.7.6
  * pip
+ * PyYAML 3.11
+ * pykwalify 1.0.1
+ * Jinja2 2.7.3
  * ryu 3.26
  * six 1.9.0         (for ryu)
  * greenlet 0.4.5    (for ryu)
@@ -22,16 +25,19 @@ How to run test
  % sudo pip install --requirement ./requirements.pip
 ```
 
-## 2. Install DPDK and setup interfaces.
+## 2. Install lagopus.
  cf.) {LAGOPUS\_DIR}/INSTALL.txt
 
-## 3. Install lagopus.
- cf.) {LAGOPUS\_DIR}/INSTALL.txt
-
-## 4. Edit `lagopus_test.ini` file.
+## 3. Edit `lagopus_test.ini` file.
 
 ```
  % vi conf/lagopus_test.ini
+```
+
+## 4. Run YAML schema check (for sample).
+
+```
+ % ./lagopus_test.py -C schema/schema.yml sample_yaml/ofp.yml
 ```
 
 ## 5. Run test (for sample).
@@ -45,6 +51,7 @@ How to run test
                                     (see 'nosetests -h or -- -h'). e.g., '-- -v --nocapture'
   * optional arguments:
     * -h, --help            show this help message and exit
+    * -y                    use YAML test case
     * -c CONFIG             config file (default: ./conf/lagopus_test.ini)
     * -d OUT_DIR            out dir (default: ./out)
     * -l LOG                log file (default: stdout)
@@ -52,9 +59,19 @@ How to run test
 
 
 * example:
+  * nose testcase.
+```
+ % sudo ./lagopus_test.py -L debug sample_nose/test_ofp.py -- -v
+   ----------------------------------------------------------------------
+   Ran 1 test in 15.287s
+
+   OK
 
 ```
- % sudo ./lagopus_test.py -L debug sample/test_ofp.py
+
+  * YAML testcase.
+```
+ % sudo ./lagopus_test.py -L debug -y sample_yaml/ofp/.yml -- -v
    ----------------------------------------------------------------------
    Ran 1 test in 15.287s
 

@@ -10,6 +10,9 @@ from checker import *
 class OFPTest(TestCase):
 
     def setUp(self):
+        # add cleanup func.
+        self.addCleanup(self.cleanups)
+
         checker_setup(self)
         self.opts = checker_get_opts(self)
 
@@ -19,7 +22,7 @@ class OFPTest(TestCase):
         self.setup_ds()
         checker_start_ofp(self)
 
-    def doCleanups(self):
+    def cleanups(self):
         # stop
         checker_stop_ofp(self)
         checker_stop_datastore(self)

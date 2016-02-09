@@ -409,6 +409,48 @@ test_bridge_cmd_parse_create_not_port_name_val(void) {
 }
 
 void
+test_bridge_cmd_parse_create_not_port_no_01(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv[] = {"bridge", "test_name05_2", "create",
+                        "-port", "p5_2", NULL
+                       };
+  const char test_str[] =
+    "{\"ret\":\"INVALID_ARGS\",\n"
+    "\"data\":\"Bad opt value.\"}";
+
+  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i5_2", "p5_2");
+
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR, bridge_cmd_parse,
+                 &interp, state, ARGV_SIZE(argv), argv,
+                 &tbl, bridge_cmd_update, &ds, str, test_str);
+
+  TEST_PORT_DESTROY(ret, &interp, state, &tbl, &ds, str, "i5_2", "p5_2");
+}
+
+void
+test_bridge_cmd_parse_create_not_port_no_02(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv[] = {"bridge", "test_name05_3", "create",
+                        "-port", "p5_3", "-dpid", "1", NULL
+                       };
+  const char test_str[] =
+    "{\"ret\":\"INVALID_ARGS\",\n"
+    "\"data\":\"Bad opt value = -dpid.\"}";
+
+  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i5_3", "p5_3");
+
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR, bridge_cmd_parse,
+                 &interp, state, ARGV_SIZE(argv), argv,
+                 &tbl, bridge_cmd_update, &ds, str, test_str);
+
+  TEST_PORT_DESTROY(ret, &interp, state, &tbl, &ds, str, "i5_3", "p5_3");
+}
+
+void
 test_bridge_cmd_parse_create_not_dpid_val(void) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
