@@ -397,6 +397,10 @@ meter_do_stats_iterate(void *key, void *val,
                        lagopus_hashentry_t he, void *arg) {
   struct meter_stats_list *list;
 
+  (void) key;
+  (void) val;
+  (void) he;
+
   list = arg;
   if (meter_add_stats(val, list) == LAGOPUS_RESULT_OK) {
     return true;
@@ -468,6 +472,10 @@ static bool
 meter_do_config_iterate(void *key, void *val,
                        lagopus_hashentry_t he, void *arg) {
   struct meter_config_list *list;
+
+  (void) key;
+  (void) val;
+  (void) he;
 
   list = arg;
   if (meter_add_config(val, list) == LAGOPUS_RESULT_OK) {

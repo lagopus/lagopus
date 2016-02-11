@@ -74,17 +74,20 @@ ofp_match_parse_wrap(struct channel *channel,
   struct match_list match_list;
   struct match *match;
   int i;
-  int match_num = 2;
-  uint16_t class[2] = {OFPXMC_OPENFLOW_BASIC,
-             OFPXMC_OPENFLOW_BASIC
+  int match_num = 3;
+  uint16_t class[3] = {OFPXMC_OPENFLOW_BASIC,
+                       OFPXMC_OPENFLOW_BASIC,
+                       OFPXMC_OPENFLOW_BASIC
   };
-  uint8_t field[2] = {OFPXMT_OFB_IN_PORT,
-                      OFPXMT_OFB_ETH_SRC
-                     };
-  uint8_t hasmask[2] = {0, 1};
-  uint8_t length[2] = {4, 6};
-  uint8_t value[2][6] = {{0x00, 0x00, 0x00, 0x10},
-    {0x00, 0x0c, 0x29, 0x7a, 0x90, 0xb3}
+  uint8_t field[3] = {OFPXMT_OFB_IN_PORT,
+                      OFPXMT_OFB_ETH_SRC,
+                      OFPXMT_OFB_GRE_FLAGS,
+  };
+  uint8_t hasmask[3] = {0, 1, 0};
+  uint8_t length[3] = {4, 6, 2};
+  uint8_t value[3][6] = {{0x00, 0x00, 0x00, 0x10},
+                         {0x00, 0x0c, 0x29, 0x7a, 0x90, 0xb3},
+                         {0x01, 0x02}
   };
   (void) xid_header;
 
@@ -127,28 +130,39 @@ void
 test_ofp_match_parse(void) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   ret = check_packet_parse(ofp_match_parse_wrap,
-                           "00 01 00 16 80 00 00 04 00 00 00 10"
-                           /* <---> type = 1 OXM match
-                            *       <---> length = 22
-                            *             <---------> OXM TLV header (oxm_class = 0x8000
-                            *                                          -> OFPXMC_OPENFLOW_BASIC
-                            *                                         oxm_field = 0
-                            *                                          -> OFPXMT_OFB_IN_PORT,
-                            *                                         oxm_hashmask = 0,
-                            *                                         oxm_length = 4)
-                            *                         <---------> OXML TLV payload
-                            */
-                           "80 00 09 06 00 0c 29 7a 90 b3 00 00");
-  /*
-   * <---------> OXM TLV header (oxm_class = 0x8000
-   *                              -> OFPXMC_OPENFLOW_BASIC
-   *                             oxm_field = 4
-   *                              -> OFPXMT_OFB_ETH_SRC,
-   *                             oxm_hashmask = 1,
-   *                             oxm_length = 6)
-   *             <---------------> OXML TLV payload
-   *                               <---> pad
-   */
+                           "00 01 00 1C 80 00 00 04 00 00 00 10"
+                         /* <---> type = 1 OXM match
+                          *       <---> length = 28
+                          *             <---------> OXM TLV header (oxm_class = 0x8000
+                          *                                          -> OFPXMC_OPENFLOW_BASIC
+                          *                                         oxm_field = 0
+                          *                                          -> OFPXMT_OFB_IN_PORT,
+                          *                                         oxm_hashmask = 0,
+                          *                                         oxm_length = 4)
+                          *                         <---------> OXML TLV payload
+                          */
+                           "80 00 09 06 00 0c 29 7a 90 b3"
+                         /*
+                          * <---------> OXM TLV header (oxm_class = 0x8000
+                          *                              -> OFPXMC_OPENFLOW_BASIC
+                          *                             oxm_field = 4
+                          *                              -> OFPXMT_OFB_ETH_SRC,
+                          *                             oxm_hashmask = 1,
+                          *                             oxm_length = 6)
+                          *             <---------------> OXML TLV payload
+                          */
+                           "80 00 56 02 01 02 00 00 00 00"
+                         /*
+                          * <---------> OXM TLV header (oxm_class = 0x8000
+                          *                              -> OFPXMC_OPENFLOW_BASIC
+                          *                             oxm_field = 43
+                          *                              -> OFPXMT_OFB_ETH_SRC,
+                          *                             oxm_hashmask = 0,
+                          *                             oxm_length = 6)
+                          *             <---> OXML TLV payload
+                          *                   <---------> pad
+                          */
+                           );
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, ret,
                             "test_ofp_match_parse(normal) error.");
 }
@@ -414,19 +428,22 @@ ofp_match_list_encode_wrap(struct channel *channel,
   int i;
   struct match_list match_list;
   struct match *match;
-  int test_num = 2;
+  int test_num = 3;
   uint16_t total_len = 0;
-  uint16_t tlv_length = 0x18;
+  uint16_t tlv_length = 0x20;
   uint16_t class = OFPXMC_OPENFLOW_BASIC;
   uint8_t field[] = {OFPXMT_OFB_IN_PORT << 1,
-                     OFPXMT_OFB_ETH_SRC << 1
+                     OFPXMT_OFB_ETH_SRC << 1,
+                    OFPXMT_OFB_GRE_FLAGS << 1
                     };
-  uint8_t length[] = {0x04, 0x06};
-  uint8_t value[2][8] = {{0x00, 0x00, 0x00, 0x10},
-    {
-      0x00, 0x0c, 0x29, 0x7a, 0x90, 0xb3,
-      0x00, 0x00
-    }
+  uint8_t length[] = {0x04, 0x06, 0x02};
+  uint8_t value[3][8] = {{0x00, 0x00, 0x00, 0x10},
+                         {
+                           0x00, 0x0c, 0x29, 0x7a, 0x90, 0xb3,
+                         },
+                         {
+                           0x01, 0x02, 0x00, 0x00, 0x00, 0x00,
+                         }
   };
   (void) xid_header;
   (void) channel;
@@ -461,9 +478,10 @@ void
 test_ofp_match_list_encode(void) {
   lagopus_result_t ret;
   ret = check_packet(ofp_match_list_encode_wrap,
-                     "00 01 00 16"
+                     "00 01 00 1C"
                      "80 00 00 04 00 00 00 10"
-                     "80 00 08 06 00 0c 29 7a 90 b3 00 00");
+                     "80 00 08 06 00 0c 29 7a 90 b3"
+                     "80 00 56 02 01 02 00 00 00 00");
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, ret,
                             "ofp_match_list_encode error.");
 }

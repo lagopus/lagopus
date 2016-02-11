@@ -17371,7 +17371,7 @@ if test "x$ac_cv_member_struct_rte_mbuf_pkt" = xyes; then :
   RTE_MBUF_HAS_PKT=1
 fi
 
-    CPPFLAGS="{$CPPFLAGS_BKUP}"
+    CPPFLAGS="${CPPFLAGS_BKUP}"
     $as_echo "#define HAVE_DPDK 1" >>confdefs.h
 
 else

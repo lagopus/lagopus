@@ -1,0 +1,104 @@
+lagopus_dsl:
+  file: "{{ test_home }}/test_scenarios_yaml/ofp/ofp.dsl"
+  sw: target # target switch.
+
+#setup:
+
+#teardown:
+
+testcases:
+  - testcase: flow mod
+    test:
+      - repetition_count: 1
+        cmds:
+          # ofp: send FlowMod.
+          - cmd_type: ofp_send
+            cmd:
+              flow_mod:
+                cookie: 0
+                priority: 10
+                match:
+                  in_port: 1
+                  eth_dst: "ff:ff:ff:ff:ff:ff"
+                instructions:
+                  - write_metadata:
+                      metadata: 123
+                      metadata_mask: 0
+                  - apply_actions:
+                      actions:
+                        - set_nw_ttl:
+                            nw_ttl: 1
+                        - output:
+                            port: 0xfffffffa # OFPP_NORMAL
+          # ofp: send FlowStatsRequest.
+          - cmd_type: ofp_send
+            cmd:
+              flow_stats_request:
+                cookie: 0
+                match:
+                  in_port: 1
+                  eth_dst: "ff:ff:ff:ff:ff:ff"
+          # ofp: recv FlowStatsReply.
+          - cmd_type: ofp_recv
+            result:
+              flow_stats_reply:
+                flags: 0
+                body:
+                  - flow_stats:
+                      table_id: 0
+                      priority: 10
+                      idle_timeout: 0
+                      hard_timeout: 0
+                      flags: 0
+                      cookie: 0
+                      packet_count: 0
+                      byte_count: 0
+                      match:
+                        in_port: 1
+                        eth_dst: "ff:ff:ff:ff:ff:ff"
+                      instructions:
+                        - write_metadata:
+                            metadata: 123
+                            metadata_mask: 0
+                        - apply_actions:
+                            actions:
+                              - set_nw_ttl:
+                                  nw_ttl: 1
+                              - output:
+                                  port: 0xfffffffa # OFPP_NORMAL
+          # ds: check flow command.
+          - cmd_type: ds
+            cmd: flow
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":":bridge01",
+              "tables":[{
+              "flows":[{
+              "actions":[
+              {"write_metadata":"123"},
+              {"apply_actions":[
+              {"set_nw_ttl":1},
+              {"output":"normal"}]}],
+              "cookie":0,
+              "dl_dst":"ff:ff:ff:ff:ff:ff",
+              "hard_timeout":0,
+              "idle_timeout":0,
+              "in_port":1,
+              "priority":10}],
+              "table":0}]}]}
+          # ofp: send TableStatsRequest
+          - cmd_type: ofp_send
+            cmd:
+              table_stats_request:
+                flags: 0
+          # ofp: recv TableStatsReply.
+          - cmd_type: ofp_recv
+            result:
+              table_stats_reply:
+                flags: 0
+                body:
+                  - table_stats:
+                      table_id: 0
+                      active_count: 1
+                      lookup_count: 0
+                      matched_count: 0

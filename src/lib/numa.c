@@ -113,12 +113,14 @@ s_init_numa_thingies(void) {
 
   s_n_cpus = (int64_t)sysconf(_SC_NPROCESSORS_CONF);
   if (s_n_cpus > 0) {
-    s_numa_nodes = (unsigned int *)malloc(sizeof(int) * (size_t)s_n_cpus);
+    s_numa_nodes = (unsigned int *)malloc(
+	    sizeof(unsigned int) * (size_t)s_n_cpus);
     if (s_numa_nodes != NULL) {
       int i;
       lagopus_result_t r;
 
-      (void)memset((void *)s_numa_nodes, 0, sizeof(int) * (size_t)s_n_cpus);
+      (void)memset((void *)s_numa_nodes, 0,
+		   sizeof(unsigned int) * (size_t)s_n_cpus);
 
       for (i = 0; i < (int)s_n_cpus; i++) {
         s_numa_nodes[i] = (unsigned int)numa_node_of_cpu(i);

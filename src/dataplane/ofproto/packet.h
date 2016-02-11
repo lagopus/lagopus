@@ -141,12 +141,36 @@ struct mpls_hdr {
 #define ETHER_TYPE_PBB 0x88e7
 
 struct pbb_hdr {
-  uint8_t i_pcp_dei;
+  uint8_t i_pcp_dei; /* |3:I-PCP|1:I-DEI|1:UCA|3:RES| */
   uint8_t i_sid[3];
   uint8_t c_dhost[6];
   uint8_t c_shost[6];
   uint16_t c_ethtype;
 } __attribute__((__packed__));
+
+/**
+ * GRE
+ */
+struct gre_hdr {
+  uint16_t flags; /* 13bit:flags, 3bit:ver */
+  uint16_t ptype;
+  uint32_t key;
+#if 0
+  uint32_t seq_num;
+  uint32_t ack_num;
+#endif
+} __attribute__((__packed__));
+
+/**
+ * VXLAN
+ */
+struct vxlanhdr {
+  uint8_t flags;
+  uint8_t pad[3];
+  uint32_t vni; /* 24bit:vni, 8bit:reserved */
+} __attribute__((__packed__));
+
+#define VXLAN_PORT 4789
 
 /**
  * packet flags
@@ -193,11 +217,29 @@ struct lagopus_packet {
     };
   };
 
+  /*
+   * flowcache information.
+   */
+  void *cache;
+  unsigned nmatched;
+  const struct flow *matched_flow[LAGOPUS_DP_PIPELINE_MAX];
+
+  /*
+   * flow information.
+   */
+  uint8_t table_id;
+  struct flow *flow;
+
+  /* related port and bridge. */
+  struct port *in_port;
+  struct bridge *bridge;
+
   uint16_t ether_type;
   /*
    * access pointer placeholder, like skb
    */
   struct oob_data oob_data;
+  struct oob2_data oob2_data;
   struct vlanhdr *vlan;
   union {
     uint8_t *base[MAX_BASE];
@@ -230,26 +272,25 @@ struct lagopus_packet {
         uint16_t *sctp;
         struct icmp6_hdr *icmp6;
         struct nd_neighbor_solicit *nd_ns;
+        struct gre_hdr *gre;
       };
-      uint16_t *v6ext;
+      union {
+        uint8_t *l4_payload;
+        uint16_t *l4_payload_w;
+        uint32_t *l4_payload_l;
+        struct vxlanhdr *vxlan;
+      };
+      struct oob2_data *oob2;
       struct in6_addr *v6src;
       struct in6_addr *v6dst;
       uint8_t *nd_sll;
       uint8_t *nd_tll;
     };
   };
-  struct port *in_port;
-
-  uint8_t table_id;
-  struct flow *flow;
   struct action_list actions[LAGOPUS_ACTION_SET_ORDER_MAX];
 
   uint32_t queue_id;
   uint32_t flags;
-
-  void *cache;
-  unsigned nmatched;
-  const struct flow *matched_flow[LAGOPUS_DP_PIPELINE_MAX];
 };
 
 #define ETHER_HDR     struct ether_header
@@ -261,6 +302,7 @@ struct lagopus_packet {
 #define VLAN_TCI(h)   ((h)->vlan_tci)
 #define VLAN_VID(h)   (OS_NTOHS(VLAN_TCI(h)) & 0x0fff)
 #define VLAN_PCP(h)   ((OS_NTOHS(VLAN_TCI(h)) & 0xe000) >> 13)
+#define MPLS_HDR      struct mpls_hdr
 #define IPV4_HDR      struct ip
 #define IPV4_VER(h)   ((h)->ip_v)
 #define IPV4_HLEN(h)  ((h)->ip_hl)
@@ -289,12 +331,15 @@ struct lagopus_packet {
 #define UDP_HDR       uint16_t
 #define UDP_SPORT(h)  ((h)[0])
 #define UDP_DPORT(h)  ((h)[1])
+#define UDP_LEN(h)    ((h)[2])
 #define UDP_CKSUM(h)  ((h)[3])
 #define SCTP_HDR      uint16_t
 #define SCTP_SPORT(h) ((h)[0])
 #define SCTP_DPORT(h) ((h)[1])
 #define SCTP_CKSUM(h) (*(uint32_t *)&((h)[4]))
 #define ICMP_CKSUM(h) ((h)->icmp_cksum)
+#define GRE_HDR       struct gre_hdr
+#define VXLAN_HDR       struct vxlanhdr
 #define MTOD_OFS(m, offset, type)                       \
   (type)(OS_MTOD((m), unsigned char *) + (offset))
 

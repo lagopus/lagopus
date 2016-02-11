@@ -49,6 +49,19 @@ struct match {
 TAILQ_HEAD(match_list, match);  /** Match list. */
 
 /**
+ * @brief Encap/Decap property structure.
+ */
+struct ed_prop {
+  TAILQ_ENTRY(ed_prop) entry;
+  union {
+    struct ofp_ed_prop_header ofp_ed_prop;
+    struct ofp_ed_prop_portname ofp_ed_prop_portname;
+  };
+};
+
+TAILQ_HEAD(ed_prop_list, ed_prop); /* list of ed_prop. */
+
+/**
  * @brief Action structure.
  */
 struct action {
@@ -57,6 +70,7 @@ struct action {
                            struct action *);
   uint64_t cookie;              /** cookie for packet_in */
   int flags;
+  struct ed_prop_list ed_prop_list;
   struct ofp_action_header ofpat;
 };
 
@@ -106,7 +120,8 @@ enum {
   L3_BASE,
   IPPROTO_BASE,
   L4_BASE,
-  V6EXT_BASE,
+  L4P_BASE,
+  OOB2_BASE,
   V6SRC_BASE,
   V6DST_BASE,
   NDSLL_BASE,
@@ -124,16 +139,22 @@ struct byteoff_match {
 };
 
 /**
- * @brief Out Of Bound data structure.
+ * @brief Out Of Bound data structure.  size are equal or less then 32byte.
  */
 struct oob_data {
   uint64_t metadata;            /** OpenFlow metadata */
-  uint64_t tunnel_id;           /** OpenFlow Tunnel ID */
   uint32_t in_port;             /** OpenFlow ingress port */
   uint32_t in_phy_port;         /** OpenFlow ingress physical port */
+  uint32_t packet_type;         /** OpenFlow packet type */
   uint16_t ether_type;          /** L3 ethertype */
   uint16_t vlan_tci;            /** VLAN TCI */
-  /* size over 32 byte */
+};
+
+/**
+ * @brief Out Of Bound data (2nd).  size are equal or less then 32byte.
+ */
+struct oob2_data {
+  uint64_t tunnel_id;           /** OpenFlow Tunnel ID */
   uint16_t ipv6_exthdr;         /** OpenFlow IPV6_EXT pseudo header */
 };
 

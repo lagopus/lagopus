@@ -1,3 +1,6 @@
+PyYAML==3.11
+pykwalify==1.0.1
+Jinja2==2.7.3
 ryu==3.26
 six==1.9.0
 greenlet==0.4.5

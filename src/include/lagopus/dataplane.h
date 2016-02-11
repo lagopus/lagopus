@@ -33,6 +33,9 @@ struct interface;
 
 #define LAGOPUS_DATAPLANE_VERSION "0.9"
 
+#undef PBB_UCA_SUPPORT
+#define GENERAL_TUNNEL_SUPPORT
+
 #ifndef IPPROTO_SCTP
 #define IPPROTO_SCTP 132
 #endif /* IPPROTO_SCTP */
@@ -72,14 +75,6 @@ struct meter;
 struct port;
 struct bucket_list;
 struct bucket;
-
-struct dataplane_arg {
-  lagopus_thread_t *threadptr;
-  lagopus_mutex_t *lock;
-  int argc;
-  char **argv;
-  bool *running;
-};
 
 int
 dpdk_send_packet_physical(struct lagopus_packet *pkt, struct interface *);

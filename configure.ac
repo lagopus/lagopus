@@ -414,7 +414,7 @@ if test "X${dpdk}" != "Xno"; then
 		  [],
 		  [[#include "rte_config.h"]
 		   [#include "rte_mbuf.h"]])
-    CPPFLAGS="{$CPPFLAGS_BKUP}"
+    CPPFLAGS="${CPPFLAGS_BKUP}"
     AC_DEFINE(HAVE_DPDK)
 else
     RTE_SDK=

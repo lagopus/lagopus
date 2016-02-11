@@ -81,9 +81,9 @@ class ExecShellCmd(ExecCmd):
 
     def stop_cmd(self, target, replase_kws):
         cmd = "%s/stop_%s.sh %s %d" % (replase_kws["shell_dir"],
-                                    target,
-                                    replase_kws["log_dir"],
-                                    SCE_TIMEOUT_DEFAULT)
+                                       target,
+                                       replase_kws["log_dir"],
+                                       SCE_TIMEOUT_DEFAULT)
         result = "0"
         self.exec_cmd(cmd, result, SCE_TIMEOUT_DEFAULT, replase_kws)
 

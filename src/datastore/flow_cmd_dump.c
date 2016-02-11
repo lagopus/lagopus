@@ -93,6 +93,7 @@ static inline lagopus_result_t
 dump_match(struct match *match,
            lagopus_dstring_t *result) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  uint8_t val8;
   uint16_t val16;
   uint32_t val32;
   uint64_t val64;
@@ -872,6 +873,389 @@ dump_match(struct match *match,
         goto done;
       }
       break;
+    case OFPXMT_OFB_PBB_UCA:
+      if ((ret = lagopus_dstring_appendf(
+              result, DELIMITER_INSTERN(KEY_FMT "%"PRIu8),
+              flow_match_field_strs[FLOW_MATCH_FIELD_PBB_UCA],
+              *match->oxm_value)) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+      break;
+    case OFPXMT_OFB_PACKET_TYPE:
+      memcpy(&val32, match->oxm_value, sizeof(uint32_t));
+      if ((ret = lagopus_dstring_appendf(
+                   result, DELIMITER_INSTERN(KEY_FMT "%"PRIu32),
+                   flow_match_field_strs[FLOW_MATCH_FIELD_PACKET_TYPE],
+                   ntohl(val32))) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+      break;
+    case OFPXMT_OFB_GRE_FLAGS:
+      memcpy(&val16, match->oxm_value, sizeof(uint16_t));
+      if ((ret = lagopus_dstring_appendf(
+                   result, DELIMITER_INSTERN(KEY_FMT "\"%"PRIu16),
+                   flow_match_field_strs[FLOW_MATCH_FIELD_GRE_FLAGS],
+                   ntohs(val16))) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+      if (hasmask) {
+        memcpy(&val16, &match->oxm_value[2], sizeof(uint16_t));
+        if ((ret = lagopus_dstring_appendf(
+                     result, "\\/0x%02x",
+                     ntohs(val16))) !=
+            LAGOPUS_RESULT_OK) {
+          lagopus_perror(ret);
+          goto done;
+        }
+      }
+      if ((ret = lagopus_dstring_appendf(
+                   result, "\"")) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+      break;
+    case OFPXMT_OFB_GRE_VER:
+      if ((ret = lagopus_dstring_appendf(
+              result, DELIMITER_INSTERN(KEY_FMT "%"PRIu8),
+              flow_match_field_strs[FLOW_MATCH_FIELD_GRE_VER],
+              *match->oxm_value)) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+      break;
+    case OFPXMT_OFB_GRE_PROTOCOL:
+      memcpy(&val16, match->oxm_value, sizeof(uint16_t));
+      if ((ret = lagopus_dstring_appendf(
+                   result, DELIMITER_INSTERN(KEY_FMT "%"PRIu16),
+                   flow_match_field_strs[FLOW_MATCH_FIELD_GRE_PROTOCOL],
+                   ntohs(val16))) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+      break;
+    case OFPXMT_OFB_GRE_KEY:
+      memcpy(&val32, match->oxm_value, sizeof(uint32_t));
+      if ((ret = lagopus_dstring_appendf(
+                   result, DELIMITER_INSTERN(KEY_FMT "\"%"PRIu32),
+                   flow_match_field_strs[FLOW_MATCH_FIELD_GRE_KEY],
+                   ntohl(val32))) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+      if (hasmask) {
+        if ((ret = lagopus_dstring_appendf(
+                result, "\\/0x%02x%02x%02x%02x",
+                match->oxm_value[4],
+                match->oxm_value[5],
+                match->oxm_value[6],
+                match->oxm_value[7])) !=
+            LAGOPUS_RESULT_OK) {
+          lagopus_perror(ret);
+          goto done;
+        }
+      }
+      if ((ret = lagopus_dstring_appendf(
+              result, "\"")) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+      break;
+    case OFPXMT_OFB_GRE_SEQNUM:
+      memcpy(&val32, match->oxm_value, sizeof(uint32_t));
+      if ((ret = lagopus_dstring_appendf(
+                   result, DELIMITER_INSTERN(KEY_FMT "%"PRIu32),
+                   flow_match_field_strs[FLOW_MATCH_FIELD_GRE_SEQNUM],
+                   ntohl(val32))) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+      break;
+    case OFPXMT_OFB_LISP_FLAGS:
+      memcpy(&val8, match->oxm_value, sizeof(uint8_t));
+      if ((ret = lagopus_dstring_appendf(
+              result, DELIMITER_INSTERN(KEY_FMT "\"%"PRIu8),
+              flow_match_field_strs[FLOW_MATCH_FIELD_LISP_FLAGS],
+              val8)) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+      if (hasmask) {
+        memcpy(&val8, &match->oxm_value[1], sizeof(uint8_t));
+        if ((ret = lagopus_dstring_appendf(
+                result, "\\/0x%02x",
+                val8)) !=
+            LAGOPUS_RESULT_OK) {
+          lagopus_perror(ret);
+          goto done;
+        }
+      }
+      if ((ret = lagopus_dstring_appendf(
+              result, "\"")) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+      break;
+    case OFPXMT_OFB_LISP_NONCE:
+      val32 = match->oxm_value[0];
+      val32 = (val32 << 8) | match->oxm_value[1];
+      val32 = (val32 << 8) | match->oxm_value[2];
+      if ((ret = lagopus_dstring_appendf(
+                   result, DELIMITER_INSTERN(KEY_FMT "\"%"PRIu32),
+                   flow_match_field_strs[FLOW_MATCH_FIELD_LISP_NONCE],
+                   val32)) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+      if (hasmask) {
+        if ((ret = lagopus_dstring_appendf(
+                     result, "\\/0x%02x%02x%02x",
+                     match->oxm_value[3],
+                     match->oxm_value[4],
+                     match->oxm_value[5])) !=
+            LAGOPUS_RESULT_OK) {
+          lagopus_perror(ret);
+          goto done;
+        }
+      }
+      if ((ret = lagopus_dstring_appendf(
+                   result, "\"")) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+      break;
+    case OFPXMT_OFB_LISP_ID:
+      memcpy(&val32, match->oxm_value, sizeof(uint32_t));
+      if ((ret = lagopus_dstring_appendf(
+                   result, DELIMITER_INSTERN(KEY_FMT "%"PRIu32),
+                   flow_match_field_strs[FLOW_MATCH_FIELD_LISP_ID],
+                   ntohl(val32))) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+      break;
+    case OFPXMT_OFB_VXLAN_FLAGS:
+      memcpy(&val8, match->oxm_value, sizeof(uint8_t));
+      if ((ret = lagopus_dstring_appendf(
+              result, DELIMITER_INSTERN(KEY_FMT "\"%"PRIu8),
+              flow_match_field_strs[FLOW_MATCH_FIELD_VXLAN_FLAGS],
+              val8)) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+      if (hasmask) {
+        memcpy(&val8, &match->oxm_value[1], sizeof(uint8_t));
+        if ((ret = lagopus_dstring_appendf(
+                result, "\\/0x%02x",
+                val8)) !=
+            LAGOPUS_RESULT_OK) {
+          lagopus_perror(ret);
+          goto done;
+        }
+      }
+      if ((ret = lagopus_dstring_appendf(
+              result, "\"")) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+      break;
+    case OFPXMT_OFB_VXLAN_VNI:
+      val32 = match->oxm_value[0];
+      val32 = (val32 << 8) | match->oxm_value[1];
+      val32 = (val32 << 8) | match->oxm_value[2];
+      if ((ret = lagopus_dstring_appendf(
+                   result, DELIMITER_INSTERN(KEY_FMT "%"PRIu32),
+                   flow_match_field_strs[FLOW_MATCH_FIELD_VXLAN_VNI],
+                   val32)) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+      break;
+    case OFPXMT_OFB_MPLS_DATA_FIRST_NIBBLE:
+      memcpy(&val8, match->oxm_value, sizeof(uint8_t));
+      if ((ret = lagopus_dstring_appendf(
+              result, DELIMITER_INSTERN(KEY_FMT "\"%"PRIu8),
+              flow_match_field_strs[FLOW_MATCH_FIELD_MPLS_DATA_FIRST_NIBBLE],
+              val8)) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+      if (hasmask) {
+        memcpy(&val8, &match->oxm_value[1], sizeof(uint8_t));
+        if ((ret = lagopus_dstring_appendf(
+                result, "\\/0x%02x",
+                val8)) !=
+            LAGOPUS_RESULT_OK) {
+          lagopus_perror(ret);
+          goto done;
+        }
+      }
+      if ((ret = lagopus_dstring_appendf(
+              result, "\"")) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+      break;
+    case OFPXMT_OFB_MPLS_ACH_VERSION:
+      if ((ret = lagopus_dstring_appendf(
+              result, DELIMITER_INSTERN(KEY_FMT "%"PRIu8),
+              flow_match_field_strs[FLOW_MATCH_FIELD_MPLS_ACH_VERSION],
+              *match->oxm_value)) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+      break;
+    case OFPXMT_OFB_MPLS_ACH_CHANNEL:
+      memcpy(&val16, match->oxm_value, sizeof(uint16_t));
+      if ((ret = lagopus_dstring_appendf(
+                   result, DELIMITER_INSTERN(KEY_FMT "\"%"PRIu16),
+                   flow_match_field_strs[FLOW_MATCH_FIELD_MPLS_ACH_CHANNEL],
+                   ntohs(val16))) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+      if (hasmask) {
+        memcpy(&val16, &match->oxm_value[2], sizeof(uint16_t));
+        if ((ret = lagopus_dstring_appendf(
+                     result, "\\/0x%02x",
+                     ntohs(val16))) !=
+            LAGOPUS_RESULT_OK) {
+          lagopus_perror(ret);
+          goto done;
+        }
+      }
+      if ((ret = lagopus_dstring_appendf(
+                   result, "\"")) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+      break;
+    case OFPXMT_OFB_MPLS_PW_METADATA:
+      memcpy(&val8, match->oxm_value, sizeof(uint8_t));
+      if ((ret = lagopus_dstring_appendf(
+              result, DELIMITER_INSTERN(KEY_FMT "\"%"PRIu8),
+              flow_match_field_strs[FLOW_MATCH_FIELD_MPLS_PW_METADATA],
+              val8)) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+      if (hasmask) {
+        memcpy(&val8, &match->oxm_value[1], sizeof(uint8_t));
+        if ((ret = lagopus_dstring_appendf(
+                result, "\\/0x%02x",
+                val8)) !=
+            LAGOPUS_RESULT_OK) {
+          lagopus_perror(ret);
+          goto done;
+        }
+      }
+      if ((ret = lagopus_dstring_appendf(
+              result, "\"")) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+      break;
+    case OFPXMT_OFB_MPLS_CW_FLAGS:
+      memcpy(&val8, match->oxm_value, sizeof(uint8_t));
+      if ((ret = lagopus_dstring_appendf(
+              result, DELIMITER_INSTERN(KEY_FMT "\"%"PRIu8),
+              flow_match_field_strs[FLOW_MATCH_FIELD_MPLS_CW_FLAGS],
+              val8)) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+      if (hasmask) {
+        memcpy(&val8, &match->oxm_value[1], sizeof(uint8_t));
+        if ((ret = lagopus_dstring_appendf(
+                result, "\\/0x%02x",
+                val8)) !=
+            LAGOPUS_RESULT_OK) {
+          lagopus_perror(ret);
+          goto done;
+        }
+      }
+      if ((ret = lagopus_dstring_appendf(
+              result, "\"")) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+      break;
+    case OFPXMT_OFB_MPLS_CW_FRAG:
+      memcpy(&val8, match->oxm_value, sizeof(uint8_t));
+      if ((ret = lagopus_dstring_appendf(
+              result, DELIMITER_INSTERN(KEY_FMT "\"%"PRIu8),
+              flow_match_field_strs[FLOW_MATCH_FIELD_MPLS_CW_FRAG],
+              val8)) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+      if (hasmask) {
+        memcpy(&val8, &match->oxm_value[1], sizeof(uint8_t));
+        if ((ret = lagopus_dstring_appendf(
+                result, "\\/0x%02x",
+                val8)) !=
+            LAGOPUS_RESULT_OK) {
+          lagopus_perror(ret);
+          goto done;
+        }
+      }
+      if ((ret = lagopus_dstring_appendf(
+              result, "\"")) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+      break;
+    case OFPXMT_OFB_MPLS_CW_LEN:
+      if ((ret = lagopus_dstring_appendf(
+              result, DELIMITER_INSTERN(KEY_FMT "%"PRIu8),
+              flow_match_field_strs[FLOW_MATCH_FIELD_MPLS_CW_LEN],
+              *match->oxm_value)) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+      break;
+    case OFPXMT_OFB_MPLS_CW_SEQ_NUM:
+      memcpy(&val16, match->oxm_value, sizeof(uint16_t));
+      if ((ret = lagopus_dstring_appendf(
+                   result, DELIMITER_INSTERN(KEY_FMT "%"PRIu16),
+                   flow_match_field_strs[FLOW_MATCH_FIELD_MPLS_CW_SEQ_NUM],
+                   ntohs(val16))) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+      break;
     default:
       if ((ret = lagopus_dstring_appendf(
                    result, DELIMITER_INSTERN(KEY_FMT "null"),
@@ -1414,6 +1798,220 @@ dump_set_field(uint8_t *oxm,
         goto done;
       }
       break;
+    case OFPXMT_OFB_PBB_UCA:
+      if ((ret = lagopus_dstring_appendf(
+              result, KEY_FMT "%"PRIu8,
+              flow_match_field_strs[FLOW_MATCH_FIELD_PBB_UCA],
+              *oxm_value)) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+      break;
+    case OFPXMT_OFB_PACKET_TYPE:
+      memcpy(&val32, oxm_value, sizeof(uint32_t));
+      if ((ret = lagopus_dstring_appendf(
+                   result, KEY_FMT "%"PRIu32,
+                   flow_match_field_strs[FLOW_MATCH_FIELD_PACKET_TYPE],
+                   ntohl(val32))) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+      break;
+    case OFPXMT_OFB_GRE_FLAGS:
+      memcpy(&val16, oxm_value, sizeof(uint16_t));
+      if ((ret = lagopus_dstring_appendf(
+                   result, KEY_FMT "%"PRIu16,
+                   flow_match_field_strs[FLOW_MATCH_FIELD_GRE_FLAGS],
+                   ntohs(val16))) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+      break;
+    case OFPXMT_OFB_GRE_VER:
+      if ((ret = lagopus_dstring_appendf(
+              result, KEY_FMT "%"PRIu8,
+              flow_match_field_strs[FLOW_MATCH_FIELD_GRE_VER],
+              *oxm_value)) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+      break;
+    case OFPXMT_OFB_GRE_PROTOCOL:
+      memcpy(&val16, oxm_value, sizeof(uint16_t));
+      if ((ret = lagopus_dstring_appendf(
+                   result, KEY_FMT "%"PRIu16,
+                   flow_match_field_strs[FLOW_MATCH_FIELD_GRE_PROTOCOL],
+                   ntohs(val16))) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+      break;
+    case OFPXMT_OFB_GRE_KEY:
+      memcpy(&val32, oxm_value, sizeof(uint32_t));
+      if ((ret = lagopus_dstring_appendf(
+                   result, KEY_FMT "%"PRIu32,
+                   flow_match_field_strs[FLOW_MATCH_FIELD_GRE_KEY],
+                   ntohl(val32))) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+      break;
+    case OFPXMT_OFB_GRE_SEQNUM:
+      memcpy(&val32, oxm_value, sizeof(uint32_t));
+      if ((ret = lagopus_dstring_appendf(
+                   result, KEY_FMT "%"PRIu32,
+                   flow_match_field_strs[FLOW_MATCH_FIELD_GRE_SEQNUM],
+                   ntohl(val32))) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+      break;
+    case OFPXMT_OFB_LISP_FLAGS:
+      if ((ret = lagopus_dstring_appendf(
+              result, KEY_FMT "%"PRIu8,
+              flow_match_field_strs[FLOW_MATCH_FIELD_LISP_FLAGS],
+              *oxm_value)) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+      break;
+    case OFPXMT_OFB_LISP_NONCE:
+      val32 = oxm_value[0];
+      val32 = (val32 << 8) | oxm_value[1];
+      val32 = (val32 << 8) | oxm_value[2];
+      if ((ret = lagopus_dstring_appendf(
+                   result, KEY_FMT "%"PRIu32,
+                   flow_match_field_strs[FLOW_MATCH_FIELD_LISP_NONCE],
+                   val32)) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+      break;
+    case OFPXMT_OFB_LISP_ID:
+      memcpy(&val32, oxm_value, sizeof(uint32_t));
+      if ((ret = lagopus_dstring_appendf(
+                   result, KEY_FMT "%"PRIu32,
+                   flow_match_field_strs[FLOW_MATCH_FIELD_LISP_ID],
+                   ntohl(val32))) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+      break;
+    case OFPXMT_OFB_VXLAN_FLAGS:
+      if ((ret = lagopus_dstring_appendf(
+              result, KEY_FMT "%"PRIu8,
+              flow_match_field_strs[FLOW_MATCH_FIELD_VXLAN_FLAGS],
+              *oxm_value)) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+      break;
+    case OFPXMT_OFB_VXLAN_VNI:
+      val32 = oxm_value[0];
+      val32 = (val32 << 8) | oxm_value[1];
+      val32 = (val32 << 8) | oxm_value[2];
+      if ((ret = lagopus_dstring_appendf(
+                   result, KEY_FMT "%"PRIu32,
+                   flow_match_field_strs[FLOW_MATCH_FIELD_VXLAN_VNI],
+                   val32)) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+      break;
+    case OFPXMT_OFB_MPLS_DATA_FIRST_NIBBLE:
+      if ((ret = lagopus_dstring_appendf(
+              result, KEY_FMT "%"PRIu8,
+              flow_match_field_strs[FLOW_MATCH_FIELD_MPLS_DATA_FIRST_NIBBLE],
+              *oxm_value)) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+      break;
+    case OFPXMT_OFB_MPLS_ACH_VERSION:
+      if ((ret = lagopus_dstring_appendf(
+              result, KEY_FMT "%"PRIu8,
+              flow_match_field_strs[FLOW_MATCH_FIELD_MPLS_ACH_VERSION],
+              *oxm_value)) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+      break;
+    case OFPXMT_OFB_MPLS_ACH_CHANNEL:
+      memcpy(&val16, oxm_value, sizeof(uint16_t));
+      if ((ret = lagopus_dstring_appendf(
+                   result, KEY_FMT "%"PRIu16,
+                   flow_match_field_strs[FLOW_MATCH_FIELD_MPLS_ACH_CHANNEL],
+                   ntohs(val16))) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+      break;
+    case OFPXMT_OFB_MPLS_PW_METADATA:
+      if ((ret = lagopus_dstring_appendf(
+              result, KEY_FMT "%"PRIu8,
+              flow_match_field_strs[FLOW_MATCH_FIELD_MPLS_PW_METADATA],
+              *oxm_value)) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+      break;
+    case OFPXMT_OFB_MPLS_CW_FLAGS:
+      if ((ret = lagopus_dstring_appendf(
+              result, KEY_FMT "%"PRIu8,
+              flow_match_field_strs[FLOW_MATCH_FIELD_MPLS_CW_FLAGS],
+              *oxm_value)) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+      break;
+    case OFPXMT_OFB_MPLS_CW_FRAG:
+      if ((ret = lagopus_dstring_appendf(
+              result, KEY_FMT "%"PRIu8,
+              flow_match_field_strs[FLOW_MATCH_FIELD_MPLS_CW_FRAG],
+              *oxm_value)) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+      break;
+    case OFPXMT_OFB_MPLS_CW_LEN:
+      if ((ret = lagopus_dstring_appendf(
+              result, KEY_FMT "%"PRIu8,
+              flow_match_field_strs[FLOW_MATCH_FIELD_MPLS_CW_LEN],
+              *oxm_value)) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+      break;
+    case OFPXMT_OFB_MPLS_CW_SEQ_NUM:
+      memcpy(&val16, oxm_value, sizeof(uint16_t));
+      if ((ret = lagopus_dstring_appendf(
+                   result, KEY_FMT "%"PRIu16,
+                   flow_match_field_strs[FLOW_MATCH_FIELD_MPLS_CW_SEQ_NUM],
+                   ntohs(val16))) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+      break;
     default:
       if ((ret = lagopus_dstring_appendf(
                    result, KEY_FMT "null",
@@ -1436,12 +2034,99 @@ done:
   return ret;
 }
 
+static inline lagopus_result_t
+dump_ed_props(struct ed_prop *ed_prop,
+              bool is_ed_prop_first,
+              lagopus_dstring_t *result) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  char *str = NULL;
+  char *escape_str = NULL;
+
+  if ((ret = lagopus_dstring_appendf(
+          result, DS_JSON_DELIMITER(is_ed_prop_first, ""))) !=
+      LAGOPUS_RESULT_OK) {
+    lagopus_perror(ret);
+    goto done;
+  }
+
+  switch (ed_prop->ofp_ed_prop.type) {
+    case OFPPPT_PROP_PORT_NAME:
+      if ((ret = lagopus_dstring_appendf(
+              result, "{" KEY_FMT,
+              ed_prop_strs[FLOW_ACTION_ED_PROP_PORT_NAME])) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+
+      if ((ret = lagopus_dstring_appendf(
+              result, "{" KEY_FMT "%"PRIu16,
+              ed_prop_portname_strs[FLOW_ACTION_ED_PROP_PORT_NAME_PORT_FLAGS],
+              ed_prop->ofp_ed_prop_portname.port_flags)) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+
+      /* escape for json. */
+      str = (char *) ed_prop->ofp_ed_prop_portname.name;
+      if ((ret = datastore_json_string_escape(str, &escape_str)) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+
+      if ((ret = lagopus_dstring_appendf(
+              result, DELIMITER_INSTERN(KEY_FMT "\"%s\""),
+              ed_prop_portname_strs[FLOW_ACTION_ED_PROP_PORT_NAME_NAME],
+              escape_str)) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+
+      if ((ret = lagopus_dstring_appendf(
+              result, "}")) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+
+      if ((ret = lagopus_dstring_appendf(
+              result, "}")) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+
+      break;
+    case OFPPPT_PROP_NONE:
+    case OFPPPT_PROP_EXPERIMENTER:
+    default:
+      if ((ret = lagopus_dstring_appendf(
+              result, "{" KEY_FMT "null}",
+              FLOW_UNKNOWN)) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+      break;
+  }
+
+done:
+  free(escape_str);
+
+  return ret;
+}
+
 lagopus_result_t
 flow_cmd_dump_action(struct action *action,
                      bool is_action_first,
                      lagopus_dstring_t *result) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   char buf[PORT_STR_BUF_SIZE];
+  struct ed_prop *ed_prop;
+  bool is_ed_prop_first = true;
 
   if ((ret = lagopus_dstring_appendf(
                result, DS_JSON_DELIMITER(is_action_first, ""))) !=
@@ -1632,6 +2317,115 @@ flow_cmd_dump_action(struct action *action,
       if ((ret = lagopus_dstring_appendf(
                    result, "{" KEY_FMT "null}",
                    flow_action_strs[FLOW_ACTION_POP_PBB])) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+      break;
+    case OFPAT_ENCAP:
+      if ((ret = lagopus_dstring_appendf(
+              result, "{" KEY_FMT,
+              flow_action_strs[FLOW_ACTION_ENCAP])) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+
+      if ((ret = lagopus_dstring_appendf(
+              result, "{" KEY_FMT "%"PRIu16,
+              action_encap_strs[FLOW_ACTION_ENCAP_PACKET_TYPE],
+              ((struct ofp_action_encap *)&action->ofpat)->packet_type)) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+
+      if ((ret = lagopus_dstring_appendf(
+                   result, DELIMITER_INSTERN(KEY_FMT "["),
+                   action_encap_strs[FLOW_ACTION_ENCAP_PROPS])) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+
+      if (TAILQ_EMPTY(&action->ed_prop_list) == true) {
+        /* nothing ed_props. */
+      } else {
+        TAILQ_FOREACH(ed_prop, &action->ed_prop_list, entry) {
+          if ((ret = dump_ed_props(ed_prop,
+                                   is_ed_prop_first,
+                                   result)) !=
+              LAGOPUS_RESULT_OK) {
+            lagopus_perror(ret);
+            goto done;
+          }
+          if (is_ed_prop_first == true) {
+            is_ed_prop_first = false;
+          }
+        }
+      }
+
+      if ((ret = lagopus_dstring_appendf(
+              result, "]}}")) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+      break;
+    case OFPAT_DECAP:
+      if ((ret = lagopus_dstring_appendf(
+              result, "{" KEY_FMT,
+              flow_action_strs[FLOW_ACTION_DECAP])) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+
+      if ((ret = lagopus_dstring_appendf(
+              result, "{" KEY_FMT "%"PRIu16,
+              action_decap_strs[FLOW_ACTION_DECAP_CUR_PKT_TYPE],
+              ((struct ofp_action_decap *)&action->ofpat)->cur_pkt_type)) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+
+      if ((ret = lagopus_dstring_appendf(
+              result,  DELIMITER_INSTERN(KEY_FMT "%"PRIu16),
+              action_decap_strs[FLOW_ACTION_DECAP_NEW_PKT_TYPE],
+              ((struct ofp_action_decap *)&action->ofpat)->new_pkt_type)) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+
+      if ((ret = lagopus_dstring_appendf(
+                   result, DELIMITER_INSTERN(KEY_FMT "["),
+                   action_decap_strs[FLOW_ACTION_DECAP_PROPS])) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+
+      if (TAILQ_EMPTY(&action->ed_prop_list) == true) {
+        /* nothing ed_props. */
+      } else {
+        TAILQ_FOREACH(ed_prop, &action->ed_prop_list, entry) {
+          if ((ret = dump_ed_props(ed_prop,
+                                   is_ed_prop_first,
+                                   result)) !=
+              LAGOPUS_RESULT_OK) {
+            lagopus_perror(ret);
+            goto done;
+          }
+          if (is_ed_prop_first == true) {
+            is_ed_prop_first = false;
+          }
+        }
+      }
+
+      if ((ret = lagopus_dstring_appendf(
+              result, "]}}")) !=
           LAGOPUS_RESULT_OK) {
         lagopus_perror(ret);
         goto done;

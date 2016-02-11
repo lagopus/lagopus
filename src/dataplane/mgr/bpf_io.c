@@ -444,6 +444,8 @@ dp_bpf_thread_loop(__UNUSED const lagopus_thread_t *selfptr, void *arg) {
       if (port->bridge != NULL &&
           (port->ofp_port.config & OFPPC_NO_RECV) == 0) {
         for (;;) {
+          enum switch_mode switch_mode;
+
           pkt = alloc_lagopus_packet();
 #ifndef HAVE_DPDK
           if (flowcache != NULL) {
@@ -478,6 +480,7 @@ dp_bpf_thread_loop(__UNUSED const lagopus_thread_t *selfptr, void *arg) {
           }
           OS_M_TRIM(pkt->mbuf, MAX_PACKET_SZ - len);
           lagopus_packet_init(pkt, pkt->mbuf, port);
+          flowdb_switch_mode_get(port->bridge->flowdb, &switch_mode);
           if (
 #ifdef HYBRID
               !memcmp(OS_MTOD(pkt->mbuf, uint8_t *),
@@ -485,7 +488,7 @@ dp_bpf_thread_loop(__UNUSED const lagopus_thread_t *selfptr, void *arg) {
               !memcmp(OS_MTOD(pkt->mbuf, uint8_t *),
                       eth_bcast, ETHER_ADDR_LEN) ||
 #endif /* HYBRID */
-              port->bridge->flowdb->switch_mode == SWITCH_MODE_STANDALONE) {
+              switch_mode == SWITCH_MODE_STANDALONE) {
             lagopus_forward_packet_to_port(pkt, OFPP_NORMAL);
           } else {
             lagopus_match_and_action(pkt);

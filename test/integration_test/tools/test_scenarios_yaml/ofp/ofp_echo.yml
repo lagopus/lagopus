@@ -1,0 +1,23 @@
+lagopus_dsl:
+  file: "{{ test_home }}/test_scenarios_yaml/ofp/ofp.dsl"
+  sw: target # target switch.
+
+#setup:
+
+#teardown:
+
+testcases:
+  - testcase: echo
+    test:
+      - repetition_count: 1
+        cmds:
+          # ofp: send EchoRequest.
+          - cmd_type: ofp_send
+            cmd:
+              echo_request:
+                data: "01 23 45 67 89 AB CD EF" # Hex
+          # ofp: recv EchoReply.
+          - cmd_type: ofp_recv
+            result:
+              echo_reply:
+                data: "01 23 45 67 89 AB CD EF" # Hex

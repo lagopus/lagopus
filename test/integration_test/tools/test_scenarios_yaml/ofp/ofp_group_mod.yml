@@ -1,0 +1,143 @@
+lagopus_dsl:
+  file: "{{ test_home }}/test_scenarios_yaml/ofp/ofp.dsl"
+  sw: target # target switch.
+
+#setup:
+
+#teardown:
+
+testcases:
+  - testcase: group mod
+    test:
+      - repetition_count: 1
+        cmds:
+          # ofp: send GroupMod.
+          - cmd_type: ofp_send
+            cmd:
+              group_mod:
+                command: 0
+                type_: 0
+                group_id: 0
+                buckets:
+                  - bucket:
+                      weight: 1
+                      watch_port: 2
+                      watch_group: 3
+                      actions:
+                        - set_nw_ttl:
+                            nw_ttl: 1
+                        - output:
+                            port: 0xfffffffa # OFPP_NORMAL
+                  - bucket:
+                      weight: 4
+                      watch_port: 5
+                      watch_group: 6
+                      actions:
+                        - set_nw_ttl:
+                            nw_ttl: 2
+                        - output:
+                            port: 0xfffffffa # OFPP_NORMAL
+          # ofp: send GroupStatsRequest.
+          - cmd_type: ofp_send
+            cmd:
+              group_stats_request:
+                group_id: 0
+          # ofp: send GroupStatsReply.
+          - cmd_type: ofp_recv
+            result:
+              group_stats_reply:
+                flags: 0
+                body:
+                  - group_stats:
+                      group_id: 0
+                      ref_count: 0
+                      packet_count: 0
+                      byte_count: 0
+                      bucket_stats:
+                        - bucket_counter:
+                            packet_count: 0
+                            byte_count: 0
+                        - bucket_counter:
+                            packet_count: 0
+                            byte_count: 0
+          # ofp: send GroupDescStatsRequest
+          - cmd_type: ofp_send
+            cmd:
+              group_desc_stats_request:
+                flags: 0
+          # ofp: send GroupDescStatsReply.
+          - cmd_type: ofp_recv
+            result:
+              group_desc_stats_reply:
+                flags: 0
+                body:
+                  - group_desc_stats:
+                      type_: 0
+                      group_id: 0
+                      buckets:
+                        - bucket:
+                            weight: 1
+                            watch_port: 2
+                            watch_group: 3
+                            actions:
+                              - set_nw_ttl:
+                                  nw_ttl: 1
+                              - output:
+                                  port: 0xfffffffa # OFPP_NORMAL
+                        - bucket:
+                            weight: 4
+                            watch_port: 5
+                            watch_group: 6
+                            actions:
+                              - set_nw_ttl:
+                                  nw_ttl: 2
+                              - output:
+                                  port: 0xfffffffa # OFPP_NORMAL
+          # ds: check group command.
+          - cmd_type: ds
+            cmd: group bridge01
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":":bridge01",
+              "groups":[{
+              "type":"all",
+              "group-id":0,
+              "buckets":[{
+              "bucket-id":0,
+              "weight":1,
+              "watch-port":2,
+              "watch-group":3,
+              "actions":[
+              {"set_nw_ttl":1},
+              {"output":"normal"}]},
+              {"bucket-id":1,
+              "weight":4,
+              "watch-port":5,
+              "watch-group":6,
+              "actions":[
+              {"set_nw_ttl":2},
+              {"output":"normal"}]}]}]}]}
+          # ofp: send GroupFeaturesStatsRequest
+          - cmd_type: ofp_send
+            cmd:
+              group_features_stats_request:
+                flags: 0
+          # ofp: send GroupFeaturesStatsReply.
+          - cmd_type: ofp_recv
+            result:
+              group_features_stats_reply:
+                flags: 0
+                body:
+                  group_features_stats:
+                    types: 0x07
+                    capabilities: 0x0C
+                    max_groups:
+                      - 0xffffff00
+                      - 0xffffff00
+                      - 0xffffff00
+                      - 0x0
+                    actions:
+                      - 0xfdf9801
+                      - 0xfdf9801
+                      - 0xfdf9801
+                      - 0x0

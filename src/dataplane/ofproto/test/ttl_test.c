@@ -293,6 +293,7 @@ test_dec_mpls_ttl(void) {
   OS_MTOD(m, uint8_t *)[13] = 0x47;
   OS_MTOD(m, uint8_t *)[17] = 100;
 
+  port.bridge = NULL;
   lagopus_packet_init(pkt, m, &port);
   execute_action(pkt, &action_list);
   TEST_ASSERT_EQUAL_MESSAGE(OS_MTOD(m, uint8_t *)[17], 99,

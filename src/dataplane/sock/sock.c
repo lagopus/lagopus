@@ -73,27 +73,6 @@ lagopus_packet_free(struct lagopus_packet *pkt) {
   OS_M_FREE(pkt->mbuf);
 }
 
-struct lagopus_packet *
-copy_packet(struct lagopus_packet *src_pkt) {
-  OS_MBUF *mbuf;
-  struct lagopus_packet *pkt;
-  size_t pktlen;
-
-  pkt = alloc_lagopus_packet();
-  if (pkt == NULL) {
-    lagopus_msg_error("alloc_lagopus_packet failed\n");
-    return NULL;
-  }
-  mbuf = pkt->mbuf;
-  pktlen = OS_M_PKTLEN(src_pkt->mbuf);
-  (void)OS_M_APPEND(mbuf, pktlen);
-  memcpy(OS_MTOD(pkt->mbuf, char *), OS_MTOD(src_pkt->mbuf, char *), pktlen);
-  pkt->in_port = src_pkt->in_port;
-  pkt->flags = src_pkt->flags;
-  /* other pkt members are not used in physical output. */
-  return pkt;
-}
-
 void
 lagopus_instruction_experimenter(__UNUSED struct lagopus_packet *pkt,
                                  __UNUSED uint32_t exp_id) {

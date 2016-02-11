@@ -107,12 +107,16 @@ add_flow_in_port(struct flowinfo *self, struct flow *flow) {
       val = flowinfo;
       rv = lagopus_hashmap_add_no_lock(&self->hashmap, (void *)in_port,
                                        (void *)&val, false);
+      if (rv != LAGOPUS_RESULT_OK) {
+        goto out;
+      }
     }
     rv = flowinfo->add_func(flowinfo, flow);
     match->except_flag = true;
   } else {
     rv = self->misc->add_func(self->misc, flow);
   }
+out:
   return rv;
 }
 
@@ -128,7 +132,7 @@ del_flow_in_port(struct flowinfo *self, struct flow *flow) {
     rv = lagopus_hashmap_find_no_lock(&self->hashmap, (void *)in_port,
                                       (void *)&flowinfo);
     if (rv == LAGOPUS_RESULT_OK) {
-      flowinfo->del_func(flowinfo, flow);
+      rv = flowinfo->del_func(flowinfo, flow);
     }
   } else {
     rv = self->misc->del_func(self->misc, flow);

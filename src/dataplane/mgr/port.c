@@ -90,10 +90,10 @@ port_free(struct port *port) {
 }
 
 /**
- * lookup port structure from specified vector
+ * lookup port structure from specified table
  *
- * @param[in] v       vector associated with bridge
- * @param[in] id      OpenFlow Port number or Physical Index number
+ * @param[in] hm      hashmap table associated with bridge
+ * @param[in] id      OpenFlow Port number
  * @retval    ==NULL  port is not configured
  * @retval    !=NULL  port structure
  */
@@ -101,46 +101,7 @@ struct port *
 port_lookup(lagopus_hashmap_t *hm, uint32_t id) {
   struct port *port;
 
-  lagopus_hashmap_find(hm, id, &port);
-  return port;
-}
-
-static bool
-ifindex2port_do_iterate(void *key, void *val,
-                        lagopus_hashentry_t he, void *arg) {
-  struct port **portp;
-  struct port *port;
-  uint32_t *idxp;
-
-  port = val;
-  portp = arg;
-  idxp = arg;
-  if (port->ifindex == *idxp) {
-    *portp = port;
-    return false;
-  } else {
-    *portp = NULL;
-    return true;
-  }
-}
-
-/**
- * get port structure by physical ifindex
- *
- * @param[in]   vector owned by bridge
- * @param[in]   ifindex interface index
- * @retval      !=NULL  lagopus port object
- *              ==NULL  lagopus port is not configured
- */
-struct port *
-ifindex2port(lagopus_hashmap_t *hm, uint32_t ifindex) {
-  struct port *port;
-  unsigned int id;
-  struct port **arg;
-
-  arg = (void *)ifindex;
-  lagopus_hashmap_iterate(hm, ifindex2port_do_iterate, &arg);
-  port = *arg;
+  lagopus_hashmap_find_no_lock(hm, id, &port);
   return port;
 }
 
@@ -161,6 +122,9 @@ port_do_stats_iterate(void *key, void *val,
                       lagopus_hashentry_t he, void *arg) {
   struct port *port;
   struct port_stats_list *list;
+
+  (void) key;
+  (void) he;
 
   port = val;
   list = arg;
@@ -191,6 +155,25 @@ lagopus_get_port_statistics(lagopus_hashmap_t *hm,
   }
 
   return LAGOPUS_RESULT_OK;
+}
+
+void
+dp_port_update_link_status(struct port *port) {
+  struct interface *ifp;
+
+  ifp = port->interface;
+  if (ifp == NULL) {
+    return;
+  }
+  switch (ifp->info.type) {
+#ifdef HAVE_DPDK
+    case DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_PHY:
+      dpdk_update_port_link_status(port);
+      break;
+#endif /* HAVE_DPDK */
+    default:
+      break;
+  }
 }
 
 /**
@@ -274,6 +257,9 @@ port_do_desc_iterate(void *key, void *val,
   struct port *port;
   struct port_stats_list *list;
 
+  (void) key;
+  (void) he;
+
   port = val;
   list = arg;
 
@@ -290,8 +276,6 @@ lagopus_result_t
 get_port_desc(lagopus_hashmap_t *hm,
               struct port_desc_list *list,
               struct ofp_error *error) {
-  struct port *port;
-
   (void) error;
 
   lagopus_hashmap_iterate(hm, port_do_desc_iterate, list);

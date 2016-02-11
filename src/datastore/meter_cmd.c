@@ -54,6 +54,8 @@ enum m_dumps {
   DUMPS_BAND_TYPE,
   DUMPS_BAND_RATE,
   DUMPS_BAND_BURST_SIZE,
+  DUMPS_BAND_PREC_LEVEL,
+  DUMPS_BAND_EXPERIMENTER,
   DUMPS_BAND_ID, /* OFP1.3 is unsupported */
 
   DUMPS_MAX,
@@ -85,6 +87,8 @@ static const char *const dump_strs[DUMPS_MAX] = {
   "*type",               /* DUMPS_BAND_TYPE (not option) */
   "*rate",               /* DUMPS_BAND_RATE (not option) */
   "*burst-size",         /* DUMPS_BAND_BURST_SIZE (not option) */
+  "*prec-level",         /* DUMPS_BAND_PREC_LEVEL (not option) */
+  "*experimenter",       /* DUMPS_BAND_EXPERIMENTER (not option) */
   "*band-id",            /* DUMPS_BAND_ID (not option) */
 };
 
@@ -356,6 +360,28 @@ meter_cmd_dump_json_create(char *name,
                   LAGOPUS_RESULT_OK) {
                 lagopus_perror(ret);
                 goto done;
+              }
+
+              /* prec_level */
+              if (band->type == OFPMBT_DSCP_REMARK) {
+                if ((ret = datastore_json_uint8_append(
+                        ds, ATTR_NAME_GET(dump_strs, DUMPS_BAND_PREC_LEVEL),
+                        band->prec_level, true)) !=
+                    LAGOPUS_RESULT_OK) {
+                  lagopus_perror(ret);
+                  goto done;
+                }
+              }
+
+              /* experimenter */
+              if (band->type == OFPMBT_EXPERIMENTER) {
+                if ((ret = datastore_json_uint32_append(
+                        ds, ATTR_NAME_GET(dump_strs, DUMPS_BAND_EXPERIMENTER),
+                      band->experimenter, true)) !=
+                    LAGOPUS_RESULT_OK) {
+                  lagopus_perror(ret);
+                  goto done;
+                }
               }
 
               if ((ret = lagopus_dstring_appendf(ds, "}")) !=

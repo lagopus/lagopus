@@ -722,6 +722,10 @@ lagopus_set_pidfile(const char *file) {
       s_pidfile = newfile;
       ret = LAGOPUS_RESULT_OK;
     } else {
+      /*
+       * Note: scan-build warns a potentialy memory leak here and yes
+       * it is intended to be.
+       */
       ret = LAGOPUS_RESULT_NO_MEMORY;
     }
   } else {

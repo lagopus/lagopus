@@ -1,0 +1,37 @@
+lagopus_dsl:
+  file: "{{ test_home }}/test_scenarios_yaml/ofp/ofp.dsl"
+  sw: target # target switch.
+
+#setup:
+
+#teardown:
+
+testcases:
+  - testcase: port status
+    test:
+      - repetition_count: 1
+        cmds:
+          # ds: delete port.
+          - cmd_type: ds
+            cmd: bridge bridge01 config -port ~port01
+            result: |-
+              {"ret":"OK"}
+          # TODO: check hw_addr.
+          # ofp: recv PortStatus
+          #- cmd_type: ofp_recv
+          #  result:
+          #    port_status:
+          #      reason: 1
+          #      desc:
+          #        port:
+          #          port_no: 1
+          #          hw_addr: "00:00:00:00:00:00"
+          #          name: "port01"
+          #          config: 0x01
+          #          state: 0x04
+          #          curr: 0x20
+          #          advertised: 0x0
+          #          supported: 0x0
+          #          peer: 0x0
+          #          curr_speed: 1000000
+          #          max_speed: 0

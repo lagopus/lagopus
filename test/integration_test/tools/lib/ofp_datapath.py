@@ -146,10 +146,13 @@ class OFPDatapath(ofproto_protocol.ProtocolDesc):
         msg.set_xid(self.xid)
         return self.xid
 
-    def send_msg(self, msg, timeout):
+    def set_send_msg(self, msg):
         if msg.xid is None:
             self.set_xid(msg)
         msg.serialize()
+        return msg
+
+    def send_msg(self, msg, timeout):
         self.send(msg.buf, timeout)
 
     def recv_msg(self, timeout):

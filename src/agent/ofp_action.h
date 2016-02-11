@@ -22,6 +22,25 @@
 #define __ACTION_H__
 
 /**
+ * Alloc Encap/Decap property.
+ *
+ *     @retval	*ed_prop	Succeeded, A pointer to \e ed_prop structure.
+ *     @retval	NULL	Failed.
+ */
+struct ed_prop *
+ed_prop_alloc(void);
+
+/**
+ * Free Encap/Decap properties.
+ *
+ *     @param[in]	ed_prop_list	List of Encap/Decap property.
+ *
+ *     @retval	void
+ */
+void
+ed_prop_list_free(struct ed_prop_list *ed_prop_list);
+
+/**
  * Alloc action.
  *
  *     @param[in]	size	Size of body in action.

@@ -115,6 +115,9 @@ action_list_entry_free(struct action_list *action_list) {
 
   while ((action = TAILQ_FIRST(action_list)) != NULL) {
     TAILQ_REMOVE(action_list, action, entry);
+    if (action != NULL) {
+      ed_prop_list_free(&action->ed_prop_list);
+    }
     free(action);
   }
 }
