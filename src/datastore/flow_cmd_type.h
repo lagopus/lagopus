@@ -155,6 +155,26 @@ enum flow_match_field {
   FLOW_MATCH_FIELD_PBB_ISID,
   FLOW_MATCH_FIELD_TUNNEL_ID,
   FLOW_MATCH_FIELD_IPV6_EXTHDR,
+  FLOW_MATCH_FIELD_PBB_UCA,
+  FLOW_MATCH_FIELD_PACKET_TYPE,
+  FLOW_MATCH_FIELD_GRE_FLAGS,
+  FLOW_MATCH_FIELD_GRE_VER,
+  FLOW_MATCH_FIELD_GRE_PROTOCOL,
+  FLOW_MATCH_FIELD_GRE_KEY,
+  FLOW_MATCH_FIELD_GRE_SEQNUM,
+  FLOW_MATCH_FIELD_LISP_FLAGS,
+  FLOW_MATCH_FIELD_LISP_NONCE,
+  FLOW_MATCH_FIELD_LISP_ID,
+  FLOW_MATCH_FIELD_VXLAN_FLAGS,
+  FLOW_MATCH_FIELD_VXLAN_VNI,
+  FLOW_MATCH_FIELD_MPLS_DATA_FIRST_NIBBLE,
+  FLOW_MATCH_FIELD_MPLS_ACH_VERSION,
+  FLOW_MATCH_FIELD_MPLS_ACH_CHANNEL,
+  FLOW_MATCH_FIELD_MPLS_PW_METADATA,
+  FLOW_MATCH_FIELD_MPLS_CW_FLAGS,
+  FLOW_MATCH_FIELD_MPLS_CW_FRAG,
+  FLOW_MATCH_FIELD_MPLS_CW_LEN,
+  FLOW_MATCH_FIELD_MPLS_CW_SEQ_NUM,
 
   FLOW_MATCH_FIELD_MAX,
 };
@@ -201,6 +221,26 @@ static const char *const flow_match_field_strs[FLOW_MATCH_FIELD_MAX] = {
   "pbb_isid",                     /* FLOW_MATCH_FIELD_PBB_ISID */
   "tunnel_id",                    /* FLOW_MATCH_FIELD_TUNNEL_ID */
   "ipv6_exthdr",                  /* FLOW_MATCH_FIELD_IPV6_EXTHDR */
+  "pbb_uca",                      /* FLOW_MATCH_FIELD_PBB_UCA */
+  "packet_type",                  /* FLOW_MATCH_FIELD_PACKET_TYPE */
+  "gre_flags",                    /* FLOW_MATCH_FIELD_GRE_FLAGS */
+  "gre_ver",                      /* FLOW_MATCH_FIELD_GRE_VER */
+  "gre_protocol",                 /* FLOW_MATCH_FIELD_GRE_PROTOCOL */
+  "gre_key",                      /* FLOW_MATCH_FIELD_GRE_KEY */
+  "gre_seqnum",                   /* FLOW_MATCH_FIELD_GRE_SEQNUM */
+  "lisp_flags",                   /* FLOW_MATCH_FIELD_LISP_FLAGS */
+  "lisp_nonce",                   /* FLOW_MATCH_FIELD_LISP_NONCE */
+  "lisp_id",                      /* FLOW_MATCH_FIELD_LISP_ID */
+  "vxlan_flags",                  /* FLOW_MATCH_FIELD_VXLAN_FLAGS */
+  "vxlan_vni",                    /* FLOW_MATCH_FIELD_VXLAN_VNI */
+  "mpls_data_first_nibble",       /* FLOW_MATCH_FIELD_MPLS_DATA_FIRST_NIBBLE */
+  "mpls_ach_version",             /* FLOW_MATCH_FIELD_MPLS_ACH_VERSION */
+  "mpls_ach_channel",             /* FLOW_MATCH_FIELD_MPLS_ACH_CHANNEL */
+  "mpls_pw_metadata",             /* FLOW_MATCH_FIELD_MPLS_PW_METADATA */
+  "mpls_cw_flags",                /* FLOW_MATCH_FIELD_MPLS_CW_FLAGS */
+  "mpls_cw_frag",                 /* FLOW_MATCH_FIELD_MPLS_CW_FRAG */
+  "mpls_cw_len",                  /* FLOW_MATCH_FIELD_MPLS_CW_LEN */
+  "mpls_cw_seq_num",              /* FLOW_MATCH_FIELD_MPLS_CW_SEQ_NUM */
 };
 
 /* action. */
@@ -221,6 +261,8 @@ enum flow_action {
   FLOW_ACTION_SET_FIELD,
   FLOW_ACTION_PUSH_PBB,
   FLOW_ACTION_POP_PBB,
+  FLOW_ACTION_ENCAP,
+  FLOW_ACTION_DECAP,
   FLOW_ACTION_EXPERIMENTER,
 
   FLOW_ACTION_MAX,
@@ -244,6 +286,8 @@ static const char *const flow_action_strs[FLOW_ACTION_MAX] = {
   "set_field",                   /* FLOW_ACTION_SET_FIELD */
   "push_pbb",                    /* FLOW_ACTION_PUSH_PBB */
   "pop_pbb",                     /* FLOW_ACTION_POP_PBB */
+  "encap",                       /* FLOW_ACTION_ENCAP */
+  "decap",                       /* FLOW_ACTION_DECAP */
   "experimenter",                /* FLOW_ACTION_EXPERIMENTER */
 };
 
@@ -323,6 +367,63 @@ enum flow_stat {
 static const char *const flow_stat_strs[FLOW_STAT_MAX] = {
   "packet_count",              /* FLOW_STAT_PACKET_COUNT */
   "byte_count",                /* FLOW_STAT_BYTE_COUNT */
+};
+
+/* action encap. */
+enum action_encap {
+  FLOW_ACTION_ENCAP_PACKET_TYPE = 0,
+  FLOW_ACTION_ENCAP_PROPS,
+
+  FLOW_ACTION_ENCAP_MAX,
+};
+
+/* action encap str. */
+static const char *const action_encap_strs[FLOW_ACTION_ENCAP_MAX] = {
+  "packet_type",               /* FLOW_ACTION_ENCAP_PACKET_TYPE */
+  "properties",                /* FLOW_ACTION_ENCAP_PROPS */
+};
+
+/* action decap. */
+enum action_decap {
+  FLOW_ACTION_DECAP_CUR_PKT_TYPE = 0,
+  FLOW_ACTION_DECAP_NEW_PKT_TYPE,
+  FLOW_ACTION_DECAP_PROPS,
+
+  FLOW_ACTION_DECAP_MAX,
+};
+
+/* action decap str. */
+static const char *const action_decap_strs[FLOW_ACTION_DECAP_MAX] = {
+  "cur_packet_type",           /* FLOW_ACTION_DECAP_CUR_PKT_TYPE */
+  "new_packet_type",           /* FLOW_ACTION_DECAP_NEW_PKT_TYPE */
+  "properties",                /* FLOW_ACTION_DECAP_PROPS */
+};
+
+/* ed prop. */
+enum encap_decup_prop {
+  FLOW_ACTION_ED_PROP_PORT_NAME = 0,
+
+  FLOW_ACTION_ED_PROP_MAX,
+};
+
+/* ed prop str. */
+static const char *const ed_prop_strs[FLOW_ACTION_ED_PROP_MAX] = {
+  "port_name",                 /* FLOW_ACTION_ED_PROP_PORT_NAME */
+};
+
+/* ed prop port name. */
+enum encap_decup_prop_portname {
+  FLOW_ACTION_ED_PROP_PORT_NAME_PORT_FLAGS = 0,
+  FLOW_ACTION_ED_PROP_PORT_NAME_NAME,
+
+  FLOW_ACTION_ED_PROP_PORT_NAME_MAX,
+};
+
+/* ed prop str. */
+static const char *const
+ed_prop_portname_strs[FLOW_ACTION_ED_PROP_PORT_NAME_MAX] = {
+  "port_flags",               /* FLOW_ACTION_ED_PROP_PORT_NAME_PORT_FLAGS */
+  "name",                     /* FLOW_ACTION_ED_PROP_PORT_NAME_NAME */
 };
 
 #endif /* __FLOW_CMD_TYPE_H__ */

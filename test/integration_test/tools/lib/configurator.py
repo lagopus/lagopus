@@ -20,5 +20,5 @@ CONF_SEC_DS = "datastore"
 CONF_PORT = "port"
 CONF_VERSION = "version"
 
-# config obj.
-CONFS = ConfigParser.SafeConfigParser()
+# config parser obj.
+config_parser = ConfigParser.SafeConfigParser()

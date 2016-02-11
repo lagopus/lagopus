@@ -166,6 +166,26 @@ enum oxm_ofb_match_fields {
   OFPXMT_OFB_PBB_ISID       = 37,
   OFPXMT_OFB_TUNNEL_ID      = 38,
   OFPXMT_OFB_IPV6_EXTHDR    = 39,
+  OFPXMT_OFB_PBB_UCA                = 41, /* PBB UCA header field. */
+  OFPXMT_OFB_PACKET_TYPE            = 42, /* Packet type value. */
+  OFPXMT_OFB_GRE_FLAGS              = 43, /* GRE Flags */
+  OFPXMT_OFB_GRE_VER                = 44, /* GRE Version */
+  OFPXMT_OFB_GRE_PROTOCOL           = 45, /* GRE Protocol */
+  OFPXMT_OFB_GRE_KEY                = 46, /* GRE Key */
+  OFPXMT_OFB_GRE_SEQNUM             = 47, /* GRE Sequence number */
+  OFPXMT_OFB_LISP_FLAGS             = 48, /* LISP Flags */
+  OFPXMT_OFB_LISP_NONCE             = 49, /* LiSP NONCE Echo field */
+  OFPXMT_OFB_LISP_ID                = 50, /* LISP  ID */
+  OFPXMT_OFB_VXLAN_FLAGS            = 51, /* VXLAN Flags */
+  OFPXMT_OFB_VXLAN_VNI              = 52, /* VXLAN ID */
+  OFPXMT_OFB_MPLS_DATA_FIRST_NIBBLE = 53, /* MPLS First nibble */
+  OFPXMT_OFB_MPLS_ACH_VERSION       = 54, /* MPLS Associated Channel version 0 or 1 */
+  OFPXMT_OFB_MPLS_ACH_CHANNEL       = 55, /* MPLS Associated Channel number */
+  OFPXMT_OFB_MPLS_PW_METADATA       = 56, /* MPLS PW Metadata */
+  OFPXMT_OFB_MPLS_CW_FLAGS          = 57, /* MPLS PW Control Word Flags */
+  OFPXMT_OFB_MPLS_CW_FRAG           = 58, /* MPLS PW CW Fragment */
+  OFPXMT_OFB_MPLS_CW_LEN            = 59, /* MPLS PW CW Length */
+  OFPXMT_OFB_MPLS_CW_SEQ_NUM        = 60, /* MPLS PW CW Sequence number */
 };
 
 enum ofp_vlan_id {
@@ -212,6 +232,10 @@ enum ofp_action_type {
   OFPAT_SET_FIELD    = 25,
   OFPAT_PUSH_PBB     = 26,
   OFPAT_POP_PBB      = 27,
+  OFPAT_ENCAP        = 28,
+  OFPAT_DECAP        = 29,
+  OFPAT_SET_SEQUENCE = 30,
+  OFPAT_VALIDATE_SEQUENCE = 31,
   OFPAT_EXPERIMENTER = 0xffff
 };
 
@@ -395,10 +419,13 @@ enum ofp_bad_action_code {
   OFPBAC_BAD_OUT_GROUP      = 9,
   OFPBAC_MATCH_INCONSISTENT = 10,
   OFPBAC_UNSUPPORTED_ORDER  = 11,
-  OFPBAC_BAD_TAG            = 12,
+  OFPBAC_BAD_HEADER         = 12,
+#define OFPBAC_BAD_TAG OFPBAC_BAD_HEADER
   OFPBAC_BAD_SET_TYPE       = 13,
   OFPBAC_BAD_SET_LEN        = 14,
   OFPBAC_BAD_SET_ARGUMENT   = 15,
+  OFPBAC_BAD_HEADER_TYPE    = 16, /* unsupported packet type in encap/decap actions */
+  OFPBAC_DUPLICATE_PORT     = 17, /* port with already exists */
 };
 
 enum ofp_bad_instruction_code {
@@ -416,7 +443,8 @@ enum ofp_bad_instruction_code {
 enum ofp_bad_match_code {
   OFPBMC_BAD_TYPE         = 0,
   OFPBMC_BAD_LEN          = 1,
-  OFPBMC_BAD_TAG          = 2,
+  OFPBMC_BAD_HEADER       = 2,
+#define OFPBMC_BAD_TAG OFPBMC_BAD_HEADER
   OFPBMC_BAD_DL_ADDR_MASK = 3,
   OFPBMC_BAD_NW_ADDR_MASK = 4,
   OFPBMC_BAD_WILDCARDS    = 5,
@@ -426,6 +454,7 @@ enum ofp_bad_match_code {
   OFPBMC_BAD_PREREQ       = 9,
   OFPBMC_DUP_FIELD        = 10,
   OFPBMC_EPERM            = 11,
+  OFPBMC_BAD_PACKET_TYPE  = 12, /* unsupported header type in OFPXMT_PACKET_TYPE match */
 };
 
 enum ofp_flow_mod_failed_code {
@@ -532,6 +561,7 @@ enum ofp_table_feature_prop_type {
   OFPTFPT_WRITE_SETFIELD_MISS =     13,
   OFPTFPT_APPLY_SETFIELD      =     14,
   OFPTFPT_APPLY_SETFIELD_MISS =     15,
+  OFPTFPT_PACKET_TYPES        =     18, /* Packet types property. */
   OFPTFPT_EXPERIMENTER        = 0xFFFE,
   OFPTFPT_EXPERIMENTER_MISS   = 0xFFFF,
 };
@@ -554,6 +584,31 @@ struct ofp_hello_elem_versionbitmap {
   uint16_t type;
   uint16_t length;
   uint32_t bitmaps[0];
+};
+
+enum ofp_ed_prop_type {
+  OFPPPT_PROP_NONE         = 0,
+  OFPPPT_PROP_PORT_NAME    = 1,
+  OFPPPT_PROP_EXPERIMENTER = 0xffff,
+};
+
+enum ofp_ed_prop_port_flags {
+  OFPPPT_PROP_PORT_FLAGS_CREATE    = 1 << 0,
+  OFPPPT_PROP_PORT_FLAGS_SET_INPORT = 1 << 1,
+};
+
+struct ofp_ed_prop_portname {
+  uint16_t type;                        /* encap/decap property type */
+  uint16_t len;                         /* property length */
+  uint16_t port_flags;                  /* contains ofp_ed_prop_port_flgs */
+  uint8_t  pad[2];                      /* align to 64 bits */
+  uint8_t  name[OFP_MAX_PORT_NAME_LEN]; /* 16 byte name */
+};
+
+struct ofp_action_sequence {
+  uint16_t type;                        /* OFPAT_SET_SEQUENCE or OFPAT_VALIDATE_SEQUENCE */
+  uint16_t len;                         /* property length */
+  uint32_t field;                       /* sequence specific field OFPXMT_OFB_GRE_SEQNUM and OFPXMT_OFB_MPLS_CW_SEQ_NUM */
 };
 
 struct ofp_port {
@@ -692,6 +747,12 @@ struct ofp_action_mpls_ttl {
   uint8_t pad[3];
 };
 
+struct ofp_action_generic {
+  uint16_t type;
+  uint16_t len;
+  uint8_t pad[4];
+};
+
 struct ofp_action_nw_ttl {
   uint16_t type;
   uint16_t len;
@@ -717,6 +778,32 @@ struct ofp_action_set_field {
   uint16_t type;
   uint16_t len;
   uint8_t field[4];
+};
+
+/* Common header for all encap/decap action proprerties */
+struct ofp_ed_prop_header {
+  uint16_t type;
+  uint16_t len;
+};
+
+/* Action structure for OFPAT_ENCAP */
+struct ofp_action_encap {
+  uint16_t type;
+  uint16_t len;
+  uint32_t packet_type;
+
+  struct ofp_ed_prop_header props[0];
+};
+
+/* Action structure for OFPAT_DECAP */
+struct ofp_action_decap {
+  uint16_t type;
+  uint16_t len;
+  uint32_t cur_pkt_type;
+  uint32_t new_pkt_type;
+  uint8_t  pad[4];
+
+  struct ofp_ed_prop_header props[0];
 };
 
 struct ofp_action_experimenter_header {
@@ -805,6 +892,30 @@ struct ofp_port_mod {
 
   uint32_t advertise;
   uint8_t pad3[4];
+};
+
+struct ofp_header_type {
+  uint16_t namespace;
+  uint16_t ns_type;
+};
+
+enum ofp_header_type_namespaces {
+  OFPHTN_ONF          = 0,
+  OFPHTN_ETHERTYPE    = 1,
+  OFPHTN_IP_PROTO     = 2,
+  OFPHTN_UDP_TCP_PORT = 3,
+  OFPHTN_IPV4_OPTION  = 4,
+  OFPHTN_MPLS_CHANNEL = 5,
+};
+
+enum ofp_header_type_onf {
+  OFPHTO_ETHERNET         = 0,
+  OFPHTO_NO_HEADER        = 1,
+  OFPHTO_MPLS_ACH         = 2,
+  OFPHTO_MPLS_PWCW        = 3,
+  OFPHTO_HDLC             = 4,
+  OFPHTO_USE_NEXT_PROTO   = 0xfffe,
+  OFPHTO_OXM_EXPERIMENTER = 0xffff,
 };
 
 struct ofp_multipart_request {
@@ -1174,6 +1285,12 @@ struct ofp_table_feature_prop_oxm {
   uint16_t type;
   uint16_t length;
   uint32_t oxm_ids[0];
+};
+
+struct ofp_table_feature_prop_oxm_values {
+  uint16_t type;
+  uint16_t length;
+  uint32_t oxm_values[0];
 };
 
 struct ofp_table_feature_prop_experimenter {

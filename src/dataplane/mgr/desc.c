@@ -56,9 +56,9 @@ copy_hw_info(char *buf, size_t len) {
 
   buf[0] = '\0';
   for (i = 0; i < sizeof(dmidecode_param) / sizeof(dmidecode_param[0]); i++) {
-    strncat(buf, get_dmi_string(dmidecode_param[i]), len);
+    strncat(buf, get_dmi_string(dmidecode_param[i]), len - 1);
     buf[strlen(buf) - 1] = ' ';
-    len -= strlen(buf);
+    buf[strlen(buf)] = '\0';
   }
   buf[strlen(buf) - 1] = '\0';
 }

@@ -150,8 +150,6 @@ s_callout_worker_main(const lagopus_pipeline_stage_t *sptr,
     lagopus_callout_task_t t;
     lagopus_callout_task_t *tasks = (lagopus_callout_task_t *)buf;
 
-    ret = 0;
-
     for (i = 0; i < n; i++) {
       t = tasks[i];
       (void)s_exec_task(t);

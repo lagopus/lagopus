@@ -1022,12 +1022,12 @@ test_flow_cmd_mod_add_match_vlan_vid_bad_mask(void) {
   datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
   char *str = NULL;
   const char *argv1[] = {"flow", "b1", "add",
-                         "vlan_vid=1/0x123X",
+                         "vlan_vid=1/0x123V",
                          NULL
   };
   const char test_str1[] =
-      "{\"ret\":\"OUT_OF_RANGE\",\n"
-      "\"data\":\"Bad value (0x123X).\"}";
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad value (0x123V).\"}";
 
   /* add cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
@@ -3822,12 +3822,12 @@ test_flow_cmd_mod_add_match_ipv6_label_bad_mask(void) {
   char *str = NULL;
   const char *argv1[] = {"flow", "b1", "add",
                          "dl_type=34525",
-                         "ipv6_label=1234/0x567X",
+                         "ipv6_label=1234/0x567V",
                          NULL
   };
   const char test_str1[] =
-      "{\"ret\":\"OUT_OF_RANGE\",\n"
-      "\"data\":\"Bad value (0x567X).\"}";
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad value (0x567V).\"}";
 
   /* add cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
@@ -4901,12 +4901,12 @@ test_flow_cmd_mod_add_match_pbb_isid_bad_mask(void) {
   char *str = NULL;
   const char *argv1[] = {"flow", "b1", "add",
                          "dl_type=35047",
-                         "pbb_isid=1234/0x567X",
+                         "pbb_isid=1234/0x567V",
                          NULL
   };
   const char test_str1[] =
-      "{\"ret\":\"OUT_OF_RANGE\",\n"
-      "\"data\":\"Bad value (0x567X).\"}";
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad value (0x567V).\"}";
 
   /* add cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
@@ -5036,12 +5036,12 @@ test_flow_cmd_mod_add_match_tunnel_id_bad_mask(void) {
   datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
   char *str = NULL;
   const char *argv1[] = {"flow", "b1", "add",
-                         "tunnel_id=1234/0x567X",
+                         "tunnel_id=1234/0x567V",
                          NULL
   };
   const char test_str1[] =
-      "{\"ret\":\"OUT_OF_RANGE\",\n"
-      "\"data\":\"Bad value (0x567X).\"}";
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad value (0x567V).\"}";
 
   /* add cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
@@ -5218,12 +5218,12 @@ test_flow_cmd_mod_add_match_ipv6_exthdr_bad_mask(void) {
   char *str = NULL;
   const char *argv1[] = {"flow", "b1", "add",
                          "dl_type=34525",
-                         "ipv6_exthdr=123/0x56X",
+                         "ipv6_exthdr=123/0x56V",
                          NULL
   };
   const char test_str1[] =
-      "{\"ret\":\"OUT_OF_RANGE\",\n"
-      "\"data\":\"Bad value (0x56X).\"}";
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad value (0x56V).\"}";
 
   /* add cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
@@ -5240,6 +5240,2776 @@ test_flow_cmd_mod_add_match_ipv6_exthdr_bad_value(void) {
   const char *argv1[] = {"flow", "b1", "add",
                          "dl_type=34525",
                          "ipv6_exthdr=hoge",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad value (hoge).\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+/* pbb_uca. */
+void
+test_flow_cmd_mod_add_match_pbb_uca_01(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "pbb_uca=0",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"pbb_uca\":0,\n"
+      "\"actions\":[]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_match_pbb_uca_02(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "pbb_uca=1",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"pbb_uca\":1,\n"
+      "\"actions\":[]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_match_pbb_uca_mask(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "pbb_uca=1/0x12",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad mask.\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+void
+test_flow_cmd_mod_add_match_pbb_uca_over(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "pbb_uca=2",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"TOO_LONG\",\n"
+      "\"data\":\"Bad value (2).\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+void
+test_flow_cmd_mod_add_match_pbb_uca_bad_value(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "pbb_uca=hoge",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad value (hoge).\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+/* packet_type. */
+void
+test_flow_cmd_mod_add_match_packet_type_01(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "packet_type=0",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"packet_type\":0,\n"
+      "\"actions\":[]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_match_packet_type_02(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "packet_type=4294967295",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"packet_type\":4294967295,\n"
+      "\"actions\":[]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_match_packet_type_mask(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "packet_type=1/0x12",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad mask.\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+void
+test_flow_cmd_mod_add_match_packet_type_over(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "packet_type=4294967296",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"TOO_LONG\",\n"
+      "\"data\":\"Bad value (4294967296).\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+void
+test_flow_cmd_mod_add_match_packet_type_bad_value(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "packet_type=hoge",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad value (hoge).\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+/* gre_flags. */
+void
+test_flow_cmd_mod_add_match_gre_flags_01(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "gre_flags=0",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"gre_flags\":\"0\",\n"
+      "\"actions\":[]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_match_gre_flags_02(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "gre_flags=8191",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"gre_flags\":\"8191\",\n"
+      "\"actions\":[]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_match_gre_flags_mask(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "gre_flags=1/0x1234",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"gre_flags\":\"1\\/0x1234\",\n"
+      "\"actions\":[]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_match_gre_flags_bad_mask(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "gre_flags=1/0x123V",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad value (0x123V).\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+void
+test_flow_cmd_mod_add_match_gre_flags_over(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "gre_flags=8192",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"TOO_LONG\",\n"
+      "\"data\":\"Bad value (8192).\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+void
+test_flow_cmd_mod_add_match_gre_flags_bad_value(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "gre_flags=hoge",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad value (hoge).\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+/* gre_ver. */
+void
+test_flow_cmd_mod_add_match_gre_ver_01(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "gre_ver=0",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"gre_ver\":0,\n"
+      "\"actions\":[]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_match_gre_ver_02(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "gre_ver=7",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"gre_ver\":7,\n"
+      "\"actions\":[]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_match_gre_ver_mask(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "gre_ver=1/0x12",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad mask.\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+void
+test_flow_cmd_mod_add_match_gre_ver_over(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "gre_ver=8",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"TOO_LONG\",\n"
+      "\"data\":\"Bad value (8).\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+void
+test_flow_cmd_mod_add_match_gre_ver_bad_value(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "gre_ver=hoge",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad value (hoge).\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+/* gre_protocol. */
+void
+test_flow_cmd_mod_add_match_gre_protocol_01(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "gre_protocol=0",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"gre_protocol\":0,\n"
+      "\"actions\":[]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_match_gre_protocol_02(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "gre_protocol=65535",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"gre_protocol\":65535,\n"
+      "\"actions\":[]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_match_gre_protocol_mask(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "gre_protocol=1/0x12",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad mask.\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+void
+test_flow_cmd_mod_add_match_gre_protocol_over(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "gre_protocol=65536",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"TOO_LONG\",\n"
+      "\"data\":\"Bad value (65536).\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+void
+test_flow_cmd_mod_add_match_gre_protocol_bad_value(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "gre_protocol=hoge",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad value (hoge).\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+/* gre_key. */
+void
+test_flow_cmd_mod_add_match_gre_key_01(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "gre_key=0",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"gre_key\":\"0\",\n"
+      "\"actions\":[]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_match_gre_key_02(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "gre_key=4294967295",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"gre_key\":\"4294967295\",\n"
+      "\"actions\":[]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_match_gre_key_mask(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "gre_key=1234/0x5678",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"gre_key\":\"1234\\/0x00005678\",\n"
+      "\"actions\":[]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_match_gre_key_over(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "gre_key=4294967296",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"TOO_LONG\",\n"
+      "\"data\":\"Bad value (4294967296).\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+void
+test_flow_cmd_mod_add_match_gre_key_bad_mask(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "gre_key=1234/0x567V",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad value (0x567V).\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+void
+test_flow_cmd_mod_add_match_gre_key_bad_value(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "gre_key=hoge",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad value (hoge).\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+/* gre_seqnum. */
+void
+test_flow_cmd_mod_add_match_gre_seqnum_01(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "gre_seqnum=0",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"gre_seqnum\":0,\n"
+      "\"actions\":[]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_match_gre_seqnum_02(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "gre_seqnum=4294967295",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"gre_seqnum\":4294967295,\n"
+      "\"actions\":[]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_match_gre_seqnum_mask(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "gre_seqnum=1/0x12",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad mask.\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+void
+test_flow_cmd_mod_add_match_gre_seqnum_over(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "gre_seqnum=4294967296",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"TOO_LONG\",\n"
+      "\"data\":\"Bad value (4294967296).\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+void
+test_flow_cmd_mod_add_match_gre_seqnum_bad_value(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "gre_seqnum=hoge",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad value (hoge).\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+/* lisp_flags. */
+void
+test_flow_cmd_mod_add_match_lisp_flags_01(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "lisp_flags=0",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"lisp_flags\":\"0\",\n"
+      "\"actions\":[]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_match_lisp_flags_02(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "lisp_flags=255",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"lisp_flags\":\"255\",\n"
+      "\"actions\":[]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_match_lisp_flags_mask(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "lisp_flags=123/0x56",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"lisp_flags\":\"123\\/0x56\",\n"
+      "\"actions\":[]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_match_lisp_flags_over(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "lisp_flags=256",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"TOO_LONG\",\n"
+      "\"data\":\"Bad value (256).\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+void
+test_flow_cmd_mod_add_match_lisp_flags_bad_mask(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "lisp_flags=123/0x56V",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad value (0x56V).\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+void
+test_flow_cmd_mod_add_match_lisp_flags_bad_value(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "lisp_flags=hoge",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad value (hoge).\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+/* lisp_nonce. */
+void
+test_flow_cmd_mod_add_match_lisp_nonce_01(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "lisp_nonce=0",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"lisp_nonce\":\"0\",\n"
+      "\"actions\":[]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_match_lisp_nonce_02(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "lisp_nonce=16777215",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"lisp_nonce\":\"16777215\",\n"
+      "\"actions\":[]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_match_lisp_nonce_mask(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "lisp_nonce=1234/0x567",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"lisp_nonce\":\"1234\\/0x000567\",\n"
+      "\"actions\":[]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_match_lisp_nonce_over(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "lisp_nonce=16777216",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"TOO_LONG\",\n"
+      "\"data\":\"Bad value (16777216).\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+void
+test_flow_cmd_mod_add_match_lisp_nonce_bad_mask(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "lisp_nonce=1234/0x567V",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad value (0x567V).\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+void
+test_flow_cmd_mod_add_match_lisp_nonce_bad_value(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "lisp_nonce=hoge",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad value (hoge).\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+/* lisp_id. */
+void
+test_flow_cmd_mod_add_match_lisp_id_01(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "lisp_id=0",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"lisp_id\":0,\n"
+      "\"actions\":[]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_match_lisp_id_02(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "lisp_id=4294967295",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"lisp_id\":4294967295,\n"
+      "\"actions\":[]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_match_lisp_id_mask(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "lisp_id=1/0x12",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad mask.\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+void
+test_flow_cmd_mod_add_match_lisp_id_over(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "lisp_id=4294967296",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"TOO_LONG\",\n"
+      "\"data\":\"Bad value (4294967296).\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+void
+test_flow_cmd_mod_add_match_lisp_id_bad_value(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "lisp_id=hoge",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad value (hoge).\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+/* vxlan_flags. */
+void
+test_flow_cmd_mod_add_match_vxlan_flags_01(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "vxlan_flags=0",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"vxlan_flags\":\"0\",\n"
+      "\"actions\":[]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_match_vxlan_flags_02(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "vxlan_flags=255",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"vxlan_flags\":\"255\",\n"
+      "\"actions\":[]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_match_vxlan_flags_mask(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "vxlan_flags=123/0x56",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"vxlan_flags\":\"123\\/0x56\",\n"
+      "\"actions\":[]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_match_vxlan_flags_over(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "vxlan_flags=256",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"TOO_LONG\",\n"
+      "\"data\":\"Bad value (256).\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+void
+test_flow_cmd_mod_add_match_vxlan_flags_bad_mask(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "vxlan_flags=123/0x56V",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad value (0x56V).\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+void
+test_flow_cmd_mod_add_match_vxlan_flags_bad_value(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "vxlan_flags=hoge",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad value (hoge).\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+/* vxlan_vni. */
+void
+test_flow_cmd_mod_add_match_vxlan_vni_01(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "vxlan_vni=0",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"vxlan_vni\":0,\n"
+      "\"actions\":[]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_match_vxlan_vni_02(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "vxlan_vni=16777215",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"vxlan_vni\":16777215,\n"
+      "\"actions\":[]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_match_vxlan_vni_mask(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "vxlan_vni=1/0x12",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad mask.\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+void
+test_flow_cmd_mod_add_match_vxlan_vni_over(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "vxlan_vni=16777216",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"TOO_LONG\",\n"
+      "\"data\":\"Bad value (16777216).\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+void
+test_flow_cmd_mod_add_match_vxlan_vni_bad_value(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "vxlan_vni=hoge",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad value (hoge).\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+/* mpls_data_first_nibble. */
+void
+test_flow_cmd_mod_add_match_mpls_data_first_nibble_01(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "mpls_data_first_nibble=0",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"mpls_data_first_nibble\":\"0\",\n"
+      "\"actions\":[]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_match_mpls_data_first_nibble_02(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "mpls_data_first_nibble=15",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"mpls_data_first_nibble\":\"15\",\n"
+      "\"actions\":[]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_match_mpls_data_first_nibble_mask(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "mpls_data_first_nibble=2/0x3",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"mpls_data_first_nibble\":\"2\\/0x03\",\n"
+      "\"actions\":[]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_match_mpls_data_first_nibble_over(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "mpls_data_first_nibble=16",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"TOO_LONG\",\n"
+      "\"data\":\"Bad value (16).\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+void
+test_flow_cmd_mod_add_match_mpls_data_first_nibble_bad_mask(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "mpls_data_first_nibble=2/0x3V",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad value (0x3V).\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+void
+test_flow_cmd_mod_add_match_mpls_data_first_nibble_bad_value(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "mpls_data_first_nibble=hoge",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad value (hoge).\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+/* mpls_ach_version. */
+void
+test_flow_cmd_mod_add_match_mpls_ach_version_01(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "mpls_ach_version=0",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"mpls_ach_version\":0,\n"
+      "\"actions\":[]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_match_mpls_ach_version_02(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "mpls_ach_version=15",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"mpls_ach_version\":15,\n"
+      "\"actions\":[]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_match_mpls_ach_version_mask(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "mpls_ach_version=1/0x12",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad mask.\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+void
+test_flow_cmd_mod_add_match_mpls_ach_version_over(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "mpls_ach_version=16",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"TOO_LONG\",\n"
+      "\"data\":\"Bad value (16).\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+void
+test_flow_cmd_mod_add_match_mpls_ach_version_bad_value(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "mpls_ach_version=hoge",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad value (hoge).\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+/* mpls_ach_channel. */
+void
+test_flow_cmd_mod_add_match_mpls_ach_channel_01(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "mpls_ach_channel=0",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"mpls_ach_channel\":\"0\",\n"
+      "\"actions\":[]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_match_mpls_ach_channel_02(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "mpls_ach_channel=65535",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"mpls_ach_channel\":\"65535\",\n"
+      "\"actions\":[]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_match_mpls_ach_channel_mask(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "mpls_ach_channel=1/0x1234",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"mpls_ach_channel\":\"1\\/0x1234\",\n"
+      "\"actions\":[]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_match_mpls_ach_channel_bad_mask(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "mpls_ach_channel=1/0x123V",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad value (0x123V).\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+void
+test_flow_cmd_mod_add_match_mpls_ach_channel_over(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "mpls_ach_channel=65536",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"TOO_LONG\",\n"
+      "\"data\":\"Bad value (65536).\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+void
+test_flow_cmd_mod_add_match_mpls_ach_channel_bad_value(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "mpls_ach_channel=hoge",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad value (hoge).\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+/* mpls_pw_metadata. */
+void
+test_flow_cmd_mod_add_match_mpls_pw_metadata_01(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "mpls_pw_metadata=0",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"mpls_pw_metadata\":\"0\",\n"
+      "\"actions\":[]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_match_mpls_pw_metadata_02(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "mpls_pw_metadata=1",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"mpls_pw_metadata\":\"1\",\n"
+      "\"actions\":[]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_match_mpls_pw_metadata_mask(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "mpls_pw_metadata=0/0x1",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"mpls_pw_metadata\":\"0\\/0x01\",\n"
+      "\"actions\":[]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_match_mpls_pw_metadata_over(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "mpls_pw_metadata=2",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"TOO_LONG\",\n"
+      "\"data\":\"Bad value (2).\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+void
+test_flow_cmd_mod_add_match_mpls_pw_metadata_bad_mask(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "mpls_pw_metadata=0/0x1V",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad value (0x1V).\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+void
+test_flow_cmd_mod_add_match_mpls_pw_metadata_bad_value(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "mpls_pw_metadata=hoge",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad value (hoge).\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+/* mpls_cw_flags. */
+void
+test_flow_cmd_mod_add_match_mpls_cw_flags_01(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "mpls_cw_flags=0",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"mpls_cw_flags\":\"0\",\n"
+      "\"actions\":[]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_match_mpls_cw_flags_02(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "mpls_cw_flags=15",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"mpls_cw_flags\":\"15\",\n"
+      "\"actions\":[]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_match_mpls_cw_flags_mask(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "mpls_cw_flags=2/0x3",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"mpls_cw_flags\":\"2\\/0x03\",\n"
+      "\"actions\":[]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_match_mpls_cw_flags_over(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "mpls_cw_flags=16",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"TOO_LONG\",\n"
+      "\"data\":\"Bad value (16).\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+void
+test_flow_cmd_mod_add_match_mpls_cw_flags_bad_mask(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "mpls_cw_flags=2/0x3V",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad value (0x3V).\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+void
+test_flow_cmd_mod_add_match_mpls_cw_flags_bad_value(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "mpls_cw_flags=hoge",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad value (hoge).\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+/* mpls_cw_frag. */
+void
+test_flow_cmd_mod_add_match_mpls_cw_frag_01(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "mpls_cw_frag=0",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"mpls_cw_frag\":\"0\",\n"
+      "\"actions\":[]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_match_mpls_cw_frag_02(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "mpls_cw_frag=3",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"mpls_cw_frag\":\"3\",\n"
+      "\"actions\":[]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_match_mpls_cw_frag_mask(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "mpls_cw_frag=2/0x3",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"mpls_cw_frag\":\"2\\/0x03\",\n"
+      "\"actions\":[]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_match_mpls_cw_frag_over(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "mpls_cw_frag=4",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"TOO_LONG\",\n"
+      "\"data\":\"Bad value (4).\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+void
+test_flow_cmd_mod_add_match_mpls_cw_frag_bad_mask(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "mpls_cw_frag=2/0x3V",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad value (0x3V).\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+void
+test_flow_cmd_mod_add_match_mpls_cw_frag_bad_value(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "mpls_cw_frag=hoge",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad value (hoge).\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+/* mpls_cw_len. */
+void
+test_flow_cmd_mod_add_match_mpls_cw_len_01(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "mpls_cw_len=0",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"mpls_cw_len\":0,\n"
+      "\"actions\":[]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_match_mpls_cw_len_02(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "mpls_cw_len=63",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"mpls_cw_len\":63,\n"
+      "\"actions\":[]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_match_mpls_cw_len_mask(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "mpls_cw_len=1/0x12",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad mask.\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+void
+test_flow_cmd_mod_add_match_mpls_cw_len_over(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "mpls_cw_len=64",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"TOO_LONG\",\n"
+      "\"data\":\"Bad value (64).\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+void
+test_flow_cmd_mod_add_match_mpls_cw_len_bad_value(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "mpls_cw_len=hoge",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad value (hoge).\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+/* mpls_cw_seq_num. */
+void
+test_flow_cmd_mod_add_match_mpls_cw_seq_num_01(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "mpls_cw_seq_num=0",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"mpls_cw_seq_num\":0,\n"
+      "\"actions\":[]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_match_mpls_cw_seq_num_02(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "mpls_cw_seq_num=65535",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"mpls_cw_seq_num\":65535,\n"
+      "\"actions\":[]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_match_mpls_cw_seq_num_mask(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "mpls_cw_seq_num=1/0x12",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad mask.\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+void
+test_flow_cmd_mod_add_match_mpls_cw_seq_num_over(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "mpls_cw_seq_num=65536",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"TOO_LONG\",\n"
+      "\"data\":\"Bad value (65536).\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+void
+test_flow_cmd_mod_add_match_mpls_cw_seq_num_bad_value(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "mpls_cw_seq_num=hoge",
                          NULL
   };
   const char test_str1[] =
@@ -7279,6 +10049,1046 @@ test_flow_cmd_mod_add_apply_actions_ipv6_exthdr_mask(void) {
                  &ds, str, test_str1);
 }
 
+/* pbb_uca. */
+void
+test_flow_cmd_mod_add_apply_actions_pbb_uca_01(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "apply_actions=pbb_uca:1",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"actions\":[{\"apply_actions\":\n"
+      "[{\"pbb_uca\":1}]}]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_apply_actions_pbb_uca_mask(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "apply_actions=pbb_uca:0/0x1",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad mask.\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+/* packet_type. */
+void
+test_flow_cmd_mod_add_apply_actions_packet_type_01(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "apply_actions=packet_type:1",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"actions\":[{\"apply_actions\":\n"
+      "[{\"packet_type\":1}]}]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_apply_actions_packet_type_mask(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "apply_actions=packet_type:0/0x1",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad mask.\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+/* gre_flags. */
+void
+test_flow_cmd_mod_add_apply_actions_gre_flags_01(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "apply_actions=gre_flags:1",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"actions\":[{\"apply_actions\":\n"
+      "[{\"gre_flags\":1}]}]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_apply_actions_gre_flags_mask(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "apply_actions=gre_flags:0/0x1",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad mask.\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+/* gre_ver. */
+void
+test_flow_cmd_mod_add_apply_actions_gre_ver_01(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "apply_actions=gre_ver:1",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"actions\":[{\"apply_actions\":\n"
+      "[{\"gre_ver\":1}]}]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_apply_actions_gre_ver_mask(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "apply_actions=gre_ver:0/0x1",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad mask.\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+/* gre_protocol. */
+void
+test_flow_cmd_mod_add_apply_actions_gre_protocol_01(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "apply_actions=gre_protocol:1",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"actions\":[{\"apply_actions\":\n"
+      "[{\"gre_protocol\":1}]}]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_apply_actions_gre_protocol_mask(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "apply_actions=gre_protocol:0/0x1",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad mask.\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+/* gre_key. */
+void
+test_flow_cmd_mod_add_apply_actions_gre_key_01(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "apply_actions=gre_key:1",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"actions\":[{\"apply_actions\":\n"
+      "[{\"gre_key\":1}]}]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_apply_actions_gre_key_mask(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "apply_actions=gre_key:0/0x1",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad mask.\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+/* gre_seqnum. */
+void
+test_flow_cmd_mod_add_apply_actions_gre_seqnum_01(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "apply_actions=gre_seqnum:1",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"actions\":[{\"apply_actions\":\n"
+      "[{\"gre_seqnum\":1}]}]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_apply_actions_gre_seqnum_mask(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "apply_actions=gre_seqnum:0/0x1",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad mask.\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+/* lisp_flags. */
+void
+test_flow_cmd_mod_add_apply_actions_lisp_flags_01(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "apply_actions=lisp_flags:1",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"actions\":[{\"apply_actions\":\n"
+      "[{\"lisp_flags\":1}]}]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_apply_actions_lisp_flags_mask(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "apply_actions=lisp_flags:0/0x1",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad mask.\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+/* lisp_nonce. */
+void
+test_flow_cmd_mod_add_apply_actions_lisp_nonce_01(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "apply_actions=lisp_nonce:1",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"actions\":[{\"apply_actions\":\n"
+      "[{\"lisp_nonce\":1}]}]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_apply_actions_lisp_nonce_mask(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "apply_actions=lisp_nonce:0/0x1",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad mask.\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+/* lisp_id. */
+void
+test_flow_cmd_mod_add_apply_actions_lisp_id_01(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "apply_actions=lisp_id:1",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"actions\":[{\"apply_actions\":\n"
+      "[{\"lisp_id\":1}]}]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_apply_actions_lisp_id_mask(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "apply_actions=lisp_id:0/0x1",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad mask.\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+/* vxlan_flags. */
+void
+test_flow_cmd_mod_add_apply_actions_vxlan_flags_01(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "apply_actions=vxlan_flags:1",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"actions\":[{\"apply_actions\":\n"
+      "[{\"vxlan_flags\":1}]}]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_apply_actions_vxlan_flags_mask(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "apply_actions=vxlan_flags:0/0x1",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad mask.\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+/* vxlan_vni. */
+void
+test_flow_cmd_mod_add_apply_actions_vxlan_vni_01(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "apply_actions=vxlan_vni:1",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"actions\":[{\"apply_actions\":\n"
+      "[{\"vxlan_vni\":1}]}]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_apply_actions_vxlan_vni_mask(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "apply_actions=vxlan_vni:0/0x1",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad mask.\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+/* mpls_data_first_nibble. */
+void
+test_flow_cmd_mod_add_apply_actions_mpls_data_first_nibble_01(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "apply_actions=mpls_data_first_nibble:1",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"actions\":[{\"apply_actions\":\n"
+      "[{\"mpls_data_first_nibble\":1}]}]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_apply_actions_mpls_data_first_nibble_mask(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "apply_actions=mpls_data_first_nibble:0/0x1",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad mask.\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+/* mpls_ach_version. */
+void
+test_flow_cmd_mod_add_apply_actions_mpls_ach_version_01(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "apply_actions=mpls_ach_version:1",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"actions\":[{\"apply_actions\":\n"
+      "[{\"mpls_ach_version\":1}]}]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_apply_actions_mpls_ach_version_mask(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "apply_actions=mpls_ach_version:0/0x1",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad mask.\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+/* mpls_ach_channel. */
+void
+test_flow_cmd_mod_add_apply_actions_mpls_ach_channel_01(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "apply_actions=mpls_ach_channel:1",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"actions\":[{\"apply_actions\":\n"
+      "[{\"mpls_ach_channel\":1}]}]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_apply_actions_mpls_ach_channel_mask(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "apply_actions=mpls_ach_channel:0/0x1",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad mask.\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+/* mpls_pw_metadata. */
+void
+test_flow_cmd_mod_add_apply_actions_mpls_pw_metadata_01(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "apply_actions=mpls_pw_metadata:1",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"actions\":[{\"apply_actions\":\n"
+      "[{\"mpls_pw_metadata\":1}]}]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_apply_actions_mpls_pw_metadata_mask(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "apply_actions=mpls_pw_metadata:0/0x1",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad mask.\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+/* mpls_cw_flags. */
+void
+test_flow_cmd_mod_add_apply_actions_mpls_cw_flags_01(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "apply_actions=mpls_cw_flags:1",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"actions\":[{\"apply_actions\":\n"
+      "[{\"mpls_cw_flags\":1}]}]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_apply_actions_mpls_cw_flags_mask(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "apply_actions=mpls_cw_flags:0/0x1",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad mask.\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+/* mpls_cw_frag. */
+void
+test_flow_cmd_mod_add_apply_actions_mpls_cw_frag_01(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "apply_actions=mpls_cw_frag:1",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"actions\":[{\"apply_actions\":\n"
+      "[{\"mpls_cw_frag\":1}]}]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_apply_actions_mpls_cw_frag_mask(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "apply_actions=mpls_cw_frag:0/0x1",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad mask.\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+/* mpls_cw_len. */
+void
+test_flow_cmd_mod_add_apply_actions_mpls_cw_len_01(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "apply_actions=mpls_cw_len:1",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"actions\":[{\"apply_actions\":\n"
+      "[{\"mpls_cw_len\":1}]}]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_apply_actions_mpls_cw_len_mask(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "apply_actions=mpls_cw_len:0/0x1",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad mask.\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
+/* mpls_cw_seq_num. */
+void
+test_flow_cmd_mod_add_apply_actions_mpls_cw_seq_num_01(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "apply_actions=mpls_cw_seq_num:1",
+                         NULL
+  };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char test_str2[] =
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"b1\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":0,\n"
+      "\"idle_timeout\":0,\n"
+      "\"hard_timeout\":0,\n"
+      "\"cookie\":0,\n"
+      "\"actions\":[{\"apply_actions\":\n"
+      "[{\"mpls_cw_seq_num\":1}]}]}]}]}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+
+  /* dump cmd. */
+  TEST_CMD_FLOW_DUMP(ret, LAGOPUS_RESULT_OK, "b1", OFPTT_ALL,
+                     &ds, str, test_str2);
+}
+
+void
+test_flow_cmd_mod_add_apply_actions_mpls_cw_seq_num_mask(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"flow", "b1", "add",
+                         "apply_actions=mpls_cw_seq_num:0/0x1",
+                         NULL
+  };
+  const char test_str1[] =
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad mask.\"}";
+
+  /* add cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 flow_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, NULL,
+                 &ds, str, test_str1);
+}
+
 /* output. */
 void
 test_flow_cmd_mod_add_apply_actions_output_01(void) {
@@ -8752,12 +12562,12 @@ test_flow_cmd_mod_add_match_cookie_badmask(void) {
   datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
   char *str = NULL;
   const char *argv1[] = {"flow", "b1", "add",
-                         "cookie=1234/0x567X",
+                         "cookie=1234/0x567V",
                          NULL
   };
   const char test_str1[] =
-      "{\"ret\":\"OUT_OF_RANGE\",\n"
-      "\"data\":\"Bad value (0x567X).\"}";
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad value (0x567V).\"}";
 
   /* add cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
@@ -9909,12 +13719,12 @@ test_flow_cmd_mod_add_write_metadata_bad_mask(void) {
   datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
   char *str = NULL;
   const char *argv1[] = {"flow", "b1", "add",
-                         "write_metadata=1/0x123X",
+                         "write_metadata=1/0x123V",
                          NULL
   };
   const char test_str1[] =
-      "{\"ret\":\"OUT_OF_RANGE\",\n"
-      "\"data\":\"Bad value (0x123X).\"}";
+      "{\"ret\":\"INVALID_ARGS\",\n"
+      "\"data\":\"Bad value (0x123V).\"}";
 
   /* add cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,

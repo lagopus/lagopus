@@ -172,6 +172,9 @@ dp_interface_destroy(const char *name) {
   if (ifp->port != NULL) {
     dp_port_interface_unset_internal(ifp->port);
   }
+  if (ifp->link_timer != NULL) {
+    *ifp->link_timer = NULL;
+  }
   if (ifp->name != NULL) {
     free(ifp->name);
   }
@@ -441,6 +444,7 @@ dp_port_interface_set(const char *name, const char *ifname) {
   if (rv != LAGOPUS_RESULT_OK) {
     goto out;
   }
+  dp_port_update_link_status(ifp->port);
   rv = dp_interface_queue_configure(ifp->port->interface);
 out:
   flowdb_wrunlock(NULL);

@@ -35,8 +35,11 @@
 #define OUT_LEN 0x10
 #define GROUP_LEN 0x08
 #define SET_FIELD_LEN 0x10
-#define WRITE_ACT_LEN OUT_LEN + GROUP_LEN + SET_FIELD_LEN + 0x08
-#define INS_LEN 0x04
+#define ENCAP_LEN 0x20
+#define DECAP_LEN 0x28
+#define ED_PROP_LEN 0x18
+#define WRITE_ACT_LEN OUT_LEN + GROUP_LEN + SET_FIELD_LEN + \
+  ENCAP_LEN + DECAP_LEN + 0x08
 
 static lagopus_dstring_t ds = NULL;
 static lagopus_hashmap_t tbl = NULL;
@@ -52,6 +55,9 @@ create_instructions(struct instruction_list *instruction_list) {
   struct ofp_action_output *act_output;
   struct ofp_action_group *act_group;
   struct ofp_action_set_field *act_set_field;
+  struct ofp_action_encap *act_encap;
+  struct ofp_action_decap *act_decap;
+  struct ed_prop *ed_prop;
   uint8_t field[4] = {0x80, 0x00, 0x08, 0x06};
   uint8_t val[6] = {0x00, 0x0c, 0x29, 0x7a, 0x90, 0xb3};
 
@@ -87,6 +93,37 @@ create_instructions(struct instruction_list *instruction_list) {
   act_set_field->len = SET_FIELD_LEN;
   memcpy(act_set_field->field, field, 4);
   memcpy(act_set_field->field + 4, val, 6);
+
+  /* SET_FIELD / encap */
+  action = action_alloc(ENCAP_LEN);
+  TAILQ_INSERT_TAIL(&instruction->action_list, action, entry);
+  act_encap = (struct ofp_action_encap *)&action->ofpat;
+  act_encap->type = OFPAT_ENCAP;
+  act_encap->len = ENCAP_LEN;
+  act_encap->packet_type = 0x04;
+
+  ed_prop = ed_prop_alloc();
+  TAILQ_INSERT_TAIL(&action->ed_prop_list, ed_prop, entry);
+  ed_prop->ofp_ed_prop_portname.type = OFPPPT_PROP_PORT_NAME;
+  ed_prop->ofp_ed_prop_portname.len = ED_PROP_LEN;
+  ed_prop->ofp_ed_prop_portname.port_flags = 0x05;
+  strcpy((char *) &ed_prop->ofp_ed_prop_portname.name, "hoge1");
+
+  /* SET_FIELD / decap */
+  action = action_alloc(DECAP_LEN);
+  TAILQ_INSERT_TAIL(&instruction->action_list, action, entry);
+  act_decap = (struct ofp_action_decap *)&action->ofpat;
+  act_decap->type = OFPAT_DECAP;
+  act_decap->len = DECAP_LEN;
+  act_decap->cur_pkt_type = 0x06;
+  act_decap->new_pkt_type = 0x07;
+
+  ed_prop = ed_prop_alloc();
+  TAILQ_INSERT_TAIL(&action->ed_prop_list, ed_prop, entry);
+  ed_prop->ofp_ed_prop_portname.type = OFPPPT_PROP_PORT_NAME;
+  ed_prop->ofp_ed_prop_portname.len = ED_PROP_LEN;
+  ed_prop->ofp_ed_prop_portname.port_flags = 0x08;
+  strcpy((char *) &ed_prop->ofp_ed_prop_portname.name, "hoge2");
 }
 
 static void
@@ -151,27 +188,41 @@ test_flow_cmd_dump_01(void) {
   struct ofp_error error;
   char *str = NULL;
   const char test_str1[] =
-    "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_bridge01\",\n"
-    "\"tables\":[{\"table\":0,\n"
-    "\"flows\":[{\"priority\":1,\n"
-    "\"idle_timeout\":4,\n"
-    "\"hard_timeout\":5,\n"
-    "\"check_overlap\":null,\n"
-    "\"cookie\":3,\n"
-    "\"in_port\":16,\n"
-    "\"actions\":[{\"write_actions\":\n"
-    "[{\"output\":1},\n"
-    "{\"group\":3},\n"
-    "{\"dl_src\":\"00:0c:29:7a:90:b3\"}]}]},\n"
-    "{\"priority\":1,\n"
-    "\"idle_timeout\":4,\n"
-    "\"hard_timeout\":5,\n"
-    "\"check_overlap\":null,\n"
-    "\"cookie\":3,\n"
-    "\"actions\":[{\"write_actions\":\n"
-    "[{\"output\":1},\n"
-    "{\"group\":3},\n"
-    "{\"dl_src\":\"00:0c:29:7a:90:b3\"}]}]}]}]}";
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_bridge01\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":1,\n"
+      "\"idle_timeout\":4,\n"
+      "\"hard_timeout\":5,\n"
+      "\"check_overlap\":null,\n"
+      "\"cookie\":3,\n"
+      "\"in_port\":16,\n"
+      "\"actions\":[{\"write_actions\":\n"
+      "[{\"output\":1},\n"
+      "{\"group\":3},\n"
+      "{\"dl_src\":\"00:0c:29:7a:90:b3\"},\n"
+      "{\"encap\":{\"packet_type\":4,\n"
+      "\"properties\":[{\"port_name\":{\"port_flags\":5,\n"
+      "\"name\":\"hoge1\"}}]}},\n"
+      "{\"decap\":{\"cur_packet_type\":6,\n"
+      "\"new_packet_type\":7,\n"
+      "\"properties\":[{\"port_name\":{\"port_flags\":8,\n"
+      "\"name\":\"hoge2\"}}]}}]}]},\n"
+      "{\"priority\":1,\n"
+      "\"idle_timeout\":4,\n"
+      "\"hard_timeout\":5,\n"
+      "\"check_overlap\":null,\n"
+      "\"cookie\":3,\n"
+      "\"actions\":[{\"write_actions\":\n"
+      "[{\"output\":1},\n"
+      "{\"group\":3},\n"
+      "{\"dl_src\":\"00:0c:29:7a:90:b3\"},\n"
+      "{\"encap\":{\"packet_type\":4,\n"
+      "\"properties\":[{\"port_name\":{\"port_flags\":5,\n"
+      "\"name\":\"hoge1\"}}]}},\n"
+      "{\"decap\":{\"cur_packet_type\":6,\n"
+      "\"new_packet_type\":7,\n"
+      "\"properties\":[{\"port_name\":{\"port_flags\":8,\n"
+      "\"name\":\"hoge2\"}}]}}]}]}]}]}";
 
   /* group_mod */
   create_buckets(&bucket_list);
@@ -227,31 +278,45 @@ test_flow_cmd_dump_with_stats(void) {
   struct ofp_error error;
   char *str = NULL;
   const char test_str1[] =
-    "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_bridge01\",\n"
-    "\"tables\":[{\"table\":0,\n"
-    "\"flows\":[{\"priority\":1,\n"
-    "\"idle_timeout\":4,\n"
-    "\"hard_timeout\":5,\n"
-    "\"check_overlap\":null,\n"
-    "\"cookie\":3,\n"
-    "\"in_port\":16,\n"
-    "\"actions\":[{\"write_actions\":\n"
-    "[{\"output\":1},\n"
-    "{\"group\":3},\n"
-    "{\"dl_src\":\"00:0c:29:7a:90:b3\"}]}],\n"
-    "\"stats\":{\"packet_count\":0,\n"
-    "\"byte_count\":0}},\n"
-    "{\"priority\":1,\n"
-    "\"idle_timeout\":4,\n"
-    "\"hard_timeout\":5,\n"
-    "\"check_overlap\":null,\n"
-    "\"cookie\":3,\n"
-    "\"actions\":[{\"write_actions\":\n"
-    "[{\"output\":1},\n"
-    "{\"group\":3},\n"
-    "{\"dl_src\":\"00:0c:29:7a:90:b3\"}]}],\n"
-    "\"stats\":{\"packet_count\":0,\n"
-    "\"byte_count\":0}}]}]}";
+      "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_bridge01\",\n"
+      "\"tables\":[{\"table\":0,\n"
+      "\"flows\":[{\"priority\":1,\n"
+      "\"idle_timeout\":4,\n"
+      "\"hard_timeout\":5,\n"
+      "\"check_overlap\":null,\n"
+      "\"cookie\":3,\n"
+      "\"in_port\":16,\n"
+      "\"actions\":[{\"write_actions\":\n"
+      "[{\"output\":1},\n"
+      "{\"group\":3},\n"
+      "{\"dl_src\":\"00:0c:29:7a:90:b3\"},\n"
+      "{\"encap\":{\"packet_type\":4,\n"
+      "\"properties\":[{\"port_name\":{\"port_flags\":5,\n"
+      "\"name\":\"hoge1\"}}]}},\n"
+      "{\"decap\":{\"cur_packet_type\":6,\n"
+      "\"new_packet_type\":7,\n"
+      "\"properties\":[{\"port_name\":{\"port_flags\":8,\n"
+      "\"name\":\"hoge2\"}}]}}]}],\n"
+      "\"stats\":{\"packet_count\":0,\n"
+      "\"byte_count\":0}},\n"
+      "{\"priority\":1,\n"
+      "\"idle_timeout\":4,\n"
+      "\"hard_timeout\":5,\n"
+      "\"check_overlap\":null,\n"
+      "\"cookie\":3,\n"
+      "\"actions\":[{\"write_actions\":\n"
+      "[{\"output\":1},\n"
+      "{\"group\":3},\n"
+      "{\"dl_src\":\"00:0c:29:7a:90:b3\"},\n"
+      "{\"encap\":{\"packet_type\":4,\n"
+      "\"properties\":[{\"port_name\":{\"port_flags\":5,\n"
+      "\"name\":\"hoge1\"}}]}},\n"
+      "{\"decap\":{\"cur_packet_type\":6,\n"
+      "\"new_packet_type\":7,\n"
+      "\"properties\":[{\"port_name\":{\"port_flags\":8,\n"
+      "\"name\":\"hoge2\"}}]}}]}],\n"
+      "\"stats\":{\"packet_count\":0,\n"
+      "\"byte_count\":0}}]}]}";
 
   /* group_mod */
   create_buckets(&bucket_list);

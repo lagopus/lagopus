@@ -97,7 +97,7 @@ match_basic(const struct lagopus_packet *pkt, struct flow *flow) {
   if (unlikely(pkt->ether_type == ETHERTYPE_IPV6)) {
     max = MAX_BASE;
   } else {
-    max = V6EXT_BASE;
+    max = OOB2_BASE + 1;
   }
   for (i = 0; i < max; i++) {
     match = &flow->byteoff_match[i];
@@ -163,7 +163,7 @@ destroy_flowinfo_basic(struct flowinfo *self) {
   free(self);
 }
 
-#define BYTEBITS(bytes, off) ((uint64_t)((1 << (bytes)) - 1) << off)
+#define BYTEBITS(bytes, off) ((uint64_t)((1 << (bytes)) - 1) << (off))
 #define BYTEPTR(base, off) (&byteoff[base].bytes[off])
 #define MASKPTR(base, off) (&byteoff[base].masks[off])
 
@@ -209,7 +209,8 @@ flow_make_match(struct flow *flow) {
 
       case FIELD(OFPXMT_OFB_VLAN_VID): {
         uint8_t val8[2];
-        int off = offsetof(struct oob_data, vlan_tci);
+        const int off = offsetof(struct oob_data, vlan_tci);
+
         byteoff[OOB_BASE].bits |= (uint32_t)BYTEBITS(2, off);
         memcpy(val8, match->oxm_value, 2);
         BYTEPTR(OOB_BASE, off)[0] &= 0xe0;
@@ -222,7 +223,8 @@ flow_make_match(struct flow *flow) {
 
       case FIELD_WITH_MASK(OFPXMT_OFB_VLAN_VID): {
         uint8_t val8[4];
-        int off = offsetof(struct oob_data, vlan_tci);
+        const int off = offsetof(struct oob_data, vlan_tci);
+
         byteoff[OOB_BASE].bits |= (uint32_t)BYTEBITS(2, off);
         memcpy(val8, match->oxm_value, 4);
         BYTEPTR(OOB_BASE, off)[0] &= 0xe0;
@@ -235,7 +237,8 @@ flow_make_match(struct flow *flow) {
       break;
 
       case FIELD(OFPXMT_OFB_VLAN_PCP): {
-        int off = offsetof(struct oob_data, vlan_tci);
+        const int off = offsetof(struct oob_data, vlan_tci);
+
         byteoff[OOB_BASE].bits |= (uint32_t)BYTEBITS(1, off);
         BYTEPTR(OOB_BASE, off)[0] &= 0x1f;
         BYTEPTR(OOB_BASE, off)[0] |= (uint8_t)(match->oxm_value[0] << 5);
@@ -303,21 +306,19 @@ flow_make_match(struct flow *flow) {
 
       MAKE_BYTE(OFPXMT_OFB_PBB_ISID, pbb_hdr, i_sid, PBB_BASE);
       MAKE_BYTE_W(OFPXMT_OFB_PBB_ISID, pbb_hdr, i_sid, PBB_BASE);
-#if 0
-      MAKE_BYTE(OFPXMT_OFB_PBB_UCA, pbb_hdr, ..., PBB_BASE);
-#endif
 
       /* TUNNEL_ID and IPV6_EXTHDR as metadata */
-      MAKE_BYTE(OFPXMT_OFB_TUNNEL_ID, oob_data, tunnel_id, OOB_BASE);
-      MAKE_BYTE_W(OFPXMT_OFB_TUNNEL_ID, oob_data, tunnel_id, OOB_BASE);
-      MAKE_BYTEOFF(OFPXMT_OFB_IPV6_EXTHDR, 0, V6EXT_BASE);
-      MAKE_BYTEOFF_W(OFPXMT_OFB_IPV6_EXTHDR, 0, V6EXT_BASE);
+      MAKE_BYTE(OFPXMT_OFB_TUNNEL_ID, oob2_data, tunnel_id, OOB2_BASE);
+      MAKE_BYTE_W(OFPXMT_OFB_TUNNEL_ID, oob2_data, tunnel_id, OOB2_BASE);
+      MAKE_BYTE(OFPXMT_OFB_IPV6_EXTHDR, oob2_data, ipv6_exthdr, OOB2_BASE);
+      MAKE_BYTE_W(OFPXMT_OFB_IPV6_EXTHDR, oob2_data, ipv6_exthdr, OOB2_BASE);
 
       case FIELD(OFPXMT_OFB_IP_DSCP):
         /* 6bit */
         if (l3_ether_type == ETHERTYPE_IPV6) {
           uint8_t val;
-          int off = 0;
+          const int off = 0;
+
           byteoff[L3_BASE].bits |= (uint32_t)BYTEBITS(2, off);
           memcpy(&val, match->oxm_value, 1);
           BYTEPTR(L3_BASE, off)[0] &= 0xf0;
@@ -328,7 +329,8 @@ flow_make_match(struct flow *flow) {
           MASKPTR(L3_BASE, off)[1] |= 0xc0;
         } else {
           uint8_t val;
-          int off = offsetof(struct ip, ip_tos);
+          const int off = offsetof(struct ip, ip_tos);
+
           byteoff[L3_BASE].bits |= (uint32_t)BYTEBITS(1, off);
           memcpy(&val, match->oxm_value, 1);
           BYTEPTR(L3_BASE, off)[0] &= 0x03;
@@ -340,7 +342,8 @@ flow_make_match(struct flow *flow) {
         /* 2bit */
         if (l3_ether_type == ETHERTYPE_IPV6) {
           uint8_t val;
-          int off = 1;
+          const int off = 1;
+
           byteoff[L3_BASE].bits |= (uint32_t)BYTEBITS(1, off);
           memcpy(&val, match->oxm_value, 1);
           BYTEPTR(L3_BASE, off)[0] &= 0xcf;
@@ -348,7 +351,8 @@ flow_make_match(struct flow *flow) {
           MASKPTR(L3_BASE, off)[0] |= 0x30;
         } else {
           uint8_t val;
-          int off = offsetof(struct ip, ip_tos);
+          const int off = offsetof(struct ip, ip_tos);
+
           byteoff[L3_BASE].bits |= (uint32_t)BYTEBITS(1, off);
           memcpy(&val, match->oxm_value, 1);
           BYTEPTR(L3_BASE, off)[0] &= 0xfc;
@@ -361,7 +365,8 @@ flow_make_match(struct flow *flow) {
         /* 20bit */
       {
         uint8_t val8[4];
-        int off = 1;
+        const int off = 1;
+
         byteoff[L3_BASE].bits |= (uint32_t)BYTEBITS(3, off);
         memcpy(val8, match->oxm_value, match->oxm_length);
         BYTEPTR(L3_BASE, off)[0] &= 0xf0;
@@ -378,7 +383,8 @@ flow_make_match(struct flow *flow) {
         /* 20bit */
       {
         uint8_t val8[4];
-        int off = 1;
+        const int off = 1;
+
         byteoff[L3_BASE].bits |= (uint32_t)BYTEBITS(3, off);
         memcpy(val8, match->oxm_value, 4);
         BYTEPTR(L3_BASE, off)[0] &= 0xf0;
@@ -400,7 +406,8 @@ flow_make_match(struct flow *flow) {
           uint32_t val32;
           uint8_t val8[4];
         } val;
-        int off = 0;
+        const int off = 0;
+
         byteoff[MPLS_BASE].bits |= (uint32_t)BYTEBITS(3, off);
         memcpy(&val, match->oxm_value, 4);
         val.val32 = ntohl(val.val32) << 12;
@@ -419,7 +426,8 @@ flow_make_match(struct flow *flow) {
         /* 3bit */
       {
         uint8_t val;
-        int off = 2;
+        const int off = 2;
+
         byteoff[MPLS_BASE].bits |= (uint32_t)BYTEBITS(1, off);
         memcpy(&val, match->oxm_value, 1);
         BYTEPTR(MPLS_BASE, off)[0] &= 0xf1;
@@ -432,7 +440,8 @@ flow_make_match(struct flow *flow) {
         /* 1bit */
       {
         uint8_t val;
-        int off = 2;
+        const int off = 2;
+
         byteoff[MPLS_BASE].bits |= (uint32_t)BYTEBITS(1, off);
         memcpy(&val, match->oxm_value, 1);
         BYTEPTR(MPLS_BASE, off)[0] &= 0xfe;
@@ -440,6 +449,127 @@ flow_make_match(struct flow *flow) {
         MASKPTR(MPLS_BASE, off)[0] |= 0x01;
       }
       break;
+
+#ifdef PBB_UCA_SUPPORT
+      case FIELD(OFPXMT_OFB_PBB_UCA):
+        /* 1bit */
+      {
+        uint8_t val;
+        const int off = offsetof(struct pbb_hdr, i_pcp_dei);
+
+        byteoff[PBB_BASE].bits |= (uint32_t)BYTEBITS(1, off);
+        memcpy(&val, match->oxm_value, 1);
+        BYTEPTR(PBB_BASE, off)[0] &= 0xf7;
+        BYTEPTR(PBB_BASE, off)[0] |= val << 3;
+        MASKPTR(PBB_BASE, off)[0] |= 0x08;
+      }
+      break;
+#endif /* PBB_UCA_SUPPORT */
+#ifdef GENERAL_TUNNEL_SUPPORT
+      MAKE_BYTE(OFPXMT_OFB_PACKET_TYPE, oob_data, packet_type, OOB_BASE);
+      MAKE_BYTE(OFPXMT_OFB_VXLAN_FLAGS, vxlanhdr, flags, L4P_BASE);
+      MAKE_BYTE_W(OFPXMT_OFB_VXLAN_FLAGS, vxlanhdr, flags, L4P_BASE);
+
+      case FIELD(OFPXMT_OFB_VXLAN_VNI):
+        /* 24bit */
+      {
+        const int off = offsetof(struct vxlanhdr, vni);
+
+        byteoff[L4P_BASE].bits |= (uint32_t)BYTEBITS(3, off);
+        memcpy(BYTEPTR(MPLS_BASE, off), match->oxm_value, 3);
+        MASKPTR(L4P_BASE, off)[0] = 0xff;
+        MASKPTR(L4P_BASE, off)[1] = 0xff;
+        MASKPTR(L4P_BASE, off)[2] = 0xff;
+      }
+      break;
+
+      case FIELD(OFPXMT_OFB_GRE_FLAGS):
+        /* 13bit */
+      {
+        uint16_t val;
+        const int off = offsetof(struct gre_hdr, flags);
+
+        byteoff[L4_BASE].bits |= (uint32_t)BYTEBITS(2, off);
+        memcpy(&val, match->oxm_value, 2);
+        BYTEPTR(L4_BASE, off)[0] = val >> 5;
+        MASKPTR(L4_BASE, off)[0] = 0xff;
+        BYTEPTR(L4_BASE, off)[1] &= 0x07;
+        BYTEPTR(L4_BASE, off)[1] |= (val << 3) & 0xff;
+        MASKPTR(L4_BASE, off)[1] |= 0xf8;
+      }
+        break;
+
+      case FIELD_WITH_MASK(OFPXMT_OFB_GRE_FLAGS):
+        /* 13bit */
+      {
+        uint16_t val;
+        uint16_t mask;
+        const int off = offsetof(struct gre_hdr, flags);
+
+        memcpy(&val, match->oxm_value, 2);
+        memcpy(&mask, match->oxm_value + 2, 2);
+        byteoff[L4_BASE].bits |= (uint32_t)BYTEBITS(2, off);
+        BYTEPTR(L4_BASE, off)[0] |= val >> 5;
+        BYTEPTR(L4_BASE, off)[1] |= (val << 3) & 0xff;
+        MASKPTR(L4_BASE, off)[0] |= mask >> 5;
+        MASKPTR(L4_BASE, off)[1] |= (mask << 3) & 0xff;
+      }
+        break;
+
+      case FIELD(OFPXMT_OFB_GRE_VER):
+        /* 3bit, lower of flags */
+      {
+        uint8_t val;
+        const int off = offsetof(struct gre_hdr, flags);
+
+        byteoff[L4_BASE].bits |= (uint32_t)BYTEBITS(2, off);
+        memcpy(&val, match->oxm_value, 1);
+        BYTEPTR(L4_BASE, off)[1] &= 0xf8;
+        BYTEPTR(L4_BASE, off)[1] |= val;
+        MASKPTR(L4_BASE, off)[1] |= 0x07;
+      }
+        break;
+
+      MAKE_BYTE(OFPXMT_OFB_GRE_PROTOCOL, gre_hdr, ptype, L4_BASE);
+      MAKE_BYTE(OFPXMT_OFB_GRE_KEY, gre_hdr, key, L4_BASE);
+      MAKE_BYTE_W(OFPXMT_OFB_GRE_KEY, gre_hdr, key, L4_BASE);
+#if 0
+      MAKE_BYTE(OFPXMT_OFB_GRE_SEQNUM, gre_hdr, seq_num, L4_BASE);
+#endif
+
+      case FIELD(OFPXMT_OFB_LISP_FLAGS):
+        break;
+
+      case FIELD(OFPXMT_OFB_LISP_NONCE):
+        break;
+
+      case FIELD(OFPXMT_OFB_LISP_ID):
+        break;
+
+      case FIELD(OFPXMT_OFB_MPLS_DATA_FIRST_NIBBLE):
+        break;
+
+      case FIELD(OFPXMT_OFB_MPLS_ACH_VERSION):
+        break;
+
+      case FIELD(OFPXMT_OFB_MPLS_ACH_CHANNEL):
+        break;
+
+      case FIELD(OFPXMT_OFB_MPLS_PW_METADATA):
+        break;
+
+      case FIELD(OFPXMT_OFB_MPLS_CW_FLAGS):
+        break;
+
+      case FIELD(OFPXMT_OFB_MPLS_CW_FRAG):
+        break;
+
+      case FIELD(OFPXMT_OFB_MPLS_CW_LEN):
+        break;
+
+      case FIELD(OFPXMT_OFB_MPLS_CW_SEQ_NUM):
+        break;
+#endif /* GENERAL_TUNNEL_SUPPORT */
 
       default:
         break;

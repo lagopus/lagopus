@@ -378,12 +378,16 @@ s_worker_create(lagopus_pipeline_worker_t *wptr,
          */
         (void)lagopus_thread_free_when_destroy((lagopus_thread_t *)&w);
         *wptr = w;
-      } else {
-        free((void *)w);
       }
     } else {
       ret = LAGOPUS_RESULT_NO_MEMORY;
     }
+
+    if (unlikely(ret != LAGOPUS_RESULT_OK)) {
+      free((void *)w);
+      free((void *)evbuf);
+    }
+
   } else {
     ret = LAGOPUS_RESULT_INVALID_ARGS;
   }

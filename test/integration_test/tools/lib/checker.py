@@ -17,23 +17,29 @@ from opt_parser import *
 from configurator import *
 
 
-def mk_out_dir(test_case_obj):
+def mk_out_dir(test_case_obj, opts):
     # out dir path.
-    module_path = os.path.abspath(sys.modules.get(
-        test_case_obj.__module__).__file__)
-    target_path = OPTS.target[0]
+    module_path = ""
+    if hasattr(test_case_obj, "__lagopus_yaml__"):
+        # yaml test case.
+        module_path = test_case_obj.__lagopus_yaml__
+    else:
+        # nose test case.
+        module_path = os.path.abspath(sys.modules.get(
+            test_case_obj.__module__).__file__)
+    target_path = opts.target[0]
     test_method = test_case_obj._testMethodName
 
     m = ""
-    if os.path.isfile(OPTS.target[0]):
+    if os.path.isfile(target_path):
         m = os.path.splitext(os.path.basename(module_path))[0]
-    elif os.path.isdir(OPTS.target[0]):
+    elif os.path.isdir(target_path):
         m = os.path.splitext(
             module_path.replace(target_path + os.sep, "", 1))[0]
     else:
-        usage()
+        opt_parser.usage()
 
-    out_dir = os.path.join(OPTS.out_dir, m, test_method)
+    out_dir = os.path.join(opts.out_dir, m, test_method)
     os.makedirs(out_dir)
 
     return out_dir
@@ -46,15 +52,17 @@ def checker_get_opts(test_case_obj):
 def checker_setup(test_case_obj, is_use_tester_sw=False):
     logging.info("checker setup.")
 
-    out_dir = mk_out_dir(test_case_obj)
+    ops = opt_parser.get_opts()
+    out_dir = mk_out_dir(test_case_obj, ops)
 
     # set opts.
     opts = {}
+    opts["test_home"] = ops.test_home
     opts["out_dir"] = out_dir
     opts["is_use_tester_sw"] = is_use_tester_sw
-    opts["ofp"] = {"port": CONFS.getint(CONF_SEC_OFP, CONF_PORT),
-                   "version": CONFS.getint(CONF_SEC_OFP, CONF_VERSION)}
-    opts["datastore"] = {"port": CONFS.getint(CONF_SEC_DS, CONF_PORT)}
+    opts["ofp"] = {"port": config_parser.getint(CONF_SEC_OFP, CONF_PORT),
+                   "version": config_parser.getint(CONF_SEC_OFP, CONF_VERSION)}
+    opts["datastore"] = {"port": config_parser.getint(CONF_SEC_DS, CONF_PORT)}
 
     secs = [CONF_SEC_TARGET_SW]
     if is_use_tester_sw:
@@ -63,11 +71,11 @@ def checker_setup(test_case_obj, is_use_tester_sw=False):
     opts["switches"] = {}
     for sec in secs:
         opts["switches"][sec] = {
-            "dpid": CONFS.getint(sec, CONF_DPID),
-            "host": CONFS.get(sec, CONF_HOST),
-            "lagopus": {"path": CONFS.get(sec, CONF_LAGOPUS_PATH),
-                        "dsl": CONFS.get(sec, CONF_LAGOPUS_DSL),
-                        "opts": CONFS.get(sec, CONF_LAGOPUS_OPTS),
+            "dpid": config_parser.getint(sec, CONF_DPID),
+            "host": config_parser.get(sec, CONF_HOST),
+            "lagopus": {"path": config_parser.get(sec, CONF_LAGOPUS_PATH),
+                        "dsl": config_parser.get(sec, CONF_LAGOPUS_DSL),
+                        "opts": config_parser.get(sec, CONF_LAGOPUS_OPTS),
                         "logdir": out_dir,
                         "logname": "lagopus.log"}}
 

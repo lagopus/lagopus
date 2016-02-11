@@ -112,6 +112,9 @@ add_flow_vlan_vid(struct flowinfo *self, struct flow *flow) {
       val = flowinfo;
       rv = lagopus_hashmap_add_no_lock(&self->hashmap, (void *)vlan_vid,
                                        (void *)&val, false);
+      if (rv != LAGOPUS_RESULT_OK) {
+        goto out;
+      }
     }
     rv = flowinfo->add_func(flowinfo, flow);
     /*match->except_flag = true;*/ /* XXX vid match with mask */
@@ -121,6 +124,7 @@ add_flow_vlan_vid(struct flowinfo *self, struct flow *flow) {
   if (rv == LAGOPUS_RESULT_OK) {
     self->nflow++;
   }
+out:
   return rv;
 }
 

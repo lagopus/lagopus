@@ -75,6 +75,7 @@ struct interface {
   struct port *port;
   uint8_t hw_addr[ETHER_ADDR_LEN];
   struct dp_tap_interface *tap;
+  struct interface **link_timer;
 };
 
 struct interface *dp_interface_alloc(void);

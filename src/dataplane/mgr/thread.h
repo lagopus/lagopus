@@ -19,8 +19,16 @@
  *      @brief  Dataplane common thread routines.
  */
 
-#ifndef SRC_INCLUDE_DATAPLANE_OFPROTO_THREAD_H_
-#define SRC_INCLUDE_DATAPLANE_OFPROTO_THREAD_H_
+#ifndef SRC_INCLUDE_DATAPLANE_MGR_THREAD_H_
+#define SRC_INCLUDE_DATAPLANE_MGR_THREAD_H_
+
+struct dataplane_arg {
+  lagopus_thread_t *threadptr;
+  lagopus_mutex_t *lock;
+  int argc;
+  char **argv;
+  bool *running;
+};
 
 void
 dp_finalproc(const lagopus_thread_t *t, bool is_canceled, void *arg);
@@ -44,4 +52,4 @@ dp_thread_shutdown(lagopus_thread_t *threadptr,
 lagopus_result_t
 dp_thread_stop(lagopus_thread_t *threadptr, bool *runptr);
 
-#endif /* SRC_INCLUDE_DATAPLANE_OFPROTO_THREAD_H_ */
+#endif /* SRC_INCLUDE_DATAPLANE_MGR_THREAD_H_ */

@@ -36,15 +36,36 @@ tearDown(void) {
 #define GROUP_LEN 0x08
 #define SET_FIELD_LEN 0x10
 #define ACT_LEN 0x08
+#define ENCAP_LEN 0x38
+#define DECAP_LEN 0x40
 
 static void
 create_data(struct action_list *action_list) {
   struct action *action;
+  struct ed_prop *ed_prop;
   struct ofp_action_output *act_output;
+  struct ofp_action_encap *act_encap;
+  struct ofp_action_decap *act_decap;
   struct ofp_action_group *act_group;
   struct ofp_action_set_field *act_set_field;
   uint8_t field[4] = {0x80, 0x00, 0x08, 0x06};
   uint8_t val[6] = {0x00, 0x0c, 0x29, 0x7a, 0x90, 0xb3};
+  struct ofp_ed_prop_portname props[] ={
+    {OFPPPT_PROP_PORT_NAME,
+     0x18,
+     OFPPPT_PROP_PORT_FLAGS_CREATE | OFPPPT_PROP_PORT_FLAGS_SET_INPORT,
+     {0x0, 0x0},
+     "hoge1"
+    },
+    {OFPPPT_PROP_PORT_NAME,
+     0x18,
+     OFPPPT_PROP_PORT_FLAGS_CREATE | OFPPPT_PROP_PORT_FLAGS_SET_INPORT,
+     {0x0, 0x0},
+     "hoge2"
+    }
+  };
+  int prop_num = 2;
+  int i;
 
   TAILQ_INIT(action_list);
 
@@ -56,6 +77,35 @@ create_data(struct action_list *action_list) {
   act_output->len = OUT_LEN;
   act_output->port = 0x100;
   act_output->max_len = 0x20;
+
+  /* ENCAP */
+  action = action_alloc(ENCAP_LEN);
+  TAILQ_INSERT_TAIL(action_list, action, entry);
+  act_encap = (struct ofp_action_encap *)&action->ofpat;
+  act_encap->type = OFPAT_ENCAP;
+  act_encap->len = ENCAP_LEN;
+  act_encap->packet_type = 0x01;
+  /* ed_prop */
+  for (i = 0; i < prop_num; i++) {
+    ed_prop = ed_prop_alloc();
+    TAILQ_INSERT_TAIL(&action->ed_prop_list, ed_prop, entry);
+    ed_prop->ofp_ed_prop_portname = props[i];
+  }
+
+  /* DECAP */
+  action = action_alloc(DECAP_LEN);
+  TAILQ_INSERT_TAIL(action_list, action, entry);
+  act_decap = (struct ofp_action_decap *)&action->ofpat;
+  act_decap->type = OFPAT_DECAP;
+  act_decap->len = DECAP_LEN;
+  act_decap->cur_pkt_type = 0x02;
+  act_decap->new_pkt_type = 0x03;
+  /* ed_prop */
+  for (i = 0; i < prop_num; i++) {
+    ed_prop = ed_prop_alloc();
+    TAILQ_INSERT_TAIL(&action->ed_prop_list, ed_prop, entry);
+    ed_prop->ofp_ed_prop_portname = props[i];
+  }
 
   /* GROUP */
   action = action_alloc(GROUP_LEN);
@@ -153,11 +203,33 @@ ofp_action_parse_wrap(struct channel *channel,
   struct action *action;
   struct ofp_action_output *act_output;
   struct ofp_action_group *act_group;
-  int i;
-  int action_num = 2;
+  struct ofp_action_encap *act_encap;
+  struct ofp_action_decap *act_decap;
+  struct ed_prop *ed_prop;
+  struct ofp_ed_prop_portname *p;
+  struct ofp_ed_prop_portname props[] ={
+    {OFPPPT_PROP_PORT_NAME,
+     0x18,
+     OFPPPT_PROP_PORT_FLAGS_CREATE | OFPPPT_PROP_PORT_FLAGS_SET_INPORT,
+     {0x0, 0x0},
+     "hoge1"
+    },
+    {OFPPPT_PROP_PORT_NAME,
+     0x18,
+     OFPPPT_PROP_PORT_FLAGS_CREATE | OFPPPT_PROP_PORT_FLAGS_SET_INPORT,
+     {0x0, 0x0},
+     "hoge2"
+    }
+  };
+  int i, j;
+  int action_num = 4;
+  int prop_num = 2;
   uint32_t port = 0x100;
   uint16_t max_len = 0x20;
   uint32_t group_id = 0x03;
+  uint32_t packet_type = 0x1;
+  uint32_t cur_pkt_type = 0x02;
+  uint32_t new_pkt_type = 0x03;
   (void) channel;
   (void) xid_header;
 
@@ -183,6 +255,56 @@ ofp_action_parse_wrap(struct channel *channel,
                                     "action max_len error.");
           break;
         case 1:
+          act_encap = (struct ofp_action_encap *) &action->ofpat;
+          TEST_ASSERT_EQUAL_MESSAGE(OFPAT_ENCAP, act_encap->type,
+                                    "action type error.");
+          TEST_ASSERT_EQUAL_MESSAGE(ENCAP_LEN, act_encap->len,
+                                    "action len error.");
+          TEST_ASSERT_EQUAL_MESSAGE(packet_type, act_encap->packet_type,
+                                    "packet type error.");
+          j = 0;
+          TAILQ_FOREACH(ed_prop, &action->ed_prop_list, entry) {
+            p = &ed_prop->ofp_ed_prop_portname;
+            TEST_ASSERT_EQUAL_MESSAGE(props[j].type, p->type,
+                                      "prop type error.");
+            TEST_ASSERT_EQUAL_MESSAGE(props[j].len, p->len,
+                                      "prop len error.");
+            TEST_ASSERT_EQUAL_MESSAGE(props[j].port_flags, p->port_flags,
+                                      "prop port flags error.");
+            TEST_ASSERT_EQUAL_MESSAGE(0, memcmp(props[j].name, p->name,
+                                                OFP_MAX_PORT_NAME_LEN),
+                                      "prop port name error.");
+            j++;
+          }
+          TEST_ASSERT_EQUAL_MESSAGE(prop_num, j, "prop length error.");
+          break;
+        case 2:
+          act_decap = (struct ofp_action_decap *) &action->ofpat;
+          TEST_ASSERT_EQUAL_MESSAGE(OFPAT_DECAP, act_decap->type,
+                                    "action type error.");
+          TEST_ASSERT_EQUAL_MESSAGE(DECAP_LEN, act_decap->len,
+                                    "action len error.");
+          TEST_ASSERT_EQUAL_MESSAGE(cur_pkt_type, act_decap->cur_pkt_type,
+                                    "cur packet type error.");
+          TEST_ASSERT_EQUAL_MESSAGE(new_pkt_type, act_decap->new_pkt_type,
+                                    "new packet type error.");
+          j = 0;
+          TAILQ_FOREACH(ed_prop, &action->ed_prop_list, entry) {
+            p = &ed_prop->ofp_ed_prop_portname;
+            TEST_ASSERT_EQUAL_MESSAGE(props[j].type, p->type,
+                                      "prop type error.");
+            TEST_ASSERT_EQUAL_MESSAGE(props[j].len, p->len,
+                                      "prop len error.");
+            TEST_ASSERT_EQUAL_MESSAGE(props[j].port_flags, p->port_flags,
+                                      "prop port flags error.");
+            TEST_ASSERT_EQUAL_MESSAGE(0, memcmp(props[j].name, p->name,
+                                                OFP_MAX_PORT_NAME_LEN),
+                                      "prop port name error.");
+            j++;
+          }
+          TEST_ASSERT_EQUAL_MESSAGE(prop_num, j, "prop length error.");
+          break;
+        case 3:
           act_group = (struct ofp_action_group *) &action->ofpat;
           TEST_ASSERT_EQUAL_MESSAGE(OFPAT_GROUP, act_group->type,
                                     "action type error.");
@@ -207,26 +329,101 @@ void
 test_ofp_action_parse_normal_pattern(void) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
 
-  action_len = (size_t) (OUT_LEN + GROUP_LEN);
+  action_len = (size_t) (OUT_LEN + GROUP_LEN + ENCAP_LEN + DECAP_LEN);
   ret = check_packet_parse(ofp_action_parse_wrap,
-                           "00 00 00 10"
-                           /* <----------... struct ofp_action_output
-                            * <---> type : OFPAT_OUTPUT
-                            *       <---> len : 16
-                            */
+                          "00 00 00 10"
+                        /* <----------... struct ofp_action_output
+                         * <---> type : OFPAT_OUTPUT
+                         *       <---> len : 16
+                         */
                            "00 00 01 00 00 20"
-                           /* <------> port : 1
-                            *          <------> max_len : 32
-                            */
+                        /* <------> port : 1
+                         *          <------> max_len : 32
+                         */
                            "00 00 00 00 00 00"
-                           /* <---------------> pad[6]
-                            */
-                           "00 16 00 08 00 00 00 03");
-  /* <----------------------> struct ofp_action_group
-   * <----> type : OFPAT_GROUP
-   *       <----> len : 8
-   *              <---------> group_id : 3
-   */
+                         /* <---------------> pad[6]
+                         */
+                           "00 1C 00 38"
+                         /* <----------... struct ofp_action_encap
+                            <---> type
+                                  <---> len
+                          */
+                           "00 00 00 01"
+                         /* <---------> packet_type
+                          */
+                           "00 01 00 18"
+                         /* <----------... struct ofp_ed_prop_portname[0]
+                            <---> type
+                                  <---> len
+                          */
+                           "00 03 00 00"
+                         /* <---> port_flags
+                                  <---> pad[2]
+                          */
+                           "68 6f 67 65 31 00 00 00"
+                           "00 00 00 00 00 00 00 00"
+                         /* <---------------------> name
+                          */
+                           "00 01 00 18"
+                         /* <----------... struct ofp_ed_prop_portname[1]
+                            <---> type
+                                  <---> len
+                          */
+                           "00 03 00 00"
+                         /* <---> port_flags
+                                  <---> pad[2]
+                          */
+                           "68 6f 67 65 32 00 00 00"
+                           "00 00 00 00 00 00 00 00"
+                         /* <---------------------> name
+                          */
+                           "00 1D 00 40"
+                         /* <----------... struct ofp_action_decap
+                            <---> type
+                                  <---> len
+                          */
+                           "00 00 00 02"
+                         /* <---------> cur_pkt_type
+                          */
+                           "00 00 00 03"
+                         /* <---------> new_pkt_type
+                          */
+                           "00 00 00 00"
+                         /* <---------> pad[4]
+                          */
+                           "00 01 00 18"
+                         /* <----------... struct ofp_ed_prop_portname[0]
+                            <---> type
+                                  <---> len
+                          */
+                           "00 03 00 00"
+                         /* <---> port_flags
+                                  <---> pad[2]
+                          */
+                           "68 6f 67 65 31 00 00 00"
+                           "00 00 00 00 00 00 00 00"
+                         /* <---------------------> name
+                          */
+                           "00 01 00 18"
+                         /* <----------... struct ofp_ed_prop_portname[1]
+                            <---> type
+                                  <---> len
+                          */
+                           "00 03 00 00"
+                         /* <---> port_flags
+                                  <---> pad[2]
+                          */
+                           "68 6f 67 65 32 00 00 00"
+                           "00 00 00 00 00 00 00 00"
+                         /* <---------------------> name
+                          */
+                           "00 16 00 08 00 00 00 03"
+                         /* <----------------------> struct ofp_action_group
+                          * <----> type : OFPAT_GROUP
+                          *       <----> len : 8
+                          *              <---------> group_id : 3
+                          */
+                           );
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, ret,
                             "ofp_action_parse(normal) error.");
 }
@@ -354,17 +551,20 @@ ofp_action_list_encode_wrap(struct channel *channel,
   struct action_list action_list;
   lagopus_result_t ret;
   uint16_t total_length;
+  uint16_t length;
   (void) channel;
   (void) xid_header;
 
   create_data(&action_list);
-  *pbuf = pbuf_alloc(OUT_LEN + GROUP_LEN + SET_FIELD_LEN);
-  (*pbuf)->plen = OUT_LEN + GROUP_LEN + SET_FIELD_LEN;
+  length = OUT_LEN + GROUP_LEN + SET_FIELD_LEN + ENCAP_LEN + DECAP_LEN;
+  *pbuf = pbuf_alloc(length);
+  (*pbuf)->plen = length;
 
   ret = ofp_action_list_encode(NULL, pbuf, &action_list,
                                &total_length);
 
-  TEST_ASSERT_EQUAL_MESSAGE(OUT_LEN + GROUP_LEN + SET_FIELD_LEN, total_length,
+  TEST_ASSERT_EQUAL_MESSAGE(length,
+                            total_length,
                             "action length error.");
 
   /* after. */
@@ -379,39 +579,117 @@ test_ofp_action_list_encode(void) {
 
   ret = check_packet_create(ofp_action_list_encode_wrap,
                             "00 00 00 10"
-                            /* <----------... struct ofp_action_output
-                             * <---> type : OFPAT_OUTPUT
-                             *       <---> len : 16
-                             */
+                          /* <----------... struct ofp_action_output
+                           * <---> type : OFPAT_OUTPUT
+                           *       <---> len : 16
+                           */
                             "00 00 01 00 00 20"
-                            /* <------> port : 1
-                             *          <------> max_len : 32
-                             */
+                          /* <------> port : 1
+                           *          <------> max_len : 32
+                           */
                             "00 00 00 00 00 00"
-                            /* <---------------> pad[6]
-                             */
+                          /* <---------------> pad[6]
+                           */
+                            "00 1C 00 38"
+                          /* <----------... struct ofp_action_encap
+                             <---> type
+                                   <---> len
+                           */
+                            "00 00 00 01"
+                          /* <---------> packet_type
+                           */
+                            "00 01 00 18"
+                          /* <----------... struct ofp_ed_prop_portname[0]
+                             <---> type
+                                   <---> len
+                           */
+                            "00 03 00 00"
+                          /* <---> port_flags
+                                   <---> pad[2]
+                           */
+                            "68 6f 67 65 31 00 00 00"
+                            "00 00 00 00 00 00 00 00"
+                          /* <---------------------> name
+                           */
+                            "00 01 00 18"
+                          /* <----------... struct ofp_ed_prop_portname[1]
+                             <---> type
+                                   <---> len
+                           */
+                            "00 03 00 00"
+                          /* <---> port_flags
+                                   <---> pad[2]
+                           */
+                            "68 6f 67 65 32 00 00 00"
+                            "00 00 00 00 00 00 00 00"
+                          /* <---------------------> name
+                           */
+
+                           "00 1D 00 40"
+                         /* <----------... struct ofp_action_decap
+                            <---> type
+                                  <---> len
+                          */
+                           "00 00 00 02"
+                         /* <---------> cur_pkt_type
+                          */
+                           "00 00 00 03"
+                         /* <---------> new_pkt_type
+                          */
+                           "00 00 00 00"
+                         /* <---------> pad[4]
+                          */
+                           "00 01 00 18"
+                         /* <----------... struct ofp_ed_prop_portname[0]
+                            <---> type
+                                  <---> len
+                          */
+                           "00 03 00 00"
+                         /* <---> port_flags
+                                  <---> pad[2]
+                          */
+                           "68 6f 67 65 31 00 00 00"
+                           "00 00 00 00 00 00 00 00"
+                         /* <---------------------> name
+                          */
+                           "00 01 00 18"
+                         /* <----------... struct ofp_ed_prop_portname[1]
+                            <---> type
+                                  <---> len
+                          */
+                           "00 03 00 00"
+                         /* <---> port_flags
+                                  <---> pad[2]
+                          */
+                           "68 6f 67 65 32 00 00 00"
+                           "00 00 00 00 00 00 00 00"
+                         /* <---------------------> name
+                          */
+
                             "00 16 00 08 00 00 00 03"
-                            /* <----------------------> struct ofp_action_group
-                             * <----> type : OFPAT_GROUP
-                             *       <----> len : 8
-                             *              <---------> group_id : 3
-                             */
+                          /* <----------------------> struct ofp_action_group
+                           * <----> type : OFPAT_GROUP
+                           *       <----> len : 8
+                           *              <---------> group_id : 3
+                           */
                             "00 19 00 10 80 00 08 06"
-                            /* <---------------------->
-                             *      struct ofp_action_set_field
-                             * <----> type : OFPAT_SET_FIELD
-                             *       <----> len : 16
-                             *             <-----------... oxm
-                             *             <---> oxm_class : OFPXMC_OPENFLOW_BASIC
-                             *                   <> oxm field
-                             *                         (OFPXMT_OFB_ETH_DST) +
-                             *                         oxm_hasmask(0)
-                             *                      <> oxm_length : 6
-                             */
-                            "00 0c 29 7a 90 b3 00 00");
-  /* <---------------> oxm_data
-   *                   <---> padding
-   */
+                          /* <---------------------->
+                           *      struct ofp_action_set_field
+                           * <----> type : OFPAT_SET_FIELD
+                           *       <----> len : 16
+                           *             <-----------... oxm
+                           *             <---> oxm_class : OFPXMC_OPENFLOW_BASIC
+                           *                   <> oxm field
+                           *                         (OFPXMT_OFB_ETH_DST) +
+                           *                         oxm_hasmask(0)
+                           *                      <> oxm_length : 6
+                           */
+                            "00 0c 29 7a 90 b3 00 00"
+                          /* <---------------> oxm_data
+                           *                   <---> padding
+                           */
+                            );
+
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, ret,
                             "ofp_action_list_encode(normal) error.");
 }

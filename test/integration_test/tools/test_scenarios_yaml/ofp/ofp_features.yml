@@ -1,0 +1,26 @@
+lagopus_dsl:
+  file: "{{ test_home }}/test_scenarios_yaml/ofp/ofp.dsl"
+  sw: target # target switch.
+
+#setup:
+
+#teardown:
+
+testcases:
+  - testcase: features
+    test:
+      - repetition_count: 1
+        cmds:
+          # ofp: send FeaturesRequest.
+          - cmd_type: ofp_send
+            cmd:
+              features_request:
+          # ofp: recv FeaturesReply.
+          - cmd_type: ofp_recv
+            result:
+              features_reply:
+                datapath_id: 0x1
+                n_buffers: 65535
+                n_tables: 255
+                auxiliary_id: 0
+                capabilities: 0x4f

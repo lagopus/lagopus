@@ -202,7 +202,7 @@
 
 /* Bursts */
 #ifndef APP_MBUF_ARRAY_SIZE
-#define APP_MBUF_ARRAY_SIZE   512
+#define APP_MBUF_ARRAY_SIZE   1024
 #endif
 
 #ifndef APP_DEFAULT_BURST_SIZE_IO_RX_READ
@@ -260,10 +260,11 @@
 #define NIC_RX_QUEUE_CONFIGURED   2
 
 struct flowcache;
+struct interface;
 
 struct app_mbuf_array {
-  struct rte_mbuf *array[APP_MBUF_ARRAY_SIZE];
   uint32_t n_mbufs;
+  struct rte_mbuf *array[APP_MBUF_ARRAY_SIZE];
 };
 
 enum app_lcore_type {
@@ -435,6 +436,6 @@ void clear_worker_flowcache(bool);
 bool is_rawsocket_only_mode(void);
 bool set_rawsocket_only_mode(bool newval);
 
-void dpdk_update_link_status(struct app_lcore_params_io *lp);
+struct interface *dpdk_interface_lookup(uint8_t portid);
 
 #endif /* SRC_DATAPLANE_DPDK_DPDK_H_ */

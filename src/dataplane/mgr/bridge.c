@@ -260,6 +260,11 @@ bridge_do_ports_free_iterate(void *key, void *val,
                              lagopus_hashentry_t he, void *arg) {
   struct port *port;
 
+  (void) key;
+  (void) val;
+  (void) he;
+  (void) arg;
+
   port = val;
   port->bridge = NULL;
   return true;
@@ -271,7 +276,6 @@ bridge_do_ports_free_iterate(void *key, void *val,
 void
 bridge_free(struct bridge *bridge) {
   if (bridge->ports != NULL) {
-    struct port *port;
 
     lagopus_hashmap_iterate(&bridge->ports,
                             bridge_do_ports_free_iterate,
@@ -374,7 +378,7 @@ get_macentry(void *key, void *val, lagopus_hashentry_t he, void *arg) {
   (void) he;
   (void) key;
 
-  if (val != NULL || ma->no < ma->num) {
+  if (entry != NULL && (val != NULL || ma->no < ma->num)) {
     entries[ma->no].inteth = entry->inteth;
     entries[ma->no].portid = entry->portid;
     entries[ma->no].update_time = entry->update_time;

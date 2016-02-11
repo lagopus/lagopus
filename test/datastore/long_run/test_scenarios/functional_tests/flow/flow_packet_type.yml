@@ -1,0 +1,84 @@
+use:
+  - lagopus
+
+setup:
+  - repetition_count: 1
+    cmds:
+      - cmd_type: ds
+        cmd: log -debuglevel 10000
+        result: '{"ret": "OK"}'
+      - cmd_type: ds
+        cmd: destroy-all-obj
+        result: '{"ret": "OK"}'
+      - cmd_type: shell
+        cmd: "{{ shell_dir }}/dummy_eth_up.sh lago_eth 2"
+        result: "0"
+
+teardown:
+  - repetition_count: 1
+    cmds:
+      - cmd_type: ds
+        cmd: destroy-all-obj
+        result: '{"ret": "OK"}'
+      - cmd_type: shell
+        cmd: "{{ shell_dir }}/dummy_eth_down.sh lago_eth 2"
+        result: "0"
+
+testcases:
+  - testcase: packet_type (match)
+    test:
+      - repetition_count: 1
+        cmds:
+          # load
+          - cmd_type: ds
+            cmd: load {{ test_home  }}/test_scenarios/functional_tests/flow/flow.dsl
+            result: '{"ret": "OK"}'
+          # add flow
+          - cmd_type: ds
+            cmd: >-
+               flow bridge01 add
+               packet_type=1
+            result: '{"ret":"OK"}'
+          # dump flow
+          - cmd_type: ds
+            cmd: flow
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":":bridge01",
+              "tables":[{"table":0,
+              "flows":[{"priority":0,
+              "idle_timeout":0,
+              "hard_timeout":0,
+              "cookie":0,
+              "packet_type":1,
+              "actions":[]}]}]}]}
+  - testcase: packet_type (set_field)
+    test:
+      - repetition_count: 1
+        cmds:
+          # load
+          - cmd_type: ds
+            cmd: load {{ test_home  }}/test_scenarios/functional_tests/flow/flow.dsl
+            result: '{"ret": "OK"}'
+          # add flow
+          - cmd_type: ds
+            cmd: >-
+               flow bridge01 add
+               in_port=0
+               apply_actions=packet_type:1
+            result: '{"ret":"OK"}'
+          # dump flow
+          - cmd_type: ds
+            cmd: flow
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":":bridge01",
+              "tables":[{"table":0,
+              "flows":[{"priority":0,
+              "idle_timeout":0,
+              "hard_timeout":0,
+              "cookie":0,
+              "in_port":0,
+              "actions":[{
+              "apply_actions":[
+              {"packet_type":1}]}]}]}]}]}

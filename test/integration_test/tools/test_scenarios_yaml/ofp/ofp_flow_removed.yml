@@ -1,0 +1,59 @@
+lagopus_dsl:
+  file: "{{ test_home }}/test_scenarios_yaml/ofp/ofp.dsl"
+  sw: target # target switch.
+
+#setup:
+
+#teardown:
+
+testcases:
+  - testcase: flow removed
+    test:
+      - repetition_count: 1
+        cmds:
+          # ofp: send FlowMod.
+          - cmd_type: ofp_send
+            cmd:
+              flow_mod:
+                cookie: 0
+                priority: 10
+                idle_timeout: 0
+                hard_timeout: 1
+                flags: 0x1
+                match:
+                  in_port: 1
+                  eth_dst: "ff:ff:ff:ff:ff:ff"
+                instructions:
+                  - write_metadata:
+                      metadata: 123
+                      metadata_mask: 0
+                  - apply_actions:
+                      actions:
+                        - set_nw_ttl:
+                            nw_ttl: 1
+                        - output:
+                            port: 0xfffffffa # OFPP_NORMAL
+          # ofp: recv FlowRemoved.
+          - cmd_type: ofp_recv
+            result:
+              flow_removed:
+                cookie: 0
+                priority: 10
+                reason: 1
+                table_id: 0
+                idle_timeout: 0
+                hard_timeout: 1
+                packet_count: 0
+                byte_count: 0
+                match:
+                  in_port: 1
+                  eth_dst: "ff:ff:ff:ff:ff:ff"
+          # ds: check flow command.
+          - cmd_type: ds
+            cmd: flow
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":":bridge01",
+              "tables":[{
+              "flows":[],
+              "table":0}]}]}

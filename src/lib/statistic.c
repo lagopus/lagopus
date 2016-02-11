@@ -136,13 +136,16 @@ s_create_stat(lagopus_statistic_t *sptr, const char *name) {
          s->m_name = m_name;
          s_reset_stat(s);
          *sptr = s;
-     } else {
-        free((void *)s);
-        free((void *)m_name);
       }
     } else {
       ret = LAGOPUS_RESULT_NO_MEMORY;
     }
+
+    if (unlikely(ret != LAGOPUS_RESULT_OK)) {
+      free((void *)s);
+      free((void *)m_name);
+    }
+
   } else {
     ret = LAGOPUS_RESULT_INVALID_ARGS;
   }
@@ -215,8 +218,6 @@ s_record_stat(lagopus_statistic_t s, int64_t val) {
    */
 
   if (likely(s != NULL)) {
-    int64_t old_min;
-    int64_t old_max;
     int64_t sum2;
 
     sum2 = val * val;

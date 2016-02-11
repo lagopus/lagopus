@@ -34,7 +34,7 @@ tearDown(void) {
 void
 test_ofp_oxm_field_check_normal_pattern(void) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
-  uint8_t oxm_field = (OFPXMT_OFB_IPV6_EXTHDR << 1) + 0x01;
+  uint8_t oxm_field = (OFPXMT_OFB_MPLS_CW_SEQ_NUM << 1) + 0x01;
 
   ret = ofp_oxm_field_check(oxm_field);
 
@@ -45,7 +45,7 @@ test_ofp_oxm_field_check_normal_pattern(void) {
 void
 test_ofp_oxm_field_check_bad_field(void) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
-  uint8_t oxm_field = ((OFPXMT_OFB_IPV6_EXTHDR + 1) << 1) + 0x01;
+  uint8_t oxm_field = ((OFPXMT_OFB_MPLS_CW_SEQ_NUM + 1) << 1) + 0x01;
 
   ret = ofp_oxm_field_check(oxm_field);
 

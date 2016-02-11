@@ -294,12 +294,16 @@ add_flow_metadata(struct flowinfo *self, struct flow *flow) {
       val = flowinfo;
       rv = lagopus_hashmap_add_no_lock(&self->hashmap, (void *)metadata,
                                        (void *)&val, false);
+      if (rv != LAGOPUS_RESULT_OK) {
+        goto out;
+      }
     }
     rv = flowinfo->add_func(flowinfo, flow);
     if (rv == LAGOPUS_RESULT_OK) {
       self->nflow++;
     }
   }
+out:
   return rv;
 }
 
@@ -315,7 +319,7 @@ del_flow_metadata(struct flowinfo *self, struct flow *flow) {
     rv = lagopus_hashmap_find_no_lock(&self->hashmap, (void *)metadata,
                                       (void *)&flowinfo);
     if (rv == LAGOPUS_RESULT_OK) {
-      flowinfo->del_func(flowinfo, flow);
+      rv = flowinfo->del_func(flowinfo, flow);
     }
     if (rv == LAGOPUS_RESULT_OK) {
       self->nflow--;
