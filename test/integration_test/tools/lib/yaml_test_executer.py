@@ -54,7 +54,7 @@ class CmdExecuter:
 
     def execute_ofp_send(self, dpid, cmd, result, timeout):
         dp = ofp_checker_get_dp(dpid)
-        ofp_type_str = cmd.keys()[0]
+        ofp_type_str = list(cmd.keys())[0]
         # create ofp obj.
         msg = ofp_creators[ofp_type_str].create(self, dp, dp.ofproto,
                                                 dp.ofproto_parser,
@@ -64,7 +64,7 @@ class CmdExecuter:
 
     def execute_ofp_recv(self, dpid, cmd, result, timeout):
         dp = ofp_checker_get_dp(dpid)
-        ofp_type_str = result.keys()[0]
+        ofp_type_str = list(result.keys())[0]
         # create ofp obj.
         msg = ofp_creators[ofp_type_str].create(self, dp, dp.ofproto,
                                                 dp.ofproto_parser,

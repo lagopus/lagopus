@@ -1,6 +1,6 @@
 import os
 import sys
-import ConfigParser
+from six.moves import configparser
 
 # const.
 # config items.
@@ -21,4 +21,4 @@ CONF_PORT = "port"
 CONF_VERSION = "version"
 
 # config parser obj.
-config_parser = ConfigParser.SafeConfigParser()
+config_parser = configparser.SafeConfigParser()

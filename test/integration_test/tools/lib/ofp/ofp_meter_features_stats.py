@@ -4,11 +4,11 @@ import copy
 import logging
 
 from checker import *
-from ofp import register_ofp_creators
-from ofp import OfpBase
-from ofp_bucket import SCE_BUCKETS
-from ofp_bucket import OfpBucketCreator
-from utils import get_attrs_without_len
+from .ofp import register_ofp_creators
+from .ofp import OfpBase
+from .ofp_bucket import SCE_BUCKETS
+from .ofp_bucket import OfpBucketCreator
+from .utils import get_attrs_without_len
 
 # YAML:
 # - meter_features_stats:

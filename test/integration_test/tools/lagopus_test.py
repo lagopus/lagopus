@@ -3,6 +3,7 @@
 import os
 import os.path
 import sys
+import six
 import nose
 import logging
 import datetime
@@ -25,11 +26,11 @@ def check_schema_test(opts, file):
     try:
         c = Core(source_file=file, schema_files=[opts.yaml_schema])
         c.validate(raise_exception=True)
-    except SchemaError, e:
-        print "check schema: %-80s  ERROR" % file
+    except SchemaError as e:
+        six.print_("check schema: %-80s  ERROR" % file)
         raise
     else:
-        print "check schema: %-80s  OK" % file
+        six.print_("check schema: %-80s  OK" % file)
 
 
 def check_schema_tests(opts, dir):

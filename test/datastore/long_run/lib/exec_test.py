@@ -2,6 +2,7 @@
 
 import os
 import sys
+import six
 import json
 import logging
 import socket
@@ -187,7 +188,7 @@ class ExecTest(object):
 
     def write(self, f, string):
         f.write(string + "\n")
-        print string
+        six.print_(string)
 
     def exec_cmd(self, dsc, cmd):
         # get timeout.
@@ -251,7 +252,7 @@ class ExecTest(object):
 
                 # tests.
                 self.exec_tests(dsc, testcase[SCE_TEST])
-            except DataStoreTestError, e:
+            except DataStoreTestError as e:
                 # ERROR
                 err_str = "%s" % (e)
             except (socket.timeout, ShellCmdTimeOut):
@@ -299,7 +300,7 @@ class ExecTest(object):
 
     def run(self, scenario):
         os.makedirs(self.out_dir)
-        print "out dir: %s" % self.out_dir
+        six.print_("out dir: %s" % self.out_dir)
 
         with open(self.result_file, "w") as f:
             # run test.

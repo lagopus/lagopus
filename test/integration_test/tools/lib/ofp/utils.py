@@ -1,6 +1,7 @@
 import os
 import sys
 import re
+import base64
 from types import *
 
 
@@ -14,4 +15,8 @@ def create_section_name(name, del_str):
 
 def get_attrs_without_len(obj):
     return [k for k, v in obj.stringify_attrs_ori()
-            if k != "len" and k != "length"]
+            if k not in ["len", "length", "actions_len"]]
+
+
+def create_byte_data(data):
+    return base64.b16decode(data.replace(" ", "").upper())

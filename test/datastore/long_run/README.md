@@ -6,13 +6,13 @@ How To Run "log run tests"
 * Ubuntu 14.04
 
 ## Related packages
- * Python 2.7.6
+ * Python 2.7.6 or Python 3.4.3
  * pip
  * PyYAML 3.11
  * pykwalify 1.0.1
  * Jinja2 2.7.3
  * ryu 3.19
- * six 1.9.0         (for ryu)
+ * six 1.9.0
  * greenlet 0.4.5    (for ryu)
  * stevedore 1.3.0   (for ryu)
 

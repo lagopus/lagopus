@@ -49,7 +49,7 @@ void channel_mgr_finalize(void);
  */
 lagopus_result_t
 channel_mgr_channel_add(const char *bridge_name, uint64_t dpid,
-                        struct addrunion *addr);
+                        lagopus_ip_address_t *addr);
 
 
 /**
@@ -63,7 +63,7 @@ channel_mgr_channel_add(const char *bridge_name, uint64_t dpid,
  */
 lagopus_result_t
 channel_mgr_channel_tls_add(const char *bridge_name, uint64_t dpid,
-                            struct addrunion *addr);
+                            lagopus_ip_address_t *addr);
 
 
 /**
@@ -76,7 +76,8 @@ channel_mgr_channel_tls_add(const char *bridge_name, uint64_t dpid,
  *  @retval LAGOPUS_RESULT_OK Succeeded.
  */
 lagopus_result_t
-channel_mgr_channel_lookup(const char *bridge_name, struct addrunion *addr,
+channel_mgr_channel_lookup(const char *bridge_name,
+                           lagopus_ip_address_t *addr,
                            struct channel **channel);
 
 
@@ -89,7 +90,7 @@ channel_mgr_channel_lookup(const char *bridge_name, struct addrunion *addr,
  *  @retval LAGOPUS_RESULT_OK Succeeded.
  */
 lagopus_result_t
-channel_mgr_channel_delete(const char *bridge_name, struct addrunion *addr);
+channel_mgr_channel_delete(const char *bridge_name, lagopus_ip_address_t *addr);
 
 
 /**

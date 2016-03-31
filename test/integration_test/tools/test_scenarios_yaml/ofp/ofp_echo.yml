@@ -15,9 +15,9 @@ testcases:
           - cmd_type: ofp_send
             cmd:
               echo_request:
-                data: "01 23 45 67 89 AB CD EF" # Hex
+                data: "01 23 45 67 89 ab cd ef" # Hex
           # ofp: recv EchoReply.
           - cmd_type: ofp_recv
             result:
               echo_reply:
-                data: "01 23 45 67 89 AB CD EF" # Hex
+                data: "01 23 45 67 89 ab cd ef" # Hex

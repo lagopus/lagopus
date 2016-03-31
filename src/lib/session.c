@@ -522,72 +522,99 @@ session_accept(lagopus_session_t s1, lagopus_session_t *s2) {
 }
 
 lagopus_result_t
-session_bind(lagopus_session_t s, struct addrunion *saddr, uint16_t sport) {
+session_bind(lagopus_session_t s, lagopus_ip_address_t *saddr, uint16_t sport) {
+  lagopus_result_t r = LAGOPUS_RESULT_ANY_FAILURES;
+  char *addr = NULL;
   int ret;
-  char addr[256];
   char port[16];
 
   if (s == NULL || saddr == NULL || sport == 0) {
     lagopus_msg_warning("session is null.\n");
-    return LAGOPUS_RESULT_ANY_FAILURES;
+    r = LAGOPUS_RESULT_ANY_FAILURES;
+    goto done;
   }
 
-  inet_ntop(saddr->family, &saddr->addr4, addr, sizeof(addr));
+  if ((r = lagopus_ip_address_str_get(saddr, &addr) !=
+       LAGOPUS_RESULT_OK)) {
+    goto done;
+  }
+
   snprintf(port, sizeof(port), "%d", sport);
   ret = bind_default(s, addr, port);
   if (ret < 0) {
     lagopus_msg_warning("bind_default error.\n");
-    return LAGOPUS_RESULT_POSIX_API_ERROR;
+    r = LAGOPUS_RESULT_POSIX_API_ERROR;
+    goto done;
   }
 
   if (s->session_type & SESSION_PASSIVE) {
     ret = listen(s->sock, SOMAXCONN);
     if (ret < 0) {
-      return LAGOPUS_RESULT_POSIX_API_ERROR;
+      r = LAGOPUS_RESULT_POSIX_API_ERROR;
+      goto done;
     }
   }
 
-  return LAGOPUS_RESULT_OK;
+  r = LAGOPUS_RESULT_OK;
+
+done:
+  free(addr);
+
+  return r;
 }
 
 lagopus_result_t
-session_connect(lagopus_session_t s, struct addrunion *daddr, uint16_t dport,
-                struct addrunion *saddr, uint16_t sport) {
-  char addr[256];
+session_connect(lagopus_session_t s, lagopus_ip_address_t *daddr, uint16_t dport,
+                lagopus_ip_address_t *saddr, uint16_t sport) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  char *s_addr = NULL;
+  char *d_addr = NULL;
   char port[16];
-  lagopus_result_t ret;
 
   if (s == NULL) {
     lagopus_msg_warning("session is null.\n");
-    return LAGOPUS_RESULT_ANY_FAILURES;
+    ret = LAGOPUS_RESULT_ANY_FAILURES;
+    goto done;
   }
 
   if (!(s->session_type & SESSION_ACTIVE)) {
     lagopus_msg_warning("not using passive socket.\n");
-    return LAGOPUS_RESULT_TLS_CONN_ERROR;
+    ret = LAGOPUS_RESULT_TLS_CONN_ERROR;
+    goto done;
   }
 
   if (saddr != NULL) {
-    inet_ntop(saddr->family, &saddr->addr4, addr, sizeof(addr));
+    if ((ret = lagopus_ip_address_str_get(saddr, &s_addr) !=
+         LAGOPUS_RESULT_OK)) {
+      goto done;
+    }
     snprintf(port, sizeof(port), "%d", sport);
-    ret = bind_default(s, addr, port);
+    ret = bind_default(s, s_addr, port);
     if (ret < 0) {
       lagopus_msg_warning("bind_default error.\n");
-      return LAGOPUS_RESULT_TLS_CONN_ERROR;
+      ret = LAGOPUS_RESULT_TLS_CONN_ERROR;
+      goto done;
     }
   }
 
-  inet_ntop(daddr->family, &daddr->addr4, addr, sizeof(addr));
+  if ((ret = lagopus_ip_address_str_get(daddr, &d_addr) !=
+       LAGOPUS_RESULT_OK)) {
+    goto done;
+  }
   snprintf(port, sizeof(port), "%d", dport);
 
-  ret = connect_default(s, addr, port);
+  ret = connect_default(s, d_addr, port);
   if (ret < 0) {
-    return ret;
+    goto done;
   }
 
   if (s->connect != NULL) {
-    ret = s->connect(s, addr, port);
+    ret = s->connect(s, d_addr, port);
   }
+
+done:
+  free(s_addr);
+  free(d_addr);
 
   return ret;
 }

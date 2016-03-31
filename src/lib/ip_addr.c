@@ -54,7 +54,7 @@ lagopus_ip_address_create(const char *name, bool is_ipv4_addr,
           primary = AF_INET;
           secondary = AF_INET6;
         }
-	memset(&hints, 0, sizeof(hints));
+        memset(&hints, 0, sizeof(hints));
         hints.ai_socktype = 0;
         hints.ai_family = primary;
         hints.ai_flags = AI_PASSIVE;
@@ -204,4 +204,19 @@ lagopus_ip_address_sockaddr_get(const lagopus_ip_address_t *ip,
     }
   }
   return LAGOPUS_RESULT_INVALID_ARGS;
+}
+
+lagopus_result_t
+lagopus_ip_address_is_ipv4(const lagopus_ip_address_t *ip,
+                           bool *is_ipv4) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+
+  if (ip != NULL && is_ipv4 != NULL) {
+    *is_ipv4 = ip->is_ipv4;
+    ret = LAGOPUS_RESULT_OK;
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  return ret;
 }

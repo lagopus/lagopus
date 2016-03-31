@@ -4,6 +4,7 @@ import sys
 import socket
 import ssl
 import os
+import six
 import select
 import json
 import logging
@@ -56,8 +57,8 @@ class DataStoreCmd(object):
             old_timeout = self.sock.gettimeout()
             self.sock.settimeout(timeout)
 
-        data = ""
-        part = ""
+        data = b""
+        part = b""
         while True:
             part = self.sock.read(
                 BUFSIZE) if self.is_tls else self.sock.recv(BUFSIZE)
@@ -66,8 +67,11 @@ class DataStoreCmd(object):
             data += part
 
             if not self.is_read_more():
+                d = data
+                if six.PY3:
+                    d = data.decode()
                 try:
-                    data = json.loads(data)
+                    data = json.loads(d)
                     break
                 except ValueError:
                     continue
@@ -87,10 +91,13 @@ class DataStoreCmd(object):
 
     def send_cmd(self, cmd, timeout):
         cmd += "\n"
+        c = cmd
+        if six.PY3:
+            c = cmd.encode()
         if self.is_tls:
-            self.tls_sendall(cmd)
+            self.tls_sendall(c)
         else:
-            self.sock.sendall(cmd)
+            self.sock.sendall(c)
         return self.recvall(timeout)
 
 
@@ -109,5 +116,5 @@ if __name__ == "__main__":
     # tests
     # precondition: start lagopus.
     with open_ds_cmd() as dsc:
-        print dsc.send_cmd("channel cahnnel01 create", 30)
-        print dsc.send_cmd("channel", 30)
+        six.print_(dsc.send_cmd("channel cahnnel01 create", 30))
+        six.print_(dsc.send_cmd("channel", 30))

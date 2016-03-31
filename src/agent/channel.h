@@ -26,7 +26,6 @@
 #include "lagopus/pbuf.h"
 #include "lagopus/ofp_handler.h"
 #include "ofp_role.h"
-#include "lagopus/addrunion.h"
 
 struct ofp_header;
 struct channel;
@@ -78,7 +77,7 @@ channelq_data_destroy(struct channelq_data *cdata);
  *  @details Call this function for getting a new channel object.
  */
 struct channel *
-channel_alloc(struct addrunion *controller, uint64_t dpid);
+channel_alloc(lagopus_ip_address_t *controller, uint64_t dpid);
 
 /**
  * Free a channel object.
@@ -359,13 +358,13 @@ channel_send_packet_list(struct channel *channel,
  * No lock version.
  *
  *  @param[in]  channel    A channel pointer.
- *  @param[out] addrunion  A controller address.
+ *  @param[out] addr  A controller address.
  *
  *  @retval LAGOPUS_RESULT_OK Succeeded.
  *
  */
 lagopus_result_t
-channel_addr_get(struct channel *channel, struct addrunion *addrunion);
+channel_addr_get(struct channel *channel, lagopus_ip_address_t **addr);
 
 /**
  * Set a protocol type into a channel.
@@ -482,7 +481,7 @@ channel_local_port_get(struct channel *channel, uint16_t *port);
  * Set a local address into a channel.
  *
  *  @param[in]  channel    A channel pointer.
- *  @param[in]  addrunion  A local address.
+ *  @param[in]  addr  A local address.
  *
  *  @retval LAGOPUS_RESULT_OK Succeeded.
  *  @retval LAGOPUS_RESULT_BUSY Failed, a channel session is alive.
@@ -493,7 +492,7 @@ channel_local_port_get(struct channel *channel, uint16_t *port);
  *
  */
 lagopus_result_t
-channel_local_addr_set(struct channel *channel, struct addrunion *addrunion);
+channel_local_addr_set(struct channel *channel, lagopus_ip_address_t *addr);
 
 /**
  * Set INADDR_ANY for a local address into a channel.
@@ -511,13 +510,13 @@ channel_local_addr_unset(struct channel *);
  * Return a local address in a channel.
  *
  *  @param[in]  channel    A channel pointer.
- *  @param[out] addrunion  A channel local address.
+ *  @param[out] addr  A channel local address.
  *
  *  @retval LAGOPUS_RESULT_OK Succeeded.
  *
  */
 lagopus_result_t
-channel_local_addr_get(struct channel *channel, struct addrunion *addrunion);
+channel_local_addr_get(struct channel *channel, lagopus_ip_address_t **addr);
 
 /**
  * Put a part of multipart message into multipart list.

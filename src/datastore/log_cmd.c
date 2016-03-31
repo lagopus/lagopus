@@ -543,7 +543,7 @@ s_parse_log_internal(datastore_interp_t *iptr,
             }
           } else {
             ret = datastore_json_result_string_setf(result, ret,
-                                                    "paketdump option:%s",
+                                                    "packetdump option:%s",
                                                     *argv);
             goto done;
           }

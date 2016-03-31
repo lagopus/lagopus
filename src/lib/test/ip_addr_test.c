@@ -45,6 +45,7 @@ test_ip_address_create_and_destroy(void) {
   //lagopus_ip_address_t *ip4 = NULL;
   lagopus_ip_address_t *ip5 = NULL;
   lagopus_ip_address_t *ip6 = NULL;
+  bool is_ipv4 = false;
 
   {
     // Normal case(name = IPv4, ai_family = AF_INET)
@@ -55,6 +56,10 @@ test_ip_address_create_and_destroy(void) {
       ip1, "lagopus_ip_address_create() will create new ip_address");
     TEST_ASSERT_EQUAL_STRING(name1, ip1->addr_str);
     TEST_ASSERT_EQUAL(AF_INET, IS_IPV4(ip1->is_ipv4));
+
+    rc = lagopus_ip_address_is_ipv4(ip1, &is_ipv4);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+    TEST_ASSERT_EQUAL(true, is_ipv4);
     lagopus_ip_address_destroy(ip1);
 
     // Normal case(name = IPv6, ai_family = AF_INET6)
@@ -65,6 +70,10 @@ test_ip_address_create_and_destroy(void) {
       ip2, "lagopus_ip_address_create() will create new ip_address");
     TEST_ASSERT_EQUAL_STRING(name2, ip2->addr_str);
     TEST_ASSERT_EQUAL(AF_INET6, IS_IPV4(ip2->is_ipv4));
+
+    rc = lagopus_ip_address_is_ipv4(ip1, &is_ipv4);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+    TEST_ASSERT_EQUAL(false, is_ipv4);
     lagopus_ip_address_destroy(ip2);
 
     // Normal case(name = IPv4, ai_family = AF_INET6)

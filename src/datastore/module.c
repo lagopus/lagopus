@@ -771,7 +771,7 @@ s_datastore_thd_main(const lagopus_thread_t *tptr, void *arg) {
   lagopus_session_t poll_array[DATASTORE_SESSION_MAX];
   global_state_t s;
   shutdown_grace_level_t l;
-  struct addrunion server_addr;
+  lagopus_ip_address_t *server_addr = NULL;
   char *s_bindaddr_str = NULL;
 
   (void)tptr;
@@ -783,8 +783,6 @@ s_datastore_thd_main(const lagopus_thread_t *tptr, void *arg) {
   lagopus_msg_debug(5, "gala opening.\n");
   if (ret == LAGOPUS_RESULT_OK &&
       s == GLOBAL_STATE_STARTED) {
-    int rt;
-
     lagopus_dstring_t ds = NULL;
 
     ret = lagopus_dstring_create(&ds);
@@ -817,19 +815,26 @@ s_datastore_thd_main(const lagopus_thread_t *tptr, void *arg) {
     }
 
     if (SESSION_TCP6 == (SESSION_TCP6 & s_protocol)) {
-      rt = addrunion_ipv6_set(&server_addr, s_bindaddr_str);
+      if ((ret = lagopus_ip_address_create(s_bindaddr_str,
+                                           false, &server_addr)) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        lagopus_msg_error("Can't create a server addr.");
+        goto done;
+      }
       lagopus_msg_debug(5, "s_bindaddr_str(IPv6) %s.\n", s_bindaddr_str);
     } else {
-      rt = addrunion_ipv4_set(&server_addr, s_bindaddr_str);
+      if ((ret = lagopus_ip_address_create(s_bindaddr_str,
+                                           true, &server_addr)) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        lagopus_msg_error("Can't create a server addr.");
+        goto done;
+      }
       lagopus_msg_debug(5, "s_bindaddr_str(IPv4) %s.\n", s_bindaddr_str);
     }
-    if (rt == 0) {
-      lagopus_msg_error("The server address must correspond "
-                        "to the address falily.\n");
-      ret = LAGOPUS_RESULT_INVALID_ARGS;
-      goto done;
-    }
-    ret = session_bind(session_server, &server_addr, s_port);
+
+    ret = session_bind(session_server, server_addr, s_port);
     lagopus_msg_debug(5, "s_port %d.\n", s_port);
     if (ret != LAGOPUS_RESULT_OK) {
       lagopus_perror(ret);
@@ -935,6 +940,9 @@ s_datastore_thd_main(const lagopus_thread_t *tptr, void *arg) {
     }
 
  done:
+    if (server_addr != NULL) {
+      lagopus_ip_address_destroy(server_addr);
+    }
     (void)lagopus_dstring_clear(&ds);
     (void)lagopus_dstring_destroy(&ds);
     session_destroy(session_server);

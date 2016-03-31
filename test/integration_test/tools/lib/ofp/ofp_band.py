@@ -4,9 +4,9 @@ import copy
 import logging
 
 from checker import *
-from utils import create_section_name
-from ofp import OfpBase
-from utils import get_attrs_without_len
+from .utils import create_section_name
+from .ofp import OfpBase
+from .utils import get_attrs_without_len
 
 # YAML:
 # - drop

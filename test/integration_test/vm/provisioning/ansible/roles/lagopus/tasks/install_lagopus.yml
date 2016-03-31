@@ -14,12 +14,12 @@
 
 - name: set configure opts for dpdk ver
   set_fact:
-    configure_opts: --with-dpdk-dir="{{ dpdk_env.RTE_SDK }}"
+    configure_opts: ""
   when: dpdk.is_used
 
 - name: set configure opts for raw_socket ver
   set_fact:
-    configure_opts: ""
+    configure_opts: --disable-dpdk
   when: not dpdk.is_used
 
 - name: config lagopus

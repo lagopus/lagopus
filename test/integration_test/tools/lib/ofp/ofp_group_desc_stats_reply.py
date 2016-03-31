@@ -4,10 +4,10 @@ import copy
 import logging
 
 from checker import *
-from ofp import register_ofp_creators
-from ofp import OfpBase
-from ofp_group_desc_stats import SCE_GROUP_DESC_STATS
-from ofp_group_desc_stats import OfpGroupDescStatsCreator
+from .ofp import register_ofp_creators
+from .ofp import OfpBase
+from .ofp_group_desc_stats import SCE_GROUP_DESC_STATS
+from .ofp_group_desc_stats import OfpGroupDescStatsCreator
 
 # YAML:
 # group_desc_stats_reply:

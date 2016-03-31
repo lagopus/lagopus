@@ -4,12 +4,12 @@ import copy
 import logging
 
 from checker import *
-from ofp import register_ofp_creators
-from ofp import OfpBase
-from ofp_match import SCE_MATCH
-from ofp_match import OfpMatchCreator
-from ofp_instruction import SCE_INSTRUCTIONS
-from ofp_instruction import OfpInstructionCreator
+from .ofp import register_ofp_creators
+from .ofp import OfpBase
+from .ofp_match import SCE_MATCH
+from .ofp_match import OfpMatchCreator
+from .ofp_instruction import SCE_INSTRUCTIONS
+from .ofp_instruction import OfpInstructionCreator
 
 # YAML:
 # flow_mod:

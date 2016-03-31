@@ -4,9 +4,9 @@ import copy
 import logging
 
 from checker import *
-from ofp import register_ofp_creators
-from ofp import OfpBase
-from utils import get_attrs_without_len
+from .ofp import register_ofp_creators
+from .ofp import OfpBase
+from .utils import get_attrs_without_len
 
 # YAML:
 #   bucket_stats:
