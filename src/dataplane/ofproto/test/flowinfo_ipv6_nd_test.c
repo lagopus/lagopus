@@ -103,7 +103,8 @@ static const uint8_t macmask[OFP_ETH_ALEN] = { 0xff, 0xff, 0xff, 0x00, 0x00, 0x0
 void
 setUp(void) {
   size_t s;
-  struct addrunion au;
+  lagopus_ip_address_t *addr;
+  struct sockaddr_in6 *sin6;
   uint8_t *p;
 
   /* Make the root flowinfo. */
@@ -128,18 +129,33 @@ setUp(void) {
 
   /* Make the test addresses. */
   for (s = 0; s < ARRAY_LEN(test_flow); s++) {
-    addrunion_ipv6_set(&au, ipv6srcstr);
-    p = (uint8_t *)&au.addr6.s6_addr;
-    p[sizeof(au.addr6.s6_addr) - 1] = (uint8_t)(TEST_IPV6_ADDR_LSB(s) & 0xff);
-    OS_MEMCPY(&ipv6src[s], &au.addr6, sizeof(ipv6src[s]));
+    lagopus_ip_address_create(ipv6srcstr, false, &addr);
+    TEST_ASSERT_NOT_NULL(addr);
+    sin6 = NULL;
+    lagopus_ip_address_sockaddr_get(addr, (struct sockaddr **)&sin6);
+    TEST_ASSERT_NOT_NULL(sin6);
+    lagopus_ip_address_destroy(addr);
+    p = (uint8_t *)&sin6->sin6_addr.s6_addr;
+    p[sizeof(sin6->sin6_addr.s6_addr) - 1] = (uint8_t)(TEST_IPV6_ADDR_LSB(s) & 0xff);
+    OS_MEMCPY(&ipv6src[s], &sin6->sin6_addr, sizeof(ipv6src[s]));
 
-    addrunion_ipv6_set(&au, ipv6tgtstr);
-    p = (uint8_t *)&au.addr6.s6_addr;
-    p[sizeof(au.addr6.s6_addr) - 1] = (uint8_t)(TEST_IPV6_ADDR_LSB(s) & 0xff);
-    OS_MEMCPY(&ipv6tgt[s], &au.addr6, sizeof(ipv6tgt[s]));
+    lagopus_ip_address_create(ipv6tgtstr, true, &addr);
+    TEST_ASSERT_NOT_NULL(addr);
+    sin6 = NULL;
+    lagopus_ip_address_sockaddr_get(addr, (struct sockaddr **)&sin6);
+    TEST_ASSERT_NOT_NULL(sin6);
+    lagopus_ip_address_destroy(addr);
+    p = (uint8_t *)&sin6->sin6_addr.s6_addr;
+    p[sizeof(sin6->sin6_addr.s6_addr) - 1] = (uint8_t)(TEST_IPV6_ADDR_LSB(s) & 0xff);
+    OS_MEMCPY(&ipv6tgt[s], &sin6->sin6_addr.s6_addr, sizeof(ipv6tgt[s]));
 
-    addrunion_ipv6_set(&au, ipv6maskstr);
-    OS_MEMCPY(&ipv6mask[s], &au.addr6, sizeof(ipv6mask[s]));
+    lagopus_ip_address_create(ipv6maskstr, true, &addr);
+    TEST_ASSERT_NOT_NULL(addr);
+    sin6 = NULL;
+    lagopus_ip_address_sockaddr_get(addr, (struct sockaddr **)&sin6);
+    TEST_ASSERT_NOT_NULL(sin6);
+    lagopus_ip_address_destroy(addr);
+    OS_MEMCPY(&ipv6mask[s], &sin6->sin6_addr, sizeof(ipv6mask[s]));
   }
 }
 

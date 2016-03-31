@@ -18,6 +18,7 @@
 
 #include <netinet/icmp6.h>
 
+#include "lagopus_apis.h"
 #include "lagopus/flowdb.h"
 #include "lagopus/port.h"
 #include "pktbuf.h"

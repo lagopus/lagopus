@@ -16,6 +16,7 @@
 
 #include "unity.h"
 
+#include "lagopus_apis.h"
 #include "lagopus/flowdb.h"
 #include "lagopus/port.h"
 #include "pktbuf.h"
@@ -45,7 +46,7 @@ FLOWINFO_TEST_DECLARE_DATA;
 /* Test addresses. */
 static const char ipv4srcstr[] = "10.1.123.0";
 static const char ipv4tgtstr[] = "10.2.123.0";
-static const char ipv4maskstr[] = "255.0.0.0.0";
+static const char ipv4maskstr[] = "255.0.0.0";
 static struct in_addr ipv4src[ARRAY_LEN(test_flow)];
 static struct in_addr ipv4tgt[ARRAY_LEN(test_flow)];
 static struct in_addr ipv4mask[ARRAY_LEN(test_flow)];
@@ -118,7 +119,8 @@ static const uint8_t macmask[OFP_ETH_ALEN] = { 0xff, 0xff, 0xff, 0x00, 0x00, 0x0
 void
 setUp(void) {
   size_t s;
-  struct addrunion au;
+  lagopus_ip_address_t *addr;
+  struct sockaddr_in *sin;
   uint8_t *p;
 
   /* Make the root flowinfo. */
@@ -143,18 +145,27 @@ setUp(void) {
 
   /* Make the test addresses. */
   for (s = 0; s < ARRAY_LEN(test_flow); s++) {
-    addrunion_ipv4_set(&au, ipv4srcstr);
-    p = (uint8_t *)&au.addr4.s_addr;
-    p[sizeof(au.addr4.s_addr) - 1] = (uint8_t)(TEST_IPV4_ADDR_LSB(s) & 0xff);
-    OS_MEMCPY(&ipv4src[s], &au.addr4, sizeof(ipv4src[s]));
+    lagopus_ip_address_create(ipv4srcstr, true, &addr);
+    sin = NULL;
+    lagopus_ip_address_sockaddr_get(addr, &sin);
+    lagopus_ip_address_destroy(addr);
+    p = (uint8_t *)&sin->sin_addr.s_addr;
+    p[sizeof(sin->sin_addr.s_addr) - 1] = (uint8_t)(TEST_IPV4_ADDR_LSB(s) & 0xff);
+    OS_MEMCPY(&ipv4src[s], &sin->sin_addr, sizeof(ipv4src[s]));
 
-    addrunion_ipv4_set(&au, ipv4tgtstr);
-    p = (uint8_t *)&au.addr4.s_addr;
-    p[sizeof(au.addr4.s_addr) - 1] = (uint8_t)(TEST_IPV4_ADDR_LSB(s) & 0xff);
-    OS_MEMCPY(&ipv4tgt[s], &au.addr4, sizeof(ipv4tgt[s]));
+    lagopus_ip_address_create(ipv4tgtstr, true, &addr);
+    sin = NULL;
+    lagopus_ip_address_sockaddr_get(addr, &sin);
+    lagopus_ip_address_destroy(addr);
+    p = (uint8_t *)&sin->sin_addr.s_addr;
+    p[sizeof(sin->sin_addr.s_addr) - 1] = (uint8_t)(TEST_IPV4_ADDR_LSB(s) & 0xff);
+    OS_MEMCPY(&ipv4tgt[s], &sin->sin_addr, sizeof(ipv4tgt[s]));
 
-    addrunion_ipv4_set(&au, ipv4maskstr);
-    OS_MEMCPY(&ipv4mask[s], &au.addr4, sizeof(ipv4mask[s]));
+    lagopus_ip_address_create(ipv4maskstr, true, &addr);
+    sin = NULL;
+    lagopus_ip_address_sockaddr_get(addr, &sin);
+    lagopus_ip_address_destroy(addr);
+    OS_MEMCPY(&ipv4mask[s], &sin->sin_addr, sizeof(ipv4mask[s]));
   }
 }
 

@@ -16,6 +16,7 @@
 
 #include "unity.h"
 
+#include "lagopus_apis.h"
 #include "lagopus/flowdb.h"
 #include "lagopus/port.h"
 #include "pktbuf.h"
@@ -27,7 +28,6 @@
 #include "datapath_test_match.h"
 #include "datapath_test_match_macros.h"
 #include "flowinfo_test.h"
-#include "lagopus/addrunion.h"
 
 
 FLOWINFO_TEST_DECLARE_DATA;
@@ -36,10 +36,10 @@ FLOWINFO_TEST_DECLARE_DATA;
 /* Test addresses. */
 static const char testsrcstr[] = "10.1.123.0";
 static const char testdststr[] = "10.2.123.0";
-static const char testmaskstr[] = "255.0.0.0.0";
-static struct addrunion testsrc[ARRAY_LEN(test_flow)];
-static struct addrunion testdst[ARRAY_LEN(test_flow)];
-static struct addrunion testmask[ARRAY_LEN(test_flow)];
+static const char testmaskstr[] = "255.0.0.0";
+static struct sockaddr_in *testsrc[ARRAY_LEN(test_flow)];
+static struct sockaddr_in *testdst[ARRAY_LEN(test_flow)];
+static struct sockaddr_in *testmask[ARRAY_LEN(test_flow)];
 
 
 /* Compute an IPv4 DSCP. */
@@ -188,6 +188,7 @@ void
 setUp(void) {
   size_t s;
   uint8_t *p;
+  lagopus_ip_address_t *addr;
 
   /* Make the root flowinfo. */
   TEST_ASSERT_NULL(flowinfo);
@@ -211,17 +212,24 @@ setUp(void) {
 
   /* Make the test addresses. */
   for (s = 0; s < ARRAY_LEN(test_flow); s++) {
-    addrunion_ipv4_set(&testsrc[s], testsrcstr);
-    p = (uint8_t *)&testsrc[s].addr4.s_addr;
-    p[sizeof(testsrc[s].addr4.s_addr) - 1] = (uint8_t)(TEST_IPV4_ADDR_LSB(
-          s) & 0xff);
+    lagopus_ip_address_create(testsrcstr, true, &addr);
+    lagopus_ip_address_sockaddr_get(addr, &testsrc[s]);
+    TEST_ASSERT_NOT_NULL(testsrc[s]);
+    lagopus_ip_address_destroy(addr);
+    p = (uint8_t *)&testsrc[s]->sin_addr.s_addr;
+    p[sizeof(testsrc[s]->sin_addr.s_addr) - 1] = (uint8_t)(TEST_IPV4_ADDR_LSB(s) & 0xff);
 
-    addrunion_ipv4_set(&testdst[s], testdststr);
-    p = (uint8_t *)&testdst[s].addr4.s_addr;
-    p[sizeof(testsrc[s].addr4.s_addr) - 1] = (uint8_t)(TEST_IPV4_ADDR_LSB(
-          s) & 0xff);
+    lagopus_ip_address_create(testdststr, true, &addr);
+    lagopus_ip_address_sockaddr_get(addr, &testdst[s]);
+    TEST_ASSERT_NOT_NULL(testdst[s]);
+    lagopus_ip_address_destroy(addr);
+    p = (uint8_t *)&testdst[s]->sin_addr.s_addr;
+    p[sizeof(testdst[s]->sin_addr.s_addr) - 1] = (uint8_t)(TEST_IPV4_ADDR_LSB(s) & 0xff);
 
-    addrunion_ipv4_set(&testmask[s], testmaskstr);
+    lagopus_ip_address_create(testmaskstr, true, &addr);
+    lagopus_ip_address_sockaddr_get(addr, &testmask[s]);
+    TEST_ASSERT_NOT_NULL(testmask[s]);
+    lagopus_ip_address_destroy(addr);
   }
 }
 
@@ -358,7 +366,7 @@ test_flowinfo_ipv4_src_adddel(void) {
   /* Add the IPv4 protocol and source address matches. */
   for (s = 0; s < ARRAY_LEN(test_flow); s++) {
     FLOW_ADD_IP_PROTO_MATCH(test_flow[s], TEST_IPV4_PROTO(s));
-    FLOW_ADD_IP_SRC_MATCH(test_flow[s], &testsrc[s]);
+    FLOW_ADD_IP_SRC_MATCH(test_flow[s], testsrc[s]);
   }
 
   /* Run the sideeffect-free scenario. */
@@ -380,7 +388,7 @@ test_flowinfo_ipv4_dst_adddel(void) {
   /* Add the IPv4 protocol and source address matches. */
   for (s = 0; s < ARRAY_LEN(test_flow); s++) {
     FLOW_ADD_IP_PROTO_MATCH(test_flow[s], TEST_IPV4_PROTO(s));
-    FLOW_ADD_IP_DST_MATCH(test_flow[s], &testsrc[s]);
+    FLOW_ADD_IP_DST_MATCH(test_flow[s], testsrc[s]);
   }
 
   /* Run the sideeffect-free scenario. */
@@ -402,7 +410,7 @@ test_flowinfo_ipv4_src_w_adddel(void) {
   /* Add the IPv4 protocol and source address matches. */
   for (s = 0; s < ARRAY_LEN(test_flow); s++) {
     FLOW_ADD_IP_PROTO_MATCH(test_flow[s], TEST_IPV4_PROTO(s));
-    FLOW_ADD_IP_SRC_W_MATCH(test_flow[s], &testsrc[s], &testmask[s]);
+    FLOW_ADD_IP_SRC_W_MATCH(test_flow[s], testsrc[s], testmask[s]);
   }
 
   /* Run the sideeffect-free scenario. */
@@ -424,7 +432,7 @@ test_flowinfo_ipv4_dst_w_adddel(void) {
   /* Add the IPv4 protocol and source address matches. */
   for (s = 0; s < ARRAY_LEN(test_flow); s++) {
     FLOW_ADD_IP_PROTO_MATCH(test_flow[s], TEST_IPV4_PROTO(s));
-    FLOW_ADD_IP_DST_W_MATCH(test_flow[s], &testsrc[s], &testmask[s]);
+    FLOW_ADD_IP_DST_W_MATCH(test_flow[s], testdst[s], testmask[s]);
   }
 
   /* Run the sideeffect-free scenario. */

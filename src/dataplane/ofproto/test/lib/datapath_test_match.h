@@ -29,7 +29,7 @@
  */
 
 /* Forward declarations. */
-struct addrunion;
+struct sockaddr;
 struct flow;
 struct lagopus_packet;
 struct match_list;
@@ -75,15 +75,15 @@ void add_eth_type_match(struct match_list *match_list, uint16_t type);
  * IPv4/IPv6.
  */
 void add_ip_src_match(struct match_list *restrict match_list,
-                      const struct addrunion *restrict addr);
+                      const struct sockaddr *restrict addr);
 void add_ip_src_w_match(struct match_list *restrict match_list,
-                        const struct addrunion *restrict addr,
-                        const struct addrunion *restrict mask);
+                        const struct sockaddr *restrict addr,
+                        const struct sockaddr *restrict mask);
 void add_ip_dst_match(struct match_list *restrict match_list,
-                      const struct addrunion *restrict addr);
+                      const struct sockaddr *restrict addr);
 void add_ip_dst_w_match(struct match_list *restrict match_list,
-                        const struct addrunion *restrict addr,
-                        const struct addrunion *restrict mask);
+                        const struct sockaddr *restrict addr,
+                        const struct sockaddr *restrict mask);
 void add_ip_dscp_match(struct match_list *match_list, uint8_t dscp);
 void add_ip_ecn_match(struct match_list *match_list, uint8_t ecn);
 void add_ip_proto_match(struct match_list *match_list, uint8_t proto);
