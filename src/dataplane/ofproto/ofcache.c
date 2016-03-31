@@ -91,6 +91,43 @@ struct cache_list {
   struct cache_entry_list entries;
 };
 
+static struct cache_list *
+init_cache_list(void) {
+  struct cache_list *list;
+
+  list = calloc(1, sizeof(struct cache_list));
+  if (list == NULL) {
+    goto out;
+  }
+  TAILQ_INIT(&list->entries);
+out:
+  return list;
+}
+
+static void
+add_cache_list(struct cache_list *list, struct cache_entry *cache_entry) {
+  TAILQ_INSERT_TAIL(&list->entries, cache_entry, next);
+  list->nentries++;
+}
+
+static void
+remove_cache_list(struct cache_list *list, struct cache_entry *cache_entry) {
+  TAILQ_REMOVE(&list->entries, cache_entry, next);
+  free(cache_entry);
+  list->nentries--;
+}
+
+static void
+fini_cache_list(struct cache_list *list) {
+  struct cache_entry *entry;
+
+  while ((entry = TAILQ_FIRST(&list->entries)) != NULL) {
+    TAILQ_REMOVE(&list->entries, entry, next);
+    free(entry);
+  }
+  free(list);
+}
+
 static struct flowcache_bank *
 init_flowcache_bank(int kvs_type, int bank) {
   struct flowcache_bank *cache;
@@ -127,7 +164,7 @@ init_flowcache_bank(int kvs_type, int bank) {
     default:
       lagopus_hashmap_create(&cache->hashmap,
                              LAGOPUS_HASHMAP_TYPE_ONE_WORD,
-                             free);
+                             fini_cache_list);
       break;
   }
   DPRINTF("%s: cache %p created\n", __func__, cache);
@@ -162,14 +199,11 @@ register_cache_bank(struct flowcache_bank *cache,
         if (list->nentries == CACHE_NODE_MAX_ENTRIES) {
           /* so far, remove old entry */
           remove_entry = TAILQ_FIRST(&list->entries);
-          TAILQ_REMOVE(&list->entries, remove_entry, next);
-          free(remove_entry);
-          list->nentries--;
+          remove_cache_list(list, remove_entry);
+          cache->nentries--;
         }
       } else {
-        list = calloc(1, sizeof(struct cache_list));
-        list->nentries = 0;
-        TAILQ_INIT(&list->entries);
+        list = init_cache_list();
         rte_hash_add_key_data(cache->hash,
                               (const void *)&hash32_h,
                               list);
@@ -186,21 +220,18 @@ register_cache_bank(struct flowcache_bank *cache,
         if (list->nentries == CACHE_NODE_MAX_ENTRIES) {
           /* so far, remove old entry */
           remove_entry = TAILQ_FIRST(&list->entries);
-          TAILQ_REMOVE(&list->entries, remove_entry, next);
-          free(remove_entry);
-          list->nentries--;
+          remove_cache_list(list, remove_entry);
+          cache->nentries--;
         }
       } else {
-        list = calloc(1, sizeof(struct cache_list));
-        list->nentries = 0;
-        TAILQ_INIT(&list->entries);
+        void *value;
+
+        list = init_cache_list();
+        value = list;
         lagopus_hashmap_add(&cache->hashmap,
                             (void *)(uintptr_t)hash32_h,
-                            (void **)&list,
+                            (void **)&value,
                             false);
-        lagopus_hashmap_find(&cache->hashmap,
-                             (void *)(uintptr_t)hash32_h,
-                             (void **)&list);
       }
       break;
 
@@ -213,26 +244,22 @@ register_cache_bank(struct flowcache_bank *cache,
         if (list->nentries == CACHE_NODE_MAX_ENTRIES) {
           /* so far, remove old entry */
           remove_entry = TAILQ_FIRST(&list->entries);
-          TAILQ_REMOVE(&list->entries, remove_entry, next);
-          free(remove_entry);
-          list->nentries--;
+          remove_cache_list(list, remove_entry);
+          cache->nentries--;
         }
       } else {
-        list = calloc(1, sizeof(struct cache_list));
-        list->nentries = 0;
-        TAILQ_INIT(&list->entries);
+        void *value;
+
+        list = init_cache_list();
+        value = list;
         lagopus_hashmap_add(&cache->hashmap,
                             (void *)(uintptr_t)hash32_h,
-                            (void **)&list,
+                            (void **)&value,
                             false);
-        lagopus_hashmap_find_no_lock(&cache->hashmap,
-                                     (void *)(uintptr_t)hash32_h,
-                                     (void **)&list);
       }
       break;
   }
-  TAILQ_INSERT_TAIL(&list->entries, cache_entry, next);
-  list->nentries++;
+  add_cache_list(list, cache_entry);
   cache->nentries++;
 }
 
@@ -325,7 +352,17 @@ fini_flowcache_bank(struct flowcache_bank *cache) {
 #ifdef HAVE_DPDK
 #if RTE_VERSION >= RTE_VERSION_NUM(2, 1, 0, 0)
     case FLOWCACHE_RTE_HASH:
-      rte_hash_free(cache->hash);
+      {
+        const void *key;
+        void *data;
+        uint32_t next;
+
+        next = 0;
+        while (rte_hash_iterate(cache->hash, &key, &data, &next) >= 0) {
+          fini_cache_list(data);
+        }
+        rte_hash_free(cache->hash);
+      }
       break;
 #endif /* RTE_VERSION */
 #endif /* HAVE_DPDK */
