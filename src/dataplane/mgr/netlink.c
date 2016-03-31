@@ -37,6 +37,10 @@
 #include "rib.h"
 #include "thread.h"
 
+#ifdef HYBRID
+#define INTERFACE_NAME_MAX 512
+#endif /* HYBRID */
+
 /* Prototypes. */
 const char *nlmsg_str(__u16 nlmsg_type);
 void rtattr_parse(struct rtattr **tb, int max, struct rtattr *rta, int len);
@@ -311,6 +315,10 @@ netlink_addr(__UNUSED struct sockaddr_nl *snl, struct nlmsghdr *h) {
   void *addr;
   void *broad;
   char *label = NULL;
+#ifdef HYBRID
+  char *nm = NULL;
+  char ifname[INTERFACE_NAME_MAX + 1] = {0};
+#endif /* HYBRID */
 
   if (NLMSG_LENGTH(sizeof(struct ifaddrmsg))> h->nlmsg_len) {
     return -1;
@@ -358,11 +366,29 @@ netlink_addr(__UNUSED struct sockaddr_nl *snl, struct nlmsghdr *h) {
     label =(char *) RTA_DATA(tb[IFA_LABEL]);
   }
 
+#ifdef HYBRID
+  if (label) {
+    /* set ip address to interface object */
+    nm = strrchr(label, INTERFACE_NAME_DELIMITER );
+    if (nm != NULL) {
+      *nm = ':';
+    }
+    if (ifa->ifa_family == AF_INET) {
+      dp_interface_ip_set(label, AF_INET, addr, broad, ifa->ifa_prefixlen);
+    } else {
+      dp_interface_ip_set(label, AF_INET6, addr, broad, ifa->ifa_prefixlen);
+    }
+  }
+#endif /* HYBRID */
+
   if (ifa->ifa_family == AF_INET) {
     if (h->nlmsg_type == RTM_NEWADDR) {
       rib_ipv4_addr_add(ifindex, (struct in_addr *)addr, ifa->ifa_prefixlen,
                         (struct in_addr *)broad, label);
     } else {
+#ifdef HYBRID
+      dp_interface_ip_unset(label);
+#endif
       rib_ipv4_addr_delete(ifindex, (struct in_addr *)addr, ifa->ifa_prefixlen,
                            (struct in_addr *)broad, label);
     }
@@ -400,7 +426,7 @@ static int
 netlink_route(__UNUSED struct sockaddr_nl *snl, struct nlmsghdr *h) {
   long unsigned int len;
   struct rtmsg *rtm;
-  struct rtattr *tb[RTA_MAX + 1];
+  struct rtattr *tb[RTA_MAX + 1] = { 0 };
   void *dest;
   void *gate = NULL;
   int plen;
@@ -455,21 +481,35 @@ netlink_route(__UNUSED struct sockaddr_nl *snl, struct nlmsghdr *h) {
 
   if (rtm->rtm_family == AF_INET) {
     struct in_addr p;
+    struct in_addr g;
+
     memcpy(&p, dest, 4);
     apply_mask_ipv4(&p, plen);
 
-    if (h->nlmsg_type == RTM_NEWROUTE) {
-      rib_ipv4_route_add(&p, plen, (struct in_addr *)gate, ifindex);
+    if (gate) {
+      memcpy(&g, gate, 4);
     } else {
-      rib_ipv4_route_delete(&p, plen, (struct in_addr *)gate, ifindex);
+      memset(&g, 0, 4);
+    }
+    
+    if (h->nlmsg_type == RTM_NEWROUTE) {
+      rib_ipv4_route_add(&p, plen, &g, ifindex, rtm->rtm_scope);
+    } else {
+      rib_ipv4_route_delete(&p, plen, gate ? &g : NULL, ifindex);
     }
   }  else {
+    struct in6_addr p;
+    struct in6_addr g;
+
+    memcpy(&p, dest, 16);
+    if (gate) {
+      memcpy(&g, gate, 16);
+    }
+    
     if (h->nlmsg_type == RTM_NEWROUTE) {
-      rib_ipv6_route_add((struct in6_addr *)dest, plen,
-                         (struct in6_addr *)gate, ifindex);
+      rib_ipv6_route_add((struct in6_addr *)dest, plen, gate ? &g : NULL, ifindex);
     } else {
-      rib_ipv6_route_delete((struct in6_addr *)dest, plen,
-                            (struct in6_addr *)gate, ifindex);
+      rib_ipv6_route_delete((struct in6_addr *)dest, plen, gate ? &g : NULL, ifindex);
     }
   }
   return 0;
@@ -595,7 +635,7 @@ netlink_neigh(__UNUSED struct sockaddr_nl *snl, struct nlmsghdr *h) {
   }
 
   if (ndm->ndm_family == AF_INET) {
-    if (h->nlmsg_type == RTM_NEWNEIGH) {
+    if (h->nlmsg_type == RTM_NEWNEIGH && ll_addr != NULL) {
       rib_arp_add(ndm->ndm_ifindex, (struct in_addr *)dst_addr, ll_addr);
     } else {
       rib_arp_delete(ndm->ndm_ifindex, (struct in_addr *)dst_addr, ll_addr);
@@ -778,6 +818,8 @@ dp_netlink_thread_loop(__UNUSED const lagopus_thread_t *selfptr,
   struct event_manager *em;
   struct event *event;
 
+  rib_init();
+  
   em = event_manager_alloc();
   if (em == NULL) {
     lagopus_msg_error("dp_netlink_thread_loop(): event_manager alloc failed\n");

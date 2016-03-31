@@ -590,7 +590,7 @@ class Topcmd(Cmd):
 
     def complete_show(self, text, line, begidx, endidx):
         params = ['bridge', 'channel', 'controller', 'flow', 'group',
-                  'mactable', 'interface', 'meter', 'port', 'version']
+                  'mactable', 'interface', 'meter', 'port', 'route', 'version']
         return [name for name in params if name.startswith(text)]
 
     def subcmd_id_merge(self, subcmd, id, res, resc):
@@ -704,10 +704,14 @@ class Topcmd(Cmd):
             except:
                 return
 
+        elif subcmd == 'route':
+            data = ds_client().call('route\n')
+            self.output(json.dumps(data, indent=4))
+            
         elif subcmd == 'version':
             data = ds_client().call('version\n')
             self.output(json.dumps(data, indent=4))
-
+            
         else:
             print 'Argument error'
 

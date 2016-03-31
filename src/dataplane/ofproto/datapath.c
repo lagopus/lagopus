@@ -1675,6 +1675,7 @@ lagopus_do_send_iterate(void *key, void *val,
   return true;
 }
 
+
 void
 lagopus_forward_packet_to_port(struct lagopus_packet *pkt,
                                uint32_t out_port) {
@@ -1706,7 +1707,6 @@ lagopus_forward_packet_to_port(struct lagopus_packet *pkt,
       /* optional */
       DP_PRINT("OFPP_NORMAL\n");
       dp_interface_send_packet_normal(pkt, pkt->in_port->interface, pkt->bridge->l2_bridge);
-      lagopus_packet_free(pkt);
       break;
 
     case OFPP_FLOOD:
@@ -2871,3 +2871,91 @@ lagopus_match_and_action(struct lagopus_packet *pkt) {
   }
   return rv;
 }
+
+#ifdef HYBRID
+/* for L3 routing */
+/*
+ * Decriment ttl.
+ */
+static lagopus_result_t
+dec_ttl(struct lagopus_packet *pkt) {
+  uint16_t miss_send_len;
+
+  /* optional */
+  if (pkt->ether_type == ETHERTYPE_IP) {
+    if (likely(IPV4_TTL(pkt->ipv4) > 0)) {
+      IPV4_TTL(pkt->ipv4)--;
+      if (unlikely(IPV4_CSUM(pkt->ipv4) == 0xffff)) {
+        pkt->flags |= PKT_FLAG_RECALC_IPV4_CKSUM;
+      } else {
+        IPV4_CSUM(pkt->ipv4)++;
+      }
+    }
+
+    /* if invalid.  send packet_in with OFPR_INVALID_TTL to controller. */
+    if (likely(IPV4_TTL(pkt->ipv4) == 0)) {
+      if (pkt->in_port != NULL && pkt->in_port->bridge != NULL) {
+        miss_send_len = pkt->in_port->bridge->switch_config.miss_send_len;
+      } else {
+        miss_send_len = 128;
+      }
+      return LAGOPUS_RESULT_STOP;
+    }
+  } else if (pkt->ether_type == ETHERTYPE_IPV6) {
+    if (IPV6_HLIM(pkt->ipv6) > 0) {
+      IPV6_HLIM(pkt->ipv6)--;
+    }
+
+    /* if invalid.  send packet_in with OFPR_INVALID_TTL to controller. */
+    if (IPV6_HLIM(pkt->ipv6) == 0) {
+      if (pkt->in_port != NULL && pkt->in_port->bridge != NULL) {
+        miss_send_len = pkt->in_port->bridge->switch_config.miss_send_len;
+      } else {
+        miss_send_len = 128;
+      }
+      return LAGOPUS_RESULT_STOP;
+    }
+  }
+  return LAGOPUS_RESULT_OK;
+}
+
+/*
+ * Rewrite packet header to routing.
+ */
+lagopus_result_t
+lagopus_rewrite_pkt_header(struct lagopus_packet *pkt,
+                           uint8_t *src, uint8_t *dst) {
+  lagopus_result_t rv;
+
+  /* rewrite ether header */
+  OS_MEMCPY(ETHER_SRC(pkt->eth), src, ETHER_ADDR_LEN);
+  OS_MEMCPY(ETHER_DST(pkt->eth), dst, ETHER_ADDR_LEN);
+
+  /* dec ttl */
+  rv = dec_ttl(pkt);
+
+  return rv;
+}
+
+uint32_t
+lagopus_get_ethertype(struct lagopus_packet *pkt) {
+  return pkt->ether_type;
+}
+
+/*
+ * Get string of ip address.
+ */
+lagopus_result_t
+lagopus_get_ip(struct lagopus_packet *pkt, void *dst, const int family) {
+  if (family == AF_INET) {
+    if (pkt && (pkt->ipv4)) {
+      *((struct in_addr*)dst) = pkt->ipv4->ip_dst;
+      return LAGOPUS_RESULT_OK;
+    }
+  } else if (family == AF_INET6) {
+    /* TODO: */
+  }
+  return LAGOPUS_RESULT_INVALID_ARGS;
+}
+#endif /* HYBRID */
+

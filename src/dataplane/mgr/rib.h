@@ -53,17 +53,21 @@ struct ifparam_t {
 };
 
 /* RIB APIs. */
+void rib_init(void);
+void rib_fini(void);
+
+/* for netlink */
 void
 rib_interface_update(int ifindex, struct ifparam_t *param);
 
 void
 rib_interface_delete(int ifidnex);
 
-void
+int
 rib_ipv4_route_add(struct in_addr *dest, int prefixlen, struct in_addr *gate,
-                   int ifindex);
+                   int ifindex, uint8_t scope);
 
-void
+int
 rib_ipv4_route_delete(struct in_addr *dest, int prefixlen, struct in_addr *gate,
                       int ifindex);
 
@@ -102,5 +106,20 @@ rib_ndp_add(int ifindex, struct in6_addr *dst_addr, char *ll_addr);
 
 void
 rib_ndp_delete(int ifindex, struct in6_addr *dst_addr, char *ll_addr);
+
+/* for datastore */
+lagopus_result_t
+rib_route_rule_get(struct in_addr *dest, struct in_addr *gate,
+               int *prefixlen, uint32_t *ifindex, void **item);
+
+/* for l3 routing */
+lagopus_result_t
+rib_nexthop_ipv4_get(const struct in_addr *ip_dst, struct in_addr *nexthop, uint8_t *scope);
+
+void
+rib_arp_get(struct in_addr *addr, char *mac, int *ifindex);
+
+void
+rib_ipv4_addr_get(int ifindex, char *ifname);
 
 #endif /* SRC_DATAPLANE_MGR_RIB_H_ */

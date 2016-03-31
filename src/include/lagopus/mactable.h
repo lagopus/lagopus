@@ -43,6 +43,7 @@ struct macentry {
   uint32_t portid; /**< Port number(ofp port no). */
   struct timespec update_time; /**< Referring to the time this entry to the last. */
   uint16_t address_type; /**< Setting address type. */
+  lagopus_rwlock_t lock; /**< Read-write lock for mactable entry. */
 };
 
 /**
@@ -86,6 +87,22 @@ fini_mactable(struct mactable *mactable);
  */
 uint32_t
 find_and_learn_port_in_mac_table(struct lagopus_packet *pkt);
+
+/**
+ * Learn mac address in mactable.
+ * @param[in] pkt Packet data.
+ */
+void
+learning_port_in_mac_table(struct lagopus_packet *pkt);
+
+/**
+ * Find port in mactable.
+ * @param[in] pkt Packet data.
+ * @retval    !=OFPP_ALL  Output port number.
+ * @retval    ==OFPP_ALL  No corresponding data, packet will be flooding.
+ */
+uint32_t
+lookup_port_in_mac_table(struct lagopus_packet *pkt);
 
 /**
  * Set ageing time.
@@ -167,4 +184,6 @@ mactable_age_out(struct mactable *mactable);
 lagopus_result_t
 add_mactable_timer(struct mactable *mactable, time_t timeout);
 
+void
+print_macaddr_in_ethheader(struct lagopus_packet *pkt);
 #endif /* SRC_INCLUDE_LAGOPUS_MACTABLE_H_ */

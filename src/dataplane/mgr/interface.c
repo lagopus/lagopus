@@ -27,8 +27,26 @@
 #include "lagopus/ofp_dp_apis.h" /* for port_stats */
 
 #ifdef HYBRID
+#include <linux/rtnetlink.h>
 #include "lagopus/mactable.h"
 #include "tap_io.h"
+#include "rib.h"
+#include "lagopus/ethertype.h"
+#include "pktbuf.h"
+#include "packet.h"
+
+#define IPV4(a,b,c,d) ((uint32_t)(((a) & 0xff) << 24) | \
+                       (((b) & 0xff) << 16) | \
+                       (((c) & 0xff) << 8)  | \
+                       ((d) & 0xff))
+#define IPV4_BROADCAST ((uint32_t)0xFFFFFFFF)
+#define IS_IPV4_BROADCAST(x) \
+        ((x) == IPV4_BROADCAST)
+#define IPV4_MULTICAST_MIN IPV4(224, 0, 0, 0)
+#define IPV4_MULTICAST_MAX IPV4(239, 255, 255, 255)
+#define IS_IPV4_MULTICAST(x) \
+        ((x) >= IPV4_MULTICAST_MIN && (x) <= IPV4_MULTICAST_MAX)
+
 #endif /* HYBRID */
 
 static struct port_stats *
@@ -42,6 +60,7 @@ dp_interface_alloc(void) {
   ifp = calloc(1, sizeof(struct interface));
   if (ifp != NULL) {
     ifp->stats = unknown_port_stats;
+    ifp->addr_info.set = false;
   }
   return ifp;
 }
@@ -229,6 +248,151 @@ dp_interface_send_packet_kernel(struct lagopus_packet *pkt,
   }
   return LAGOPUS_RESULT_OK;
 }
+
+static lagopus_result_t
+interface_l2_switching(struct lagopus_packet *pkt,
+                       struct interface *ifp) {
+  uint32_t port;
+  uint8_t *dst;
+  uint8_t buf[ETHER_ADDR_LEN];
+
+  dst = pkt->eth->ether_dhost;
+
+  /* dst is self mac */
+  if (!memcmp(OS_MTOD(pkt->mbuf, uint8_t *), ifp->hw_addr, ETHER_ADDR_LEN)) {
+    return dp_interface_send_packet_kernel(pkt, ifp);
+  }
+  /* dst is broadcast or multicast */
+  if ((dst[0] & 0x01) == 0x01) {
+    OS_M_ADDREF(pkt->mbuf);
+    dp_interface_send_packet_kernel(pkt, ifp);
+  }
+
+  /* l2 switching */
+  port = find_and_learn_port_in_mac_table(pkt);
+
+  lagopus_forward_packet_to_port(pkt, port);
+
+  return LAGOPUS_RESULT_OK;
+}
+
+static bool
+is_self_ip_addr(struct in_addr dst_addr, struct in_addr self_addr) {
+  return (htonl(dst_addr.s_addr) == htonl(self_addr.s_addr)) ? true : false;
+}
+
+static bool
+is_broadcast(struct in_addr dst_addr, struct in_addr broad_addr) {
+  if (htonl(dst_addr.s_addr) == htonl(broad_addr.s_addr) ||
+      IS_IPV4_BROADCAST(htonl(dst_addr.s_addr)) == true) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+static lagopus_result_t
+interface_l3_routing(struct lagopus_packet *pkt,
+                     struct interface *ifp) {
+  lagopus_result_t rv = LAGOPUS_RESULT_OK;
+  struct interface *out_if = NULL;
+  uint32_t port;
+  int ifindex;
+  uint8_t mac_addr[ETHER_ADDR_LEN];
+  uint8_t scope = 0;
+  uint16_t ether_type;
+  int prefix;
+  char ifname[IFNAMSIZ + 1];
+
+
+  ether_type = lagopus_get_ethertype(pkt);
+
+  /* not IP packets, send to kernel. */
+  if (ether_type != ETHERTYPE_IP && ether_type != ETHERTYPE_IPV6) {
+    return dp_interface_send_packet_kernel(pkt, ifp);
+  }
+
+  if (ether_type == ETHERTYPE_IP) {
+    struct in_addr *addr;
+    struct in_addr nexthop;
+    struct in_addr dst_addr;
+    struct in_addr self_addr;
+    struct in_addr broad_addr;
+    char ipv4dst[INET_ADDRSTRLEN] = {0};
+
+    /* get dst ip address from input packet */
+    lagopus_get_ip(pkt, &dst_addr, AF_INET);
+
+    /* check dst ip addr. */
+    dp_interface_ip_get(ifp->name, AF_INET, &self_addr, &broad_addr, &prefix);
+    if (is_self_ip_addr(dst_addr, self_addr) == true ||
+        is_broadcast(dst_addr, broad_addr) == true ||
+        IS_IPV4_MULTICAST(htonl(dst_addr.s_addr)) == true) {
+      return dp_interface_send_packet_kernel(pkt, ifp);
+    }
+
+    /* learning l2 info */
+    learning_port_in_mac_table(pkt);
+
+    /* get nexthop info from routing table(lpm). */
+    rv = rib_nexthop_ipv4_get(&dst_addr, &nexthop, &scope);
+    if (rv != LAGOPUS_RESULT_OK) {
+      lagopus_msg_info("routing entry is not found.\n");
+      lagopus_packet_free(pkt);
+      return rv;
+    }
+
+    addr = (scope == RT_SCOPE_LINK) ? &dst_addr : &nexthop;
+
+    /* get dst mac address and output port from arp table(hash table). */
+    rib_arp_get(addr, mac_addr, &ifindex);
+
+    if (ifindex == -1) {
+      /* it is no entry on the arp table, send packet to tap(kernel). */
+      lagopus_msg_info("no entry in arp table. sent to kernel.\n");
+      return dp_interface_send_packet_kernel(pkt, ifp);
+    }
+
+    /* get output interface to determine the src mac address. */
+    rib_ipv4_addr_get(ifindex, ifname);
+    out_if = dp_tapio_interface_get(ifname);
+    if (!out_if) {
+      /* invalid ifindex */
+      lagopus_msg_warning("invalid ifindex[%d] ifname[%s].\n", ifindex, ifname);
+      lagopus_packet_free(pkt);
+      return LAGOPUS_RESULT_OK;
+    }
+
+    /* rewrite ether header. (pkt, src hw addr, dst hw addr) */
+    rv = lagopus_rewrite_pkt_header(pkt, out_if->hw_addr, mac_addr);
+    if (rv == LAGOPUS_RESULT_STOP) {
+      lagopus_msg_warning("ttl stop\n");
+      lagopus_packet_free(pkt);
+      return rv;
+    } else if (rv != LAGOPUS_RESULT_OK) {
+      lagopus_msg_warning("failed rewrite ether header.");
+      lagopus_packet_free(pkt);
+      return rv;
+    }
+
+    /* lookup output port */
+    port = lookup_port_in_mac_table(pkt);
+
+    /* forward packets */
+    lagopus_forward_packet_to_port(pkt, port);
+  } else if (ether_type == ETHERTYPE_IPV6) {
+    /* TODO: */
+    lagopus_packet_free(pkt);
+  } else {
+    /* nothing to do. */
+    lagopus_msg_info("not support packets. ethertype = %d\n", ether_type);
+    lagopus_packet_free(pkt);
+    return rv;
+  }
+
+  return rv;
+}
+
 #endif /* HYBRID */
 
 lagopus_result_t
@@ -236,15 +400,22 @@ dp_interface_send_packet_normal(struct lagopus_packet *pkt,
                                 struct interface *ifp,
                                 bool l2_bridge) {
 #ifdef HYBRID
-  uint32_t port;
-
-  if (l2_bridge == true) {
-    port = find_and_learn_port_in_mac_table(pkt);
-    lagopus_forward_packet_to_port(pkt, port);
+  if (unlikely(l2_bridge != true)) {
+    return LAGOPUS_RESULT_OK;
   }
-#else
+
+  /* check port type */
+  if (ifp->addr_info.set) {
+    /* set ip address = l3 port */
+    interface_l3_routing(pkt, ifp);
+  } else {
+    /* no ip address = l2 port */
+    interface_l2_switching(pkt, ifp);
+  }
+#else /* HYBRID */
   (void) pkt;
   (void) ifp;
+  lagopus_packet_free(pkt);
 #endif /* HYBRID */
   return LAGOPUS_RESULT_OK;
 }
