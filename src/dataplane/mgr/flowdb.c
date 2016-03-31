@@ -1059,6 +1059,8 @@ flowdb_flow_add(struct bridge *bridge,
       flow_free(flow);
       goto out;
     }
+    /* Examine apply-action for dataplane. */
+    flow_instruction_examination(flow);
     /* overriden. */
     flow_del_from_meter(bridge->meter_table, identical_flow);
     flow_del_from_group(bridge->group_table, identical_flow);
@@ -1091,6 +1093,8 @@ flowdb_flow_add(struct bridge *bridge,
     if (ret != LAGOPUS_RESULT_OK) {
       goto out;
     }
+    /* Examine apply-action for dataplane. */
+    flow_instruction_examination(flow);
     ret = flow_add_sub(flow, table->flow_list);
     if (ret != LAGOPUS_RESULT_OK) {
       goto out;
@@ -1108,9 +1112,6 @@ flowdb_flow_add(struct bridge *bridge,
     add_mbtree_timer(table->flow_list, MBTREE_TIMEOUT);
 #endif /* USE_MBTREE */
   }
-
-  /* Examine apply-action for dataplane. */
-  flow_instruction_examination(flow);
 
   /* Clear flow cache */
 #ifdef HAVE_DPDK
@@ -1151,6 +1152,7 @@ flow_modify_sub(struct bridge *bridge,
     flow_free(flow);
     goto out;
   }
+  flow_instruction_examination(flow);
   if (strict) {
     /*
      * strict. modify identical flow specified by flow_mod.
