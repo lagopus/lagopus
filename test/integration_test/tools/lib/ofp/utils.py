@@ -2,7 +2,6 @@ import os
 import sys
 import re
 import base64
-from types import *
 
 
 def create_section_name(name, del_str):

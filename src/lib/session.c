@@ -89,28 +89,77 @@ socket_create(int domain, int type, int protocol, bool nonblocking) {
   return sock;
 }
 
+static lagopus_result_t
+sockaddr_get(const lagopus_ip_address_t *ip,
+             uint16_t port,
+             struct sockaddr **saddr,
+             socklen_t *saddr_len) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  bool is_ipv4 = false;
+
+  if (ip != NULL && saddr != NULL &&
+      *saddr == NULL && saddr_len != NULL) {
+    if ((ret = lagopus_ip_address_sockaddr_get(ip, saddr)) !=
+        LAGOPUS_RESULT_OK) {
+      lagopus_perror(ret);
+      goto done;
+    }
+
+    if ((ret = lagopus_ip_address_sockaddr_len_get(ip, saddr_len)) !=
+        LAGOPUS_RESULT_OK) {
+      lagopus_perror(ret);
+      goto done;
+    }
+
+    if ((ret = lagopus_ip_address_is_ipv4(ip, &is_ipv4)) !=
+        LAGOPUS_RESULT_OK) {
+      lagopus_perror(ret);
+      goto done;
+    }
+
+    if (is_ipv4 == true) {
+      ((struct sockaddr_in *) *saddr)->sin_port = htons(port);
+    } else {
+      ((struct sockaddr_in6 *) *saddr)->sin6_port = htons(port);
+    }
+
+    ret = LAGOPUS_RESULT_OK;
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+done:
+  return ret;
+}
+
 static int
-bind_default(lagopus_session_t s, const char *host, const char *port) {
+bind_default(lagopus_session_t s,
+             const lagopus_ip_address_t *addr,
+             uint16_t port) {
+  lagopus_result_t r = LAGOPUS_RESULT_ANY_FAILURES;
   int ret;
   int sock = -1;
-  char service[NI_MAXSERV];
-  struct addrinfo hints = {0,0,0,0,0,NULL,NULL,NULL}, *res = NULL;
+  socklen_t saddr_len = 0;
+  struct sockaddr *saddr = NULL;
 
-  snprintf(service, sizeof(service), "%s", port);
-  lagopus_msg_debug(10, "host:%s, service:%s\n", host, service);
-  hints.ai_family = s->family;
-  hints.ai_socktype = s->type;
-  ret = getaddrinfo(host, service, &hints, &res);
-  if (ret != 0) {
-    lagopus_msg_warning("getaddrinfo error %s.\n", gai_strerror(ret));
-    freeaddrinfo(res);
+  if ((r = sockaddr_get(addr, port, &saddr, &saddr_len)) !=
+      LAGOPUS_RESULT_OK) {
+    lagopus_perror(r);
+    free(saddr);
     return -1;
   }
 
-  sock = socket_create(res->ai_family, res->ai_socktype, res->ai_protocol,
+  if (s->family != saddr->sa_family) {
+    lagopus_msg_error("Bad address family (%"PRIu8" != %"PRIu8")\n",
+                      s->family, saddr->sa_family);
+    free(saddr);
+    return -1;
+  }
+
+  sock = socket_create(s->family, s->type, s->protocol,
                        s->session_type & SESSION_ACTIVE ? true : false);
   if (sock < 0) {
-    freeaddrinfo(res);
+    free(saddr);
     return -1;
   }
 
@@ -118,64 +167,71 @@ bind_default(lagopus_session_t s, const char *host, const char *port) {
     const int on = 1;
     ret = setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
     if (ret < 0) {
-      lagopus_msg_warning("setsockopt error %s.\n", strerror(errno));
-      freeaddrinfo(res);
+      lagopus_msg_error("setsockopt error %s.\n", strerror(errno));
+      free(saddr);
       close(sock);
       return ret;
     }
   }
 
-  ret = bind(sock, res->ai_addr, res->ai_addrlen);
+  ret = bind(sock, saddr, saddr_len);
   if (ret < 0 && errno != EINPROGRESS) {
-    lagopus_msg_warning("connect error %s.\n", strerror(errno));
-    freeaddrinfo(res);
+    lagopus_msg_error("connect error %s.\n", strerror(errno));
+    free(saddr);
     close(sock);
     return ret;
   }
 
   s->sock = sock;
-  freeaddrinfo(res);
+  free(saddr);
+
   return ret;
 }
 
 static lagopus_result_t
-connect_default(lagopus_session_t s, const char *host, const char *port) {
+connect_default(lagopus_session_t s,
+                const lagopus_ip_address_t *addr,
+                uint16_t port) {
+  lagopus_result_t r = LAGOPUS_RESULT_ANY_FAILURES;
   int ret;
   int sock = -1;
-  char service[NI_MAXSERV];
-  struct addrinfo hints = {0,0,0,0,0,NULL,NULL,NULL}, *res = NULL;
+  socklen_t saddr_len = 0;
+  struct sockaddr *saddr = NULL;
 
-  snprintf(service, sizeof(service), "%s", port);
-  lagopus_msg_debug(10, "host:%s, service:%s\n", host, service);
-  hints.ai_family = s->family;
-  hints.ai_socktype = s->type;
-  ret = getaddrinfo(host, service, &hints, &res);
-  if (ret != 0) {
-    lagopus_msg_warning("getaddrinfo error %s\n", gai_strerror(ret));
-    freeaddrinfo(res);
+  if ((r = sockaddr_get(addr, port, &saddr, &saddr_len)) !=
+      LAGOPUS_RESULT_OK) {
+    lagopus_perror(r);
+    free(saddr);
+    return -1;
+  }
+
+  if (s->family != saddr->sa_family) {
+    lagopus_msg_error("Bad address family ( %"PRIu8").\n",
+                      saddr->sa_family);
+    free(saddr);
     return -1;
   }
 
   if (s->sock < 0) {
-    sock = socket_create(res->ai_family, res->ai_socktype, res->ai_protocol,
+    sock = socket_create(s->family, s->type, s->protocol,
                          s->session_type & SESSION_ACTIVE ? true : false);
     if (sock < 0) {
-      freeaddrinfo(res);
+      free(saddr);
       return -1;
     }
     s->sock = sock;
   }
 
-  ret = connect(s->sock, res->ai_addr, res->ai_addrlen);
+  ret = connect(s->sock, saddr, saddr_len);
   if (ret < 0 && errno != EINPROGRESS) {
-    lagopus_msg_warning("connect error %s\n", strerror(errno));
+    lagopus_msg_error("connect error %s\n", strerror(errno));
     close(s->sock);
     s->sock = -1;
-    freeaddrinfo(res);
+    free(saddr);
     return ret;
   }
 
-  freeaddrinfo(res);
+  free(saddr);
   return ret;
 }
 
@@ -250,15 +306,19 @@ session_create(session_type_t t, lagopus_session_t *session) {
   if (t & SESSION_TCP) {
     s->family = PF_INET;
     s->type   = SOCK_STREAM;
+    s->protocol = IPPROTO_TCP;
   } else if (t & SESSION_TCP6) {
     s->family = PF_INET6;
     s->type   = SOCK_STREAM;
+    s->protocol = IPPROTO_TCP;
   } else if (t & SESSION_UNIX_STREAM) {
     s->family = PF_UNIX;
     s->type   = SOCK_STREAM;
+    s->protocol = 0;
   } else if (t & SESSION_UNIX_DGRAM) {
     s->family = PF_UNIX;
     s->type   = SOCK_DGRAM;
+    s->protocol = 0;
   } else {
     ret = LAGOPUS_RESULT_INVALID_ARGS;
     goto err;
@@ -524,9 +584,7 @@ session_accept(lagopus_session_t s1, lagopus_session_t *s2) {
 lagopus_result_t
 session_bind(lagopus_session_t s, lagopus_ip_address_t *saddr, uint16_t sport) {
   lagopus_result_t r = LAGOPUS_RESULT_ANY_FAILURES;
-  char *addr = NULL;
   int ret;
-  char port[16];
 
   if (s == NULL || saddr == NULL || sport == 0) {
     lagopus_msg_warning("session is null.\n");
@@ -534,13 +592,7 @@ session_bind(lagopus_session_t s, lagopus_ip_address_t *saddr, uint16_t sport) {
     goto done;
   }
 
-  if ((r = lagopus_ip_address_str_get(saddr, &addr) !=
-       LAGOPUS_RESULT_OK)) {
-    goto done;
-  }
-
-  snprintf(port, sizeof(port), "%d", sport);
-  ret = bind_default(s, addr, port);
+  ret = bind_default(s, saddr, sport);
   if (ret < 0) {
     lagopus_msg_warning("bind_default error.\n");
     r = LAGOPUS_RESULT_POSIX_API_ERROR;
@@ -558,8 +610,6 @@ session_bind(lagopus_session_t s, lagopus_ip_address_t *saddr, uint16_t sport) {
   r = LAGOPUS_RESULT_OK;
 
 done:
-  free(addr);
-
   return r;
 }
 
@@ -567,7 +617,6 @@ lagopus_result_t
 session_connect(lagopus_session_t s, lagopus_ip_address_t *daddr, uint16_t dport,
                 lagopus_ip_address_t *saddr, uint16_t sport) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
-  char *s_addr = NULL;
   char *d_addr = NULL;
   char port[16];
 
@@ -584,12 +633,7 @@ session_connect(lagopus_session_t s, lagopus_ip_address_t *daddr, uint16_t dport
   }
 
   if (saddr != NULL) {
-    if ((ret = lagopus_ip_address_str_get(saddr, &s_addr) !=
-         LAGOPUS_RESULT_OK)) {
-      goto done;
-    }
-    snprintf(port, sizeof(port), "%d", sport);
-    ret = bind_default(s, s_addr, port);
+    ret = bind_default(s, saddr, sport);
     if (ret < 0) {
       lagopus_msg_warning("bind_default error.\n");
       ret = LAGOPUS_RESULT_TLS_CONN_ERROR;
@@ -597,13 +641,7 @@ session_connect(lagopus_session_t s, lagopus_ip_address_t *daddr, uint16_t dport
     }
   }
 
-  if ((ret = lagopus_ip_address_str_get(daddr, &d_addr) !=
-       LAGOPUS_RESULT_OK)) {
-    goto done;
-  }
-  snprintf(port, sizeof(port), "%d", dport);
-
-  ret = connect_default(s, d_addr, port);
+  ret = connect_default(s, daddr, dport);
   if (ret < 0) {
     goto done;
   }
@@ -613,8 +651,6 @@ session_connect(lagopus_session_t s, lagopus_ip_address_t *daddr, uint16_t dport
   }
 
 done:
-  free(s_addr);
-  free(d_addr);
 
   return ret;
 }

@@ -24,6 +24,7 @@ struct session {
   int sock;
   int family;
   int type;
+  int protocol;
   session_type_t session_type;
   short events; /* for session_event_poll */
   short revents; /* for session_event_poll */

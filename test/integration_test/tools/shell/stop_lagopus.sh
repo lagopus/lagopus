@@ -10,7 +10,7 @@ if [ -f "${PID_FILE}" ]; then
     PID=`cat ${PID_FILE}`
 
     # kill
-    sudo kill -TERM $PID
+    sudo -E kill -TERM $PID
 
     i=0
     while :

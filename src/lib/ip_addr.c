@@ -24,6 +24,7 @@
 struct ip_address {
   char addr_str[LAGOPUS_ADDR_STR_MAX];
   bool is_ipv4;
+  socklen_t saddr_len;
   struct sockaddr_storage saddr;
 };
 
@@ -87,6 +88,7 @@ lagopus_ip_address_create(const char *name, bool is_ipv4_addr,
            *  is shorter than a length of sockaddr_storage.
            */
           memcpy(&((*ip)->saddr), addr->ai_addr, addr->ai_addrlen);
+          (*ip)->saddr_len = addr->ai_addrlen;
 
           freeaddrinfo((void *) addr);
           return LAGOPUS_RESULT_OK;
@@ -191,18 +193,33 @@ lagopus_result_t
 lagopus_ip_address_sockaddr_get(const lagopus_ip_address_t *ip,
                                 struct sockaddr **saddr) {
   if (ip != NULL && saddr != NULL) {
-    if (*saddr == NULL) {
-      /* For avoiding build-scan warnings. */
-      struct sockaddr_storage *ss = malloc(sizeof(struct sockaddr_storage));
-      *saddr = (struct sockaddr *) ss;
-    }
-    if (*saddr != NULL) {
-      memcpy(*saddr, &(ip->saddr), sizeof(struct sockaddr_storage));
-      return LAGOPUS_RESULT_OK;
+    if (ip->saddr_len != 0) {
+      if (*saddr == NULL) {
+        /* For avoiding build-scan warnings. */
+        struct sockaddr_storage *ss = malloc(sizeof(struct sockaddr_storage));
+        *saddr = (struct sockaddr *) ss;
+      }
+      if (*saddr != NULL) {
+        memcpy(*saddr, &(ip->saddr), sizeof(struct sockaddr_storage));
+        return LAGOPUS_RESULT_OK;
+      } else {
+        return LAGOPUS_RESULT_NO_MEMORY;
+      }
     } else {
-      return LAGOPUS_RESULT_NO_MEMORY;
+      return LAGOPUS_RESULT_INVALID_OBJECT;
     }
   }
+  return LAGOPUS_RESULT_INVALID_ARGS;
+}
+
+lagopus_result_t
+lagopus_ip_address_sockaddr_len_get(const lagopus_ip_address_t *ip,
+                                    socklen_t *saddr_len) {
+  if (ip != NULL && saddr_len != NULL) {
+    *saddr_len = ip->saddr_len;
+    return LAGOPUS_RESULT_OK;
+  }
+
   return LAGOPUS_RESULT_INVALID_ARGS;
 }
 

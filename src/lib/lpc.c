@@ -6,12 +6,9 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+#include "lagopus_apis.h"
 #include "lpc.h"
 
-#define LAGOPUS_RESULT_INVALID_ARGS    -1
-#define LAGOPUS_RESULT_NO_MEMORY       -2
-#define LAGOPUS_RESULT_NOT_FOUND       -4
-#define LAGOPUS_RESULT_ALREADY_EXISTS  -5
 
 #define INFLATE_THRESHOLD 50
 #define INFLATE_THRESHOLD_ROOT 30

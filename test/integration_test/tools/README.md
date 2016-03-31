@@ -8,6 +8,8 @@ How To Run "log run tests"
 ## Related packages
  * Python 2.7.6 or Python 3.4.3
  * pip
+ * ansible 1.5.4
+ * iproute
  * PyYAML 3.11
  * pykwalify 1.0.1
  * Jinja2 2.7.3
@@ -21,17 +23,17 @@ How to run test
 ## 1. Install packages.
 
 ```
- % sudo apt-get install python python-dev python-pip iproute libxml2 libxslt-dev
+ % sudo apt-get install python ansible python-dev python-pip iproute libxml2 libxslt-dev
  % sudo pip install --requirement ./requirements.pip
 ```
 
 ## 2. Install lagopus.
  cf.) {LAGOPUS\_DIR}/INSTALL.txt
 
-## 3. Edit `lagopus_test.ini` file.
+## 3. Edit `lagopus_test.yml` file.
 
 ```
- % vi conf/lagopus_test.ini
+ % vi conf/lagopus_test.yml
 ```
 
 ## 4. Run YAML schema check (for sample).
@@ -61,7 +63,7 @@ How to run test
 * example:
   * nose testcase.
 ```
- % sudo ./lagopus_test.py -L debug sample_nose/test_ofp.py -- -v
+ % ./lagopus_test.py -L debug sample_nose/test_ofp.py -- -v
    ----------------------------------------------------------------------
    Ran 1 test in 15.287s
 
@@ -71,7 +73,7 @@ How to run test
 
   * YAML testcase.
 ```
- % sudo ./lagopus_test.py -L debug -y sample_yaml/ofp/.yml -- -v
+ % ./lagopus_test.py -L debug -y sample_yaml/ofp/.yml -- -v
    ----------------------------------------------------------------------
    Ran 1 test in 15.287s
 

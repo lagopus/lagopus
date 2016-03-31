@@ -1,6 +1,6 @@
-lagopus_dsl:
-  file: "{{ test_home }}/test_scenarios_yaml/ofp/ofp_queue.dsl"
-  sw: target # target switch.
+switches:
+  target:
+    dsl: "{{ test_home }}/test_scenarios_yaml/ofp/ofp_queue.dsl"
 
 #setup:
 

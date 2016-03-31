@@ -12,7 +12,7 @@ from ofp.ofp import ofp_creators
 # test scenario items
 SCE_TESTCASES = "testcases"
 SCE_TESTCASE = "testcase"
-SCE_LAGOPUS_DSL = "lagopus_dsl"
+SCE_SWITCHES = "switches"
 SCE_SETUP = "setup"
 SCE_TEARDOWN = "teardown"
 SCE_TEST = "test"
@@ -21,7 +21,7 @@ SCE_CMD_TYPE = "cmd_type"
 SCE_CMD = "cmd"
 SCE_RESULT = "result"
 SCE_TIMEOUT = "timeout"
-SCE_SW = "sw"
+SCE_SWITCH = "switch"
 SCE_REPETITION_COUNT = "repetition_count"
 
 SCE_USE_LAGOPUS = "lagopus"
@@ -33,10 +33,9 @@ SCE_CMD_TYPE_SH = "shell"
 SCE_CMD_TYPE_OFP_SEND = "ofp_send"
 SCE_CMD_TYPE_OFP_RECV = "ofp_recv"
 
-SCE_SW_TARGET = "target"
-SCE_SW_TESTER = "tester"
-
-SCE_LAGOPUS_DSL_FILE = "file"
+SCE_SWITCHES_TARGET = "target"
+SCE_SWITCHES_TESTER = "tester"
+SCE_SWITCHES_DSL  = "dsl"
 
 SCE_REPETITION_COUNT_DEFAULT = 1
 
@@ -99,11 +98,10 @@ class CmdExecuter:
 
     def exec_cmd(self, test_case_obj, cmd):
         timout = DEFAULT_TIMEOUT
-        dpid = test_case_obj.opts["switches"]["target_sw"]["dpid"]
+        dpid = test_case_obj.opts["switches"]["target"]["dpid"]
 
-        if SCE_SW in cmd:
-            sw = "%s_sw" % cmd[SCE_SW]
-            dpid = test_case_obj.opts["switches"][sw]["dpid"]
+        if SCE_SWITCH in cmd:
+            dpid = test_case_obj.opts["switches"][cmd[SCE_SWITCH]]["dpid"]
 
         if SCE_TIMEOUT in cmd:
             timout = cmd[SCE_TIMEOUT]
@@ -147,28 +145,49 @@ class YamlTestExecuter:
             # add cleanup func.
             self.addCleanup(self.cleanups)
 
-            checker_setup(self)
+            is_use_tester = False
+            if SCE_SWITCHES in scenario:
+                if SCE_SWITCHES_TESTER in scenario[SCE_SWITCHES]:
+                    is_use_tester = True
+
+            checker_setup(self, is_use_tester)
             self.opts = checker_get_opts(self)
 
             checker_start_lagopus(self)
             checker_start_datastore(self)
 
-            # section: lagopus_dsl.
-            if SCE_LAGOPUS_DSL in scenario:
-                dpid = self.opts["switches"]["target_sw"]["dpid"]
+            # section: switches.
+            if SCE_SWITCHES in scenario:
+                # section: target/tester.
+                for sw_name, sw_values in scenario[SCE_SWITCHES].items():
+                    dpid = self.opts["switches"][sw_name]["dpid"]
 
-                if SCE_SW in scenario[SCE_LAGOPUS_DSL]:
-                    sw = "%s_sw" % scenario[SCE_LAGOPUS_DSL][SCE_SW]
-                    dpid = self.opts["switches"][sw]["dpid"]
+                    # send DSL file.
+                    file_name = self.cmd_executer.replase_kws(
+                        sw_values[SCE_SWITCHES_DSL],
+                        self.opts)
+                    logging.debug("send DSL file: %s" % file_name)
+                    with open(file_name, "r") as f:
+                        cmd = ""
+                        for line in f:
+                            if not line.rstrip() or line.lstrip()[0] == "#":
+                                continue
 
-                # exec load command.
-                self.cmd_executer.execute(
-                    dpid, SCE_CMD_TYPE_DS,
-                    "load %s" % scenario[SCE_LAGOPUS_DSL][
-                        SCE_LAGOPUS_DSL_FILE],
-                    '{"ret":"OK"}',
-                    DEFAULT_TIMEOUT,
-                    self.opts)
+                            cmd += line
+
+                            if line.rstrip()[-1] == "\\":
+                                continue
+
+                            if cmd[-1] != "\n":
+                                cmd += "\n"
+
+                            self.cmd_executer.execute(
+                                dpid, SCE_CMD_TYPE_DS, cmd,
+                                '{"ret":"OK"}',
+                                DEFAULT_TIMEOUT,
+                                self.opts)
+                            cmd = ""
+
                 checker_start_ofp(self)
 
             # section: setup
@@ -185,8 +204,8 @@ class YamlTestExecuter:
                 for cmds in scenario[SCE_TEARDOWN]:
                     self.cmd_executer.exec_cmds(self, cmds)
 
-            # section: lagopus_dsl.
-            if SCE_LAGOPUS_DSL in scenario:
+            # section: switches.
+            if SCE_SWITCHES in scenario:
                 checker_stop_ofp(self)
 
             checker_stop_datastore(self)

@@ -6,7 +6,7 @@ from const import *
 
 # const.
 # default option values.
-OPT_CONFIG_FILE = "./conf/lagopus_test.ini"
+OPT_CONFIG_FILE = "./conf/lagopus_test.yml"
 OPT_OUT_DIR = "./out"
 OPT_LOG_LEVEL = "info"
 

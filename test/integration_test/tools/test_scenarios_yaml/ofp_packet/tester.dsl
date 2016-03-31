@@ -7,5 +7,5 @@ interface interface03 create -type ethernet-dpdk-phy -port-number 2
 port port01 create -interface interface01
 port port02 create -interface interface02
 port port03 create -interface interface03
-bridge bridge01 create -controller controller01 -port port01 1 -port port02 2 -port port03 3 -dpid {{ switches.target.dpid }}
+bridge bridge01 create -controller controller01 -port port01 1 -port port02 2 -port port03 3 -dpid {{ switches.tester.dpid }}
 bridge bridge01 enable

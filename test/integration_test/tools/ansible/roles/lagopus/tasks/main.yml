@@ -1,0 +1,8 @@
+---
+- name: stop lagopus
+  include: stop_lagopus.yml
+  when: action == "stop" or action == "start"
+
+- name: start lagopus
+  include: start_lagopus.yml
+  when: action == "start"

@@ -46,14 +46,19 @@ schema;cmds_schema:
 ## TOP level schema
 type:  map
 mapping:
-  "lagopus_dsl":
+  "switches":
     type:  map
     mapping:
-      "file":
-        type:  str
-      "sw":
-        type:  str
-        enum:  [target, tester]
+      "target":
+        type:  map
+        mapping:
+          "dsl":
+            type:  str
+      "tester":
+        type:  map
+        mapping:
+          "dsl":
+            type:  str
   "mode":
     type:  str
     enum:  [sync, async]

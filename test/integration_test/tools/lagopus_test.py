@@ -44,7 +44,7 @@ def check_schema_tests(opts, dir):
 
 def parse_confs(opts):
     # configs
-    config_parser.read(opts.config)
+    config_parser.load(opts.config)
 
 
 def get_yaml_files(path):

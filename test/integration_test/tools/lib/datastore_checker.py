@@ -7,7 +7,6 @@ import time
 import copy
 import json
 from contextlib import contextmanager
-from types import *
 from nose.tools import eq_
 
 # lib tool

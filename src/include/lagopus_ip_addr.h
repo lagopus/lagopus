@@ -113,6 +113,20 @@ lagopus_ip_address_sockaddr_get(const lagopus_ip_address_t *ip,
                                 struct sockaddr **saddr);
 
 /**
+ * Get length of sockaddr structure.
+ *
+ *     @param[in]	ip	A pointer to a \e lagopus_ip_address_t structure.
+ *     @param[out]	saddr_len	A pointer to a \e length of sockaddr structure
+ *
+ *     @retval	LAGOPUS_RESULT_OK	Succeeded.
+ *     @retval	LAGOPUS_RESULT_INVALID_ARGS	Failed, invalid argument(s).
+ */
+lagopus_result_t
+lagopus_ip_address_sockaddr_len_get(const lagopus_ip_address_t *ip,
+                                    socklen_t *saddr_len);
+
+
+/**
  * Is IPv4.
  *
  *     @param[in]	ip	A pointer to a \e lagopus_ip_address_t structure.

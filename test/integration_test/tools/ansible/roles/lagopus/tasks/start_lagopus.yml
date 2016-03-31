@@ -1,0 +1,17 @@
+---
+# TODO:
+#- name: stop lagopus
+# ansible-playbook ansible/lagopus.yml --extra-vars "lagopus=/usr/local/sbin/lagopus lagopus_log=/tmp/l.log pid_file=/var/run/lagopus.pid lagopus_opts='-- -cf -n4 -- -p7 --no-cache' timeout=30 is_remote=false action=start" -i "localhost,"
+
+- name: rm log
+  file: path="{{ lagopus_log }}" state=absent
+  sudo: yes
+
+- name: start lagopus
+  shell: "{{ lagopus }} -l {{ lagopus_log }} -p {{ pid_file }} {{ lagopus_opts }}"
+  environment: "{{ env }}"
+  sudo: yes
+
+- name: check logfile (wait)
+  wait_for: path="{{ lagopus_log }}" search_regex="lagopus is a go." timeout={{ timeout }}
+  sudo: yes
