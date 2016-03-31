@@ -272,7 +272,7 @@ table_alloc(uint8_t table_id) {
 }
 
 struct table *
-table_get(struct flowdb *flowdb, uint8_t table_id) {
+flowdb_get_table(struct flowdb *flowdb, uint8_t table_id) {
   if (flowdb->tables[table_id] == NULL) {
     flowdb->tables[table_id] = table_alloc(table_id);
   }
@@ -729,7 +729,7 @@ flow_remove_with_reason_nolock(struct flow *flow,
 
   group_table = bridge->group_table;
   meter_table = bridge->meter_table;
-  table = table_get(bridge->flowdb, flow->table_id);
+  table = flowdb_get_table(bridge->flowdb, flow->table_id);
 
   flow_list = table->flow_list;
   for (i = 0; i < flow_list->nflow; i++) {
@@ -1008,7 +1008,7 @@ flowdb_flow_add(struct bridge *bridge,
   flowdb_wrlock(flowdb);
 
   /* Get table. */
-  table = table_get(flowdb, flow_mod->table_id);
+  table = flowdb_get_table(flowdb, flow_mod->table_id);
   if (table == NULL) {
     error->type = OFPET_FLOW_MOD_FAILED;
     error->code = OFPFMFC_BAD_TABLE_ID;
@@ -1594,7 +1594,7 @@ flowdb_flow_modify(struct bridge *bridge,
   flowdb_wrlock(bridge->flowdb);
 
   /* Get table. */
-  table = table_get(bridge->flowdb, flow_mod->table_id);
+  table = flowdb_get_table(bridge->flowdb, flow_mod->table_id);
   if (table == NULL) {
     error->type = OFPET_FLOW_MOD_FAILED;
     error->code = OFPFMFC_BAD_TABLE_ID;
@@ -1663,7 +1663,7 @@ flowdb_flow_delete(struct bridge *bridge,
     }
   } else {
     /* Lookup table using table_id. */
-    table = table_get(flowdb, flow_mod->table_id);
+    table = flowdb_get_table(flowdb, flow_mod->table_id);
     if (table == NULL) {
       error->type = OFPET_FLOW_MOD_FAILED;
       error->code = OFPFMFC_BAD_TABLE_ID;
@@ -1792,7 +1792,7 @@ flowdb_flow_stats(struct flowdb *flowdb,
     }
   } else {
     /* Lookup table using table_id. */
-    table = table_get(flowdb, request->table_id);
+    table = flowdb_get_table(flowdb, request->table_id);
     if (table == NULL) {
       error->type = OFPET_BAD_REQUEST;
       error->code = OFPBRC_BAD_TABLE_ID;
@@ -1871,7 +1871,7 @@ flowdb_aggregate_stats(struct flowdb *flowdb,
     }
   } else {
     /* Lookup table using table_id. */
-    table = table_get(flowdb, request->table_id);
+    table = flowdb_get_table(flowdb, request->table_id);
     if (table == NULL) {
       error->type = OFPET_BAD_REQUEST;
       error->code = OFPBRC_BAD_TABLE_ID;

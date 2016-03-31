@@ -409,7 +409,7 @@ test_flowdb_flow_add(void) {
   flow_mod.out_port = OFPP_ANY;
   flow_mod.out_group = OFPG_ANY;
 
-  table = table_get(flowdb, flow_mod.table_id);
+  table = flowdb_get_table(flowdb, flow_mod.table_id);
 
   /* Add. */
   TEST_ASSERT_FLOW_ADD_OK(bridge, &flow_mod, &match_list,
@@ -535,7 +535,7 @@ test_flowdb_flow_del_strict(void) {
   flow_mod.flags = OFPFF_SEND_FLOW_REM;
   flow_mod.cookie = 0;
 
-  table = table_get(flowdb, flow_mod.table_id);
+  table = flowdb_get_table(flowdb, flow_mod.table_id);
 
   add_port_match(&match_list, 1);
 
@@ -608,7 +608,7 @@ test_flowdb_flow_modify(void) {
   flow_mod.out_port = OFPP_ANY;
   flow_mod.out_group = OFPG_ANY;
 
-  table = table_get(flowdb, flow_mod.table_id);
+  table = flowdb_get_table(flowdb, flow_mod.table_id);
 
   /* Add two flows. */
   TEST_ASSERT_FLOW_ADD_OK(bridge, &flow_mod, &match_list,
@@ -701,7 +701,7 @@ test_flowdb_flow_del(void) {
   flow_mod.out_port = OFPP_ANY;
   flow_mod.out_group = OFPG_ANY;
 
-  table = table_get(flowdb, flow_mod.table_id);
+  table = flowdb_get_table(flowdb, flow_mod.table_id);
 
   TEST_ASSERT_FLOW_ADD_OK(bridge, &flow_mod, &match_list,
                           &instruction_list, &error);
@@ -736,7 +736,7 @@ test_flowdb_flow_del_with_cookie(void) {
   flow_mod.out_port = OFPP_ANY;
   flow_mod.out_group = OFPG_ANY;
 
-  table = table_get(flowdb, flow_mod.table_id);
+  table = flowdb_get_table(flowdb, flow_mod.table_id);
 
   flow_mod.command = OFPFC_ADD;
   TEST_ASSERT_FLOW_ADD_OK(bridge, &flow_mod, &match_list,
@@ -777,7 +777,7 @@ test_flowdb_flow_stats(void) {
   flow_mod.out_port = OFPP_ANY;
   flow_mod.out_group = OFPG_ANY;
 
-  table = table_get(flowdb, flow_mod.table_id);
+  table = flowdb_get_table(flowdb, flow_mod.table_id);
 
   TEST_ASSERT_FLOW_ADD_OK(bridge, &flow_mod, &match_list,
                           &instruction_list, &error);
@@ -874,7 +874,7 @@ test_flowdb_flow_aggregate_stats(void) {
   flow_mod.out_port = OFPP_ANY;
   flow_mod.out_group = OFPG_ANY;
 
-  table = table_get(flowdb, flow_mod.table_id);
+  table = flowdb_get_table(flowdb, flow_mod.table_id);
 
   TEST_ASSERT_FLOW_ADD_OK(bridge, &flow_mod, &match_list,
                           &instruction_list, &error);
@@ -989,7 +989,7 @@ test_flow_dump(void) {
   flow_mod.cookie = 0;
   flow_mod.out_port = OFPP_ANY;
 
-  table = table_get(flowdb, flow_mod.table_id);
+  table = flowdb_get_table(flowdb, flow_mod.table_id);
   TEST_ASSERT_NOT_NULL(table);
 
   make_match(&match_list,

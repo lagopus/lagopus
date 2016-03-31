@@ -165,7 +165,7 @@ test_lagopus_match_and_action(void) {
   TEST_ASSERT_NOT_NULL(bridge);
 
   flowdb_switch_mode_set(bridge->flowdb, SWITCH_MODE_OPENFLOW);
-  table = table_get(bridge->flowdb, 0);
+  table = flowdb_get_table(bridge->flowdb, 0);
   table->userdata = new_flowinfo_eth_type();
 
   TAILQ_INIT(&action_list);

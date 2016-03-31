@@ -66,7 +66,7 @@ test_lagopus_find_flow(void) {
   bridge = dp_bridge_lookup("br0");
   TEST_ASSERT_NOT_NULL(bridge);
   lagopus_packet_init(pkt, m, port_lookup(&bridge->ports, 1));
-  table = table_get(pkt->in_port->bridge->flowdb, 0);
+  table = flowdb_get_table(pkt->in_port->bridge->flowdb, 0);
   table->userdata = new_flowinfo_eth_type();
   flow = lagopus_find_flow(pkt, table);
   TEST_ASSERT_EQUAL_MESSAGE(table->lookup_count, 0,
