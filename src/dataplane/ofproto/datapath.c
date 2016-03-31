@@ -1947,7 +1947,7 @@ execute_action_decap(struct lagopus_packet *pkt,
 
     case (OFPHTN_IP_PROTO << 16) | IPPROTO_UDP:
       new_type = (OFPHTN_UDP_TCP_PORT << 16) | UDP_DPORT(pkt->udp);
-      new_p = OS_M_ADJ(m, sizeof(UDP_HDR));
+      new_p = OS_M_ADJ(m, sizeof(uint16_t) * 4);
       pkt->udp = NULL;
       break;
 
@@ -2041,6 +2041,9 @@ execute_action_encap(struct lagopus_packet *pkt,
 
       new_vxlan = (VXLAN_HDR *)OS_M_PREPEND(m, sizeof(VXLAN_HDR));
       new_vxlan->flags = 0x08;
+      new_vxlan->pad[0] = 0;
+      new_vxlan->pad[1] = 0;
+      new_vxlan->pad[2] = 0;
       new_vxlan->vni = 0;
       pkt->vxlan = new_vxlan;
     }
@@ -2050,11 +2053,11 @@ execute_action_encap(struct lagopus_packet *pkt,
       UDP_HDR *new_udp;
       uint16_t sport;
 
-      new_udp = (UDP_HDR *)OS_M_PREPEND(m, sizeof(UDP_HDR));
+      new_udp = (UDP_HDR *)OS_M_PREPEND(m, sizeof(uint16_t) * 4);
       if ((pkt->oob_data.packet_type >> 16) ==OFPHTN_UDP_TCP_PORT) {
         sport = CityHash64WithSeed(pkt->l4_payload, sizeof(ETHER_HDR), 0);
-        UDP_SPORT(new_udp) = (sport | 0xc000);
-        UDP_DPORT(new_udp) = (pkt->oob_data.packet_type & 0xffff);
+        UDP_SPORT(new_udp) = OS_HTONS(sport | 0xc000);
+        UDP_DPORT(new_udp) = OS_HTONS(pkt->oob_data.packet_type & 0xffff);
       }
       UDP_LEN(new_udp) = OS_HTONS(OS_M_PKTLEN(m));
       UDP_CKSUM(new_udp) = 0;
