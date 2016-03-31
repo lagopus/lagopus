@@ -1128,6 +1128,33 @@ execute_action_set_field(struct lagopus_packet *pkt,
 
     case OFPXMT_OFB_MPLS_CW_SEQ_NUM:
       break;
+
+    case OFPXMT_OFB_GTPU_FLAGS:
+      pkt->gtpu->verflags &= 0xe0;
+      pkt->gtpu->verflags |= *oxm_value;
+      break;
+
+    case OFPXMT_OFB_GTPU_VER:
+      pkt->gtpu->verflags &= 0x1f;
+      pkt->gtpu->verflags |= (*oxm_value) << 5;
+      break;
+
+    case OFPXMT_OFB_GTPU_MSGTYPE:
+      pkt->gtpu->msgtype = *oxm_value;
+      break;
+
+    case OFPXMT_OFB_GTPU_TEID:
+      OS_MEMCPY(&pkt->gtpu->te_id, oxm_value, 4);
+      break;
+
+    case OFPXMT_OFB_GTPU_EXTN_HDR:
+      break;
+
+    case OFPXMT_OFB_GTPU_EXTN_UDP_PORT:
+      break;
+
+    case OFPXMT_OFB_GTPU_EXTN_SCI:
+      break;
 #endif /* GENERAL_TUNNEL_SUPPORT */
 
     default:
@@ -1983,6 +2010,19 @@ execute_action_decap(struct lagopus_packet *pkt,
       pkt->vxlan = NULL;
       break;
 
+    case (OFPHTN_UDP_TCP_PORT << 16) | GTPU_PORT:
+      new_p = OS_M_ADJ(m, sizeof(struct gtpu_hdr));
+      if (IPV4_VER((IPV4_HDR *)new_p) == 4) {
+        new_type = (OFPHTN_ETHERTYPE << 16) | ETHERTYPE_IP;
+      } else if (IPV6_VER((IPV6_HDR *)new_p) == 6) {
+        new_type = (OFPHTN_ETHERTYPE << 16) | ETHERTYPE_IPV6;
+      } else {
+        /* XXX? */
+        new_type = decap->new_pkt_type;
+      }
+      pkt->gtpu = NULL;
+      break;
+
     default:
       return OFPBAC_BAD_HEADER_TYPE;
   }
@@ -2059,6 +2099,19 @@ execute_action_encap(struct lagopus_packet *pkt,
       new_vxlan->pad[2] = 0;
       new_vxlan->vni = 0;
       pkt->vxlan = new_vxlan;
+    }
+      break;
+
+    case ((OFPHTN_UDP_TCP_PORT << 16) | GTPU_PORT): {
+      struct gtpu_hdr *new_gtpu;
+
+      new_gtpu = (struct gtpu_hdr *)OS_M_PREPEND(m, sizeof(struct gtpu_hdr));
+      new_gtpu->verflags = 0x20; /* ver = 1 */
+      new_gtpu->msgtype = 255; /* G-PDU */
+      /* note: extension header size is included in length */
+      new_gtpu->length = OS_HTONS(OS_M_PKTLEN(m) - sizeof(struct gtpu_hdr));
+      new_gtpu->te_id = 0;
+      pkt->gtpu = new_gtpu;
     }
       break;
 

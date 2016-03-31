@@ -569,6 +569,38 @@ flow_make_match(struct flow *flow) {
 
       case FIELD(OFPXMT_OFB_MPLS_CW_SEQ_NUM):
         break;
+
+      case FIELD(OFPXMT_OFB_GTPU_FLAGS):
+        /* 5bit, lower of verflags */
+        {
+          uint8_t val;
+          const int off = offsetof(struct gtpu_hdr, verflags);
+
+          byteoff[L4P_BASE].bits |= (uint32_t)BYTEBITS(1, off);
+          memcpy(&val, match->oxm_value, 1);
+          BYTEPTR(L4P_BASE, off)[1] &= 0xe0;
+          BYTEPTR(L4P_BASE, off)[1] |= val;
+          MASKPTR(L4P_BASE, off)[1] |= 0x1f;
+        }
+        break;
+
+      case FIELD(OFPXMT_OFB_GTPU_VER):
+        /* 3bit, highter of verflags */
+        {
+          uint8_t val;
+          const int off = offsetof(struct gtpu_hdr, verflags);
+
+          byteoff[L4P_BASE].bits |= (uint32_t)BYTEBITS(1, off);
+          memcpy(&val, match->oxm_value, 1);
+          BYTEPTR(L4P_BASE, off)[1] &= 0x1f;
+          BYTEPTR(L4P_BASE, off)[1] |= val << 5;
+          MASKPTR(L4P_BASE, off)[1] |= 0xe0;
+        }
+        break;
+
+        MAKE_BYTE(OFPXMT_OFB_GTPU_MSGTYPE, gtpu_hdr, msgtype, L4P_BASE);
+        MAKE_BYTE(OFPXMT_OFB_GTPU_TEID, gtpu_hdr, te_id, L4P_BASE);
+        /* EXTN_HDR, EXTN_HDP_PORT, EXTN_SCI is not supported yet */
 #endif /* GENERAL_TUNNEL_SUPPORT */
 
       default:
