@@ -89,12 +89,12 @@ get_16b_sum(uint16_t *u16, uint32_t len, uint32_t sum) {
   }
 
   /* If length is in odd bytes */
-  if (len) {
+  if (len == 1) {
     sum += *((const uint8_t *)u16);
   }
 
   sum = ((sum & 0xffff0000) >> 16) + (sum & 0xffff);
-  sum &= 0x0ffff;
+  sum = ((sum & 0xffff0000) >> 16) + (sum & 0xffff);
   return (uint16_t)sum;
 }
 
@@ -156,8 +156,9 @@ get_ipv4_l4_checksum(IPV4_HDR *ipv4_hdr, uint16_t *l4_hdr, uint32_t cksum) {
 
   l4_len = (uint32_t)(IPV4_TLEN(ipv4_hdr) - (IPV4_HLEN(ipv4_hdr) << 2));
 
-  cksum = get_16b_sum(l4_hdr, l4_len, cksum);
+  cksum += get_16b_sum(l4_hdr, l4_len, 0);
 
+  cksum = ((cksum & 0xffff0000) >> 16) + (cksum & 0xffff);
   cksum = (~cksum) & 0xffff;
   if (cksum == 0) {
     cksum = 0xffff;

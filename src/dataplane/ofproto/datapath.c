@@ -653,6 +653,7 @@ struct lagopus_packet *
 copy_packet(struct lagopus_packet *src_pkt) {
   OS_MBUF *mbuf;
   struct lagopus_packet *pkt;
+  uint8_t *srcm, *dstm;
   size_t pktlen;
 
   pkt = alloc_lagopus_packet();
@@ -663,9 +664,14 @@ copy_packet(struct lagopus_packet *src_pkt) {
   mbuf = pkt->mbuf;
   pktlen = OS_M_PKTLEN(src_pkt->mbuf);
   OS_M_APPEND(mbuf, pktlen);
-  memcpy(OS_MTOD(pkt->mbuf, char *), OS_MTOD(src_pkt->mbuf, char *), pktlen);
+  srcm = OS_MTOD(src_pkt->mbuf, uint8_t *);
+  dstm = OS_MTOD(pkt->mbuf, uint8_t *);
+  memcpy(dstm, srcm, pktlen);
   pkt->in_port = src_pkt->in_port;
   pkt->bridge = src_pkt->bridge;
+  pkt->ether_type = src_pkt->ether_type;
+  pkt->l3_hdr = src_pkt->l3_hdr + (dstm - srcm);
+  pkt->l4_hdr = src_pkt->l4_hdr + (dstm - srcm);
   pkt->flags = src_pkt->flags | PKT_FLAG_CACHED_FLOW;
   /* other pkt members are not used in physical output. */
   return pkt;
@@ -1535,6 +1541,13 @@ send_packet_in(struct lagopus_packet *pkt,
   DP_PRINT("%s\n", __func__);
   if (pkt->bridge == NULL) {
     return LAGOPUS_RESULT_INVALID_OBJECT;
+  }
+  if ((pkt->flags & PKT_FLAG_RECALC_CKSUM_MASK) != 0) {
+    if (pkt->ether_type == ETHERTYPE_IP) {
+      lagopus_update_ipv4_checksum(pkt);
+    } else if (pkt->ether_type == ETHERTYPE_IPV6) {
+      lagopus_update_ipv6_checksum(pkt);
+    }
   }
   data = malloc(sizeof(*data));
   if (data == NULL) {
