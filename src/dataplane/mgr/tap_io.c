@@ -120,9 +120,15 @@ dp_tap_interface_create(const char *name, struct interface *ifp) {
   if (tap == NULL) {
     return LAGOPUS_RESULT_NO_MEMORY;
   }
-  nm = strchr(name, ':');
+  nm = strrchr(name, ':');
   if (nm != NULL) {
-    tap->name = strdup(nm + 1);
+    if (nm == name) {
+      tap->name = strdup(nm + 1);
+    } else {
+      tap->name = strdup(name);
+      nm = strrchr(tap->name, ':');
+      *nm = INTERFACE_NAME_DELIMITER;
+    }
   } else {
     tap->name = strdup(name);
   }
@@ -242,6 +248,7 @@ lagopus_result_t
 dp_tap_interface_send_packet(struct dp_tap_interface *tap,
                              struct lagopus_packet *pkt) {
   write(tap->fd, OS_MTOD(pkt->mbuf, uint8_t *), OS_M_PKTLEN(pkt->mbuf));
+  lagopus_packet_free(pkt);
   return LAGOPUS_RESULT_OK;
 }
 
@@ -358,6 +365,32 @@ dp_tapio_thread_shutdown(shutdown_grace_level_t level) {
 lagopus_result_t
 dp_tapio_thread_stop(void) {
   return dp_thread_stop(&tapio_thread, &tapio_run);
+}
+
+uint32_t
+dp_tapio_portid_get(const char *name) {
+  struct dp_tap_interface *tap;
+  if (lagopus_hashmap_find(&tap_hashmap, name, &tap) == LAGOPUS_RESULT_OK) {
+    return tap->portid;
+  }
+  return 0;
+}
+
+struct interface*
+dp_tapio_interface_get(const char *in_name) {
+  struct dp_tap_interface *tap;
+  char n[256] = ":";
+  char *name = NULL;
+
+  name = in_name;
+  if (strchr(in_name, ':') == NULL) {
+    sprintf(n, ":%s", in_name);
+    name = n;
+  }
+  if (lagopus_hashmap_find(&tap_hashmap, name, &tap) == LAGOPUS_RESULT_OK) {
+    return tap->ifp;
+  }
+  return NULL;
 }
 
 #if 0

@@ -29,6 +29,9 @@
 #include "lagopus_apis.h"
 #include "lagopus/dp_apis.h"
 #include "lagopus/dataplane.h"
+#ifdef HYBRID
+#include <net/if.h>
+#endif /* HYBRID */
 
 #include "lock.h"
 
@@ -251,6 +254,120 @@ dp_interface_info_set(const char *name,
     return dp_interface_configure_internal(ifp);
   }
 }
+
+#ifdef HYBRID
+lagopus_result_t
+dp_interface_ip_unset(const char *in_name) {
+  struct interface *ifp;
+  lagopus_result_t rv = LAGOPUS_RESULT_ANY_FAILURES;
+  char *str = NULL;
+  char n[IFNAMSIZ + 1] = ":";
+  char *name = NULL;
+
+  name = in_name;
+  if (strchr(in_name, ':') == NULL) {
+    sprintf(n, ":%s", in_name);
+    name = n;
+  }
+
+  rv = lagopus_hashmap_find(&interface_hashmap, (void *)name, (void **)&ifp);
+  if (rv != LAGOPUS_RESULT_OK) {
+    return rv;
+  }
+
+  /* clear addr_info */
+  memset(&(ifp->addr_info), 0, sizeof(struct ip_address_info));
+  ifp->addr_info.set = false;
+
+  return rv;
+}
+
+lagopus_result_t
+dp_interface_ip_set(const char *in_name, int family, const struct in_addr *ip,
+                    const struct in_addr *broad, const uint8_t prefixlen) {
+  struct interface *ifp;
+  lagopus_ip_address_t **ip_addr;
+  lagopus_result_t rv = LAGOPUS_RESULT_ANY_FAILURES;
+  char *str = NULL;
+  char n[IFNAMSIZ + 1] = ":";
+  char *name = NULL;
+  char tmp[INET_ADDRSTRLEN];
+  char tmpip[INET_ADDRSTRLEN];
+
+  /* check parameter */
+  if (ip == NULL || broad == NULL) {
+    return LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  name = in_name;
+  if (strchr(in_name, ':') == NULL) {
+    sprintf(n, ":%s", in_name);
+    name = n;
+  }
+
+  rv = lagopus_hashmap_find(&interface_hashmap, (void *)name, (void **)&ifp);
+  if (rv != LAGOPUS_RESULT_OK) {
+    return rv;
+  }
+
+#ifdef HAVE_DPDK
+  ip_addr = &(ifp->info.eth_dpdk_phy.ip_addr);
+#else /* HAVE_DPDK */
+  ip_addr = &(ifp->info.eth_rawsock.ip_addr);
+#endif /* HAVE_DPDK */
+
+  /* for datastore */
+  inet_ntop(AF_INET, ip, tmpip, INET_ADDRSTRLEN);
+  lagopus_ip_address_destroy(*ip_addr);
+  if (family == AF_INET) {
+    /* IPv4 */
+    rv = lagopus_ip_address_create(tmpip, true, ip_addr);
+  } else {
+    /* IPv6 */
+    rv = lagopus_ip_address_create(tmpip, false, ip_addr);
+  }
+
+  if (rv == LAGOPUS_RESULT_OK) {
+    /* for interface addr info */
+    ifp->addr_info.ip = *ip;
+    ifp->addr_info.broad = *broad;
+    ifp->addr_info.prefixlen = prefixlen;
+    ifp->addr_info.set = true;
+  }
+
+  return rv;
+}
+
+lagopus_result_t
+dp_interface_ip_get(const char *name, int family, struct in_addr *addr,
+                    struct in_addr *broad, uint8_t *prefixlen) {
+  struct interface *ifp;
+  lagopus_ip_address_t **ip_addr;
+  lagopus_result_t rv = LAGOPUS_RESULT_ANY_FAILURES;
+
+  rv = lagopus_hashmap_find(&interface_hashmap, (void *)name, (void **)&ifp);
+  if (rv != LAGOPUS_RESULT_OK) {
+    return rv;
+  }
+#ifdef HAVE_DPDK
+  ip_addr = &(ifp->info.eth_dpdk_phy.ip_addr);
+#else /* HAVE_DPDK */
+  ip_addr = &(ifp->info.eth_rawsock.ip_addr);
+#endif /* HAVE_DPDK */
+
+  if (addr) {
+    *addr = ifp->addr_info.ip;
+  }
+  if (broad) {
+    *broad = ifp->addr_info.broad;
+  }
+  if (prefixlen) {
+    *prefixlen = ifp->addr_info.prefixlen;
+  }
+  return rv;
+}
+
+#endif /* HYBRID */
 
 lagopus_result_t
 dp_interface_start(const char *name) {

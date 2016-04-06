@@ -653,6 +653,7 @@ struct lagopus_packet *
 copy_packet(struct lagopus_packet *src_pkt) {
   OS_MBUF *mbuf;
   struct lagopus_packet *pkt;
+  uint8_t *srcm, *dstm;
   size_t pktlen;
 
   pkt = alloc_lagopus_packet();
@@ -663,9 +664,14 @@ copy_packet(struct lagopus_packet *src_pkt) {
   mbuf = pkt->mbuf;
   pktlen = OS_M_PKTLEN(src_pkt->mbuf);
   OS_M_APPEND(mbuf, pktlen);
-  memcpy(OS_MTOD(pkt->mbuf, char *), OS_MTOD(src_pkt->mbuf, char *), pktlen);
+  srcm = OS_MTOD(src_pkt->mbuf, uint8_t *);
+  dstm = OS_MTOD(pkt->mbuf, uint8_t *);
+  memcpy(dstm, srcm, pktlen);
   pkt->in_port = src_pkt->in_port;
   pkt->bridge = src_pkt->bridge;
+  pkt->ether_type = src_pkt->ether_type;
+  pkt->l3_hdr = src_pkt->l3_hdr + (dstm - srcm);
+  pkt->l4_hdr = src_pkt->l4_hdr + (dstm - srcm);
   pkt->flags = src_pkt->flags | PKT_FLAG_CACHED_FLOW;
   /* other pkt members are not used in physical output. */
   return pkt;
@@ -1122,6 +1128,33 @@ execute_action_set_field(struct lagopus_packet *pkt,
 
     case OFPXMT_OFB_MPLS_CW_SEQ_NUM:
       break;
+
+    case OFPXMT_OFB_GTPU_FLAGS:
+      pkt->gtpu->verflags &= 0xe0;
+      pkt->gtpu->verflags |= *oxm_value;
+      break;
+
+    case OFPXMT_OFB_GTPU_VER:
+      pkt->gtpu->verflags &= 0x1f;
+      pkt->gtpu->verflags |= (*oxm_value) << 5;
+      break;
+
+    case OFPXMT_OFB_GTPU_MSGTYPE:
+      pkt->gtpu->msgtype = *oxm_value;
+      break;
+
+    case OFPXMT_OFB_GTPU_TEID:
+      OS_MEMCPY(&pkt->gtpu->te_id, oxm_value, 4);
+      break;
+
+    case OFPXMT_OFB_GTPU_EXTN_HDR:
+      break;
+
+    case OFPXMT_OFB_GTPU_EXTN_UDP_PORT:
+      break;
+
+    case OFPXMT_OFB_GTPU_EXTN_SCI:
+      break;
 #endif /* GENERAL_TUNNEL_SUPPORT */
 
     default:
@@ -1536,6 +1569,13 @@ send_packet_in(struct lagopus_packet *pkt,
   if (pkt->bridge == NULL) {
     return LAGOPUS_RESULT_INVALID_OBJECT;
   }
+  if ((pkt->flags & PKT_FLAG_RECALC_CKSUM_MASK) != 0) {
+    if (pkt->ether_type == ETHERTYPE_IP) {
+      lagopus_update_ipv4_checksum(pkt);
+    } else if (pkt->ether_type == ETHERTYPE_IPV6) {
+      lagopus_update_ipv6_checksum(pkt);
+    }
+  }
   data = malloc(sizeof(*data));
   if (data == NULL) {
     return LAGOPUS_RESULT_NO_MEMORY;
@@ -1635,6 +1675,7 @@ lagopus_do_send_iterate(void *key, void *val,
   return true;
 }
 
+
 void
 lagopus_forward_packet_to_port(struct lagopus_packet *pkt,
                                uint32_t out_port) {
@@ -1666,7 +1707,6 @@ lagopus_forward_packet_to_port(struct lagopus_packet *pkt,
       /* optional */
       DP_PRINT("OFPP_NORMAL\n");
       dp_interface_send_packet_normal(pkt, pkt->in_port->interface, pkt->bridge->l2_bridge);
-      lagopus_packet_free(pkt);
       break;
 
     case OFPP_FLOOD:
@@ -1947,7 +1987,7 @@ execute_action_decap(struct lagopus_packet *pkt,
 
     case (OFPHTN_IP_PROTO << 16) | IPPROTO_UDP:
       new_type = (OFPHTN_UDP_TCP_PORT << 16) | UDP_DPORT(pkt->udp);
-      new_p = OS_M_ADJ(m, sizeof(UDP_HDR));
+      new_p = OS_M_ADJ(m, sizeof(uint16_t) * 4);
       pkt->udp = NULL;
       break;
 
@@ -1968,6 +2008,19 @@ execute_action_decap(struct lagopus_packet *pkt,
       new_type = ((OFPHTN_ONF << 16) | OFPHTO_ETHERNET);
       new_p = OS_M_ADJ(m, sizeof(VXLAN_HDR));
       pkt->vxlan = NULL;
+      break;
+
+    case (OFPHTN_UDP_TCP_PORT << 16) | GTPU_PORT:
+      new_p = OS_M_ADJ(m, sizeof(struct gtpu_hdr));
+      if (IPV4_VER((IPV4_HDR *)new_p) == 4) {
+        new_type = (OFPHTN_ETHERTYPE << 16) | ETHERTYPE_IP;
+      } else if (IPV6_VER((IPV6_HDR *)new_p) == 6) {
+        new_type = (OFPHTN_ETHERTYPE << 16) | ETHERTYPE_IPV6;
+      } else {
+        /* XXX? */
+        new_type = decap->new_pkt_type;
+      }
+      pkt->gtpu = NULL;
       break;
 
     default:
@@ -2041,8 +2094,24 @@ execute_action_encap(struct lagopus_packet *pkt,
 
       new_vxlan = (VXLAN_HDR *)OS_M_PREPEND(m, sizeof(VXLAN_HDR));
       new_vxlan->flags = 0x08;
+      new_vxlan->pad[0] = 0;
+      new_vxlan->pad[1] = 0;
+      new_vxlan->pad[2] = 0;
       new_vxlan->vni = 0;
       pkt->vxlan = new_vxlan;
+    }
+      break;
+
+    case ((OFPHTN_UDP_TCP_PORT << 16) | GTPU_PORT): {
+      struct gtpu_hdr *new_gtpu;
+
+      new_gtpu = (struct gtpu_hdr *)OS_M_PREPEND(m, sizeof(struct gtpu_hdr));
+      new_gtpu->verflags = 0x20; /* ver = 1 */
+      new_gtpu->msgtype = 255; /* G-PDU */
+      /* note: extension header size is included in length */
+      new_gtpu->length = OS_HTONS(OS_M_PKTLEN(m) - sizeof(struct gtpu_hdr));
+      new_gtpu->te_id = 0;
+      pkt->gtpu = new_gtpu;
     }
       break;
 
@@ -2050,11 +2119,11 @@ execute_action_encap(struct lagopus_packet *pkt,
       UDP_HDR *new_udp;
       uint16_t sport;
 
-      new_udp = (UDP_HDR *)OS_M_PREPEND(m, sizeof(UDP_HDR));
+      new_udp = (UDP_HDR *)OS_M_PREPEND(m, sizeof(uint16_t) * 4);
       if ((pkt->oob_data.packet_type >> 16) ==OFPHTN_UDP_TCP_PORT) {
         sport = CityHash64WithSeed(pkt->l4_payload, sizeof(ETHER_HDR), 0);
-        UDP_SPORT(new_udp) = (sport | 0xc000);
-        UDP_DPORT(new_udp) = (pkt->oob_data.packet_type & 0xffff);
+        UDP_SPORT(new_udp) = OS_HTONS(sport | 0xc000);
+        UDP_DPORT(new_udp) = OS_HTONS(pkt->oob_data.packet_type & 0xffff);
       }
       UDP_LEN(new_udp) = OS_HTONS(OS_M_PKTLEN(m));
       UDP_CKSUM(new_udp) = 0;
@@ -2802,3 +2871,91 @@ lagopus_match_and_action(struct lagopus_packet *pkt) {
   }
   return rv;
 }
+
+#ifdef HYBRID
+/* for L3 routing */
+/*
+ * Decriment ttl.
+ */
+static lagopus_result_t
+dec_ttl(struct lagopus_packet *pkt) {
+  uint16_t miss_send_len;
+
+  /* optional */
+  if (pkt->ether_type == ETHERTYPE_IP) {
+    if (likely(IPV4_TTL(pkt->ipv4) > 0)) {
+      IPV4_TTL(pkt->ipv4)--;
+      if (unlikely(IPV4_CSUM(pkt->ipv4) == 0xffff)) {
+        pkt->flags |= PKT_FLAG_RECALC_IPV4_CKSUM;
+      } else {
+        IPV4_CSUM(pkt->ipv4)++;
+      }
+    }
+
+    /* if invalid.  send packet_in with OFPR_INVALID_TTL to controller. */
+    if (likely(IPV4_TTL(pkt->ipv4) == 0)) {
+      if (pkt->in_port != NULL && pkt->in_port->bridge != NULL) {
+        miss_send_len = pkt->in_port->bridge->switch_config.miss_send_len;
+      } else {
+        miss_send_len = 128;
+      }
+      return LAGOPUS_RESULT_STOP;
+    }
+  } else if (pkt->ether_type == ETHERTYPE_IPV6) {
+    if (IPV6_HLIM(pkt->ipv6) > 0) {
+      IPV6_HLIM(pkt->ipv6)--;
+    }
+
+    /* if invalid.  send packet_in with OFPR_INVALID_TTL to controller. */
+    if (IPV6_HLIM(pkt->ipv6) == 0) {
+      if (pkt->in_port != NULL && pkt->in_port->bridge != NULL) {
+        miss_send_len = pkt->in_port->bridge->switch_config.miss_send_len;
+      } else {
+        miss_send_len = 128;
+      }
+      return LAGOPUS_RESULT_STOP;
+    }
+  }
+  return LAGOPUS_RESULT_OK;
+}
+
+/*
+ * Rewrite packet header to routing.
+ */
+lagopus_result_t
+lagopus_rewrite_pkt_header(struct lagopus_packet *pkt,
+                           uint8_t *src, uint8_t *dst) {
+  lagopus_result_t rv;
+
+  /* rewrite ether header */
+  OS_MEMCPY(ETHER_SRC(pkt->eth), src, ETHER_ADDR_LEN);
+  OS_MEMCPY(ETHER_DST(pkt->eth), dst, ETHER_ADDR_LEN);
+
+  /* dec ttl */
+  rv = dec_ttl(pkt);
+
+  return rv;
+}
+
+uint32_t
+lagopus_get_ethertype(struct lagopus_packet *pkt) {
+  return pkt->ether_type;
+}
+
+/*
+ * Get string of ip address.
+ */
+lagopus_result_t
+lagopus_get_ip(struct lagopus_packet *pkt, void *dst, const int family) {
+  if (family == AF_INET) {
+    if (pkt && (pkt->ipv4)) {
+      *((struct in_addr*)dst) = pkt->ipv4->ip_dst;
+      return LAGOPUS_RESULT_OK;
+    }
+  } else if (family == AF_INET6) {
+    /* TODO: */
+  }
+  return LAGOPUS_RESULT_INVALID_ARGS;
+}
+#endif /* HYBRID */
+

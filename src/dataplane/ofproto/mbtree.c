@@ -64,17 +64,10 @@ struct match_idx {
 
 enum {
   SEQUENCIAL,
-  DECISION8,
-  DECISION16,
-  DECISION32,
-  DECISION64,
-  RADIXTREE,
   HASHMAP,
 };
 
 #define DPRINTF(...)
-
-#undef ALWAYS_DECISION64
 
 #define MAKE_MATCH_IDX(base, type, member,  mask, shift)        \
   { base, offsetof(struct type, member), sizeof(((struct type *)0)->member), mask, shift }
@@ -147,7 +140,7 @@ static const struct match_idx match_idx[] = {
   MAKE_MATCH_IDX(OOB2_BASE, oob2_data, ipv6_exthdr, UINT16_MAX, 0) /* 39 IPV6_EXTHDR */
 };
 
-static void build_mbtree_child(struct flow_list *flows);
+static void build_mbtree_child(struct flow_list *flows, int parent_nflow);
 static struct flow *
 find_mbtree_child(struct lagopus_packet *pkt, struct flow_list *flows);
 
@@ -172,6 +165,7 @@ build_mbtree(struct flow_list *flows) {
   uint16_t eth_type;
   int i;
 
+  /* store flow into child flow_list. */
   for (i = 0; i < flows->nflow; i++) {
     flow = flows->flows[i];
     match = get_match_eth_type(&flow->match_list, &eth_type);
@@ -188,177 +182,14 @@ build_mbtree(struct flow_list *flows) {
     }
     flow_add_sub(flow, *childp);
   }
+  /* process for each child flow_list. */
   for (i = 0; i < flows->nbranch; i++) {
     if (flows->branch[i] != NULL) {
-      build_mbtree_child(flows->branch[i]);
+      build_mbtree_child(flows->branch[i], flows->nflow);
     }
   }
   if (flows->flows_dontcare != NULL) {
-    build_mbtree_child(flows->flows_dontcare);
-  }
-}
-
-static void
-build_mbtree_decision8(struct flow_list *flows,
-                       uint8_t min_value,
-                       uint8_t threshold) {
-  struct flow *flow;
-  struct match *match;
-  uint8_t val8;
-  int i;
-
-  flows->type = DECISION8;
-  flows->match_mask8 = match_idx[flows->oxm_field >> 1].mask;
-  flows->min8 = min_value << flows->shift;
-  flows->threshold8 = threshold << flows->shift;
-  for (i = 0; i < flows->nflow; i++) {
-    flow = flows->flows[i];
-    TAILQ_FOREACH(match, &flow->match_list, entry) {
-      if (match->oxm_field == flows->oxm_field) {
-        break;
-      }
-    }
-    if (match == NULL) {
-      DPRINTF("add to dontcare");
-      if (flow_add_sub(flow, flows->flows_dontcare) != LAGOPUS_RESULT_OK) {
-        DPRINTF("dontcare: flow_add_sub error\n");
-      }
-    } else {
-      memcpy(&val8, match->oxm_value, sizeof(uint8_t));
-      val8 <<= flows->shift;
-      DPRINTF("flows[%d] = %d -> branch[%d]\n",
-              i, val8, BRANCH8i(val8, flows->threshold8));
-      if (BRANCH8(val8) == NULL) {
-        BRANCH8(val8) = calloc(1, sizeof(struct flow_list)
-                               + sizeof(void *) * BRANCH_NUM);
-      }
-      if (flow_add_sub(flow, BRANCH8(val8)) != LAGOPUS_RESULT_OK) {
-        DPRINTF("true: flow_add_sub error\n");
-      }
-    }
-  }
-}
-
-static void
-build_mbtree_decision16(struct flow_list *flows,
-                        uint16_t min_value,
-                        uint16_t threshold) {
-  struct flow *flow;
-  struct match *match;
-  uint16_t val16;
-  int i;
-
-  flows->type = DECISION16;
-  flows->match_mask16 = match_idx[flows->oxm_field >> 1].mask;
-  flows->min16 = min_value << flows->shift;
-  flows->threshold16 = threshold << flows->shift;
-  for (i = 0; i < flows->nflow; i++) {
-    flow = flows->flows[i];
-    TAILQ_FOREACH(match, &flow->match_list, entry) {
-      if (match->oxm_field  == flows->oxm_field) {
-        break;
-      }
-    }
-    if (match == NULL) {
-      DPRINTF("add to dontcare");
-      if (flow_add_sub(flow, flows->flows_dontcare) != LAGOPUS_RESULT_OK) {
-        DPRINTF("dontcare: flow_add_sub error\n");
-      }
-    } else {
-      memcpy(&val16, match->oxm_value, sizeof(uint16_t));
-      val16 = ntohs(val16) << flows->shift;
-      DPRINTF("flows[%d] = %d -> branch[%d]\n",
-              i, val16, BRANCH16i(val16, flows->threshold16));
-      if (BRANCH16(val16) == NULL) {
-        BRANCH16(val16) = calloc(1, sizeof(struct flow_list)
-                                 + sizeof(void *) * BRANCH_NUM);
-      }
-      if (flow_add_sub(flow, BRANCH16(val16)) != LAGOPUS_RESULT_OK) {
-        DPRINTF("true: flow_add_sub error\n");
-      }
-    }
-  }
-}
-
-static void
-build_mbtree_decision32(struct flow_list *flows,
-                        uint32_t min_value,
-                        uint32_t threshold) {
-  struct flow *flow;
-  struct match *match;
-  uint32_t val32;
-  int i;
-
-  flows->type = DECISION32;
-  flows->match_mask32 = match_idx[flows->oxm_field >> 1].mask;
-  flows->min32 = min_value << flows->shift;
-  flows->threshold32 = threshold << flows->shift;
-  for (i = 0; i < flows->nflow; i++) {
-    flow = flows->flows[i];
-    TAILQ_FOREACH(match, &flow->match_list, entry) {
-      if (match->oxm_field == flows->oxm_field) {
-        break;
-      }
-    }
-    if (match == NULL) {
-      DPRINTF("add to dontcare");
-      if (flow_add_sub(flow, flows->flows_dontcare) != LAGOPUS_RESULT_OK) {
-        DPRINTF("dontcare: flow_add_sub error\n");
-      }
-    } else {
-      memcpy(&val32, match->oxm_value, sizeof(uint32_t));
-      val32 = ntohl(val32) << flows->shift;
-      DPRINTF("flows[%d] = %d -> branch[%d]\n",
-              i, val32, BRANCH32i(val32, flows->threshold32));
-      if (BRANCH32(val32) == NULL) {
-        BRANCH32(val32) = calloc(1, sizeof(struct flow_list)
-                                 + sizeof(void *) * BRANCH_NUM);
-      }
-      if (flow_add_sub(flow, BRANCH32(val32)) != LAGOPUS_RESULT_OK) {
-        DPRINTF("true: flow_add_sub error\n");
-      }
-    }
-  }
-}
-
-static void
-build_mbtree_decision64(struct flow_list *flows,
-                        uint64_t min_value,
-                        uint64_t threshold) {
-  struct flow *flow;
-  struct match *match;
-  uint64_t val64;
-  int i;
-
-  flows->type = DECISION64;
-  flows->match_mask64 = match_idx[flows->oxm_field >> 1].mask;
-  flows->min64 = min_value << flows->shift;
-  flows->threshold64 = threshold << flows->shift;
-  for (i = 0; i < flows->nflow; i++) {
-    flow = flows->flows[i];
-    TAILQ_FOREACH(match, &flow->match_list, entry) {
-      if (match->oxm_field == flows->oxm_field) {
-        break;
-      }
-    }
-    if (match == NULL) {
-      DPRINTF("add to dontcare");
-      if (flow_add_sub(flow, flows->flows_dontcare) != LAGOPUS_RESULT_OK) {
-        DPRINTF("dontcare: flow_add_sub error\n");
-      }
-    } else {
-      memcpy(&val64, match->oxm_value, sizeof(uint64_t));
-      val64 = OS_NTOHLL(val64) << flows->shift;
-      DPRINTF("flows[%d] = %qd -> branch[%d]\n",
-              i, val64, BRANCH64i(val64, flows->threshold64));
-      if (BRANCH64(val64) == NULL) {
-        BRANCH64(val64) = calloc(1, sizeof(struct flow_list)
-                                 + sizeof(void *) * BRANCH_NUM);
-      }
-      if (flow_add_sub(flow, BRANCH64(val64)) != LAGOPUS_RESULT_OK) {
-        DPRINTF("true: flow_add_sub error\n");
-      }
-    }
+    build_mbtree_child(flows->flows_dontcare, flows->nflow);
   }
 }
 
@@ -540,34 +371,6 @@ get_child_flow_list(struct flow_list *flow_list,
                     OXM_MATCH_VALUE_LEN(match),
                     flow_list->shift, flow_list->keylen >> 3, key);
   switch (flow_list->type) {
-    case DECISION8:
-      build_mbtree_decision8(flow_list,
-                             most_match->min_value,
-                             most_match->threshold);
-      child = NULL;
-      break;
-
-    case DECISION16:
-      build_mbtree_decision16(flow_list,
-                              most_match->min_value,
-                              most_match->threshold);
-      child = NULL;
-      break;
-
-    case DECISION32:
-      build_mbtree_decision32(flow_list,
-                              most_match->min_value,
-                              most_match->threshold);
-      child = NULL;
-      break;
-
-    case DECISION64:
-      build_mbtree_decision64(flow_list,
-                              most_match->min_value,
-                              most_match->threshold);
-      child = NULL;
-      break;
-
     case HASHMAP:
       if (child_array[0] == NULL) {
         child_array[0] = calloc(1, sizeof(lagopus_hashmap_t));
@@ -658,13 +461,14 @@ static bool
 mbtree_do_build_iterate(void *key, void *val,
                        lagopus_hashentry_t he, void *arg) {
   struct flow_list *flow_list;
+  int parent_nflow;
 
   (void) key;
   (void) he;
-  (void) arg;
+  parent_nflow = (int)arg;
 
   flow_list = val;
-  build_mbtree_child(flow_list);
+  build_mbtree_child(flow_list, parent_nflow);
   return true;
 }
 
@@ -672,7 +476,7 @@ mbtree_do_build_iterate(void *key, void *val,
  * flow_list: already stored flows in flow_list->flows[] and nflow.
  */
 static void
-build_mbtree_child(struct flow_list *flow_list) {
+build_mbtree_child(struct flow_list *flow_list, int parent_count) {
   const int min_count = 4;
   struct match_stats *most_match;
   int i;
@@ -681,7 +485,7 @@ build_mbtree_child(struct flow_list *flow_list) {
     return;
   }
 
-  if (flow_list->nflow <= min_count) {
+  if (flow_list->nflow <= min_count || flow_list->nflow == parent_count) {
     build_mbtree_sequencial(flow_list);
     return;
   }
@@ -718,22 +522,16 @@ build_mbtree_child(struct flow_list *flow_list) {
   DPRINTF("dontcare: nflow %d\n", flow_list->flows_dontcare->nflow);
   /* build child flow list */
   switch (flow_list->type) {
-    case DECISION8:
-    case DECISION16:
-    case DECISION32:
-    case DECISION64:
-      for (i = 0; i < BRANCH_NUM; i++) {
-        build_mbtree_child(flow_list->branch);
-      }
-      break;
     case HASHMAP:
       lagopus_hashmap_iterate(&flow_list->branch[0],
-                              mbtree_do_build_iterate, NULL);
+                              mbtree_do_build_iterate, flow_list->nflow);
+      break;
+    default:
       break;
   }
   if (flow_list->flows_dontcare->nflow > 0) {
     DPRINTF("build_mbtree_child dontcare\n");
-    build_mbtree_child(flow_list->flows_dontcare);
+    build_mbtree_child(flow_list->flows_dontcare, flow_list->nflow);
   } else {
     free(flow_list->flows_dontcare);
     flow_list->flows_dontcare = NULL;
@@ -747,23 +545,6 @@ free_mbtree(int type, void *arg) {
 
   if (arg != NULL) {
     switch (type) {
-      case DECISION8:
-      case DECISION16:
-      case DECISION32:
-      case DECISION64:
-        flow_list = arg;
-        for (i = 0; i < BRANCH_NUM + 1; i++) {
-          if (flow_list->branch[i] == NULL) {
-            continue;
-          }
-          cleanup_mbtree(flow_list->branch[i]);
-        }
-        if (flow_list->flows_dontcare != NULL) {
-          cleanup_mbtree(flow_list->flows_dontcare);
-        }
-        free(flow_list);
-        break;
-
       case HASHMAP:
         lagopus_hashmap_destroy(arg, true);
         break;
@@ -830,17 +611,13 @@ find_mbtree(struct lagopus_packet *pkt, struct flow_list *flows) {
 static struct flow *
 find_mbtree_child(struct lagopus_packet *pkt, struct flow_list *flows) {
   struct flow *flow;
-  uint8_t val8;
-  uint16_t val16;
-  uint32_t val32;
-  uint64_t val64;
   uint8_t *src;
   lagopus_result_t rv;
 
   if (flows == NULL) {
     return NULL;
   }
-  while (flows->type != SEQUENCIAL) {
+  while (flows->type == HASHMAP) {
     uint8_t key[sizeof(uint64_t)];
     int i;
 
@@ -848,61 +625,10 @@ find_mbtree_child(struct lagopus_packet *pkt, struct flow_list *flows) {
     for (i = 0; i < (flows->keylen >> 3); i++) {
       key[i] = src[i] & flows->mask[i];
     }
-#ifdef ALWAYS_DECISION64
-    val64 = 0;
-    for (i = 0; i < flows->keylen; i++) {
-      val64 <<= 8;
-      val64 |= ((uint8_t *)src)[i];
+    rv = lagopus_hashmap_find_no_lock(&flows->branch[0], key, &flows);
+    if (rv != LAGOPUS_RESULT_OK) {
+      return NULL;
     }
-    flows = BRANCH64((value & flows->match_mask64));
-#else
-    switch (flows->type) {
-      case DECISION8:
-        memcpy(&val8, src, sizeof(uint8_t));
-        DPRINTF("min %d, th %d, val8 %d -> branch[%d]\n",
-                flows->min8, flows->threshold8,
-                (val8 & flows->match_mask8), BRANCH8i(val8, flows->threshold8));
-        flows = BRANCH8(val8 & flows->match_mask8);
-        break;
-      case DECISION16:
-        memcpy(&val16, src, sizeof(uint16_t));
-        val16 = ntohs(val16);
-        DPRINTF("min %d, th %d, val16 %d -> branch[%d]\n",
-                flows->min16, flows->threshold16,
-                (val16 & flows->match_mask16), BRANCH16i(val16, flows->threshold16));
-        flows = BRANCH16(val16 & flows->match_mask16);
-        break;
-      case DECISION32:
-        memcpy(&val32, src, sizeof(uint32_t));
-        val32 = ntohl(val32);
-        DPRINTF("min %d, th %d, val32 %d -> branch[%d]\n",
-                flows->min32, flows->threshold32,
-                (val32 & flows->match_mask32), BRANCH32i(val32, flows->threshold32));
-        DPRINTF("shifted min %d, th %d, val32 %d -> branch[%d]\n",
-                flows->min32 >> flows->shift,
-                flows->threshold32 >> flows->shift,
-                (val32 & flows->match_mask32) >> flows->shift,
-                BRANCH32i(val32, flows->threshold32));
-        flows = BRANCH32(val32 & flows->match_mask32);
-        break;
-      case DECISION64:
-        memcpy(&val64, src, sizeof(uint64_t));
-        val64 = OS_NTOHLL(val64);
-        DPRINTF("min %qd, th %qd, val64 %qd -> branch[%d]\n",
-                flows->min64, flows->threshold64,
-                (val64 & flows->match_mask64), BRANCH64i(val64, flows->threshold64));
-        flows = BRANCH64(val64 & flows->match_mask64);
-        break;
-      case HASHMAP:
-        rv = lagopus_hashmap_find_no_lock(&flows->branch[0], key, &flows);
-        if (rv != LAGOPUS_RESULT_OK) {
-          return NULL;
-        }
-      default:
-        printf("XXX\n");
-        break;
-    }
-#endif /* ALWAYS_DECISION64 */
   }
   if (flows->basic != NULL) {
     int32_t pri = -1;

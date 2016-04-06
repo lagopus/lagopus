@@ -47,6 +47,29 @@ copy_mac_address(const uint8_t ethaddr[], uint64_t *inteth) {
               (uint64_t)ethaddr[0];
 }
 
+/* for debug */
+static lagopus_result_t
+print_mac(uint64_t mac) {
+  int i, j;
+  uint8_t str[6];
+  for (i = 6 - 1, j = 0; i >= 0; i--, j++)
+    str[j] = 0xff & mac >> (8 * i);
+  printf("%02x:%02x:%02x:%02x:%02x:%02x", str[5], str[4], str[3], str[2], str[1], str[0]);
+}
+
+void
+print_macaddr_in_ethheader(struct lagopus_packet *pkt) {
+  uint64_t inteth;
+
+  printf("[ether header] dst: ");
+  copy_mac_address(pkt->eth->ether_dhost, &inteth);
+  print_mac(inteth);
+  printf(", src: ");
+  copy_mac_address(pkt->eth->ether_shost, &inteth);
+  print_mac(inteth);
+  printf("\n");
+}
+
 /**
  * Allocate mac entry for mactable.
  * mac entry is struct macentry object.
@@ -84,7 +107,9 @@ mactable_age_out(struct mactable *mactable) {
   struct macentry *macentry;
 
   lagopus_rwlock_writer_enter_critical(&mactable->lock, &cstate);
+  (void)lagopus_rwlock_leave_critical(&mactable->lock, cstate);
 
+  lagopus_rwlock_reader_enter_critical(&mactable->lock, &cstate);
   /* check the update_time from the top of the macentry_list */
   while ((macentry = TAILQ_FIRST(&mactable->macentry_list)) != NULL) {
     /* get current time. */
@@ -92,6 +117,10 @@ mactable_age_out(struct mactable *mactable) {
 
     if (now.tv_sec - macentry->update_time.tv_sec >= mactable->ageing_time) {
       lagopus_msg_info("mactable_age_out: expired mac entry.\n");
+
+      (void)lagopus_rwlock_leave_critical(&mactable->lock, cstate);
+
+      lagopus_rwlock_writer_enter_critical(&mactable->lock, &cstate);
       /* this entry is expired. */
       /* remove mac entry from macentry_list. */
       TAILQ_REMOVE(&mactable->macentry_list, macentry, next);
@@ -102,6 +131,10 @@ mactable_age_out(struct mactable *mactable) {
                                   (void **)&macentry,
                                   true);
       mactable->nentries--;
+
+      (void)lagopus_rwlock_leave_critical(&mactable->lock, cstate);
+      lagopus_rwlock_reader_enter_critical(&mactable->lock, &cstate);
+
       if (rv != LAGOPUS_RESULT_OK) {
         /* remove fialure from hashmap. */
         break;
@@ -167,7 +200,6 @@ entry_add(struct mactable *mactable, struct macentry *entry, uint64_t inteth) {
   lagopus_rwlock_writer_enter_critical(&mactable->lock, &cstate);
   mactable->nentries++;
   (void)lagopus_rwlock_leave_critical(&mactable->lock, cstate);
-
   /* Update list */
   if (entry->address_type == MACTABLE_SETTYPE_DYNAMIC) {
     lagopus_rwlock_writer_enter_critical(&mactable->lock, &cstate);
@@ -185,28 +217,21 @@ out:
  * @param[in] inteth MAC address.
  */
 static struct macentry*
-entry_update(struct mactable *mactable,
-             struct macentry *old, uint64_t inteth) {
+add_new_entry(struct mactable *mactable, uint64_t inteth,
+              uint32_t portid, uint16_t address_type) {
   lagopus_result_t rv;
-  struct macentry *entry, *dentry;
+  struct macentry *entry;
   int cstate;
 
-  /* Create new entry. */
+  /* add new entry */
   entry = macentry_alloc(inteth);
   if (entry == NULL) {
+    rv = LAGOPUS_RESULT_NO_MEMORY;
     goto out;
   }
   entry->update_time = get_current_time();
-  entry->portid = old->portid;
-  entry->address_type = old->address_type;
-
-  /* Remove old entry. */
-  rv = entry_delete(mactable, old, inteth);
-  if (rv != LAGOPUS_RESULT_OK) {
-    goto out;
-  }
-
-  /* Add new entry. */
+  entry->portid = portid;
+  entry->address_type = address_type;
   rv = entry_add(mactable, entry, inteth);
 
 out:
@@ -237,10 +262,12 @@ find_entry_in_mactable(struct mactable *mactable, const uint8_t ethaddr[]) {
     return NULL;
   }
 
-  /* Update current time in mac entry. */
-  entry = entry_update(mactable, dentry, inteth);
+  /* update update_time */
+  lagopus_rwlock_writer_enter_critical(&dentry->lock, &cstate);
+  dentry->update_time = get_current_time();
+  (void)lagopus_rwlock_leave_critical(&dentry->lock, cstate);
 
-  return entry;
+  return dentry;
 }
 
 /**
@@ -256,7 +283,7 @@ learn_port(struct mactable *mactable,
            const uint8_t ethaddr[],
            uint16_t address_type) {
   struct macentry *entry, *dentry;
-  uint64_t inteth;
+  uint64_t inteth = 0;
   lagopus_result_t rv;
   int cstate;
 
@@ -267,15 +294,26 @@ learn_port(struct mactable *mactable,
 
   copy_mac_address(ethaddr, &inteth);
 
+  lagopus_rwlock_reader_enter_critical(&mactable->lock, &cstate);
   /* check max number of entries */
-  if (mactable->nentries >= mactable->maxentries) {
+  if (unlikely(mactable->nentries >= mactable->maxentries)) {
+
+    dentry = TAILQ_FIRST(&mactable->macentry_list);
+
+    if (unlikely(dentry == NULL)) {
+      lagopus_msg_info("mactable is full.all entries are static.remove any entries.\n");
+      rv = LAGOPUS_RESULT_NO_MEMORY;
+      goto out;
+    }
+
+    (void)lagopus_rwlock_leave_critical(&mactable->lock, cstate);
     lagopus_rwlock_writer_enter_critical(&mactable->lock, &cstate);
     mactable->nentries--;
 
-    dentry = TAILQ_FIRST(&mactable->macentry_list);
+
     TAILQ_REMOVE(&mactable->macentry_list, dentry, next);
     (void)lagopus_rwlock_leave_critical(&mactable->lock, cstate);
-
+    lagopus_rwlock_reader_enter_critical(&mactable->lock, &cstate);
     rv = lagopus_hashmap_delete(&mactable->hashmap,
                                 (void *)dentry->inteth,
                                 (void **)&dentry,
@@ -284,33 +322,34 @@ learn_port(struct mactable *mactable,
       goto out;
     }
   }
-
-  /* create new entry */
-  entry = macentry_alloc(inteth);
-  if (entry == NULL) {
-    rv = LAGOPUS_RESULT_NO_MEMORY;
-    goto out;
-  }
-  entry->update_time = get_current_time();
-  entry->portid = portid;
-  entry->address_type = address_type;
+  (void)lagopus_rwlock_leave_critical(&mactable->lock, cstate);
 
   /* check entry */
-  dentry = find_entry_in_mactable(mactable, ethaddr);
-  if (dentry != NULL) {
-    /* if entry is exist, delete entry. */
-    if (dentry->address_type == MACTABLE_SETTYPE_STATIC) {
-      /* if entry type is static, address type is change. */
-      entry->address_type = MACTABLE_SETTYPE_STATIC;
+  rv = lagopus_hashmap_find(&mactable->hashmap,
+                            (void *)inteth,
+                            (void **)&dentry);
+  if (likely(dentry != NULL)) {
+    if (dentry->portid != portid) {
+      /* delete old entry */
+      rv = entry_delete(mactable, dentry, inteth);
+      if (rv != LAGOPUS_RESULT_OK) {
+        goto out;
+      }
+      /* add new entry */
+      add_new_entry(mactable, inteth, portid, address_type);
+    } else {
+      /* update update_time */
+      lagopus_rwlock_writer_enter_critical(&dentry->lock, &cstate);
+      dentry->update_time = get_current_time();
+      (void)lagopus_rwlock_leave_critical(&dentry->lock, cstate);
+      rv = LAGOPUS_RESULT_OK;
     }
-
-    rv = entry_delete(mactable, dentry, inteth);
   } else {
-    /* if entry is not exist, nothing to do. */
+    /* add new entry */
+    add_new_entry(mactable, inteth, portid, address_type);
+    rv = LAGOPUS_RESULT_OK;
   }
 
-  /* add new entry */
-  rv = entry_add(mactable, entry, inteth);
 out:
   return rv;
 }
@@ -357,6 +396,29 @@ find_and_learn_port_in_mac_table(struct lagopus_packet *pkt) {
              pkt->eth->ether_shost,
              MACTABLE_SETTYPE_DYNAMIC);
   entry = find_entry_in_mactable(&pkt->bridge->mactable,
+                                 pkt->eth->ether_dhost);
+  if (entry != NULL) {
+    return entry->portid;
+  } else {
+    return OFPP_ALL;
+  }
+}
+
+void
+learning_port_in_mac_table(struct lagopus_packet *pkt) {
+  mactable_age_out(&pkt->in_port->bridge->mactable);
+
+  learn_port(&pkt->in_port->bridge->mactable,
+             pkt->in_port->ofp_port.port_no,
+             pkt->eth->ether_shost,
+             MACTABLE_SETTYPE_DYNAMIC);
+}
+
+uint32_t
+lookup_port_in_mac_table(struct lagopus_packet *pkt) {
+  struct macentry *entry;
+
+  entry = find_entry_in_mactable(&pkt->in_port->bridge->mactable,
                                  pkt->eth->ether_dhost);
   if (entry != NULL) {
     return entry->portid;

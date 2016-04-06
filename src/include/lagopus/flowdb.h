@@ -466,7 +466,7 @@ flowdb_dump(struct flowdb *flowdb, FILE *fp);
  * @retval LAGOPUS_RESULT_NOT_FOUND     Table not found.
  */
 struct table *
-table_get(struct flowdb *flowdb, uint8_t table_id);
+flowdb_get_table(struct flowdb *flowdb, uint8_t table_id);
 
 /* Utility functions. */
 void

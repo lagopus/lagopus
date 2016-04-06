@@ -3,6 +3,8 @@
 
 - include: pip.yml
 
-- include: dpdk.yml
+- include: env.yml
 
 - include: lagopus.yml
+
+- include: dpdk.yml

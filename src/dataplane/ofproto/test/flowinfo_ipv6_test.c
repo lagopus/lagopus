@@ -27,7 +27,6 @@
 #include "datapath_test_match.h"
 #include "datapath_test_match_macros.h"
 #include "flowinfo_test.h"
-#include "lagopus/addrunion.h"
 
 
 FLOWINFO_TEST_DECLARE_DATA;
@@ -37,9 +36,9 @@ FLOWINFO_TEST_DECLARE_DATA;
 static const char testsrcstr[] = "3ffe:1:2:3:4:5:6:0";
 static const char testdststr[] = "3ffe:7:8:9:a:b:c:0";
 static const char testmaskstr[] = "ffff:ffff:ffff:ffff::";
-static struct addrunion testsrc[ARRAY_LEN(test_flow)];
-static struct addrunion testdst[ARRAY_LEN(test_flow)];
-static struct addrunion testmask[ARRAY_LEN(test_flow)];
+static struct sockaddr_in6 testsrc[ARRAY_LEN(test_flow)];
+static struct sockaddr_in6 testdst[ARRAY_LEN(test_flow)];
+static struct sockaddr_in6 testmask[ARRAY_LEN(test_flow)];
 
 
 /* IPv6 extension header mask. */
@@ -198,6 +197,7 @@ void
 setUp(void) {
   size_t s;
   uint8_t *p;
+  lagopus_ip_address_t *addr;
 
   /* Make the root flowinfo. */
   TEST_ASSERT_NULL(flowinfo);
@@ -221,17 +221,20 @@ setUp(void) {
 
   /* Make the test addresses. */
   for (s = 0; s < ARRAY_LEN(test_flow); s++) {
-    addrunion_ipv6_set(&testsrc[s], testsrcstr);
-    p = (uint8_t *)&testsrc[s].addr6.s6_addr;
-    p[sizeof(testsrc[s].addr6.s6_addr) - 1] = (uint8_t)(TEST_IPV6_ADDR_LSB(
+    lagopus_ip_address_create(testsrcstr, false, &addr);
+    lagopus_ip_address_sockaddr_get(addr, &testsrc[s]);
+    p = (uint8_t *)&testsrc[s].sin6_addr;
+    p[sizeof(testsrc[s].sin6_addr) - 1] = (uint8_t)(TEST_IPV6_ADDR_LSB(
           s) & 0xff);
 
-    addrunion_ipv6_set(&testdst[s], testdststr);
-    p = (uint8_t *)&testdst[s].addr6.s6_addr;
-    p[sizeof(testsrc[s].addr6.s6_addr) - 1] = (uint8_t)(TEST_IPV6_ADDR_LSB(
+    lagopus_ip_address_create(testsrcstr, false, &addr);
+    lagopus_ip_address_sockaddr_get(addr, &testdst[s]);
+    p = (uint8_t *)&testdst[s].sin6_addr;
+    p[sizeof(testdst[s].sin6_addr) - 1] = (uint8_t)(TEST_IPV6_ADDR_LSB(
           s) & 0xff);
 
-    addrunion_ipv6_set(&testmask[s], testmaskstr);
+    lagopus_ip_address_create(testmaskstr, false, &addr);
+    lagopus_ip_address_sockaddr_get(addr, &testmask[s]);
   }
 }
 

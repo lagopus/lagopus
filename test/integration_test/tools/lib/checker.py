@@ -49,33 +49,36 @@ def checker_get_opts(test_case_obj):
     return test_case_obj.checker_opts
 
 
-def checker_setup(test_case_obj, is_use_tester_sw=False):
+def checker_setup(test_case_obj, is_use_tester=False):
     logging.info("checker setup.")
 
     ops = opt_parser.get_opts()
+    confs = config_parser.get_confs()
     out_dir = mk_out_dir(test_case_obj, ops)
 
     # set opts.
     opts = {}
     opts["test_home"] = ops.test_home
     opts["out_dir"] = out_dir
-    opts["is_use_tester_sw"] = is_use_tester_sw
-    opts["ofp"] = {"port": config_parser.getint(CONF_SEC_OFP, CONF_PORT),
-                   "version": config_parser.getint(CONF_SEC_OFP, CONF_VERSION)}
-    opts["datastore"] = {"port": config_parser.getint(CONF_SEC_DS, CONF_PORT)}
+    opts["is_use_tester"] = is_use_tester
+    opts["ofp"] = {"port": confs[CONF_SEC_OFP][CONF_PORT],
+                   "version": confs[CONF_SEC_OFP][CONF_VERSION]}
+    opts["datastore"] = {"port": confs[CONF_SEC_DS][CONF_PORT]}
 
-    secs = [CONF_SEC_TARGET_SW]
-    if is_use_tester_sw:
-        secs += [CONF_SEC_TESTER_SW]
+    secs = [CONF_SEC_TARGET]
+    if is_use_tester:
+        secs += [CONF_SEC_TESTER]
 
     opts["switches"] = {}
     for sec in secs:
         opts["switches"][sec] = {
-            "dpid": config_parser.getint(sec, CONF_DPID),
-            "host": config_parser.get(sec, CONF_HOST),
-            "lagopus": {"path": config_parser.get(sec, CONF_LAGOPUS_PATH),
-                        "dsl": config_parser.get(sec, CONF_LAGOPUS_DSL),
-                        "opts": config_parser.get(sec, CONF_LAGOPUS_OPTS),
+            "dpid": confs[sec][CONF_DPID],
+            "host": confs[sec][CONF_HOST],
+            "user": confs[sec][CONF_USER],
+            "lagopus": {"is_remote": confs[sec][CONF_IS_REMOTE],
+                        "path": confs[sec][CONF_LAGOPUS_PATH],
+                        "dsl": confs[sec][CONF_LAGOPUS_DSL],
+                        "opts": confs[sec][CONF_LAGOPUS_OPTS],
                         "logdir": out_dir,
                         "logname": "lagopus.log"}}
 
@@ -89,6 +92,8 @@ def checker_start_lagopus(test_case_obj, timeout=DEFAULT_TIMEOUT):
     confs = {}
     for opt in opts["switches"].values():
         confs[opt["dpid"]] = opt["lagopus"]
+        confs[opt["dpid"]].update({"host": opt["host"],
+                                   "user": opt["user"]})
 
     lagopus_checker_start(confs, timeout)
 

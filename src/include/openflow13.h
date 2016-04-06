@@ -186,6 +186,13 @@ enum oxm_ofb_match_fields {
   OFPXMT_OFB_MPLS_CW_FRAG           = 58, /* MPLS PW CW Fragment */
   OFPXMT_OFB_MPLS_CW_LEN            = 59, /* MPLS PW CW Length */
   OFPXMT_OFB_MPLS_CW_SEQ_NUM        = 60, /* MPLS PW CW Sequence number */
+  OFPXMT_OFB_GTPU_FLAGS             = 61,
+  OFPXMT_OFB_GTPU_VER               = 62,
+  OFPXMT_OFB_GTPU_MSGTYPE           = 63,
+  OFPXMT_OFB_GTPU_TEID              = 64,
+  OFPXMT_OFB_GTPU_EXTN_HDR          = 65,
+  OFPXMT_OFB_GTPU_EXTN_UDP_PORT     = 66,
+  OFPXMT_OFB_GTPU_EXTN_SCI          = 67
 };
 
 enum ofp_vlan_id {

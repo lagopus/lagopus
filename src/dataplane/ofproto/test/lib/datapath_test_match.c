@@ -36,7 +36,6 @@ typedef void TCP_HDR;
 typedef void UDP_HDR;
 typedef void VLAN_HDR;
 
-#include "lagopus/addrunion.h"
 #include "lagopus/flowdb.h"
 #include "datapath_test_misc.h"
 #include "datapath_test_misc_macros.h"
@@ -55,11 +54,11 @@ static void _add_eth_addr_match(struct match_list *restrict match_list,
                                 const uint8_t *restrict addr);
 static void _add_ip_addr_match(struct match_list *restrict match_list,
                                uint8_t field,
-                               const struct addrunion *restrict addr);
+                               const struct sockaddr *restrict addr);
 static void _add_ip_addr_w_match(struct match_list *restrict match_list,
                                  uint8_t field,
-                                 const struct addrunion *restrict addr,
-                                 const struct addrunion *restrict mask);
+                                 const struct sockaddr *restrict addr,
+                                 const struct sockaddr *restrict mask);
 static void _add_arp_ipv4_match(struct match_list *restrict match_list,
                                 uint8_t field,
                                 const struct in_addr *restrict addr);
@@ -215,25 +214,25 @@ add_eth_type_match(struct match_list *match_list, uint16_t type) {
 
 static void
 _add_ip_addr_match(struct match_list *restrict match_list, uint8_t field,
-                   const struct addrunion *restrict addr) {
+                   const struct sockaddr *restrict addr) {
   const char *p;
 
   /*
    * XXX inline expanded because the lib functions do not take the
    * pointers to const!
    */
-  switch (addr->family) {
+  switch (addr->sa_family) {
     case AF_INET:
       /* Assume the IPv4 address in the network byte order. */
-      p = (const char *)&addr->addr4.s_addr;
-      add_match(match_list, sizeof(addr->addr4.s_addr), (uint8_t)(field << 1),
+      p = (const char *)&((struct sockaddr_in *)addr)->sin_addr.s_addr;
+      add_match(match_list, sizeof(((struct sockaddr_in *)addr)->sin_addr.s_addr), (uint8_t)(field << 1),
                 p[0], p[1], p[2], p[3]);
       break;
 
     case AF_INET6:
       /* An IPv6 address is always in the network byte order. */
-      p = (const char *)&addr->addr6.s6_addr;
-      add_match(match_list, sizeof(addr->addr6.s6_addr), (uint8_t)(field << 1),
+      p = (const char *)&((struct sockaddr_in6 *)addr)->sin6_addr.s6_addr;
+      add_match(match_list, sizeof(((struct sockaddr_in6 *)addr)->sin6_addr.s6_addr), (uint8_t)(field << 1),
                 p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7],
                 p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15]);
       break;
@@ -242,28 +241,28 @@ _add_ip_addr_match(struct match_list *restrict match_list, uint8_t field,
 
 static void
 _add_ip_addr_w_match(struct match_list *restrict match_list, uint8_t field,
-                     const struct addrunion *restrict addr,
-                     const struct addrunion *restrict mask) {
+                     const struct sockaddr *restrict addr,
+                     const struct sockaddr *restrict mask) {
   const char *p, *q;
   /*
    * XXX inline expanded because the lib functions do not take the
    * pointers to const!
    */
-  switch (addr->family) {
+  switch (addr->sa_family) {
     case AF_INET:
       /* Assume the IPv4 address in the network byte order. */
-      p = (const char *)&addr->addr4.s_addr;
-      q = (const char *)&mask->addr4.s_addr;
-      add_match(match_list, sizeof(addr->addr4.s_addr), (uint8_t)((field << 1) | 1),
+      p = (const char *)&((struct sockaddr_in *)addr)->sin_addr.s_addr;
+      q = (const char *)&((struct sockaddr_in *)mask)->sin_addr.s_addr;
+      add_match(match_list, sizeof(((struct sockaddr_in *)addr)->sin_addr.s_addr), (uint8_t)((field << 1) | 1),
                 p[0], p[1], p[2], p[3],
                 q[0], q[1], q[2], q[3]);
       break;
 
     case AF_INET6:
       /* An IPv6 address is always in the network byte order. */
-      p = (const char *)&addr->addr6.s6_addr;
-      q = (const char *)&mask->addr6.s6_addr;
-      add_match(match_list, sizeof(addr->addr6.s6_addr), (uint8_t)((field << 1) | 1),
+      p = (const char *)&((struct sockaddr_in6 *)addr)->sin6_addr.s6_addr;
+      q = (const char *)&((struct sockaddr_in6 *)mask)->sin6_addr.s6_addr;
+      add_match(match_list, sizeof(((struct sockaddr_in6 *)mask)->sin6_addr.s6_addr), (uint8_t)((field << 1) | 1),
                 p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7],
                 p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15],
                 q[0], q[1], q[2], q[3], q[4], q[5], q[6], q[7],
@@ -274,8 +273,8 @@ _add_ip_addr_w_match(struct match_list *restrict match_list, uint8_t field,
 
 void
 add_ip_src_match(struct match_list *restrict match_list,
-                 const struct addrunion *restrict addr) {
-  switch (addr->family) {
+                 const struct sockaddr *restrict addr) {
+  switch (addr->sa_family) {
     case AF_INET:
       _add_ip_addr_match(match_list, OFPXMT_OFB_IPV4_SRC, addr);
       break;
@@ -288,9 +287,9 @@ add_ip_src_match(struct match_list *restrict match_list,
 
 void
 add_ip_src_w_match(struct match_list *restrict match_list,
-                   const struct addrunion *restrict addr,
-                   const struct addrunion *restrict mask) {
-  switch (addr->family) {
+                   const struct sockaddr *restrict addr,
+                   const struct sockaddr *restrict mask) {
+  switch (addr->sa_family) {
     case AF_INET:
       _add_ip_addr_w_match(match_list, OFPXMT_OFB_IPV4_SRC, addr, mask);
       break;
@@ -303,8 +302,8 @@ add_ip_src_w_match(struct match_list *restrict match_list,
 
 void
 add_ip_dst_match(struct match_list *restrict match_list,
-                 const struct addrunion *restrict addr) {
-  switch (addr->family) {
+                 const struct sockaddr *restrict addr) {
+  switch (addr->sa_family) {
     case AF_INET:
       _add_ip_addr_match(match_list, OFPXMT_OFB_IPV4_DST, addr);
       break;
@@ -317,9 +316,9 @@ add_ip_dst_match(struct match_list *restrict match_list,
 
 void
 add_ip_dst_w_match(struct match_list *restrict match_list,
-                   const struct addrunion *restrict addr,
-                   const struct addrunion *restrict mask) {
-  switch (addr->family) {
+                   const struct sockaddr *restrict addr,
+                   const struct sockaddr *restrict mask) {
+  switch (addr->sa_family) {
     case AF_INET:
       _add_ip_addr_w_match(match_list, OFPXMT_OFB_IPV4_DST, addr, mask);
       break;

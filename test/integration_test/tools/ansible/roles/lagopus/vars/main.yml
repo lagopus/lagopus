@@ -1,0 +1,2 @@
+env:
+  LAGOPUS_LOG_DEBUGLEVEL: "{{ lookup('env', 'LAGOPUS_LOG_DEBUGLEVEL') or 1 }}"

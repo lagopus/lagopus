@@ -4,10 +4,10 @@ import copy
 import logging
 
 from checker import *
-from ofp import register_ofp_creators
-from ofp import OfpBase
-from ofp_port import SCE_PORT
-from ofp_port import OfpPortCreator
+from .ofp import register_ofp_creators
+from .ofp import OfpBase
+from .ofp_port import SCE_PORT
+from .ofp_port import OfpPortCreator
 
 # YAML:
 # port_desc_stats_reply:

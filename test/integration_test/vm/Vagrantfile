@@ -86,7 +86,7 @@ Vagrant.configure(2) do |config|
   # provision (ansible), install pip/DPDK/lagopus.
   config.vm.provision "ansible" do |ansible|
     ansible.playbook = "provisioning/ansible/site.yml"
-    ansible.tags = ["pip", "dpdk", "lagopus"]
+    ansible.tags = ["pip", "env", "dpdk", "lagopus"]
     ansible.extra_vars = {vagrant: confs}
   end
 end

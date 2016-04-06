@@ -19,6 +19,7 @@ SRCS =	interp.c datastore.c conv_json.c \
 
 ifeq ($(HYBRID),yes)
 SRCS += mactable_cmd.c
+SRCS += route_cmd.c
 endif
 
 TARGETS			= $(TARGET_LIB)

@@ -4,8 +4,8 @@ import copy
 import logging
 
 from checker import *
-from ofp import OfpBase
-from utils import get_attrs_without_len
+from .ofp import OfpBase
+from .utils import get_attrs_without_len
 
 SCE_MATCH = "match"
 

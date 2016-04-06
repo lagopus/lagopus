@@ -4,10 +4,10 @@ import copy
 import logging
 
 from checker import *
-from ofp import register_ofp_creators
-from ofp import OfpBase
-from ofp_match import SCE_MATCH
-from ofp_match import OfpMatchCreator
+from .ofp import register_ofp_creators
+from .ofp import OfpBase
+from .ofp_match import SCE_MATCH
+from .ofp_match import OfpMatchCreator
 
 # YAML:
 # flow_removed:

@@ -1,0 +1,54 @@
+switches:
+  target:
+    dsl: "{{ test_home }}/test_scenarios_yaml/ofp/ofp_queue.dsl"
+
+#setup:
+
+#teardown:
+
+testcases:
+  - testcase: async
+    test:
+      - repetition_count: 1
+        cmds:
+          # ofp: send QueueGetConfigRequest.
+          # Unimplemented in DP.
+          - cmd_type: ofp_send
+            cmd:
+              queue_get_config_request:
+                port: 0xffffffff # OFPP_ANY
+          # ofp: recv QueueGetConfigReply.
+          # Unimplemented in DP.
+          - cmd_type: ofp_recv
+            result:
+              queue_get_config_reply:
+                port: 0xffffffff # OFPP_ANY
+                queues: []
+          #        - packet_queue:
+          #            queue_id: 0
+          #            port: 0
+          #            properties:
+          #              - min_rate:
+          #                  rate: 0
+          # ofp: send QueueStatsRequest.
+          # Unimplemented in DP.
+          - cmd_type: ofp_send
+            cmd:
+              queue_stats_request:
+                port_no: 0xffffffff # OFPP_ANY
+                queue_id: 0xffffffff # OFPQ_ALL
+          # ofp: recv QueueStatsReply.
+          # Unimplemented in DP.
+          - cmd_type: ofp_recv
+            result:
+              queue_stats_reply:
+                flags: 0
+                body: []
+                # - queue_stats:
+                #     port_no: 0
+                #     queue_id: 0
+                #     tx_bytes: 0
+                #     tx_packets: 0
+                #     tx_errors: 0
+                #     duration_sec: 0
+                #     duration_nsec: 0

@@ -636,4 +636,21 @@ void copy_dataplane_info(char *buf, int len);
  */
 void dataplane_usage(FILE *fp);
 
+#ifdef HYBRID
+lagopus_result_t
+lagopus_rewrite_pkt_header(struct lagopus_packet *pkt, uint8_t *src, uint8_t *dst);
+
+uint32_t
+lagopus_get_ethertype(struct lagopus_packet *pkt);
+
+/**
+ * Get IPv4 address in packet.
+ *
+ * @param[in]  pkt  Packet.
+ * @param[out] dst  IPv4 address.
+ */
+lagopus_result_t
+lagopus_get_ip(struct lagopus_packet *pkt, void *dst, const int family);
+
+#endif /* HYBRID */
 #endif /* SRC_INCLUDE_LAGOPUS_DATAPLANE_H_ */

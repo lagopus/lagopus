@@ -197,11 +197,13 @@ app_lcore_worker(struct app_lcore_params_worker *lp,
       lagopus_packet_init(pkt, m, ifp->port);
 
 #ifdef HYBRID
+#if 0 /* temporary disable tcpdump.*/
       /* count up refcnt(packet copy). */
       OS_M_ADDREF(m);
 
       /* send to tap */
       dp_interface_send_packet_kernel(pkt, ifp);
+#endif
 #endif /* HYBRID */
 
       flowdb_switch_mode_get(ifp->port->bridge->flowdb, &mode);

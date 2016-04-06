@@ -31,10 +31,10 @@ s_create_data_channel(void) {
   uint64_t dpid = 0x01;
   struct channel *channel;
   lagopus_session_t session;
-  struct addrunion addr  = {0,{{0}}};
+  lagopus_ip_address_t *addr = NULL;
 
-  addrunion_ipv4_set(&addr, "127.0.0.1");
-  channel = channel_alloc(&addr, dpid);
+  lagopus_ip_address_create("127.0.0.1", true, &addr);
+  channel = channel_alloc(addr, dpid);
 
   (void) session_create(SESSION_TCP|SESSION_ACTIVE, &session);
   session_write_set(session, write_tcp);
@@ -42,6 +42,8 @@ s_create_data_channel(void) {
   channel_version_set(channel, 0x04);
   channel_session_set(channel, session);
   channel_xid_set(channel, 0x10);
+
+  lagopus_ip_address_destroy(addr);
 
   return channel;
 }
@@ -69,8 +71,7 @@ test_channel_version_get_set(void) {
   TEST_ASSERT_EQUAL_MESSAGE(ret_version, version,
                             "version error.");
 
-  session_destroy(channel_session_get(channel));
-  free(channel);
+  channel_free(channel);
 }
 
 void
@@ -93,8 +94,7 @@ test_channel_session_get_set(void) {
   TEST_ASSERT_EQUAL_MESSAGE(ret_session, session,
                             "session error.");
 
-  session_destroy(channel_session_get(channel));
-  free(channel);
+  channel_free(channel);
 }
 
 void
@@ -127,8 +127,7 @@ test_channel_xid_get_set(void) {
   TEST_ASSERT_EQUAL_MESSAGE(ret_xid, 100 /*START_XID*/,
                             "xid max error.");
 
-  session_destroy(channel_session_get(channel));
-  free(channel);
+  channel_free(channel);
 }
 
 void
@@ -137,13 +136,14 @@ test_channel_alloc_default_value(void) {
   lagopus_result_t ret;
   struct channel *channel;
   enum channel_protocol protocol;
-  struct addrunion addr  = {0,{{0}}};
-  struct addrunion addr1 = {0,{{0}}};
+  lagopus_ip_address_t *addr  = NULL;
+  lagopus_ip_address_t *addr1 = NULL;
 
-  TEST_ASSERT_EQUAL_MEMORY_MESSAGE(&addr, &addr1, sizeof(addr),
-                                   "channel_addr_get() addr error");
   channel = s_create_data_channel();
-  addrunion_ipv4_set(&addr1, "127.0.0.1");
+
+  ret = lagopus_ip_address_create("127.0.0.1", true, &addr1);
+  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, ret,
+                            "lagopus_ip_address_create() error.");
 
   ret = channel_port_get(channel, &port);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, ret, "channel_port_get() error.");
@@ -163,11 +163,14 @@ test_channel_alloc_default_value(void) {
   ret = channel_addr_get(channel, &addr);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, ret,
                             "channel_addr_get() error.");
-  TEST_ASSERT_EQUAL_MEMORY_MESSAGE(&addr1, &addr, sizeof(addr),
-                                   "channel_addr_get() addr error");
+  TEST_ASSERT_NOT_NULL(addr);
+  TEST_ASSERT_NOT_NULL(addr1);
+  TEST_ASSERT_EQUAL_MESSAGE(true, lagopus_ip_address_equals(addr, addr1),
+                            "channel_addr_get() addr error");
 
-  session_destroy(channel_session_get(channel));
-  free(channel);
+  lagopus_ip_address_destroy(addr);
+  lagopus_ip_address_destroy(addr1);
+  channel_free(channel);
 }
 
 void
@@ -197,8 +200,7 @@ test_channel_proto_get_set_unset(void) {
   TEST_ASSERT_EQUAL_MESSAGE(PROTOCOL_TCP, protocol,
                             "channel_protocol_get() proto error");
 
-  session_destroy(channel_session_get(channel));
-  free(channel);
+  channel_free(channel);
 }
 
 void
@@ -228,8 +230,7 @@ test_channel_port_get_set_unset(void) {
   TEST_ASSERT_EQUAL_MESSAGE(6633, port,
                             "channel_port_get() port error");
 
-  session_destroy(channel_session_get(channel));
-  free(channel);
+  channel_free(channel);
 }
 
 void
@@ -259,42 +260,57 @@ test_channel_local_port_get_set_unset(void) {
   TEST_ASSERT_EQUAL_MESSAGE(0, port,
                             "channel_local_port_get() port error");
 
-  session_destroy(channel_session_get(channel));
-  free(channel);
+  channel_free(channel);
 }
 
 void
 test_channel_local_addr_get_set_unset(void) {
   lagopus_result_t ret;
   struct channel *channel;
-  struct addrunion addr  = {0,{{0}}};
-  struct addrunion addr1 = {0,{{0}}};
+  lagopus_ip_address_t *addr  = NULL;
+  lagopus_ip_address_t *addr1 = NULL;
+  lagopus_ip_address_t *addr2  = NULL;
+  lagopus_ip_address_t *addr3 = NULL;
 
   channel = s_create_data_channel();
-  addrunion_ipv4_set(&addr, "127.0.0.1");
-  ret = channel_local_addr_set(channel, &addr);
+
+  ret = lagopus_ip_address_create("127.0.0.1", true, &addr);
+  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, ret,
+                            "lagopus_ip_address_create() error.");
+
+  ret = channel_local_addr_set(channel, addr);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, ret,
                             "channel_local_addr_set() error.");
 
   ret = channel_local_addr_get(channel, &addr1);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, ret,
                             "channel_local_addr_get() error.");
-  TEST_ASSERT_EQUAL_MEMORY_MESSAGE(&addr, &addr1, sizeof(addr),
-                                   "channel_local_addr_get() addr error");
+  TEST_ASSERT_NOT_NULL(addr);
+  TEST_ASSERT_NOT_NULL(addr1);
+  TEST_ASSERT_EQUAL_MESSAGE(true, lagopus_ip_address_equals(addr, addr1),
+                            "channel_local_addr_get() addr error");
 
   ret = channel_local_addr_unset(channel);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, ret,
                             "channel_local_addr_unset() error.");
 
-  ret = channel_local_addr_get(channel, &addr1);
+  ret = lagopus_ip_address_create("0.0.0.0", true, &addr2);
+  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, ret,
+                            "lagopus_ip_address_create() error.");
+
+  ret = channel_local_addr_get(channel, &addr3);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, ret,
                             "channel_local_addr_get() error.");
-  addrunion_ipv4_set(&addr, "0.0.0.0");
-  TEST_ASSERT_EQUAL_MEMORY_MESSAGE(&addr, &addr1, sizeof(addr),
-                                   "channel_local_addr_get() addr  error");
+  TEST_ASSERT_NOT_NULL(addr2);
+  TEST_ASSERT_NOT_NULL(addr3);
+  TEST_ASSERT_EQUAL_MESSAGE(true, lagopus_ip_address_equals(addr2, addr3),
+                            "channel_local_addr_get() addr error");
 
-  session_destroy(channel_session_get(channel));
-  free(channel);
+  lagopus_ip_address_destroy(addr);
+  lagopus_ip_address_destroy(addr1);
+  lagopus_ip_address_destroy(addr2);
+  lagopus_ip_address_destroy(addr3);
+  channel_free(channel);
 }
 
 void
@@ -314,8 +330,7 @@ test_channel_dpid_get_set(void) {
   TEST_ASSERT_EQUAL_MESSAGE(dpid, 0xbeef,
                             "dpid error.");
 
-  session_destroy(channel_session_get(channel));
-  free(channel);
+  channel_free(channel);
 }
 
 void
@@ -336,6 +351,5 @@ test_channel_auxiliary_get_set(void) {
   TEST_ASSERT_EQUAL_MESSAGE(is_auxiliary, true,
                             "auxiliary error.");
 
-  session_destroy(channel_session_get(channel));
-  free(channel);
+  channel_free(channel);
 }

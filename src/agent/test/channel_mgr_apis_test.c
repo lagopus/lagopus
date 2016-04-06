@@ -200,6 +200,9 @@ test_channel_mgr_apis(void) {
 
   ret = channel_mgr_channel_lookup_by_name("channel1", &chan);
   TEST_ASSERT_EQUAL(LAGOPUS_RESULT_NOT_FOUND, ret);
+
+  lagopus_ip_address_destroy(addr4);
+  lagopus_ip_address_destroy(laddr4);
 }
 void
 test_epilogue(void) {

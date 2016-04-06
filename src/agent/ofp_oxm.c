@@ -86,6 +86,13 @@ ofp_oxm_field_check(uint8_t oxm_field) {
     case OFPXMT_OFB_MPLS_CW_FRAG:
     case OFPXMT_OFB_MPLS_CW_LEN:
     case OFPXMT_OFB_MPLS_CW_SEQ_NUM:
+    case OFPXMT_OFB_GTPU_FLAGS:
+    case OFPXMT_OFB_GTPU_VER:
+    case OFPXMT_OFB_GTPU_MSGTYPE:
+    case OFPXMT_OFB_GTPU_TEID:
+    case OFPXMT_OFB_GTPU_EXTN_HDR:
+    case OFPXMT_OFB_GTPU_EXTN_UDP_PORT:
+    case OFPXMT_OFB_GTPU_EXTN_SCI:
       ret = LAGOPUS_RESULT_OK;
       break;
     default:

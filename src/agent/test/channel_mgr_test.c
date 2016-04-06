@@ -160,7 +160,8 @@ test_channel_tcp(void) {
   int sock4, sock6;
   socklen_t size;
   struct sockaddr_in sin;
-  struct addrunion addr4, addr6;
+  lagopus_ip_address_t *addr4 = NULL;
+  lagopus_ip_address_t *addr6 = NULL;
   struct channel_list  *chan_list ;
   struct channel *chan4, *chan6, *chan = NULL;
   lagopus_result_t ret;
@@ -171,36 +172,39 @@ test_channel_tcp(void) {
   ret = channel_mgr_channels_lookup_by_dpid(dpid, &chan_list );
   TEST_ASSERT_EQUAL(LAGOPUS_RESULT_NOT_FOUND, ret);
   TEST_ASSERT_EQUAL(NULL, chan_list );
-  addrunion_ipv4_set(&addr4, "127.0.0.1");
-  addrunion_ipv6_set(&addr6, "::1");
 
-  ret = channel_mgr_channel_add(bridge_name, dpid, &addr4);
+  ret = lagopus_ip_address_create("127.0.0.1", true, &addr4);
   TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
-  ret = channel_mgr_channel_add(bridge_name, dpid, &addr6);
+  ret = lagopus_ip_address_create("::1", false, &addr6);
   TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
 
-  ret = channel_mgr_channel_add(bridge_name, dpid, &addr4);
+  ret = channel_mgr_channel_add(bridge_name, dpid, addr4);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
+  ret = channel_mgr_channel_add(bridge_name, dpid, addr6);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
+
+  ret = channel_mgr_channel_add(bridge_name, dpid, addr4);
   TEST_ASSERT_EQUAL(LAGOPUS_RESULT_ALREADY_EXISTS, ret);
-  ret = channel_mgr_channel_lookup(bridge_name, &addr4, &chan4);
+  ret = channel_mgr_channel_lookup(bridge_name, addr4, &chan4);
   TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
   TEST_ASSERT_EQUAL(0, channel_id_get(chan4));
   ret = channel_port_set(chan4, 10022);
   TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
   ret = channel_local_port_set(chan4, 20022);
   TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
-  ret = channel_local_addr_set(chan4, &addr4);
+  ret = channel_local_addr_set(chan4, addr4);
   TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
 
-  ret = channel_mgr_channel_add(bridge_name, dpid, &addr6);
+  ret = channel_mgr_channel_add(bridge_name, dpid, addr6);
   TEST_ASSERT_EQUAL(LAGOPUS_RESULT_ALREADY_EXISTS, ret);
-  ret = channel_mgr_channel_lookup(bridge_name, &addr6, &chan6);
+  ret = channel_mgr_channel_lookup(bridge_name, addr6, &chan6);
   TEST_ASSERT_EQUAL(1, channel_id_get(chan6));
   TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
   ret = channel_port_set(chan6, 10023);
   TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
   ret = channel_local_port_set(chan6, 20023);
   TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
-  ret = channel_local_addr_set(chan6, &addr6);
+  ret = channel_local_addr_set(chan6, addr6);
   TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
   ret = channel_mgr_channel_lookup_by_channel_id(dpid, 1, &chan);
   TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
@@ -232,25 +236,25 @@ test_channel_tcp(void) {
   TEST_ASSERT_NOT_EQUAL(-1, sock6);
 
 
-  ret = channel_mgr_channel_lookup(bridge_name, &addr4, &chan4);
+  ret = channel_mgr_channel_lookup(bridge_name, addr4, &chan4);
   TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
 
   channel_refs_get(chan4);
 
-  ret = channel_mgr_channel_delete(bridge_name, &addr4);
+  ret = channel_mgr_channel_delete(bridge_name, addr4);
   TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
 
   channel_refs_put(chan4);
-  ret = channel_mgr_channel_delete(bridge_name, &addr4);
+  ret = channel_mgr_channel_delete(bridge_name, addr4);
 
   TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
 
-  ret = channel_mgr_channel_lookup(bridge_name, &addr4, &chan4);
+  ret = channel_mgr_channel_lookup(bridge_name, addr4, &chan4);
   TEST_ASSERT_EQUAL(LAGOPUS_RESULT_NOT_FOUND, ret);
 
-  ret = channel_mgr_channel_delete(bridge_name, &addr6);
+  ret = channel_mgr_channel_delete(bridge_name, addr6);
   TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
-  ret = channel_mgr_channel_lookup(bridge_name, &addr6, &chan6);
+  ret = channel_mgr_channel_lookup(bridge_name, addr6, &chan6);
   TEST_ASSERT_EQUAL(LAGOPUS_RESULT_NOT_FOUND, ret);
 
   TEST_ASSERT_FALSE(channel_mgr_has_alive_channel_by_dpid(dpid));
@@ -258,6 +262,8 @@ test_channel_tcp(void) {
   ret = channel_mgr_event_upcall();
   TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, ret);
 
+  lagopus_ip_address_destroy(addr4);
+  lagopus_ip_address_destroy(addr6);
   close(sock4);
   close(sock6);
 }

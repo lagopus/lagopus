@@ -49,6 +49,15 @@ typedef datastore_queue_info_t dp_queue_info_t;
 
 #define DP_MAX_QUEUES     4
 
+#ifdef HYBRID
+#define INTERFACE_IP_DEFAULT "127.0.0.1"
+#define INTERFACE_IP6_DEFAULT "::1"
+#define INTERFACE_L2PORT 1
+#define INTERFACE_L3PORT 2
+#define INTERFACE_INVALID_PORT -1
+#endif /* HYBRID */
+#define INTERFACE_NAME_DELIMITER '+'  /* used by tap io. */
+
 /**
  * @brief Output queues associated with interface.
  */
@@ -60,6 +69,13 @@ struct dp_ifqueue {
 #endif /* HAVE_DPDK */
 };
 
+struct ip_address_info{
+  bool set;
+  int family;
+  struct in_addr ip;
+  struct in_addr broad;
+  uint8_t prefixlen;
+};
 /**
  * @brief Interface structure.
  */
@@ -75,6 +91,7 @@ struct interface {
   struct port *port;
   uint8_t hw_addr[ETHER_ADDR_LEN];
   struct dp_tap_interface *tap;
+  struct ip_address_info addr_info; /* ip address informations. */
   struct interface **link_timer;
 };
 

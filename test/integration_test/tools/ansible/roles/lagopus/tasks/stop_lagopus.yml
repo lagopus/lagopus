@@ -1,0 +1,37 @@
+---
+# stop lagopus.
+- name: check pid file
+  stat: path="{{ pid_file }}"
+  register: pfile
+
+- name: get pid
+  shell: cat "{{ pid_file }}"
+  register: pid
+  when: pfile.stat.exists
+
+- name: kill lagopus
+  shell: kill -TERM {{ pid.stdout }}
+  sudo: yes
+  when: pfile.stat.exists
+
+- name: wait stop lagopus process
+  # unsupported wait_for:state:absent in ansible 1.5.4.
+  shell: ps hp {{ pid.stdout }} | wc -l
+  register: result
+  until: result.stdout == "0"
+  retries: 30  # {{ timeout }}: unsupported valiable for until:retries in ansible 1.5.4.
+  delay: 1
+  when: pfile.stat.exists
+
+- name: get lagopus log in remote.
+  fetch:
+    src: "{{ lagopus_log }}"
+    dest: "{{ lagopus_local_log }}/lagopus_remote.log"
+    flat: yes
+  sudo: yes
+  when: (is_remote is defined) and pfile.stat.exists
+
+- name: rm lagopus log in remote.
+  file: path="{{ lagopus_log }}" state=absent
+  sudo: yes
+  when: (is_remote is defined) and pfile.stat.exists

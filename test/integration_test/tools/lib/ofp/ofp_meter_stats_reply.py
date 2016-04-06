@@ -4,10 +4,10 @@ import copy
 import logging
 
 from checker import *
-from ofp import register_ofp_creators
-from ofp import OfpBase
-from ofp_meter_stats import SCE_METER_STATS
-from ofp_meter_stats import OfpMeterStatsCreator
+from .ofp import register_ofp_creators
+from .ofp import OfpBase
+from .ofp_meter_stats import SCE_METER_STATS
+from .ofp_meter_stats import OfpMeterStatsCreator
 
 # YAML:
 # meter_stats_reply:

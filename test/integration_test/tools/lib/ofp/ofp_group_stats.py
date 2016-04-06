@@ -4,10 +4,10 @@ import copy
 import logging
 
 from checker import *
-from ofp import register_ofp_creators
-from ofp import OfpBase
-from ofp_bucket_counter import SCE_BUCKET_STATS
-from ofp_bucket_counter import OfpBucketCounterCreator
+from .ofp import register_ofp_creators
+from .ofp import OfpBase
+from .ofp_bucket_counter import SCE_BUCKET_STATS
+from .ofp_bucket_counter import OfpBucketCounterCreator
 
 # YAML:
 # group_stats:

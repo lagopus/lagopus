@@ -15,7 +15,7 @@ usage() {
     echo "Usage: ${0} <LAGOPUS PATH> [<LOG_DIR>] [<LAGOPUS_LOG>] [<LAGOPUS_OPTS>]" 1>&2
 }
 
-sudo rm -f $LAGOPUS_LOG
+sudo -E rm -f $LAGOPUS_LOG
 
 $PWD/stop_lagopus.sh $LOG_DIR
 
@@ -33,7 +33,7 @@ RET=$?
 i=0
 while :
 do
-    IS_GO=`sh -c "sudo grep '${GO_MSG}' ${LAGOPUS_LOG} | wc -l"`
+    IS_GO=`sh -c "sudo -E grep '${GO_MSG}' ${LAGOPUS_LOG} | wc -l"`
     if [ "x${IS_GO}" != "x0" ]; then
         exit 0
     fi

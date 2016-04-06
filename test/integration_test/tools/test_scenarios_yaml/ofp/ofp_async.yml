@@ -1,0 +1,60 @@
+switches:
+  target:
+    dsl: "{{ test_home }}/test_scenarios_yaml/ofp/ofp.dsl"
+
+#setup:
+
+#teardown:
+
+testcases:
+  - testcase: async
+    test:
+      - repetition_count: 1
+        cmds:
+          # ofp: send GetAsyncRequest.
+          - cmd_type: ofp_send
+            cmd:
+              get_async_request:
+          # ofp: recv GetAsyncReply.
+          - cmd_type: ofp_recv
+            result:
+              get_async_reply:
+                packet_in_mask:
+                  - 0xffffffff
+                  - 0xffffffff
+                port_status_mask:
+                  - 0xffffffff
+                  - 0xffffffff
+                flow_removed_mask:
+                  - 0xffffffff
+                  - 0xffffffff
+          # ofp: send SetAsync.
+          - cmd_type: ofp_send
+            cmd:
+              set_async:
+                packet_in_mask:
+                  - 0x01
+                  - 0x02
+                port_status_mask:
+                  - 0x01
+                  - 0x02
+                flow_removed_mask:
+                  - 0x01
+                  - 0x02
+          # ofp: send GetAsyncRequest.
+          - cmd_type: ofp_send
+            cmd:
+              get_async_request:
+          # ofp: recv GetAsyncReply.
+          - cmd_type: ofp_recv
+            result:
+              get_async_reply:
+                packet_in_mask:
+                  - 0x01
+                  - 0x02
+                port_status_mask:
+                  - 0x01
+                  - 0x02
+                flow_removed_mask:
+                  - 0x01
+                  - 0x02

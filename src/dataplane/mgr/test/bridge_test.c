@@ -95,7 +95,7 @@ test_bridge_table_id_iter(void) {
                     LAGOPUS_RESULT_OK);
   TEST_ASSERT_NOT_NULL(iter);
   for (i = 0; i < sizeof(ids) / sizeof(ids[0]); i++) {
-    TEST_ASSERT_NOT_NULL(table_get(bridge->flowdb, ids[i]));
+    TEST_ASSERT_NOT_NULL(flowdb_get_table(bridge->flowdb, ids[i]));
   }
   i = 0;
   while ((rv = dp_bridge_table_id_iter_get(iter, &id)) == LAGOPUS_RESULT_OK) {

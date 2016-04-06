@@ -167,7 +167,7 @@ create_data_channel(void) {
   char buf[256];
   struct channel *channel;
   lagopus_session_t session;
-  struct addrunion addr;
+  lagopus_ip_address_t *addr = NULL;
   uint64_t dpid = 0xabc;
 
   if (s_is_init == false) {
@@ -221,9 +221,9 @@ create_data_channel(void) {
   }
 
   snprintf(buf, sizeof(buf), "127.0.0.%u", cnt++);//XXX
-  addrunion_ipv4_set(&addr, buf);
-  channel_mgr_channel_add(bridge_name, dpid, &addr);
-  channel_mgr_channel_lookup(bridge_name, &addr, &channel);
+  lagopus_ip_address_create(buf, true, &addr);
+  channel_mgr_channel_add(bridge_name, dpid, addr);
+  channel_mgr_channel_lookup(bridge_name, addr, &channel);
 
 
   session = channel_session_get(channel);
@@ -232,6 +232,8 @@ create_data_channel(void) {
 
   channel_version_set(channel, 0x04);
   channel_xid_set(channel, s_xid);
+
+  lagopus_ip_address_destroy(addr);
 
   return channel;
 }

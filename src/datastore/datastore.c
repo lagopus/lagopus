@@ -23,6 +23,7 @@
 #include "flow_cmd.h"
 #ifdef HYBRID
 #include "mactable_cmd.h"
+#include "route_cmd.h"
 #endif /* HYBRID */
 #include "channel_cmd.h"
 #include "controller_cmd.h"
@@ -286,6 +287,10 @@ datastore_all_commands_initialize(void) {
     lagopus_perror(ret);
     goto done;
   }
+  if ((ret = route_cmd_initialize()) != LAGOPUS_RESULT_OK) {
+    lagopus_perror(ret);
+    goto done;
+  }
 #endif /* HYBRID */
   if ((ret = namespace_cmd_initialize()) != LAGOPUS_RESULT_OK) {
     lagopus_perror(ret);
@@ -325,6 +330,7 @@ datastore_all_commands_finalize(void) {
   flow_cmd_finalize();
 #ifdef HYBRID
   mactable_cmd_finalize();
+  route_cmd_finalize();
 #endif /* HYBRID */
   interface_cmd_finalize();
   port_cmd_finalize();

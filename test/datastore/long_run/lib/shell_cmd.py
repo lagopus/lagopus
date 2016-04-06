@@ -2,6 +2,7 @@
 
 import os
 import sys
+import six
 import json
 import logging
 import time
@@ -55,9 +56,9 @@ def exec_sh_cmd(cmd, timeout):
 
 if __name__ == "__main__":
     # tests
-    print exec_sh_cmd("ls -l", None)
+    six.print_(exec_sh_cmd("ls -l", None))
 
     try:
-        print exec_sh_cmd("sleep 10", 1)
-    except ShellCmdTimeOut, e:
-        print e
+        six.print_(exec_sh_cmd("sleep 10", 1))
+    except ShellCmdTimeOut as e:
+        six.print_(e)
