@@ -3,10 +3,11 @@
 import os
 import os.path
 import sys
+import six
 import yaml
 import logging
 import datetime
-import ConfigParser
+from six.moves import configparser
 from argparse import ArgumentParser
 from pykwalify.core import Core
 from pykwalify.errors import SchemaError
@@ -26,7 +27,7 @@ def usage(parser):
 
 def parce_confs(opts):
     # configs
-    confs = ConfigParser.SafeConfigParser()
+    confs = configparser.SafeConfigParser()
     confs.read(opts.config)
     return confs
 
@@ -103,8 +104,8 @@ def summary_tests(ets):
 
     all = ok + err + unknown
     s = "ALL(%d)/OK(%d)/ERROR(%d)/UNKNOWN(%d)" % (all, ok, err, unknown)
-    print "\n\n=============="
-    print s
+    six.print_("\n\n==============")
+    six.print_(s)
     logging.info("summary: %s" % s)
 
     return err or unknown
@@ -115,11 +116,11 @@ def check_schema_test(opts, file):
     try:
         c = Core(source_file=file, schema_files=[opts.yaml_schema])
         c.validate(raise_exception=True)
-    except SchemaError, e:
-        print "check schema: %-80s  %s" % (file, RET_ERROR)
+    except SchemaError as e:
+        six.print_("check schema: %-80s  %s" % (file, RET_ERROR))
         raise
     else:
-        print "check schema: %-80s  %s" % (file, RET_OK)
+        six.print_("check schema: %-80s  %s" % (file, RET_OK))
 
 
 def check_schema_tests(opts, dir):

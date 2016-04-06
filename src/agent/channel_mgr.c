@@ -33,7 +33,7 @@ static lagopus_callout_task_t channel_free_task;
 #define MAX_CHANNELES (1024)
 #define POLL_TIMEOUT  (1000) /* 1sec */
 #define MAKE_MAIN_HASH(key, ipaddr, addr, bridge_name) \
-  snprintf((key), sizeof((key)), "%s:%02d:%s", (ipaddr), (addr)->family, \
+  snprintf((key), sizeof((key)), "%s:%02d:%s", (ipaddr), (addr)->sa_family, \
            (bridge_name));
 #define MAIN_KEY_LEN \
   (INET6_ADDRSTRLEN+DATASTORE_BRIDGE_FULLNAME_MAX+5) /* 5 = len(":%02d") + 1 */
@@ -337,26 +337,8 @@ channel_delete_internal(const char *key) {
   return LAGOPUS_RESULT_OK;
 }
 
-static void
-sockaddr_to_addrunion(const struct sockaddr *saddr, struct addrunion *uaddr) {
-
-  switch (saddr->sa_family) {
-    case AF_INET:
-      uaddr->addr4 = ((struct sockaddr_in *)saddr)->sin_addr;
-      break;
-    case AF_INET6:
-      uaddr->addr6 = ((struct sockaddr_in6 *)saddr)->sin6_addr;
-      break;
-    default:
-      lagopus_msg_warning("unknown address family %d\n", saddr->sa_family);
-      return;
-  }
-
-  uaddr->family = saddr->sa_family;
-}
-
 static lagopus_result_t
-channel_add_internal(const char *channel_name, struct addrunion *addr,
+channel_add_internal(const char *channel_name, lagopus_ip_address_t *addr,
                      struct channel **channel) {
   lagopus_result_t ret;
   struct channel *chan = NULL;
@@ -488,21 +470,28 @@ channel_unset_dpid(const char *channel_name) {
 
 static lagopus_result_t
 channel_mgr_channel_add_internal(const char *bridge_name,
-                                 uint64_t dpid, struct addrunion *addr,
+                                 uint64_t dpid, lagopus_ip_address_t *addr,
                                  struct channel **channel) {
-  lagopus_result_t ret;
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   struct channel *chan = NULL;
-  char ipaddr[INET6_ADDRSTRLEN+1];
+  struct sockaddr *saddr = NULL;
+  char *ipaddr = NULL;
   char key[MAIN_KEY_LEN];
 
-  if (addrunion_ipaddr_str_get(addr, ipaddr, sizeof(ipaddr)) == NULL) {
-    return LAGOPUS_RESULT_ANY_FAILURES;
+  if ((ret = lagopus_ip_address_str_get(addr, &ipaddr)) !=
+      LAGOPUS_RESULT_OK) {
+    goto done;
   }
 
-  MAKE_MAIN_HASH(key, ipaddr, addr, bridge_name);
+  if ((ret = lagopus_ip_address_sockaddr_get(addr, &saddr)) !=
+      LAGOPUS_RESULT_OK) {
+    goto done;
+  }
+
+  MAKE_MAIN_HASH(key, ipaddr, saddr, bridge_name);
   ret = channel_add_internal(key, addr, &chan);
   if (ret != LAGOPUS_RESULT_OK) {
-    return ret;
+    goto done;
   }
 
   ret = channel_set_dpid(key, dpid);
@@ -512,12 +501,16 @@ channel_mgr_channel_add_internal(const char *bridge_name,
     *channel = chan;
   }
 
+done:
+  free(ipaddr);
+  free(saddr);
+
   return ret;
 }
 
 lagopus_result_t
 channel_mgr_channel_add(const char *bridge_name, uint64_t dpid,
-                        struct addrunion *addr) {
+                        lagopus_ip_address_t *addr) {
   lagopus_result_t ret;
   struct channel *chan = NULL;
 
@@ -546,7 +539,7 @@ channel_mgr_channel_add(const char *bridge_name, uint64_t dpid,
 
 lagopus_result_t
 channel_mgr_channel_tls_add(const char *bridge_name, uint64_t dpid,
-                            struct addrunion *addr) {
+                            lagopus_ip_address_t *addr) {
   lagopus_result_t ret;
   struct channel *chan = NULL;
 
@@ -568,21 +561,40 @@ channel_mgr_channel_tls_add(const char *bridge_name, uint64_t dpid,
 }
 
 lagopus_result_t
-channel_mgr_channel_lookup(const char *bridge_name, struct addrunion *addr,
+channel_mgr_channel_lookup(const char *bridge_name,
+                           lagopus_ip_address_t *addr,
                            struct channel **chan) {
-  char ipaddr[INET6_ADDRSTRLEN+1];
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  struct sockaddr *saddr = NULL;
+  char *ipaddr = NULL;
   char key[MAIN_KEY_LEN];
 
   if (main_table == NULL) {
-    return LAGOPUS_RESULT_ANY_FAILURES;
+    ret = LAGOPUS_RESULT_ANY_FAILURES;
+    goto done;
   }
 
-  if (addrunion_ipaddr_str_get(addr, ipaddr, sizeof(ipaddr)) == NULL) {
-    return LAGOPUS_RESULT_ANY_FAILURES;
+  if ((ret = lagopus_ip_address_str_get(addr, &ipaddr)) !=
+      LAGOPUS_RESULT_OK) {
+    goto done;
   }
 
-  MAKE_MAIN_HASH(key, ipaddr, addr, bridge_name);
-  return lagopus_hashmap_find(&main_table, (void *)key, (void **)chan);
+  if ((ret = lagopus_ip_address_sockaddr_get(addr, &saddr)) !=
+      LAGOPUS_RESULT_OK) {
+    goto done;
+  }
+
+  MAKE_MAIN_HASH(key, ipaddr, saddr, bridge_name);
+  if ((ret = lagopus_hashmap_find(&main_table, (void *)key, (void **)chan)) !=
+      LAGOPUS_RESULT_OK) {
+    goto done;
+  }
+
+done:
+  free(ipaddr);
+  free(saddr);
+
+  return ret;
 }
 
 lagopus_result_t
@@ -680,20 +692,38 @@ channel_mgr_dpid_iterate(uint64_t dpid,
 }
 
 lagopus_result_t
-channel_mgr_channel_delete(const char *bridge_name, struct addrunion *addr) {
-  char ipaddr[INET6_ADDRSTRLEN+1];
+channel_mgr_channel_delete(const char *bridge_name, lagopus_ip_address_t *addr) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  struct sockaddr *saddr = NULL;
+  char *ipaddr = NULL;
   char key[MAIN_KEY_LEN];
 
   if (main_table == NULL) {
-    return LAGOPUS_RESULT_ANY_FAILURES;
+    ret = LAGOPUS_RESULT_ANY_FAILURES;
+    goto done;
   }
 
-  if (addrunion_ipaddr_str_get(addr, ipaddr, sizeof(ipaddr)) == NULL) {
-    return LAGOPUS_RESULT_ANY_FAILURES;
+  if ((ret = lagopus_ip_address_str_get(addr, &ipaddr)) !=
+      LAGOPUS_RESULT_OK) {
+    goto done;
   }
 
-  MAKE_MAIN_HASH(key, ipaddr, addr, bridge_name);
-  return channel_delete_internal((const char *) key);
+  if ((ret = lagopus_ip_address_sockaddr_get(addr, &saddr)) !=
+      LAGOPUS_RESULT_OK) {
+    goto done;
+  }
+
+  MAKE_MAIN_HASH(key, ipaddr, saddr, bridge_name);
+  if ((ret = channel_delete_internal((const char *) key)) !=
+      LAGOPUS_RESULT_OK) {
+    goto done;
+  }
+
+done:
+  free(ipaddr);
+  free(saddr);
+
+  return ret;
 }
 
 lagopus_result_t
@@ -739,20 +769,9 @@ channel_mgr_channel_create(const char *channel_name,
                            datastore_channel_protocol_t protocol) {
   lagopus_result_t ret;
   struct channel *chan = NULL;
-  struct sockaddr *sa;
-  struct sockaddr_storage ss = {0};
-  struct addrunion daddr = {0}, saddr = {0};
   enum channel_protocol cprotocol;
 
-
-  sa = (struct sockaddr *) &ss;
-  ret = lagopus_ip_address_sockaddr_get(dst_addr, &sa);
-  if (ret != LAGOPUS_RESULT_OK) {
-    return ret;
-  }
-  sockaddr_to_addrunion(sa, &daddr);
-
-  ret = channel_add_internal(channel_name, &daddr, &chan);
+  ret = channel_add_internal(channel_name, dst_addr, &chan);
   if (ret != LAGOPUS_RESULT_OK) {
     return ret;
   }
@@ -763,13 +782,7 @@ channel_mgr_channel_create(const char *channel_name,
   }
 
   if (src_addr != NULL) {
-    ret = lagopus_ip_address_sockaddr_get(src_addr, &sa);
-    if (ret != LAGOPUS_RESULT_OK) {
-      goto fail;
-    }
-    sockaddr_to_addrunion(sa, &saddr);
-
-    ret = channel_local_addr_set(chan, &saddr);
+    ret = channel_local_addr_set(chan, src_addr);
     if (ret != LAGOPUS_RESULT_OK) {
       goto fail;
     }
@@ -918,32 +931,15 @@ channel_mgr_channel_dpid_unset(const char *channel_name) {
 lagopus_result_t
 channel_mgr_channel_local_addr_get(const char *channel_name,
                                    lagopus_ip_address_t **local_addr) {
-  char ipaddr[INET6_ADDRSTRLEN+1];
   lagopus_result_t ret;
   struct channel *chan;
-  struct addrunion addr = {0};
 
   ret = channel_mgr_channel_lookup_by_name(channel_name, &chan);
   if (ret != LAGOPUS_RESULT_OK) {
     return ret;
   }
 
-  ret = channel_local_addr_get(chan, &addr);
-  if (ret != LAGOPUS_RESULT_OK) {
-    return ret;
-  }
-
-  if (addrunion_ipaddr_str_get(&addr, ipaddr, sizeof(ipaddr)) == NULL) {
-    return LAGOPUS_RESULT_ANY_FAILURES;
-  }
-
-  ret = lagopus_ip_address_create(ipaddr,
-                                  addrunion_af_get(&addr) == AF_INET ? true : false, local_addr);
-  if (ret != LAGOPUS_RESULT_OK) {
-    return ret;
-  }
-
-  return ret;
+  return channel_local_addr_get(chan, local_addr);
 }
 
 lagopus_result_t

@@ -20,6 +20,7 @@
 /**
  * @file       lagopus_session.h
  */
+#include "lagopus_ip_addr.h"
 
 typedef struct session *lagopus_session_t;
 
@@ -111,8 +112,9 @@ session_is_alive(lagopus_session_t session);
  *
  */
 lagopus_result_t
-session_connect(lagopus_session_t s, struct addrunion *daddr, uint16_t dport,
-                struct addrunion *saddr, uint16_t sport);
+session_connect(lagopus_session_t s, lagopus_ip_address_t *daddr, uint16_t dport,
+                lagopus_ip_address_t *saddr, uint16_t sport);
+
 /**
  * Close a session.
  *
@@ -223,7 +225,7 @@ session_fgets(char *restrict str, int size, lagopus_session_t s);
  *
  */
 lagopus_result_t
-session_bind(lagopus_session_t s, struct addrunion *addr, uint16_t port);
+session_bind(lagopus_session_t s, lagopus_ip_address_t *saddr, uint16_t port);
 
 /**
  * Accept for a session.

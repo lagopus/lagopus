@@ -4,11 +4,11 @@ import copy
 import logging
 
 from checker import *
-from ofp import register_ofp_creators
-from ofp import OfpBase
-from ofp_band import SCE_BANDS
-from ofp_band import OfpBandCreator
-from utils import get_attrs_without_len
+from .ofp import register_ofp_creators
+from .ofp import OfpBase
+from .ofp_band import SCE_BANDS
+from .ofp_band import OfpBandCreator
+from .utils import get_attrs_without_len
 
 # YAML:
 #     - meter_config_stats:

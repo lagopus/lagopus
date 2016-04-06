@@ -3996,7 +3996,7 @@ mactable_entry_opt_parse(const char *const *argv[],
 
         if (IS_VALID_OPT(*(*argv + 1)) == true) {
           /* (argv + 1) equals option string(-XXX). */
-          ret = datastore_json_result_string_setf(result, ret,
+          ret = datastore_json_result_string_setf(result, LAGOPUS_RESULT_INVALID_ARGS,
                                                   "Bad opt value = %s.",
                                                   *(*argv + 1));
           goto done;

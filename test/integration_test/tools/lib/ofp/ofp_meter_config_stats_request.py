@@ -4,8 +4,8 @@ import copy
 import logging
 
 from checker import *
-from ofp import register_ofp_creators
-from ofp import OfpBase
+from .ofp import register_ofp_creators
+from .ofp import OfpBase
 
 # YAML:
 # meter_config_stats_request:

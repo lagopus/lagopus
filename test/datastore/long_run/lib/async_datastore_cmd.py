@@ -8,15 +8,16 @@ import select
 import json
 import logging
 import asyncore
-import thread
 import threading
-import Queue
+import six
+from six.moves import _thread
+from six.moves import queue
 from contextlib import contextmanager
 
 from const import *
 
 
-class AsyncDataStoreCmd(object, asyncore.dispatcher):
+class AsyncDataStoreCmd(asyncore.dispatcher):
 
     def __init__(self, host="127.0.0.1", port=12345, is_tls=False,
                  certfile=None, keyfile=None, ca_certs=None):
@@ -28,8 +29,8 @@ class AsyncDataStoreCmd(object, asyncore.dispatcher):
             self.ca_certs = ca_certs
         self.host = host
         self.port = port
-        self.wbuf = ""
-        self.queue = Queue.Queue()
+        self.wbuf = b""
+        self.queue = queue.Queue()
         self.th = None
 
     def create_sock(self):
@@ -63,11 +64,15 @@ class AsyncDataStoreCmd(object, asyncore.dispatcher):
             if len(self.wbuf) == 0:
                 self.wbuf = self.queue.get_nowait()
                 if self.wbuf is None:
-                    thread.exit()
+                    _thread.exit()
 
-            sentlen = self.send(self.wbuf)
+            w = self.wbuf
+            if six.PY3:
+                w = self.wbuf.encode()
+
+            sentlen = self.send(w)
             self.wbuf = self.wbuf[sentlen:]
-        except Queue.Empty:
+        except queue.Empty:
             pass
 
     def readable(self):

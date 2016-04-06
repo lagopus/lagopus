@@ -13,6 +13,7 @@
 #            -key client1_key_nopass.pem -connect 127.0.0.1:12345
 
 import sys
+import six
 import readline
 import socket
 import ssl
@@ -21,13 +22,14 @@ import select
 from json import JSONDecoder
 from argparse import ArgumentParser
 from contextlib import closing
+from six.moves import input
 
 HOST = '127.0.0.1'
 PORT = 12345
 BUFSIZE = 4096
 
 DIR = os.path.dirname(os.path.abspath(__file__))
-CERT_DIR = DIR + "/../cert_for_test"
+CERT_DIR = DIR + "/../../cert_for_test"
 CERTFILE = CERT_DIR + "/client1.pem"
 KEYFILE = CERT_DIR + "/client1_key_nopass.pem"
 CA_CERTS = CERT_DIR + "/cacert.pem"
@@ -48,7 +50,7 @@ def create_sock(opts):
 def connect(sock, opts):
     sock.connect((opts.host, opts.port))
     proto = "TLS" if opts.is_tls else "TCP"
-    print "connected: " + opts.host + ":" + str(opts.port) + "(" + proto + ")"
+    six.print_("connected: " + opts.host + ":" + str(opts.port) + "(" + proto + ")")
 
 
 def is_read_more(sock):
@@ -56,16 +58,24 @@ def is_read_more(sock):
 
 
 def recvall(sock, opts):
-    data = ""
-    part = ""
+    data = b""
+    part = b""
     while True:
         part = sock.read(BUFSIZE) if opts.is_tls else sock.recv(BUFSIZE)
-        sys.stdout.write(part)
+
+        p = part
+        if six.PY3:
+            p = part.decode()
+        sys.stdout.write(p)
         sys.stdout.flush()
+
         data += part
         if not is_read_more(sock):
+            d = data
+            if six.PY3:
+                d = data.decode()
             try:
-                JSONDecoder().raw_decode(data)
+                JSONDecoder().raw_decode(d)
                 break
             except ValueError:
                 pass
@@ -82,10 +92,13 @@ def tls_sendall(sock, cmd):
 
 def send_cmd(sock, cmd, opts):
     cmd += "\n"
+    c = cmd
+    if six.PY3:
+        c = cmd.encode()
     if opts.is_tls:
-        tls_sendall(sock, cmd)
+        tls_sendall(sock, c)
     else:
-        sock.sendall(cmd)
+        sock.sendall(c)
     recvall(sock, opts)
 
 
@@ -145,7 +158,7 @@ if __name__ == "__main__":
 
     with closing(sock):
         while True:
-            line = raw_input('> ')
+            line = input('> ')
             line = line.strip()
             if line == 'quit':
                 break

@@ -1,0 +1,39 @@
+---
+# TODO:
+- name: DL vagrant private_key
+  shell: |
+    wget -O vagrant_private_key -nv {{ system.vagrant_private_key }}
+    chmod 600 vagrant_private_key
+  args:
+    chdir: "{{ ansible_env.HOME }}/.ssh"
+  environment: proxy_env
+
+- name: start ssh-agent and set vagrant private_key
+  shell: |
+    ssh-agent > default_ssh_agent_env
+    eval `cat default_ssh_agent_env`
+    ssh-add vagrant_private_key
+  args:
+    chdir: "{{ ansible_env.HOME }}/.ssh"
+
+- name: set vagrant private_key in .bashrc
+  shell: |
+    echo "" >> "{{ ansible_env.HOME }}/.bashrc"
+    echo "if [ \"x\\${SSH_AUTH_SOCK}\" = \"x\" -a -f {{ ansible_env.HOME }}/.ssh/default_ssh_agent_env ]; then" >> "{{ ansible_env.HOME }}/.bashrc"
+    echo "  . {{ ansible_env.HOME }}/.ssh/default_ssh_agent_env > /dev/null" >> "{{ ansible_env.HOME }}/.bashrc"
+    echo "fi" >> "{{ ansible_env.HOME }}/.bashrc"
+
+- name: DL vagrant public_key
+  shell: |
+    wget -O vagrant_public_key -nv {{ system.vagrant_public_key }}
+    chmod 600 vagrant_private_key
+  args:
+    chdir: "{{ ansible_env.HOME }}/.ssh"
+  environment: proxy_env
+
+- name: set vagrant public_key
+  shell: |
+    cat vagrant_public_key >> authorized_keys
+    chmod 600 authorized_keys
+  args:
+    chdir: "{{ ansible_env.HOME }}/.ssh"

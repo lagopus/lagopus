@@ -34,3 +34,7 @@ dp_tap_interface_recv_packet(struct dp_tap_interface *tap,
 lagopus_result_t
 dp_tap_thread_loop(__UNUSED const lagopus_thread_t *selfptr,
                    __UNUSED void *arg);
+uint32_t
+dp_tapio_portid_get(const char *name);
+struct interface*
+dp_tapio_interface_get(const char *name);

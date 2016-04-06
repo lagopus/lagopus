@@ -2,12 +2,12 @@ import os
 import sys
 import copy
 import logging
-import base64
 
 from checker import *
-from ofp import register_ofp_creators
-from ofp import OfpBase
-from utils import get_attrs_without_len
+from .ofp import register_ofp_creators
+from .ofp import OfpBase
+from .utils import get_attrs_without_len
+from .utils import create_byte_data
 
 # YAML:
 # echo_reply:
@@ -26,8 +26,7 @@ class OfpEchoReplyCreator(OfpBase):
 
         data = None
         if SCE_ECHO_DATA in params:
-            data = base64.b16decode(
-                params[SCE_ECHO_DATA].replace(" ", "").upper())
+            data = create_byte_data(params[SCE_ECHO_DATA])
 
         kws[SCE_ECHO_DATA] = data
 

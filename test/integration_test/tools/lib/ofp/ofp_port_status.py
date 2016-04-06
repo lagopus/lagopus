@@ -4,11 +4,11 @@ import copy
 import logging
 
 from checker import *
-from ofp import register_ofp_creators
-from ofp import OfpBase
-from ofp_port import SCE_PORT
-from ofp_port import OfpPortCreator
-from utils import get_attrs_without_len
+from .ofp import register_ofp_creators
+from .ofp import OfpBase
+from .ofp_port import SCE_PORT
+from .ofp_port import OfpPortCreator
+from .utils import get_attrs_without_len
 
 # YAML:
 # port_status:

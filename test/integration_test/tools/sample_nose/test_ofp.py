@@ -32,7 +32,7 @@ class OFPTest(TestCase):
 
     def setup_ds(self):
         e_res = '{"ret":"OK"}'
-        dpid = self.opts["switches"]["target_sw"]["dpid"]
+        dpid = self.opts["switches"]["target"]["dpid"]
 
         # TODO: type = ethernet-dpdk-phy
         cmds = ["channel channel01 create -dst-addr 127.0.0.1 -protocol tcp",
@@ -53,7 +53,7 @@ class OFPTest(TestCase):
             datastore_checker_cmd(dpid, cmd, e_res)
 
     def test_flow(self):
-        dpid = self.opts["switches"]["target_sw"]["dpid"]
+        dpid = self.opts["switches"]["target"]["dpid"]
         dp = ofp_checker_get_dp(dpid)
         ofp = dp.ofproto
         ofp_parser = dp.ofproto_parser

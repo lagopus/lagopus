@@ -4,10 +4,10 @@ import copy
 import logging
 
 from checker import *
-from ofp import register_ofp_creators
-from ofp import OfpBase
-from ofp_band import SCE_BANDS
-from ofp_band import OfpBandCreator
+from .ofp import register_ofp_creators
+from .ofp import OfpBase
+from .ofp_band import SCE_BANDS
+from .ofp_band import OfpBandCreator
 
 # YAML:
 # meter_mod:

@@ -50,29 +50,45 @@ class LagopusChecker(ShellChecker):
         super(LagopusChecker, self).__init__()
         self.confs = confs
 
-    def start(self, timeout=DEFAULT_TIMEOUT):
+    def exec_lagopus(self, action, timeout=DEFAULT_TIMEOUT):
         for conf in self.confs.values():
-            opts = "-C %s %s" % (os.path.abspath(conf["dsl"]), conf["opts"])
-            cmd = "%s %s %s %s %s" % (os.path.join(SHELL_HOME, "start_lagopus.sh"),
-                                      os.path.abspath(conf["path"]),
-                                      conf["logdir"],
-                                      conf["logname"],
-                                      opts)
+            if conf["is_remote"]:
+                host = conf["host"]
+                logdir = "/tmp"
+                local_logdir = conf["logdir"]
+                opts = ""
+            else:
+                host = "127.0.0.1"
+                logdir = conf["logdir"]
+                local_logdir = ""
+                opts = "-C %s" % os.path.abspath(conf["dsl"])
+
+            opts += " %s" % conf["opts"]
+            cmd = "%s %s %s %s %d %s '%s' %s %s" % (
+                os.path.join(SHELL_HOME,
+                             "%s_lagopus_ansible.sh" % action),
+                os.path.abspath(conf["path"]),
+                conf["user"],
+                host,
+                timeout,
+                logdir,
+                local_logdir,
+                conf["logname"],
+                opts)
+
             self.test_cmd(cmd, 0, timeout)
+
+    def start(self, timeout=DEFAULT_TIMEOUT):
+        self.exec_lagopus("start", timeout)
 
     def stop(self, timeout=DEFAULT_TIMEOUT):
-        for conf in self.confs.values():
-            cmd = "%s %s %d" % (os.path.join(SHELL_HOME, "stop_lagopus.sh"),
-                                conf["logdir"],
-                                timeout)
-            self.test_cmd(cmd, 0, timeout)
-
+        self.exec_lagopus("stop", timeout)
 
 def lagopus_checker_start(confs, timeout=DEFAULT_TIMEOUT):
     global _lagopus_checker
     if not _lagopus_checker:
         _lagopus_checker = LagopusChecker(confs)
-        _lagopus_checker.start(timeout)
+    _lagopus_checker.start(timeout)
     return _lagopus_checker
 
 

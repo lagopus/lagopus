@@ -144,10 +144,8 @@ conf/ansible_conf.yml
 ||work_dir|Working directory for lagopus, DPDK.|
 |dpdk|||
 ||is_used|Use DPDK.|
-||version|DPDK version.|
 |dpdk_env||Environment variables for DPDK.|
 ||RTE_SDK||
-||RTE_TARGET||
 |lagopus|||
 ||git|Git Repositorie URI (https://..., ssh://USER_NAME@HOST:PORT/..., ..etc) |
 ||dir|Clone directory.|

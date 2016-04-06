@@ -38,6 +38,9 @@
 #include "lagopus/ofp_bridge.h"
 #include "lagopus/ofp_bridgeq_mgr.h"
 #include "lagopus/dp_apis.h"
+#ifdef USE_MBTREE
+#include "lagopus/flowdb.h"
+#endif /* USE_MBTREE */
 
 #include "pktbuf.h"
 #include "packet.h"
@@ -151,13 +154,11 @@ dp_process_event_data(uint64_t dpid, struct eventq_data *data) {
           int i;
 
           flowdb = bridge->flowdb;
-          if (flowdb->tables != NULL) {
-            for (i = 0; i < flowdb->table_size; i++) {
-              table = flowdb->tables[i];
-              if (table != NULL) {
-                cleanup_mbtree(table->flow_list);
-                build_mbtree(table->flow_list);
-              }
+          for (i = 0; i < FLOWDB_TABLE_SIZE_MAX; i++) {
+            table = flowdb_get_table(flowdb, i);
+            if (table != NULL) {
+              cleanup_mbtree(table->flow_list);
+              build_mbtree(table->flow_list);
             }
           }
         }

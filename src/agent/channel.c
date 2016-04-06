@@ -45,6 +45,8 @@
 /* OFP max packet size. */
 #define OFP_PBUF_SIZE (64*1024) /* 64KB */
 
+#define GET_ANY_IP_ADDR(_is_ipv4) \
+  (((_is_ipv4) == true) ? "0.0.0.0" : "::0")
 
 /* Channel events. */
 enum channel_event {
@@ -114,8 +116,8 @@ struct channel {
 
   /* controller info */
   char *hostname;
-  struct addrunion controller;
-  struct addrunion local_addr;
+  lagopus_ip_address_t *controller;
+  lagopus_ip_address_t *local_addr;
 #define OFP_CTRL_PORT_DEFAULT 6633
   uint16_t port;
   uint16_t local_port;
@@ -552,8 +554,8 @@ channel_start(struct channel *channel) {
   lagopus_msg_info("Connecting to OpenFlow controller %s:%d\n",
                    channel->hostname, channel->port);
 
-  ret = session_connect(channel->session, &channel->controller, channel->port,
-                        &channel->local_addr, channel->local_port);
+  ret = session_connect(channel->session, channel->controller, channel->port,
+                        channel->local_addr, channel->local_port);
   if (ret < 0 && errno != EINPROGRESS) {
     lagopus_msg_warning("connect error %s\n", strerror(errno));
     return -1;
@@ -902,9 +904,10 @@ multipart_init(struct multipart *m) {
 
 /* Channel allocation. */
 static struct channel *
-channel_alloc_internal(struct addrunion *controller) {
+channel_alloc_internal(lagopus_ip_address_t *controller) {
   int i;
   lagopus_result_t ret;
+  bool is_ipv4 = false;
   struct channel *channel;
 
   /* Allocate a new channel. */
@@ -914,29 +917,44 @@ channel_alloc_internal(struct addrunion *controller) {
   }
 
   /* Initial socket. */
-  channel->controller = *controller;
+  if ((ret = lagopus_ip_address_copy(controller, &channel->controller)) !=
+      LAGOPUS_RESULT_OK){
+    lagopus_perror(ret);
+    free(channel);
+    return NULL;
+  }
   channel->port = OFP_CTRL_PORT_DEFAULT;
   channel->local_port = 0;
 
-  switch (addrunion_af_get(controller)) {
-    case AF_INET:
-      addrunion_ipv4_set(&channel->local_addr, "0.0.0.0");
-      channel->protocol = PROTOCOL_TCP;
-      break;
-    case AF_INET6:
-      addrunion_ipv6_set(&channel->local_addr, "::0");
-      channel->protocol = PROTOCOL_TCP6;
-      break;
-    default:
-      lagopus_msg_warning("unknown address family %d\n",
-                          addrunion_af_get(controller));
-      free(channel);
-      return NULL;
+  if ((ret = lagopus_ip_address_is_ipv4(controller, &is_ipv4)) !=
+      LAGOPUS_RESULT_OK) {
+    lagopus_perror(ret);
+    lagopus_ip_address_destroy(channel->controller);
+    free(channel);
+    return NULL;
+  }
+
+  if ((ret = lagopus_ip_address_create(GET_ANY_IP_ADDR(is_ipv4),
+                                       is_ipv4,
+                                       &channel->local_addr)) !=
+      LAGOPUS_RESULT_OK) {
+    lagopus_perror(ret);
+    lagopus_ip_address_destroy(channel->controller);
+    free(channel);
+    return NULL;
+  }
+
+  if (is_ipv4) {
+    channel->protocol = PROTOCOL_TCP;
+  } else {
+    channel->protocol = PROTOCOL_TCP6;
   }
 
   ret = session_set(channel);
   if (ret != LAGOPUS_RESULT_OK) {
     lagopus_msg_warning("session is no created\n");
+    lagopus_ip_address_destroy(channel->controller);
+    lagopus_ip_address_destroy(channel->local_addr);
     free(channel);
     return NULL;
   }
@@ -950,11 +968,15 @@ channel_alloc_internal(struct addrunion *controller) {
   /* Input and output buffer. */
   channel->in = pbuf_alloc(OFP_PBUF_SIZE);
   if (channel->in == NULL) {
+    lagopus_ip_address_destroy(channel->controller);
+    lagopus_ip_address_destroy(channel->local_addr);
     free(channel);
     return NULL;
   }
   channel->out = pbuf_list_alloc();
   if (channel->out == NULL) {
+    lagopus_ip_address_destroy(channel->controller);
+    lagopus_ip_address_destroy(channel->local_addr);
     pbuf_free(channel->in);
     free(channel);
     return NULL;
@@ -988,7 +1010,7 @@ channel_alloc_internal(struct addrunion *controller) {
 }
 
 struct channel *
-channel_alloc(struct addrunion *controller, uint64_t dpid) {
+channel_alloc(lagopus_ip_address_t *controller, uint64_t dpid) {
   lagopus_result_t ret;
   struct channel *channel;
 
@@ -1006,16 +1028,21 @@ channel_alloc(struct addrunion *controller, uint64_t dpid) {
 
 struct channel *
 channel_alloc_ip4addr(const char *ipaddr, const char *port, uint64_t dpid) {
-  struct addrunion addr;
+  lagopus_ip_address_t *addr = NULL;
   struct channel *channel;
 
-  addrunion_ipv4_set(&addr, ipaddr);
+  if (lagopus_ip_address_create(ipaddr, true, &addr) !=
+      LAGOPUS_RESULT_OK) {
+    return NULL;
+  }
 
-  channel = channel_alloc_internal(&addr);
+  channel = channel_alloc_internal(addr);
   if (channel != NULL) {
     channel->port = (uint16_t) atoi(port);
     channel_dpid_set(channel, dpid);
   }
+
+  lagopus_ip_address_destroy(addr);
 
   return channel;
 }
@@ -1082,6 +1109,10 @@ channel_free(struct channel *channel) {
 
     session_destroy(channel->session);
     channel->session = NULL;
+    lagopus_ip_address_destroy(channel->controller);
+    channel->controller = NULL;
+    lagopus_ip_address_destroy(channel->local_addr);
+    channel->local_addr = NULL;
     pbuf_free(channel->in);
     pbuf_list_free(channel->out);
 
@@ -1271,11 +1302,13 @@ channel_pbuf_list_unget(struct channel *channel, struct pbuf *pbuf) {
 }
 
 lagopus_result_t
-channel_addr_get(struct channel *channel, struct addrunion *addrunion) {
+channel_addr_get(struct channel *channel, lagopus_ip_address_t **addr) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+
   channel_lock(channel);
-  *addrunion = channel->controller;
+  ret = lagopus_ip_address_copy(channel->controller, addr);
   channel_unlock(channel);
-  return LAGOPUS_RESULT_OK;
+  return ret;
 }
 
 lagopus_result_t
@@ -1389,13 +1422,16 @@ channel_local_port_get(struct channel *channel, uint16_t *port) {
 }
 
 lagopus_result_t
-channel_local_addr_set(struct channel *channel, struct addrunion *addrunion) {
+channel_local_addr_set(struct channel *channel, lagopus_ip_address_t *addr) {
   lagopus_result_t ret = LAGOPUS_RESULT_BUSY;
 
   channel_lock(channel);
   if (session_is_alive(channel->session) == false) {
-    channel->local_addr = *addrunion;
-    ret = LAGOPUS_RESULT_OK;
+    if (channel->local_addr != NULL) {
+      lagopus_ip_address_destroy(channel->local_addr);
+      channel->local_addr = NULL;
+    }
+    ret = lagopus_ip_address_copy(addr, &channel->local_addr);
   }
   channel_unlock(channel);
   return ret;
@@ -1404,30 +1440,43 @@ channel_local_addr_set(struct channel *channel, struct addrunion *addrunion) {
 lagopus_result_t
 channel_local_addr_unset(struct channel *channel) {
   lagopus_result_t ret = LAGOPUS_RESULT_BUSY;
+  bool is_ipv4 = false;
 
   channel_lock(channel);
   if (session_is_alive(channel->session) == false) {
+    if (channel->local_addr != NULL) {
+      lagopus_ip_address_destroy(channel->local_addr);
+      channel->local_addr = NULL;
+    }
+
     if (channel->protocol == PROTOCOL_TCP || channel->protocol == PROTOCOL_TLS) {
-      addrunion_ipv4_set(&channel->local_addr, "0.0.0.0");
-      ret = LAGOPUS_RESULT_OK;
+      is_ipv4 = true;
     } else if (channel->protocol == PROTOCOL_TCP6 ||
                channel->protocol == PROTOCOL_TLS6) {
-      addrunion_ipv6_set(&channel->local_addr, "::0");
-      ret = LAGOPUS_RESULT_OK;
+      is_ipv4 = false;
     } else {
       ret = LAGOPUS_RESULT_ANY_FAILURES;
+      goto done;
     }
+
+    ret = lagopus_ip_address_create(GET_ANY_IP_ADDR(is_ipv4),
+                                    is_ipv4,
+                                    &channel->local_addr);
   }
+
+done:
   channel_unlock(channel);
   return ret;
 }
 
 lagopus_result_t
-channel_local_addr_get(struct channel *channel, struct addrunion *addrunion) {
+channel_local_addr_get(struct channel *channel, lagopus_ip_address_t **addr) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+
   channel_lock(channel);
-  *addrunion = channel->local_addr;
+  ret = lagopus_ip_address_copy(channel->local_addr, addr);
   channel_unlock(channel);
-  return LAGOPUS_RESULT_OK;
+  return ret;
 }
 
 int

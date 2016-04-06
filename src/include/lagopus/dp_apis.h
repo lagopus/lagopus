@@ -246,6 +246,25 @@ dp_port_interface_set(const char *name, const char *ifname);
 lagopus_result_t
 dp_port_interface_unset(const char *name);
 
+#ifdef HYBRID
+/**
+ * Set ip address to interface object.
+ * @param[in]  name   Name of port.
+ * @param[in]  ip     IP address.
+ * @param[in]  family INET family.
+ *
+ * @retval LAGOPUS_RESULT_OK Succeeded.
+ */
+lagopus_result_t
+dp_interface_ip_set(const char *in_name, int family, const struct in_addr *ip,
+                    const struct in_addr *broad, const uint8_t prefixlen);
+lagopus_result_t
+dp_interface_ip_unset(const char *in_name);
+lagopus_result_t
+dp_interface_ip_get(const char *name, int family, struct in_addr *addr,
+                    struct in_addr *broad, uint8_t *prefixlen);
+#endif /* HYBRID */
+
 /**
  * Lookup internel port structure.
  *

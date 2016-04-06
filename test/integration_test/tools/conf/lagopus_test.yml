@@ -1,0 +1,29 @@
+target:
+  dpid: 1
+  host: 192.168.100.100
+  # local
+  is_remote: false
+  user: vagrant
+  lagopus_path: /usr/local/sbin/lagopus
+  # <TEST_HOME>/conf/lagopus.dsl
+  lagopus_dsl: ./conf/lagopus_target_sw.dsl
+  lagopus_opts: -- -cf -n4 -- -p7 --no-cache
+
+tester:
+  # TODO:
+  dpid: 2
+  host: 192.168.100.101
+  # remote
+  is_remote: true
+  user: vagrant
+  lagopus_path: /usr/local/sbin/lagopus
+  lagopus_dsl: # empty
+  lagopus_opts: -- -cf -n4 -- -p7 --no-cache
+
+ofp:
+  port: 6633
+  # ofp 1.3 = 0x04
+  version: 4
+
+datastore:
+  port: 12345

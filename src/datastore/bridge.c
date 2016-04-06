@@ -438,55 +438,6 @@ bridge_mactable_remove_all_entries(bridge_mactable_info_t *entries) {
   return LAGOPUS_RESULT_OK;
 }
 
-
-
-/**
- * Check if mac entry is exist in mac entry list.
- */
-static inline bool
-bridge_attr_mactable_entry_exists(const bridge_attr_t *attr,
-                                  struct bridge_mactable_entry *entry) {
-  if (attr == NULL || entry == NULL) {
-    return false;
-  }
-  return bridge_mactable_entry_exists(attr->mactable_entries, entry);
-}
-
-/**
- * Add mac entry to mac entry list.
- */
-static inline lagopus_result_t
-bridge_attr_add_mactable_entry(const bridge_attr_t *attr,
-                               const mac_address_t addr,
-                               const uint32_t port_no) {
-  if (attr == NULL || addr == NULL || port_no <= 0) {
-    return LAGOPUS_RESULT_INVALID_ARGS;
-  }
-  return bridge_mactable_add_entries(attr->mactable_entries, addr, port_no);
-}
-
-/**
- * Remove mac entry from mac entry list.
- */
-static inline lagopus_result_t
-bridge_attr_remove_mactable_entry(const bridge_attr_t *attr,
-                                  const mac_address_t addr) {
-  if (attr == NULL || addr == NULL) {
-    return LAGOPUS_RESULT_INVALID_ARGS;
-  }
-  return bridge_mactable_remove_entry(attr->mactable_entries, addr);
-}
-
-/**
- * Remove all mac entries from mac entry list.
- */
-static inline lagopus_result_t
-bridge_attr_remove_all_mactable_entry(const bridge_attr_t *attr) {
-  if (attr == NULL) {
-    return LAGOPUS_RESULT_INVALID_ARGS;
-  }
-  return bridge_mactable_remove_all_entries(attr->mactable_entries);
-}
 #endif /* HYBRID */
 
 /**

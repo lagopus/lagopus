@@ -173,6 +173,18 @@ struct vxlanhdr {
 #define VXLAN_PORT 4789
 
 /**
+ * GTP-U
+ */
+struct gtpu_hdr {
+  uint8_t verflags;
+  uint8_t msgtype;
+  uint16_t length;
+  uint32_t te_id;
+} __attribute__((__packed__));
+
+#define GTPU_PORT 2152
+
+/**
  * packet flags
  */
 enum {
@@ -279,6 +291,7 @@ struct lagopus_packet {
         uint16_t *l4_payload_w;
         uint32_t *l4_payload_l;
         struct vxlanhdr *vxlan;
+        struct gtpu_hdr *gtpu;
       };
       struct oob2_data *oob2;
       struct in6_addr *v6src;

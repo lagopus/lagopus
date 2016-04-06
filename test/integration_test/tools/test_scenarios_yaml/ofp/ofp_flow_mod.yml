@@ -1,6 +1,6 @@
-lagopus_dsl:
-  file: "{{ test_home }}/test_scenarios_yaml/ofp/ofp.dsl"
-  sw: target # target switch.
+switches:
+  target:
+    dsl: "{{ test_home }}/test_scenarios_yaml/ofp/ofp.dsl"
 
 #setup:
 
@@ -102,3 +102,26 @@ testcases:
                       active_count: 1
                       lookup_count: 0
                       matched_count: 0
+          # ofp: send AggregateStatsRequest.
+          - cmd_type: ofp_send
+            cmd:
+              aggregate_stats_request:
+                flags: 0
+                table_id: 0
+                out_port: 0xffffffff # OFPP_ANY
+                out_group: 0xffffffff # OFPG_ANY
+                cookie: 0
+                cookie_mask: 0
+                match:
+                  in_port: 1
+                  eth_dst: "ff:ff:ff:ff:ff:ff"
+          # ofp: recv AggregateStatsReply.
+          - cmd_type: ofp_recv
+            result:
+              aggregate_stats_reply:
+                flags: 0
+                body:
+                  aggregate_stats:
+                    packet_count: 0
+                    byte_count: 0
+                    flow_count: 1
