@@ -1,0 +1,13 @@
+language: c
+compiler:
+  - gcc
+dist: trusty
+sudo:
+  - required
+before_install:
+  - sudo apt-get -qq update
+  - uname -a
+  - sudo apt-get install -y build-essential libexpat-dev libgmp-dev libssl-dev libpcap-dev byacc flex git python-dev python-pastedeploy python-paste python-twisted
+script:
+  - ./configure -q --disable-dpdk && make -s
+  - ./configure -q && make -s
