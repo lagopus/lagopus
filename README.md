@@ -31,3 +31,7 @@ Development
 Your contribution are very welcome, please submit your patch code using
 github "Pull Requests".
 If you find any bug, let us know by github's Issues page.
+
+Status
+==========================
+[![Build Status](https://travis-ci.org/ynkjm/lagopus.svg?branch=master)](https://travis-ci.org/ynkjm/lagopus)
