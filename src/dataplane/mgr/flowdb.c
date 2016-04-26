@@ -969,6 +969,7 @@ flow_add_sub(struct flow *flow, struct flow_list *flows) {
   i = ed;
   if (i < flows->nflow) {
     size_t siz;
+
     siz = (size_t)(flows->nflow - i) * sizeof(struct flow *);
     memmove(&flows->flows[i + 1], &flows->flows[i], siz);
   }
@@ -1477,10 +1478,13 @@ flow_del_sub(struct bridge *bridge,
     add_mbtree_timer(flow_list, MBTREE_TIMEOUT);
 #endif /* USE_MBTREE */
   } else {
+    int new_nflow;
+
     /*
      * not strict. delete all flows if matched by match_list and cookie.
      */
     flow_list = table->flow_list;
+    new_nflow = flow_list->nflow;
     for (i = 0; i < flow_list->nflow; i++) {
       flow = flow_list->flows[i];
       /* filtering by cookie */
@@ -1506,16 +1510,14 @@ flow_del_sub(struct bridge *bridge,
           lagopus_del_flow_hook(flow, table);
         }
         flow_del_from_group(group_table, flow);
-        flow_del_from_meter(meter_table, flow_list->flows[i]);
+        flow_del_from_meter(meter_table, flow);
         if ((flow->flags & OFPFF_SEND_FLOW_REM) != 0) {
           /* send OFPT_FLOW_REMOVED message */
           ret = send_flow_removed(bridge->dpid, flow, OFPRR_DELETE);
         }
+        flow_list->flows[i] = NULL;
         flow_free(flow);
-        flow_list->nflow--;
-        memmove(&flow_list->flows[i], &flow_list->flows[i + 1],
-                sizeof(struct flow *) * (unsigned int)(flow_list->nflow - i));
-        i--;
+        new_nflow--;
 #ifdef USE_MBTREE
         if (flow_list->mbtree_timer != NULL) {
           *flow_list->mbtree_timer = NULL;
@@ -1524,6 +1526,30 @@ flow_del_sub(struct bridge *bridge,
 #endif /* USE_MBTREE */
       }
     }
+    /* compaction. */
+    for (i = 0; i < flow_list->nflow; i++) {
+      int st, ed;
+
+      if (flow_list->flows[i] == NULL) {
+        for (st = i; st < flow_list->nflow; st++) {
+          if (flow_list->flows[st] != NULL) {
+            break;
+          }
+        }
+        if (st == flow_list->nflow) {
+          break;
+        }
+        for (ed = st + 1; ed < flow_list->nflow; ed++) {
+          if (flow_list->flows[ed] == NULL) {
+            break;
+          }
+        }
+        memmove(&flow_list->flows[i], &flow_list->flows[st],
+                sizeof(struct flow *) * (unsigned int)(ed - st));
+        i = ed - 1;
+      }
+    }
+    flow_list->nflow = new_nflow;
   }
 out:
   return ret;

@@ -707,8 +707,17 @@ test_flowdb_flow_del(void) {
                           &instruction_list, &error);
   TEST_ASSERT_TABLE_NFLOW(&table, MISC_FLOWS, 1);
 
+  add_port_match(&match_list, 1);
+  TEST_ASSERT_FLOW_ADD_OK(bridge, &flow_mod, &match_list,
+                          &instruction_list, &error);
+  TEST_ASSERT_TABLE_NFLOW(&table, MISC_FLOWS, 2);
+
   FLOWDB_DUMP(flowdb, "After addition", stdout);
 
+  add_port_match(&match_list, 1);
+  TEST_ASSERT_FLOW_DELETE_OK(bridge, &flow_mod, &match_list, &error);
+  TEST_ASSERT_TABLE_NFLOW(&table, MISC_FLOWS, 1);
+  TAILQ_INIT(&match_list);
   TEST_ASSERT_FLOW_DELETE_OK(bridge, &flow_mod, &match_list, &error);
   TEST_ASSERT_TABLE_NFLOW(&table, MISC_FLOWS, 0);
 
