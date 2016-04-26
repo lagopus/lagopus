@@ -2584,6 +2584,8 @@ lagopus_set_action_function(struct action *action) {
   }
 }
 
+#define LAGOPUS_RESULT_CONTINUE 1
+
 lagopus_result_t
 execute_instruction_goto_table(struct lagopus_packet *pkt,
                                const struct instruction *instruction) {
@@ -2595,18 +2597,9 @@ execute_instruction_goto_table(struct lagopus_packet *pkt,
   }
   goto_table = &instruction->ofpit_goto_table;
   DP_PRINT("instruction goto_table: %d\n", goto_table->table_id);
-  /*
-   * check if table_id is greater than current table.
-   * see 5.1 Pipeline Processing
-   * No need checking table_id if already checked by
-   * the controller or the agent.
-   */
-  if (pkt->table_id < goto_table->table_id) {
-    return goto_table->table_id;
-  } else {
-    /* Stop pipeline, don't backward go to table. */
-  }
-  return LAGOPUS_RESULT_STOP;
+
+  pkt->table_id = goto_table->table_id;
+  return LAGOPUS_RESULT_CONTINUE;
 }
 
 lagopus_result_t
@@ -2801,7 +2794,7 @@ dp_openflow_match(struct lagopus_packet *pkt) {
 #else
   flow = lagopus_find_flow(pkt, table);
 #endif
-  if (likely(flow != NULL)) {
+  if (likely(flow != NULL && pkt->nmatched < LAGOPUS_DP_PIPELINE_MAX)) {
     DP_PRINT("MATCHED\n");
     /* execute_instruction is able to call this function recursively. */
     pkt->flow = flow;
@@ -2875,14 +2868,9 @@ lagopus_match_and_action(struct lagopus_packet *pkt) {
         break;
       }
       rv = dp_openflow_do_action(pkt);
-      if (rv < LAGOPUS_RESULT_OK) {
+      if (rv <= LAGOPUS_RESULT_OK) {
         break;
       }
-      if (rv == pkt->table_id) {
-        rv = LAGOPUS_RESULT_OK;
-        break;
-      }
-      pkt->table_id = rv;
     }
   }
   if (rv == LAGOPUS_RESULT_OK) {
