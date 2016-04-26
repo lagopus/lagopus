@@ -18,6 +18,7 @@ tearDown(void) {
 void
 test_group_select_bucket(void) {
   struct lagopus_packet *pkt;
+  struct port port;
 
   struct bucket_list bucket_list;
   struct bucket bucket1, bucket2, bucket3;
@@ -34,16 +35,7 @@ test_group_select_bucket(void) {
 
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-
-  pkt->hash64 = 0;
-  bucket = group_select_bucket(pkt, &bucket_list);
-  TEST_ASSERT_EQUAL(bucket, &bucket1);
-  pkt->hash64 = 1;
-  bucket = group_select_bucket(pkt, &bucket_list);
-  TEST_ASSERT_EQUAL(bucket, &bucket2);
-  pkt->hash64 = 2;
-  bucket = group_select_bucket(pkt, &bucket_list);
-  TEST_ASSERT_EQUAL(bucket, &bucket3);
+  pkt->in_port = &port;
 
   pkt->hash64 = 3;
   bucket = group_select_bucket(pkt, &bucket_list);
@@ -52,6 +44,16 @@ test_group_select_bucket(void) {
   bucket = group_select_bucket(pkt, &bucket_list);
   TEST_ASSERT_EQUAL(bucket, &bucket2);
   pkt->hash64 = 5;
+  bucket = group_select_bucket(pkt, &bucket_list);
+  TEST_ASSERT_EQUAL(bucket, &bucket3);
+
+  pkt->hash64 = 6;
+  bucket = group_select_bucket(pkt, &bucket_list);
+  TEST_ASSERT_EQUAL(bucket, &bucket1);
+  pkt->hash64 = 7;
+  bucket = group_select_bucket(pkt, &bucket_list);
+  TEST_ASSERT_EQUAL(bucket, &bucket2);
+  pkt->hash64 = 8;
   bucket = group_select_bucket(pkt, &bucket_list);
   TEST_ASSERT_EQUAL(bucket, &bucket3);
 }

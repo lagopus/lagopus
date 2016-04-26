@@ -616,22 +616,36 @@ lagopus_packet_init(struct lagopus_packet *pkt, void *m, struct port *port) {
  */
 STATIC void
 classify_ether_packet(struct lagopus_packet *pkt) {
-  uint64_t hash64;
-
   classify_packet_l2(pkt);
-  hash64 = calc_l2_hash(pkt, pkt->in_port->ifindex);
-
   pkt->oob_data.packet_type = ((OFPHTN_ONF << 16) | OFPHTO_ETHERNET);
   switch (pkt->ether_type) {
     case ETHERTYPE_IP:
       classify_packet_ipv4(pkt);
-      hash64 = calc_ipv4_hash(pkt, hash64);
-      hash64 = calc_l4_hash(pkt, hash64);
+      classify_packet_l4(pkt);
       break;
 
     case ETHERTYPE_IPV6:
       classify_packet_ipv6(pkt);
       classify_packet_l4(pkt);
+      break;
+
+    default:
+      break;
+  }
+}
+
+static inline void
+calc_packet_hash(struct lagopus_packet *pkt) {
+  uint64_t hash64;
+
+  hash64 = calc_l2_hash(pkt, pkt->in_port->ifindex);
+  switch (pkt->ether_type) {
+    case ETHERTYPE_IP:
+      hash64 = calc_ipv4_hash(pkt, hash64);
+      hash64 = calc_l4_hash(pkt, hash64);
+      break;
+
+    case ETHERTYPE_IPV6:
       hash64 = calc_ipv6_hash(pkt, hash64);
       hash64 = calc_l4_hash(pkt, hash64);
       break;
@@ -1281,6 +1295,9 @@ group_select_bucket(struct lagopus_packet *pkt, struct bucket_list *list) {
     if (total_weight == 0) {
       return NULL;
     }
+    if (pkt->hash64 == 0) {
+      calc_packet_hash(pkt);
+    }
     weight = 0;
     sel = (pkt->hash64 % total_weight) + 1;
     TAILQ_FOREACH(bucket, list, entry) {
@@ -1290,6 +1307,9 @@ group_select_bucket(struct lagopus_packet *pkt, struct bucket_list *list) {
       }
     }
   } else {
+    if (pkt->hash64 == 0) {
+      calc_packet_hash(pkt);
+    }
     sel = (pkt->hash64 % total_weight) + 1;
     weight = 0;
     TAILQ_FOREACH(bucket, list, entry) {
@@ -1349,7 +1369,8 @@ execute_group_action(struct lagopus_packet *pkt, uint32_t group_id) {
           }
         }
       }
-      if ((pkt->flags & PKT_FLAG_CACHED_FLOW) == 0 && pkt->cache != NULL) {
+      if ((pkt->flags & PKT_FLAG_CACHED_FLOW) == 0 && pkt->cache != NULL &&
+          pkt->hash64 != 0) {
         /* register crc and flows to cache. */
         register_cache(pkt->cache, pkt->hash64,
                        pkt->nmatched, pkt->matched_flow);
@@ -1783,7 +1804,8 @@ execute_action_output(struct lagopus_packet *pkt,
       lagopus_forward_packet_to_port(copy_packet(pkt), port);
       rv = LAGOPUS_RESULT_OK;
     } else {
-      if ((pkt->flags & PKT_FLAG_CACHED_FLOW) == 0 && pkt->cache != NULL) {
+      if ((pkt->flags & PKT_FLAG_CACHED_FLOW) == 0 && pkt->cache != NULL &&
+          pkt->hash64 != 0) {
         /* register crc and flows to cache. */
         register_cache(pkt->cache, pkt->hash64,
                        pkt->nmatched, pkt->matched_flow);
@@ -2714,6 +2736,7 @@ dp_openflow_do_cached_action(struct lagopus_packet *pkt) {
 
   flowdb = pkt->bridge->flowdb;
 
+  calc_packet_hash(pkt);
   cache_entry = cache_lookup(pkt->cache, pkt);
   if (likely(cache_entry != NULL)) {
     DP_PRINT("MATCHED (cache)\n");
