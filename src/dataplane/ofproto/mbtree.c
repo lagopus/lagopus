@@ -631,8 +631,8 @@ void
 cleanup_mbtree(struct flow_list *flows) {
   int i, type;
 
-  if (flows->mbtree_timer != NULL) {
-    *flows->mbtree_timer = NULL;
+  if (flows->update_timer != NULL) {
+    *flows->update_timer = NULL;
   }
   type = flows->type;
   flows->type = SEQUENCIAL;
