@@ -76,21 +76,6 @@ enum {
 #define OXM_MATCH_VALUE_LEN(match) \
   ((match)->oxm_length >> ((match)->oxm_field & 1))
 
-#define BRANCH8i(val, t)        (((val) - flows->min8) / (t))
-#define BRANCH16i(val, t)       (((val) - flows->min16) / (t))
-#define BRANCH32i(val, t)       (((val) - flows->min32) / (t))
-#define BRANCH64i(val, t)       (((val) - flows->min64) / (t))
-#define BRANCH8t(val, t)        flows->branch[BRANCH8i(val, t)]
-#define BRANCH16t(val, t)       flows->branch[BRANCH16i(val, t)]
-#define BRANCH32t(val, t)       flows->branch[BRANCH32i(val, t)]
-#define BRANCH64t(val, t)       flows->branch[BRANCH64i(val, t)]
-#define BRANCH8(val)    BRANCH8t(val, flows->threshold8)
-#define BRANCH16(val)   BRANCH16t(val, flows->threshold16)
-#define BRANCH32(val)   BRANCH32t(val, flows->threshold32)
-#define BRANCH64(val)   BRANCH64t(val, flows->threshold64)
-
-#define BRANCH_NUM 16
-
 /* index: OFPXMT_OFB_* */
 static const struct match_idx match_idx[] = {
   MAKE_MATCH_IDX(OOB_BASE, oob_data, in_port, UINT32_MAX, 0),    /* 0 IN_PORT */
@@ -140,7 +125,8 @@ static const struct match_idx match_idx[] = {
   MAKE_MATCH_IDX(OOB2_BASE, oob2_data, ipv6_exthdr, UINT16_MAX, 0) /* 39 IPV6_EXTHDR */
 };
 
-static void build_mbtree_child(struct flow_list *flows, int parent_nflow);
+static void
+build_mbtree_child(struct flow_list *flow_list, void *arg);
 static struct flow *
 find_mbtree_child(struct lagopus_packet *pkt, struct flow_list *flows);
 
@@ -155,42 +141,6 @@ get_match_eth_type(struct match_list *match_list, uint16_t *eth_type) {
     }
   }
   return match;
-}
-
-void
-build_mbtree(struct flow_list *flows) {
-  struct flow_list **childp;
-  struct flow *flow;
-  struct match *match;
-  uint16_t eth_type;
-  int i;
-
-  /* store flow into child flow_list. */
-  for (i = 0; i < flows->nflow; i++) {
-    flow = flows->flows[i];
-    match = get_match_eth_type(&flow->match_list, &eth_type);
-    if (match != NULL) {
-      match->except_flag = true;
-      childp = &flows->branch[ntohs(eth_type)];
-    } else {
-      childp = &flows->flows_dontcare;
-    }
-    if (*childp == NULL) {
-      *childp = calloc(1, sizeof(struct flow_list)
-                       + sizeof(void *) * BRANCH_NUM);
-      (*childp)->nbranch = BRANCH_NUM;
-    }
-    flow_add_sub(flow, *childp);
-  }
-  /* process for each child flow_list. */
-  for (i = 0; i < flows->nbranch; i++) {
-    if (flows->branch[i] != NULL) {
-      build_mbtree_child(flows->branch[i], flows->nflow);
-    }
-  }
-  if (flows->flows_dontcare != NULL) {
-    build_mbtree_child(flows->flows_dontcare, flows->nflow);
-  }
 }
 
 struct match_stats {
@@ -254,12 +204,12 @@ count_match(struct match *match, struct match_list *match_stats_list) {
   TAILQ_INSERT_TAIL(match_stats_list, match_stats, entry);
 }
 
-static void
+static int
 count_flow_list_match(struct flow_list *flow_list,
                       struct match_list *match_stats_list) {
   struct flow *flow;
   struct match *match;
-  int i;
+  int i, count;
 
   for (i = 0; i < flow_list->nflow; i++) {
     flow = flow_list->flows[i];
@@ -270,40 +220,38 @@ count_flow_list_match(struct flow_list *flow_list,
       count_match(match, match_stats_list);
     }
   }
+  count = 0;
+  TAILQ_FOREACH(match, match_stats_list, entry) {
+    count++;
+  }
+  return count;
 }
 
-static struct match_stats *
-get_most_match(struct flow_list *flow_list) {
-  struct match_stats nullmatch = { { } };
-  struct match_list match_stats_list;
-  struct match *match;
-  struct match_stats *most_match;
-  uint64_t threshold;
+static int
+match_cmp(void *a, void *b) {
+  struct match_stats *ma, *mb;
 
+  ma = *(struct match_stats **)a;
+  mb = *(struct match_stats **)b;
+
+  return mb->count - ma->count;
+}
+
+static struct match_stats **
+get_match_stats_array(struct flow_list *flow_list) {
+  struct match_list match_stats_list;
+  struct match_stats **match_array;
+  int nmatch, i;
 
   TAILQ_INIT(&match_stats_list);
-  count_flow_list_match(flow_list, &match_stats_list);
-
-  most_match = &nullmatch;
-  TAILQ_FOREACH(match, &match_stats_list, entry) {
-    struct match_stats *match_stats = (struct match_stats *)match;
-
-    if (match_stats->min_value == match_stats->max_value) {
-      continue;
-    }
-    if (match_stats->count > most_match->count) {
-      most_match = match_stats;
-    }
+  nmatch = count_flow_list_match(flow_list, &match_stats_list);
+  match_array = calloc(nmatch + 1, sizeof(struct match_stats *));
+  for (i = 0; i < nmatch; i++) {
+    match_array[i] = TAILQ_FIRST(&match_stats_list);
+    TAILQ_REMOVE(&match_stats_list, TAILQ_FIRST(&match_stats_list), entry);
   }
-  if (most_match == &nullmatch) {
-    return NULL;
-  }
-  threshold = (most_match->max_value - most_match->min_value) / BRANCH_NUM;
-  if (threshold == 0) {
-    threshold = 1;
-  }
-  most_match->threshold = threshold;
-  return most_match;
+  qsort(match_array, nmatch, sizeof(struct match_stats *), match_cmp);
+  return match_array;
 }
 
 static struct match *
@@ -366,10 +314,16 @@ get_child_flow_list(struct flow_list *flow_list,
   uint8_t key[sizeof(uint64_t)];
   void *child;
   lagopus_result_t rv;
+  int i;
 
   get_shifted_value(match->oxm_value,
                     OXM_MATCH_VALUE_LEN(match),
-                    flow_list->shift, flow_list->keylen >> 3, key);
+                    flow_list->shift, flow_list->keylen, key);
+  DPRINTF("oxm_value:");
+  for (i = 0; i < flow_list->keylen; i++) {
+    DPRINTF(" %d", match->oxm_value[i]);
+  }
+  DPRINTF(" keylen %d, key %d\n", flow_list->keylen, *(void **)key);
   switch (flow_list->type) {
     case HASHMAP:
       if (child_array[0] == NULL) {
@@ -377,14 +331,13 @@ get_child_flow_list(struct flow_list *flow_list,
         lagopus_hashmap_create((void *)&child_array[0],
                                LAGOPUS_HASHMAP_TYPE_ONE_WORD, cleanup_mbtree);
       }
-      rv = lagopus_hashmap_find_no_lock((void *)&child_array[0], key, &child);
+      rv = lagopus_hashmap_find_no_lock((void *)&child_array[0], *(void **)key, &child);
       if (rv != LAGOPUS_RESULT_OK) {
         void *val;
 
-        child = calloc(1, sizeof(struct flow_list)
-                       + sizeof(void *) * BRANCH_NUM);
+        child = calloc(1, sizeof(struct flow_list) + sizeof(void *));
         val = child;
-        lagopus_hashmap_add_no_lock((void *)&child_array[0], key, &val, false);
+        lagopus_hashmap_add_no_lock((void *)&child_array[0], *(void **)key, &val, false);
       }
       break;
 
@@ -405,7 +358,7 @@ set_flow_list_desc(struct flow_list *flow_list,
   flow_list->base = match_idx[idx].base;
   flow_list->match_off = match_idx[idx].off;
   flow_list->shift = match_idx[idx].shift;
-  flow_list->keylen = match_idx[idx].size << 3;
+  flow_list->keylen = match_idx[idx].size;
   get_mask(match_idx[idx].mask, match_idx[idx].size, flow_list->mask);
 }
 
@@ -461,14 +414,14 @@ static bool
 mbtree_do_build_iterate(void *key, void *val,
                        lagopus_hashentry_t he, void *arg) {
   struct flow_list *flow_list;
-  int parent_nflow;
+  const struct match_stats **match_array;
 
   (void) key;
   (void) he;
-  parent_nflow = (int)arg;
+  match_array = arg;
 
   flow_list = val;
-  build_mbtree_child(flow_list, parent_nflow);
+  build_mbtree_child(flow_list, match_array);
   return true;
 }
 
@@ -476,30 +429,29 @@ mbtree_do_build_iterate(void *key, void *val,
  * flow_list: already stored flows in flow_list->flows[] and nflow.
  */
 static void
-build_mbtree_child(struct flow_list *flow_list, int parent_count) {
+build_mbtree_child(struct flow_list *flow_list,
+                   void *arg) {
   const int min_count = 4;
-  struct match_stats *most_match;
+  const struct match_stats *most_match;
+  const struct match_stats **match_array;
   int i;
 
   if (flow_list == NULL) {
     return;
   }
 
-  if (flow_list->nflow <= min_count || flow_list->nflow == parent_count) {
+  match_array = arg;
+  if (flow_list->nflow <= min_count || *match_array == NULL) {
     build_mbtree_sequencial(flow_list);
     return;
   }
 
-  /* get most match */
-  most_match = get_most_match(flow_list);
-  if (most_match == NULL) {
-    build_mbtree_sequencial(flow_list);
-    return;
-  }
+  most_match = *match_array++;
+
   /* distribute flow entries */
   if (flow_list->flows_dontcare == NULL) {
     flow_list->flows_dontcare = calloc(1, sizeof(struct flow_list)
-                                       + sizeof(void *) * BRANCH_NUM);
+                                       + sizeof(void *));
   }
 
   /* set flow_list type and related values */
@@ -524,18 +476,133 @@ build_mbtree_child(struct flow_list *flow_list, int parent_count) {
   switch (flow_list->type) {
     case HASHMAP:
       lagopus_hashmap_iterate(&flow_list->branch[0],
-                              mbtree_do_build_iterate, flow_list->nflow);
+                              mbtree_do_build_iterate, match_array);
       break;
     default:
       break;
   }
   if (flow_list->flows_dontcare->nflow > 0) {
     DPRINTF("build_mbtree_child dontcare\n");
-    build_mbtree_child(flow_list->flows_dontcare, flow_list->nflow);
+    build_mbtree_child(flow_list->flows_dontcare, match_array);
   } else {
     free(flow_list->flows_dontcare);
     flow_list->flows_dontcare = NULL;
   }
+}
+
+static void
+print_indent(int indent) {
+  int i;
+
+  for (i = 0; i < indent; i++) {
+    putchar(' ');
+  }
+}
+
+#if 0
+static void
+dump_mbtree_child(int indent, struct flow_list *flow);
+
+static bool
+dump_mbtree_iterate(void *key, void *val,
+                       lagopus_hashentry_t he, void *arg) {
+  struct flow_list *flow_list;
+  int indent;
+
+  key;
+  (void) he;
+  indent = (int)arg;
+
+  flow_list = val;
+  print_indent(indent + 2);
+  printf("key 0x%04.4x, %d flows\n", key, flow_list->nflow);
+  dump_mbtree_child(indent + 2, flow_list);
+  return true;
+}
+
+static void
+dump_mbtree_child(int indent, struct flow_list *flow_list) {
+  print_indent(indent);
+  printf("base %d, match_off %d, keylen %d\n",
+         flow_list->base, flow_list->match_off, flow_list->keylen);
+  switch (flow_list->type) {
+    case HASHMAP:
+      lagopus_hashmap_iterate(&flow_list->branch[0],
+                              dump_mbtree_iterate, indent);
+      break;
+    default:
+      print_indent(indent + 2);
+      printf("sequencial %d flows\n", flow_list->nflow);
+      break;
+  }
+  if (flow_list->flows_dontcare != NULL) {
+    print_indent(indent + 2);
+    printf("dontcare: %d flows\n", flow_list->flows_dontcare->nflow);
+    dump_mbtree_child(2, flow_list->flows_dontcare);
+  }
+}
+
+static void
+dump_mbtree(struct flow_list *flows) {
+  int i;
+
+  for (i = 0; i < 0x10000; i++) {
+    if (flows->branch[i] != NULL) {
+      printf("eth_type[0x%04.04x]: %d flows\n",
+             i,
+             ((struct flow_list *)flows->branch[i])->nflow);
+      dump_mbtree_child(2, flows->branch[i]);
+    }
+  }
+  if (flows->flows_dontcare != NULL) {
+    printf("no ethertype: %d flows\n", flows->flows_dontcare->nflow);
+    dump_mbtree_child(2, flows->flows_dontcare);
+  }
+}
+#endif
+
+void
+build_mbtree(struct flow_list *flows) {
+  struct flow_list **childp;
+  struct flow *flow;
+  struct match *match;
+  struct match_stats **match_array;
+  uint16_t eth_type;
+  int i;
+
+  /* store flow into child flow_list. */
+  for (i = 0; i < flows->nflow; i++) {
+    flow = flows->flows[i];
+    match = get_match_eth_type(&flow->match_list, &eth_type);
+    if (match != NULL) {
+      match->except_flag = true;
+      childp = &flows->branch[ntohs(eth_type)];
+    } else {
+      childp = &flows->flows_dontcare;
+    }
+    if (*childp == NULL) {
+      *childp = calloc(1, sizeof(struct flow_list)
+                       + sizeof(void *) * 65536);
+      (*childp)->nbranch = 65536;
+    }
+    flow_add_sub(flow, *childp);
+  }
+  /* process for each child flow_list. */
+  for (i = 0; i < flows->nbranch; i++) {
+    if (flows->branch[i] != NULL) {
+      match_array = get_match_stats_array(flows->branch[i]);
+      build_mbtree_child(flows->branch[i], match_array);
+      free(match_array);
+    }
+  }
+  if (flows->flows_dontcare != NULL) {
+    match_array = get_match_stats_array(flows->flows_dontcare);
+    build_mbtree_child(flows->flows_dontcare, match_array);
+    free(match_array);
+  }
+#if 0
+  dump_mbtree(flows);
+#endif
 }
 
 static void
@@ -622,10 +689,11 @@ find_mbtree_child(struct lagopus_packet *pkt, struct flow_list *flows) {
     int i;
 
     src = pkt->base[flows->base] + flows->match_off;
-    for (i = 0; i < (flows->keylen >> 3); i++) {
+    for (i = 0; i < flows->keylen; i++) {
       key[i] = src[i] & flows->mask[i];
     }
-    rv = lagopus_hashmap_find_no_lock(&flows->branch[0], key, &flows);
+    rv = lagopus_hashmap_find_no_lock(&flows->branch[0],
+                                      *(void **)key, &flows);
     if (rv != LAGOPUS_RESULT_OK) {
       return NULL;
     }
