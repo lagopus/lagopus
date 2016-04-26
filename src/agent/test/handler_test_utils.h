@@ -157,6 +157,12 @@ check_pbuf_list_packet_create(ofp_reply_list_create_proc_t create_proc,
                               const char *packet_array[],
                               int array_len);
 
+lagopus_result_t
+check_pbuf_list_across_packet_create(ofp_reply_list_create_proc_t create_proc,
+                                     const char *header_data[],
+                                     const char *body_data[],
+                                     size_t nums[],
+                                     int array_len);
 void
 data_create(ofp_data_create_proc_t create_proc,
             const char packet[]);

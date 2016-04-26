@@ -610,11 +610,13 @@ s_table_property_list_encode(struct pbuf_list *pbuf_list,
     if (TAILQ_EMPTY(table_property_list) == false) {
       TAILQ_FOREACH(table_property, table_property_list, entry) {
         property_len = 0;
-        property_head = pbuf_putp_get(*pbuf);
         ret = ofp_table_feature_prop_header_encode_list(pbuf_list,
               pbuf,
               &table_property->ofp);
         if (ret == LAGOPUS_RESULT_OK) {
+          property_head = pbuf_putp_get(*pbuf) -
+              sizeof(struct ofp_table_feature_prop_header);
+
           switch (table_property->ofp.type) {
             case OFPTFPT_INSTRUCTIONS        :
             case OFPTFPT_INSTRUCTIONS_MISS   :
@@ -752,7 +754,6 @@ ofp_table_features_reply_create(struct channel *channel,
         if (ret == LAGOPUS_RESULT_OK) {
           if (TAILQ_EMPTY(table_features_list) == false) {
             TAILQ_FOREACH(table_features, table_features_list, entry) {
-              table_features_head = pbuf_putp_get(pbuf);
               ret = ofp_table_features_encode_list(*pbuf_list,
                                                    &pbuf,
                                                    &table_features->ofp);
@@ -761,6 +762,8 @@ ofp_table_features_reply_create(struct channel *channel,
                 ret = LAGOPUS_RESULT_NO_MEMORY;
                 break;
               } else {
+                table_features_head = pbuf_putp_get(pbuf) -
+                    sizeof(struct ofp_table_features);
                 ret = s_table_property_list_encode(*pbuf_list,
                                                    &pbuf,
                                                    &table_features->table_property_list,

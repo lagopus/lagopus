@@ -520,7 +520,7 @@ test_ofp_flow_handle_null(void) {
 }
 
 void
-test_ofp_flow_reply_create(void) {
+test_ofp_flow_reply_create_01(void) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   struct flow_stats *flow_stats = NULL;
   struct instruction *instruction = NULL;
@@ -579,6 +579,69 @@ test_ofp_flow_reply_create(void) {
 }
 
 void
+test_ofp_flow_reply_create_02(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  struct flow_stats *flow_stats = NULL;
+  struct match *match = NULL;
+  const char *header_data[2] = {
+    "04 13 ff d0 00 00 00 10 00 01 00 01 00 00 00 00 ",
+    "04 13 00 50 00 00 00 10 00 01 00 00 00 00 00 00 "
+  };
+  const char *body_data[2] = {
+    "00 40 01 00 00 00 00 02 00 00 00 03 00 04 00 05 "
+    "00 06 00 07 00 00 00 00 00 00 00 00 00 00 00 08 "
+    "00 00 00 00 00 00 00 09 00 00 00 00 00 00 00 0a "
+    "00 01 00 10 00 00 01 08 00 00 00 00 00 00 00 00 ",
+    "00 40 01 00 00 00 00 02 00 00 00 03 00 04 00 05 "
+    "00 06 00 07 00 00 00 00 00 00 00 00 00 00 00 08 "
+    "00 00 00 00 00 00 00 09 00 00 00 00 00 00 00 0a "
+    "00 01 00 10 00 00 01 08 00 00 00 00 00 00 00 00 "
+  };
+  size_t nums[2] = {1023, 1};
+  int i;
+
+  /* data */
+  TAILQ_INIT(&s_flow_stats_list);
+  for (i = 0; i < 1024; i++) {
+    if ((flow_stats = s_flow_stats_alloc()) != NULL) {
+      /* flow_stats = 48, match = 16, sum = 64 */
+      flow_stats->ofp.length = 0;
+      flow_stats->ofp.table_id = 0x01;
+      flow_stats->ofp.duration_sec = 0x02;
+      flow_stats->ofp.duration_nsec = 0x03;
+      flow_stats->ofp.priority = 0x04;
+      flow_stats->ofp.idle_timeout = 0x05;
+      flow_stats->ofp.hard_timeout = 0x06;
+      flow_stats->ofp.flags = 0x07;
+      flow_stats->ofp.cookie = 0x08;
+      flow_stats->ofp.packet_count = 0x09;
+      flow_stats->ofp.byte_count = 0x0a;
+      if ((match = match_alloc(8)) != NULL) {
+        match->oxm_class = 0x00;
+        match->oxm_field = 0x01;
+        match->oxm_length = 0x08;
+        TAILQ_INSERT_TAIL(&(flow_stats->match_list), match, entry);
+      }
+      TAILQ_INSERT_TAIL(&s_flow_stats_list, flow_stats, entry);
+    } else {
+      TEST_FAIL_MESSAGE("allocation error.");
+    }
+  }
+
+  ret = check_pbuf_list_across_packet_create(s_ofp_flow_reply_create_wrap,
+                                             header_data, body_data, nums, 2);
+  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, ret, "create port 0 error.");
+
+  /* free */
+  while ((flow_stats = TAILQ_FIRST(&s_flow_stats_list)) != NULL) {
+    TAILQ_REMOVE(&s_flow_stats_list, flow_stats, entry);
+    ofp_match_list_elem_free(&flow_stats->match_list);
+    ofp_instruction_list_elem_free(&flow_stats->instruction_list);
+    free(flow_stats);
+  }
+}
+
+void
 test_ofp_flow_reply_create_null(void) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   struct channel *channel = channel_alloc_ip4addr("127.0.0.1", "1000", 0x01);
@@ -609,6 +672,7 @@ test_ofp_flow_reply_create_null(void) {
                             "NULL-check error. (ofp_header)");
   channel_free(channel);
 }
+
 void
 test_epilogue(void) {
   lagopus_result_t r;

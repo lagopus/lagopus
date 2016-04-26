@@ -15,7 +15,6 @@ snmp -master-agentx-socket tcp:localhost:705 -ping-interval-second 10
 
 # all the namespace objects' attribute
 
-
 # all the policer-action objects' attribute
 policer-action :policer-action01 create -type discard
 policer-action :policer-action02 create -type discard
@@ -44,7 +43,6 @@ controller :controller01 create -channel :channel01 -role equal -connection-type
 
 # all the bridge objects' attribute
 bridge :bridge01 create -dpid 1 -controller :controller01 -port :port01 1 -port :port02 2 -fail-mode secure -flow-statistics true -group-statistics true -port-statistics true -queue-statistics true -table-statistics true -reassemble-ip-fragments false -max-buffered-packets 65535 -max-ports 255 -max-tables 255 -max-flows 4294967295 -packet-inq-size 1000 -packet-inq-max-batches 1000 -up-streamq-size 1000 -up-streamq-max-batches 1000 -down-streamq-size 1000 -down-streamq-max-batches 1000 -block-looping-ports false
-
 
 # policer-action objects' status
 policer-action :policer-action01 disable

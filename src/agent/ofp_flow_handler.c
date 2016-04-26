@@ -53,12 +53,13 @@ s_flow_stats_list_encode(struct pbuf_list *pbuf_list,
   if (TAILQ_EMPTY(flow_stats_list) == false) {
     /* encode flow_stats list */
     TAILQ_FOREACH(flow_stats, flow_stats_list, entry) {
-      /* flow_stats head pointer. */
-      flow_stats_head = pbuf_putp_get(*pbuf);
-
       /* encode flow_stats */
       res = ofp_flow_stats_encode_list(pbuf_list, pbuf, &(flow_stats->ofp));
       if (res == LAGOPUS_RESULT_OK) {
+
+        /* flow_stats head pointer. */
+        flow_stats_head = pbuf_putp_get(*pbuf) - sizeof(struct ofp_flow_stats);
+
         /* encode match */
         res = ofp_match_list_encode(pbuf_list, pbuf, &(flow_stats->match_list),
                                     &match_total_len);
