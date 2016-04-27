@@ -115,6 +115,7 @@ s_queue_prop_encode(struct pbuf *pbuf,
       res = LAGOPUS_RESULT_OUT_OF_RANGE;
       break;
   }
+
   return res;
 }
 
@@ -176,28 +177,41 @@ ofp_queue_get_config_reply_create(struct channel *channel,
                                   struct ofp_header *xid_header) {
   lagopus_result_t res = LAGOPUS_RESULT_ANY_FAILURES;
   struct ofp_queue_get_config_reply reply;
-  const size_t packet_size = sizeof(struct ofp_queue_get_config_reply);
 
   /* check params */
   if (channel != NULL && pbuf != NULL &&
       packet_queue_list != NULL && xid_header != NULL) {
     /* alloc pbuf */
-    *pbuf = channel_pbuf_list_get(channel, packet_size);
+    *pbuf = channel_pbuf_list_get(channel, OFP_PACKET_MAX_SIZE);
+    pbuf_plen_set(*pbuf, pbuf_size_get(*pbuf));
+
     if (*pbuf != NULL) {
       /* set data. */
-      memset(&reply, 0, packet_size);
+      memset(&reply, 0, sizeof(reply));
       ofp_header_set(&reply.header,
                      channel_version_get(channel),
                      OFPT_QUEUE_GET_CONFIG_REPLY,
-                     (uint16_t)packet_size,
+                     0, // length set in ofp_header_length_set()
                      xid_header->xid);
       reply.port = port;
 
       /* Encode message. */
-      pbuf_plen_set(*pbuf, packet_size);
       res = ofp_queue_get_config_reply_encode(*pbuf, &reply);
       if (res >= 0) {
         res = s_packet_queue_list_encode(*pbuf, packet_queue_list);
+        if (res == LAGOPUS_RESULT_OK) {
+          uint16_t length = 0;
+          res = pbuf_length_get(*pbuf, &length);
+          if (res == LAGOPUS_RESULT_OK) {
+            res = ofp_header_length_set(*pbuf, length);
+          } else {
+            lagopus_msg_warning("FAILED (%s).\n",
+                                lagopus_error_get_string(res));
+          }
+        } else {
+          lagopus_msg_warning("FAILED (%s).\n",
+                              lagopus_error_get_string(res));
+        }
       } else {
         lagopus_msg_warning("FAILED : ofp_queue_get_config_reply_encode (%s).\n",
                             lagopus_error_get_string(res));
