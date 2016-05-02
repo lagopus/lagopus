@@ -78,11 +78,13 @@ ofp_meter_config_reply_create(struct channel *channel,
         if (ret == LAGOPUS_RESULT_OK) {
           if (TAILQ_EMPTY(meter_config_list) == false) {
             TAILQ_FOREACH(meter_config, meter_config_list, entry) {
-              meter_config_head = pbuf_putp_get(pbuf);
               ret = ofp_meter_config_encode_list(*pbuf_list, &pbuf,
                                                  &meter_config->ofp);
 
               if (ret == LAGOPUS_RESULT_OK) {
+                meter_config_head = pbuf_putp_get(pbuf) -
+                    sizeof(struct ofp_meter_config);
+
                 ret = ofp_band_list_encode(*pbuf_list, &pbuf,
                                            &meter_config->band_list,
                                            &band_total_length);

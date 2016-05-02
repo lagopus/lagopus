@@ -440,8 +440,17 @@ AC_ARG_ENABLE([mbtree],
 
 MBTREE_FLAGS=''
 if test "X${mbtree}" != "Xno"; then
-   MBTREE_FLAGS="-DUSE_MBTREE"
-   AC_SUBST(MBTREE_FLAGS)
+   AC_DEFINE(USE_MBTREE)
+fi
+
+AC_ARG_ENABLE([thtable],
+	[AC_HELP_STRING([--enable-thtable],
+         [use tuple hash table lookup [default is no]])],
+	 [thtable="$enableval"], [thtable="no"])
+
+THTABLE_FLAGS=''
+if test "X${thtable}" != "Xno"; then
+   AC_DEFINE(USE_THTABLE)
 fi
 
 SSE42_CPPFLAGS=''

@@ -18,7 +18,7 @@
 
 #include "lagopus_apis.h"
 #include "lagopus/flowdb.h"
-#include "mbtree.h"
+#include "thtable.h"
 #include "dp_timer.h"
 
 #undef DEBUG
@@ -31,7 +31,7 @@
 #endif
 
 static void
-mbtree_timer_expire(struct dp_timer *dp_timer) {
+thtable_timer_expire(struct dp_timer *dp_timer) {
   struct flow_list *flow_list;
   int i;
 
@@ -44,19 +44,18 @@ mbtree_timer_expire(struct dp_timer *dp_timer) {
     }
     system("date");
     printf("cleanup and build start\n");
-    cleanup_mbtree(flow_list);
-    build_mbtree(flow_list);
+    thtable_update(flow_list);
     system("date");
     printf("cleanup and build end\n");
   }
 }
 
 lagopus_result_t
-add_mbtree_timer(struct flow_list *flow_list, time_t timeout) {
+add_thtable_timer(struct flow_list *flow_list, time_t timeout) {
   void *entryp;
 
-  entryp = add_dp_timer(MBTREE_TIMER, timeout,
-                        mbtree_timer_expire, flow_list);
+  entryp = add_dp_timer(THTABLE_TIMER, timeout,
+                        thtable_timer_expire, flow_list);
   if (entryp != NULL) {
     flow_list->update_timer = entryp;
   }

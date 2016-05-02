@@ -91,6 +91,9 @@
 
 #undef HAVE_PROCFS_SELF_EXE
 
+#undef USE_MBTREE
+#undef USE_THTABLE
+
 #include "lagopus_platform.h"
 
 #endif /* ! __LAGOPUS_CONFIG_H__ */

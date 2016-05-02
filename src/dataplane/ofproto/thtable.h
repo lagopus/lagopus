@@ -14,20 +14,18 @@
  * limitations under the License.
  */
 
-#ifndef SRC_INCLUDE_LAGOPUS_VERSION_H_
-#define SRC_INCLUDE_LAGOPUS_VERSION_H_
+#define THTABLE_INDEX_MAX UINT16_MAX
 
-/**
- * Lagopus version information
- *
- * PRODUCT_NAME version MM.mm.ppRELEASE
- */
+struct flow;
+struct lagopus_packet;
+struct htlist;
+typedef struct htlist **thtable_t;
 
-#define LAGOPUS_PRODUCT_NAME "Lagopus"
+thtable_t thtable_alloc(void);
+void thtable_free(thtable_t thtable);
 
-#define LAGOPUS_VERSION_MAJOR 0
-#define LAGOPUS_VERSION_MINOR 2
-#define LAGOPUS_VERSION_PATCH 6
-#define LAGOPUS_VERSION_RELEASE "-release"
+lagopus_result_t thtable_add_flow(struct flow *flow, thtable_t thtable);
 
-#endif /* SRC_INCLUDE_LAGOPUS_VERSION_H_ */
+void thtable_update(struct flow_list *flow_list);
+
+struct flow *thtable_match(struct lagopus_packet *pkt, thtable_t thtable);

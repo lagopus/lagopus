@@ -77,12 +77,13 @@ ofp_meter_stats_reply_create(struct channel *channel,
         if (ret == LAGOPUS_RESULT_OK) {
           if (TAILQ_EMPTY(meter_stats_list) == false) {
             TAILQ_FOREACH(meter_stats, meter_stats_list, entry) {
-              /* A pointer is length field in ofp_meter_stats. */
-              meter_stats_head = pbuf_putp_get(pbuf) + sizeof(uint32_t);
-
               ret = ofp_meter_stats_encode_list(*pbuf_list, &pbuf,
                                                 &meter_stats->ofp);
               if (ret == LAGOPUS_RESULT_OK) {
+                /* A pointer is length field in ofp_meter_stats. */
+                meter_stats_head = pbuf_putp_get(pbuf) + sizeof(uint32_t) -
+                    sizeof(struct ofp_meter_stats);
+
                 ret = ofp_meter_band_stats_list_encode(*pbuf_list, &pbuf,
                                                        &meter_stats->meter_band_stats_list,
                                                        &band_total_length);

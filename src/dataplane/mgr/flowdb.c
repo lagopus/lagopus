@@ -60,7 +60,7 @@ struct flowdb {
 
 };
 
-#define MBTREE_TIMEOUT 2
+#define UPDATE_TIMEOUT 2
 
 #define PUT_TIMEOUT 100LL * 1000LL * 1000LL
 
@@ -294,6 +294,9 @@ table_free(struct table *table) {
 #ifdef USE_MBTREE
   cleanup_mbtree(flow_list);
 #endif /* USE_MBTREE */
+#ifdef USE_THTABLE
+  thtable_free(flow_list->thtable);
+#endif /* USE_THTABLE */
   nflow = flow_list->nflow;
   for (i = 0; i < nflow; i++) {
     flow_free(flow_list->flows[i]);
@@ -624,10 +627,7 @@ flow_action_check(struct bridge *bridge,
   return LAGOPUS_RESULT_OK;
 }
 
-/**
- * dislike TAILQ_CONCAT, src is not modified and copied contents.
- */
-static lagopus_result_t
+lagopus_result_t
 copy_match_list(struct match_list *dst,
                 const struct match_list *src) {
   struct match *src_match;
@@ -969,6 +969,7 @@ flow_add_sub(struct flow *flow, struct flow_list *flows) {
   i = ed;
   if (i < flows->nflow) {
     size_t siz;
+
     siz = (size_t)(flows->nflow - i) * sizeof(struct flow *);
     memmove(&flows->flows[i + 1], &flows->flows[i], siz);
   }
@@ -1106,10 +1107,16 @@ flowdb_flow_add(struct bridge *bridge,
       add_flow_timer(flow);
     }
 #ifdef USE_MBTREE
-    if (table->flow_list->mbtree_timer != NULL) {
-      *table->flow_list->mbtree_timer = NULL;
+    if (table->flow_list->update_timer != NULL) {
+      *table->flow_list->update_timer = NULL;
     }
-    add_mbtree_timer(table->flow_list, MBTREE_TIMEOUT);
+    add_mbtree_timer(table->flow_list, UPDATE_TIMEOUT);
+#endif /* USE_MBTREE */
+#ifdef USE_THTABLE
+    if (table->flow_list->update_timer != NULL) {
+      *table->flow_list->update_timer = NULL;
+    }
+    add_thtable_timer(table->flow_list, UPDATE_TIMEOUT);
 #endif /* USE_MBTREE */
   }
 
@@ -1471,16 +1478,25 @@ flow_del_sub(struct bridge *bridge,
     }
     flow_free(flow);
 #ifdef USE_MBTREE
-    if (flow_list->mbtree_timer != NULL) {
-      *flow_list->mbtree_timer = NULL;
+    if (flow_list->update_timer != NULL) {
+      *flow_list->update_timer = NULL;
     }
-    add_mbtree_timer(flow_list, MBTREE_TIMEOUT);
+    add_mbtree_timer(flow_list, UPDATE_TIMEOUT);
 #endif /* USE_MBTREE */
+#ifdef USE_THTABLE
+    if (flow_list->update_timer != NULL) {
+      *flow_list->update_timer = NULL;
+    }
+    add_thtable_timer(flow_list, UPDATE_TIMEOUT);
+#endif /* USE_THTABLEE */
   } else {
+    int new_nflow;
+
     /*
      * not strict. delete all flows if matched by match_list and cookie.
      */
     flow_list = table->flow_list;
+    new_nflow = flow_list->nflow;
     for (i = 0; i < flow_list->nflow; i++) {
       flow = flow_list->flows[i];
       /* filtering by cookie */
@@ -1506,24 +1522,52 @@ flow_del_sub(struct bridge *bridge,
           lagopus_del_flow_hook(flow, table);
         }
         flow_del_from_group(group_table, flow);
-        flow_del_from_meter(meter_table, flow_list->flows[i]);
+        flow_del_from_meter(meter_table, flow);
         if ((flow->flags & OFPFF_SEND_FLOW_REM) != 0) {
           /* send OFPT_FLOW_REMOVED message */
           ret = send_flow_removed(bridge->dpid, flow, OFPRR_DELETE);
         }
+        flow_list->flows[i] = NULL;
         flow_free(flow);
-        flow_list->nflow--;
-        memmove(&flow_list->flows[i], &flow_list->flows[i + 1],
-                sizeof(struct flow *) * (unsigned int)(flow_list->nflow - i));
-        i--;
+        new_nflow--;
 #ifdef USE_MBTREE
-        if (flow_list->mbtree_timer != NULL) {
-          *flow_list->mbtree_timer = NULL;
+        if (flow_list->update_timer != NULL) {
+          *flow_list->update_timer = NULL;
         }
-        add_mbtree_timer(flow_list, MBTREE_TIMEOUT);
+        add_mbtree_timer(flow_list, UPDATE_TIMEOUT);
 #endif /* USE_MBTREE */
+#ifdef USE_THTABLE
+        if (flow_list->update_timer != NULL) {
+          *flow_list->update_timer = NULL;
+        }
+        add_thtable_timer(flow_list, UPDATE_TIMEOUT);
+#endif /* USE_THTABLE */
       }
     }
+    /* compaction. */
+    for (i = 0; i < flow_list->nflow; i++) {
+      int st, ed;
+
+      if (flow_list->flows[i] == NULL) {
+        for (st = i; st < flow_list->nflow; st++) {
+          if (flow_list->flows[st] != NULL) {
+            break;
+          }
+        }
+        if (st == flow_list->nflow) {
+          break;
+        }
+        for (ed = st + 1; ed < flow_list->nflow; ed++) {
+          if (flow_list->flows[ed] == NULL) {
+            break;
+          }
+        }
+        memmove(&flow_list->flows[i], &flow_list->flows[st],
+                sizeof(struct flow *) * (unsigned int)(ed - st));
+        i = ed - 1;
+      }
+    }
+    flow_list->nflow = new_nflow;
   }
 out:
   return ret;
