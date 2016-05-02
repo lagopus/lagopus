@@ -77,11 +77,11 @@ ofp_group_desc_reply_create(struct channel *channel,
         if (ret == LAGOPUS_RESULT_OK) {
           if (TAILQ_EMPTY(group_desc_list) == false) {
             TAILQ_FOREACH(group_desc, group_desc_list, entry) {
-              group_desc_head = pbuf_putp_get(pbuf);
-
               ret = ofp_group_desc_encode_list(*pbuf_list, &pbuf,
                                                &group_desc->ofp);
               if (ret == LAGOPUS_RESULT_OK) {
+                group_desc_head = pbuf_putp_get(pbuf) - sizeof(struct ofp_group_desc);
+
                 ret = ofp_bucket_list_encode(*pbuf_list, &pbuf,
                                              &group_desc->bucket_list,
                                              &bucket_total_length);

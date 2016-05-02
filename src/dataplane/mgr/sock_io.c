@@ -53,6 +53,10 @@
 #include "thread.h"
 #include "lock.h"
 
+#ifdef HAVE_DPDK
+#include "dpdk.h"
+#endif /* HAVE_DPDK */
+
 static struct port_stats *rawsock_port_stats(struct port *port);
 
 #define NUM_PORTID 256
@@ -60,12 +64,10 @@ static struct port_stats *rawsock_port_stats(struct port *port);
 static struct pollfd pollfd[NUM_PORTID];
 static int ifindex[NUM_PORTID];
 
-#ifndef HAVE_DPDK
 static bool no_cache = true;
 static int kvs_type = FLOWCACHE_HASHMAP_NOLOCK;
 static int hashtype = HASH_TYPE_INTEL64;
 static struct flowcache *flowcache;
-#endif /* HAVE_DPDK */
 
 static bool volatile clear_cache = false;
 
@@ -650,13 +652,11 @@ dp_rawsock_thread_loop(__UNUSED const lagopus_thread_t *selfptr,
     return rv;
   }
 
-#ifndef HAVE_DPDK
   if (no_cache == false) {
     flowcache = init_flowcache(kvs_type);
   } else {
     flowcache = NULL;
   }
-#endif /* HAVE_DPDK */
 
   dparg = arg;
   running = dparg->running;
@@ -669,12 +669,10 @@ dp_rawsock_thread_loop(__UNUSED const lagopus_thread_t *selfptr,
       err(errno, "poll");
     }
     for (i = 0; i < portidx; i++) {
-#ifndef HAVE_DPDK
       if (clear_cache == true && flowcache != NULL) {
         clear_all_cache(flowcache);
         clear_cache = false;
       }
-#endif /* HAVE_DPDK */
       flowdb_rdlock(NULL);
       port = dp_port_lookup(DATASTORE_INTERFACE_TYPE_ETHERNET_RAWSOCK,
                             (uint32_t)i);
@@ -695,11 +693,8 @@ dp_rawsock_thread_loop(__UNUSED const lagopus_thread_t *selfptr,
       if (port->bridge != NULL &&
           (port->ofp_port.config & OFPPC_NO_RECV) == 0) {
         pkt = alloc_lagopus_packet();
-#ifndef HAVE_DPDK
-        if (flowcache != NULL) {
-          pkt->cache = flowcache;
-        }
-#endif /* HAVE_DPDK */
+        pkt->cache = flowcache;
+
         /* not enough? */
         (void)OS_M_APPEND(pkt->mbuf, MAX_PACKET_SZ);
         len = read_packet(pollfd[i].fd, OS_MTOD(pkt->mbuf, uint8_t *),
@@ -783,6 +778,11 @@ dp_rawsock_thread_init(int argc,
 
 lagopus_result_t
 dp_rawsock_thread_start(void) {
+#ifdef HAVE_DPDK
+  no_cache = app.no_cache;
+  kvs_type = app.kvs_type;
+  hashtype = app.hashtype;
+#endif /* HAVE_DPDK */
   return dp_thread_start(&rawsock_thread, &rawsock_lock, &rawsock_run);
 }
 

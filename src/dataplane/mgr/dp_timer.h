@@ -22,6 +22,7 @@ enum {
   MBTREE_TIMER,
   MACTABLE_TIMER,
   LINK_TIMER,
+  THTABLE_TIMER,
 };
 
 #define MAX_TIMEOUT_ENTRIES 256
@@ -57,5 +58,7 @@ lagopus_result_t
 add_link_timer(struct interface *ifp);
 lagopus_result_t
 add_mactable_timer(struct mactable *mactable, time_t timeout);
+lagopus_result_t
+add_thtable_timer(struct flow_list *flow_list, time_t timeout);
 
 #endif /* SRC_DATAPLANE_MGR_DP_TIMER_H_ */

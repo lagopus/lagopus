@@ -152,11 +152,11 @@ ofp_bucket_list_encode(struct pbuf_list *pbuf_list,
     *total_length = 0;
     if (TAILQ_EMPTY(bucket_list) == false) {
       TAILQ_FOREACH(bucket, bucket_list, entry) {
-        /* bucket head pointer. */
-        bucket_head = pbuf_putp_get(*pbuf);
-
         ret = ofp_bucket_encode_list(pbuf_list, pbuf, &bucket->ofp);
         if (ret == LAGOPUS_RESULT_OK) {
+          /* bucket head pointer. */
+          bucket_head = pbuf_putp_get(*pbuf) - sizeof(struct ofp_bucket);
+
           ret = ofp_action_list_encode(pbuf_list, pbuf, &bucket->action_list,
                                        &action_total_len);
           if (ret == LAGOPUS_RESULT_OK) {

@@ -645,6 +645,85 @@ check_pbuf_list_packet_create(ofp_reply_list_create_proc_t create_proc,
 }
 
 lagopus_result_t
+check_pbuf_list_across_packet_create(ofp_reply_list_create_proc_t create_proc,
+                                     const char *header_data[],
+                                     const char *body_data[],
+                                     size_t nums[],
+                                     int array_len) {
+  lagopus_result_t res = LAGOPUS_RESULT_ANY_FAILURES;
+  struct channel *channel = create_data_channel();
+  struct pbuf_list *test_pbuf_list, *ret_pbuf_list;
+  struct pbuf *test_pbuf = NULL;
+  struct pbuf *body_pbuf = NULL;
+  struct pbuf *ret_pbuf = NULL;
+  struct ofp_header xid_header;
+  size_t sizeof_packet;
+  size_t sizeof_body;
+  size_t i, j;
+
+  s_xid = 0x10;
+  test_pbuf_list = pbuf_list_alloc();
+
+  for (i = 0; i < (size_t) array_len; i++) {
+    /* create packet */
+    for (j = 0; j < nums[i]; j++) {
+      if (j == 0) {
+        create_packet(header_data[i], &test_pbuf);
+        create_packet(body_data[i], &body_pbuf);
+        sizeof_body = (size_t) (body_pbuf->putp - body_pbuf->getp);
+      }
+      /* copy body. */
+      if ((size_t) (test_pbuf->putp - test_pbuf->getp) +
+          sizeof_body < BUF_SIZE) {
+        memmove(test_pbuf->getp + sizeof(struct ofp_multipart_reply) +
+                (sizeof_body * j),
+                body_pbuf->getp,
+                sizeof_body);
+        test_pbuf->putp += sizeof_body;
+        test_pbuf->plen = (size_t) (test_pbuf->putp - test_pbuf->getp);
+      } else {
+        TEST_FAIL_MESSAGE("over test_pbuf.");
+      }
+    }
+    pbuf_list_add(test_pbuf_list, test_pbuf);
+  }
+
+  xid_header.xid = s_xid;
+
+  /* call func & check */
+  res = (create_proc)(channel, &ret_pbuf_list, &xid_header);
+
+  if (res == LAGOPUS_RESULT_OK) {
+    i = 0;
+    test_pbuf = TAILQ_FIRST(&test_pbuf_list->tailq);
+    TAILQ_FOREACH(ret_pbuf, &ret_pbuf_list->tailq, entry) {
+      if (test_pbuf != NULL) {
+        sizeof_packet = (size_t) (test_pbuf->putp - test_pbuf->getp);
+        TEST_ASSERT_EQUAL_MESSAGE(sizeof_packet,
+                                  ret_pbuf->putp - ret_pbuf->getp,
+                                  "handler_test_utils.c: packet data len error.");
+        TEST_ASSERT_EQUAL_MESSAGE(0, memcmp(ret_pbuf->data, test_pbuf->data,
+                                            sizeof_packet),
+                                  "handler_test_utils.c: packet compare error.");
+        test_pbuf = TAILQ_NEXT(test_pbuf, entry);
+        i++;
+      } else {
+        TEST_FAIL_MESSAGE("handler_test_utils.c: test_pbuf is NULL.");
+        break;
+      }
+    }
+    TEST_ASSERT_EQUAL_MESSAGE(array_len, i, "handler_test_utils.c: "
+                              "pbuf_list len error.");
+    pbuf_list_free(ret_pbuf_list);
+  }
+
+  /* free */
+  pbuf_list_free(test_pbuf_list);
+  s_destroy_static_data();
+  return res;
+}
+
+lagopus_result_t
 check_packet_send(ofp_send_proc_t send_proc) {
   lagopus_result_t res = LAGOPUS_RESULT_ANY_FAILURES;
   struct channel *channel = create_data_channel();

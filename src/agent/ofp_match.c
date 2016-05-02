@@ -271,13 +271,18 @@ ofp_match_list_encode(struct pbuf_list *pbuf_list,
 
   if (pbuf != NULL && match_list != NULL &&
       total_length != NULL) {
-    match_head = pbuf_putp_get(*pbuf);
-
     /* OMX only. */
     ofp_tlv.type = OFPMT_OXM;
     /* length is replaced later. */
     ofp_tlv.length = 0;
-    ofp_tlv_encode_list(pbuf_list, pbuf, &ofp_tlv);
+
+    ret = ofp_tlv_encode_list(pbuf_list, pbuf, &ofp_tlv);
+    if (ret != LAGOPUS_RESULT_OK) {
+      lagopus_msg_warning("FAILED : ofp_tlv_encode_list.\n");
+      goto done;
+    }
+
+    match_head = pbuf_putp_get(*pbuf) - sizeof(struct ofp_tlv);
     *total_length = (uint16_t) sizeof(struct ofp_tlv);
 
     if (TAILQ_EMPTY(match_list) == false) {
@@ -373,5 +378,6 @@ ofp_match_list_encode(struct pbuf_list *pbuf_list,
     ret = LAGOPUS_RESULT_INVALID_ARGS;
   }
 
+done:
   return ret;
 }

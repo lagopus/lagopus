@@ -197,6 +197,7 @@ enum action_flag {
 #define SET_FIELD_ETH (SET_FIELD_ETH_DST | SET_FIELD_ETH_SRC)
 
 struct flowinfo;
+struct thtable;
 
 /**
  * @brief List of flow entries.
@@ -235,7 +236,8 @@ struct flow_list {
 
   uint8_t oxm_field;
   uint8_t shift;
-  struct flow_list **mbtree_timer;
+  struct flow_list **update_timer;
+  struct thtable *thtable;
 
   int nbranch;
   void *branch[0];
@@ -578,5 +580,20 @@ ofp_action_list_elem_free(struct action_list *action_list);
  * @retval      ==NULL          table is not found.
  */
 struct table *table_lookup(struct flowdb *flowdb, uint8_t table_id);
+
+/**
+ * Copy match list.
+ *
+ * @param[out]  dst             Copy destination of match list.
+ * @param[in]   src             souce match list.
+ *
+ * @retval      LAGOPUS_RESULT_OK         Success.
+ * @retval      LAGOPUS_RESULT_NO_MEMORY  Memory exhausted.
+ *
+ * dislike TAILQ_CONCAT, src is not modified and copied contents.
+ */
+lagopus_result_t
+copy_match_list(struct match_list *dst,
+                const struct match_list *src);
 
 #endif /* SRC_INCLUDE_LAGOPUS_FLOWDB_H_ */

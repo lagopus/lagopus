@@ -77,10 +77,12 @@ ofp_group_stats_reply_create(struct channel *channel,
         if (ret == LAGOPUS_RESULT_OK) {
           if (TAILQ_EMPTY(group_stats_list) == false) {
             TAILQ_FOREACH(group_stats, group_stats_list, entry) {
-              group_stats_head = pbuf_putp_get(pbuf);
               ret = ofp_group_stats_encode_list(*pbuf_list, &pbuf,
                                                 &group_stats->ofp);
               if (ret == LAGOPUS_RESULT_OK) {
+                group_stats_head = pbuf_putp_get(pbuf) -
+                    sizeof(struct ofp_group_stats);
+
                 ret = ofp_bucket_counter_list_encode(*pbuf_list, &pbuf,
                                                      &group_stats->bucket_counter_list,
                                                      &bucket_total_length);

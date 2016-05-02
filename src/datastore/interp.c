@@ -102,7 +102,6 @@ typedef struct session_info {
 
 
 static const char *const s_tbl_order[] = {
-  "l2-bridge",
   "policer-action",
   "policer",
   "queue",

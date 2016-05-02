@@ -649,7 +649,6 @@ PKG_VERSION
 PKG_NAME
 NUMA_LIBS
 SSE42_CPPFLAGS
-MBTREE_FLAGS
 RTE_MBUF_HAS_PKT
 RTE_OS
 RTE_ARCH
@@ -796,6 +795,7 @@ enable_snmp
 enable_jumbo_frame
 enable_dpdk
 enable_mbtree
+enable_thtable
 enable_sse4_2
 enable_numa
 '
@@ -1443,6 +1443,7 @@ Optional Features:
   --enable-dpdk           enable DPDK [default is yes]
 
   --enable-mbtree         use multiple branch tree lookup [default is no]
+  --enable-thtable        use tuple hash table lookup [default is no]
   --enable-sse4.2         build with SSE4.2 instruction [default is yes]
   --enable-numa           Support NUMA (if supported).
 
@@ -17401,7 +17402,21 @@ fi
 
 MBTREE_FLAGS=''
 if test "X${mbtree}" != "Xno"; then
-   MBTREE_FLAGS="-DUSE_MBTREE"
+   $as_echo "#define USE_MBTREE 1" >>confdefs.h
+
+fi
+
+# Check whether --enable-thtable was given.
+if test "${enable_thtable+set}" = set; then :
+  enableval=$enable_thtable; thtable="$enableval"
+else
+  thtable="no"
+fi
+
+
+THTABLE_FLAGS=''
+if test "X${thtable}" != "Xno"; then
+   $as_echo "#define USE_THTABLE 1" >>confdefs.h
 
 fi
 
