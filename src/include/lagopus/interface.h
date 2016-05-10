@@ -58,6 +58,7 @@ typedef datastore_queue_info_t dp_queue_info_t;
 #endif /* HYBRID */
 #define INTERFACE_NAME_DELIMITER '+'  /* used by tap io. */
 
+
 /**
  * @brief Output queues associated with interface.
  */
@@ -65,6 +66,7 @@ struct dp_ifqueue {
   int nqueue;
   dp_queue_info_t *queues[DP_MAX_QUEUES];
 #ifdef HAVE_DPDK
+  struct rte_sched_queue_stats stats[RTE_SCHED_QUEUES_PER_TRAFFIC_CLASS];
   struct rte_meter_trtcm meters[RTE_SCHED_QUEUES_PER_TRAFFIC_CLASS];
 #endif /* HAVE_DPDK */
 };

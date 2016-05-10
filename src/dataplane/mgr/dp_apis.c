@@ -1318,12 +1318,22 @@ dp_queue_create(const char *name,
     rv = LAGOPUS_RESULT_ALREADY_EXISTS;
     goto out;
   }
+
+// TODO: Allow queues with the same ids
+// Switch should permit multiple queues with the same id
+//  while each of these queues belongs to a its own port.
+// We should either enforce unique pairs <port, switch>,
+//  or disable these checks in datastore at all --
+//  inconsistent configurations will fail on init.
+
+/*
   id = queue_info->id;
   rv = lagopus_hashmap_find(&queueid_hashmap, (void *)id, (void **)&queue);
   if (rv == LAGOPUS_RESULT_OK) {
     rv = LAGOPUS_RESULT_ALREADY_EXISTS;
     goto out;
   }
+*/
   queue = calloc(1, sizeof(datastore_queue_info_t));
   if (queue == NULL) {
     rv = LAGOPUS_RESULT_NO_MEMORY;
@@ -1336,9 +1346,11 @@ dp_queue_create(const char *name,
     if (rv != LAGOPUS_RESULT_OK) {
       goto out;
     }
+/*
     id = queue_info->id;
     rv = lagopus_hashmap_add(&queueid_hashmap, (void *)id,
                              (void **)&queue, false);
+*/
   }
 out:
   return rv;

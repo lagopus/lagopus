@@ -483,6 +483,41 @@ app_lcore_io_rx_flush(struct app_lcore_params_io *lp, uint32_t n_workers) {
 }
 
 /**
+ * Move packets through the qos scheduler if any configured.
+ * Return the number of packets ready to be transmitted.
+ */
+static inline uint32_t
+schedule_tx_packets(struct interface *ifp, struct app_mbuf_array *outbufs) {
+  struct lagopus_packet *pkt;
+  struct rte_mbuf *mbuf;
+  uint32_t qidx, color;
+
+  if (ifp == NULL || ifp->sched_port == NULL) {
+    return outbufs->n_mbufs;
+  }
+
+  for (uint32_t i = 0; i < outbufs->n_mbufs; ++i) {
+    mbuf = outbufs->array[i];
+    pkt = (struct lagopus_packet*)(mbuf->buf_addr + APP_DEFAULT_MBUF_LOCALDATA_OFFSET);
+    qidx = (uint32_t)dpdk_interface_queue_id_to_index(ifp, pkt->queue_id);
+    color = rte_meter_trtcm_color_blind_check(&ifp->ifqueue.meters[qidx], rte_rdtsc(), OS_M_PKTLEN(mbuf));
+    rte_sched_port_pkt_write(mbuf, 0, 0, qidx, 0, color);
+  }
+
+  // TODO: rethink TX processing to enable appropriate scheduling.
+  //  Under a heavy load we should dequeue less packets than inserted:
+  //  otherwise we will just move low priority packets to the back of the burst
+  //  and will provide no advantage to high priority packets of the next burst.
+
+  rte_sched_port_enqueue(ifp->sched_port, outbufs->array, outbufs->n_mbufs);
+  outbufs->n_mbufs = (uint32_t)rte_sched_port_dequeue(
+     ifp->sched_port, outbufs->array, APP_MBUF_ARRAY_SIZE
+  );
+
+  return outbufs->n_mbufs;
+}
+
+/**
  * Dequeue mbufs from output queue and send to ethernet port.
  * This function is called from I/O (Output) thread.
  */
@@ -535,31 +570,11 @@ app_lcore_io_tx(struct app_lcore_params_io *lp,
         lp->tx.mbuf_out_flush[port] = 1;
         continue;
       }
-      ifp = dpdk_interface_lookup(port);
-      if (ifp != NULL && ifp->sched_port != NULL) {
-        struct lagopus_packet *pkt;
-        struct rte_mbuf *m;
-        int qidx, color;
 
-        for (i = 0; i < n_mbufs; i++) {
-          m = lp->tx.mbuf_out[port].array[i];
-          pkt = (struct lagopus_packet *)
-                (m->buf_addr + APP_DEFAULT_MBUF_LOCALDATA_OFFSET);
-          if (unlikely(pkt->queue_id != 0)) {
-            qidx = dpdk_interface_queue_id_to_index(ifp, pkt->queue_id);
-            color = rte_meter_trtcm_color_blind_check(&ifp->ifqueue.meters[qidx],
-                    rte_rdtsc(),
-                    OS_M_PKTLEN(m));
-            rte_sched_port_pkt_write(m, 0, 0, 0, qidx, color);
-          }
-        }
-        n_mbufs = rte_sched_port_enqueue(ifp->sched_port,
-                                         lp->tx.mbuf_out[port].array,
-                                         n_mbufs);
-        n_mbufs = rte_sched_port_dequeue(ifp->sched_port,
-                                         lp->tx.mbuf_out[port].array,
-                                         n_mbufs);
-      }
+      ifp = dpdk_interface_lookup(port);
+      lp->tx.mbuf_out[port].n_mbufs = n_mbufs;
+      n_mbufs = schedule_tx_packets(ifp, &lp->tx.mbuf_out[port]);
+
       DPRINTF("send %d pkts\n", n_mbufs);
       n_pkts = rte_eth_tx_burst(port,
                                 0,
@@ -601,7 +616,8 @@ app_lcore_io_tx_flush(struct app_lcore_params_io *lp, __UNUSED void *arg) {
   uint8_t portid, i;
 
   for (i = 0; i < lp->tx.n_nic_ports; i++) {
-    uint32_t n_pkts;
+    struct interface *ifp;
+    uint32_t n_mbufs, n_pkts;
 
     portid = lp->tx.nic_ports[i];
     if (likely((lp->tx.mbuf_out_flush[portid] == 0) ||
@@ -609,16 +625,20 @@ app_lcore_io_tx_flush(struct app_lcore_params_io *lp, __UNUSED void *arg) {
       continue;
     }
 
-    DPRINTF("flush: send %d pkts\n", lp->tx.mbuf_out[portid].n_mbufs);
+    ifp = dpdk_interface_lookup(portid);
+    n_mbufs = schedule_tx_packets(ifp, &lp->tx.mbuf_out[portid]);
+
+    DPRINTF("flush: send %d pkts\n", n_mbufs);
     n_pkts = rte_eth_tx_burst(portid,
                               0,
                               lp->tx.mbuf_out[portid].array,
-                              (uint16_t)lp->tx.mbuf_out[portid].n_mbufs);
-    DPRINTF("flus: sent %d pkts\n", n_pkts);
+                              (uint16_t)n_mbufs);
 
-    if (unlikely(n_pkts < lp->tx.mbuf_out[portid].n_mbufs)) {
+    DPRINTF("flush: sent %d pkts\n", n_pkts);
+
+    if (unlikely(n_pkts < n_mbufs)) {
       uint32_t k;
-      for (k = n_pkts; k < lp->tx.mbuf_out[portid].n_mbufs; k ++) {
+      for (k = n_pkts; k < n_mbufs; k ++) {
         struct rte_mbuf *pkt_to_free = lp->tx.mbuf_out[portid].array[k];
         rte_pktmbuf_free(pkt_to_free);
       }
