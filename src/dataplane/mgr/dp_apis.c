@@ -1319,7 +1319,7 @@ dp_queue_create(const char *name,
     goto out;
   }
 
-// TODO: Allow queeus with the same ids
+// TODO: Allow queues with the same ids
 // Switch should permit multiple queues with the same id
 //  while each of these queues belongs to a its own port.
 // We should either enforce unique pairs <port, switch>,

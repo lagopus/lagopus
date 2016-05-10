@@ -634,7 +634,7 @@ app_lcore_io_tx_flush(struct app_lcore_params_io *lp, __UNUSED void *arg) {
                               lp->tx.mbuf_out[portid].array,
                               (uint16_t)n_mbufs);
 
-    DPRINTF("flus: sent %d pkts\n", n_pkts);
+    DPRINTF("flush: sent %d pkts\n", n_pkts);
 
     if (unlikely(n_pkts < n_mbufs)) {
       uint32_t k;

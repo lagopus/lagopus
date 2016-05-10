@@ -36,7 +36,9 @@ append_queue_config(struct interface *ifp, uint32_t qidx,
   uint32_t port_speed;
 
   queue = calloc(1, sizeof(struct packet_queue));
-  if (!queue) return LAGOPUS_RESULT_NO_MEMORY;
+  if (!queue) {
+    return LAGOPUS_RESULT_NO_MEMORY;
+  }
 
   TAILQ_INSERT_TAIL(packet_queue_list, queue, entry);
   queue->ofp.len = sizeof(struct ofp_packet_queue);
@@ -45,11 +47,17 @@ append_queue_config(struct interface *ifp, uint32_t qidx,
   TAILQ_INIT(&queue->queue_property_list);
 
   port_speed = ifp->port->ofp_port.curr_speed;
-  if (!port_speed) port_speed = ifp->port->ofp_port.max_speed;
-  if (!port_speed) return LAGOPUS_RESULT_OK;
+  if (!port_speed) {
+    port_speed = ifp->port->ofp_port.max_speed;
+  }
+  if (!port_speed) {
+    return LAGOPUS_RESULT_OK;
+  }
 
   property = calloc(1, sizeof(struct queue_property));
-  if (!property) return LAGOPUS_RESULT_NO_MEMORY;
+  if (!property) {
+    return LAGOPUS_RESULT_NO_MEMORY;
+  }
 
   TAILQ_INSERT_TAIL(&queue->queue_property_list, property, entry);
   // rate is measured in 1/10 of a percent of a current port bandwidth
@@ -60,7 +68,9 @@ append_queue_config(struct interface *ifp, uint32_t qidx,
   queue->ofp.len += property->ofp.len;
 
   property = calloc(1, sizeof(struct queue_property));
-  if (!property) return LAGOPUS_RESULT_NO_MEMORY;
+  if (!property) {
+    return LAGOPUS_RESULT_NO_MEMORY;
+  }
 
   TAILQ_INSERT_TAIL(&queue->queue_property_list, property, entry);
   // rate is measured in 1/10 of a percent of a current port bandwidth
@@ -78,7 +88,9 @@ static lagopus_result_t
 append_ifp_queue_config(struct interface *ifp, struct packet_queue_list *packet_queue_list) {
   for(uint32_t i = 0; i < (uint32_t)ifp->ifqueue.nqueue; ++i) {
     lagopus_result_t rv = append_queue_config(ifp, i, packet_queue_list);
-    if (rv != LAGOPUS_RESULT_OK) return rv;
+    if (rv != LAGOPUS_RESULT_OK) {
+      return rv;
+    }
   }
   return LAGOPUS_RESULT_OK;
 }
@@ -112,8 +124,12 @@ ofp_packet_queue_get(uint64_t dpid,
   (void) error;
 
   bridge = dp_bridge_lookup_by_dpid(dpid);
-  if (!bridge) return LAGOPUS_RESULT_NOT_FOUND;
-  if (!queue_request) return LAGOPUS_RESULT_INVALID_ARGS;
+  if (!bridge) {
+    return LAGOPUS_RESULT_NOT_FOUND;
+  }
+  if (!queue_request) {
+    return LAGOPUS_RESULT_INVALID_ARGS;
+  }
 
   if (queue_request->port == OFPP_ANY) {
     rv = lagopus_hashmap_iterate(&bridge->ports, iterate_port_queue_config, packet_queue_list);
@@ -152,9 +168,11 @@ append_queue_stats(struct interface *ifp, uint32_t qidx,
 #endif // HAVE_DPDK
 
   stats = calloc(1, sizeof(struct queue_stats));
-  if (!stats) return LAGOPUS_RESULT_NO_MEMORY;
-  TAILQ_INSERT_TAIL(queue_stats_list, stats, entry);
+  if (!stats) {
+    return LAGOPUS_RESULT_NO_MEMORY;
+  }
 
+  TAILQ_INSERT_TAIL(queue_stats_list, stats, entry);
   stats->ofp.port_no = ifp->port->ofp_port.port_no;
   stats->ofp.queue_id = ifp->ifqueue.queues[qidx]->id;
 
@@ -180,12 +198,16 @@ struct queue_stats_context {
 
 static lagopus_result_t
 append_ifp_queue_stats(struct interface *ifp, struct queue_stats_context *queue_stats_context) {
-  if (!ifp->sched_port) return LAGOPUS_RESULT_NOT_FOUND;
+  if (!ifp->sched_port) {
+    return LAGOPUS_RESULT_NOT_FOUND;
+  }
 
   if (queue_stats_context->ofp_queue_id == OFPQ_ALL) {
     for(uint32_t i = 0; i < (uint32_t)ifp->ifqueue.nqueue; ++i) {
       lagopus_result_t rv = append_queue_stats(ifp, i, queue_stats_context->queue_stats_list);
-      if (rv != LAGOPUS_RESULT_OK) return rv;
+      if (rv != LAGOPUS_RESULT_OK) {
+        return rv;
+      }
     }
     return LAGOPUS_RESULT_OK;
   }
@@ -206,7 +228,10 @@ iterate_port_queue_stats(void *key, void *port,
   (void) key;
   (void) he;
 
-  if (!port || !((struct port*)port)->interface) return true;
+  if (!port || !((struct port*)port)->interface) {
+    return true;
+  }
+
   switch (append_ifp_queue_stats(((struct port*)port)->interface, queue_stats_context)) {
     // continue iteration when returned status is
     case LAGOPUS_RESULT_OK: break;
@@ -233,8 +258,12 @@ ofp_queue_stats_request_get(uint64_t dpid,
   (void) error;
 
   bridge = dp_bridge_lookup_by_dpid(dpid);
-  if (!bridge) return LAGOPUS_RESULT_NOT_FOUND;
-  if (!queue_stats_request) return LAGOPUS_RESULT_INVALID_ARGS; 
+  if (!bridge) {
+    return LAGOPUS_RESULT_NOT_FOUND;
+  }
+  if (!queue_stats_request) {
+    return LAGOPUS_RESULT_INVALID_ARGS;
+  }
 
   // prepare request context to search queues on multiple ports
   queue_stats_context.queue_stats_list = queue_stats_list;
@@ -244,7 +273,9 @@ ofp_queue_stats_request_get(uint64_t dpid,
     rv = lagopus_hashmap_iterate(&bridge->ports, iterate_port_queue_stats, &queue_stats_context);
   } else {
     struct port *port = port_lookup(&bridge->ports, queue_stats_request->port_no);
-    if (!port || !port->interface) return LAGOPUS_RESULT_NOT_FOUND;
+    if (!port || !port->interface) {
+      return LAGOPUS_RESULT_NOT_FOUND;
+    }
     rv = append_ifp_queue_stats(port->interface, &queue_stats_context);
   }
 
