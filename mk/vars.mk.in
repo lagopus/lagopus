@@ -68,6 +68,9 @@ BUILD_DATAPLANEDIR = $(BUILD_SRCDIR)/dataplane
 BUILD_DATAPLANETESTLIBDIR = $(BUILD_SRCDIR)/dataplane/ofproto/test/lib
 BUILD_SNMPDIR	= $(BUILD_SRCDIR)/snmp
 
+OSDEF	=	@OSDEF@
+CPUDEF	=	@CPUDEF@
+
 # Obsolete/Depricated modules:
 #---------------------------------------------------------------------
 #BUILD_CONFIGDIR	= $(BUILD_SRCDIR)/config
@@ -190,6 +193,9 @@ CFLAGS		+= @OS_CFLAGS@ @CFLAGS@ $(COMMON_CFLAGS)
 CXXFLAGS	+= @OS_CFLAGS@ @CXXFLAGS@ $(COMMON_CXXFLAGS)
 
 LDFLAGS		+= @OS_LDFLAGS@ @OS_LIBS@ @LDFLAGS@
+ifneq ($(RTE_SDK),)
+LDFLAGS		+= -L$(RTE_LIBDIR)
+endif
 
 OBJS		?= $(SRCS:.c=.lo)
 
