@@ -85,6 +85,7 @@ ofp_features_reply_create(struct channel *channel,
     if (*pbuf != NULL) {
       pbuf_plen_set(*pbuf, sizeof(struct ofp_switch_features));
 
+      memset(&features, 0, sizeof(struct ofp_switch_features));
       ret = features_reply_features_get(channel, &features);
       if (ret == LAGOPUS_RESULT_OK) {
         /* Fill in header. */
