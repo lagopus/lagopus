@@ -48,6 +48,7 @@ AWK		= @AWK@
 RTE_SDK         = @RTE_SDK@
 RTE_TARGET      = @RTE_TARGET@
 RTE_LIBDIR	= @RTE_LIBDIR@
+RTE_LIBS	= @RTE_LIBS@
 RTE_ARCH        = @RTE_ARCH@
 RTE_OS          = @RTE_OS@
 

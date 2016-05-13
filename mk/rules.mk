@@ -512,7 +512,7 @@ summary::
 	fi
 
 ifdef DIRS
-all depend clean distclean check check-nocolor valgrind helgrind install install-exe install-lib install-header install-config install-sbin exe symlink generate::
+all depend clean distclean check check-nocolor valgrind helgrind install install-exe install-lib install-header install-config install-sbin exe symlink generate benchmark::
 	@for i in / $(DIRS) ; do \
 		case $$i in \
 			/) continue ;; \
@@ -544,6 +544,9 @@ helgrind::
 	@true
 
 generate::
+	@true
+
+benchmark::
 	@true
 
 ifdef HAVE_UNITY
