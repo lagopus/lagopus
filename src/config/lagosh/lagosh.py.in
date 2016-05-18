@@ -30,6 +30,7 @@ import select
 import inspect
 import pydoc
 import getopt
+from collections import OrderedDict
 
 
 class DSLError(Exception):
@@ -207,7 +208,7 @@ class ds_client:
             data += res
             if not self.is_readable():
                 try:
-                    jdata = json.loads(data)
+                    jdata = json.loads(data, object_pairs_hook=OrderedDict)
                     self.remove_namespace(jdata)
                     break
                 except ValueError:
