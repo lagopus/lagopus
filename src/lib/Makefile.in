@@ -1,6 +1,13 @@
 TOPDIR		= @TOPDIR@
 MKRULESDIR	= @MKRULESDIR@
 
+DIRS	=	check test
+
+include $(MKRULESDIR)/vars.mk
+
+LDFLAGS	+=	@GMP_LIBS@ @SSL_LIBS@ @NUMA_LIBS@ -lm
+
+TARGETS			= $(TARGET_LIB)
 TARGET_LIB		= $(LAGOPUS_UTIL_LIB)
 INSTALL_LIB_TARGETS	= $(TARGET_LIB)
 INSTALL_LIB_DIR		= $(DEST_LIBDIR)
@@ -11,17 +18,10 @@ SRCS =	error.c logger.c hashmap.c chrono.c lock.c thread.c event.c \
 	addrunion.c pipeline_stage.c gstate.c module.c runnable.c dstring.c \
 	argv0.c ip_addr.c callout.c mainloop.c statistic.c numa.c lpc.c \
 	ptree.c
-ifneq (${OSDEF}, LAGOPUS_OS_LINUX)
+ifneq (${OSDEF},LAGOPUS_OS_LINUX)
 SRCS +=	qsort.c
 endif
 
-LDFLAGS	+=	@GMP_LIBS@ @SSL_LIBS@ @NUMA_LIBS@ -lm
-
-TARGETS			= $(TARGET_LIB)
-
-DIRS	=	check test
-
-include $(MKRULESDIR)/vars.mk
 include $(MKRULESDIR)/rules.mk
 include .depend
 

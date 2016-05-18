@@ -14,20 +14,20 @@
  * limitations under the License.
  */
 
-#ifndef SRC_INCLUDE_LAGOPUS_VERSION_H_
-#define SRC_INCLUDE_LAGOPUS_VERSION_H_
-
 /**
- * Lagopus version information
- *
- * PRODUCT_NAME version MM.mm.ppRELEASE
+ * @file	dump_pkts.h
  */
 
-#define LAGOPUS_PRODUCT_NAME "Lagopus"
+#ifndef __BENCHMARK_DUMP_PKTS_H__
+#define __BENCHMARK_DUMP_PKTS_H__
 
-#define LAGOPUS_VERSION_MAJOR 0
-#define LAGOPUS_VERSION_MINOR 2
-#define LAGOPUS_VERSION_PATCH 7
-#define LAGOPUS_VERSION_RELEASE "-release"
+void
+setup(void);
 
-#endif /* SRC_INCLUDE_LAGOPUS_VERSION_H_ */
+void
+teardown(void);
+
+lagopus_result_t
+dump_pkts(void *pkts, size_t size);
+
+#endif /*__BENCHMARK_DUMP_PKTS_H__ */

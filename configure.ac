@@ -639,10 +639,11 @@ AC_CONFIG_FILES(
 	src/snmp/test/Makefile
 	test/dataplane/benchmark/Makefile
 	tools/Makefile
+	tools/benchmark/Makefile
 	debian/Makefile
 	debian/control
 	debian/copyright
-	debian/lagopus-DATAPLANE.install,
+	debian/lagopus-DATAPLANE.install
 )
 
 # emit and set executable attribute.
@@ -671,6 +672,7 @@ AC_CONFIG_COMMANDS_PRE([
 			# emit.
 			AC_CONFIG_FILES(
 				tools/unity/src/Makefile
+				tools/benchmark/sample/dump_pkts/Makefile
 			)
 		else
 			HAVE_UNITY=

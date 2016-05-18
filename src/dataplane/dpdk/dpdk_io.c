@@ -1295,21 +1295,18 @@ dpdk_update_port_link_status(struct port *port) {
   /* other port status. */
   /* OFPPF_* for OpenFlow 1.3 */
   rte_eth_link_get_nowait(portid, &link);
+  port->ofp_port.curr_speed = link.link_speed * 1000;
   switch (link.link_speed) {
-    case ETH_LINK_SPEED_10:
-      port->ofp_port.curr_speed = 10* 1000;
+    case ETH_SPEED_NUM_10M:
       port->ofp_port.curr = OFPPF_10MB_FD;
       break;
-    case ETH_LINK_SPEED_100:
-      port->ofp_port.curr_speed = 100 * 1000;
+    case ETH_SPEED_NUM_100M:
       port->ofp_port.curr = OFPPF_100MB_FD;
       break;
-    case ETH_LINK_SPEED_1000:
-      port->ofp_port.curr_speed = 1000 * 1000;
+    case ETH_SPEED_NUM_1G:
       port->ofp_port.curr = OFPPF_1GB_FD;
       break;
-    case ETH_LINK_SPEED_10000:
-      port->ofp_port.curr_speed = 10000 * 1000;
+    case ETH_LINK_SPEED_10G:
       port->ofp_port.curr = OFPPF_10GB_FD;
       break;
     default:
@@ -1395,44 +1392,35 @@ dpdk_change_config(uint8_t portid, uint32_t advertised, uint32_t config) {
     memcpy(&conf, &port_conf, sizeof(conf));
     switch ((advertised & 0x0000207f)) {
       case OFPPF_10MB_HD:
-        link_speed = ETH_LINK_SPEED_10;
-        link_duplex = ETH_LINK_HALF_DUPLEX;
+        link_speed = ETH_LINK_SPEED_FIXED | ETH_LINK_SPEED_10M_HD;
         break;
       case OFPPF_10MB_FD:
-        link_speed = ETH_LINK_SPEED_10;
-        link_duplex = ETH_LINK_FULL_DUPLEX;
+        link_speed = ETH_LINK_SPEED_FIXED | ETH_LINK_SPEED_10M;
         break;
       case OFPPF_100MB_HD:
-        link_speed = ETH_LINK_SPEED_100;
-        link_duplex = ETH_LINK_HALF_DUPLEX;
+        link_speed = ETH_LINK_SPEED_FIXED | ETH_LINK_SPEED_100M_HD;
         break;
       case OFPPF_100MB_FD:
-        link_speed = ETH_LINK_SPEED_100;
-        link_duplex = ETH_LINK_FULL_DUPLEX;
-        break;
-      case OFPPF_1GB_HD:
-        link_speed = ETH_LINK_SPEED_1000;
-        link_duplex = ETH_LINK_HALF_DUPLEX;
+        link_speed = ETH_LINK_SPEED_FIXED | ETH_LINK_SPEED_100M;
         break;
       case OFPPF_1GB_FD:
-        link_speed = ETH_LINK_SPEED_1000;
-        link_duplex = ETH_LINK_FULL_DUPLEX;
+        link_speed = ETH_LINK_SPEED_FIXED | ETH_LINK_SPEED_1G;
         break;
       case OFPPF_10GB_FD:
-        link_speed = ETH_LINK_SPEED_10000;
-        link_duplex = ETH_LINK_FULL_DUPLEX;
+        link_speed = ETH_LINK_SPEED_FIXED | ETH_LINK_SPEED_10G;
         break;
       case OFPPF_40GB_FD:
-        link_speed = 40000; /*ETH_LINK_SPEED_40000*/
-        link_duplex = ETH_LINK_FULL_DUPLEX;
+        link_speed = ETH_LINK_SPEED_FIXED | ETH_LINK_SPEED_40G;
         break;
-#if 0 /* currently not suppored by DPDK because link_speed as uint16_t */
       case OFPPF_100GB_FD:
-        link_speed = ETH_LINK_SPEED_100000;
-        link_duplex = ETH_LINK_FULL_DUPLEX;
+        link_speed = ETH_LINK_SPEED_FIXED | ETH_LINK_SPEED_100G;
+        break;
+#if 0 /* currently not suppored by DPDK */
+      case OFPPF_1GB_HD:
+        link_speed = ETH_LINK_SPEED_FIXED | ETH_LINK_SPEED_1G;
         break;
       case OFPPF_1TB_FD:
-        link_speed = ETH_LINK_SPEED_1000000;
+        link_speed = ETH_LINK_SPEED_FIXED | ETH_LINK_SPEED_1000000;
         link_duplex = ETH_LINK_FULL_DUPLEX;
         break;
       case OFPPF_OTHER:
@@ -1440,7 +1428,6 @@ dpdk_change_config(uint8_t portid, uint32_t advertised, uint32_t config) {
 #endif /* 0 */
       case OFPPF_AUTONEG:
         link_speed = ETH_LINK_SPEED_AUTONEG;
-        link_duplex = ETH_LINK_AUTONEG_DUPLEX;
         break;
       default:
         /* invalid advertise. */
@@ -1455,8 +1442,7 @@ dpdk_change_config(uint8_t portid, uint32_t advertised, uint32_t config) {
   rte_eth_dev_stop(portid);
 
   if (advertised != 0) {
-    conf.link_speed = link_speed;
-    conf.link_duplex = link_duplex;
+    conf.link_speeds = link_speed;
     rv = rte_eth_dev_configure(portid, 1, 1, &conf);
     if (rv < 0) {
       lagopus_msg_error("Fail to reconfigure port %d (%s)\n",

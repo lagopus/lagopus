@@ -1,7 +1,10 @@
 TOPDIR		= @TOPDIR@
 MKRULESDIR	= @MKRULESDIR@
 
-DIRS	=	@UNITY_SRC_DIR@ benchmark
-
 include $(MKRULESDIR)/vars.mk
+
+ifneq ($(and $(RTE_SDK),$(HAVE_UNITY)),)
+DIRS	= sample/dump_pkts
+endif
+
 include $(MKRULESDIR)/rules.mk

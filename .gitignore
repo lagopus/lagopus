@@ -49,6 +49,7 @@ src/agent/openflow13packet.c
 src/agent/openflow13packet.h
 src/cmds/lagopus
 src/config/config_parser.h
+src/config/lagosh/lagosh.py
 src/include/lagopus_config.h
 src/include/lagopus_platform.h
 src/lib/check/check[0-9]

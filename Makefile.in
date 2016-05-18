@@ -35,10 +35,10 @@ distclean::	clean
 	$(RM) -f src/config/lagosh/lagosh.py
 	find . -type f \( \
 		-name '.depend' \
-	\) -exec rm -f {} \;
+	\) | xargs $(RM)
 	find . -type d \( \
 		-name '.libs' \
-	\) -exec rm -rf {} \;
+	\) | xargs $(RM) -r
 
 ultimateclean:	distclean
 	@git clean -n -f -d -x | \
