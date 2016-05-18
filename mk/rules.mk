@@ -273,6 +273,16 @@ dpdk::
 
 dpdk-install::
 	$(INSTALL_DATA) $(TOPDIR)/src/dpdk/build/lib/libdpdk.so $(DEST_LIBDIR)
+	$(MKDIR) $(DEST_LIBDIR)/dpdk-pmd
+	for i in `sed 's/GROUP (\(.*\))/\1/' $(TOPDIR)/src/dpdk/build/lib/libdpdk.so`; do \
+	  if [ -f $(TOPDIR)/src/dpdk/build/lib/$$i ]; then \
+	    $(INSTALL_DATA) $(TOPDIR)/src/dpdk/build/lib/$$i $(DEST_LIBDIR); \
+	    s=`echo $$i | grep librte_pmd_`;\
+		if [ -n "$$s" ]; then \
+		    $(LN_S) ../$$i $(DEST_LIBDIR)/dpdk-pmd/$$i; \
+		fi \
+	  fi \
+	done
 
 dpdk-clean::
 	@if test -r "${TOPDIR}/src/dpdk/build/.config"; then \
@@ -280,7 +290,7 @@ dpdk-clean::
 	fi
 
 $(DEP_DPDK_LIB)::
-	@if test ! -f $$(DEP_DPDK_LIB); then \
+	@if test ! -f "$(DEP_DPDK_LIB)"; then \
 		$(MAKE) dpdk; \
 	fi
 
@@ -512,7 +522,7 @@ summary::
 	fi
 
 ifdef DIRS
-all depend clean distclean check check-nocolor valgrind helgrind install install-exe install-lib install-header install-config install-sbin exe symlink generate::
+all depend clean distclean check check-nocolor valgrind helgrind install install-exe install-lib install-header install-config install-sbin exe symlink generate benchmark::
 	@for i in / $(DIRS) ; do \
 		case $$i in \
 			/) continue ;; \
@@ -544,6 +554,9 @@ helgrind::
 	@true
 
 generate::
+	@true
+
+benchmark::
 	@true
 
 ifdef HAVE_UNITY

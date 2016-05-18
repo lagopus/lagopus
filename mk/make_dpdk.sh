@@ -13,7 +13,13 @@ edit_dpdk_config() {
     NEWLINE="$1"
     FILE="$2"
     VAR="${NEWLINE%%=*}"
-    sed "s/^${VAR}=.*\$/$NEWLINE/" $FILE > $FILE.tmp
+    grep "^${VAR}=" $FILE > /dev/null
+    if [ "$?" = 0 ]; then
+	sed "s/^${VAR}=.*\$/$NEWLINE/" $FILE > $FILE.tmp
+    else
+	cp $FILE $FILE.tmp
+	echo "$NEWLINE" >> $FILE.tmp
+    fi
     if test $? -ne 0; then
 	exit 1
     fi
@@ -41,6 +47,7 @@ if test -z "${RTE_OS}" -o -z "${CC}"; then
     exit 1
 fi
 
+git submodule sync
 git submodule update --init
 if test $? -ne 0; then
     exit 1
@@ -61,30 +68,22 @@ NEW_TARGET=${RTE_ARCH}-native-lagopusapp-${CC}
 
 NEWCONFIG=config/defconfig_$NEW_TARGET
 
-grep -v include config/defconfig_${RTE_TARGET} > $NEWCONFIG
+cp config/defconfig_${RTE_TARGET} $NEWCONFIG
 if test $? -ne 0; then
     exit 1
 fi
 
-cat config/common_${RTE_OS} >> $NEWCONFIG
-if test $? -ne 0; then
-    exit 1
-fi
-
-edit_dpdk_config CONFIG_RTE_BUILD_SHARED_LIB=y $NEWCONFIG
-edit_dpdk_config CONFIG_RTE_BUILD_SHARED_LIB=y $NEWCONFIG
 edit_dpdk_config CONFIG_RTE_BUILD_COMBINE_LIBS=y $NEWCONFIG
+edit_dpdk_config CONFIG_RTE_BUILD_SHARED_LIB=y $NEWCONFIG
 #edit_dpdk_config CONFIG_RTE_PCI_EXTENDED_TAGS=on $NEWCONFIG
 #edit_dpdk_config CONFIG_RTE_LIBRTE_PMD_QAT=y $NEWCONFIG
 #edit_dpdk_config CONFIG_RTE_LIBRTE_PMD_AESNI_MB=y $NEWCONFIG
+edit_dpdk_config CONFIG_RTE_IXGBE_INC_VECTOR=n $NEWCONFIG
 edit_dpdk_config CONFIG_RTE_LIBRTE_PMD_PCAP=n $NEWCONFIG
+edit_dpdk_config CONFIG_RTE_LIBRTE_PMD_VHOST=n $NEWCONFIG
+edit_dpdk_config CONFIG_RTE_LIBRTE_PMD_NULL_CRYPTO=n $NEWCONFIG
+edit_dpdk_config CONFIG_RTE_LIBRTE_PMD_BOND=n $NEWCONFIG
 edit_dpdk_config CONFIG_RTE_APP_TEST=n $NEWCONFIG
 edit_dpdk_config CONFIG_RTE_TEST_PMD=n $NEWCONFIG
-edit_dpdk_config CONFIG_RTE_IXGBE_INC_VECTOR=n $NEWCONFIG
 
-${MAKE} T=${NEW_TARGET} config && ${MAKE} && \
-    RTE_SDK="${TOPDIR}/${DPDKDIR}" \
-    RTE_TARGET=build \
-    RTE_OUTPUT=build \
-    BUILDDIR=build \
-    ${MAKE} -f ./lib/Makefile sharelib
+${MAKE} T=${NEW_TARGET} config && ${MAKE} ROOTDIRS-y="lib drivers"

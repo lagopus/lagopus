@@ -260,29 +260,35 @@ dpdk_dataplane_init(int argc, const char *const argv[]) {
   int ret;
   size_t argsize;
   char **copy_argv;
-  int i;
+  int i, n;
 
-  argsize = sizeof(char *) * (argc + 1);
+  argsize = sizeof(char *) * (argc + 2 + 1);
   copy_argv = malloc(argsize);
   if (copy_argv == NULL) {
     return LAGOPUS_RESULT_NO_MEMORY;
   }
   copy_argv[0] = argv[0];
+  /* lagopus global-opt -- dpdk-opt -- dataplane-opt */
   for (i = 1; i < argc; i++) {
     if (!strcmp(argv[i], "--")) {
-      memcpy(&copy_argv[1], &argv[i + 1], sizeof(char *) * (argc - i - 1));
       break;
     }
   }
   if (i == argc) {
-    /* "--" is not found in argv */
+    /* "--" is not found in argv, only global-opt */
     memcpy(copy_argv, argv, argsize);
     rawsocket_only_mode = true;
     rte_openlog_stream(stdout);
   } else {
-    argc -= i;
+    for (n = 1, i++; i < argc; i++) {
+      if (!strcmp(argv[i], "--")) {
+        copy_argv[n++] = "-d";
+        copy_argv[n++] = PMDDIR;
+      }
+      copy_argv[n++] = argv[i];
+    }
+    argc = n;
     optind = 1;
-
     /* init EAL */
     ret = rte_eal_init(argc, copy_argv);
     if (ret < 0) {

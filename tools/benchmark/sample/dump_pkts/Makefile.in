@@ -1,7 +1,10 @@
 TOPDIR		= @TOPDIR@
 MKRULESDIR	= @MKRULESDIR@
 
-DIRS	=	@UNITY_SRC_DIR@ benchmark
+SRCS	= dump_pkts.c
+
+TARGETS	= dump_pkts.lo
 
 include $(MKRULESDIR)/vars.mk
 include $(MKRULESDIR)/rules.mk
+include .depend
