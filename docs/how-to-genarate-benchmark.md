@@ -1,6 +1,6 @@
 <!-- -*- mode: markdown -*- -->
 
-How to genarate benchmark test
+How to generate benchmark test
 ==============================
 
 Introduction
@@ -10,14 +10,14 @@ You must write a function of the benchmark target in advance.
 
 Features of tools
 ----------------------
-1. Genarate benchmark tests from parameter file(YAML).
+1. Generate benchmark tests from parameter file(YAML).
 2. Measure the throughput(min, max, avg), nsec/packet(min, max, avg).
 3. Specify the number of measuring times, and batch size.
 4. Specify the packet capture file.
 
 TODO
 ----
-1. Measure the cache miss, etc. (useing PAPI)
+1. Measure the cache miss, etc. (using PAPI)
 2. Incorporate pipelines.
 
 Samples
@@ -33,7 +33,7 @@ There is a sample in the following directory.
 * That contains the function of benchmark target in the following files
   `<LAGOPUS>/tools/benchmark/sample/dump_pkts/dump_pkts.[ch]`
 
-How to genarate benchmark
+How to generate benchmark
 ---------------------------
 ## Recommended
 * Ubuntu 16.04
@@ -110,7 +110,7 @@ benchmarks:
     pcap: icmp.pcap
 ```
 
-## 5. Genarate benchmark files
+## 5. Generate benchmark files
 This tool (`benchmark_generator.py`) generates Makefile,
 Makefile.in, *.c, *.h files from `<BENCHMARK_PARAMETER_FILE>`.
 
