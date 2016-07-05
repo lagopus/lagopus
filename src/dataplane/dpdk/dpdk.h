@@ -400,6 +400,23 @@ extern struct app_params app;
 
 extern rte_atomic32_t dpdk_stop;
 
+struct interface;
+extern struct interface *ifp_table[];
+
+/**
+ * Find interface pointer from DPDK port id.
+ *
+ * @param[in]   portid  DPDK port id.
+ *
+ * @retval      !=NULL  Pointer of interface.
+ * @retval      ==NULL  interface is not assigned.
+ */
+static inline struct interface *
+dpdk_interface_lookup(uint8_t portid) {
+  return ifp_table[portid];
+}
+
+
 int app_parse_args(int argc, const char *argv[]);
 void app_init(void);
 void app_assign_worker_ids(void);

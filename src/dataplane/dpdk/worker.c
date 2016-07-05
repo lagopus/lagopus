@@ -185,9 +185,12 @@ app_lcore_worker(struct app_lcore_params_worker *lp,
           ifp->port->bridge == NULL ||
           (ifp->port->ofp_port.config & OFPPC_NO_RECV) != 0) {
         /* drop m */
-        rte_pktmbuf_free(m);
-        lp->mbuf_in.array[j] = NULL;
-        continue;
+        for (; j < ret; j++) {
+          m = lp->mbuf_in.array[j];
+          rte_pktmbuf_free(m);
+        }
+        ret = 0;
+        break;
       }
       /*
        * If OpenFlow connection is lost, switch mode is changed.
@@ -217,9 +220,6 @@ app_lcore_worker(struct app_lcore_params_worker *lp,
       struct rte_mbuf *m;
 
       m = lp->mbuf_in.array[j];
-      if (m == NULL) {
-        continue;
-      }
       if (likely(j < ret - 1)) {
         APP_WORKER_PREFETCH1(rte_pktmbuf_mtod(lp->mbuf_in.array[j+1],
                                               unsigned char *));

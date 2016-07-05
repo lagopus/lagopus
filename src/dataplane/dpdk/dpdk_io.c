@@ -237,11 +237,6 @@ dpdk_interface_unset_index(struct interface *ifp) {
   ifp_table[ifp->info.eth_dpdk_phy.port_number] = NULL;
 }
 
-struct interface *
-dpdk_interface_lookup(uint8_t portid) {
-  return ifp_table[portid];
-}
-
 static inline int
 dpdk_interface_queue_id_to_index(struct interface *ifp, uint32_t queue_id) {
   int i;
@@ -978,7 +973,7 @@ dpdk_get_detachable_portid_by_name(const char *name) {
 out:
   return portid;
 }
-#endif
+#endif /* RTE_VERSION_NUM */
 
 static void
 dpdk_intr_event_callback(uint8_t portid, enum rte_eth_event_type type,
@@ -1033,7 +1028,7 @@ dpdk_configure_interface(struct interface *ifp) {
     /* whenever 'device' is specified, overwrite portid by actual portid. */
     ifp->info.eth.port_number = (uint32_t)actual_portid;
   }
-#endif
+#endif /* RTE_VERSION_NUM */
   portid = (uint8_t)ifp->info.eth.port_number;
 
   n_rx_queues = app_get_nic_rx_queues_per_port(portid);
@@ -1182,7 +1177,7 @@ dpdk_unconfigure_interface(struct interface *ifp) {
     /* whenever 'device' is specified, overwrite portid by actual portid. */
     ifp->info.eth.port_number = (uint32_t)actual_portid;
   }
-#endif
+#endif /* RTE_VERSION_NUM */
   portid = (uint8_t)ifp->info.eth.port_number;
 
   dpdk_stop_interface(portid);
@@ -1212,7 +1207,7 @@ dpdk_unconfigure_interface(struct interface *ifp) {
     rte_eth_dev_close(portid);
     rte_eth_dev_detach(portid, detached_devname);
   }
-#endif
+#endif /* RTE_VERSION_NUM */
   dpdk_interface_unset_index(ifp);
   return LAGOPUS_RESULT_OK;
 }
