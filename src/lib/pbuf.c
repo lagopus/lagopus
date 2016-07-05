@@ -570,24 +570,6 @@ pbuf_list_first(struct pbuf_list *pbuf_list) {
   return TAILQ_FIRST(&pbuf_list->tailq);
 }
 
-/* Return first pbuf in pbuf_list. */
-struct pbuf *
-pbuf_list_last(struct pbuf_list *pbuf_list) {
-  struct pbuf *pbuf;
-
-  pbuf = TAILQ_LAST(&pbuf_list->tailq, pbuf_tailq);
-
-  if (pbuf == NULL || pbuf->putp == (pbuf->data + pbuf->size)) {
-    pbuf = pbuf_alloc(PBUF_MIN_SIZE);
-    if (pbuf == NULL) {
-      return NULL;
-    }
-    pbuf_list_add(pbuf_list, pbuf);
-  }
-
-  return pbuf;
-}
-
 /* Add the buffer to pbuf list. */
 void
 pbuf_list_add(struct pbuf_list *pbuf_list, struct pbuf *pbuf) {

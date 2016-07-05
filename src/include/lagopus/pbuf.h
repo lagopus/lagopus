@@ -222,9 +222,6 @@ pbuf_list_session_write(struct pbuf_list *pbuf_list,
 struct pbuf *
 pbuf_list_first(struct pbuf_list *pbuf_list);
 
-struct pbuf *
-pbuf_list_last(struct pbuf_list *pbuf_list);
-
 void
 pbuf_list_add(struct pbuf_list *pbuf_list, struct pbuf *pbuf);
 
