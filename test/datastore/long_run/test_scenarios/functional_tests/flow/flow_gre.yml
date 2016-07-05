@@ -37,10 +37,10 @@ testcases:
           - cmd_type: ds
             cmd: >-
                flow bridge01 add
-               gre_flags=1/0x2
+               gre_flags=1/0x1
                gre_ver=3
                gre_protocol=4
-               gre_key=5/0x6
+               gre_key=1/0x1
                gre_seqnum=7
             result: '{"ret":"OK"}'
           # dump flow
@@ -54,10 +54,10 @@ testcases:
               "idle_timeout":0,
               "hard_timeout":0,
               "cookie":0,
-              "gre_flags":"1\/0x02",
+              "gre_flags":"1\/0x01",
               "gre_ver":3,
               "gre_protocol":4,
-              "gre_key":"5\/0x00000006",
+              "gre_key":"1\/0x00000001",
               "gre_seqnum":7,
               "actions":[]}]}]}]}
   - testcase: gre (set_field)

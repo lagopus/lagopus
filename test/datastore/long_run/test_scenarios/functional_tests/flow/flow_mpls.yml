@@ -37,12 +37,12 @@ testcases:
           - cmd_type: ds
             cmd: >-
                flow bridge01 add
-               mpls_data_first_nibble=1/0x2
+               mpls_data_first_nibble=1/0x1
                mpls_ach_version=3
-               mpls_ach_channel=4/0x5
+               mpls_ach_channel=1/0x1
                mpls_pw_metadata=1/1
-               mpls_cw_flags=6/0x7
-               mpls_cw_frag=1/0x3
+               mpls_cw_flags=1/0x1
+               mpls_cw_frag=1/0x1
                mpls_cw_len=8
                mpls_cw_seq_num=9
             result: '{"ret":"OK"}'
@@ -57,12 +57,12 @@ testcases:
               "idle_timeout":0,
               "hard_timeout":0,
               "cookie":0,
-              "mpls_data_first_nibble":"1\/0x02",
+              "mpls_data_first_nibble":"1\/0x01",
               "mpls_ach_version":3,
-              "mpls_ach_channel":"4\/0x05",
+              "mpls_ach_channel":"1\/0x01",
               "mpls_pw_metadata":"1\/0x01",
-              "mpls_cw_flags":"6\/0x07",
-              "mpls_cw_frag":"1\/0x03",
+              "mpls_cw_flags":"1\/0x01",
+              "mpls_cw_frag":"1\/0x01",
               "mpls_cw_len":8,
               "mpls_cw_seq_num":9,
               "actions":[]}]}]}]}
