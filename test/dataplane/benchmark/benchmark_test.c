@@ -422,10 +422,10 @@ build_packet(uint32_t in_port, int packet_length) {
   TEST_ASSERT_NOT_NULL(pkt);
   pkt->table_id = 0;
   pkt->cache = NULL;
-  OS_M_APPEND(pkt->mbuf, packet_length);
+  OS_M_APPEND(PKT2MBUF(pkt), packet_length);
   port = port_lookup(&bridge->ports, in_port);
   TEST_ASSERT_NOT_NULL(port);
-  lagopus_packet_init(pkt, pkt->mbuf, port);
+  lagopus_packet_init(pkt, PKT2MBUF(pkt), port);
 
   return pkt;
 }
@@ -441,8 +441,8 @@ build_mpls_packet(uint32_t in_port, uint32_t mpls_label) {
   TEST_ASSERT_NOT_NULL(pkt);
   pkt->table_id = 0;
   pkt->cache = NULL;
-  OS_M_APPEND(pkt->mbuf, packet_length);
-  p = OS_MTOD(pkt->mbuf, uint8_t *);
+  OS_M_APPEND(PKT2MBUF(pkt), packet_length);
+  p = OS_MTOD(PKT2MBUF(pkt), uint8_t *);
   p[12] = (ETHERTYPE_MPLS >> 8) & 0xff;
   p[13] = ETHERTYPE_MPLS & 0xff;
   p[14] = (mpls_label >> 12) & 0xff;
@@ -453,7 +453,7 @@ build_mpls_packet(uint32_t in_port, uint32_t mpls_label) {
   p[18] = 0x00;
   port = port_lookup(&bridge->ports, in_port);
   TEST_ASSERT_NOT_NULL(port);
-  lagopus_packet_init(pkt, pkt->mbuf, port);
+  lagopus_packet_init(pkt, PKT2MBUF(pkt), port);
 
   return pkt;
 }
@@ -470,8 +470,8 @@ build_ip_packet(uint32_t in_port, uint32_t ipsrc, uint32_t ipdst,
   TEST_ASSERT_NOT_NULL(pkt);
   pkt->table_id = 0;
   pkt->cache = NULL;
-  OS_M_APPEND(pkt->mbuf, packet_length);
-  p = OS_MTOD(pkt->mbuf, uint8_t *);
+  OS_M_APPEND(PKT2MBUF(pkt), packet_length);
+  p = OS_MTOD(PKT2MBUF(pkt), uint8_t *);
   p[12] = (ETHERTYPE_IP >> 8) & 0xff;
   p[13] = ETHERTYPE_IP & 0xff;
   p[14] = 0x45;
@@ -486,7 +486,7 @@ build_ip_packet(uint32_t in_port, uint32_t ipsrc, uint32_t ipdst,
   p[33] = ipdst & 0xff;
   port = port_lookup(&bridge->ports, in_port);
   TEST_ASSERT_NOT_NULL(port);
-  lagopus_packet_init(pkt, pkt->mbuf, port);
+  lagopus_packet_init(pkt, PKT2MBUF(pkt), port);
 
   return pkt;
 }

@@ -315,7 +315,7 @@ rawsock_send_packet_physical(struct lagopus_packet *pkt, uint32_t portid) {
     OS_MBUF *m;
     size_t plen;
 
-    m = pkt->mbuf;
+    m = PKT2MBUF(pkt);
     plen = OS_M_PKTLEN(m);
     if (plen < 60) {
       memset(OS_M_APPEND(m, 60 - plen), 0, (uint32_t)(60 - plen));
@@ -453,8 +453,8 @@ dp_bpf_thread_loop(__UNUSED const lagopus_thread_t *selfptr, void *arg) {
           }
 #endif /* HAVE_DPDK */
         /* not enough? */
-          (void)OS_M_APPEND(pkt->mbuf, MAX_PACKET_SZ);
-          len = read_packet(i, OS_MTOD(pkt->mbuf, uint8_t *), MAX_PACKET_SZ);
+          (void)OS_M_APPEND(PKT2MBUF(pkt), MAX_PACKET_SZ);
+          len = read_packet(i, OS_MTOD(PKT2MBUF(pkt), uint8_t *), MAX_PACKET_SZ);
           if (len < 0) {
             switch (errno) {
               case ENETDOWN:
@@ -467,7 +467,7 @@ dp_bpf_thread_loop(__UNUSED const lagopus_thread_t *selfptr, void *arg) {
 
               default:
                 lagopus_exit_fatal("read_packet(%d, %p, %d): %s",
-                                   pollfd[i].fd, OS_MTOD(pkt->mbuf, uint8_t *),
+                                   pollfd[i].fd, OS_MTOD(PKT2MBUF(pkt), uint8_t *),
                                    MAX_PACKET_SZ, strerror(errno));
             }
           } else if (len == 0) {
@@ -478,14 +478,14 @@ dp_bpf_thread_loop(__UNUSED const lagopus_thread_t *selfptr, void *arg) {
             lagopus_packet_free(pkt);
             break;
           }
-          OS_M_TRIM(pkt->mbuf, MAX_PACKET_SZ - len);
-          lagopus_packet_init(pkt, pkt->mbuf, port);
+          OS_M_TRIM(PKT2MBUF(pkt), MAX_PACKET_SZ - len);
+          lagopus_packet_init(pkt, PKT2MBUF(pkt), port);
           flowdb_switch_mode_get(port->bridge->flowdb, &switch_mode);
           if (
 #ifdef HYBRID
-              !memcmp(OS_MTOD(pkt->mbuf, uint8_t *),
+              !memcmp(OS_MTOD(PKT2MBUF(pkt), uint8_t *),
                       port->interface->hw_addr, ETHER_ADDR_LEN) ||
-              !memcmp(OS_MTOD(pkt->mbuf, uint8_t *),
+              !memcmp(OS_MTOD(PKT2MBUF(pkt), uint8_t *),
                       eth_bcast, ETHER_ADDR_LEN) ||
 #endif /* HYBRID */
               switch_mode == SWITCH_MODE_STANDALONE) {

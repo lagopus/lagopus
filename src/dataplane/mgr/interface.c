@@ -259,12 +259,12 @@ interface_l2_switching(struct lagopus_packet *pkt,
   dst = pkt->eth->ether_dhost;
 
   /* dst is self mac */
-  if (!memcmp(OS_MTOD(pkt->mbuf, uint8_t *), ifp->hw_addr, ETHER_ADDR_LEN)) {
+  if (!memcmp(OS_MTOD(PKT2MBUF(pkt), uint8_t *), ifp->hw_addr, ETHER_ADDR_LEN)) {
     return dp_interface_send_packet_kernel(pkt, ifp);
   }
   /* dst is broadcast or multicast */
   if ((dst[0] & 0x01) == 0x01) {
-    OS_M_ADDREF(pkt->mbuf);
+    OS_M_ADDREF(PKT2MBUF(pkt));
     dp_interface_send_packet_kernel(pkt, ifp);
   }
 

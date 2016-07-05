@@ -216,11 +216,13 @@ enum {
  */
 #define LAGOPUS_DP_PIPELINE_MAX 254
 
+#define MBUF2PKT(m) ((struct lagopus_packet *)&(m)[1])
+#define PKT2MBUF(p) (&((OS_MBUF *)(p))[-1])
+
 /**
  * lagopus packet structure
  */
 struct lagopus_packet {
-  OS_MBUF *mbuf;
   union {
     uint64_t hash64;
     struct {

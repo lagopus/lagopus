@@ -88,7 +88,7 @@ test_action_OUTPUT(void) {
 
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
 
   lagopus_packet_init(pkt, m, port_lookup(&bridge->ports, 1));
   TEST_ASSERT_NOT_NULL(pkt->in_port);
@@ -177,7 +177,7 @@ test_lagopus_match_and_action(void) {
 
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
   m->refcnt = 2;
 
   port = port_lookup(&bridge->ports, 1);

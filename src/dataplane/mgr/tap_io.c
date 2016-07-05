@@ -247,7 +247,7 @@ dp_tap_stop_interface(const char *name) {
 lagopus_result_t
 dp_tap_interface_send_packet(struct dp_tap_interface *tap,
                              struct lagopus_packet *pkt) {
-  write(tap->fd, OS_MTOD(pkt->mbuf, uint8_t *), OS_M_PKTLEN(pkt->mbuf));
+  write(tap->fd, OS_MTOD(PKT2MBUF(pkt), uint8_t *), OS_M_PKTLEN(PKT2MBUF(pkt)));
   lagopus_packet_free(pkt);
   return LAGOPUS_RESULT_OK;
 }
@@ -255,7 +255,7 @@ dp_tap_interface_send_packet(struct dp_tap_interface *tap,
 ssize_t
 dp_tap_interface_recv_packet(struct dp_tap_interface *tap,
                              struct lagopus_packet *pkt) {
-  return read(tap->fd, OS_MTOD(pkt->mbuf, uint8_t *), MAX_PACKET_SZ);
+  return read(tap->fd, OS_MTOD(PKT2MBUF(pkt), uint8_t *), MAX_PACKET_SZ);
 }
 
 #ifdef HYBRID
@@ -300,7 +300,7 @@ dp_tapio_thread_loop(__UNUSED const lagopus_thread_t *selfptr,
           }
           tap = tap_ifp[i];
           pkt = alloc_lagopus_packet();
-          (void)OS_M_APPEND(pkt->mbuf, MAX_PACKET_SZ);
+          (void)OS_M_APPEND(PKT2MBUF(pkt), MAX_PACKET_SZ);
           len = dp_tap_interface_recv_packet(tap, pkt);
           if (len < 0) {
             switch (errno) {
@@ -315,8 +315,8 @@ dp_tapio_thread_loop(__UNUSED const lagopus_thread_t *selfptr,
                 lagopus_exit_fatal("read: %d", errno);
             }
           }
-          OS_M_TRIM(pkt->mbuf, MAX_PACKET_SZ - len);
-          lagopus_packet_init(pkt, pkt->mbuf, tap->ifp->port);
+          OS_M_TRIM(PKT2MBUF(pkt), MAX_PACKET_SZ - len);
+          lagopus_packet_init(pkt, PKT2MBUF(pkt), tap->ifp->port);
           /* passthrough to real interface */
           lagopus_send_packet_physical(pkt, tap->ifp);
         }

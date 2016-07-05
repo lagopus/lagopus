@@ -173,8 +173,7 @@ app_lcore_worker(struct app_lcore_params_worker *lp,
         APP_WORKER_PREFETCH0(lp->mbuf_in.array[j+2]);
       }
       m = lp->mbuf_in.array[j];
-      pkt = (struct lagopus_packet *)
-            (m->buf_addr + APP_DEFAULT_MBUF_LOCALDATA_OFFSET);
+      pkt = MBUF2PKT(m);
 #ifdef RTE_MBUF_HAS_PKT
       ifp = dpdk_interface_lookup(m->pkt.in_port);
 #else
@@ -220,6 +219,9 @@ app_lcore_worker(struct app_lcore_params_worker *lp,
       struct rte_mbuf *m;
 
       m = lp->mbuf_in.array[j];
+      if (unlikely(m == NULL)) {
+        continue;
+      }
       if (likely(j < ret - 1)) {
         APP_WORKER_PREFETCH1(rte_pktmbuf_mtod(lp->mbuf_in.array[j+1],
                                               unsigned char *));
@@ -227,8 +229,7 @@ app_lcore_worker(struct app_lcore_params_worker *lp,
       if (likely(j < ret - 2)) {
         APP_WORKER_PREFETCH0(lp->mbuf_in.array[j+2]);
       }
-      pkt = (struct lagopus_packet *)
-            (m->buf_addr + APP_DEFAULT_MBUF_LOCALDATA_OFFSET);
+      pkt = MBUF2PKT(m);
       APP_WORKER_PREFETCH0(pkt);
       pkt->cache = lp->cache;
       lagopus_match_and_action(pkt);
@@ -432,7 +433,7 @@ dpdk_send_packet_physical(struct lagopus_packet *pkt, struct interface *ifp) {
   }
   lp = &app.lcore_params[lcore].worker;
 
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
   plen = OS_M_PKTLEN(m);
   if (plen < 60) {
     memset(OS_M_APPEND(m, 60 - plen), 0, (uint32_t)(60 - plen));

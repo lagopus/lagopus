@@ -43,7 +43,7 @@ test_classify_packet_IPV4_TCP(void) {
   /* prepare packet */
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
   OS_M_PKTLEN(m) = 128;
 
   OS_MTOD(m, uint8_t *)[12] = 0x08;
@@ -84,7 +84,7 @@ test_classify_packet_IPV4_UDP(void) {
   /* prepare packet */
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
   OS_M_PKTLEN(m) = 128;
 
   OS_MTOD(m, uint8_t *)[12] = 0x08;
@@ -107,7 +107,6 @@ test_classify_packet_IPV4_UDP(void) {
   OS_MTOD(m, uint8_t *)[18] = 0x45;
   OS_MTOD(m, uint8_t *)[27] = IPPROTO_UDP;
 
-  pkt->mbuf = (OS_MBUF *)m;
   classify_ether_packet(pkt);
   TEST_ASSERT_EQUAL_MESSAGE(pkt->ether_type, ETHERTYPE_IP,
                             "ether_type(vlan) error.");
@@ -126,7 +125,7 @@ test_classify_packet_IPV4_SCTP(void) {
   /* prepare packet */
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
   OS_M_PKTLEN(m) = 128;
 
   OS_MTOD(m, uint8_t *)[12] = 0x08;
@@ -149,7 +148,6 @@ test_classify_packet_IPV4_SCTP(void) {
   OS_MTOD(m, uint8_t *)[18] = 0x45;
   OS_MTOD(m, uint8_t *)[27] = IPPROTO_SCTP;
 
-  pkt->mbuf = (OS_MBUF *)m;
   classify_ether_packet(pkt);
   TEST_ASSERT_EQUAL_MESSAGE(pkt->ether_type, ETHERTYPE_IP,
                             "ether_type(vlan) error.");
@@ -168,7 +166,7 @@ test_classify_packet_IPV4_ICMP(void) {
   /* prepare packet */
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
   OS_M_PKTLEN(m) = 128;
 
   OS_MTOD(m, uint8_t *)[12] = 0x08;
@@ -191,7 +189,6 @@ test_classify_packet_IPV4_ICMP(void) {
   OS_MTOD(m, uint8_t *)[18] = 0x45;
   OS_MTOD(m, uint8_t *)[27] = IPPROTO_ICMP;
 
-  pkt->mbuf = (OS_MBUF *)m;
   classify_ether_packet(pkt);
   TEST_ASSERT_EQUAL_MESSAGE(pkt->ether_type, ETHERTYPE_IP,
                             "ether_type(vlan) error.");
@@ -209,7 +206,7 @@ test_classify_packet_IPV4_other(void) {
 
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
   OS_M_PKTLEN(m) = 128;
 
   OS_MTOD(m, uint8_t *)[12] = 0x08;
@@ -228,7 +225,6 @@ test_classify_packet_IPV4_other(void) {
   OS_MTOD(m, uint8_t *)[18] = 0x45;
   OS_MTOD(m, uint8_t *)[27] = IPPROTO_RSVP;
 
-  pkt->mbuf = (OS_MBUF *)m;
   classify_ether_packet(pkt);
   TEST_ASSERT_EQUAL_MESSAGE(pkt->ether_type, ETHERTYPE_IP,
                             "ether_type(vlan) error.");
@@ -242,7 +238,7 @@ test_classify_packet_ARP(void) {
 
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
   OS_M_PKTLEN(m) = 128;
 
   OS_MTOD(m, uint8_t *)[12] = 0x08;
@@ -257,7 +253,6 @@ test_classify_packet_ARP(void) {
   OS_MTOD(m, uint8_t *)[16] = 0x08;
   OS_MTOD(m, uint8_t *)[17] = 0x06;
 
-  pkt->mbuf = (OS_MBUF *)m;
   classify_ether_packet(pkt);
   TEST_ASSERT_EQUAL_MESSAGE(pkt->ether_type, ETHERTYPE_ARP,
                             "ether_type(vlan) error.");
@@ -271,7 +266,7 @@ test_classify_packet_IPV6_TCP(void) {
 
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
   OS_M_APPEND(m, 64);
 
   OS_MTOD(m, uint8_t *)[12] = 0x86;
@@ -314,7 +309,7 @@ test_classify_packet_IPV6_UDP(void) {
 
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
   OS_M_APPEND(m, 64);
 
   OS_MTOD(m, uint8_t *)[12] = 0x86;
@@ -357,7 +352,7 @@ test_classify_packet_IPV6_SCTP(void) {
 
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
   OS_M_APPEND(m, 64);
 
   OS_MTOD(m, uint8_t *)[12] = 0x86;
@@ -400,7 +395,7 @@ test_classify_packet_IPV6_ICMPV6(void) {
 
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
   OS_M_APPEND(m, 64);
 
   OS_MTOD(m, uint8_t *)[12] = 0x86;
@@ -443,7 +438,7 @@ test_classify_packet_IPV6_other(void) {
 
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
   OS_M_APPEND(m, 64);
 
   OS_MTOD(m, uint8_t *)[12] = 0x86;
@@ -486,7 +481,7 @@ test_classify_packet_MPLS(void) {
 
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
   OS_M_PKTLEN(m) = 128;
 
   OS_MTOD(m, uint8_t *)[12] = 0x88;
@@ -501,7 +496,6 @@ test_classify_packet_MPLS(void) {
   OS_MTOD(m, uint8_t *)[16] = 0x88;
   OS_MTOD(m, uint8_t *)[17] = 0x47;
 
-  pkt->mbuf = (OS_MBUF *)m;
   classify_ether_packet(pkt);
   TEST_ASSERT_EQUAL_MESSAGE(pkt->ether_type, ETHERTYPE_MPLS,
                             "ether_type(vlan) error.");
@@ -515,7 +509,7 @@ test_classify_packet_MPLSMC(void) {
 
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
   OS_M_PKTLEN(m) = 128;
 
   OS_MTOD(m, uint8_t *)[12] = 0x88;
@@ -530,7 +524,6 @@ test_classify_packet_MPLSMC(void) {
   OS_MTOD(m, uint8_t *)[16] = 0x88;
   OS_MTOD(m, uint8_t *)[17] = 0x48;
 
-  pkt->mbuf = (OS_MBUF *)m;
   classify_ether_packet(pkt);
   TEST_ASSERT_EQUAL_MESSAGE(pkt->ether_type, ETHERTYPE_MPLS_MCAST,
                             "ether_type(vlan) error.");
@@ -544,7 +537,7 @@ test_classify_packet_PBB(void) {
 
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
   OS_M_PKTLEN(m) = 128;
 
 #ifdef PBB_IS_VLAN
@@ -564,7 +557,6 @@ test_classify_packet_PBB(void) {
   OS_MTOD(m, uint8_t *)[34] = 0x08;
   OS_MTOD(m, uint8_t *)[35] = 0x00;
 
-  pkt->mbuf = (OS_MBUF *)m;
   classify_ether_packet(pkt);
   TEST_ASSERT_EQUAL_MESSAGE(pkt->ether_type, ETHERTYPE_IP,
                             "ether_type(vlan) error.");
@@ -581,7 +573,6 @@ test_classify_packet_PBB(void) {
   OS_MTOD(m, uint8_t *)[16] = 0x88;
   OS_MTOD(m, uint8_t *)[17] = 0xe7;
 
-  pkt->mbuf = (OS_MBUF *)m;
   classify_ether_packet(pkt);
   TEST_ASSERT_EQUAL_MESSAGE(pkt->ether_type, ETHERTYPE_PBB,
                             "ether_type(vlan) error.");

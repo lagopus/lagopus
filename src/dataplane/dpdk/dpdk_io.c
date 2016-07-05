@@ -538,8 +538,7 @@ app_lcore_io_tx(struct app_lcore_params_io *lp,
 
         for (i = 0; i < n_mbufs; i++) {
           m = lp->tx.mbuf_out[port].array[i];
-          pkt = (struct lagopus_packet *)
-                (m->buf_addr + APP_DEFAULT_MBUF_LOCALDATA_OFFSET);
+          pkt = MBUF2PKT(m);
           if (unlikely(pkt->queue_id != 0)) {
             qidx = dpdk_interface_queue_id_to_index(ifp, pkt->queue_id);
             color = rte_meter_trtcm_color_blind_check(&ifp->ifqueue.meters[qidx],
@@ -741,16 +740,14 @@ app_init_mbuf_pools(void) {
 
     snprintf(name, sizeof(name), "mbuf_pool_%u", socket);
     lagopus_dprint("Creating the mbuf pool for socket %u ...\n", socket);
-    app.pools[socket] = rte_mempool_create(
+    app.pools[socket] = rte_pktmbuf_pool_create(
                           name,
                           APP_DEFAULT_MEMPOOL_BUFFERS,
-                          APP_DEFAULT_MBUF_SIZE,
                           APP_DEFAULT_MEMPOOL_CACHE_SIZE,
-                          sizeof(struct rte_pktmbuf_pool_private),
-                          rte_pktmbuf_pool_init, NULL,
-                          rte_pktmbuf_init, NULL,
-                          (int)socket,
-                          0);
+                          DP_MBUF_ROUNDUP(sizeof(struct lagopus_packet),
+                                          RTE_MBUF_PRIV_ALIGN),
+                          RTE_PKTMBUF_HEADROOM + MAX_PACKET_SZ,
+                          (int)socket);
     if (app.pools[socket] == NULL) {
       rte_panic("Cannot create mbuf pool on socket %u\n", socket);
     }
@@ -1469,10 +1466,10 @@ lagopus_is_portid_enabled(int portid) {
 void
 lagopus_packet_free(struct lagopus_packet *pkt) {
   if (is_rawsocket_only_mode() != true) {
-    rte_pktmbuf_free(pkt->mbuf);
+    rte_pktmbuf_free(PKT2MBUF(pkt));
   } else {
-    if (rte_mbuf_refcnt_update(pkt->mbuf, -1) == 0) {
-      free(pkt->mbuf);
+    if (rte_mbuf_refcnt_update(PKT2MBUF(pkt), -1) == 0) {
+      free(PKT2MBUF(pkt));
     }
   }
 }

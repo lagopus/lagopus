@@ -247,6 +247,8 @@
 #error "APP_DEFAULT_BURST_SIZE_WORKER_WRITE is too big"
 #endif
 
+#define DP_MBUF_ROUNDUP(a, b) (((a) + (b) - 1) & ~((b) - 1))
+
 #define CORE_ASSIGN_PERFORMANCE 0 /* default */
 #define CORE_ASSIGN_BALANCE     1
 #define CORE_ASSIGN_MINIMUM     2

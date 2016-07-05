@@ -134,7 +134,7 @@ match_basic(const struct lagopus_packet *pkt, struct flow *flow) {
     flow->packet_count++;
   }
   if ((flow->flags & OFPFF_NO_BYT_COUNTS) == 0) {
-    flow->byte_count += OS_M_PKTLEN(pkt->mbuf);
+    flow->byte_count += OS_M_PKTLEN(PKT2MBUF(pkt));
   }
 
   return true;
