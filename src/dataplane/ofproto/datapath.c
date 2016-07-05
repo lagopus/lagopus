@@ -1697,9 +1697,10 @@ lagopus_do_send_iterate(void *key, void *val,
 }
 
 
-void
-lagopus_forward_packet_to_port(struct lagopus_packet *pkt,
-                               uint32_t out_port) {
+static void
+dp_interface_tx_packet(struct lagopus_packet *pkt,
+                       uint32_t out_port,
+                       uint64_t cookie) {
   struct port *port;
   uint32_t in_port;
 
@@ -1751,9 +1752,16 @@ lagopus_forward_packet_to_port(struct lagopus_packet *pkt,
       /* required: send packet-in message with OFPR_ACTION to controller */
       /* XXX max_len from config */
       DP_PRINT("OFPP_CONTROLLER\n");
-      if ((pkt->in_port->ofp_port.config & OFPPC_NO_PACKET_IN) == 0) {
-        send_packet_in(pkt, OS_M_PKTLEN(pkt->mbuf), OFPR_ACTION,
-                       OFPCML_NO_BUFFER, 0);
+      if ((pkt->bridge->controller_port.config & OFPPC_NO_PACKET_IN) == 0) {
+        uint8_t reason;
+
+        if (pkt->flow != NULL && pkt->flow->priority == 0) {
+          reason = OFPR_NO_MATCH;
+        } else {
+          reason = OFPR_ACTION;
+        }
+        send_packet_in(pkt, OS_M_PKTLEN(pkt->mbuf), reason,
+                       OFPCML_NO_BUFFER, cookie);
       }
       lagopus_packet_free(pkt);
       break;
@@ -1783,6 +1791,12 @@ lagopus_forward_packet_to_port(struct lagopus_packet *pkt,
   }
 }
 
+void
+lagopus_forward_packet_to_port(struct lagopus_packet *pkt,
+                               uint32_t out_port) {
+  dp_interface_tx_packet(pkt, out_port, 0);
+}
+
 /**
  * Output action.
  * If last action is this, free packet.
@@ -1798,44 +1812,19 @@ execute_action_output(struct lagopus_packet *pkt,
   /* required action */
   port = ((struct ofp_action_output *)&action->ofpat)->port;
   DP_PRINT("action output: %d\n", port);
-  if (likely(port != OFPP_CONTROLLER)) {
-    if (unlikely(action->flags == OUTPUT_COPIED_PACKET)) {
-      /* send copied packet */
-      lagopus_forward_packet_to_port(copy_packet(pkt), port);
-      rv = LAGOPUS_RESULT_OK;
-    } else {
-      if ((pkt->flags & PKT_FLAG_CACHED_FLOW) == 0 && pkt->cache != NULL &&
-          pkt->hash64 != 0) {
-        /* register crc and flows to cache. */
-        register_cache(pkt->cache, pkt->hash64,
-                       pkt->nmatched, pkt->matched_flow);
-      }
-      lagopus_forward_packet_to_port(pkt, port);
-      rv = LAGOPUS_RESULT_NO_MORE_ACTION;
-    }
+  if (unlikely(action->flags == OUTPUT_COPIED_PACKET)) {
+    /* send copied packet */
+    dp_interface_tx_packet(copy_packet(pkt), port, action->cookie);
+    rv = LAGOPUS_RESULT_OK;
   } else {
-    struct bridge *bridge;
-
-    bridge = pkt->bridge;
-    if ((bridge->controller_port.config & OFPPC_NO_PACKET_IN) == 0) {
-      uint8_t reason;
-
-      if (pkt->flow != NULL && pkt->flow->priority == 0) {
-        reason = OFPR_NO_MATCH;
-      } else {
-        reason = OFPR_ACTION;
-      }
-      send_packet_in(pkt, OS_M_PKTLEN(pkt->mbuf), reason,
-                     OFPCML_NO_BUFFER, action->cookie);
-      if (likely(action->flags != OUTPUT_COPIED_PACKET)) {
-        lagopus_packet_free(pkt);
-        rv = LAGOPUS_RESULT_NO_MORE_ACTION;
-      } else {
-        rv = LAGOPUS_RESULT_OK;
-      }
-    } else {
-      rv = LAGOPUS_RESULT_OK;
+    if ((pkt->flags & PKT_FLAG_CACHED_FLOW) == 0 && pkt->cache != NULL &&
+        pkt->hash64 != 0) {
+      /* register crc and flows to cache. */
+      register_cache(pkt->cache, pkt->hash64,
+                     pkt->nmatched, pkt->matched_flow);
     }
+    dp_interface_tx_packet(pkt, port, action->cookie);
+    rv = LAGOPUS_RESULT_NO_MORE_ACTION;
   }
   return rv;
 }
