@@ -486,7 +486,7 @@ test_flow_cmd_mod_add_match_metadata_mask(void) {
   datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
   char *str = NULL;
   const char *argv1[] = {"flow", "b1", "add",
-                         "metadata=1234/0x5678",
+                         "metadata=1/0x1",
                          NULL
   };
   const char test_str1[] = "{\"ret\":\"OK\"}";
@@ -497,7 +497,7 @@ test_flow_cmd_mod_add_match_metadata_mask(void) {
       "\"idle_timeout\":0,\n"
       "\"hard_timeout\":0,\n"
       "\"cookie\":0,\n"
-      "\"metadata\":\"1234\\/0x0000000000005678\",\n"
+      "\"metadata\":\"1\\/0x0000000000000001\",\n"
       "\"actions\":[]}]}]}";
 
   /* add cmd. */
@@ -589,7 +589,7 @@ test_flow_cmd_mod_add_match_dl_dst_mask(void) {
   datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
   char *str = NULL;
   const char *argv1[] = {"flow", "b1", "add",
-                         "dl_dst=01:02:03:04:05:06/ff:fe:fd:fc:fb:fa",
+                         "dl_dst=00:00:00:00:00:01/00:00:00:00:00:01",
                          NULL
   };
   const char test_str1[] = "{\"ret\":\"OK\"}";
@@ -600,7 +600,7 @@ test_flow_cmd_mod_add_match_dl_dst_mask(void) {
       "\"idle_timeout\":0,\n"
       "\"hard_timeout\":0,\n"
       "\"cookie\":0,\n"
-      "\"dl_dst\":\"01:02:03:04:05:06\\/ff:fe:fd:fc:fb:fa\",\n"
+      "\"dl_dst\":\"00:00:00:00:00:01\\/00:00:00:00:00:01\",\n"
       "\"actions\":[]}]}]}";
 
   /* add cmd. */
@@ -692,7 +692,7 @@ test_flow_cmd_mod_add_match_dl_src_mask(void) {
   datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
   char *str = NULL;
   const char *argv1[] = {"flow", "b1", "add",
-                         "dl_src=01:02:03:04:05:06/ff:fe:fd:fc:fb:fa",
+                         "dl_src=00:00:00:00:00:01/00:00:00:00:00:01",
                          NULL
   };
   const char test_str1[] = "{\"ret\":\"OK\"}";
@@ -703,7 +703,7 @@ test_flow_cmd_mod_add_match_dl_src_mask(void) {
       "\"idle_timeout\":0,\n"
       "\"hard_timeout\":0,\n"
       "\"cookie\":0,\n"
-      "\"dl_src\":\"01:02:03:04:05:06\\/ff:fe:fd:fc:fb:fa\",\n"
+      "\"dl_src\":\"00:00:00:00:00:01\\/00:00:00:00:00:01\",\n"
       "\"actions\":[]}]}]}";
 
   /* add cmd. */
@@ -991,7 +991,7 @@ test_flow_cmd_mod_add_match_vlan_vid_mask(void) {
   datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
   char *str = NULL;
   const char *argv1[] = {"flow", "b1", "add",
-                         "vlan_vid=1/0x1234",
+                         "vlan_vid=1/0x1001",
                          NULL
   };
   const char test_str1[] = "{\"ret\":\"OK\"}";
@@ -1002,7 +1002,7 @@ test_flow_cmd_mod_add_match_vlan_vid_mask(void) {
       "\"idle_timeout\":0,\n"
       "\"hard_timeout\":0,\n"
       "\"cookie\":0,\n"
-      "\"vlan_vid\":\"4097\\/0x1234\",\n"
+      "\"vlan_vid\":\"4097\\/0x1001\",\n"
       "\"actions\":[]}]}]}";
 
   /* add cmd. */
@@ -1637,7 +1637,7 @@ test_flow_cmd_mod_add_match_nw_src_mask(void) {
   char *str = NULL;
   const char *argv1[] = {"flow", "b1", "add",
                          "dl_type=2048",
-                         "nw_src=127.0.0.1/255.254.253.252",
+                         "nw_src=127.0.0.1/127.0.0.1",
                          NULL
   };
   const char test_str1[] = "{\"ret\":\"OK\"}";
@@ -1649,7 +1649,7 @@ test_flow_cmd_mod_add_match_nw_src_mask(void) {
       "\"hard_timeout\":0,\n"
       "\"cookie\":0,\n"
       "\"dl_type\":\"ip\",\n"
-      "\"nw_src\":\"127.0.0.1\\/255.254.253.252\",\n"
+      "\"nw_src\":\"127.0.0.1\\/127.0.0.1\",\n"
       "\"actions\":[]}]}]}";
 
   /* add cmd. */
@@ -1746,7 +1746,7 @@ test_flow_cmd_mod_add_match_nw_dst_mask(void) {
   char *str = NULL;
   const char *argv1[] = {"flow", "b1", "add",
                          "dl_type=2048",
-                         "nw_dst=127.0.0.1/255.254.253.252",
+                         "nw_dst=127.0.0.1/127.0.0.1",
                          NULL
   };
   const char test_str1[] = "{\"ret\":\"OK\"}";
@@ -1758,7 +1758,7 @@ test_flow_cmd_mod_add_match_nw_dst_mask(void) {
       "\"hard_timeout\":0,\n"
       "\"cookie\":0,\n"
       "\"dl_type\":\"ip\",\n"
-      "\"nw_dst\":\"127.0.0.1\\/255.254.253.252\",\n"
+      "\"nw_dst\":\"127.0.0.1\\/127.0.0.1\",\n"
       "\"actions\":[]}]}]}";
 
   /* add cmd. */
@@ -3081,7 +3081,7 @@ test_flow_cmd_mod_add_match_arp_spa_mask(void) {
   char *str = NULL;
   const char *argv1[] = {"flow", "b1", "add",
                          "dl_type=2054",
-                         "arp_spa=127.0.0.1/255.254.253.252",
+                         "arp_spa=127.0.0.1/127.0.0.1",
                          NULL
   };
   const char test_str1[] = "{\"ret\":\"OK\"}";
@@ -3093,7 +3093,7 @@ test_flow_cmd_mod_add_match_arp_spa_mask(void) {
       "\"hard_timeout\":0,\n"
       "\"cookie\":0,\n"
       "\"dl_type\":\"arp\",\n"
-      "\"arp_spa\":\"127.0.0.1\\/255.254.253.252\",\n"
+      "\"arp_spa\":\"127.0.0.1\\/127.0.0.1\",\n"
       "\"actions\":[]}]}]}";
 
   /* add cmd. */
@@ -3190,7 +3190,7 @@ test_flow_cmd_mod_add_match_arp_tpa_mask(void) {
   char *str = NULL;
   const char *argv1[] = {"flow", "b1", "add",
                          "dl_type=2054",
-                         "arp_tpa=127.0.0.1/255.254.253.252",
+                         "arp_tpa=127.0.0.1/127.0.0.1",
                          NULL
   };
   const char test_str1[] = "{\"ret\":\"OK\"}";
@@ -3202,7 +3202,7 @@ test_flow_cmd_mod_add_match_arp_tpa_mask(void) {
       "\"hard_timeout\":0,\n"
       "\"cookie\":0,\n"
       "\"dl_type\":\"arp\",\n"
-      "\"arp_tpa\":\"127.0.0.1\\/255.254.253.252\",\n"
+      "\"arp_tpa\":\"127.0.0.1\\/127.0.0.1\",\n"
       "\"actions\":[]}]}]}";
 
   /* add cmd. */
@@ -3299,7 +3299,7 @@ test_flow_cmd_mod_add_match_arp_sha_mask(void) {
   char *str = NULL;
   const char *argv1[] = {"flow", "b1", "add",
                          "dl_type=2054",
-                         "arp_sha=01:02:03:04:05:06/ff:fe:fd:fc:fb:fa",
+                         "arp_sha=00:00:00:00:00:01/00:00:00:00:00:01",
                          NULL
   };
   const char test_str1[] = "{\"ret\":\"OK\"}";
@@ -3311,7 +3311,7 @@ test_flow_cmd_mod_add_match_arp_sha_mask(void) {
       "\"hard_timeout\":0,\n"
       "\"cookie\":0,\n"
       "\"dl_type\":\"arp\",\n"
-      "\"arp_sha\":\"01:02:03:04:05:06\\/ff:fe:fd:fc:fb:fa\",\n"
+      "\"arp_sha\":\"00:00:00:00:00:01\\/00:00:00:00:00:01\",\n"
       "\"actions\":[]}]}]}";
 
   /* add cmd. */
@@ -3408,7 +3408,7 @@ test_flow_cmd_mod_add_match_arp_tha_mask(void) {
   char *str = NULL;
   const char *argv1[] = {"flow", "b1", "add",
                          "dl_type=2054",
-                         "arp_tha=01:02:03:04:05:06/ff:fe:fd:fc:fb:fa",
+                         "arp_tha=00:00:00:00:00:01/00:00:00:00:00:01",
                          NULL
   };
   const char test_str1[] = "{\"ret\":\"OK\"}";
@@ -3420,7 +3420,7 @@ test_flow_cmd_mod_add_match_arp_tha_mask(void) {
       "\"hard_timeout\":0,\n"
       "\"cookie\":0,\n"
       "\"dl_type\":\"arp\",\n"
-      "\"arp_tha\":\"01:02:03:04:05:06\\/ff:fe:fd:fc:fb:fa\",\n"
+      "\"arp_tha\":\"00:00:00:00:00:01\\/00:00:00:00:00:01\",\n"
       "\"actions\":[]}]}]}";
 
   /* add cmd. */
@@ -3517,7 +3517,7 @@ test_flow_cmd_mod_add_match_ipv6_src_mask(void) {
   char *str = NULL;
   const char *argv1[] = {"flow", "b1", "add",
                          "dl_type=34525",
-                         "ipv6_src=::1/ff:fe:fd:fc:fb:fa:f9:f8",
+                         "ipv6_src=::1/::1",
                          NULL
   };
   const char test_str1[] = "{\"ret\":\"OK\"}";
@@ -3529,7 +3529,7 @@ test_flow_cmd_mod_add_match_ipv6_src_mask(void) {
       "\"hard_timeout\":0,\n"
       "\"cookie\":0,\n"
       "\"dl_type\":\"ipv6\",\n"
-      "\"ipv6_src\":\"::1\\/ff:fe:fd:fc:fb:fa:f9:f8\",\n"
+      "\"ipv6_src\":\"::1\\/::1\",\n"
       "\"actions\":[]}]}]}";
 
   /* add cmd. */
@@ -3626,7 +3626,7 @@ test_flow_cmd_mod_add_match_ipv6_dst_mask(void) {
   char *str = NULL;
   const char *argv1[] = {"flow", "b1", "add",
                          "dl_type=34525",
-                         "ipv6_dst=::1/ff:fe:fd:fc:fb:fa:f9:f8",
+                         "ipv6_dst=::1/::1",
                          NULL
   };
   const char test_str1[] = "{\"ret\":\"OK\"}";
@@ -3638,7 +3638,7 @@ test_flow_cmd_mod_add_match_ipv6_dst_mask(void) {
       "\"hard_timeout\":0,\n"
       "\"cookie\":0,\n"
       "\"dl_type\":\"ipv6\",\n"
-      "\"ipv6_dst\":\"::1\\/ff:fe:fd:fc:fb:fa:f9:f8\",\n"
+      "\"ipv6_dst\":\"::1\\/::1\",\n"
       "\"actions\":[]}]}]}";
 
   /* add cmd. */
@@ -3768,7 +3768,7 @@ test_flow_cmd_mod_add_match_ipv6_label_mask(void) {
   char *str = NULL;
   const char *argv1[] = {"flow", "b1", "add",
                          "dl_type=34525",
-                         "ipv6_label=1234/0x5678",
+                         "ipv6_label=1/0x1",
                          NULL
   };
   const char test_str1[] = "{\"ret\":\"OK\"}";
@@ -3780,7 +3780,7 @@ test_flow_cmd_mod_add_match_ipv6_label_mask(void) {
       "\"hard_timeout\":0,\n"
       "\"cookie\":0,\n"
       "\"dl_type\":\"ipv6\",\n"
-      "\"ipv6_label\":\"1234\\/0x00005678\",\n"
+      "\"ipv6_label\":\"1\\/0x00000001\",\n"
       "\"actions\":[]}]}]}";
 
   /* add cmd. */
@@ -4847,7 +4847,7 @@ test_flow_cmd_mod_add_match_pbb_isid_mask(void) {
   char *str = NULL;
   const char *argv1[] = {"flow", "b1", "add",
                          "dl_type=35047",
-                         "pbb_isid=1234/0x567",
+                         "pbb_isid=1/0x1",
                          NULL
   };
   const char test_str1[] = "{\"ret\":\"OK\"}";
@@ -4859,7 +4859,7 @@ test_flow_cmd_mod_add_match_pbb_isid_mask(void) {
       "\"hard_timeout\":0,\n"
       "\"cookie\":0,\n"
       "\"dl_type\":\"pbb\",\n"
-      "\"pbb_isid\":\"1234\\/0x000567\",\n"
+      "\"pbb_isid\":\"1\\/0x000001\",\n"
       "\"actions\":[]}]}]}";
 
   /* add cmd. */
@@ -5005,7 +5005,7 @@ test_flow_cmd_mod_add_match_tunnel_id_mask(void) {
   datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
   char *str = NULL;
   const char *argv1[] = {"flow", "b1", "add",
-                         "tunnel_id=1234/0x5678",
+                         "tunnel_id=1/0x1",
                          NULL
   };
   const char test_str1[] = "{\"ret\":\"OK\"}";
@@ -5016,7 +5016,7 @@ test_flow_cmd_mod_add_match_tunnel_id_mask(void) {
       "\"idle_timeout\":0,\n"
       "\"hard_timeout\":0,\n"
       "\"cookie\":0,\n"
-      "\"tunnel_id\":\"1234\\/0x0000000000005678\",\n"
+      "\"tunnel_id\":\"1\\/0x0000000000000001\",\n"
       "\"actions\":[]}]}]}";
 
   /* add cmd. */
@@ -5164,7 +5164,7 @@ test_flow_cmd_mod_add_match_ipv6_exthdr_mask(void) {
   char *str = NULL;
   const char *argv1[] = {"flow", "b1", "add",
                          "dl_type=34525",
-                         "ipv6_exthdr=123/0x56",
+                         "ipv6_exthdr=1/0x1",
                          NULL
   };
   const char test_str1[] = "{\"ret\":\"OK\"}";
@@ -5176,7 +5176,7 @@ test_flow_cmd_mod_add_match_ipv6_exthdr_mask(void) {
       "\"hard_timeout\":0,\n"
       "\"cookie\":0,\n"
       "\"dl_type\":\"ipv6\",\n"
-      "\"ipv6_exthdr\":\"123\\/0x56\",\n"
+      "\"ipv6_exthdr\":\"1\\/0x01\",\n"
       "\"actions\":[]}]}]}";
 
   /* add cmd. */
@@ -5568,7 +5568,7 @@ test_flow_cmd_mod_add_match_gre_flags_mask(void) {
   datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
   char *str = NULL;
   const char *argv1[] = {"flow", "b1", "add",
-                         "gre_flags=1/0x1234",
+                         "gre_flags=1/0x1",
                          NULL
   };
   const char test_str1[] = "{\"ret\":\"OK\"}";
@@ -5579,7 +5579,7 @@ test_flow_cmd_mod_add_match_gre_flags_mask(void) {
       "\"idle_timeout\":0,\n"
       "\"hard_timeout\":0,\n"
       "\"cookie\":0,\n"
-      "\"gre_flags\":\"1\\/0x1234\",\n"
+      "\"gre_flags\":\"1\\/0x01\",\n"
       "\"actions\":[]}]}]}";
 
   /* add cmd. */
@@ -5968,7 +5968,7 @@ test_flow_cmd_mod_add_match_gre_key_mask(void) {
   datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
   char *str = NULL;
   const char *argv1[] = {"flow", "b1", "add",
-                         "gre_key=1234/0x5678",
+                         "gre_key=1/0x1",
                          NULL
   };
   const char test_str1[] = "{\"ret\":\"OK\"}";
@@ -5979,7 +5979,7 @@ test_flow_cmd_mod_add_match_gre_key_mask(void) {
       "\"idle_timeout\":0,\n"
       "\"hard_timeout\":0,\n"
       "\"cookie\":0,\n"
-      "\"gre_key\":\"1234\\/0x00005678\",\n"
+      "\"gre_key\":\"1\\/0x00000001\",\n"
       "\"actions\":[]}]}]}";
 
   /* add cmd. */
@@ -6245,7 +6245,7 @@ test_flow_cmd_mod_add_match_lisp_flags_mask(void) {
   datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
   char *str = NULL;
   const char *argv1[] = {"flow", "b1", "add",
-                         "lisp_flags=123/0x56",
+                         "lisp_flags=1/0x1",
                          NULL
   };
   const char test_str1[] = "{\"ret\":\"OK\"}";
@@ -6256,7 +6256,7 @@ test_flow_cmd_mod_add_match_lisp_flags_mask(void) {
       "\"idle_timeout\":0,\n"
       "\"hard_timeout\":0,\n"
       "\"cookie\":0,\n"
-      "\"lisp_flags\":\"123\\/0x56\",\n"
+      "\"lisp_flags\":\"1\\/0x01\",\n"
       "\"actions\":[]}]}]}";
 
   /* add cmd. */
@@ -6399,7 +6399,7 @@ test_flow_cmd_mod_add_match_lisp_nonce_mask(void) {
   datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
   char *str = NULL;
   const char *argv1[] = {"flow", "b1", "add",
-                         "lisp_nonce=1234/0x567",
+                         "lisp_nonce=1/0x1",
                          NULL
   };
   const char test_str1[] = "{\"ret\":\"OK\"}";
@@ -6410,7 +6410,7 @@ test_flow_cmd_mod_add_match_lisp_nonce_mask(void) {
       "\"idle_timeout\":0,\n"
       "\"hard_timeout\":0,\n"
       "\"cookie\":0,\n"
-      "\"lisp_nonce\":\"1234\\/0x000567\",\n"
+      "\"lisp_nonce\":\"1\\/0x000001\",\n"
       "\"actions\":[]}]}]}";
 
   /* add cmd. */
@@ -6676,7 +6676,7 @@ test_flow_cmd_mod_add_match_vxlan_flags_mask(void) {
   datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
   char *str = NULL;
   const char *argv1[] = {"flow", "b1", "add",
-                         "vxlan_flags=123/0x56",
+                         "vxlan_flags=1/0x1",
                          NULL
   };
   const char test_str1[] = "{\"ret\":\"OK\"}";
@@ -6687,7 +6687,7 @@ test_flow_cmd_mod_add_match_vxlan_flags_mask(void) {
       "\"idle_timeout\":0,\n"
       "\"hard_timeout\":0,\n"
       "\"cookie\":0,\n"
-      "\"vxlan_flags\":\"123\\/0x56\",\n"
+      "\"vxlan_flags\":\"1\\/0x01\",\n"
       "\"actions\":[]}]}]}";
 
   /* add cmd. */
@@ -7230,7 +7230,7 @@ test_flow_cmd_mod_add_match_mpls_ach_channel_mask(void) {
   datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
   char *str = NULL;
   const char *argv1[] = {"flow", "b1", "add",
-                         "mpls_ach_channel=1/0x1234",
+                         "mpls_ach_channel=1/0x1",
                          NULL
   };
   const char test_str1[] = "{\"ret\":\"OK\"}";
@@ -7241,7 +7241,7 @@ test_flow_cmd_mod_add_match_mpls_ach_channel_mask(void) {
       "\"idle_timeout\":0,\n"
       "\"hard_timeout\":0,\n"
       "\"cookie\":0,\n"
-      "\"mpls_ach_channel\":\"1\\/0x1234\",\n"
+      "\"mpls_ach_channel\":\"1\\/0x01\",\n"
       "\"actions\":[]}]}]}";
 
   /* add cmd. */
