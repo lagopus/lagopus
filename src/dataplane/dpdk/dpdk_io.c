@@ -699,7 +699,7 @@ dpdk_get_detachable_portid_by_name(const char *name) {
 
   for (portid = 0; portid < RTE_MAX_ETHPORTS; portid++) {
     dev = &rte_eth_devices[portid];
-    if ((dev->attached) &&
+    if ((dev->attached) && (dev->pci_dev) && (dev->pci_dev->driver) &&
         (dev->pci_dev->driver->drv_flags & RTE_PCI_DRV_DETACHABLE)) {
       switch (dev->dev_type) {
         case RTE_ETH_DEV_PCI:
@@ -772,8 +772,11 @@ dpdk_configure_interface(struct interface *ifp) {
     const char *name;
 
     name = dpdk_remove_namespace(ifp->info.eth_dpdk_phy.device);
-    if (rte_eth_dev_attach(name, &actual_portid)) {
-      return LAGOPUS_RESULT_NOT_FOUND;
+    actual_portid = dpdk_get_detachable_portid_by_name(name);
+    if (actual_portid == RTE_MAX_ETHPORTS) {
+      if (rte_eth_dev_attach(name, &actual_portid)) {
+        return LAGOPUS_RESULT_NOT_FOUND;
+      }
     }
     /* whenever 'device' is specified, overwrite portid by actual portid. */
     ifp->info.eth.port_number = (uint32_t)actual_portid;
