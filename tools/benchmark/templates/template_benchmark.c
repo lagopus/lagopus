@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-#include "lagopus_apis.h"
 #include <pcap.h>
 #include <sys/mman.h>
 #include <fcntl.h>
@@ -22,34 +21,179 @@
 #include <rte_config.h>
 #include <rte_mbuf.h>
 
+#include "lagopus_apis.h"
+#include "lagopus/dp_apis.h"
+#include "lagopus/ofp_bridgeq_mgr.h"
+#include "lagopus/datastore.h"
+#include "dpdk/dpdk.h"
+#include "dpdk/pktbuf.h"
+#include "ofproto/packet.h"
+#include "datastore_apis.h"
+#ifdef USE_CHANNEL /* NOTE: use channel/controller in DSL. */
+#include "channel_mgr.h"
+#endif
+
+
 {% if include_files is defined and include_files %}
 {% for include_file in include_files %}
 #include "{{ include_file }}"
 {% endfor %}
 {% endif %}
 
+void
+lagopus_meter_init(void);
+
 static uint64_t opt_times = 1;
 static uint64_t opt_batch_size = 0; /* 0 is read all packets in pcap file. */
-static const char *opt_file = NULL;
+static const char *opt_pcap_file = NULL;
+static const char *opt_dsl_file = NULL;
+static datastore_interp_t interp = NULL;
+
+static inline lagopus_result_t
+start_datastore(const char *dsl) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+
+  if (dsl != NULL) {
+    if (interp == NULL) {
+#ifdef USE_CHANNEL /* NOTE: use channel/controller in DSL. */
+      const char *argv0 =
+          ((IS_VALID_STRING(lagopus_get_command_name()) == true) ?
+           lagopus_get_command_name() : "callout");
+      const char * const argv[] = { argv0, NULL };
+#endif
+
+      if ((ret = datastore_create_interp(&interp)) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+
+      if ((ret = datastore_set_config_file(dsl)) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+
+      if ((ret = datastore_initialize(0, NULL, NULL, NULL)) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+
+      if ((ret = dp_api_init()) != LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+      lagopus_meter_init();
+      flowinfo_init();
+      ofp_bridgeq_mgr_initialize(NULL);
+
+#ifdef USE_CHANNEL /* NOTE: use channel/controller in DSL. */
+      (void) lagopus_mainloop_set_callout_workers_number(1);
+      if ((ret = lagopus_mainloop_with_callout(1, argv, NULL, NULL,
+                                               false, false, true)) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+      channel_mgr_initialize();
+#endif
+
+      if ((ret = datastore_start()) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+
+      if ((ret = load_conf_initialize(0, NULL, NULL, NULL)) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+
+      if ((ret = load_conf_start()) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+    }
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+done:
+  return ret;
+}
+
+static inline void
+stop_datastore(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+
+  if (interp != NULL) {
+    if ((ret = load_conf_shutdown(SHUTDOWN_GRACEFULLY)) !=
+        LAGOPUS_RESULT_OK) {
+      lagopus_perror(ret);
+      return;
+    }
+    if ((ret = datastore_stop()) !=
+        LAGOPUS_RESULT_OK) {
+      lagopus_perror(ret);
+      return;
+    }
+
+    if ((ret = load_conf_shutdown(SHUTDOWN_GRACEFULLY)) !=
+        LAGOPUS_RESULT_OK) {
+      lagopus_perror(ret);
+      return;
+    }
+
+    if ((ret = datastore_shutdown(SHUTDOWN_GRACEFULLY)) !=
+        LAGOPUS_RESULT_OK) {
+      lagopus_perror(ret);
+      return;
+    }
+
+    load_conf_finalize();
+    datastore_finalize();
+    datastore_destroy_interp(&interp);
+#ifdef USE_CHANNEL /* NOTE: use channel/controller in DSL. */
+    channel_mgr_finalize();
+#endif
+    dp_api_fini();
+    ofp_bridgeq_mgr_destroy();
+#ifdef USE_CHANNEL /* NOTE: use channel/controller in DSL. */
+    if ((ret = global_state_request_shutdown(SHUTDOWN_GRACEFULLY)) ==
+        LAGOPUS_RESULT_OK) {
+      lagopus_mainloop_wait_thread();
+    }
+#endif
+  }
+}
 
 static inline struct rte_mbuf *
 alloc_rte_mbuf(size_t size) {
   int fd;
   void *p;
+  size_t s;
 
-  size += sizeof(struct rte_mbuf);
-  fd = open("/dev/zero", O_RDONLY);
-  if(fd >= 0) {
-    p = mmap(NULL, size, PROT_READ | PROT_WRITE , MAP_PRIVATE, fd, 0);
-    if (p == MAP_FAILED) {
+  if (size <= MAX_PACKET_SZ) {
+    s = APP_DEFAULT_MBUF_SIZE;
+    fd = open("/dev/zero", O_RDONLY);
+    if(fd >= 0) {
+      p = mmap(NULL, s, PROT_READ | PROT_WRITE , MAP_PRIVATE, fd, 0);
+      if (p == MAP_FAILED) {
+        p = NULL;
+        goto done;
+      }
+      mlock(p, size);
+
+   done:
+      close(fd);
+    } else {
       p = NULL;
-      goto done;
     }
-    mlock(p, size);
-
- done:
-    close(fd);
   } else {
+    lagopus_perror(LAGOPUS_RESULT_TOO_LONG);
     p = NULL;
   }
 
@@ -67,7 +211,7 @@ free_rte_mbuf(struct rte_mbuf *p, size_t size) {
 
 static inline void
 print_usage(const char *pname) {
-  fprintf(stderr, "usage: %s [-t <MEASURING_TIMES>] [-b <BATCH_SIZE>] <PCAP_FILE>\n", pname);
+  fprintf(stderr, "usage: %s [-t <MEASURING_TIMES>] [-b <BATCH_SIZE>] [-C DSL_FILE] <PCAP_FILE>\n", pname);
   fprintf(stderr, "\n");
   fprintf(stderr, "positional arguments:\n");
   fprintf(stderr, "  PCAP_FILE\t\tPacket capture file.\n");
@@ -76,6 +220,7 @@ print_usage(const char *pname) {
   fprintf(stderr, "  -t MEASURING_TIMES\tNumber of executions of benchmark target func(default: 1).\n");
   fprintf(stderr, "  -b BATCH_SIZE\t\tSize of batches(default: 0).\n");
   fprintf(stderr, "               \t\t0 is read all packets in pcap file.\n");
+  fprintf(stderr, "  -C DSL_FILE\t\tDSL file.\n");
 }
 
 static inline lagopus_result_t
@@ -83,13 +228,17 @@ parse_args(int argc, const char *const argv[]) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   int opt;
 
-  while ((opt = getopt(argc, (char * const *) argv, "t:b:")) != EOF) {
+  while ((opt = getopt(argc, (char * const *) argv, "t:b:C:")) != EOF) {
     switch (opt) {
       case 't':
         ret = lagopus_str_parse_uint64(optarg, &opt_times);
         break;
       case 'b':
         ret = lagopus_str_parse_uint64(optarg, &opt_batch_size);
+        break;
+      case 'C':
+        opt_dsl_file = optarg;
+        ret = LAGOPUS_RESULT_OK;
         break;
       default:
         ret = LAGOPUS_RESULT_INVALID_ARGS;
@@ -98,7 +247,7 @@ parse_args(int argc, const char *const argv[]) {
   }
 
   if (argc - optind == 1) {
-    opt_file = argv[optind];
+    opt_pcap_file = argv[optind];
     ret = LAGOPUS_RESULT_OK;
   } else {
     ret = LAGOPUS_RESULT_INVALID_ARGS;
@@ -137,8 +286,8 @@ static inline void
 print_statistics(lagopus_statistic_t *throughput,
                  lagopus_statistic_t *nspp) {
   fprintf(stdout, "============\n");
-  print_statistic("throughput (packet/nsec):\n",
-                  throughput, 1.0 / 1000000.0);
+  print_statistic("throughput (M packets/sec):\n",
+                  throughput, 1.0 / 1000.0);
   print_statistic("nsec/packet:\n",
                   nspp, 1.0 / 1000000.0);
   fprintf(stdout, "============\n");
@@ -227,13 +376,17 @@ main(int argc, const char *const argv[]) {
   }
 
   /* read pcap. */
-  pcap = pcap_open_offline(opt_file, errbuf);
+  pcap = pcap_open_offline(opt_pcap_file, errbuf);
 
   if (pcap == NULL) {
     ret = LAGOPUS_RESULT_INVALID_ARGS;
     lagopus_perror(ret);
-    fprintf(stderr, "can't open pcap file (%s).\n", opt_file);
+    fprintf(stderr, "can't open pcap file (%s).\n", opt_pcap_file);
     goto done;
+  }
+
+  if (opt_dsl_file != NULL) {
+    start_datastore(opt_dsl_file);
   }
 
   count = 0;
@@ -247,12 +400,13 @@ main(int argc, const char *const argv[]) {
         lagopus_perror(ret);
         goto done;
       }
+      rte_pktmbuf_reset(pkts[count]);
+      rte_mbuf_refcnt_set(pkts[count], 1);
       pkts[count]->buf_addr = &pkts[count][1];
       memcpy(pkts[count]->buf_addr, p, header.caplen);
       pkts[count]->buf_len = (uint16_t) header.caplen;
       pkts[count]->data_len = (uint16_t) header.caplen;
       pkts[count]->pkt_len = header.caplen;
-      pkts[count]->data_off = 0;
       count++;
       if (opt_batch_size !=0 && count >= opt_batch_size) {
         break;
@@ -273,6 +427,10 @@ main(int argc, const char *const argv[]) {
   print_statistics(&throughput, &nspp);
 
 done:
+  if (opt_dsl_file != NULL) {
+    stop_datastore();
+  }
+
   /* free. */
   if (pkts != NULL) {
     for (i = 0; i < count; i++) {

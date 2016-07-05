@@ -40,7 +40,7 @@ dump_pkts(void *pkts, size_t size) {
 
     for (i = 0; i < size; i++) {
       for (j = 0; j < mbufs[i]->data_len; j++) {
-        printf("%02x ", *((u_char *) (mbufs[i]->buf_addr) + j ));
+        printf("%02x ", *((u_char *) (mbufs[i]->buf_addr + mbufs[i]->data_off) + j ));
       }
       printf("\n\n");
     }

@@ -17,12 +17,17 @@ SRCS	= \
 {%- endfor %}
 
 BENCHMARK_LIBS	= \
-	$(DEP_LAGOPUS_UTIL_LIB)
+	$(DEP_LAGOPUS_AGENT_LIB)   \
+	$(DEP_LAGOPUS_DATAPLANE_LIB) \
+	$(DEP_LAGOPUS_UTIL_LIB)    \
+	$(DEP_LAGOPUS_DATASTORE_LIB) \
+	$(DEP_LAGOPUS_CONFIG_LIB)
 
 DEP_LIBS	+= $(BENCHMARK_LIBS)
+CPPFLAGS+= -I$(TOPDIR)/src/datastore -I$(TOPDIR)/src/agent -I$(TOPDIR)/src/dataplane
 
 TESTPDM_DIR=$(RTE_SDK)/build/build/app/test-pmd/
-BENCHMARK_LDFLAGS	+= $(RTE_LIBS) $(LDFLAGS) -lpcap  -lm
+BENCHMARK_LDFLAGS	+= $(RTE_LIBS) $(LDFLAGS) @PCAP_LIBS@  -lm
 endif
 
 include $(MKRULESDIR)/rules.mk
@@ -52,6 +57,9 @@ benchmark::
 {%- endif %}
 {%- if benchmark.batch_size is defined and benchmark.batch_size %}
  -b {{ benchmark.batch_size }}
+{%- endif %}
+{%- if benchmark.dsl is defined and benchmark.dsl %}
+ -C {{ benchmark.dsl }}
 {%- endif %}
 
 {% endfor %}

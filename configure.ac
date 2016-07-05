@@ -673,6 +673,7 @@ AC_CONFIG_COMMANDS_PRE([
 			AC_CONFIG_FILES(
 				tools/unity/src/Makefile
 				tools/benchmark/sample/dump_pkts/Makefile
+				tools/benchmark/sample/match_pkts/Makefile
 			)
 		else
 			HAVE_UNITY=

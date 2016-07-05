@@ -18,7 +18,6 @@ Features of tools
 TODO
 ----
 1. Measure the cache miss, etc. (useing PAPI)
-2. Read the datastore DSLs. (State lagopus is started)
 
 Samples
 -------
@@ -71,12 +70,13 @@ You write the following fields in the file in YAML format.
 | benchmarks || list | O ||
 || file | string | O | This field describes the name of benchmark file. |
 || include\_files | list of string | O | This field describes the name of include files (\*.h, \*.c). |
-|| lib\_files | list of string | X | This field describes the name of lib files(\*.o, \*.so, etc.). |
+|| lib\_files | list of string | X | This field describes the name of lib files(\*.o, etc.). |
 || external\_libs | string | X | This field describes the external libs(e.g. "-lFOO -lBAR"). |
 || setup\_func | string | X | This field describes the name of setup function [void func(void)]. |
 || teardown\_func | string | X | This field describes the name of teardown function [void func(void)]. |
 || target\_func | string | X | This field describes the name of benchmark target function [lagopus\_result\_t func(void *pkts, size\_t pkts\_size)]. |
 || pcap | string | O | This field describes the name of pcap file (\*.pcap, etc.). |
+|| dsl | string | X | This field describes the name of lagopus DSL file. The datastore thread is started when you specify this field. |
 || times | int | X | This field describes the number of executions of target\_func (default: 1).|
 || batch_size | int | O | This field describes the size of batches(default: 0) . 0 is read all packets in pcap file. |
 

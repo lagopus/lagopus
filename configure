@@ -17836,7 +17836,7 @@ git submodule update --init
 $as_echo "unity is available." >&6; }
 			cp ./mk/Makefile.in.unity tools/unity/src/Makefile.in
 			# emit.
-			ac_config_files="$ac_config_files tools/unity/src/Makefile tools/benchmark/sample/dump_pkts/Makefile"
+			ac_config_files="$ac_config_files tools/unity/src/Makefile tools/benchmark/sample/dump_pkts/Makefile tools/benchmark/sample/match_pkts/Makefile"
 
 		else
 			HAVE_UNITY=
@@ -18845,6 +18845,7 @@ do
     "debian/lagopus-DATAPLANE.postrm") CONFIG_FILES="$CONFIG_FILES debian/lagopus-DATAPLANE.postrm" ;;
     "tools/unity/src/Makefile") CONFIG_FILES="$CONFIG_FILES tools/unity/src/Makefile" ;;
     "tools/benchmark/sample/dump_pkts/Makefile") CONFIG_FILES="$CONFIG_FILES tools/benchmark/sample/dump_pkts/Makefile" ;;
+    "tools/benchmark/sample/match_pkts/Makefile") CONFIG_FILES="$CONFIG_FILES tools/benchmark/sample/match_pkts/Makefile" ;;
 
   *) as_fn_error $? "invalid argument: \`$ac_config_target'" "$LINENO" 5;;
   esac

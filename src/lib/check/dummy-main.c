@@ -81,8 +81,8 @@ static lagopus_chrono_t s_to = -1LL;
 static inline void
 usage(FILE *fd) {
   fprintf(fd, "usage:\n");
-  fprintf(fd, "\t--help\tshow this.\n");
-  fprintf(fd, "\t-to #\tset shutdown timeout (in sec.).\n");
+  fprintf(fd, "\t--help|-?\tshow this.\n");
+  fprintf(fd, "\t-to #\t\tset shutdown timeout (in sec.).\n");
   lagopus_module_usage_all(fd);
   (void)fflush(fd);
 }
@@ -93,7 +93,8 @@ parse_args(int argc, const char *const argv[]) {
   (void)argc;
 
   while (*argv != NULL) {
-    if (strcmp("--help", *argv) == 0) {
+    if (strcmp("--help", *argv) == 0 ||
+        strcmp("-?", *argv) == 0) {
       usage(stderr);
       exit(0);
     } else if (strcmp("-to", *argv) == 0) {
@@ -129,59 +130,16 @@ main(int argc, const char *const argv[]) {
 
   parse_args(argc - 1, argv + 1);
 
-  (void)global_state_set(GLOBAL_STATE_INITIALIZING);
-
-  fprintf(stderr, "Initializing... ");
-  if ((st = lagopus_module_initialize_all(argc, argv)) ==
-      LAGOPUS_RESULT_OK &&
-      s_got_term_sig == false) {
-    fprintf(stderr, "Initialized.\n");
-    fprintf(stderr, "Starting... ");
-    (void)global_state_set(GLOBAL_STATE_STARTING);
-    if ((st = lagopus_module_start_all()) ==
-        LAGOPUS_RESULT_OK &&
-        s_got_term_sig == false) {
-      fprintf(stderr, "Started.\n");
-      if ((st = global_state_set(GLOBAL_STATE_STARTED)) ==
-          LAGOPUS_RESULT_OK) {
-
-        shutdown_grace_level_t l = SHUTDOWN_UNKNOWN;
-
-        fprintf(stderr, "Running.\n");
-
-        while ((st = global_state_wait_for_shutdown_request(&l,
-                     REQ_TIMEDOUT)) ==
-               LAGOPUS_RESULT_TIMEDOUT) {
-          lagopus_msg_debug(5, "waiting shutdown request...\n");
-        }
-        if (st == LAGOPUS_RESULT_OK) {
-          if ((st = global_state_set(GLOBAL_STATE_ACCEPT_SHUTDOWN)) ==
-              LAGOPUS_RESULT_OK) {
-            if ((st = lagopus_module_shutdown_all(l)) == LAGOPUS_RESULT_OK) {
-              if ((st = lagopus_module_wait_all(s_to)) == LAGOPUS_RESULT_OK) {
-                fprintf(stderr, "Finished cleanly.\n");
-              } else if (st == LAGOPUS_RESULT_TIMEDOUT) {
-                fprintf(stderr, "Trying to stop forcibly...\n");
-                if ((st = lagopus_module_stop_all()) == LAGOPUS_RESULT_OK) {
-                  if ((st = lagopus_module_wait_all(s_to)) ==
-                      LAGOPUS_RESULT_OK) {
-                    fprintf(stderr, "Stopped forcibly.\n");
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
+  if (s_to > 0) {
+    if ((st = lagopus_mainloop_set_shutdown_check_interval(s_to)) !=
+        LAGOPUS_RESULT_OK) {
+      lagopus_perror(st);
+      goto done;
     }
   }
 
-  lagopus_module_finalize_all();
+  st = lagopus_mainloop(argc, argv, NULL, NULL, false, false, false);
 
-  if (st != LAGOPUS_RESULT_OK) {
-    fprintf(stderr, "\n");
-    lagopus_perror(st);
-  }
-
+done:
   return (st == LAGOPUS_RESULT_OK) ? 0 : 1;
 }
