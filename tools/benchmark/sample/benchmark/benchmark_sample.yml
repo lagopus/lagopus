@@ -25,7 +25,7 @@ benchmarks:
     teardown_func: teardown
     target_func: dump_pkts
     pcap: icmp.pcap
-    times: 2
+    num_measurements: 2
     batch_size: 1
   - file : sample_dump_pkts2
     include_files:
@@ -37,9 +37,10 @@ benchmarks:
       - ../match_pkts/match_pkts.h
     lib_files:
       - ../match_pkts/match_pkts.o
+    setup_func: setup
+    teardown_func: teardown
     target_func: match_pkts
     pcap: icmp.pcap
     dsl: lagopus.dsl
     dpdk_opts: -cf -n4
     dp_opts: -p3
-

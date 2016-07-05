@@ -21,11 +21,11 @@
 #ifndef __BENCHMARK_MATCH_PKTS_H__
 #define __BENCHMARK_MATCH_PKTS_H__
 
-void
-setup(void);
+lagopus_result_t
+setup(void *pkts, size_t size);
 
-void
-teardown(void);
+lagopus_result_t
+teardown(void *pkts, size_t size);
 
 lagopus_result_t
 match_pkts(void *pkts, size_t size);

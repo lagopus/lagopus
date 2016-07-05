@@ -5,7 +5,7 @@ DEPEND	= .depend
 
 include $(MKRULESDIR)/vars.mk
 
-ifneq ($(and $(RTE_SDK),$(HAVE_UNITY)),)
+ifneq ($(and $(RTE_SDK),$(HAVE_PAPI)),)
 TARGETS	= \
 {% for benchmark in benchmarks %}
  {{ benchmark.file }}
@@ -27,12 +27,12 @@ DEP_LIBS	+= $(BENCHMARK_LIBS)
 CPPFLAGS+= -I$(TOPDIR)/src/datastore -I$(TOPDIR)/src/agent -I$(TOPDIR)/src/dataplane
 
 TESTPDM_DIR=$(RTE_SDK)/build/build/app/test-pmd/
-BENCHMARK_LDFLAGS	+= $(RTE_LIBS) $(LDFLAGS) @PCAP_LIBS@  -lm
+BENCHMARK_LDFLAGS	+= $(RTE_LIBS) $(LDFLAGS) @PCAP_LIBS@ @PAPI_LIBS@ -lm
 endif
 
 include $(MKRULESDIR)/rules.mk
 
-ifneq ($(and $(RTE_SDK),$(HAVE_UNITY)),)
+ifneq ($(and $(RTE_SDK),$(HAVE_PAPI)),)
 {% for benchmark in benchmarks %}
 {{ benchmark.file }}:	{{ benchmark.file }}.lo $(DEP_LIBS)
 {%- if benchmark.lib_files is defined and benchmark.lib_files %}
@@ -52,8 +52,8 @@ ifneq ($(and $(RTE_SDK),$(HAVE_UNITY)),)
 benchmark::
 {% for benchmark in benchmarks %}
 	sudo ./{{ benchmark.file }} {{ benchmark.pcap }}
-{%- if benchmark.times is defined and benchmark.times %}
- -t {{ benchmark.times }}
+{%- if benchmark.num_measurements is defined and benchmark.num_measurements %}
+ -n {{ benchmark.num_measurements }}
 {%- endif %}
 {%- if benchmark.batch_size is defined and benchmark.batch_size %}
  -b {{ benchmark.batch_size }}

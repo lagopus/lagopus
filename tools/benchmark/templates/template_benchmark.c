@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-#include <pcap.h>
 #include <sys/mman.h>
 #include <fcntl.h>
+#include <pcap.h>
+#include <papi.h>
 
 #include <rte_config.h>
 #include <rte_mbuf.h>
@@ -38,11 +39,17 @@
 {% endfor %}
 {% endif %}
 
+#define IS_USED_PAPI (((opt_num_measurements) == 1) ? true : false)
 
-static uint64_t opt_times = 1;
+static uint64_t opt_num_measurements = 1;
 static uint64_t opt_batch_size = 0; /* 0 is read all packets in pcap file. */
 static const char *opt_pcap_file = NULL;
 static const char *opt_dsl_file = NULL;
+static const char *papi_event[] = {"perf::PERF_COUNT_HW_CACHE_REFERENCES",
+                                   "perf::PERF_COUNT_HW_CACHE_MISSES",
+                                   "perf::PERF_COUNT_HW_CPU_CYCLES",
+                                   "perf::PERF_COUNT_SW_PAGE_FAULTS"};
+static size_t papi_event_num = sizeof(papi_event) / sizeof(const char *);
 
 
 static lagopus_result_t
@@ -217,6 +224,88 @@ stop_modules(void) {
   }
 }
 
+static inline lagopus_result_t
+init_papi(int *EventSet) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  size_t i;
+  int rv, EventCode;
+
+  rv = PAPI_library_init(PAPI_VER_CURRENT);
+  if(rv != PAPI_VER_CURRENT) {
+    ret = LAGOPUS_RESULT_INVALID_OBJECT;
+    lagopus_perror(ret);
+    fprintf(stderr, "PAPI library init error: %d.\n", rv);
+    goto done;
+  }
+
+  if ((rv = PAPI_create_eventset(EventSet)) != PAPI_OK) {
+    ret = LAGOPUS_RESULT_INVALID_OBJECT;
+    lagopus_perror(ret);
+    fprintf(stderr, "PAPI error: %d.\n", rv);
+    goto done;
+  }
+
+  for (i = 0; i < papi_event_num; i++) {
+    if ((rv = PAPI_event_name_to_code((char *) papi_event[i], &EventCode)) != PAPI_OK) {
+      ret = LAGOPUS_RESULT_INVALID_OBJECT;
+      lagopus_perror(ret);
+      fprintf(stderr, "PAPI error(%s) : %d.\n", papi_event[i], rv);
+      goto done;
+    }
+
+    if ((rv = PAPI_add_event(*EventSet, EventCode)) != PAPI_OK) {
+      ret = LAGOPUS_RESULT_INVALID_OBJECT;
+      lagopus_perror(ret);
+      fprintf(stderr, "PAPI error(%s) : %d.\n", papi_event[i], rv);
+      goto done;
+    }
+  }
+  ret = LAGOPUS_RESULT_OK;
+
+done:
+  return ret;
+}
+
+static inline lagopus_result_t
+start_papi(int *EventSet) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  int rv;
+
+  if ((rv = PAPI_start(*EventSet)) != PAPI_OK) {
+    ret = LAGOPUS_RESULT_INVALID_OBJECT;
+    lagopus_perror(ret);
+    fprintf(stderr, "PAPI error: %d.\n", rv);
+    goto done;
+  }
+  ret = LAGOPUS_RESULT_OK;
+
+done:
+  return ret;
+}
+
+static inline lagopus_result_t
+stop_papi(int *EventSet,
+          long long int *papi_values) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  int rv;
+
+  if ((rv = PAPI_stop(*EventSet, papi_values)) != PAPI_OK) {
+    lagopus_perror(ret);
+    fprintf(stderr, "PAPI error: %d.\n", rv);
+    goto done;
+  }
+
+  if ((rv = PAPI_reset(*EventSet)) != PAPI_OK) {
+    lagopus_perror(ret);
+    fprintf(stderr, "PAPI error: %d.\n", rv);
+    goto done;
+  }
+  ret = LAGOPUS_RESULT_OK;
+
+done:
+  return ret;
+}
+
 static inline struct rte_mbuf *
 alloc_rte_mbuf(size_t size) {
   int fd;
@@ -224,7 +313,10 @@ alloc_rte_mbuf(size_t size) {
   size_t s;
 
   if (size <= MAX_PACKET_SZ) {
-    s = APP_DEFAULT_MBUF_SIZE;
+    s = sizeof(struct rte_mbuf) +
+        DP_MBUF_ROUNDUP(sizeof(struct lagopus_packet),
+                        RTE_MBUF_PRIV_ALIGN) +
+        RTE_PKTMBUF_HEADROOM + MAX_PACKET_SZ;
     fd = open("/dev/zero", O_RDONLY);
     if(fd >= 0) {
       p = mmap(NULL, s, PROT_READ | PROT_WRITE , MAP_PRIVATE, fd, 0);
@@ -258,14 +350,14 @@ free_rte_mbuf(struct rte_mbuf *p, size_t size) {
 
 static inline void
 print_usage(const char *pname) {
-  fprintf(stderr, "usage: %s [-t <MEASURING_TIMES>] [-b <BATCH_SIZE>] "
+  fprintf(stderr, "usage: %s [-n <NUM_MEASUREMENTS>] [-b <BATCH_SIZE>] "
           "[-C DSL_FILE] [-- DPDK_OPTS] [-- DP_OPTS] <PCAP_FILE>\n", pname);
   fprintf(stderr, "\n");
   fprintf(stderr, "positional arguments:\n");
   fprintf(stderr, "  PCAP_FILE\t\tPacket capture file.\n");
   fprintf(stderr, "\n");
   fprintf(stderr, "optional arguments:\n");
-  fprintf(stderr, "  -t MEASURING_TIMES\tNumber of executions of "
+  fprintf(stderr, "  -n NUM_MEASUREMENTS\tNumber of executions of "
           "benchmark target func(default: 1).\n");
   fprintf(stderr, "  -b BATCH_SIZE\t\tSize of batches(default: 0).\n");
   fprintf(stderr, "               \t\t0 is read all packets in pcap file.\n");
@@ -281,10 +373,10 @@ parse_args(int argc, const char *const argv[]) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   int opt;
 
-  while ((opt = getopt(argc, (char * const *) argv, "t:b:C:")) != EOF) {
+  while ((opt = getopt(argc, (char * const *) argv, "n:b:C:")) != EOF) {
     switch (opt) {
-      case 't':
-        ret = lagopus_str_parse_uint64(optarg, &opt_times);
+      case 'n':
+        ret = lagopus_str_parse_uint64(optarg, &opt_num_measurements);
         break;
       case 'b':
         ret = lagopus_str_parse_uint64(optarg, &opt_batch_size);
@@ -336,13 +428,29 @@ print_statistic(const char *msg,
 }
 
 static inline void
+print_papi(long long int *values) {
+  fprintf(stdout, "cache:\n");
+  fprintf(stdout, "  references: %lld\n", values[0]);
+  fprintf(stdout, "  misses:     %lld\n", values[1]);
+  fprintf(stdout, "  misses(%%):  %.1f\n",
+          (double) values[1] / (double) values[0] * 100.0);
+  fprintf(stdout, "CPU cycles : %lld\n", values[2]);
+  fprintf(stdout, "page faults : %lld\n", values[3]);
+}
+
+static inline void
 print_statistics(lagopus_statistic_t *throughput,
-                 lagopus_statistic_t *nspp) {
+                 lagopus_statistic_t *nspp,
+                 long long int *papi_values) {
   fprintf(stdout, "============\n");
   print_statistic("throughput (M packets/sec):\n",
                   throughput, 1.0 / 1000.0);
   print_statistic("nsec/packet:\n",
                   nspp, 1.0 / 1000000.0);
+
+  if (IS_USED_PAPI == true) {
+    print_papi(papi_values);
+  }
   fprintf(stdout, "============\n");
 }
 
@@ -350,18 +458,36 @@ static inline lagopus_result_t
 measure_benchmark(struct rte_mbuf **pkts,
                   lagopus_statistic_t *throughput,
                   lagopus_statistic_t *nspp,
-                  size_t count) {
+                  size_t count,
+                  long long int *papi_values) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   size_t i, j;
+  int EventSet = PAPI_NULL;
   lagopus_chrono_t start_time = 0LL;
   lagopus_chrono_t end_time = 0LL;
   lagopus_chrono_t time = 0LL;
   double dthroughput, dnspp;
 
-  for (i = 0; i < (size_t) opt_times; i++) {
+  if (IS_USED_PAPI == true) {
+    if ((ret = init_papi(&EventSet)) != LAGOPUS_RESULT_OK) {
+      goto done;
+    }
+  }
+
+  for (i = 0; i < (size_t) opt_num_measurements; i++) {
 {% if setup_func is defined and setup_func %}
-    {{ setup_func }}();
+    ret = {{ setup_func }}((void *) pkts, (size_t) count);
+    if (ret != LAGOPUS_RESULT_OK) {
+      lagopus_perror(ret);
+      goto done;
+    }
 {% endif %}
+
+    if (IS_USED_PAPI == true) {
+      if ((ret = start_papi(&EventSet)) != LAGOPUS_RESULT_OK) {
+        goto done;
+      }
+    }
 
     for (j = 0; j < count; j++) {
       rte_prefetch0(rte_pktmbuf_mtod(pkts[j],
@@ -383,8 +509,19 @@ measure_benchmark(struct rte_mbuf **pkts,
 
     WHAT_TIME_IS_IT_NOW_IN_NSEC(end_time);
 
+    if (IS_USED_PAPI == true) {
+      if ((ret = stop_papi(&EventSet, papi_values)) !=
+          LAGOPUS_RESULT_OK) {
+        goto done;
+      }
+    }
+
 {% if teardown_func is defined and teardown_func %}
-    {{ teardown_func }}();
+    ret = {{ teardown_func }}((void *) pkts, (size_t) count);
+    if (ret != LAGOPUS_RESULT_OK) {
+      lagopus_perror(ret);
+      goto done;
+    }
 {% endif %}
 
     time = end_time - start_time;
@@ -404,6 +541,7 @@ main(int argc, const char *const argv[]) {
   pcap_t *pcap = NULL;
   char errbuf[PCAP_ERRBUF_SIZE];
   size_t i, count;
+  long long int papi_values[papi_event_num];
   const u_char *p = NULL;
   static lagopus_statistic_t throughput = NULL;
   static lagopus_statistic_t nspp = NULL;
@@ -455,11 +593,12 @@ main(int argc, const char *const argv[]) {
       }
       rte_pktmbuf_reset(pkts[count]);
       rte_mbuf_refcnt_set(pkts[count], 1);
-      pkts[count]->buf_addr = &pkts[count][1];
+      pkts[count]->priv_size = DP_MBUF_ROUNDUP(sizeof(struct lagopus_packet),
+                                               RTE_MBUF_PRIV_ALIGN);
+      pkts[count]->buf_addr = ((uint8_t *)&pkts[count][1]) + pkts[count]->priv_size;
       memcpy(pkts[count]->buf_addr, p, header.caplen);
-      pkts[count]->buf_len = (uint16_t) header.caplen;
+      pkts[count]->buf_len = RTE_PKTMBUF_HEADROOM + MAX_PACKET_SZ;
       pkts[count]->data_len = (uint16_t) header.caplen;
-      pkts[count]->pkt_len = header.caplen;
       count++;
       if (opt_batch_size !=0 && count >= opt_batch_size) {
         break;
@@ -472,12 +611,12 @@ main(int argc, const char *const argv[]) {
   }
   fprintf(stdout, "read %zu packets.\n", count);
 
-  ret = measure_benchmark(pkts, &throughput, &nspp, count);
+  ret = measure_benchmark(pkts, &throughput, &nspp, count, papi_values);
   if (ret != LAGOPUS_RESULT_OK) {
     goto done;
   }
 
-  print_statistics(&throughput, &nspp);
+  print_statistics(&throughput, &nspp, papi_values);
 
 done:
   if (opt_dsl_file != NULL) {

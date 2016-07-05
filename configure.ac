@@ -371,6 +371,21 @@ else
 fi
 AC_SUBST(GMP_LIBS)
 
+# check for papi
+PAPI_LIBS=
+HAVE_PAPI=
+if test "X${developer}" != "Xno"; then
+   AC_CHECK_HEADER(papi.h,, [AC_MSG_ERROR([papi.h is required!])])
+   oLIBS=${LIBS}
+   LIBS=''
+   AC_CHECK_LIB(papi, PAPI_library_init,, [AC_MSG_ERROR([libpapi is required!])])
+   PAPI_LIBS=${LIBS}
+   LIBS=${oLIBS}
+   HAVE_PAPI=yes
+fi
+AC_SUBST(HAVE_PAPI)
+AC_SUBST(PAPI_LIBS)
+
 AC_ARG_ENABLE([jumbo-frame],
 	[AC_HELP_STRING([--enable-jumbo-frame],
 	 [enable jumbo frame [default is no]])]

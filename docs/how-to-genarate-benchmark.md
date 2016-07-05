@@ -11,9 +11,11 @@ You must write a function of the benchmark target in advance.
 Features of tools
 ----------------------
 1. Generate benchmark tests from parameter file(YAML).
-2. Measure the throughput(min, max, avg), nsec/packet(min, max, avg).
-3. Specify the number of measuring times, and batch size.
-4. Specify the packet capture file.
+2. Measure throughput(min, max, avg), nsec/packet(min, max, avg).
+3. Measure cache references/misses, CPU cycles and page faults,
+   if `num_measurements: 1`(`-n 1`).
+4. Specify the number of measuring times, and batch size.
+5. Specify the packet capture file.
 
 TODO
 ----
@@ -39,6 +41,7 @@ How to generate benchmark
 * Ubuntu 16.04
 
 ## Related packages
+ * PAPI 5.4.3.0
  * Python 2.7.11 or Python 3.5.1
  * pip
  * PyYAML 3.11
@@ -49,7 +52,7 @@ How to generate benchmark
 You execute the following command:
 
 ```
- % sudo apt-get install python python-dev python-pip
+ % sudo apt-get install python python-dev python-pip libpapi-dev
  % sudo pip install --requirement tools/benchmark/requirements.pip
 ```
 
@@ -79,14 +82,14 @@ You write the following fields in the file in YAML format.
 || include\_files | list of string | O | This field describes the name of include files (\*.h, \*.c). |
 || lib\_files | list of string | X | This field describes the name of lib files(\*.o, etc.). |
 || external\_libs | string | X | This field describes the external libs(e.g. "-lFOO -lBAR"). |
-|| setup\_func | string | X | This field describes the name of setup function [void func(void)]. |
-|| teardown\_func | string | X | This field describes the name of teardown function [void func(void)]. |
+|| setup\_func | string | X | This field describes the name of setup function [lagopus\_result\_t setup(void *pkts, size\_t pkts\_size)]. |
+|| teardown\_func | string | X | This field describes the name of teardown function [lagopus\_result\_t teardown(void *pkts, size\_t pkts\_size)]. |
 || target\_func | string | X | This field describes the name of benchmark target function [lagopus\_result\_t func(void *pkts, size\_t pkts\_size)]. |
 || pcap | string | O | This field describes the name of pcap file (\*.pcap, etc.). |
 || dsl | string | X | This field describes the name of lagopus DSL file. The lagopus module thread is started when you specify this field. |
 || dpdk_opts | string | X | This field describes DPDK opts (default: -cf -n4). |
 || dp_opts | string | X | This field describes Dataplne opts (default: -p3). |
-|| times | int | X | This field describes the number of executions of target\_func (default: 1).|
+|| num_measurements | int | X | This field describes the number of executions of target\_func (default: 1). 1 is outputs cache references/misses, CPU cycles and page faults.|
 || batch_size | int | O | This field describes the size of batches(default: 0) . 0 is read all packets in pcap file. |
 
 e.g.)
@@ -143,14 +146,14 @@ You execute the following command:
 ```
  % sudo make benchmark
    or
- % sudo ./<BENCHMARK_EXECUTABLE_FILE> [-t <MEASURING_TIMES>] [-b <BATCH_SIZE>] <PCAP_FILE>
+ % sudo ./<BENCHMARK_EXECUTABLE_FILE> [-n <NUM_MEASUREMENTS>] [-b <BATCH_SIZE>] <PCAP_FILE>
    positional arguments:
-     PCAP_FILE           Packet capture file.
+     PCAP_FILE               Packet capture file.
 
    optional arguments:
-     -t MEASURING_TIMES  Number of executions of benchmark target func(default: 1).
-     -b BATCH_SIZE       Size of batches(default: 0).
-                         0 is read all packets in pcap file.
+     -n NUM_MEASUREMENTS     Number of executions of benchmark target func(default: 1).
+     -b BATCH_SIZE           Size of batches(default: 0).
+                             0 is read all packets in pcap file.
 ```
 
 e.g.)

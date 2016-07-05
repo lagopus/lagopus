@@ -19,14 +19,20 @@
 #include <rte_mbuf.h>
 #include "dump_pkts.h"
 
-void
-setup(void) {
+lagopus_result_t
+setup(void *pkts, size_t size) {
+  (void) pkts;
+  (void) size;
   printf("call setup.\n");
+  return LAGOPUS_RESULT_OK;
 }
 
-void
-teardown(void) {
+lagopus_result_t
+teardown(void *pkts, size_t size) {
+  (void) pkts;
+  (void) size;
   printf("call teardown.\n");
+  return LAGOPUS_RESULT_OK;
 }
 
 lagopus_result_t
