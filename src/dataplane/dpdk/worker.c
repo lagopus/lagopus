@@ -396,7 +396,7 @@ dp_get_flowcache_statistics(struct bridge *bridge, struct ofcachestat *st) {
 }
 
 void
-app_assign_worker_ids(void) {
+dpdk_assign_worker_ids(void) {
   uint32_t lcore, worker_id;
 
   /* Assign ID for each worker */

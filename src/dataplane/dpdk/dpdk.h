@@ -438,13 +438,11 @@ dpdk_rx_burst(struct interface *ifp, void *mbufs[], size_t nb) {
 }
 
 int app_parse_args(int argc, const char *argv[]);
-void app_init(void);
-void app_assign_worker_ids(void);
-void app_init_mbuf_pools(void);
-void app_init_rings_rx(void);
-void app_init_rings_tx(void);
-void app_init_nics(void);
-void app_init_kni(void);
+void dp_dpdk_init(void);
+
+void dpdk_assign_worker_ids(void);
+void dpdk_init_mbuf_pools(void);
+
 void app_lcore_io_flush(struct app_lcore_params_io *lp,
                         uint32_t n_workers,
                         void *arg);
@@ -478,8 +476,6 @@ struct interface *dpdk_interface_lookup(uint8_t portid);
 bool dp_dpdk_is_portid_specified(void);
 
 struct app_lcore_params *dp_dpdk_get_lcore_param(unsigned lcore);
-
-void dp_dpdk_tx_ring_create(uint8_t portid);
 
 unsigned dp_dpdk_lcore_count(void);
 

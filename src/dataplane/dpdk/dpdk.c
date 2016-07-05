@@ -164,11 +164,9 @@ app_lcore_main_loop(void *arg) {
 }
 
 void
-app_init(void) {
-  app_assign_worker_ids();
-  app_init_mbuf_pools();
-  app_init_rings_rx();
-  app_init_rings_tx();
+dp_dpdk_init(void) {
+  dpdk_assign_worker_ids();
+  dpdk_init_mbuf_pools();
 
   printf("Initialization completed.\n");
 }
@@ -309,7 +307,7 @@ dpdk_dataplane_init(int argc, const char *const argv[]) {
 
   if (is_rawsocket_only_mode() != true) {
     /* Init */
-    app_init();
+    dp_dpdk_init();
     app_print_params();
   }
 

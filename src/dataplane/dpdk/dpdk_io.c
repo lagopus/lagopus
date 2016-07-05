@@ -549,7 +549,7 @@ app_lcore_main_loop_io(void *arg) {
 }
 
 void
-app_init_mbuf_pools(void) {
+dpdk_init_mbuf_pools(void) {
   unsigned socket, lcore;
 
   /* Init the buffer pools */
@@ -570,7 +570,7 @@ app_init_mbuf_pools(void) {
                           RTE_PKTMBUF_HEADROOM + MAX_PACKET_SZ,
                           (int)socket);
     if (app.pools[socket] == NULL) {
-      rte_panic("Cannot create mbuf pool on socket %u\n", socket);
+      lagopus_exit_fatal("Cannot create mbuf pool on socket %u\n", socket);
     }
   }
 
@@ -586,23 +586,19 @@ app_init_mbuf_pools(void) {
   }
 }
 
-void
-app_init_rings_rx(void) {
+static void
+dp_dpdk_rx_ring_create(uint8_t portid) {
   unsigned lcore;
 
-  /* Initialize the rings for the RX side */
-  for (lcore = 0; lcore < APP_MAX_LCORES; lcore ++) {
+  if (app_get_lcore_for_nic_rx(portid, 0, &lcore) < 0) {
+    lagopus_exit_fatal("Algorithmic error (no I/O core to handle RX of port %u)\n",
+                       portid);
+  } else {
     struct app_lcore_params_io *lp_io = &app.lcore_params[lcore].io;
     unsigned socket_io, lcore_worker;
 
-    if (app.lcore_params[lcore].type != e_APP_LCORE_IO &&
-         app.lcore_params[lcore].type != e_APP_LCORE_IO_WORKER) {
-      continue;
-    }
-
     socket_io = rte_lcore_to_socket_id(lcore);
-
-    for (lcore_worker = 0; lcore_worker < APP_MAX_LCORES; lcore_worker ++) {
+    for (lcore_worker = 0; lcore_worker < APP_MAX_LCORES; lcore_worker++) {
       char name[32];
       struct app_lcore_params_worker *lp_worker;
       struct rte_ring *ring = NULL;
@@ -624,56 +620,29 @@ app_init_rings_rx(void) {
                socket_io,
                lcore,
                lcore_worker);
+      if (rte_ring_lookup(name) != NULL) {
+        /* already created. */
+        continue;
+      }
       ring = rte_ring_create(
                name,
                app.ring_rx_size,
                (int)socket_io,
                RING_F_SP_ENQ | RING_F_SC_DEQ);
       if (ring == NULL) {
-        rte_panic("Cannot create ring to connect I/O "
-                  "core %u with worker core %u\n",
-                  lcore,
-                  lcore_worker);
+        lagopus_exit_fatal("Failed to create RX ring for port %d\n", portid);
       }
 
       lp_io->rx.rings[lp_io->rx.n_rings] = ring;
-      lp_io->rx.n_rings ++;
+      lp_io->rx.n_rings++;
 
       lp_worker->rings_in[lp_worker->n_rings_in] = ring;
-      lp_worker->n_rings_in ++;
-    }
-  }
-
-  for (lcore = 0; lcore < APP_MAX_LCORES; lcore ++) {
-    struct app_lcore_params_io *lp_io = &app.lcore_params[lcore].io;
-
-    if ((app.lcore_params[lcore].type != e_APP_LCORE_IO &&
-         app.lcore_params[lcore].type != e_APP_LCORE_IO_WORKER) ||
-        (lp_io->rx.n_nic_queues == 0)) {
-      continue;
-    }
-
-    if (lp_io->rx.n_rings != app_get_lcores_worker()) {
-      rte_panic("Algorithmic error (I/O RX rings)\n");
-    }
-  }
-
-  for (lcore = 0; lcore < APP_MAX_LCORES; lcore ++) {
-    struct app_lcore_params_worker *lp_worker;
-
-    lp_worker = &app.lcore_params[lcore].worker;
-    if (app.lcore_params[lcore].type != e_APP_LCORE_WORKER &&
-        app.lcore_params[lcore].type != e_APP_LCORE_IO_WORKER) {
-      continue;
-    }
-
-    if (lp_worker->n_rings_in != app_get_lcores_io_rx()) {
-      rte_panic("Algorithmic error (worker input rings)\n");
+      lp_worker->n_rings_in++;
     }
   }
 }
 
-void
+static void
 dp_dpdk_tx_ring_create(uint8_t portid) {
   char name[32];
   struct app_lcore_params_io *lp_io;
@@ -683,8 +652,8 @@ dp_dpdk_tx_ring_create(uint8_t portid) {
   unsigned lcore;
 
   if (app_get_lcore_for_nic_tx(portid, &lcore_io) < 0) {
-    rte_panic("Algorithmic error (no I/O core to handle TX of port %u)\n",
-              portid);
+    lagopus_exit_fatal("Algorithmic error (no I/O core to handle TX of port %u)\n",
+                       portid);
   }
   lp_io = &app.lcore_params[lcore_io].io;
   socket_io = rte_lcore_to_socket_id(lcore_io);
@@ -705,101 +674,19 @@ dp_dpdk_tx_ring_create(uint8_t portid) {
     snprintf(name, sizeof(name),
              "app_ring_tx_s%u_w%u_p%u",
              socket_io, lcore, portid);
+      if (rte_ring_lookup(name) != NULL) {
+        /* already created. */
+        return;
+      }
     ring = rte_ring_create(name,
                            app.ring_tx_size,
                            (int)socket_io,
                            RING_F_SP_ENQ | RING_F_SC_DEQ);
     if (ring == NULL) {
-      lagopus_exit_fatal("Cannot create ring to connect"
-                         " worker core %u with TX port %u\n",
-                         lcore,
-                         portid);
+      lagopus_exit_fatal("Failed to create TX ring for port %d\n", portid);
     }
     lp_worker->rings_out[portid] = ring;
     lp_io->tx.rings[portid][lp_worker->worker_id] = ring;
-  }
-}
-
-void
-app_init_rings_tx(void) {
-  unsigned lcore;
-
-  /* Initialize the rings for the TX side */
-  for (lcore = 0; lcore < APP_MAX_LCORES; lcore ++) {
-    struct app_lcore_params_worker *lp_worker = &app.lcore_params[lcore].worker;
-    unsigned port;
-
-    if (app.lcore_params[lcore].type != e_APP_LCORE_WORKER &&
-        app.lcore_params[lcore].type != e_APP_LCORE_IO_WORKER) {
-      continue;
-    }
-
-    for (port = 0; port < APP_MAX_NIC_PORTS; port ++) {
-      char name[32];
-      struct app_lcore_params_io *lp_io = NULL;
-      struct rte_ring *ring;
-      uint32_t socket_io, lcore_io;
-
-      if (app.nic_tx_port_mask[port] == 0) {
-        continue;
-      }
-
-      if (app_get_lcore_for_nic_tx((uint8_t) port, &lcore_io) < 0) {
-        rte_panic("Algorithmic error (no I/O core to handle TX of port %u)\n",
-                  port);
-      }
-
-      lp_io = &app.lcore_params[lcore_io].io;
-      socket_io = rte_lcore_to_socket_id(lcore_io);
-
-      lagopus_dprint("Creating ring to connect "
-                     "worker lcore %u with "
-                     "TX port %u (through I/O lcore %u)"
-                     " (socket %u) ...\n",
-                     lcore,
-                     port,
-                     (unsigned)lcore_io,
-                     (unsigned)socket_io);
-      snprintf(name, sizeof(name),
-               "app_ring_tx_s%u_w%u_p%u",
-               socket_io, lcore, port);
-      ring = rte_ring_create(
-               name,
-               app.ring_tx_size,
-               (int)socket_io,
-               RING_F_SP_ENQ | RING_F_SC_DEQ);
-      if (ring == NULL) {
-        rte_panic("Cannot create ring to connect"
-                  " worker core %u with TX port %u\n",
-                  lcore,
-                  port);
-      }
-
-      lp_worker->rings_out[port] = ring;
-      lp_io->tx.rings[port][lp_worker->worker_id] = ring;
-    }
-  }
-
-  for (lcore = 0; lcore < APP_MAX_LCORES; lcore ++) {
-    struct app_lcore_params_io *lp_io = &app.lcore_params[lcore].io;
-    unsigned i;
-
-    if ((app.lcore_params[lcore].type != e_APP_LCORE_IO &&
-         app.lcore_params[lcore].type != e_APP_LCORE_IO_WORKER) ||
-        (lp_io->tx.n_nic_ports == 0)) {
-      continue;
-    }
-
-    for (i = 0; i < lp_io->tx.n_nic_ports; i ++) {
-      unsigned port, j;
-
-      port = lp_io->tx.nic_ports[i];
-      for (j = 0; j < app_get_lcores_worker(); j ++) {
-        if (lp_io->tx.rings[port][j] == NULL) {
-          rte_panic("Algorithmic error (I/O TX rings)\n");
-        }
-      }
-    }
   }
 }
 
@@ -936,16 +823,16 @@ dpdk_configure_interface(struct interface *ifp) {
     }
   }
   if (ret < 0) {
-    rte_panic("Cannot init NIC port %u (%s)\n",
-              (unsigned) portid, strerror(-ret));
+    lagopus_exit_fatal("Cannot init NIC port %u (%s)\n",
+                       (unsigned) portid, strerror(-ret));
   }
   ret = rte_eth_dev_set_mtu(portid, ifp->info.eth_dpdk_phy.mtu);
   if (ret < 0) {
     if (ret != -ENOTSUP) {
-      rte_panic("Cannot set MTU(%d) for port %d (%d)\n",
-                ifp->info.eth_dpdk_phy.mtu,
-                portid,
-                ret);
+      lagopus_exit_fatal("Cannot set MTU(%d) for port %d (%d)\n",
+                         ifp->info.eth_dpdk_phy.mtu,
+                         portid,
+                         ret);
     } else {
       lagopus_msg_notice("Cannot set MTU(%d) for port %d, not supporetd\n",
                          ifp->info.eth_dpdk_phy.mtu,
@@ -983,7 +870,6 @@ dpdk_configure_interface(struct interface *ifp) {
     lp->io.tx.n_nic_ports++;
     lp->io.rx.ifp[lp->io.rx.nifs++] = ifp;
     app.nic_tx_port_mask[portid] = 1;
-    dp_dpdk_tx_ring_create(portid);
   } else {
     struct app_lcore_params *lp;
     unsigned lcore;
@@ -1044,6 +930,8 @@ dpdk_configure_interface(struct interface *ifp) {
       break;
     }
   }
+  dp_dpdk_rx_ring_create(portid);
+  dp_dpdk_tx_ring_create(portid);
 
   /* Init TX queues */
   if (app.nic_tx_port_mask[portid] == 1) {
