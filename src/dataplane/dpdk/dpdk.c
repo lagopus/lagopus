@@ -169,7 +169,6 @@ app_init(void) {
   app_init_mbuf_pools();
   app_init_rings_rx();
   app_init_rings_tx();
-  app_init_nics();
 
   printf("Initialization completed.\n");
 }

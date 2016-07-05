@@ -1013,12 +1013,11 @@ app_get_lcores_io_rx(void) {
   for (lcore = 0; lcore < APP_MAX_LCORES; lcore ++) {
     struct app_lcore_params_io *lp_io = &app.lcore_params[lcore].io;
 
-    if ((app.lcore_params[lcore].type != e_APP_LCORE_IO &&
-         app.lcore_params[lcore].type != e_APP_LCORE_IO_WORKER) ||
-        (lp_io->rx.n_nic_queues == 0)) {
+    if (app.lcore_params[lcore].type != e_APP_LCORE_IO &&
+        app.lcore_params[lcore].type != e_APP_LCORE_IO_WORKER) {
       continue;
     }
-    count ++;
+    count++;
   }
   return count;
 }
@@ -1033,7 +1032,7 @@ app_get_lcores_worker(void) {
         app.lcore_params[lcore].type != e_APP_LCORE_IO_WORKER) {
       continue;
     }
-    count ++;
+    count++;
   }
   if (count > APP_MAX_WORKER_LCORES) {
     rte_panic("Algorithmic error (too many worker lcores)\n");
@@ -1070,8 +1069,7 @@ app_print_params(void) {
     struct app_lcore_params_io *lp = &app.lcore_params[lcore].io;
 
     if ((app.lcore_params[lcore].type != e_APP_LCORE_IO &&
-         app.lcore_params[lcore].type != e_APP_LCORE_IO_WORKER) ||
-        (lp->rx.n_nic_queues == 0)) {
+         app.lcore_params[lcore].type != e_APP_LCORE_IO_WORKER)) {
       continue;
     }
 
