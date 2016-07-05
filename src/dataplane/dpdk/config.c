@@ -852,7 +852,7 @@ app_parse_args(int argc, const char *argv[]) {
       lcore_count = 1;
     }
     if (lcore_count == 1) {
-        lp = &app.lcore_params[lcores[lcore]];
+        lp = &app.lcore_params[lcores[0]];
         lp->type = e_APP_LCORE_IO_WORKER;
     } else {
       for (lcore = 0; lcore < lcore_count / 2; lcore++) {
