@@ -1013,7 +1013,6 @@ dpdk_configure_interface(struct interface *ifp) {
   if (is_rawsocket_only_mode() == true) {
     return LAGOPUS_RESULT_INVALID_ARGS;
   }
-#if defined(RTE_VERSION_NUM) && RTE_VERSION >= RTE_VERSION_NUM(2, 0, 0, 4)
   if (strlen(ifp->info.eth_dpdk_phy.device) > 0) {
     uint8_t actual_portid;
     const char *name;
@@ -1025,14 +1024,16 @@ dpdk_configure_interface(struct interface *ifp) {
     /* whenever 'device' is specified, overwrite portid by actual portid. */
     ifp->info.eth.port_number = (uint32_t)actual_portid;
   }
-#endif /* RTE_VERSION_NUM */
   portid = (uint8_t)ifp->info.eth.port_number;
 
   n_rx_queues = app_get_nic_rx_queues_per_port(portid);
   n_tx_queues = app.nic_tx_port_mask[portid];
 
-  if ((n_rx_queues == 0) && (n_tx_queues == 0)) {
-    return LAGOPUS_RESULT_INVALID_ARGS;
+  if (n_rx_queues == 0) {
+    n_rx_queues = 1;
+  }
+  if (n_tx_queues == 0) {
+    n_tx_queues = 1;
   }
 
   if (ifp->info.eth_dpdk_phy.mtu < 64 ||
@@ -1086,6 +1087,26 @@ dpdk_configure_interface(struct interface *ifp) {
   }
   rte_eth_promiscuous_enable(portid);
 
+  if (!dp_dpdk_is_portid_specified() &&
+      app.nic_rx_queue_mask[portid][0] == NIC_RX_QUEUE_UNCONFIGURED) {
+    struct app_lcore_params *lp;
+    uint8_t i;
+
+    lp = dp_dpdk_get_lcore_param(0);
+    for (i = 1; i < dp_dpdk_lcore_count(); i++) {
+      struct app_lcore_params *tlp = dp_dpdk_get_lcore_param(i);
+      if (lp->io.rx.n_nic_queues > tlp->io.rx.n_nic_queues) {
+        lp = tlp;
+      }
+    }
+    lp->io.rx.nic_queues[lp->io.rx.n_nic_queues].port = portid;
+    lp->io.rx.nic_queues[lp->io.rx.n_nic_queues].queue = 0;
+    lp->io.rx.n_nic_queues++;
+    app.nic_rx_queue_mask[portid][0] = NIC_RX_QUEUE_ENABLED;
+    lp->io.tx.nic_ports[lp->io.tx.n_nic_ports] = portid;
+    lp->io.tx.n_nic_ports++;
+    app.nic_tx_port_mask[portid] = 1;
+  }
   /* Init RX queues */
   for (queue = 0; queue < APP_MAX_RX_QUEUES_PER_NIC_PORT; queue ++) {
     struct app_lcore_params_io *lp;
@@ -1093,8 +1114,7 @@ dpdk_configure_interface(struct interface *ifp) {
 
     if (app.nic_rx_queue_mask[portid][queue] == NIC_RX_QUEUE_UNCONFIGURED) {
       continue;
-    }
-    app_get_lcore_for_nic_rx(portid, queue, &lcore);
+      }
     lp = &app.lcore_params[lcore].io;
     socket = rte_lcore_to_socket_id(lcore);
     pool = app.lcore_params[lcore].pool;
@@ -1104,14 +1124,10 @@ dpdk_configure_interface(struct interface *ifp) {
                      (unsigned) queue);
     ret = rte_eth_rx_queue_setup(portid,
                                  queue,
-                                 (uint16_t) app.nic_rx_ring_size,
-                                 socket,
-#if defined(RTE_VERSION_NUM) && RTE_VERSION >= RTE_VERSION_NUM(1, 8, 0, 0)
-                                 &ifp->devinfo.default_rxconf,
-#else
-                                 &rx_conf,
-#endif /* RTE_VERSION_NUM */
-                                 pool);
+                                   (uint16_t) app.nic_rx_ring_size,
+                                   socket,
+                                   &ifp->devinfo.default_rxconf,
+                                   pool);
     if (ret < 0) {
       rte_panic("Cannot init RX queue %u for port %u (%d)\n",
                 (unsigned) queue,
@@ -1138,12 +1154,8 @@ dpdk_configure_interface(struct interface *ifp) {
                                  0,
                                  (uint16_t) app.nic_tx_ring_size,
                                  socket,
-#if defined(RTE_VERSION_NUM) && RTE_VERSION >= RTE_VERSION_NUM(1, 8, 0, 0)
                                  &ifp->devinfo.default_txconf
-#else
-                                 &tx_conf
-#endif /* RTE_VERSION_NUM */
-                                );
+                                 );
     if (ret < 0) {
       rte_panic("Cannot init TX queue 0 for port %d (%d)\n",
                 portid,
@@ -1197,14 +1209,12 @@ dpdk_unconfigure_interface(struct interface *ifp) {
       break;
     }
   }
-#if defined(RTE_VERSION_NUM) && RTE_VERSION >= RTE_VERSION_NUM(2, 0, 0, 4)
   if (strlen(ifp->info.eth_dpdk_phy.device) > 0) {
     char detached_devname[RTE_ETH_NAME_MAX_LEN];
 
     rte_eth_dev_close(portid);
     rte_eth_dev_detach(portid, detached_devname);
   }
-#endif /* RTE_VERSION_NUM */
   dpdk_interface_unset_index(ifp);
   return LAGOPUS_RESULT_OK;
 }
@@ -1449,19 +1459,6 @@ dpdk_change_config(uint8_t portid, uint32_t advertised, uint32_t config) {
   }
 
   return LAGOPUS_RESULT_OK;
-}
-
-bool
-lagopus_is_port_enabled(const struct port *port) {
-  if (port == NULL || port->type != LAGOPUS_PORT_TYPE_PHYSICAL) {
-    return false;
-  }
-  return (lagopus_port_mask & (unsigned long)(1 << port->ifindex)) != 0;
-}
-
-bool
-lagopus_is_portid_enabled(int portid) {
-  return (lagopus_port_mask & (unsigned long)(1 << portid)) != 0;
 }
 
 void

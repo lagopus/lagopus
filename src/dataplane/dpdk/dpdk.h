@@ -457,4 +457,12 @@ bool set_rawsocket_only_mode(bool newval);
 
 struct interface *dpdk_interface_lookup(uint8_t portid);
 
+bool dp_dpdk_is_portid_specified(void);
+
+struct app_lcore_params *
+dp_dpdk_get_lcore_param(unsigned lcore);
+
+unsigned
+dp_dpdk_lcore_count(void);
+
 #endif /* SRC_DATAPLANE_DPDK_DPDK_H_ */
