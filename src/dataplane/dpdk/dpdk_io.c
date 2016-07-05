@@ -226,6 +226,22 @@ dpdk_interface_queue_id_to_index(struct interface *ifp, uint32_t queue_id) {
   return 0;
 }
 
+static inline int
+dpdk_interface_device_name_to_index(char *name) {
+  int i;
+
+  for (i = 0; i < RTE_MAX_ETHPORTS; i++) {
+    if ((ifp_table[i] != NULL) &&
+        (strlen(ifp_table[i]->info.eth_dpdk_phy.device) > 0) &&
+        (strncmp(name,
+                 ifp_table[i]->info.eth_dpdk_phy.device,
+                 strlen(name)) == 0)) {
+      return i;
+    }
+  }
+  return -1;
+}
+
 /**
  * Put mbuf (bsz packets) into worker queue.
  * The function is called from I/O (Input) thread.
@@ -784,6 +800,11 @@ dpdk_configure_interface(struct interface *ifp) {
   if (strlen(ifp->info.eth_dpdk_phy.device) > 0) {
     uint8_t actual_portid;
     const char *name;
+
+    /* make sure we don't have a interface that has same device option. */
+    if (dpdk_interface_device_name_to_index(ifp->info.eth_dpdk_phy.device) >= 0) {
+      return LAGOPUS_RESULT_ALREADY_EXISTS;
+    }
 
     name = dpdk_remove_namespace(ifp->info.eth_dpdk_phy.device);
     actual_portid = dpdk_get_detachable_portid_by_name(name);
