@@ -5629,7 +5629,11 @@ test_bridge_cmd_parse_stats_01(void) {
     "\"flowcache-miss\":0,\n"
     "\"flow-entries\":0,\n"
     "\"flow-lookup-count\":0,\n"
-    "\"flow-matched-count\":0}]}";
+    "\"flow-matched-count\":0,\n"
+    "\"tables\":[{\"table-id\":0,\n"
+    "\"flow-entries\":0,\n"
+    "\"flow-lookup-count\":0,\n"
+    "\"flow-matched-count\":0}]}]}";
   const char *argv3[] = {"bridge", "test_name63", "destroy",
                          NULL
                         };

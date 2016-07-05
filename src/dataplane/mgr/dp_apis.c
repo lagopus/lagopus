@@ -1176,7 +1176,6 @@ dp_bridge_port_count(const char *name) {
 lagopus_result_t
 dp_bridge_stats_get(const char *name,
                     datastore_bridge_stats_t *stats) {
-  struct table_stats_list list;
   struct ofp_error error;
   struct ofcachestat cache_stats;
   struct bridge *bridge;
@@ -1194,19 +1193,14 @@ dp_bridge_stats_get(const char *name,
   stats->flow_entries = 0;
   stats->flow_lookup_count = 0;
   stats->flow_matched_count = 0;
-  TAILQ_INIT(&list);
-  rv = flowdb_table_stats(bridge->flowdb, &list, &error);
+  rv = flowdb_table_stats(bridge->flowdb, &stats->flow_table_stats, &error);
   if (rv == LAGOPUS_RESULT_OK) {
     struct table_stats *table_stats;
 
-    TAILQ_FOREACH(table_stats, &list, entry) {
+    TAILQ_FOREACH(table_stats, &stats->flow_table_stats, entry) {
       stats->flow_entries += table_stats->ofp.active_count;
       stats->flow_lookup_count += table_stats->ofp.lookup_count;
       stats->flow_matched_count += table_stats->ofp.matched_count;
-    }
-    while ((table_stats = TAILQ_FIRST(&list)) != NULL) {
-      TAILQ_REMOVE(&list, table_stats, entry);
-      free(table_stats);
     }
   }
   dp_get_flowcache_statistics(bridge, &cache_stats);

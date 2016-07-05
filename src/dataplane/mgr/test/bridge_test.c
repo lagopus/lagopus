@@ -157,12 +157,20 @@ test_ofp_version_bitmap(void) {
 void
 test_dp_bridge_stats(void) {
   datastore_bridge_stats_t stats;
+  struct table_stats *table_stats;
   lagopus_result_t rv;
+
+  TAILQ_INIT(&stats.flow_table_stats);
 
   rv = dp_bridge_stats_get("bad", &stats);
   TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_NOT_FOUND);
   rv = dp_bridge_stats_get(bridge_name, &stats);
   TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
+
+  while ((table_stats = TAILQ_FIRST(&stats.flow_table_stats)) != NULL) {
+    TAILQ_REMOVE(&stats.flow_table_stats, table_stats, entry);
+    free(table_stats);
+  }
 }
 
 void
