@@ -25,6 +25,7 @@
 #include "lagopus/interface.h"
 
 #include "lagopus/ofp_dp_apis.h" /* for port_stats */
+#include "dpdk.h"
 
 #ifdef HYBRID
 #include <linux/rtnetlink.h>
@@ -221,6 +222,40 @@ dp_interface_stop_internal(struct interface *ifp) {
 #endif
     case DATASTORE_INTERFACE_TYPE_ETHERNET_RAWSOCK:
       return rawsock_stop_interface(ifp);
+
+    case DATASTORE_INTERFACE_TYPE_UNKNOWN:
+      break;
+
+    case DATASTORE_INTERFACE_TYPE_GRE:
+    case DATASTORE_INTERFACE_TYPE_NVGRE:
+    case DATASTORE_INTERFACE_TYPE_VXLAN:
+    case DATASTORE_INTERFACE_TYPE_VHOST_USER:
+      /* TODO */
+      break;
+
+    default:
+      break;
+  }
+
+  return LAGOPUS_RESULT_OK;
+}
+
+lagopus_result_t
+dp_interface_rx_burst_internal(struct interface *ifp,
+                               void *mbufs[], size_t nb) {
+  if (ifp == NULL) {
+    return LAGOPUS_RESULT_INVALID_ARGS;
+  }
+  switch (ifp->info.type) {
+    case DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_PHY:
+    case DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_VDEV:
+#ifdef HAVE_DPDK
+      return dpdk_rx_burst(ifp->info.eth.port_number, mbufs, nb);
+#else
+      break;
+#endif
+    case DATASTORE_INTERFACE_TYPE_ETHERNET_RAWSOCK:
+      return rawsock_rx_burst(ifp, mbufs, nb);
 
     case DATASTORE_INTERFACE_TYPE_UNKNOWN:
       break;

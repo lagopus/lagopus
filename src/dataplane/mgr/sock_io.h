@@ -22,6 +22,9 @@
 ssize_t
 dp_rawsock_interface_recv_packet(int fd, uint8_t *buf, size_t buflen);
 
-void clear_rawsock_flowcache(void);
+lagopus_result_t
+rawsock_rx_burst(struct interface *ifp, void *mbufs[], size_t nb);
+
+  void clear_rawsock_flowcache(void);
 
 #endif /* SRC_DATAPLANE_MGR_SOCK_IO_H_ */

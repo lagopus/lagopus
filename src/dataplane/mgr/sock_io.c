@@ -166,6 +166,44 @@ read_packet(int fd, uint8_t *buf, size_t buflen) {
   return pktlen;
 }
 
+lagopus_result_t
+rawsock_rx_burst(struct interface *ifp, void *mbufs[], size_t nb) {
+  lagopus_result_t i;
+
+  for (i = 0; i < nb; i++) {
+    struct lagopus_packet *pkt;
+    ssize_t len;
+
+    pkt = alloc_lagopus_packet();
+    mbufs[i] = PKT2MBUF(pkt);
+    len = read_packet(pollfd[ifp->info.eth_rawsock.port_number].fd,
+                      OS_MTOD((OS_MBUF *)mbufs[i], uint8_t *), MAX_PACKET_SZ);
+    if (len < 0) {
+      switch (errno) {
+        case ENETDOWN:
+        case ENETRESET:
+        case ECONNABORTED:
+        case ECONNRESET:
+        case EAGAIN:
+          lagopus_packet_free(pkt);
+          goto out;
+        case EINTR:
+          continue;
+
+        default:
+          lagopus_exit_fatal("read: %s", strerror(errno));
+      }
+    }
+    if (len == 0) {
+      lagopus_packet_free(pkt);
+      break;
+    }
+    OS_M_TRIM((OS_MBUF *)mbufs[i], MAX_PACKET_SZ - len);
+  }
+out:
+  return i;
+}
+
 #ifndef HAVE_DPDK
 lagopus_result_t
 rawsock_dataplane_init(int argc, const char *const argv[]) {

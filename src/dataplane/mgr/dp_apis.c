@@ -502,6 +502,19 @@ dp_port_stop(const char *name) {
 }
 
 lagopus_result_t
+dp_port_cookie_get(const char *name, void **cookiep) {
+  return lagopus_hashmap_find(&port_hashmap, (void *)name, cookiep);
+}
+
+lagopus_result_t
+dp_port_rx_burst(const void *cookie, void *mbufs[], size_t nb) {
+  struct port *port;
+
+  port = cookie;
+  return dp_interface_rx_burst_internal(port->interface, mbufs, nb);
+}
+
+lagopus_result_t
 dp_port_config_get(const char *name, uint32_t *config) {
   struct port *port;
   lagopus_result_t rv;

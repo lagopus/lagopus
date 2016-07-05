@@ -192,29 +192,6 @@ static struct rte_eth_conf port_conf = {
   },
 };
 
-#if !defined(RTE_VERSION_NUM) || RTE_VERSION < RTE_VERSION_NUM(1, 8, 0, 0)
-static const struct rte_eth_rxconf rx_conf = {
-  .rx_thresh = {
-    .pthresh = APP_DEFAULT_NIC_RX_PTHRESH,
-    .hthresh = APP_DEFAULT_NIC_RX_HTHRESH,
-    .wthresh = APP_DEFAULT_NIC_RX_WTHRESH,
-  },
-  .rx_free_thresh = APP_DEFAULT_NIC_RX_FREE_THRESH,
-  .rx_drop_en = APP_DEFAULT_NIC_RX_DROP_EN,
-};
-
-static struct rte_eth_txconf tx_conf = {
-  .tx_thresh = {
-    .pthresh = APP_DEFAULT_NIC_TX_PTHRESH,
-    .hthresh = APP_DEFAULT_NIC_TX_HTHRESH,
-    .wthresh = APP_DEFAULT_NIC_TX_WTHRESH,
-  },
-  .tx_free_thresh = APP_DEFAULT_NIC_TX_FREE_THRESH,
-  .tx_rs_thresh = APP_DEFAULT_NIC_TX_RS_THRESH,
-  .txq_flags = ETH_TXQ_FLAGS_NOMULTSEGS & ETH_TXQ_FLAGS_NOOFFLOADS,
-};
-#endif /* !RTE_VESRION_NUM */
-
 /* Per-port statistics struct */
 struct lagopus_port_statistics {
   uint64_t tx;
@@ -263,7 +240,7 @@ app_lcore_io_rx_buffer_to_send (
   int ret;
 
   pos = lp->rx.mbuf_out[worker].n_mbufs;
-  lp->rx.mbuf_out[worker].array[pos ++] = mbuf;
+  lp->rx.mbuf_out[worker].array[pos++] = mbuf;
   if (likely(pos < bsz)) {
     lp->rx.mbuf_out[worker].n_mbufs = pos;
     lp->rx.mbuf_out_flush[worker] = 1;
@@ -284,164 +261,40 @@ app_lcore_io_rx_buffer_to_send (
   }
 
   lp->rx.mbuf_out[worker].n_mbufs = 0;
-
-#if APP_STATS
-  lp->rx.rings_iters[worker] += bsz;
-  lp->rx.rings_count[worker] += ret;
-  if (unlikely(lp->rx.rings_iters[worker] == APP_STATS)) {
-    unsigned lcore = rte_lcore_id();
-
-    printf("\tI/O RX %u out (worker %u): enq success rate = %.2f\n",
-           lcore,
-           (unsigned)worker,
-           ((double) lp->rx.rings_count[worker]) / ((double)
-               lp->rx.rings_iters[worker]));
-    lp->rx.rings_iters[worker] = 0;
-    lp->rx.rings_count[worker] = 0;
-  }
-#endif
 }
 
-/**
- * Receive packet from ethernet driver and queueing into worker queue.
- * This function is called from I/O (Input) thread.
- */
 static inline void
-app_lcore_io_rx(
-  struct app_lcore_params_io *lp,
-  uint32_t n_workers,
-  uint32_t bsz_rd,
-  uint32_t bsz_wr) {
-  struct rte_mbuf *mbuf_1_0, *mbuf_1_1, *mbuf_2_0, *mbuf_2_1;
-  uint32_t i, fifoness;
+app_lcore_io_rx(struct app_lcore_params_io *lp,
+                uint32_t n_workers,
+                uint32_t bsz_rd,
+                uint32_t bsz_wr) {
+  OS_MBUF **mbufs;
+  uint8_t wkid, portid;
+  uint32_t fifoness;
+  uint32_t i, j;
 
   fifoness = app.fifoness;
-  for (i = 0; i < lp->rx.n_nic_queues; i++) {
-    uint8_t portid = lp->rx.nic_queues[i].port;
-    uint8_t queue = lp->rx.nic_queues[i].queue;
-    uint32_t n_mbufs, j;
+  mbufs = lp->rx.mbuf_in.array;
+  for (i = 0; i < lp->rx.nifs; i++) {
+    uint32_t n_mbufs;
 
-    if (unlikely(lp->rx.nic_queues[i].enabled != true)) {
-      continue;
-    }
-    n_mbufs = rte_eth_rx_burst(portid,
-                               queue,
-                               lp->rx.mbuf_in.array,
-                               (uint16_t) bsz_rd);
-    if (unlikely(n_mbufs == 0)) {
-      continue;
-    }
-
-#if APP_STATS
-    lp->rx.nic_queues_iters[i] ++;
-    lp->rx.nic_queues_count[i] += n_mbufs;
-    if (unlikely(lp->rx.nic_queues_iters[i] == APP_STATS)) {
-      struct rte_eth_stats stats;
-      unsigned lcore = rte_lcore_id();
-
-      rte_eth_stats_get(portid, &stats);
-
-      printf("I/O RX %u in (NIC port %u): NIC drop ratio = %.2f avg burst size = %.2f\n",
-             lcore,
-             (unsigned) portid,
-             (double) stats.ierrors / (double) (stats.ierrors + stats.ipackets),
-             ((double) lp->rx.nic_queues_count[i]) / ((double)
-                 lp->rx.nic_queues_iters[i]));
-      lp->rx.nic_queues_iters[i] = 0;
-      lp->rx.nic_queues_count[i] = 0;
-    }
-#endif
-
-#if APP_IO_RX_DROP_ALL_PACKETS
-    for (j = 0; j < n_mbufs; j ++) {
-      struct rte_mbuf *pkt = lp->rx.mbuf_in.array[j];
-      rte_pktmbuf_free(pkt);
-    }
-    continue;
-#endif
-
-    mbuf_1_0 = lp->rx.mbuf_in.array[0];
-    mbuf_1_1 = lp->rx.mbuf_in.array[1];
-    mbuf_2_0 = lp->rx.mbuf_in.array[2];
-    mbuf_2_1 = lp->rx.mbuf_in.array[3];
-    APP_IO_RX_PREFETCH0(mbuf_2_0);
-    APP_IO_RX_PREFETCH0(mbuf_2_1);
-
-    for (j = 0; j + 3 < n_mbufs; j += 2) {
-      struct rte_mbuf *mbuf_0_0, *mbuf_0_1;
-      uint32_t worker_0, worker_1;
-
-      mbuf_0_0 = mbuf_1_0;
-      mbuf_0_1 = mbuf_1_1;
-
-      mbuf_1_0 = mbuf_2_0;
-      mbuf_1_1 = mbuf_2_1;
-
-      mbuf_2_0 = lp->rx.mbuf_in.array[j+4];
-      mbuf_2_1 = lp->rx.mbuf_in.array[j+5];
-      APP_IO_RX_PREFETCH0(mbuf_2_0);
-      APP_IO_RX_PREFETCH0(mbuf_2_1);
-
+    portid = lp->rx.ifp[i]->info.eth.port_number;
+    n_mbufs = dpdk_rx_burst(lp->rx.ifp[i], mbufs, bsz_rd);
+    for (j = 0; j < n_mbufs; j++) {
       switch (fifoness) {
         case FIFONESS_FLOW:
-#ifdef __SSE4_2__
-          worker_0 = rte_hash_crc(rte_pktmbuf_mtod(mbuf_0_0, void *),
-                                  sizeof(ETHER_HDR) + 2, portid) % n_workers;
-          worker_1 = rte_hash_crc(rte_pktmbuf_mtod(mbuf_0_1, void *),
-                                  sizeof(ETHER_HDR) + 2, portid) % n_workers;
-#else
-          worker_0 = CityHash64WithSeed(rte_pktmbuf_mtod(mbuf_0_0, void *),
-                                        sizeof(ETHER_HDR) + 2, portid) % n_workers;
-          worker_1 = CityHash64WithSeed(rte_pktmbuf_mtod(mbuf_0_1, void *),
-                                        sizeof(ETHER_HDR) + 2, portid) % n_workers;
-#endif /* __SSE4_2__ */
+          wkid = CityHash64WithSeed(OS_MTOD(mbufs[j], void *),
+                                    sizeof(ETHER_HDR) + 2, portid) % n_workers;
           break;
         case FIFONESS_PORT:
-          worker_0 = worker_1 = portid % n_workers;
+          wkid = portid % n_workers;
           break;
         case FIFONESS_NONE:
         default:
-          worker_0 = j % n_workers;
-          worker_1 = (j + 1) % n_workers;
+          wkid = j % n_workers;
           break;
       }
-      app_lcore_io_rx_buffer_to_send(lp, worker_0, mbuf_0_0, bsz_wr);
-      app_lcore_io_rx_buffer_to_send(lp, worker_1, mbuf_0_1, bsz_wr);
-    }
-
-    /*
-     * Handle the last 1, 2 (when n_mbufs is even) or
-     * 3 (when n_mbufs is odd) packets
-     */
-    for ( ; j < n_mbufs; j += 1) {
-      struct rte_mbuf *mbuf;
-      uint32_t worker;
-
-      mbuf = mbuf_1_0;
-      mbuf_1_0 = mbuf_1_1;
-      mbuf_1_1 = mbuf_2_0;
-      mbuf_2_0 = mbuf_2_1;
-      APP_IO_RX_PREFETCH0(mbuf_1_0);
-
-      switch (fifoness) {
-        case FIFONESS_FLOW:
-#ifdef __SSE4_2__
-          worker = rte_hash_crc(rte_pktmbuf_mtod(mbuf, void *),
-                                sizeof(ETHER_HDR) + 2, portid) % n_workers;
-#else
-          worker = CityHash64WithSeed(rte_pktmbuf_mtod(mbuf, void *),
-                                      sizeof(ETHER_HDR) + 2, portid) % n_workers;
-#endif /* __SSE4_2__ */
-          break;
-        case FIFONESS_PORT:
-          worker = portid % n_workers;
-          break;
-        case FIFONESS_NONE:
-        default:
-          worker = j % n_workers;
-          break;
-      }
-      app_lcore_io_rx_buffer_to_send(lp, worker, mbuf, bsz_wr);
+      app_lcore_io_rx_buffer_to_send(lp, wkid, mbufs[j], bsz_wr);
     }
   }
 }
@@ -509,22 +362,6 @@ app_lcore_io_tx(struct app_lcore_params_io *lp,
 
       n_mbufs += (uint32_t)ret;
 
-#if APP_IO_TX_DROP_ALL_PACKETS
-      {
-        uint32_t j;
-        APP_IO_TX_PREFETCH0(lp->tx.mbuf_out[port].array[0]);
-        APP_IO_TX_PREFETCH0(lp->tx.mbuf_out[port].array[1]);
-
-        for (j = 0; j < n_mbufs; j ++) {
-          if (likely(j < n_mbufs - 2)) {
-            APP_IO_TX_PREFETCH0(lp->tx.mbuf_out[port].array[j + 2]);
-          }
-          rte_pktmbuf_free(lp->tx.mbuf_out[port].array[j]);
-        }
-        lp->tx.mbuf_out[port].n_mbufs = 0;
-        continue;
-      }
-#endif
       if (unlikely(n_mbufs < bsz_wr)) {
         lp->tx.mbuf_out[port].n_mbufs = n_mbufs;
         lp->tx.mbuf_out_flush[port] = 1;
@@ -560,22 +397,6 @@ app_lcore_io_tx(struct app_lcore_params_io *lp,
                                 lp->tx.mbuf_out[port].array,
                                 (uint16_t) n_mbufs);
       DPRINTF("sent %d pkts\n", n_pkts);
-
-#if APP_STATS
-      lp->tx.nic_ports_iters[port] ++;
-      lp->tx.nic_ports_count[port] += n_pkts;
-      if (unlikely(lp->tx.nic_ports_iters[port] == APP_STATS)) {
-        unsigned lcore = rte_lcore_id();
-
-        printf("\t\t\tI/O TX %u out (port %u): avg burst size = %.2f\n",
-               lcore,
-               (unsigned) port,
-               ((double) lp->tx.nic_ports_count[port]) / ((double)
-                   lp->tx.nic_ports_iters[port]));
-        lp->tx.nic_ports_iters[port] = 0;
-        lp->tx.nic_ports_count[port] = 0;
-      }
-#endif
 
       if (unlikely(n_pkts < n_mbufs)) {
         uint32_t k;
@@ -982,7 +803,6 @@ app_init_rings_tx(void) {
   }
 }
 
-#if defined(RTE_VERSION_NUM) && RTE_VERSION >= RTE_VERSION_NUM(2, 0, 0, 4)
 static inline uint8_t
 dpdk_get_detachable_portid_by_name(const char *name) {
   uint8_t portid;
@@ -1018,7 +838,6 @@ dpdk_get_detachable_portid_by_name(const char *name) {
 out:
   return portid;
 }
-#endif /* RTE_VERSION_NUM */
 
 static void
 dpdk_intr_event_callback(uint8_t portid, enum rte_eth_event_type type,
@@ -1162,6 +981,7 @@ dpdk_configure_interface(struct interface *ifp) {
     app.nic_rx_queue_mask[portid][0] = NIC_RX_QUEUE_ENABLED;
     lp->io.tx.nic_ports[lp->io.tx.n_nic_ports] = portid;
     lp->io.tx.n_nic_ports++;
+    lp->io.rx.ifp[lp->io.rx.nifs++] = ifp;
     app.nic_tx_port_mask[portid] = 1;
   }
   dp_dpdk_tx_ring_create(portid);
@@ -1183,19 +1003,19 @@ dpdk_configure_interface(struct interface *ifp) {
     DPRINTF("lcore %d: socket %d, pool %p\n", lcore, socket, pool);
 
     lagopus_msg_info("Initializing NIC port %u RX queue %u ...\n",
-                     (unsigned) portid,
-                     (unsigned) queue);
+                     (unsigned)portid,
+                     (unsigned)queue);
     ret = rte_eth_rx_queue_setup(portid,
                                  queue,
-                                   (uint16_t) app.nic_rx_ring_size,
-                                   socket,
-                                   &ifp->devinfo.default_rxconf,
-                                   pool);
+                                 (uint16_t)app.nic_rx_ring_size,
+                                 socket,
+                                 &ifp->devinfo.default_rxconf,
+                                 pool);
     if (ret < 0) {
-      rte_panic("Cannot init RX queue %u for port %u (%d)\n",
-                (unsigned) queue,
-                (unsigned) portid,
-                ret);
+      lagopus_exit_fatal("Cannot init RX queue %u for port %u (%d)\n",
+                         (unsigned)queue,
+                         (unsigned)portid,
+                         ret);
     }
     for (i = 0; i < lp->rx.n_nic_queues; i++) {
       if (lp->rx.nic_queues[i].port != portid ||
@@ -1220,9 +1040,9 @@ dpdk_configure_interface(struct interface *ifp) {
                                  &ifp->devinfo.default_txconf
                                  );
     if (ret < 0) {
-      rte_panic("Cannot init TX queue 0 for port %d (%d)\n",
-                portid,
-                ret);
+      lagopus_exit_fatal("Cannot init TX queue 0 for port %d (%d)\n",
+                         portid,
+                         ret);
     }
   }
 
@@ -1236,7 +1056,6 @@ lagopus_result_t
 dpdk_unconfigure_interface(struct interface *ifp) {
   uint8_t portid, queue;
 
-#if defined(RTE_VERSION_NUM) && RTE_VERSION >= RTE_VERSION_NUM(2, 0, 0, 4)
   if (strlen(ifp->info.eth_dpdk_phy.device) > 0) {
     uint8_t actual_portid;
     const char *name;
@@ -1249,7 +1068,6 @@ dpdk_unconfigure_interface(struct interface *ifp) {
     /* whenever 'device' is specified, overwrite portid by actual portid. */
     ifp->info.eth.port_number = (uint32_t)actual_portid;
   }
-#endif /* RTE_VERSION_NUM */
   portid = (uint8_t)ifp->info.eth.port_number;
 
   dpdk_stop_interface(portid);

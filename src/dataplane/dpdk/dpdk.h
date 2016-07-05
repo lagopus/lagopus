@@ -56,6 +56,7 @@
 #define SRC_DATAPLANE_DPDK_DPDK_H_
 
 #include <rte_config.h>
+#include "lagopus/interface.h"
 
 /* Logical cores */
 #ifndef APP_MAX_SOCKETS
@@ -286,6 +287,8 @@ struct app_lcore_params_io {
       uint8_t enabled;
     } nic_queues[APP_MAX_NIC_RX_QUEUES_PER_IO_LCORE];
     uint32_t n_nic_queues;
+    struct interface *ifp[APP_MAX_NIC_RX_QUEUES_PER_IO_LCORE];
+    uint32_t nifs;
 
     /* Rings */
     struct rte_ring *rings[APP_MAX_WORKER_LCORES];
@@ -418,6 +421,21 @@ dpdk_interface_lookup(uint8_t portid) {
   return ifp_table[portid];
 }
 
+/**
+ * Receive packet from specified interface.
+ *
+ * @param[in]	ifp	Interface.
+ * @param[out]	mbufs	Buffer of packets.
+ * @param[in]	nb	Buffer size.
+ *
+ * @retval	>=0	Number of received packets.
+ * @retval	<0	Error.
+ */
+static inline lagopus_result_t
+dpdk_rx_burst(struct interface *ifp, void *mbufs[], size_t nb) {
+  return (lagopus_result_t)rte_eth_rx_burst(ifp->info.eth.port_number, 0,
+                                            mbufs, nb);
+}
 
 int app_parse_args(int argc, const char *argv[]);
 void app_init(void);

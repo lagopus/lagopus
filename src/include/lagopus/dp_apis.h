@@ -246,6 +246,18 @@ dp_port_interface_set(const char *name, const char *ifname);
 lagopus_result_t
 dp_port_interface_unset(const char *name);
 
+/**
+ * Get cookie from port name.
+ */
+lagopus_result_t
+dp_port_cookie_get(const char *name, void **cookiep);
+
+/**
+ * Receive packet from specified port.
+ */
+lagopus_result_t
+dp_port_rx_burst(const void *cookie, void *mbufs[], size_t nb);
+
 #ifdef HYBRID
 /**
  * Set ip address to interface object.
@@ -670,5 +682,6 @@ dp_eventq_put_func_register(dp_dataq_put_func_t func);
  */
 lagopus_result_t
 dp_process_event_data(uint64_t dpid, struct eventq_data *data);
+
 
 #endif /* SRC_INCLUDE_LAGOPUS_DP_APIS_H_ */

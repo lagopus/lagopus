@@ -39,6 +39,7 @@
 #include "lagopus/flowdb.h"
 #include "lagopus/dataplane.h"
 
+
 void
 copy_dataplane_info(char *buf, int len) {
   snprintf(buf, (size_t)len, "Lagopus dataplane %s (%s%s) %s flowcache",
