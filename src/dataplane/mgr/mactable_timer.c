@@ -31,8 +31,9 @@ mactable_timer_expire(struct dp_timer *dp_timer) {
     if (mactable == NULL) {
       continue;
     }
-    /* age out */
-    mactable_age_out(mactable);
+
+    /* update mactable */
+    mactable_update(mactable);
 
     /* timer reset */
     add_mactable_timer(mactable, MACTABLE_CLEANUP_TIME);
@@ -48,5 +49,6 @@ add_mactable_timer(struct mactable *mactable, time_t timeout) {
   if (entryp != NULL) {
     mactable->mactable_timer = entryp;
   }
+
   return LAGOPUS_RESULT_OK;
 }

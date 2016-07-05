@@ -208,6 +208,21 @@ fi
 AC_SUBST(HYBRID)
 AC_SUBST(HYBRID_CPPFLAGS)
 
+# pipeliner
+AC_ARG_ENABLE([pipeliner],
+	[AC_HELP_STRING([--enable-pipeliner],
+	 [enable build as pipeliner [default is no]])]
+	 ,[pipeliner="$enableval"], [pipeliner=no])
+
+if test "X${pipeliner}" != "Xno"; then
+   PIPELINER="yes"
+   PIPELINER_CPPFLAGS=-DPIPELINER
+else
+   PIPELINER=""
+   PIPELINER_CPPFLAGS=""
+fi
+AC_SUBST(PIPELINER)
+AC_SUBST(PIPELINER_CPPFLAGS)
 # headers/macros
 
 oLIBS=${LIBS}

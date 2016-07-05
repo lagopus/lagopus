@@ -666,6 +666,8 @@ NETSNMP_AGENT_LIBS
 SNMP_CPPFLAGS
 SNMP_DIR
 PCAP_LIBS
+PIPELINER_CPPFLAGS
+PIPELINER
 HYBRID_CPPFLAGS
 HYBRID
 HAVE_GCOVR
@@ -796,6 +798,7 @@ with_sysroot
 enable_libtool_lock
 enable_developer
 enable_hybrid
+enable_pipeliner
 enable_snmp
 enable_jumbo_frame
 enable_dpdk
@@ -1452,6 +1455,8 @@ Optional Features:
                           [default is no]
 
   --enable-hybrid         enable build as hybrid switch [default is no]
+
+  --enable-pipeliner      enable build as pipeliner [default is no]
 
   --enable-snmp           build with snmp feature [default is no]
 
@@ -16721,6 +16726,24 @@ else
    HYBRID_CPPFLAGS=""
 fi
 
+
+
+# pipeliner
+# Check whether --enable-pipeliner was given.
+if test "${enable_pipeliner+set}" = set; then :
+  enableval=$enable_pipeliner; pipeliner="$enableval"
+else
+  pipeliner=no
+fi
+
+
+if test "X${pipeliner}" != "Xno"; then
+   PIPELINER="yes"
+   PIPELINER_CPPFLAGS=-DPIPELINER
+else
+   PIPELINER=""
+   PIPELINER_CPPFLAGS=""
+fi
 
 
 # headers/macros

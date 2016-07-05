@@ -538,3 +538,14 @@ dpdk_send_packet_physical(struct lagopus_packet *pkt, struct interface *ifp) {
 
   return 0;
 }
+
+#ifdef HYBRID
+uint32_t
+dpdk_get_worker_id(void) {
+  uint32_t lcore;
+  struct app_lcore_params_worker *lp;
+  lcore = rte_lcore_id();
+  lp = &app.lcore_params[lcore].worker;
+  return lp->worker_id;
+}
+#endif /* HYBRID */

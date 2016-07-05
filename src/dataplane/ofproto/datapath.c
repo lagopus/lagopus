@@ -1790,6 +1790,13 @@ dp_interface_tx_packet(struct lagopus_packet *pkt,
   }
 }
 
+#ifdef HYBRID
+void
+lagopus_forward_packet_to_port_hybrid(struct lagopus_packet *pkt) {
+  dp_interface_tx_packet(pkt, pkt->output_port, 0);
+}
+#endif /* HYBRID */
+
 void
 lagopus_forward_packet_to_port(struct lagopus_packet *pkt,
                                uint32_t out_port) {

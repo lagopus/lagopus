@@ -300,6 +300,9 @@ dp_tapio_thread_loop(__UNUSED const lagopus_thread_t *selfptr,
           }
           tap = tap_ifp[i];
           pkt = alloc_lagopus_packet();
+          if (pkt == NULL) {
+            continue;
+          }
           (void)OS_M_APPEND(PKT2MBUF(pkt), MAX_PACKET_SZ);
           len = dp_tap_interface_recv_packet(tap, pkt);
           if (len < 0) {

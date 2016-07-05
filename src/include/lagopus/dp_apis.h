@@ -273,7 +273,7 @@ dp_interface_ip_set(const char *in_name, int family, const struct in_addr *ip,
 lagopus_result_t
 dp_interface_ip_unset(const char *in_name);
 lagopus_result_t
-dp_interface_ip_get(const char *name, int family, struct in_addr *addr,
+dp_interface_ip_get(struct interface *ifp, int family, struct in_addr *addr,
                     struct in_addr *broad, uint8_t *prefixlen);
 #endif /* HYBRID */
 

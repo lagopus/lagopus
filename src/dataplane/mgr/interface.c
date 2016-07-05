@@ -304,9 +304,11 @@ interface_l2_switching(struct lagopus_packet *pkt,
   }
 
   /* l2 switching */
-  port = find_and_learn_port_in_mac_table(pkt);
+  mactable_port_learning(pkt);
+  mactable_port_lookup(pkt);
 
-  lagopus_forward_packet_to_port(pkt, port);
+  /* forwarding packet to output port */
+  lagopus_forward_packet_to_port_hybrid(pkt);
 
   return LAGOPUS_RESULT_OK;
 }
@@ -331,7 +333,6 @@ interface_l3_routing(struct lagopus_packet *pkt,
                      struct interface *ifp) {
   lagopus_result_t rv = LAGOPUS_RESULT_OK;
   struct interface *out_if = NULL;
-  uint32_t port;
   int ifindex;
   uint8_t mac_addr[ETHER_ADDR_LEN];
   uint8_t scope = 0;
@@ -359,7 +360,7 @@ interface_l3_routing(struct lagopus_packet *pkt,
     lagopus_get_ip(pkt, &dst_addr, AF_INET);
 
     /* check dst ip addr. */
-    dp_interface_ip_get(ifp->name, AF_INET, &self_addr, &broad_addr, &prefix);
+    dp_interface_ip_get(ifp, AF_INET, &self_addr, &broad_addr, &prefix);
     if (is_self_ip_addr(dst_addr, self_addr) == true ||
         is_broadcast(dst_addr, broad_addr) == true ||
         IS_IPV4_MULTICAST(htonl(dst_addr.s_addr)) == true) {
@@ -367,7 +368,7 @@ interface_l3_routing(struct lagopus_packet *pkt,
     }
 
     /* learning l2 info */
-    learning_port_in_mac_table(pkt);
+    mactable_port_learning(pkt);
 
     /* get nexthop info from routing table(lpm). */
     rv = rib_nexthop_ipv4_get(&dst_addr, &nexthop, &scope);
@@ -411,10 +412,10 @@ interface_l3_routing(struct lagopus_packet *pkt,
     }
 
     /* lookup output port */
-    port = lookup_port_in_mac_table(pkt);
+    mactable_port_lookup(pkt);
 
     /* forward packets */
-    lagopus_forward_packet_to_port(pkt, port);
+    lagopus_forward_packet_to_port_hybrid(pkt);
   } else if (ether_type == ETHERTYPE_IPV6) {
     /* TODO: */
     lagopus_packet_free(pkt);

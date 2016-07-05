@@ -306,6 +306,10 @@ struct lagopus_packet {
 
   uint32_t queue_id;
   uint32_t flags;
+
+#ifdef HYBRID
+  uint32_t output_port;
+#endif /* HYBRID */
 };
 
 #define ETHER_HDR     struct ether_header

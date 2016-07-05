@@ -339,16 +339,11 @@ dp_interface_ip_set(const char *in_name, int family, const struct in_addr *ip,
 }
 
 lagopus_result_t
-dp_interface_ip_get(const char *name, int family, struct in_addr *addr,
+dp_interface_ip_get(struct interface *ifp, int family, struct in_addr *addr,
                     struct in_addr *broad, uint8_t *prefixlen) {
-  struct interface *ifp;
   lagopus_ip_address_t **ip_addr;
-  lagopus_result_t rv = LAGOPUS_RESULT_ANY_FAILURES;
+  lagopus_result_t rv = LAGOPUS_RESULT_OK;
 
-  rv = lagopus_hashmap_find(&interface_hashmap, (void *)name, (void **)&ifp);
-  if (rv != LAGOPUS_RESULT_OK) {
-    return rv;
-  }
 #ifdef HAVE_DPDK
   ip_addr = &(ifp->info.eth_dpdk_phy.ip_addr);
 #else /* HAVE_DPDK */

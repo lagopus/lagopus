@@ -222,6 +222,11 @@ void lagopus_packet_init(struct lagopus_packet *, void *, struct port *);
  */
 void lagopus_forward_packet_to_port(struct lagopus_packet *, uint32_t);
 
+#ifdef HYBRID
+void
+lagopus_forward_packet_to_port_hybrid(struct lagopus_packet *);
+#endif /* HYBRID */
+
 /**
  * Process packet by OpenFlow rule.
  *
@@ -652,5 +657,7 @@ lagopus_get_ethertype(struct lagopus_packet *pkt);
 lagopus_result_t
 lagopus_get_ip(struct lagopus_packet *pkt, void *dst, const int family);
 
+uint32_t
+dpdk_get_worker_id(void);
 #endif /* HYBRID */
 #endif /* SRC_INCLUDE_LAGOPUS_DATAPLANE_H_ */
