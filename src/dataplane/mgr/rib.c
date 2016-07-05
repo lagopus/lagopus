@@ -390,12 +390,22 @@ void
 rib_fini(struct rib *rib) {
   int i;
 
+  /* destroy bbq. */
+  lagopus_bbq_shutdown(&rib->notification_queue, true);
+  lagopus_bbq_destroy(&rib->notification_queue, true);
+
   for (i = 0; i < 2; i++) {
     /* finalize arp table. */
     arp_fini(&rib->ribs[i].arp_table);
 
     /* finalize routing table. */
     route_fini(&rib->ribs[i].route_table);
+  }
+
+  for (i = 0; i < UPDATER_LOCALDATA_MAX_NUM; i++) {
+    struct fib *fib = &rib->fib[i];
+    /* destroy local cache. */
+    lagopus_hashmap_destroy(&fib->localcache, true);
   }
 }
 
