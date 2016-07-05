@@ -1245,7 +1245,7 @@ dpdk_port_stats(struct port *port) {
   stats->ofp.tx_packets = rte_stats.opackets;
   stats->ofp.rx_bytes = rte_stats.ibytes;
   stats->ofp.tx_bytes = rte_stats.obytes;
-  stats->ofp.rx_dropped = rte_stats.rx_nombuf;
+  stats->ofp.rx_dropped = rte_stats.rx_nombuf + rte_stats.imissed;
   stats->ofp.tx_dropped = UINT64_MAX;
   stats->ofp.rx_errors = rte_stats.ierrors;
   stats->ofp.tx_errors = rte_stats.oerrors;
@@ -1359,11 +1359,12 @@ dpdk_get_stats(uint8_t portid, datastore_interface_stats_t *stats) {
   rte_eth_stats_get(portid, &rte_stats);
   stats->rx_packets = rte_stats.ipackets;
   stats->rx_bytes = rte_stats.ibytes;
+  stats->rx_errors = rte_stats.ierrors;
+  stats->rx_dropped =  rte_stats.rx_nombuf + rte_stats.imissed;
   stats->tx_packets = rte_stats.opackets;
   stats->tx_bytes = rte_stats.obytes;
-  stats->rx_errors = rte_stats.ierrors;
-  stats->tx_dropped = 0;
   stats->tx_errors = rte_stats.oerrors;
+  stats->tx_dropped = 0;
   return LAGOPUS_RESULT_OK;
 }
 
