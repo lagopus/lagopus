@@ -25,7 +25,9 @@
 #include "lagopus/interface.h"
 
 #include "lagopus/ofp_dp_apis.h" /* for port_stats */
+#ifdef HAVE_DPDK
 #include "dpdk.h"
+#endif /* HAVE_DPDK */
 
 #ifdef HYBRID
 #include <linux/rtnetlink.h>
