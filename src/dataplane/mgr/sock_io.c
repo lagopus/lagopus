@@ -52,6 +52,7 @@
 #include "csum.h"
 #include "thread.h"
 #include "lock.h"
+#include "sock_io.h"
 
 #ifdef HAVE_DPDK
 #include "dpdk.h"
@@ -621,6 +622,11 @@ rawsock_change_config(struct interface *ifp,
   (void) config;
 
   return LAGOPUS_RESULT_OK;
+}
+
+void
+clear_rawsock_flowcache(void) {
+  clear_cache = true;
 }
 
 /**
