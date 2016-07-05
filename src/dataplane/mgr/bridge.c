@@ -29,6 +29,7 @@
 #include "lagopus/meter.h"
 #ifdef HYBRID
 #include "lagopus/mactable.h"
+#include "lagopus/rib.h"
 #endif /* HYBRID */
 
 #include "lagopus/dp_apis.h"
@@ -246,6 +247,11 @@ bridge_alloc(const char *name) {
   if (mactable_init(&bridge->mactable) != LAGOPUS_RESULT_OK) {
     goto out;
   }
+  if (rib_init(&bridge->rib) != LAGOPUS_RESULT_OK) {
+    goto out;
+  }
+
+  add_updater_timer(bridge, UPDATER_TABLE_UPDATE_TIME);
 #endif /* HYBRID */
 
   /* Return bridge. */
@@ -296,7 +302,12 @@ bridge_free(struct bridge *bridge) {
     meter_table_free(bridge->meter_table);
   }
 #ifdef HYBRID
+  /* stop timer. */
+  if (bridge->updater_timer != NULL) {
+    *bridge->updater_timer = NULL;
+  }
   mactable_fini(&bridge->mactable);
+  rib_fini(&bridge->rib);
 #endif /* HYBRID */
   free(bridge);
 }

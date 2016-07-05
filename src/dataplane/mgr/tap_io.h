@@ -38,3 +38,6 @@ uint32_t
 dp_tapio_portid_get(const char *name);
 struct interface*
 dp_tapio_interface_get(const char *name);
+lagopus_result_t
+dp_tapio_interface_info_get(const char *in_name, uint8_t *hwaddr,
+                            struct bridge **bridge);

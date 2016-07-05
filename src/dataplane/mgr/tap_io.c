@@ -269,7 +269,7 @@ dp_tapio_thread_loop(__UNUSED const lagopus_thread_t *selfptr,
   struct lagopus_packet *pkt;
   struct dp_tap_interface *tap;
   ssize_t len;
-  unsigned int i;
+  int i;
   lagopus_result_t rv;
   global_state_t cur_state;
   shutdown_grace_level_t cur_grace;
@@ -301,6 +301,7 @@ dp_tapio_thread_loop(__UNUSED const lagopus_thread_t *selfptr,
           tap = tap_ifp[i];
           pkt = alloc_lagopus_packet();
           if (pkt == NULL) {
+            i--;
             continue;
           }
           (void)OS_M_APPEND(PKT2MBUF(pkt), MAX_PACKET_SZ);
@@ -377,6 +378,28 @@ dp_tapio_portid_get(const char *name) {
     return tap->portid;
   }
   return 0;
+}
+
+lagopus_result_t
+dp_tapio_interface_info_get(const char *in_name, uint8_t *hwaddr,
+                            struct bridge **bridge) {
+  struct dp_tap_interface *tap;
+  char n[256] = ":";
+  char *name = NULL;
+
+  name = in_name;
+  if (strchr(in_name, ':') == NULL) {
+    sprintf(n, ":%s", in_name);
+    name = n;
+  }
+
+  if (lagopus_hashmap_find(&tap_hashmap, name, &tap) == LAGOPUS_RESULT_OK) {
+    memcpy(hwaddr, tap->ifp->hw_addr, ETHER_ADDR_LEN);
+    *bridge = tap->ifp->port->bridge;
+    return LAGOPUS_RESULT_OK;
+  }
+
+  return LAGOPUS_RESULT_NOT_FOUND;
 }
 
 struct interface*

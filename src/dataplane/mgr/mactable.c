@@ -30,9 +30,13 @@
 #include "pktbuf.h"
 #include "packet.h"
 #include <pthread.h>
-#include "dp_timer.h"
 
-#define NR_MAX_ENTRIES 1024  /**< max number that can be registered in the bbq. */
+#if defined HYBRID && defined PIPELINER
+#include "pipeline.h"
+#endif /* HYBRID && PIPELINER */
+
+#define NR_MAX_ENTRIES 1024  /**< max number that can be registered
+                                  in the bbq. */
 
 /**
  * Struct mac entry args for get all entries from mactable.
@@ -65,12 +69,14 @@ array_to_uint64(const uint8_t ethaddr[]) {
 static struct local_data *
 get_local_data (struct mactable *mactable) {
   uint32_t wid = 0;
-#ifdef HAVE_DPDK
+#if defined PIPELINER
+  wid = pipeline_worker_id;
+#elif defined HAVE_DPDK
   wid = dpdk_get_worker_id();
-  if (wid < 0 || wid >= STAGE_MAX_NUM|| wid == UINT32_MAX ) {
+  if (wid < 0 || wid >= UPDATER_LOCALDATA_MAX_NUM || wid == UINT32_MAX) {
     wid = 0;
   }
-#endif /* HAVE_DPDK */
+#endif
   return &mactable->local[wid];
 }
 
@@ -79,7 +85,7 @@ get_local_data (struct mactable *mactable) {
  * mac entry is struct macentry object.
  * @param[in] inteth MAC address.
  * @param[in] portid In port number.
- * @param[in] address_type Type(static or dynami) of mac address learning.
+ * @param[in] address_type Type(static or dynamic) of mac address learning.
  */
 static struct macentry *
 macentry_alloc(uint64_t inteth, uint32_t portid,
@@ -278,18 +284,18 @@ check_eth_history (struct local_data *local, uint64_t inteth, bool switched) {
   int i;
 
   /* mactable were switched, clear history. */
-  if (switched) {
+  if (unlikely(switched)) {
     /* clear history to reset when mactables are switched. */
-    for (i = 0; i < ETH_HISTORY_NUM; i++) {
+    for (i = 0; i < MACTABLE_HISTORY_MAX_NUM; i++) {
       local->eth_history[i] = 0;
     }
     local->history_index = 0;
   } else {
     /* check history for entry decimation. */
-    for (i = 0; i < ETH_HISTORY_NUM; i++) {
+    for (i = 0; i < MACTABLE_HISTORY_MAX_NUM; i++) {
       /* start history_index - 1. */
       uint16_t index =
-        (local->history_index + ETH_HISTORY_NUM - (i + 1)) % ETH_HISTORY_NUM;
+        (local->history_index + MACTABLE_HISTORY_MAX_NUM - (i + 1)) % MACTABLE_HISTORY_MAX_NUM;
       if (local->eth_history[index] == inteth) {
         /* don't write to bbq. */
         return LAGOPUS_RESULT_ALREADY_EXISTS;
@@ -522,7 +528,7 @@ mactable_init(struct mactable *mactable) {
   mactable->nentries = 0;
   TAILQ_INIT(&mactable->macentry_list);
 
-  for (i = 0; i < STAGE_MAX_NUM; i++) {
+  for (i = 0; i < UPDATER_LOCALDATA_MAX_NUM; i++) {
     struct local_data *local = &mactable->local[i];
     /* initialize localcache */
     lagopus_hashmap_create(&local->localcache,
@@ -537,7 +543,7 @@ mactable_init(struct mactable *mactable) {
       return rv;
     }
 
-    for (j = 0; j < ETH_HISTORY_NUM; j++) {
+    for (j = 0; j < MACTABLE_HISTORY_MAX_NUM; j++) {
       local->eth_history[j] = 0;
     }
     local->history_index = 0;
@@ -556,9 +562,6 @@ mactable_init(struct mactable *mactable) {
                                 macentry_free);
   }
 
-  /* add timer for mactable */
-  add_mactable_timer(mactable, MACTABLE_CLEANUP_TIME);
-
   return rv;
 }
 
@@ -572,17 +575,12 @@ mactable_fini(struct mactable *mactable) {
   lagopus_result_t rv = LAGOPUS_RESULT_OK;
   int i;
 
-  /* stop timer. */
-  if (mactable->mactable_timer != NULL) {
-    *mactable->mactable_timer = NULL;
-  }
-
   /* destroy hashmap for mactable. */
   for (i = 0; i < 2; i++) {
     lagopus_hashmap_destroy(&mactable->hashmap[i], true);
   }
 
-  for (i = 0; i < STAGE_MAX_NUM; i++) {
+  for (i = 0; i < UPDATER_LOCALDATA_MAX_NUM; i++) {
     /* destroy local cache. */
     lagopus_hashmap_destroy(&mactable->local[i].localcache, true);
 
@@ -622,7 +620,7 @@ mactable_update(struct mactable *mactable) {
   read_table = __sync_add_and_fetch(&mactable->read_table, 0);
 
   /* check referred */
-  for (cnt = 0; cnt < STAGE_MAX_NUM; cnt++) {
+  for (cnt = 0; cnt < UPDATER_LOCALDATA_MAX_NUM; cnt++) {
     /*
      * Here, let's describe how to manage double mactables.
      *
@@ -717,7 +715,7 @@ mactable_update(struct mactable *mactable) {
   }
 
   /* get entries from queue. */
-  for (cnt = 0; cnt < STAGE_MAX_NUM; cnt++) {
+  for (cnt = 0; cnt < UPDATER_LOCALDATA_MAX_NUM; cnt++) {
     get_num = 0;
     rv = lagopus_bbq_is_empty(&mactable->local[cnt].bbq, &is_empty);
     if (rv != LAGOPUS_RESULT_OK) {

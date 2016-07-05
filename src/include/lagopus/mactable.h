@@ -23,11 +23,10 @@
 #ifndef SRC_INCLUDE_LAGOPUS_MACTABLE_H_
 #define SRC_INCLUDE_LAGOPUS_MACTABLE_H_
 
-#define STAGE_MAX_NUM 12  /**< number of stage */
-#define ETH_HISTORY_NUM 10
+#include "updater.h"
 
-/* cleanup timer */
-#define MACTABLE_CLEANUP_TIME  (10)
+/* ether addr history size */
+#define MACTABLE_HISTORY_MAX_NUM (10)
 
 /**
  * Address type.
@@ -43,7 +42,7 @@ enum address_type {
 struct local_data {
   lagopus_hashmap_t localcache;
   lagopus_bbq_t bbq;
-  uint64_t eth_history[ETH_HISTORY_NUM];
+  uint64_t eth_history[MACTABLE_HISTORY_MAX_NUM];
   uint16_t history_index;
   uint32_t referred_table;
   uint16_t referring;
@@ -76,9 +75,7 @@ struct mactable {
 
   TAILQ_HEAD(macentry_list, macentry) macentry_list; /**< MAC address entry list. */
 
-  struct mactable **mactable_timer;  /**< Timer for cleanup mactable. */
-
-  struct local_data local[STAGE_MAX_NUM];
+  struct local_data local[UPDATER_LOCALDATA_MAX_NUM];
 };
 
 /**

@@ -156,12 +156,16 @@ app_lcore_worker(struct app_lcore_params_worker *lp,
                                     (void **) lp->mbuf_in.array,
                                     bsz_rd);
     if (unlikely(ret == 0)) {
+#if defined HYBRID && defined PIPELINER
+        pipeline_process_stacked_packets();
+#endif
       continue;
     }
     APP_WORKER_PREFETCH1(rte_pktmbuf_mtod(lp->mbuf_in.array[0],
                                           unsigned char *));
     APP_WORKER_PREFETCH0(lp->mbuf_in.array[1]);
     flowdb_rdlock(NULL);
+
     for (j = 0; j < ret; j ++) {
       struct rte_mbuf *m;
 
@@ -206,6 +210,13 @@ app_lcore_worker(struct app_lcore_params_worker *lp,
       /* send to tap */
       dp_interface_send_packet_kernel(pkt, ifp);
 #endif
+#ifdef PIPELINER
+      if (unlikely(j == ret - 1)) {
+        pkt->pipeline_context.is_last_packet_of_bulk = true;
+      } else {
+        pkt->pipeline_context.is_last_packet_of_bulk = false;
+      }
+#endif /* PIPELINER */
 #endif /* HYBRID */
 
       flowdb_switch_mode_get(ifp->port->bridge->flowdb, &mode);

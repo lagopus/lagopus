@@ -953,6 +953,7 @@ dp_bridge_mactable_configs_get(const char *name,
 out:
   return rv;
 }
+
 #endif /* HYBRID */
 
 lagopus_result_t
@@ -1332,7 +1333,8 @@ dp_queue_create(const char *name,
     goto out;
   }
   memcpy(queue, queue_info, sizeof(datastore_queue_info_t));
-  rv = lagopus_hashmap_add(&queue_hashmap, (void *)name, (void **)&queue, false);
+  rv = lagopus_hashmap_add(&queue_hashmap, (void *)name,
+                           (void **)&queue, false);
   if (rv == LAGOPUS_RESULT_OK) {
     rv = lagopus_hashmap_find(&queue_hashmap, (void *)name, (void **)&queue);
     if (rv != LAGOPUS_RESULT_OK) {
@@ -1452,3 +1454,5 @@ dp_policer_action_stop(const char *name) {
   (void) name;
   return LAGOPUS_RESULT_OK;
 }
+
+

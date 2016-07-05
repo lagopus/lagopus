@@ -48,10 +48,6 @@ typedef struct args {
   char file_name[PATH_MAX];
 } args_t;
 
-lagopus_result_t
-rib_route_rule_get(struct in_addr *dest, struct in_addr *gate,
-                   int *prefixlen, uint32_t *ifindex, void* item);
-
 static inline lagopus_result_t
 dump_table_ipv4_routes(const char *name,
                        lagopus_dstring_t *result) {
@@ -65,7 +61,7 @@ dump_table_ipv4_routes(const char *name,
   uint32_t ifindex;
 
   while (1) {
-    ret = rib_route_rule_get(&dest, &gate, &prefixlen, &ifindex, &item);
+    ret = rib_route_rule_get(name, &dest, &gate, &prefixlen, &ifindex, &item);
     if (ret != LAGOPUS_RESULT_OK || item == NULL) {
       break;
     }

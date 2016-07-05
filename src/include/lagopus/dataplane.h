@@ -603,6 +603,38 @@ lagopus_result_t dp_netlink_thread_shutdown(shutdown_grace_level_t);
  * Dataplane netlink thread finalize function.
  */
 void dp_netlink_thread_fini(void);
+
+#ifdef PIPELINER
+/**
+ * Legacy L2/L3 switch thread initialization.
+ */
+lagopus_result_t
+dp_legacy_sw_thread_init(int argc, const char *const argv[],
+                         void *extarg, lagopus_thread_t **thdptr);
+
+/**
+ * Dataplane netlink thread start function.
+ *
+ * @retval      LAGOPUS_RESULT_OK       dataplane main thread is created.
+ * @retval      !=LAGOPUS_RESULT_OK     dataplane main thread is not created.
+ */
+lagopus_result_t dp_legacy_sw_thread_start(void);
+
+/**
+ * Dataplane netlink thread stop function.
+ */
+lagopus_result_t dp_legacy_sw_thread_stop(void);
+
+/**
+ * Dataplane netlink thread shutdown function.
+ */
+lagopus_result_t dp_legacy_sw_thread_shutdown(shutdown_grace_level_t);
+
+/**
+ * Dataplane netlink thread finalize function.
+ */
+void dp_legacy_sw_thread_fini(void);
+#endif /* PIPELINER */
 #endif /* HYBRID */
 
 /**

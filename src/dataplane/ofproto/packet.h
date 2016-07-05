@@ -43,6 +43,10 @@
 #endif /* HAVE_NET_ETHERNET_H */
 #endif /* HAVE_DPDK */
 
+#if defined HYBRID && defined PIPELINER
+#include "lagopus/pipeline.h"
+#endif /* HYBRID && PIPELINER */
+
 #define __FAVOR_BSD
 #include <netinet/if_ether.h>
 #include <netinet/in.h>
@@ -309,6 +313,11 @@ struct lagopus_packet {
 
 #ifdef HYBRID
   uint32_t output_port;
+  bool send_kernel;
+  struct interface *ifp;
+#ifdef PIPELINER
+  struct pipeline_context pipeline_context;
+#endif /* PIPELINER */
 #endif /* HYBRID */
 };
 
