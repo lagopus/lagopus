@@ -984,6 +984,24 @@ dpdk_configure_interface(struct interface *ifp) {
     lp->io.rx.ifp[lp->io.rx.nifs++] = ifp;
     app.nic_tx_port_mask[portid] = 1;
     dp_dpdk_tx_ring_create(portid);
+  } else {
+    struct app_lcore_params *lp;
+    unsigned lcore;
+    int i;
+
+    if (app_get_lcore_for_nic_rx(portid, 0, &lcore) < 0) {
+      lagopus_exit_fatal("lcore not found for port %d queue %d\n",
+                         portid, 0);
+    }
+    lp = &app.lcore_params[lcore];
+    for (i = 0; i < lp->io.rx.nifs; i++) {
+      if (lp->io.rx.ifp[i]->info.eth.port_number == portid) {
+        break;
+      }
+    }
+    if (i == lp->io.rx.nifs) {
+      lp->io.rx.ifp[lp->io.rx.nifs++] = ifp;
+    }
   }
   /* Init RX queues */
   for (queue = 0; queue < APP_MAX_RX_QUEUES_PER_NIC_PORT; queue ++) {

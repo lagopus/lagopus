@@ -302,9 +302,9 @@ parse_arg_rx(const char *arg) {
       if (lp->io.rx.n_nic_queues >= APP_MAX_NIC_RX_QUEUES_PER_IO_LCORE) {
         return -9;
       }
-      lp->io.rx.nic_queues[lp->io.rx.n_nic_queues].port = (uint8_t) port;
-      lp->io.rx.nic_queues[lp->io.rx.n_nic_queues].queue = (uint8_t) queue;
-      lp->io.rx.n_nic_queues ++;
+      lp->io.rx.nic_queues[lp->io.rx.n_nic_queues].port = (uint8_t)port;
+      lp->io.rx.nic_queues[lp->io.rx.n_nic_queues].queue = (uint8_t)queue;
+      lp->io.rx.n_nic_queues++;
     }
     n_tuples ++;
     if (n_tuples > APP_ARG_RX_MAX_TUPLES) {
