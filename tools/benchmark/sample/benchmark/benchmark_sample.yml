@@ -34,7 +34,12 @@ benchmarks:
     pcap: icmp.pcap
   - file : sample_match_pkts1
     include_files:
-      - ../match_pkts/match_pkts.c
+      - ../match_pkts/match_pkts.h
+    lib_files:
+      - ../match_pkts/match_pkts.o
     target_func: match_pkts
     pcap: icmp.pcap
     dsl: lagopus.dsl
+    dpdk_opts: -cf -n4
+    dp_opts: -p3
+

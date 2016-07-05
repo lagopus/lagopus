@@ -18,6 +18,7 @@ Features of tools
 TODO
 ----
 1. Measure the cache miss, etc. (useing PAPI)
+2. Incorporate pipelines.
 
 Samples
 -------
@@ -61,7 +62,13 @@ And you execute make.
  % make
 ```
 
-## 3. Create a benchmark parameter file (YAML)
+## 3. Setup for DPDK
+cf.) QUICKSTART.md
+
+* The kernel modules.
+* Hugepages.
+
+## 4. Create a benchmark parameter file (YAML)
 You write the following fields in the file in YAML format.
 
 ### fields
@@ -76,7 +83,9 @@ You write the following fields in the file in YAML format.
 || teardown\_func | string | X | This field describes the name of teardown function [void func(void)]. |
 || target\_func | string | X | This field describes the name of benchmark target function [lagopus\_result\_t func(void *pkts, size\_t pkts\_size)]. |
 || pcap | string | O | This field describes the name of pcap file (\*.pcap, etc.). |
-|| dsl | string | X | This field describes the name of lagopus DSL file. The datastore thread is started when you specify this field. |
+|| dsl | string | X | This field describes the name of lagopus DSL file. The lagopus module thread is started when you specify this field. |
+|| dpdk_opts | string | X | This field describes DPDK opts (default: -cf -n4). |
+|| dp_opts | string | X | This field describes Dataplne opts (default: -p3). |
 || times | int | X | This field describes the number of executions of target\_func (default: 1).|
 || batch_size | int | O | This field describes the size of batches(default: 0) . 0 is read all packets in pcap file. |
 
@@ -101,7 +110,7 @@ benchmarks:
     pcap: icmp.pcap
 ```
 
-## 4. Genarate benchmark files
+## 5. Genarate benchmark files
 This tool (`benchmark_generator.py`) generates Makefile,
 Makefile.in, *.c, *.h files from `<BENCHMARK_PARAMETER_FILE>`.
 
@@ -121,7 +130,7 @@ sample:
    benchmark_sample1.c  benchmark_sample2.c  icmp.pcap
 ```
 
-## 5. Compile & Run benchmark
+## 6. Compile & Run benchmark
 You execute the following command:
 
 * Compile:
@@ -132,9 +141,9 @@ You execute the following command:
 
 * Run benchmark:
 ```
- % make benchmark
+ % sudo make benchmark
    or
- % ./<BENCHMARK_EXECUTABLE_FILE> [-t <MEASURING_TIMES>] [-b <BATCH_SIZE>] <PCAP_FILE>
+ % sudo ./<BENCHMARK_EXECUTABLE_FILE> [-t <MEASURING_TIMES>] [-b <BATCH_SIZE>] <PCAP_FILE>
    positional arguments:
      PCAP_FILE           Packet capture file.
 
@@ -148,7 +157,7 @@ e.g.)
 sample:
 
 ```
- % make benchmark
+ % sudo make benchmark
    or
- % ./benchmark_sample1 icmp.pcap
+ % sudo ./benchmark_sample1 icmp.pcap
 ```

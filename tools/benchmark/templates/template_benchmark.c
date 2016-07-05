@@ -23,15 +23,13 @@
 
 #include "lagopus_apis.h"
 #include "lagopus/dp_apis.h"
-#include "lagopus/ofp_bridgeq_mgr.h"
-#include "lagopus/datastore.h"
+#include "lagopus/dataplane.h"
+#include "lagopus/ofp_handler.h"
 #include "dpdk/dpdk.h"
 #include "dpdk/pktbuf.h"
 #include "ofproto/packet.h"
-#include "datastore_apis.h"
-#ifdef USE_CHANNEL /* NOTE: use channel/controller in DSL. */
-#include "channel_mgr.h"
-#endif
+#include "ofp_dpqueue_mgr.h"
+#include "agent.h"
 
 
 {% if include_files is defined and include_files %}
@@ -40,82 +38,165 @@
 {% endfor %}
 {% endif %}
 
-void
-lagopus_meter_init(void);
 
 static uint64_t opt_times = 1;
 static uint64_t opt_batch_size = 0; /* 0 is read all packets in pcap file. */
 static const char *opt_pcap_file = NULL;
 static const char *opt_dsl_file = NULL;
-static datastore_interp_t interp = NULL;
+
+
+static lagopus_result_t
+agent_initialize_wrap(int argc, const char *const argv[],
+                      void *extarg, lagopus_thread_t **retptr) {
+  (void)extarg;
+  (void)argc;
+  (void)argv;
+
+  return agent_initialize(NULL, retptr);
+}
+
+static void
+agent_finalize_wrap(void) {
+  agent_finalize();
+}
+
+static lagopus_result_t
+ofp_handler_initialize_wrap(int argc, const char *const argv[],
+                            void *extarg, lagopus_thread_t **retptr) {
+  (void)extarg;
+  (void)argc;
+  (void)argv;
+  (void)retptr;
+
+  return ofp_handler_initialize(NULL, NULL);
+}
+
+
+static void
+ofp_handler_finalize_wrap(void) {
+  ofp_handler_finalize();
+}
 
 static inline lagopus_result_t
-start_datastore(const char *dsl) {
+start_modules(int argc, const char *const argv[], const char *dsl) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  const char *name;
 
   if (dsl != NULL) {
-    if (interp == NULL) {
-#ifdef USE_CHANNEL /* NOTE: use channel/controller in DSL. */
-      const char *argv0 =
-          ((IS_VALID_STRING(lagopus_get_command_name()) == true) ?
-           lagopus_get_command_name() : "callout");
-      const char * const argv[] = { argv0, NULL };
-#endif
 
-      if ((ret = datastore_create_interp(&interp)) !=
-          LAGOPUS_RESULT_OK) {
-        lagopus_perror(ret);
-        goto done;
-      }
+    name = "datastore";
+    if ((ret = lagopus_module_register(name,
+                                       datastore_initialize, NULL,
+                                       datastore_start,
+                                       datastore_shutdown,
+                                       datastore_stop,
+                                       datastore_finalize,
+                                       NULL)) != LAGOPUS_RESULT_OK) {
+      lagopus_perror(ret);
+      goto done;
+    }
 
-      if ((ret = datastore_set_config_file(dsl)) !=
-          LAGOPUS_RESULT_OK) {
-        lagopus_perror(ret);
-        goto done;
-      }
+    dp_api_init();
+    name = "dp_rawsock";
+    if ((ret = lagopus_module_register(name,
+                                       dp_rawsock_thread_init,
+                                       NULL,
+                                       dp_rawsock_thread_start,
+                                       dp_rawsock_thread_shutdown,
+                                       dp_rawsock_thread_stop,
+                                       dp_rawsock_thread_fini,
+                                       NULL)) != LAGOPUS_RESULT_OK) {
+      lagopus_perror(ret);
+      goto done;
+    }
 
-      if ((ret = datastore_initialize(0, NULL, NULL, NULL)) !=
-          LAGOPUS_RESULT_OK) {
-        lagopus_perror(ret);
-        goto done;
-      }
+    name = "dp_dpdk";
+    if ((ret = lagopus_module_register(name,
+                                       dp_dpdk_thread_init,
+                                       NULL,
+                                       dp_dpdk_thread_start,
+                                       dp_dpdk_thread_shutdown,
+                                       dp_dpdk_thread_stop,
+                                       dp_dpdk_thread_fini,
+                                       dp_dpdk_thread_usage)) !=
+        LAGOPUS_RESULT_OK) {
+      lagopus_perror(ret);
+      goto done;
+    }
 
-      if ((ret = dp_api_init()) != LAGOPUS_RESULT_OK) {
-        lagopus_perror(ret);
-        goto done;
-      }
-      lagopus_meter_init();
-      flowinfo_init();
-      ofp_bridgeq_mgr_initialize(NULL);
+    name = "dp_timer";
+    if ((ret = lagopus_module_register(name,
+                                       dp_timer_thread_init,
+                                       NULL,
+                                       dp_timer_thread_start,
+                                       dp_timer_thread_shutdown,
+                                       dp_timer_thread_stop,
+                                       dp_timer_thread_fini,
+                                       NULL)) != LAGOPUS_RESULT_OK) {
+      lagopus_perror(ret);
+      goto done;
+    }
 
-#ifdef USE_CHANNEL /* NOTE: use channel/controller in DSL. */
-      (void) lagopus_mainloop_set_callout_workers_number(1);
-      if ((ret = lagopus_mainloop_with_callout(1, argv, NULL, NULL,
-                                               false, false, true)) !=
-          LAGOPUS_RESULT_OK) {
-        lagopus_perror(ret);
-        goto done;
-      }
-      channel_mgr_initialize();
-#endif
+    name = "dpqueuemgr";
+    if ((ret = lagopus_module_register(name,
+                                       ofp_dpqueue_mgr_initialize,
+                                       NULL,
+                                       ofp_dpqueue_mgr_start,
+                                       ofp_dpqueue_mgr_shutdown,
+                                       ofp_dpqueue_mgr_stop,
+                                       ofp_dpqueue_mgr_finalize,
+                                       NULL)) != LAGOPUS_RESULT_OK) {
+      lagopus_perror(ret);
+      goto done;
+    }
 
-      if ((ret = datastore_start()) !=
-          LAGOPUS_RESULT_OK) {
-        lagopus_perror(ret);
-        goto done;
-      }
+    name = "agent";
+    if ((ret = lagopus_module_register(name,
+                                       agent_initialize_wrap, NULL,
+                                       agent_start,
+                                       agent_shutdown,
+                                       agent_stop,
+                                       agent_finalize_wrap,
+                                       NULL)) != LAGOPUS_RESULT_OK) {
+      lagopus_perror(ret);
+      goto done;
+    }
 
-      if ((ret = load_conf_initialize(0, NULL, NULL, NULL)) !=
-          LAGOPUS_RESULT_OK) {
-        lagopus_perror(ret);
-        goto done;
-      }
+    name = "ofp_handler";
+    if ((ret = lagopus_module_register(name,
+                                       ofp_handler_initialize_wrap, NULL,
+                                       ofp_handler_start,
+                                       ofp_handler_shutdown,
+                                       ofp_handler_stop,
+                                       ofp_handler_finalize_wrap,
+                                       NULL)) != LAGOPUS_RESULT_OK) {
+      lagopus_perror(ret);
+      goto done;
+    }
 
-      if ((ret = load_conf_start()) !=
-          LAGOPUS_RESULT_OK) {
-        lagopus_perror(ret);
-        goto done;
-      }
+    name = "load_conf";
+    if ((ret = lagopus_module_register(name,
+                                       load_conf_initialize, NULL,
+                                       load_conf_start,
+                                       load_conf_shutdown,
+                                       NULL,
+                                       load_conf_finalize,
+                                       NULL)) != LAGOPUS_RESULT_OK) {
+      lagopus_perror(ret);
+      goto done;
+    }
+
+    if ((ret = datastore_set_config_file(dsl)) !=
+        LAGOPUS_RESULT_OK) {
+      lagopus_perror(ret);
+      goto done;
+    }
+
+    if ((ret = lagopus_mainloop_with_callout(argc, argv, NULL, NULL,
+                                             false, false, true)) !=
+        LAGOPUS_RESULT_OK) {
+      lagopus_perror(ret);
+      goto done;
     }
   } else {
     ret = LAGOPUS_RESULT_INVALID_ARGS;
@@ -126,47 +207,13 @@ done:
 }
 
 static inline void
-stop_datastore(void) {
+stop_modules(void) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
 
-  if (interp != NULL) {
-    if ((ret = load_conf_shutdown(SHUTDOWN_GRACEFULLY)) !=
-        LAGOPUS_RESULT_OK) {
-      lagopus_perror(ret);
-      return;
-    }
-    if ((ret = datastore_stop()) !=
-        LAGOPUS_RESULT_OK) {
-      lagopus_perror(ret);
-      return;
-    }
-
-    if ((ret = load_conf_shutdown(SHUTDOWN_GRACEFULLY)) !=
-        LAGOPUS_RESULT_OK) {
-      lagopus_perror(ret);
-      return;
-    }
-
-    if ((ret = datastore_shutdown(SHUTDOWN_GRACEFULLY)) !=
-        LAGOPUS_RESULT_OK) {
-      lagopus_perror(ret);
-      return;
-    }
-
-    load_conf_finalize();
-    datastore_finalize();
-    datastore_destroy_interp(&interp);
-#ifdef USE_CHANNEL /* NOTE: use channel/controller in DSL. */
-    channel_mgr_finalize();
-#endif
-    dp_api_fini();
-    ofp_bridgeq_mgr_destroy();
-#ifdef USE_CHANNEL /* NOTE: use channel/controller in DSL. */
-    if ((ret = global_state_request_shutdown(SHUTDOWN_GRACEFULLY)) ==
-        LAGOPUS_RESULT_OK) {
-      lagopus_mainloop_wait_thread();
-    }
-#endif
+  if ((ret = global_state_request_shutdown(SHUTDOWN_GRACEFULLY)) !=
+      LAGOPUS_RESULT_OK) {
+    lagopus_perror(ret);
+    return;
   }
 }
 
@@ -211,16 +258,22 @@ free_rte_mbuf(struct rte_mbuf *p, size_t size) {
 
 static inline void
 print_usage(const char *pname) {
-  fprintf(stderr, "usage: %s [-t <MEASURING_TIMES>] [-b <BATCH_SIZE>] [-C DSL_FILE] <PCAP_FILE>\n", pname);
+  fprintf(stderr, "usage: %s [-t <MEASURING_TIMES>] [-b <BATCH_SIZE>] "
+          "[-C DSL_FILE] [-- DPDK_OPTS] [-- DP_OPTS] <PCAP_FILE>\n", pname);
   fprintf(stderr, "\n");
   fprintf(stderr, "positional arguments:\n");
   fprintf(stderr, "  PCAP_FILE\t\tPacket capture file.\n");
   fprintf(stderr, "\n");
   fprintf(stderr, "optional arguments:\n");
-  fprintf(stderr, "  -t MEASURING_TIMES\tNumber of executions of benchmark target func(default: 1).\n");
+  fprintf(stderr, "  -t MEASURING_TIMES\tNumber of executions of "
+          "benchmark target func(default: 1).\n");
   fprintf(stderr, "  -b BATCH_SIZE\t\tSize of batches(default: 0).\n");
   fprintf(stderr, "               \t\t0 is read all packets in pcap file.\n");
   fprintf(stderr, "  -C DSL_FILE\t\tDSL file.\n");
+  fprintf(stderr, "  DPDK_OPTS\t\tDPDK opts. "
+          "It's required for use with -C.\n");
+  fprintf(stderr, "  DP_OPTS\t\tDataplane opts. "
+          "It's required for use with -C.\n");
 }
 
 static inline lagopus_result_t
@@ -246,7 +299,7 @@ parse_args(int argc, const char *const argv[]) {
     }
   }
 
-  if (argc - optind == 1) {
+  if (argc != optind ) {
     opt_pcap_file = argv[optind];
     ret = LAGOPUS_RESULT_OK;
   } else {
@@ -386,7 +439,7 @@ main(int argc, const char *const argv[]) {
   }
 
   if (opt_dsl_file != NULL) {
-    start_datastore(opt_dsl_file);
+    start_modules(argc, argv, opt_dsl_file);
   }
 
   count = 0;
@@ -428,7 +481,7 @@ main(int argc, const char *const argv[]) {
 
 done:
   if (opt_dsl_file != NULL) {
-    stop_datastore();
+    stop_modules();
   }
 
   /* free. */

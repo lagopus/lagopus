@@ -51,7 +51,7 @@ ifneq ($(and $(RTE_SDK),$(HAVE_UNITY)),)
 
 benchmark::
 {% for benchmark in benchmarks %}
-	./{{ benchmark.file }} {{ benchmark.pcap }}
+	sudo ./{{ benchmark.file }} {{ benchmark.pcap }}
 {%- if benchmark.times is defined and benchmark.times %}
  -t {{ benchmark.times }}
 {%- endif %}
@@ -60,6 +60,16 @@ benchmark::
 {%- endif %}
 {%- if benchmark.dsl is defined and benchmark.dsl %}
  -C {{ benchmark.dsl }}
+{%- if benchmark.dpdk_opts is defined and benchmark.dpdk_opts %}
+ -- {{ benchmark.dpdk_opts }}
+{%- else %}
+ -- -cf -n4
+{%- endif %}
+{%- if benchmark.dp_opts is defined and benchmark.dp_opts %}
+ -- {{ benchmark.dp_opts }}
+{%- else %}
+ -- -p3
+{%- endif %}
 {%- endif %}
 
 {% endfor %}
