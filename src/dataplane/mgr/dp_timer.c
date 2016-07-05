@@ -62,14 +62,12 @@ find_dp_timer(time_t timeout,
   *prev = NULL;
   prev_time = 0;
   TAILQ_FOREACH(dp_timer, &dp_timer_list, next) {
-    if (dp_timer->type != type) {
-      continue;
-    }
     if (prev_time + dp_timer->timeout > timeout) {
       dp_timer = NULL;
       break;
     }
     if (prev_time + dp_timer->timeout == timeout &&
+        dp_timer->type == type &&
         dp_timer->nentries < MAX_TIMEOUT_ENTRIES) {
       /* found. */
       break;
