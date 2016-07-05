@@ -983,8 +983,8 @@ dpdk_configure_interface(struct interface *ifp) {
     lp->io.tx.n_nic_ports++;
     lp->io.rx.ifp[lp->io.rx.nifs++] = ifp;
     app.nic_tx_port_mask[portid] = 1;
+    dp_dpdk_tx_ring_create(portid);
   }
-  dp_dpdk_tx_ring_create(portid);
   /* Init RX queues */
   for (queue = 0; queue < APP_MAX_RX_QUEUES_PER_NIC_PORT; queue ++) {
     struct app_lcore_params_io *lp;
