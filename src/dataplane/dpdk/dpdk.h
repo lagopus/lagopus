@@ -479,4 +479,7 @@ struct app_lcore_params *dp_dpdk_get_lcore_param(unsigned lcore);
 
 unsigned dp_dpdk_lcore_count(void);
 
+void dp_bulk_match_and_action(struct rte_mbuf *mbufs[], size_t n_mbufs,
+                              struct flowcache *cache);
+
 #endif /* SRC_DATAPLANE_DPDK_DPDK_H_ */

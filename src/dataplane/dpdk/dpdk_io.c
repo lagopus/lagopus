@@ -264,37 +264,51 @@ app_lcore_io_rx_buffer_to_send (
 }
 
 static inline void
-app_lcore_io_rx(struct app_lcore_params_io *lp,
+app_lcore_io_rx(struct app_lcore_params_io *lpio,
                 uint32_t n_workers,
                 uint32_t bsz_rd,
                 uint32_t bsz_wr) {
+  struct app_lcore_params *lp;
   OS_MBUF **mbufs;
   uint8_t wkid, portid;
   uint32_t fifoness;
   uint32_t i, j;
 
   fifoness = app.fifoness;
-  mbufs = lp->rx.mbuf_in.array;
-  for (i = 0; i < lp->rx.nifs; i++) {
-    uint32_t n_mbufs;
+  mbufs = lpio->rx.mbuf_in.array;
+  lp = (struct app_lcore_params *)lpio;
+  if (lp->type == e_APP_LCORE_IO_WORKER) {
+    for (i = 0; i < lpio->rx.nifs; i++) {
+      uint32_t n_mbufs;
 
-    portid = lp->rx.ifp[i]->info.eth.port_number;
-    n_mbufs = dpdk_rx_burst(lp->rx.ifp[i], mbufs, bsz_rd);
-    for (j = 0; j < n_mbufs; j++) {
-      switch (fifoness) {
-        case FIFONESS_FLOW:
-          wkid = CityHash64WithSeed(OS_MTOD(mbufs[j], void *),
-                                    sizeof(ETHER_HDR) + 2, portid) % n_workers;
-          break;
-        case FIFONESS_PORT:
-          wkid = portid % n_workers;
-          break;
-        case FIFONESS_NONE:
-        default:
-          wkid = j % n_workers;
-          break;
+      portid = lpio->rx.ifp[i]->info.eth.port_number;
+      n_mbufs = dpdk_rx_burst(lpio->rx.ifp[i], mbufs, bsz_rd);
+      if (n_mbufs != 0) {
+        dp_bulk_match_and_action(mbufs, n_mbufs, lp->worker.cache);
       }
-      app_lcore_io_rx_buffer_to_send(lp, wkid, mbufs[j], bsz_wr);
+    }
+  } else {
+    for (i = 0; i < lpio->rx.nifs; i++) {
+      uint32_t n_mbufs;
+
+      portid = lpio->rx.ifp[i]->info.eth.port_number;
+      n_mbufs = dpdk_rx_burst(lpio->rx.ifp[i], mbufs, bsz_rd);
+      for (j = 0; j < n_mbufs; j++) {
+        switch (fifoness) {
+          case FIFONESS_FLOW:
+            wkid = CityHash64WithSeed(OS_MTOD(mbufs[j], void *),
+                                      sizeof(ETHER_HDR) + 2, portid) % n_workers;
+            break;
+          case FIFONESS_PORT:
+            wkid = portid % n_workers;
+            break;
+          case FIFONESS_NONE:
+          default:
+            wkid = j % n_workers;
+            break;
+        }
+        app_lcore_io_rx_buffer_to_send(lpio, wkid, mbufs[j], bsz_wr);
+      }
     }
   }
 }

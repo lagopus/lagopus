@@ -137,46 +137,29 @@ struct worker_arg {
   struct lagopus_packet *pkt;
 };
 
-static inline void
-app_lcore_worker(struct app_lcore_params_worker *lp,
-                 uint32_t bsz_rd,
-                 struct worker_arg *arg) {
-  static const uint8_t eth_bcast[] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
+void
+dp_bulk_match_and_action(OS_MBUF *mbufs[], size_t n_mbufs,
+                         struct flowcache *cache) {
   struct interface *ifp;
   struct lagopus_packet *pkt;
   enum switch_mode mode;
-  uint32_t i;
+  size_t i;
 
+  APP_WORKER_PREFETCH1(rte_pktmbuf_mtod(mbufs[0], unsigned char *));
+  APP_WORKER_PREFETCH0(mbufs[1]);
+  flowdb_rdlock(NULL);
 
-  for (i = 0; i < lp->n_rings_in; i ++) {
-    struct rte_ring *ring_in = lp->rings_in[i];
-    int ret, j;
+  for (i = 0; i < n_mbufs; i++) {
+    OS_MBUF *m;
 
-    ret = rte_ring_sc_dequeue_burst(ring_in,
-                                    (void **) lp->mbuf_in.array,
-                                    bsz_rd);
-    if (unlikely(ret == 0)) {
-#if defined HYBRID && defined PIPELINER
-        pipeline_process_stacked_packets();
-#endif
-      continue;
-    }
-    APP_WORKER_PREFETCH1(rte_pktmbuf_mtod(lp->mbuf_in.array[0],
-                                          unsigned char *));
-    APP_WORKER_PREFETCH0(lp->mbuf_in.array[1]);
-    flowdb_rdlock(NULL);
-
-    for (j = 0; j < ret; j ++) {
-      struct rte_mbuf *m;
-
-      if (likely(j < ret - 1)) {
-        APP_WORKER_PREFETCH1(rte_pktmbuf_mtod(lp->mbuf_in.array[j+1],
-                                              unsigned char *));
+    if (likely(i < n_mbufs - 1)) {
+      APP_WORKER_PREFETCH1(rte_pktmbuf_mtod(mbufs[i + 1],
+                                            unsigned char *));
       }
-      if (likely(j < ret - 2)) {
-        APP_WORKER_PREFETCH0(lp->mbuf_in.array[j+2]);
+      if (likely(i < n_mbufs - 2)) {
+        APP_WORKER_PREFETCH0(mbufs[i + 2]);
       }
-      m = lp->mbuf_in.array[j];
+      m = mbufs[i];
       pkt = MBUF2PKT(m);
 #ifdef RTE_MBUF_HAS_PKT
       ifp = dpdk_interface_lookup(m->pkt.in_port);
@@ -188,11 +171,10 @@ app_lcore_worker(struct app_lcore_params_worker *lp,
           ifp->port->bridge == NULL ||
           (ifp->port->ofp_port.config & OFPPC_NO_RECV) != 0) {
         /* drop m */
-        for (; j < ret; j++) {
-          m = lp->mbuf_in.array[j];
-          rte_pktmbuf_free(m);
+        for (; i < n_mbufs; i++) {
+          rte_pktmbuf_free(mbufs[i]);
         }
-        ret = 0;
+        n_mbufs = 0;
         break;
       }
       /*
@@ -211,7 +193,7 @@ app_lcore_worker(struct app_lcore_params_worker *lp,
       dp_interface_send_packet_kernel(pkt, ifp);
 #endif
 #ifdef PIPELINER
-      if (unlikely(j == ret - 1)) {
+      if (unlikely(i == n_mbufs - 1)) {
         pkt->pipeline_context.is_last_packet_of_bulk = true;
       } else {
         pkt->pipeline_context.is_last_packet_of_bulk = false;
@@ -222,30 +204,54 @@ app_lcore_worker(struct app_lcore_params_worker *lp,
       flowdb_switch_mode_get(ifp->port->bridge->flowdb, &mode);
       if (mode == SWITCH_MODE_STANDALONE) {
         lagopus_forward_packet_to_port(pkt, OFPP_NORMAL);
-        lp->mbuf_in.array[j] = NULL;
+        mbufs[i] = NULL;
         continue;
       }
     }
-    for (j = 0; j < ret; j ++) {
-      struct rte_mbuf *m;
+    for (i = 0; i < n_mbufs; i++) {
+      OS_MBUF *m;
 
-      m = lp->mbuf_in.array[j];
+      m = mbufs[i];
       if (unlikely(m == NULL)) {
         continue;
       }
-      if (likely(j < ret - 1)) {
-        APP_WORKER_PREFETCH1(rte_pktmbuf_mtod(lp->mbuf_in.array[j+1],
+      if (likely(i < n_mbufs - 1)) {
+        APP_WORKER_PREFETCH1(rte_pktmbuf_mtod(mbufs[i + 1],
                                               unsigned char *));
       }
-      if (likely(j < ret - 2)) {
-        APP_WORKER_PREFETCH0(lp->mbuf_in.array[j+2]);
+      if (likely(i < n_mbufs - 2)) {
+        APP_WORKER_PREFETCH0(mbufs[i + 2]);
       }
       pkt = MBUF2PKT(m);
       APP_WORKER_PREFETCH0(pkt);
-      pkt->cache = lp->cache;
+      pkt->cache = cache;
       lagopus_match_and_action(pkt);
     }
     flowdb_rdunlock(NULL);
+}
+
+static inline void
+app_lcore_worker(struct app_lcore_params_worker *lp,
+                 uint32_t bsz_rd,
+                 struct worker_arg *arg) {
+  static const uint8_t eth_bcast[] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
+  uint32_t i;
+
+
+  for (i = 0; i < lp->n_rings_in; i ++) {
+    struct rte_ring *ring_in = lp->rings_in[i];
+    int ret, j;
+
+    ret = rte_ring_sc_dequeue_burst(ring_in,
+                                    (void **) lp->mbuf_in.array,
+                                    bsz_rd);
+    if (unlikely(ret == 0)) {
+#if defined HYBRID && defined PIPELINER
+        pipeline_process_stacked_packets();
+#endif /* HYBRID && PIPELINER */
+      continue;
+    }
+    dp_bulk_match_and_action(lp->mbuf_in.array, ret, lp->cache);
   }
 }
 
@@ -522,21 +528,6 @@ dpdk_send_packet_physical(struct lagopus_packet *pkt, struct interface *ifp) {
           (void **) lp->mbuf_out[portid].array,
           bsz_wr);
 
-#if APP_STATS
-  lp->rings_out_iters[portid] ++;
-  if (ret == 0) {
-    lp->rings_out_count[portid] += 1;
-  }
-  if (lp->rings_out_iters[portid] == APP_STATS) {
-    printf("\t\tWorker %u out (NIC port %u): enq success rate = %.2f\n",
-           (unsigned) lp->worker_id,
-           (unsigned) portid,
-           ((double) lp->rings_out_count[portid]) / ((double)
-               lp->rings_out_iters[portid]));
-    lp->rings_out_iters[portid] = 0;
-    lp->rings_out_count[portid] = 0;
-  }
-#endif
   if (unlikely(ret == -ENOBUFS)) {
     uint32_t k;
     for (k = 0; k < bsz_wr; k ++) {
