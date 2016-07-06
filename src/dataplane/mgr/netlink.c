@@ -499,7 +499,7 @@ netlink_route(__UNUSED struct sockaddr_nl *snl, struct nlmsghdr *h) {
     if (h->nlmsg_type == RTM_NEWROUTE) {
       rib_notifier_ipv4_route_add(&p, plen, &g, ifindex, rtm->rtm_scope);
     } else {
-      rib_notifier_ipv4_route_delete(&p, plen, gate ? &g : NULL, ifindex);
+      rib_notifier_ipv4_route_delete(&p, plen, &g, ifindex);
     }
   }  else {
     struct in6_addr p;
@@ -512,10 +512,10 @@ netlink_route(__UNUSED struct sockaddr_nl *snl, struct nlmsghdr *h) {
 
     if (h->nlmsg_type == RTM_NEWROUTE) {
       rib_notifier_ipv6_route_add((struct in6_addr *)dest, plen,
-                                  gate ? &g : NULL, ifindex);
+                                  &g, ifindex);
     } else {
       rib_notifier_ipv6_route_delete((struct in6_addr *)dest, plen,
-                                     gate ? &g : NULL, ifindex);
+                                  &g, ifindex);
     }
   }
   return 0;
