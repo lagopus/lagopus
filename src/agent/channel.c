@@ -905,10 +905,16 @@ session_set(struct channel *channel) {
   return ret;
 }
 
+static void
+multipart_reset(struct multipart *m) {
+  m->used = 0;
+}
+
 /* Multipart object init. */
 static void
 multipart_init(struct multipart *m) {
   TAILQ_INIT(&m->multipart_list);
+  multipart_reset(m);
 }
 
 /* Channel allocation. */
@@ -1070,6 +1076,7 @@ multipart_free(struct multipart *m) {
       pbuf_reset(p);
       pbuf_free(p);
     }
+    multipart_reset(m);
   }
 }
 
@@ -1545,12 +1552,6 @@ channel_multipart_put(struct channel *channel, struct pbuf *pbuf,
   return ret;
 }
 
-static void
-reset(struct multipart *m) {
-  m->used = 0;
-}
-
-
 lagopus_result_t
 channel_multipart_get(struct channel *channel, struct pbuf **pbuf,
                       struct ofp_header *xid_header, uint16_t mtype) {
@@ -1560,7 +1561,8 @@ channel_multipart_get(struct channel *channel, struct pbuf **pbuf,
 
   channel_lock(channel);
   for (i = 0; i < CHANNEL_SIMULTANEOUS_MULTIPART_MAX; i++) {
-    if (channel->multipart[i].ofp_header.xid == xid_header->xid
+    if (channel->multipart[i].used == 1 
+        && channel->multipart[i].ofp_header.xid == xid_header->xid
         && channel->multipart[i].multipart_type == mtype) {
       /* found */
       break;
@@ -1593,7 +1595,7 @@ channel_multipart_get(struct channel *channel, struct pbuf **pbuf,
       }
 
       if (ret == LAGOPUS_RESULT_OK) {
-        reset(&channel->multipart[i]);
+        multipart_reset(&channel->multipart[i]);
       } else {
         multipart_free(&channel->multipart[i]);
       }

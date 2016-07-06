@@ -40,7 +40,7 @@ ifneq ($(and $(RTE_SDK),$(HAVE_PAPI)),)
 
 {%- endif %}
 
-	$(LTCLEAN) $@
+	$(RM) -f $@ .libs/lt-$@ .libs/$@
 	$(LTLINK_CC) -o $@ $(BENCHMARK_LDFLAGS)
 {%- if benchmark.external_libs is defined and benchmark.external_libs %}
  {{ benchmark.external_libs }}
