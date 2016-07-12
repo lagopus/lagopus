@@ -27,6 +27,7 @@
 #include "lagopus/flowdb.h"
 #ifdef HYBRID
 #include "lagopus/mactable.h"
+#include "lagopus/rib.h"
 #endif /* HYBRID */
 
 struct port;
@@ -72,7 +73,9 @@ struct bridge {
   struct group_table *group_table;      /** Group table. */
   struct meter_table *meter_table;      /** Meter table. */
 #ifdef HYBRID
+  struct bridge **updater_timer;         /**< Timer for updater. */
   struct mactable mactable;             /** Mac learning table. */
+  struct rib rib;
 #endif /* HYBRID */
   struct ofp_port controller_port;      /** Controller port config. */
   struct ofp_switch_config switch_config;  /** Switch config. */

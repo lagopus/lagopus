@@ -56,7 +56,6 @@ alloc_lagopus_packet(void) {
   }
   pkt = (struct lagopus_packet *)&m[1];
   m->data = &m->dat[128];
-  pkt->mbuf = m;
 
   return pkt;
 }
@@ -70,7 +69,7 @@ sock_m_free(OS_MBUF *m) {
 
 void
 lagopus_packet_free(struct lagopus_packet *pkt) {
-  OS_M_FREE(pkt->mbuf);
+  OS_M_FREE(PKT2MBUF(pkt));
 }
 
 void

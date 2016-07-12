@@ -22,6 +22,8 @@
 #include "lagopus_apis.h"
 #include "lagopus/flowdb.h"
 
+#include "dp_timer.c"
+
 void
 setUp(void) {
   init_dp_timer();
@@ -34,12 +36,33 @@ tearDown(void) {
 void
 test_add_flow_timer(void) {
   struct flow flow;
+  struct dp_timer *dp_timer;
   lagopus_result_t rv;
 
+  clock_gettime(CLOCK_MONOTONIC, &now_ts);
   flow.idle_timeout = 100;
   flow.hard_timeout = 100;
+  flow.create_time.tv_sec = now_ts.tv_sec;
+  flow.update_time.tv_sec = now_ts.tv_sec;
   rv = add_flow_timer(&flow);
   TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
+  dp_timer = TAILQ_FIRST(&dp_timer_list);
+  TEST_ASSERT_NOT_NULL(dp_timer);
+  TEST_ASSERT_EQUAL(dp_timer->timeout, 100);
+  dp_timer = TAILQ_NEXT(dp_timer, next);
+  TEST_ASSERT_NULL(dp_timer);
+  flow.idle_timeout = 20;
+  flow.hard_timeout = 20;
+  rv = add_flow_timer(&flow);
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
+  dp_timer = TAILQ_FIRST(&dp_timer_list);
+  TEST_ASSERT_NOT_NULL(dp_timer);
+  TEST_ASSERT_EQUAL(dp_timer->timeout, 20);
+  dp_timer = TAILQ_NEXT(dp_timer, next);
+  TEST_ASSERT_NOT_NULL(dp_timer);
+  TEST_ASSERT_EQUAL(dp_timer->timeout, 80);
+  dp_timer = TAILQ_NEXT(dp_timer, next);
+  TEST_ASSERT_NULL(dp_timer);
 }
 
 void
@@ -49,4 +72,116 @@ test_add_mbtree_timer(void) {
 
   rv = add_mbtree_timer(&flow_list, 100);
   TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
+}
+
+static void
+t_add_flow_timer(int sec) {
+  struct flow flow;
+  lagopus_result_t rv;
+
+  clock_gettime(CLOCK_MONOTONIC, &now_ts);
+  flow.idle_timeout = sec;
+  flow.hard_timeout = sec;
+  flow.create_time.tv_sec = now_ts.tv_sec;
+  flow.update_time.tv_sec = now_ts.tv_sec;
+  rv = add_flow_timer(&flow);
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
+}
+
+void
+test_add_multiple_timer(void) {
+  struct flow_list flow_list;
+  struct dp_timer *dp_timer;
+  lagopus_result_t rv;
+
+  t_add_flow_timer(100);
+  dp_timer = TAILQ_FIRST(&dp_timer_list);
+  TEST_ASSERT_NOT_NULL(dp_timer);
+  TEST_ASSERT_EQUAL(dp_timer->timeout, 100);
+  dp_timer = TAILQ_NEXT(dp_timer, next);
+  TEST_ASSERT_NULL(dp_timer);
+
+  t_add_flow_timer(20);
+  dp_timer = TAILQ_FIRST(&dp_timer_list);
+  TEST_ASSERT_NOT_NULL(dp_timer);
+  TEST_ASSERT_EQUAL(dp_timer->timeout, 20);
+  dp_timer = TAILQ_NEXT(dp_timer, next);
+  TEST_ASSERT_NOT_NULL(dp_timer);
+  TEST_ASSERT_EQUAL(dp_timer->timeout, 80);
+  dp_timer = TAILQ_NEXT(dp_timer, next);
+  TEST_ASSERT_NULL(dp_timer);
+
+  rv = add_mbtree_timer(&flow_list, 5);
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
+  dp_timer = TAILQ_FIRST(&dp_timer_list);
+  TEST_ASSERT_NOT_NULL(dp_timer);
+  TEST_ASSERT_EQUAL(dp_timer->timeout, 5);
+  dp_timer = TAILQ_NEXT(dp_timer, next);
+  TEST_ASSERT_NOT_NULL(dp_timer);
+  TEST_ASSERT_EQUAL(dp_timer->timeout, 15);
+  dp_timer = TAILQ_NEXT(dp_timer, next);
+  TEST_ASSERT_NOT_NULL(dp_timer);
+  TEST_ASSERT_EQUAL(dp_timer->timeout, 80);
+  dp_timer = TAILQ_NEXT(dp_timer, next);
+  TEST_ASSERT_NULL(dp_timer);
+
+  t_add_flow_timer(30);
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
+  dp_timer = TAILQ_FIRST(&dp_timer_list);
+  TEST_ASSERT_NOT_NULL(dp_timer);
+  TEST_ASSERT_EQUAL(dp_timer->timeout, 5);
+  dp_timer = TAILQ_NEXT(dp_timer, next);
+  TEST_ASSERT_NOT_NULL(dp_timer);
+  TEST_ASSERT_EQUAL(dp_timer->timeout, 15);
+  dp_timer = TAILQ_NEXT(dp_timer, next);
+  TEST_ASSERT_NOT_NULL(dp_timer);
+  TEST_ASSERT_EQUAL(dp_timer->timeout, 10);
+  dp_timer = TAILQ_NEXT(dp_timer, next);
+  TEST_ASSERT_NOT_NULL(dp_timer);
+  TEST_ASSERT_EQUAL(dp_timer->timeout, 70);
+  dp_timer = TAILQ_NEXT(dp_timer, next);
+  TEST_ASSERT_NULL(dp_timer);
+
+  t_add_flow_timer(1);
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
+  dp_timer = TAILQ_FIRST(&dp_timer_list);
+  TEST_ASSERT_NOT_NULL(dp_timer);
+  TEST_ASSERT_EQUAL(dp_timer->timeout, 1);
+  dp_timer = TAILQ_NEXT(dp_timer, next);
+  TEST_ASSERT_NOT_NULL(dp_timer);
+  TEST_ASSERT_EQUAL(dp_timer->timeout, 4);
+  dp_timer = TAILQ_NEXT(dp_timer, next);
+  TEST_ASSERT_NOT_NULL(dp_timer);
+  TEST_ASSERT_EQUAL(dp_timer->timeout, 15);
+  dp_timer = TAILQ_NEXT(dp_timer, next);
+  TEST_ASSERT_NOT_NULL(dp_timer);
+  TEST_ASSERT_EQUAL(dp_timer->timeout, 10);
+  dp_timer = TAILQ_NEXT(dp_timer, next);
+  TEST_ASSERT_NOT_NULL(dp_timer);
+  TEST_ASSERT_EQUAL(dp_timer->timeout, 70);
+  dp_timer = TAILQ_NEXT(dp_timer, next);
+  TEST_ASSERT_NULL(dp_timer);
+
+  rv = add_mbtree_timer(&flow_list, 8);
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
+  dp_timer = TAILQ_FIRST(&dp_timer_list);
+  TEST_ASSERT_NOT_NULL(dp_timer);
+  TEST_ASSERT_EQUAL(dp_timer->timeout, 1);
+  dp_timer = TAILQ_NEXT(dp_timer, next);
+  TEST_ASSERT_NOT_NULL(dp_timer);
+  TEST_ASSERT_EQUAL(dp_timer->timeout, 4);
+  dp_timer = TAILQ_NEXT(dp_timer, next);
+  TEST_ASSERT_NOT_NULL(dp_timer);
+  TEST_ASSERT_EQUAL(dp_timer->timeout, 3);
+  dp_timer = TAILQ_NEXT(dp_timer, next);
+  TEST_ASSERT_NOT_NULL(dp_timer);
+  TEST_ASSERT_EQUAL(dp_timer->timeout, 12);
+  dp_timer = TAILQ_NEXT(dp_timer, next);
+  TEST_ASSERT_NOT_NULL(dp_timer);
+  TEST_ASSERT_EQUAL(dp_timer->timeout, 10);
+  dp_timer = TAILQ_NEXT(dp_timer, next);
+  TEST_ASSERT_NOT_NULL(dp_timer);
+  TEST_ASSERT_EQUAL(dp_timer->timeout, 70);
+  dp_timer = TAILQ_NEXT(dp_timer, next);
+  TEST_ASSERT_NULL(dp_timer);
 }

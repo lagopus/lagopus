@@ -122,15 +122,17 @@ void
 thtable_free(thtable_t thtable) {
   int i;
 
-  for (i = 0; i <= THTABLE_INDEX_MAX; i++) {
-    struct htlist *htlist;
+  if (thtable != NULL) {
+    for (i = 0; i <= THTABLE_INDEX_MAX; i++) {
+      struct htlist *htlist;
 
-    htlist = thtable[i];
-    if (htlist != NULL) {
-      htlist_free(htlist);
+      htlist = thtable[i];
+      if (htlist != NULL) {
+        htlist_free(htlist);
+      }
     }
+    free(thtable);
   }
-  free(thtable);
 }
 
 static void

@@ -29,6 +29,7 @@
 #include "lagopus/meter.h"
 #ifdef HYBRID
 #include "lagopus/mactable.h"
+#include "lagopus/rib.h"
 #endif /* HYBRID */
 
 #include "lagopus/dp_apis.h"
@@ -241,10 +242,16 @@ bridge_alloc(const char *name) {
     goto out;
   }
 
+
 #ifdef HYBRID
-  if (init_mactable(&bridge->mactable) != LAGOPUS_RESULT_OK) {
+  if (mactable_init(&bridge->mactable) != LAGOPUS_RESULT_OK) {
     goto out;
   }
+  if (rib_init(&bridge->rib) != LAGOPUS_RESULT_OK) {
+    goto out;
+  }
+
+  add_updater_timer(bridge, UPDATER_TABLE_UPDATE_TIME);
 #endif /* HYBRID */
 
   /* Return bridge. */
@@ -295,7 +302,12 @@ bridge_free(struct bridge *bridge) {
     meter_table_free(bridge->meter_table);
   }
 #ifdef HYBRID
-  fini_mactable(&bridge->mactable);
+  /* stop timer. */
+  if (bridge->updater_timer != NULL) {
+    *bridge->updater_timer = NULL;
+  }
+  mactable_fini(&bridge->mactable);
+  rib_fini(&bridge->rib);
 #endif /* HYBRID */
   free(bridge);
 }
@@ -306,7 +318,7 @@ bridge_free(struct bridge *bridge) {
  */
 lagopus_result_t
 bridge_mactable_ageing_time_set(struct bridge *bridge, uint32_t ageing_time) {
-  mactable_set_ageing_time(&bridge->mactable, ageing_time);
+  mactable_ageing_time_set(&bridge->mactable, ageing_time);
 
   return LAGOPUS_RESULT_OK;
 }
@@ -316,7 +328,7 @@ bridge_mactable_ageing_time_set(struct bridge *bridge, uint32_t ageing_time) {
  */
 lagopus_result_t
 bridge_mactable_max_entries_set(struct bridge *bridge, uint16_t max_entries) {
-  mactable_set_max_entries(&bridge->mactable, max_entries);
+  mactable_max_entries_set(&bridge->mactable, max_entries);
 
   return LAGOPUS_RESULT_OK;
 }
@@ -402,11 +414,13 @@ bridge_mactable_entries_get(struct bridge *bridge,
   lagopus_result_t result;
   struct mactable_args ma;
   struct mactable *mactable = &bridge->mactable;
+  lagopus_hashmap_t *hashmap;
+  hashmap = &mactable->hashmap[__sync_add_and_fetch(&mactable->read_table, 0)];
 
   ma.entries = entries;
   ma.num = num;
   ma.no = 0;
-  result = lagopus_hashmap_iterate(&mactable->hashmap, get_macentry, &ma);
+  result = lagopus_hashmap_iterate(hashmap, get_macentry, &ma);
 
   if (result == LAGOPUS_RESULT_OK) {
   } else {
@@ -430,19 +444,21 @@ bridge_mactable_entries_get(struct bridge *bridge,
 unsigned int
 bridge_mactable_num_entries_get(struct bridge *bridge) {
   struct mactable *mactable = &bridge->mactable;
+  lagopus_hashmap_t *hashmap;
+  hashmap = &mactable->hashmap[__sync_add_and_fetch(&mactable->read_table, 0)];
 
-  return (unsigned int)lagopus_hashmap_size(&mactable->hashmap);
+  return (unsigned int)lagopus_hashmap_size(hashmap);
 }
 
 lagopus_result_t
 bridge_mactable_ageing_time_get(struct bridge *bridge, uint32_t *ageing_time) {
-  *ageing_time = mactable_get_ageing_time(&bridge->mactable);
+  *ageing_time = mactable_ageing_time_get(&bridge->mactable);
   return LAGOPUS_RESULT_OK;
 }
 
 lagopus_result_t
 bridge_mactable_max_entries_get(struct bridge *bridge, uint32_t *max_entries) {
-  *max_entries = mactable_get_max_entries(&bridge->mactable);
+  *max_entries = mactable_max_entries_get(&bridge->mactable);
   return LAGOPUS_RESULT_OK;
 }
 #endif /* HYBRID */

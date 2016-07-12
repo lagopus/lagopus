@@ -164,4 +164,102 @@ lagopus_result_t
 lagopus_barrier_wait(lagopus_barrier_t *bptr, bool *is_master);
 
 
+
+
+
+typedef pthread_spinlock_t lagopus_spinlock_t;
+
+
+static inline lagopus_result_t
+lagopus_spinlock_initialize(lagopus_spinlock_t *l) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+
+  if (likely(l != NULL)) {
+    int st;
+    errno = 0;
+    if (likely((st = pthread_spin_init(l, PTHREAD_PROCESS_PRIVATE)) == 0)) {
+      ret = LAGOPUS_RESULT_OK;
+    } else {
+      errno = st;
+      ret = LAGOPUS_RESULT_POSIX_API_ERROR;
+    }
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  return ret;
+}
+
+
+static inline lagopus_result_t
+lagopus_spinlock_lock(lagopus_spinlock_t *l) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+
+  if (likely(l != NULL)) {
+    int st;
+    errno = 0;
+    if (likely((st = pthread_spin_lock(l) == 0))) {
+      ret = LAGOPUS_RESULT_OK;
+    } else {
+      errno = st;
+      ret = LAGOPUS_RESULT_POSIX_API_ERROR;
+    }
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  return ret;
+}
+
+
+static inline lagopus_result_t
+lagopus_spinlock_trylock(lagopus_spinlock_t *l) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+
+  if (likely(l != NULL)) {
+    int st;
+    errno = 0;
+    if (likely((st = pthread_spin_trylock(l) == 0))) {
+      ret = LAGOPUS_RESULT_OK;
+    } else {
+      errno = st;
+      ret = LAGOPUS_RESULT_POSIX_API_ERROR;
+    }
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  return ret;
+}
+
+
+static inline lagopus_result_t
+lagopus_spinlock_unlock(lagopus_spinlock_t *l) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+
+  if (likely(l != NULL)) {
+    int st;
+    errno = 0;
+    if (likely((st = pthread_spin_unlock(l) == 0))) {
+      ret = LAGOPUS_RESULT_OK;
+    } else {
+      errno = st;
+      ret = LAGOPUS_RESULT_POSIX_API_ERROR;
+    }
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  return ret;
+}
+
+
+static inline void
+lagopus_spinlock_finalize(lagopus_spinlock_t *l) {
+  if (likely(l != NULL)) {
+    (void)pthread_spin_destroy(l);
+  }
+}
+
+
 #endif /* __LAGOPUS_LOCK_H__ */

@@ -52,7 +52,7 @@ test_set_field_ARP_OP(void) {
 
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
 
   OS_M_APPEND(m, 64);
   OS_MTOD(m, uint8_t *)[12] = 0x08;
@@ -89,7 +89,7 @@ test_set_field_ARP_SPA(void) {
 
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
 
   OS_M_APPEND(m, 64);
   OS_MTOD(m, uint8_t *)[12] = 0x08;
@@ -133,7 +133,7 @@ test_set_field_ARP_TPA(void) {
 
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
 
   OS_M_APPEND(m, 64);
   OS_MTOD(m, uint8_t *)[12] = 0x08;
@@ -177,7 +177,7 @@ test_set_field_ARP_SHA(void) {
 
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
 
   OS_M_APPEND(m, 64);
   OS_MTOD(m, uint8_t *)[12] = 0x08;
@@ -227,7 +227,7 @@ test_set_field_ARP_THA(void) {
 
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
 
   OS_M_APPEND(m, 64);
   OS_MTOD(m, uint8_t *)[12] = 0x08;

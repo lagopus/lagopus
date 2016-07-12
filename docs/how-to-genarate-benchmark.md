@@ -1,6 +1,6 @@
 <!-- -*- mode: markdown -*- -->
 
-How to genarate benchmark test
+How to generate benchmark test
 ==============================
 
 Introduction
@@ -10,15 +10,17 @@ You must write a function of the benchmark target in advance.
 
 Features of tools
 ----------------------
-1. Genarate benchmark tests from parameter file(YAML).
-2. Measure the throughput(min, max, avg), nsec/packet(min, max, avg).
-3. Specify the number of measuring times, and batch size.
-4. Specify the packet capture file.
+1. Generate benchmark tests from parameter file(YAML).
+2. Measure throughput(min, max, avg), nsec/packet(min, max, avg).
+3. Measure cache references/misses, CPU cycles and page faults,
+   if `num_measurements: 1`(`-n 1`).
+4. Specify the number of measuring times, and batch size.
+5. Specify the packet capture file.
 
 TODO
 ----
-1. Measure the cache miss, etc. (useing PAPI)
-2. Read the datastore DSLs. (State lagopus is started)
+1. Measure the cache miss, etc. (using PAPI)
+2. Incorporate pipelines.
 
 Samples
 -------
@@ -33,12 +35,13 @@ There is a sample in the following directory.
 * That contains the function of benchmark target in the following files
   `<LAGOPUS>/tools/benchmark/sample/dump_pkts/dump_pkts.[ch]`
 
-How to genarate benchmark
+How to generate benchmark
 ---------------------------
 ## Recommended
 * Ubuntu 16.04
 
 ## Related packages
+ * PAPI 5.4.3.0
  * Python 2.7.11 or Python 3.5.1
  * pip
  * PyYAML 3.11
@@ -49,7 +52,7 @@ How to genarate benchmark
 You execute the following command:
 
 ```
- % sudo apt-get install python python-dev python-pip
+ % sudo apt-get install python python-dev python-pip libpapi-dev
  % sudo pip install --requirement tools/benchmark/requirements.pip
 ```
 
@@ -62,7 +65,13 @@ And you execute make.
  % make
 ```
 
-## 3. Create a benchmark parameter file (YAML)
+## 3. Setup for DPDK
+cf.) QUICKSTART.md
+
+* The kernel modules.
+* Hugepages.
+
+## 4. Create a benchmark parameter file (YAML)
 You write the following fields in the file in YAML format.
 
 ### fields
@@ -71,13 +80,16 @@ You write the following fields in the file in YAML format.
 | benchmarks || list | O ||
 || file | string | O | This field describes the name of benchmark file. |
 || include\_files | list of string | O | This field describes the name of include files (\*.h, \*.c). |
-|| lib\_files | list of string | X | This field describes the name of lib files(\*.o, \*.so, etc.). |
+|| lib\_files | list of string | X | This field describes the name of lib files(\*.o, etc.). |
 || external\_libs | string | X | This field describes the external libs(e.g. "-lFOO -lBAR"). |
-|| setup\_func | string | X | This field describes the name of setup function [void func(void)]. |
-|| teardown\_func | string | X | This field describes the name of teardown function [void func(void)]. |
+|| setup\_func | string | X | This field describes the name of setup function [lagopus\_result\_t setup(void *pkts, size\_t pkts\_size)]. |
+|| teardown\_func | string | X | This field describes the name of teardown function [lagopus\_result\_t teardown(void *pkts, size\_t pkts\_size)]. |
 || target\_func | string | X | This field describes the name of benchmark target function [lagopus\_result\_t func(void *pkts, size\_t pkts\_size)]. |
 || pcap | string | O | This field describes the name of pcap file (\*.pcap, etc.). |
-|| times | int | X | This field describes the number of executions of target\_func (default: 1).|
+|| dsl | string | X | This field describes the name of lagopus DSL file. The lagopus module thread is started when you specify this field. |
+|| dpdk_opts | string | X | This field describes DPDK opts (default: -cf -n4). |
+|| dp_opts | string | X | This field describes Dataplne opts (default: -p3). |
+|| num_measurements | int | X | This field describes the number of executions of target\_func (default: 1). 1 is outputs cache references/misses, CPU cycles and page faults.|
 || batch_size | int | O | This field describes the size of batches(default: 0) . 0 is read all packets in pcap file. |
 
 e.g.)
@@ -101,7 +113,7 @@ benchmarks:
     pcap: icmp.pcap
 ```
 
-## 4. Genarate benchmark files
+## 5. Generate benchmark files
 This tool (`benchmark_generator.py`) generates Makefile,
 Makefile.in, *.c, *.h files from `<BENCHMARK_PARAMETER_FILE>`.
 
@@ -121,7 +133,7 @@ sample:
    benchmark_sample1.c  benchmark_sample2.c  icmp.pcap
 ```
 
-## 5. Compile & Run benchmark
+## 6. Compile & Run benchmark
 You execute the following command:
 
 * Compile:
@@ -132,23 +144,23 @@ You execute the following command:
 
 * Run benchmark:
 ```
- % make benchmark
+ % sudo make benchmark
    or
- % ./<BENCHMARK_EXECUTABLE_FILE> [-t <MEASURING_TIMES>] [-b <BATCH_SIZE>] <PCAP_FILE>
+ % sudo ./<BENCHMARK_EXECUTABLE_FILE> [-n <NUM_MEASUREMENTS>] [-b <BATCH_SIZE>] <PCAP_FILE>
    positional arguments:
-     PCAP_FILE           Packet capture file.
+     PCAP_FILE               Packet capture file.
 
    optional arguments:
-     -t MEASURING_TIMES  Number of executions of benchmark target func(default: 1).
-     -b BATCH_SIZE       Size of batches(default: 0).
-                         0 is read all packets in pcap file.
+     -n NUM_MEASUREMENTS     Number of executions of benchmark target func(default: 1).
+     -b BATCH_SIZE           Size of batches(default: 0).
+                             0 is read all packets in pcap file.
 ```
 
 e.g.)
 sample:
 
 ```
- % make benchmark
+ % sudo make benchmark
    or
- % ./benchmark_sample1 icmp.pcap
+ % sudo ./benchmark_sample1 icmp.pcap
 ```

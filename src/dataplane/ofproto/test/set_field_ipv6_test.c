@@ -54,7 +54,7 @@ test_set_field_IPV6_IP_DSCP(void) {
 
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
 
   OS_M_APPEND(m, 64);
   OS_MTOD(m, uint8_t *)[12] = 0x86;
@@ -88,7 +88,7 @@ test_set_field_IPV6_IP_ECN(void) {
 
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
 
   OS_M_APPEND(m, 64);
   OS_MTOD(m, uint8_t *)[12] = 0x86;
@@ -122,7 +122,7 @@ test_set_field_IPV6_IP_PROTO(void) {
 
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
 
   OS_M_APPEND(m, 64);
   OS_MTOD(m, uint8_t *)[12] = 0x86;
@@ -164,7 +164,7 @@ test_set_field_IPV6_SRC(void) {
 
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
 
   OS_M_APPEND(m, 64);
   OS_MTOD(m, uint8_t *)[12] = 0x86;
@@ -227,7 +227,7 @@ test_set_field_IPV6_DST(void) {
 
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
 
   OS_M_APPEND(m, 64);
   OS_MTOD(m, uint8_t *)[12] = 0x86;
@@ -291,7 +291,7 @@ test_set_field_IPV6_FLABEL(void) {
 
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
 
   OS_M_APPEND(m, 64);
   OS_MTOD(m, uint8_t *)[12] = 0x86;
@@ -330,7 +330,7 @@ test_set_field_IPV6_TCP_SRC(void) {
 
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
 
   OS_M_PKTLEN(m) = 128;
   OS_MTOD(m, uint8_t *)[12] = 0x86;
@@ -377,7 +377,7 @@ test_set_field_IPV6_TCP_DST(void) {
 
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
 
   OS_M_PKTLEN(m) = 128;
   OS_MTOD(m, uint8_t *)[12] = 0x86;
@@ -424,7 +424,7 @@ test_set_field_IPV6_UDP_SRC(void) {
 
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
 
   OS_M_PKTLEN(m) = 128;
   OS_MTOD(m, uint8_t *)[12] = 0x86;
@@ -471,7 +471,7 @@ test_set_field_IPV6_UDP_DST(void) {
 
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
 
   OS_M_PKTLEN(m) = 128;
   OS_MTOD(m, uint8_t *)[12] = 0x86;
@@ -518,7 +518,7 @@ test_set_field_IPV6_SCTP_SRC(void) {
 
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
 
   OS_M_PKTLEN(m) = 128;
   OS_MTOD(m, uint8_t *)[12] = 0x86;
@@ -565,7 +565,7 @@ test_set_field_IPV6_SCTP_DST(void) {
 
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
 
   OS_M_PKTLEN(m) = 128;
   OS_MTOD(m, uint8_t *)[12] = 0x86;
@@ -612,7 +612,7 @@ test_set_field_ICMPV6_TYPE(void) {
 
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
 
   OS_M_APPEND(m, 64);
   OS_MTOD(m, uint8_t *)[12] = 0x86;
@@ -654,7 +654,7 @@ test_set_field_ICMPV6_CODE(void) {
 
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
 
   OS_M_APPEND(m, 64);
   OS_MTOD(m, uint8_t *)[12] = 0x86;

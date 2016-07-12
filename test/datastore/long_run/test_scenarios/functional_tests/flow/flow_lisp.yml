@@ -37,8 +37,8 @@ testcases:
           - cmd_type: ds
             cmd: >-
                flow bridge01 add
-               lisp_flags=1/0x2
-               lisp_nonce=3/0x04
+               lisp_flags=1/0x1
+               lisp_nonce=1/0x01
                lisp_id=5
             result: '{"ret":"OK"}'
           # dump flow
@@ -52,8 +52,8 @@ testcases:
               "idle_timeout":0,
               "hard_timeout":0,
               "cookie":0,
-              "lisp_flags":"1\/0x02",
-              "lisp_nonce":"3\/0x000004",
+              "lisp_flags":"1\/0x01",
+              "lisp_nonce":"1\/0x000001",
               "lisp_id":5,
               "actions":[]}]}]}]}
   - testcase: lisp (set_field)

@@ -67,7 +67,7 @@ test_set_field_IN_PORT(void) {
 
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
 
   bridge = dp_bridge_lookup("br0");
   TEST_ASSERT_NOT_NULL(bridge);
@@ -101,7 +101,7 @@ test_set_field_METADATA(void) {
 
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
 
   pkt->oob_data.metadata = 0;
   lagopus_packet_init(pkt, m, &port);

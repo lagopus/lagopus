@@ -192,29 +192,6 @@ static struct rte_eth_conf port_conf = {
   },
 };
 
-#if !defined(RTE_VERSION_NUM) || RTE_VERSION < RTE_VERSION_NUM(1, 8, 0, 0)
-static const struct rte_eth_rxconf rx_conf = {
-  .rx_thresh = {
-    .pthresh = APP_DEFAULT_NIC_RX_PTHRESH,
-    .hthresh = APP_DEFAULT_NIC_RX_HTHRESH,
-    .wthresh = APP_DEFAULT_NIC_RX_WTHRESH,
-  },
-  .rx_free_thresh = APP_DEFAULT_NIC_RX_FREE_THRESH,
-  .rx_drop_en = APP_DEFAULT_NIC_RX_DROP_EN,
-};
-
-static struct rte_eth_txconf tx_conf = {
-  .tx_thresh = {
-    .pthresh = APP_DEFAULT_NIC_TX_PTHRESH,
-    .hthresh = APP_DEFAULT_NIC_TX_HTHRESH,
-    .wthresh = APP_DEFAULT_NIC_TX_WTHRESH,
-  },
-  .tx_free_thresh = APP_DEFAULT_NIC_TX_FREE_THRESH,
-  .tx_rs_thresh = APP_DEFAULT_NIC_TX_RS_THRESH,
-  .txq_flags = ETH_TXQ_FLAGS_NOMULTSEGS & ETH_TXQ_FLAGS_NOOFFLOADS,
-};
-#endif /* !RTE_VESRION_NUM */
-
 /* Per-port statistics struct */
 struct lagopus_port_statistics {
   uint64_t tx;
@@ -237,11 +214,6 @@ dpdk_interface_unset_index(struct interface *ifp) {
   ifp_table[ifp->info.eth_dpdk_phy.port_number] = NULL;
 }
 
-struct interface *
-dpdk_interface_lookup(uint8_t portid) {
-  return ifp_table[portid];
-}
-
 static inline int
 dpdk_interface_queue_id_to_index(struct interface *ifp, uint32_t queue_id) {
   int i;
@@ -252,6 +224,22 @@ dpdk_interface_queue_id_to_index(struct interface *ifp, uint32_t queue_id) {
     }
   }
   return 0;
+}
+
+static inline int
+dpdk_interface_device_name_to_index(char *name) {
+  int i;
+
+  for (i = 0; i < RTE_MAX_ETHPORTS; i++) {
+    if ((ifp_table[i] != NULL) &&
+        (strlen(ifp_table[i]->info.eth_dpdk_phy.device) > 0) &&
+        (strncmp(name,
+                 ifp_table[i]->info.eth_dpdk_phy.device,
+                 strlen(name)) == 0)) {
+      return i;
+    }
+  }
+  return -1;
 }
 
 /**
@@ -268,7 +256,7 @@ app_lcore_io_rx_buffer_to_send (
   int ret;
 
   pos = lp->rx.mbuf_out[worker].n_mbufs;
-  lp->rx.mbuf_out[worker].array[pos ++] = mbuf;
+  lp->rx.mbuf_out[worker].array[pos++] = mbuf;
   if (likely(pos < bsz)) {
     lp->rx.mbuf_out[worker].n_mbufs = pos;
     lp->rx.mbuf_out_flush[worker] = 1;
@@ -289,164 +277,54 @@ app_lcore_io_rx_buffer_to_send (
   }
 
   lp->rx.mbuf_out[worker].n_mbufs = 0;
-
-#if APP_STATS
-  lp->rx.rings_iters[worker] += bsz;
-  lp->rx.rings_count[worker] += ret;
-  if (unlikely(lp->rx.rings_iters[worker] == APP_STATS)) {
-    unsigned lcore = rte_lcore_id();
-
-    printf("\tI/O RX %u out (worker %u): enq success rate = %.2f\n",
-           lcore,
-           (unsigned)worker,
-           ((double) lp->rx.rings_count[worker]) / ((double)
-               lp->rx.rings_iters[worker]));
-    lp->rx.rings_iters[worker] = 0;
-    lp->rx.rings_count[worker] = 0;
-  }
-#endif
 }
 
-/**
- * Receive packet from ethernet driver and queueing into worker queue.
- * This function is called from I/O (Input) thread.
- */
 static inline void
-app_lcore_io_rx(
-  struct app_lcore_params_io *lp,
-  uint32_t n_workers,
-  uint32_t bsz_rd,
-  uint32_t bsz_wr) {
-  struct rte_mbuf *mbuf_1_0, *mbuf_1_1, *mbuf_2_0, *mbuf_2_1;
-  uint32_t i, fifoness;
+app_lcore_io_rx(struct app_lcore_params_io *lpio,
+                uint32_t n_workers,
+                uint32_t bsz_rd,
+                uint32_t bsz_wr) {
+  struct app_lcore_params *lp;
+  OS_MBUF **mbufs;
+  uint8_t wkid, portid;
+  uint32_t fifoness;
+  uint32_t i, j;
 
   fifoness = app.fifoness;
-  for (i = 0; i < lp->rx.n_nic_queues; i++) {
-    uint8_t portid = lp->rx.nic_queues[i].port;
-    uint8_t queue = lp->rx.nic_queues[i].queue;
-    uint32_t n_mbufs, j;
+  mbufs = lpio->rx.mbuf_in.array;
+  lp = (struct app_lcore_params *)lpio;
+  if (lp->type == e_APP_LCORE_IO_WORKER) {
+    for (i = 0; i < lpio->rx.nifs; i++) {
+      uint32_t n_mbufs;
 
-    if (unlikely(lp->rx.nic_queues[i].enabled != true)) {
-      continue;
-    }
-    n_mbufs = rte_eth_rx_burst(portid,
-                               queue,
-                               lp->rx.mbuf_in.array,
-                               (uint16_t) bsz_rd);
-    if (unlikely(n_mbufs == 0)) {
-      continue;
-    }
-
-#if APP_STATS
-    lp->rx.nic_queues_iters[i] ++;
-    lp->rx.nic_queues_count[i] += n_mbufs;
-    if (unlikely(lp->rx.nic_queues_iters[i] == APP_STATS)) {
-      struct rte_eth_stats stats;
-      unsigned lcore = rte_lcore_id();
-
-      rte_eth_stats_get(portid, &stats);
-
-      printf("I/O RX %u in (NIC port %u): NIC drop ratio = %.2f avg burst size = %.2f\n",
-             lcore,
-             (unsigned) portid,
-             (double) stats.ierrors / (double) (stats.ierrors + stats.ipackets),
-             ((double) lp->rx.nic_queues_count[i]) / ((double)
-                 lp->rx.nic_queues_iters[i]));
-      lp->rx.nic_queues_iters[i] = 0;
-      lp->rx.nic_queues_count[i] = 0;
-    }
-#endif
-
-#if APP_IO_RX_DROP_ALL_PACKETS
-    for (j = 0; j < n_mbufs; j ++) {
-      struct rte_mbuf *pkt = lp->rx.mbuf_in.array[j];
-      rte_pktmbuf_free(pkt);
-    }
-    continue;
-#endif
-
-    mbuf_1_0 = lp->rx.mbuf_in.array[0];
-    mbuf_1_1 = lp->rx.mbuf_in.array[1];
-    mbuf_2_0 = lp->rx.mbuf_in.array[2];
-    mbuf_2_1 = lp->rx.mbuf_in.array[3];
-    APP_IO_RX_PREFETCH0(mbuf_2_0);
-    APP_IO_RX_PREFETCH0(mbuf_2_1);
-
-    for (j = 0; j + 3 < n_mbufs; j += 2) {
-      struct rte_mbuf *mbuf_0_0, *mbuf_0_1;
-      uint32_t worker_0, worker_1;
-
-      mbuf_0_0 = mbuf_1_0;
-      mbuf_0_1 = mbuf_1_1;
-
-      mbuf_1_0 = mbuf_2_0;
-      mbuf_1_1 = mbuf_2_1;
-
-      mbuf_2_0 = lp->rx.mbuf_in.array[j+4];
-      mbuf_2_1 = lp->rx.mbuf_in.array[j+5];
-      APP_IO_RX_PREFETCH0(mbuf_2_0);
-      APP_IO_RX_PREFETCH0(mbuf_2_1);
-
-      switch (fifoness) {
-        case FIFONESS_FLOW:
-#ifdef __SSE4_2__
-          worker_0 = rte_hash_crc(rte_pktmbuf_mtod(mbuf_0_0, void *),
-                                  sizeof(ETHER_HDR) + 2, portid) % n_workers;
-          worker_1 = rte_hash_crc(rte_pktmbuf_mtod(mbuf_0_1, void *),
-                                  sizeof(ETHER_HDR) + 2, portid) % n_workers;
-#else
-          worker_0 = CityHash64WithSeed(rte_pktmbuf_mtod(mbuf_0_0, void *),
-                                        sizeof(ETHER_HDR) + 2, portid) % n_workers;
-          worker_1 = CityHash64WithSeed(rte_pktmbuf_mtod(mbuf_0_1, void *),
-                                        sizeof(ETHER_HDR) + 2, portid) % n_workers;
-#endif /* __SSE4_2__ */
-          break;
-        case FIFONESS_PORT:
-          worker_0 = worker_1 = portid % n_workers;
-          break;
-        case FIFONESS_NONE:
-        default:
-          worker_0 = j % n_workers;
-          worker_1 = (j + 1) % n_workers;
-          break;
+      portid = lpio->rx.ifp[i]->info.eth.port_number;
+      n_mbufs = dpdk_rx_burst(lpio->rx.ifp[i], mbufs, bsz_rd);
+      if (n_mbufs != 0) {
+        dp_bulk_match_and_action(mbufs, n_mbufs, lp->worker.cache);
       }
-      app_lcore_io_rx_buffer_to_send(lp, worker_0, mbuf_0_0, bsz_wr);
-      app_lcore_io_rx_buffer_to_send(lp, worker_1, mbuf_0_1, bsz_wr);
     }
+  } else {
+    for (i = 0; i < lpio->rx.nifs; i++) {
+      uint32_t n_mbufs;
 
-    /*
-     * Handle the last 1, 2 (when n_mbufs is even) or
-     * 3 (when n_mbufs is odd) packets
-     */
-    for ( ; j < n_mbufs; j += 1) {
-      struct rte_mbuf *mbuf;
-      uint32_t worker;
-
-      mbuf = mbuf_1_0;
-      mbuf_1_0 = mbuf_1_1;
-      mbuf_1_1 = mbuf_2_0;
-      mbuf_2_0 = mbuf_2_1;
-      APP_IO_RX_PREFETCH0(mbuf_1_0);
-
-      switch (fifoness) {
-        case FIFONESS_FLOW:
-#ifdef __SSE4_2__
-          worker = rte_hash_crc(rte_pktmbuf_mtod(mbuf, void *),
-                                sizeof(ETHER_HDR) + 2, portid) % n_workers;
-#else
-          worker = CityHash64WithSeed(rte_pktmbuf_mtod(mbuf, void *),
+      portid = lpio->rx.ifp[i]->info.eth.port_number;
+      n_mbufs = dpdk_rx_burst(lpio->rx.ifp[i], mbufs, bsz_rd);
+      for (j = 0; j < n_mbufs; j++) {
+        switch (fifoness) {
+          case FIFONESS_FLOW:
+            wkid = CityHash64WithSeed(OS_MTOD(mbufs[j], void *),
                                       sizeof(ETHER_HDR) + 2, portid) % n_workers;
-#endif /* __SSE4_2__ */
-          break;
-        case FIFONESS_PORT:
-          worker = portid % n_workers;
-          break;
-        case FIFONESS_NONE:
-        default:
-          worker = j % n_workers;
-          break;
+            break;
+          case FIFONESS_PORT:
+            wkid = portid % n_workers;
+            break;
+          case FIFONESS_NONE:
+          default:
+            wkid = j % n_workers;
+            break;
+        }
+        app_lcore_io_rx_buffer_to_send(lpio, wkid, mbufs[j], bsz_wr);
       }
-      app_lcore_io_rx_buffer_to_send(lp, worker, mbuf, bsz_wr);
     }
   }
 }
@@ -514,22 +392,6 @@ app_lcore_io_tx(struct app_lcore_params_io *lp,
 
       n_mbufs += (uint32_t)ret;
 
-#if APP_IO_TX_DROP_ALL_PACKETS
-      {
-        uint32_t j;
-        APP_IO_TX_PREFETCH0(lp->tx.mbuf_out[port].array[0]);
-        APP_IO_TX_PREFETCH0(lp->tx.mbuf_out[port].array[1]);
-
-        for (j = 0; j < n_mbufs; j ++) {
-          if (likely(j < n_mbufs - 2)) {
-            APP_IO_TX_PREFETCH0(lp->tx.mbuf_out[port].array[j + 2]);
-          }
-          rte_pktmbuf_free(lp->tx.mbuf_out[port].array[j]);
-        }
-        lp->tx.mbuf_out[port].n_mbufs = 0;
-        continue;
-      }
-#endif
       if (unlikely(n_mbufs < bsz_wr)) {
         lp->tx.mbuf_out[port].n_mbufs = n_mbufs;
         lp->tx.mbuf_out_flush[port] = 1;
@@ -543,8 +405,7 @@ app_lcore_io_tx(struct app_lcore_params_io *lp,
 
         for (i = 0; i < n_mbufs; i++) {
           m = lp->tx.mbuf_out[port].array[i];
-          pkt = (struct lagopus_packet *)
-                (m->buf_addr + APP_DEFAULT_MBUF_LOCALDATA_OFFSET);
+          pkt = MBUF2PKT(m);
           if (unlikely(pkt->queue_id != 0)) {
             qidx = dpdk_interface_queue_id_to_index(ifp, pkt->queue_id);
             color = rte_meter_trtcm_color_blind_check(&ifp->ifqueue.meters[qidx],
@@ -566,22 +427,6 @@ app_lcore_io_tx(struct app_lcore_params_io *lp,
                                 lp->tx.mbuf_out[port].array,
                                 (uint16_t) n_mbufs);
       DPRINTF("sent %d pkts\n", n_pkts);
-
-#if APP_STATS
-      lp->tx.nic_ports_iters[port] ++;
-      lp->tx.nic_ports_count[port] += n_pkts;
-      if (unlikely(lp->tx.nic_ports_iters[port] == APP_STATS)) {
-        unsigned lcore = rte_lcore_id();
-
-        printf("\t\t\tI/O TX %u out (port %u): avg burst size = %.2f\n",
-               lcore,
-               (unsigned) port,
-               ((double) lp->tx.nic_ports_count[port]) / ((double)
-                   lp->tx.nic_ports_iters[port]));
-        lp->tx.nic_ports_iters[port] = 0;
-        lp->tx.nic_ports_count[port] = 0;
-      }
-#endif
 
       if (unlikely(n_pkts < n_mbufs)) {
         uint32_t k;
@@ -734,7 +579,7 @@ app_lcore_main_loop_io(void *arg) {
 }
 
 void
-app_init_mbuf_pools(void) {
+dpdk_init_mbuf_pools(void) {
   unsigned socket, lcore;
 
   /* Init the buffer pools */
@@ -746,18 +591,16 @@ app_init_mbuf_pools(void) {
 
     snprintf(name, sizeof(name), "mbuf_pool_%u", socket);
     lagopus_dprint("Creating the mbuf pool for socket %u ...\n", socket);
-    app.pools[socket] = rte_mempool_create(
+    app.pools[socket] = rte_pktmbuf_pool_create(
                           name,
                           APP_DEFAULT_MEMPOOL_BUFFERS,
-                          APP_DEFAULT_MBUF_SIZE,
                           APP_DEFAULT_MEMPOOL_CACHE_SIZE,
-                          sizeof(struct rte_pktmbuf_pool_private),
-                          rte_pktmbuf_pool_init, NULL,
-                          rte_pktmbuf_init, NULL,
-                          (int)socket,
-                          0);
+                          DP_MBUF_ROUNDUP(sizeof(struct lagopus_packet),
+                                          RTE_MBUF_PRIV_ALIGN),
+                          RTE_PKTMBUF_HEADROOM + MAX_PACKET_SZ,
+                          (int)socket);
     if (app.pools[socket] == NULL) {
-      rte_panic("Cannot create mbuf pool on socket %u\n", socket);
+      lagopus_exit_fatal("Cannot create mbuf pool on socket %u\n", socket);
     }
   }
 
@@ -767,28 +610,25 @@ app_init_mbuf_pools(void) {
     }
 
     socket = rte_lcore_to_socket_id(lcore);
+    DPRINTF("lcore %d: socket %d, pool %p\n",
+            lcore, socket, app.pools[socket]);
     app.lcore_params[lcore].pool = app.pools[socket];
   }
 }
 
-void
-app_init_rings_rx(void) {
+static void
+dp_dpdk_rx_ring_create(uint8_t portid) {
   unsigned lcore;
 
-  /* Initialize the rings for the RX side */
-  for (lcore = 0; lcore < APP_MAX_LCORES; lcore ++) {
+  if (app_get_lcore_for_nic_rx(portid, 0, &lcore) < 0) {
+    lagopus_exit_fatal("Algorithmic error (no I/O core to handle RX of port %u)\n",
+                       portid);
+  } else {
     struct app_lcore_params_io *lp_io = &app.lcore_params[lcore].io;
     unsigned socket_io, lcore_worker;
 
-    if ((app.lcore_params[lcore].type != e_APP_LCORE_IO &&
-         app.lcore_params[lcore].type != e_APP_LCORE_IO_WORKER) ||
-        (lp_io->rx.n_nic_queues == 0)) {
-      continue;
-    }
-
     socket_io = rte_lcore_to_socket_id(lcore);
-
-    for (lcore_worker = 0; lcore_worker < APP_MAX_LCORES; lcore_worker ++) {
+    for (lcore_worker = 0; lcore_worker < APP_MAX_LCORES; lcore_worker++) {
       char name[32];
       struct app_lcore_params_worker *lp_worker;
       struct rte_ring *ring = NULL;
@@ -810,139 +650,76 @@ app_init_rings_rx(void) {
                socket_io,
                lcore,
                lcore_worker);
+      if (rte_ring_lookup(name) != NULL) {
+        /* already created. */
+        continue;
+      }
       ring = rte_ring_create(
                name,
                app.ring_rx_size,
                (int)socket_io,
                RING_F_SP_ENQ | RING_F_SC_DEQ);
       if (ring == NULL) {
-        rte_panic("Cannot create ring to connect I/O "
-                  "core %u with worker core %u\n",
-                  lcore,
-                  lcore_worker);
+        lagopus_exit_fatal("Failed to create RX ring for port %d\n", portid);
       }
 
       lp_io->rx.rings[lp_io->rx.n_rings] = ring;
-      lp_io->rx.n_rings ++;
+      lp_io->rx.n_rings++;
 
       lp_worker->rings_in[lp_worker->n_rings_in] = ring;
-      lp_worker->n_rings_in ++;
-    }
-  }
-
-  for (lcore = 0; lcore < APP_MAX_LCORES; lcore ++) {
-    struct app_lcore_params_io *lp_io = &app.lcore_params[lcore].io;
-
-    if ((app.lcore_params[lcore].type != e_APP_LCORE_IO &&
-         app.lcore_params[lcore].type != e_APP_LCORE_IO_WORKER) ||
-        (lp_io->rx.n_nic_queues == 0)) {
-      continue;
-    }
-
-    if (lp_io->rx.n_rings != app_get_lcores_worker()) {
-      rte_panic("Algorithmic error (I/O RX rings)\n");
-    }
-  }
-
-  for (lcore = 0; lcore < APP_MAX_LCORES; lcore ++) {
-    struct app_lcore_params_worker *lp_worker;
-
-    lp_worker = &app.lcore_params[lcore].worker;
-    if (app.lcore_params[lcore].type != e_APP_LCORE_WORKER &&
-        app.lcore_params[lcore].type != e_APP_LCORE_IO_WORKER) {
-      continue;
-    }
-
-    if (lp_worker->n_rings_in != app_get_lcores_io_rx()) {
-      rte_panic("Algorithmic error (worker input rings)\n");
+      lp_worker->n_rings_in++;
     }
   }
 }
 
-void
-app_init_rings_tx(void) {
+static void
+dp_dpdk_tx_ring_create(uint8_t portid) {
+  char name[32];
+  struct app_lcore_params_io *lp_io;
+  struct app_lcore_params_worker *lp_worker;
+  struct rte_ring *ring;
+  uint32_t socket_io, lcore_io;
   unsigned lcore;
 
-  /* Initialize the rings for the TX side */
+  if (app_get_lcore_for_nic_tx(portid, &lcore_io) < 0) {
+    lagopus_exit_fatal("Algorithmic error (no I/O core to handle TX of port %u)\n",
+                       portid);
+  }
+  lp_io = &app.lcore_params[lcore_io].io;
+  socket_io = rte_lcore_to_socket_id(lcore_io);
   for (lcore = 0; lcore < APP_MAX_LCORES; lcore ++) {
-    struct app_lcore_params_worker *lp_worker = &app.lcore_params[lcore].worker;
-    unsigned port;
-
     if (app.lcore_params[lcore].type != e_APP_LCORE_WORKER &&
         app.lcore_params[lcore].type != e_APP_LCORE_IO_WORKER) {
       continue;
     }
-
-    for (port = 0; port < APP_MAX_NIC_PORTS; port ++) {
-      char name[32];
-      struct app_lcore_params_io *lp_io = NULL;
-      struct rte_ring *ring;
-      uint32_t socket_io, lcore_io;
-
-      if (app.nic_tx_port_mask[port] == 0) {
-        continue;
+    lp_worker = &app.lcore_params[lcore].worker;
+    lagopus_dprint("Creating ring to connect "
+                   "worker lcore %u with "
+                   "TX port %u (through I/O lcore %u)"
+                   " (socket %u) ...\n",
+                   lcore,
+                   portid,
+                   (unsigned)lcore_io,
+                   (unsigned)socket_io);
+    snprintf(name, sizeof(name),
+             "app_ring_tx_s%u_w%u_p%u",
+             socket_io, lcore, portid);
+      if (rte_ring_lookup(name) != NULL) {
+        /* already created. */
+        return;
       }
-
-      if (app_get_lcore_for_nic_tx((uint8_t) port, &lcore_io) < 0) {
-        rte_panic("Algorithmic error (no I/O core to handle TX of port %u)\n",
-                  port);
-      }
-
-      lp_io = &app.lcore_params[lcore_io].io;
-      socket_io = rte_lcore_to_socket_id(lcore_io);
-
-      lagopus_dprint("Creating ring to connect "
-                     "worker lcore %u with "
-                     "TX port %u (through I/O lcore %u)"
-                     " (socket %u) ...\n",
-                     lcore,
-                     port,
-                     (unsigned)lcore_io,
-                     (unsigned)socket_io);
-      snprintf(name, sizeof(name),
-               "app_ring_tx_s%u_w%u_p%u",
-               socket_io, lcore, port);
-      ring = rte_ring_create(
-               name,
-               app.ring_tx_size,
-               (int)socket_io,
-               RING_F_SP_ENQ | RING_F_SC_DEQ);
-      if (ring == NULL) {
-        rte_panic("Cannot create ring to connect"
-                  " worker core %u with TX port %u\n",
-                  lcore,
-                  port);
-      }
-
-      lp_worker->rings_out[port] = ring;
-      lp_io->tx.rings[port][lp_worker->worker_id] = ring;
+    ring = rte_ring_create(name,
+                           app.ring_tx_size,
+                           (int)socket_io,
+                           RING_F_SP_ENQ | RING_F_SC_DEQ);
+    if (ring == NULL) {
+      lagopus_exit_fatal("Failed to create TX ring for port %d\n", portid);
     }
-  }
-
-  for (lcore = 0; lcore < APP_MAX_LCORES; lcore ++) {
-    struct app_lcore_params_io *lp_io = &app.lcore_params[lcore].io;
-    unsigned i;
-
-    if ((app.lcore_params[lcore].type != e_APP_LCORE_IO &&
-         app.lcore_params[lcore].type != e_APP_LCORE_IO_WORKER) ||
-        (lp_io->tx.n_nic_ports == 0)) {
-      continue;
-    }
-
-    for (i = 0; i < lp_io->tx.n_nic_ports; i ++) {
-      unsigned port, j;
-
-      port = lp_io->tx.nic_ports[i];
-      for (j = 0; j < app_get_lcores_worker(); j ++) {
-        if (lp_io->tx.rings[port][j] == NULL) {
-          rte_panic("Algorithmic error (I/O TX rings)\n");
-        }
-      }
-    }
+    lp_worker->rings_out[portid] = ring;
+    lp_io->tx.rings[portid][lp_worker->worker_id] = ring;
   }
 }
 
-#if defined(RTE_VERSION_NUM) && RTE_VERSION >= RTE_VERSION_NUM(2, 0, 0, 4)
 static inline uint8_t
 dpdk_get_detachable_portid_by_name(const char *name) {
   uint8_t portid;
@@ -952,7 +729,7 @@ dpdk_get_detachable_portid_by_name(const char *name) {
 
   for (portid = 0; portid < RTE_MAX_ETHPORTS; portid++) {
     dev = &rte_eth_devices[portid];
-    if ((dev->attached) &&
+    if ((dev->attached) && (dev->pci_dev) && (dev->pci_dev->driver) &&
         (dev->pci_dev->driver->drv_flags & RTE_PCI_DRV_DETACHABLE)) {
       switch (dev->dev_type) {
         case RTE_ETH_DEV_PCI:
@@ -978,7 +755,6 @@ dpdk_get_detachable_portid_by_name(const char *name) {
 out:
   return portid;
 }
-#endif
 
 static void
 dpdk_intr_event_callback(uint8_t portid, enum rte_eth_event_type type,
@@ -1021,26 +797,35 @@ dpdk_configure_interface(struct interface *ifp) {
   if (is_rawsocket_only_mode() == true) {
     return LAGOPUS_RESULT_INVALID_ARGS;
   }
-#if defined(RTE_VERSION_NUM) && RTE_VERSION >= RTE_VERSION_NUM(2, 0, 0, 4)
   if (strlen(ifp->info.eth_dpdk_phy.device) > 0) {
     uint8_t actual_portid;
     const char *name;
 
+    /* make sure we don't have a interface that has same device option. */
+    if (dpdk_interface_device_name_to_index(ifp->info.eth_dpdk_phy.device) >= 0) {
+      return LAGOPUS_RESULT_ALREADY_EXISTS;
+    }
+
     name = dpdk_remove_namespace(ifp->info.eth_dpdk_phy.device);
-    if (rte_eth_dev_attach(name, &actual_portid)) {
-      return LAGOPUS_RESULT_NOT_FOUND;
+    actual_portid = dpdk_get_detachable_portid_by_name(name);
+    if (actual_portid == RTE_MAX_ETHPORTS) {
+      if (rte_eth_dev_attach(name, &actual_portid)) {
+        return LAGOPUS_RESULT_NOT_FOUND;
+      }
     }
     /* whenever 'device' is specified, overwrite portid by actual portid. */
     ifp->info.eth.port_number = (uint32_t)actual_portid;
   }
-#endif
   portid = (uint8_t)ifp->info.eth.port_number;
 
   n_rx_queues = app_get_nic_rx_queues_per_port(portid);
   n_tx_queues = app.nic_tx_port_mask[portid];
 
-  if ((n_rx_queues == 0) && (n_tx_queues == 0)) {
-    return LAGOPUS_RESULT_INVALID_ARGS;
+  if (n_rx_queues == 0) {
+    n_rx_queues = 1;
+  }
+  if (n_tx_queues == 0) {
+    n_tx_queues = 1;
   }
 
   if (ifp->info.eth_dpdk_phy.mtu < 64 ||
@@ -1076,16 +861,16 @@ dpdk_configure_interface(struct interface *ifp) {
     }
   }
   if (ret < 0) {
-    rte_panic("Cannot init NIC port %u (%s)\n",
-              (unsigned) portid, strerror(-ret));
+    lagopus_exit_fatal("Cannot init NIC port %u (%s)\n",
+                       (unsigned) portid, strerror(-ret));
   }
   ret = rte_eth_dev_set_mtu(portid, ifp->info.eth_dpdk_phy.mtu);
   if (ret < 0) {
     if (ret != -ENOTSUP) {
-      rte_panic("Cannot set MTU(%d) for port %d (%d)\n",
-                ifp->info.eth_dpdk_phy.mtu,
-                portid,
-                ret);
+      lagopus_exit_fatal("Cannot set MTU(%d) for port %d (%d)\n",
+                         ifp->info.eth_dpdk_phy.mtu,
+                         portid,
+                         ret);
     } else {
       lagopus_msg_notice("Cannot set MTU(%d) for port %d, not supporetd\n",
                          ifp->info.eth_dpdk_phy.mtu,
@@ -1094,6 +879,54 @@ dpdk_configure_interface(struct interface *ifp) {
   }
   rte_eth_promiscuous_enable(portid);
 
+  if (!dp_dpdk_is_portid_specified() &&
+      app.nic_rx_queue_mask[portid][0] == NIC_RX_QUEUE_UNCONFIGURED) {
+    struct app_lcore_params *lp;
+    uint8_t i;
+
+    lp = NULL;
+    for (i = 0; i < dp_dpdk_lcore_count(); i++) {
+      struct app_lcore_params *tlp = dp_dpdk_get_lcore_param(i);
+      if (tlp->type != e_APP_LCORE_IO &&
+          tlp->type != e_APP_LCORE_IO_WORKER) {
+        DPRINTF("lcore %d: tlp type %d, skip\n", i, tlp->type);
+        continue;
+      }
+      if (lp == NULL ||
+          lp->io.rx.n_nic_queues > tlp->io.rx.n_nic_queues) {
+        lp = tlp;
+      }
+    }
+    if (lp == NULL) {
+      lagopus_exit_fatal("Unassigned I/O core\n");
+    }
+    lp->io.rx.nic_queues[lp->io.rx.n_nic_queues].port = portid;
+    lp->io.rx.nic_queues[lp->io.rx.n_nic_queues].queue = 0;
+    lp->io.rx.n_nic_queues++;
+    app.nic_rx_queue_mask[portid][0] = NIC_RX_QUEUE_ENABLED;
+    lp->io.tx.nic_ports[lp->io.tx.n_nic_ports] = portid;
+    lp->io.tx.n_nic_ports++;
+    lp->io.rx.ifp[lp->io.rx.nifs++] = ifp;
+    app.nic_tx_port_mask[portid] = 1;
+  } else {
+    struct app_lcore_params *lp;
+    unsigned lcore;
+    int i;
+
+    if (app_get_lcore_for_nic_rx(portid, 0, &lcore) < 0) {
+      lagopus_exit_fatal("lcore not found for port %d queue %d\n",
+                         portid, 0);
+    }
+    lp = &app.lcore_params[lcore];
+    for (i = 0; i < lp->io.rx.nifs; i++) {
+      if (lp->io.rx.ifp[i]->info.eth.port_number == portid) {
+        break;
+      }
+    }
+    if (i == lp->io.rx.nifs) {
+      lp->io.rx.ifp[lp->io.rx.nifs++] = ifp;
+    }
+  }
   /* Init RX queues */
   for (queue = 0; queue < APP_MAX_RX_QUEUES_PER_NIC_PORT; queue ++) {
     struct app_lcore_params_io *lp;
@@ -1101,30 +934,30 @@ dpdk_configure_interface(struct interface *ifp) {
 
     if (app.nic_rx_queue_mask[portid][queue] == NIC_RX_QUEUE_UNCONFIGURED) {
       continue;
+      }
+    if (app_get_lcore_for_nic_rx(portid, queue, &lcore) < 0) {
+      lagopus_exit_fatal("lcore not found for port %d queue %d\n",
+                         portid, queue);
     }
-    app_get_lcore_for_nic_rx(portid, queue, &lcore);
     lp = &app.lcore_params[lcore].io;
     socket = rte_lcore_to_socket_id(lcore);
     pool = app.lcore_params[lcore].pool;
+    DPRINTF("lcore %d: socket %d, pool %p\n", lcore, socket, pool);
 
     lagopus_msg_info("Initializing NIC port %u RX queue %u ...\n",
-                     (unsigned) portid,
-                     (unsigned) queue);
+                     (unsigned)portid,
+                     (unsigned)queue);
     ret = rte_eth_rx_queue_setup(portid,
                                  queue,
-                                 (uint16_t) app.nic_rx_ring_size,
+                                 (uint16_t)app.nic_rx_ring_size,
                                  socket,
-#if defined(RTE_VERSION_NUM) && RTE_VERSION >= RTE_VERSION_NUM(1, 8, 0, 0)
                                  &ifp->devinfo.default_rxconf,
-#else
-                                 &rx_conf,
-#endif /* RTE_VERSION_NUM */
                                  pool);
     if (ret < 0) {
-      rte_panic("Cannot init RX queue %u for port %u (%d)\n",
-                (unsigned) queue,
-                (unsigned) portid,
-                ret);
+      lagopus_exit_fatal("Cannot init RX queue %u for port %u (%d)\n",
+                         (unsigned)queue,
+                         (unsigned)portid,
+                         ret);
     }
     for (i = 0; i < lp->rx.n_nic_queues; i++) {
       if (lp->rx.nic_queues[i].port != portid ||
@@ -1135,6 +968,8 @@ dpdk_configure_interface(struct interface *ifp) {
       break;
     }
   }
+  dp_dpdk_rx_ring_create(portid);
+  dp_dpdk_tx_ring_create(portid);
 
   /* Init TX queues */
   if (app.nic_tx_port_mask[portid] == 1) {
@@ -1146,16 +981,12 @@ dpdk_configure_interface(struct interface *ifp) {
                                  0,
                                  (uint16_t) app.nic_tx_ring_size,
                                  socket,
-#if defined(RTE_VERSION_NUM) && RTE_VERSION >= RTE_VERSION_NUM(1, 8, 0, 0)
                                  &ifp->devinfo.default_txconf
-#else
-                                 &tx_conf
-#endif /* RTE_VERSION_NUM */
-                                );
+                                 );
     if (ret < 0) {
-      rte_panic("Cannot init TX queue 0 for port %d (%d)\n",
-                portid,
-                ret);
+      lagopus_exit_fatal("Cannot init TX queue 0 for port %d (%d)\n",
+                         portid,
+                         ret);
     }
   }
 
@@ -1169,7 +1000,6 @@ lagopus_result_t
 dpdk_unconfigure_interface(struct interface *ifp) {
   uint8_t portid, queue;
 
-#if defined(RTE_VERSION_NUM) && RTE_VERSION >= RTE_VERSION_NUM(2, 0, 0, 4)
   if (strlen(ifp->info.eth_dpdk_phy.device) > 0) {
     uint8_t actual_portid;
     const char *name;
@@ -1182,7 +1012,6 @@ dpdk_unconfigure_interface(struct interface *ifp) {
     /* whenever 'device' is specified, overwrite portid by actual portid. */
     ifp->info.eth.port_number = (uint32_t)actual_portid;
   }
-#endif
   portid = (uint8_t)ifp->info.eth.port_number;
 
   dpdk_stop_interface(portid);
@@ -1205,31 +1034,14 @@ dpdk_unconfigure_interface(struct interface *ifp) {
       break;
     }
   }
-#if defined(RTE_VERSION_NUM) && RTE_VERSION >= RTE_VERSION_NUM(2, 0, 0, 4)
   if (strlen(ifp->info.eth_dpdk_phy.device) > 0) {
     char detached_devname[RTE_ETH_NAME_MAX_LEN];
 
     rte_eth_dev_close(portid);
     rte_eth_dev_detach(portid, detached_devname);
   }
-#endif
   dpdk_interface_unset_index(ifp);
   return LAGOPUS_RESULT_OK;
-}
-
-void
-app_init_nics(void) {
-#ifndef RTE_VERSION_NUM
-  /* Init driver */
-  printf("Initializing the PMD driver ...\n");
-  if (rte_pmd_init_all() < 0) {
-    rte_panic("Cannot init PMD\n");
-  }
-#elif RTE_VERSION < RTE_VERSION_NUM(1, 8, 0, 0)
-  if (rte_eal_pci_probe() < 0) {
-    rte_panic("Cannot probe PCI\n");
-  }
-#endif /* RTE_VERSION_NUM */
 }
 
 static struct port_stats *
@@ -1253,7 +1065,7 @@ dpdk_port_stats(struct port *port) {
   stats->ofp.tx_packets = rte_stats.opackets;
   stats->ofp.rx_bytes = rte_stats.ibytes;
   stats->ofp.tx_bytes = rte_stats.obytes;
-  stats->ofp.rx_dropped = rte_stats.rx_nombuf;
+  stats->ofp.rx_dropped = rte_stats.rx_nombuf + rte_stats.imissed;
   stats->ofp.tx_dropped = UINT64_MAX;
   stats->ofp.rx_errors = rte_stats.ierrors;
   stats->ofp.tx_errors = rte_stats.oerrors;
@@ -1367,11 +1179,12 @@ dpdk_get_stats(uint8_t portid, datastore_interface_stats_t *stats) {
   rte_eth_stats_get(portid, &rte_stats);
   stats->rx_packets = rte_stats.ipackets;
   stats->rx_bytes = rte_stats.ibytes;
+  stats->rx_errors = rte_stats.ierrors;
+  stats->rx_dropped =  rte_stats.rx_nombuf + rte_stats.imissed;
   stats->tx_packets = rte_stats.opackets;
   stats->tx_bytes = rte_stats.obytes;
-  stats->rx_errors = rte_stats.ierrors;
-  stats->tx_dropped = 0;
   stats->tx_errors = rte_stats.oerrors;
+  stats->tx_dropped = 0;
   return LAGOPUS_RESULT_OK;
 }
 
@@ -1458,26 +1271,13 @@ dpdk_change_config(uint8_t portid, uint32_t advertised, uint32_t config) {
   return LAGOPUS_RESULT_OK;
 }
 
-bool
-lagopus_is_port_enabled(const struct port *port) {
-  if (port == NULL || port->type != LAGOPUS_PORT_TYPE_PHYSICAL) {
-    return false;
-  }
-  return (lagopus_port_mask & (unsigned long)(1 << port->ifindex)) != 0;
-}
-
-bool
-lagopus_is_portid_enabled(int portid) {
-  return (lagopus_port_mask & (unsigned long)(1 << portid)) != 0;
-}
-
 void
 lagopus_packet_free(struct lagopus_packet *pkt) {
   if (is_rawsocket_only_mode() != true) {
-    rte_pktmbuf_free(pkt->mbuf);
+    rte_pktmbuf_free(PKT2MBUF(pkt));
   } else {
-    if (rte_mbuf_refcnt_update(pkt->mbuf, -1) == 0) {
-      free(pkt->mbuf);
+    if (rte_mbuf_refcnt_update(PKT2MBUF(pkt), -1) == 0) {
+      free(PKT2MBUF(pkt));
     }
   }
 }

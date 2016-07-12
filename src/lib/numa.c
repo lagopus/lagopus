@@ -206,9 +206,9 @@ s_final_numa_thingies(void) {
         (void)lagopus_hashmap_destroy(&s_tbl, true);
       }
 
-      lagopus_msg_debug(5, "The NUMA aware memory allocator is finalized.\n");
+      lagopus_msg_debug(10, "The NUMA aware memory allocator is finalized.\n");
     } else {
-      lagopus_msg_debug(5, "The NUMA aware memory allocator is not finalized"
+      lagopus_msg_debug(10, "The NUMA aware memory allocator is not finalized"
                         "because of module finalization problem.\n");
     }
   }

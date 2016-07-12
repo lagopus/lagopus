@@ -4,12 +4,13 @@ MKRULESDIR	= @MKRULESDIR@
 SRCS =	check0.c check1.c check2.c check3.c check4.c check5.c check6.c \
 	check7.c check8.c check1-a.c check9.c check10.c check10-a.c \
 	dummy-module.c dummy-main.c check10-b.c check5-a.c check5-b.c \
-	check11.c check12.c check13.c check-co.c check-div.c check-ml.c
+	check11.c check12.c check13.c check-co.c check-div.c check-ml.c \
+	check-spin.c
 
 TARGETS	= check0 check1 check2 check3 check4 check5 check6 \
 	check7 check8 check1-a check9 check10 check10-a modtest \
 	check10-b check5-a check5-b check11 check12 check13 check-co \
-	check-div check-ml
+	check-div check-ml check-spin
 
 DEP_LIBS	+=	-lm @OS_LIBS@
 
@@ -19,96 +20,100 @@ include $(MKRULESDIR)/rules.mk
 MOBJS	=	dummy-module.lo dummy-main.lo
 
 check0::	check0.lo $(DEP_LAGOPUS_UTIL_LIB)
-	$(LTCLEAN) $@
+	$(RM) -f $@ .libs/lt-$@ .libs/$@
 	$(LTLINK_CC) -o $@ check0.lo $(DEP_LAGOPUS_UTIL_LIB) $(DEP_LIBS)
 
 check1::	check1.lo $(DEP_LAGOPUS_UTIL_LIB)
-	$(LTCLEAN) $@
+	$(RM) -f $@ .libs/lt-$@ .libs/$@
 	$(LTLINK_CC) -o $@ check1.lo $(DEP_LAGOPUS_UTIL_LIB) $(DEP_LIBS)
 
 check2::	check2.lo $(DEP_LAGOPUS_UTIL_LIB)
-	$(LTCLEAN) $@
+	$(RM) -f $@ .libs/lt-$@ .libs/$@
 	$(LTLINK_CC) -o $@ check2.lo $(DEP_LAGOPUS_UTIL_LIB) $(DEP_LIBS)
 
 check3::	check3.lo $(DEP_LAGOPUS_UTIL_LIB)
-	$(LTCLEAN) $@
+	$(RM) -f $@ .libs/lt-$@ .libs/$@
 	$(LTLINK_CC) -o $@ check3.lo $(DEP_LAGOPUS_UTIL_LIB) $(DEP_LIBS)
 
 check4::	check4.lo $(DEP_LAGOPUS_UTIL_LIB)
-	$(LTCLEAN) $@
+	$(RM) -f $@ .libs/lt-$@ .libs/$@
 	$(LTLINK_CC) -o $@ check4.lo $(DEP_LAGOPUS_UTIL_LIB) $(DEP_LIBS)
 
 check5::	check5.lo $(DEP_LAGOPUS_UTIL_LIB)
-	$(LTCLEAN) $@
+	$(RM) -f $@ .libs/lt-$@ .libs/$@
 	$(LTLINK_CC) -o $@ check5.lo $(DEP_LAGOPUS_UTIL_LIB) $(DEP_LIBS)
 
 check6::	check6.lo $(DEP_LAGOPUS_UTIL_LIB)
-	$(LTCLEAN) $@
+	$(RM) -f $@ .libs/lt-$@ .libs/$@
 	$(LTLINK_CC) -o $@ check6.lo $(DEP_LAGOPUS_UTIL_LIB) $(DEP_LIBS)
 
 check7::	check7.lo $(DEP_LAGOPUS_UTIL_LIB)
-	$(LTCLEAN) $@
+	$(RM) -f $@ .libs/lt-$@ .libs/$@
 	$(LTLINK_CC) -o $@ check7.lo $(DEP_LAGOPUS_UTIL_LIB) $(DEP_LIBS)
 
 check8::	check8.lo $(DEP_LAGOPUS_UTIL_LIB)
-	$(LTCLEAN) $@
+	$(RM) -f $@ .libs/lt-$@ .libs/$@
 	$(LTLINK_CC) -o $@ check8.lo $(DEP_LAGOPUS_UTIL_LIB) $(DEP_LIBS)
 
 check9::	check9.lo $(DEP_LAGOPUS_UTIL_LIB)
-	$(LTCLEAN) $@
+	$(RM) -f $@ .libs/lt-$@ .libs/$@
 	$(LTLINK_CC) -o $@ check9.lo $(DEP_LAGOPUS_UTIL_LIB) $(DEP_LIBS)
 
 check1-a::	check1-a.lo $(DEP_LAGOPUS_UTIL_LIB)
-	$(LTCLEAN) $@
+	$(RM) -f $@ .libs/lt-$@ .libs/$@
 	$(LTLINK_CC) -o $@ check1-a.lo $(DEP_LAGOPUS_UTIL_LIB) $(DEP_LIBS)
 
 check10::	check10.lo $(DEP_LAGOPUS_UTIL_LIB)
-	$(LTCLEAN) $@
+	$(RM) -f $@ .libs/lt-$@ .libs/$@
 	$(LTLINK_CC) -o $@ check10.lo $(DEP_LAGOPUS_UTIL_LIB) $(DEP_LIBS)
 
 check10-a::	check10-a.lo $(DEP_LAGOPUS_UTIL_LIB)
-	$(LTCLEAN) $@
+	$(RM) -f $@ .libs/lt-$@ .libs/$@
 	$(LTLINK_CC) -o $@ check10-a.lo $(DEP_LAGOPUS_UTIL_LIB) $(DEP_LIBS)
 
 check10-b::	check10-b.lo $(DEP_LAGOPUS_UTIL_LIB)
-	$(LTCLEAN) $@
+	$(RM) -f $@ .libs/lt-$@ .libs/$@
 	$(LTLINK_CC) -o $@ check10-b.lo $(DEP_LAGOPUS_UTIL_LIB) $(DEP_LIBS)
 
 modtest::	$(MOBJS)
-	$(LTCLEAN) $@
+	$(RM) -f $@ .libs/lt-$@ .libs/$@
 	$(LTLINK_CC) -o $@ $(MOBJS) $(DEP_LAGOPUS_UTIL_LIB) $(DEP_LIBS)
 
 check5-a::	check5-a.lo $(DEP_LAGOPUS_UTIL_LIB)
-	$(LTCLEAN) $@
+	$(RM) -f $@ .libs/lt-$@ .libs/$@
 	$(LTLINK_CC) -o $@ check5-a.lo $(DEP_LAGOPUS_UTIL_LIB) $(DEP_LIBS)
 
 check5-b::	check5-b.lo $(DEP_LAGOPUS_UTIL_LIB)
-	$(LTCLEAN) $@
+	$(RM) -f $@ .libs/lt-$@ .libs/$@
 	$(LTLINK_CC) -o $@ check5-b.lo $(DEP_LAGOPUS_UTIL_LIB) $(DEP_LIBS)
 
 check11::	check11.lo $(DEP_LAGOPUS_UTIL_LIB)
-	$(LTCLEAN) $@
+	$(RM) -f $@ .libs/lt-$@ .libs/$@
 	$(LTLINK_CC) -o $@ check11.lo $(DEP_LAGOPUS_UTIL_LIB) $(DEP_LIBS)
 
 check12::	check12.lo $(DEP_LAGOPUS_UTIL_LIB)
-	$(LTCLEAN) $@
+	$(RM) -f $@ .libs/lt-$@ .libs/$@
 	$(LTLINK_CC) -o $@ check12.lo $(DEP_LAGOPUS_UTIL_LIB) $(DEP_LIBS)
 
 check13::	check13.lo $(DEP_LAGOPUS_UTIL_LIB)
-	$(LTCLEAN) $@
+	$(RM) -f $@ .libs/lt-$@ .libs/$@
 	$(LTLINK_CC) -o $@ check13.lo $(DEP_LAGOPUS_UTIL_LIB) $(DEP_LIBS)
 
 check-co::	check-co.lo $(DEP_LAGOPUS_UTIL_LIB)
-	$(LTCLEAN) $@
+	$(RM) -f $@ .libs/lt-$@ .libs/$@
 	$(LTLINK_CC) -o $@ check-co.lo $(DEP_LAGOPUS_UTIL_LIB) $(DEP_LIBS)
 
 check-div::	check-div.lo $(DEP_LAGOPUS_UTIL_LIB)
-	$(LTCLEAN) $@
+	$(RM) -f $@ .libs/lt-$@ .libs/$@
 	$(LTLINK_CC) -o $@ check-div.lo $(DEP_LAGOPUS_UTIL_LIB) $(DEP_LIBS)
 
 check-ml::	check-ml.lo $(DEP_LAGOPUS_UTIL_LIB)
-	$(LTCLEAN) $@
+	$(RM) -f $@ .libs/lt-$@ .libs/$@
 	$(LTLINK_CC) -o $@ check-ml.lo $(DEP_LAGOPUS_UTIL_LIB) $(DEP_LIBS)
+
+check-spin::	check-spin.lo $(DEP_LAGOPUS_UTIL_LIB)
+	$(RM) -f $@ .libs/lt-$@ .libs/$@
+	$(LTLINK_CC) -o $@ check-spin.lo $(DEP_LAGOPUS_UTIL_LIB) $(DEP_LIBS)
 
 clean::
 	$(LTCLEAN) ./testlog.txt

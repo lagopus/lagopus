@@ -149,15 +149,15 @@ lagopus_meter_packet(struct lagopus_packet *pkt, struct meter *meter,
   DPRINT("metering packet\n");
   if ((meter->flags & OFPMF_STATS) != 0) {
     meter->input_packet_count++;
-    meter->input_byte_count += OS_M_PKTLEN(pkt->mbuf);
+    meter->input_byte_count += OS_M_PKTLEN(PKT2MBUF(pkt));
   }
   list = meter->driverdata;
   color_band = NULL;
   if ((meter->flags & OFPMF_PKTPS) == 0) {
     TAILQ_FOREACH(lband, list, next) {
       color = rte_meter_srtcm_color_blind_check(&lband->kbps_meter,
-              rte_rdtsc(),
-              OS_M_PKTLEN(pkt->mbuf));
+                                                rte_rdtsc(),
+                                                OS_M_PKTLEN(PKT2MBUF(pkt)));
       if (color_band == NULL && color == e_RTE_METER_RED) {
         color_band = lband;
       }
@@ -176,7 +176,7 @@ lagopus_meter_packet(struct lagopus_packet *pkt, struct meter *meter,
     DPRINT("color == red\n");
     if ((meter->flags & OFPMF_STATS) != 0) {
       color_band->band->stats.packet_band_count++;
-      color_band->band->stats.byte_band_count += OS_M_PKTLEN(pkt->mbuf);
+      color_band->band->stats.byte_band_count += OS_M_PKTLEN(PKT2MBUF(pkt));
     }
     if (color_band->band->type == OFPMBT_DSCP_REMARK) {
       *prec_level = color_band->band->prec_level;

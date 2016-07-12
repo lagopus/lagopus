@@ -15,31 +15,19 @@
  */
 
 /**
- *      @file   arp.h
- *      @brief  ARP table.
+ * @file	match_pkts.h
  */
 
-#ifndef SRC_DATAPLANE_MGR_ARP_H_
-#define SRC_DATAPLANE_MGR_ARP_H_
+#ifndef __BENCHMARK_MATCH_PKTS_H__
+#define __BENCHMARK_MATCH_PKTS_H__
 
-#include <net/if.h>
+lagopus_result_t
+setup(void *pkts, size_t size);
 
-/* ARP APIs. */
-void
-arp_init(void);
+lagopus_result_t
+teardown(void *pkts, size_t size);
 
-void
-arp_fini(void);
+lagopus_result_t
+match_pkts(void *pkts, size_t size);
 
-/* for netlink */
-void
-arp_add(int ifindex, struct in_addr *dst_addr, char *ll_addr);
-
-void
-arp_delete(int ifindex, struct in_addr *dst_addr, char *ll_addr);
-
-/* for rib */
-void
-arp_get(struct in_addr *addr, char *mac, int *ifindex);
-
-#endif /* SRC_DATAPLANE_MGR_ARP_H_ */
+#endif /*__BENCHMARK_MATCH_PKTS_H__ */

@@ -71,7 +71,7 @@ test_push_MPLS_and_set_field_ETH_DST_SRC(void) {
 
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
 
   OS_M_APPEND(m, 64);
   OS_MTOD(m, uint8_t *)[12] = 0x08;

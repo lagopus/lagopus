@@ -20,7 +20,7 @@
 enum {
   FLOW_TIMER,
   MBTREE_TIMER,
-  MACTABLE_TIMER,
+  UPDATER_TIMER,
   LINK_TIMER,
   THTABLE_TIMER,
 };
@@ -48,7 +48,7 @@ add_dp_timer(int type,
 struct flow;
 struct flow_list;
 struct interface;
-struct mactable;
+struct bridge;
 
 lagopus_result_t
 add_flow_timer(struct flow *flow);
@@ -57,7 +57,7 @@ add_mbtree_timer(struct flow_list *flow_list, time_t timeout);
 lagopus_result_t
 add_link_timer(struct interface *ifp);
 lagopus_result_t
-add_mactable_timer(struct mactable *mactable, time_t timeout);
+add_updater_timer(struct bridge *bridge, time_t timeout);
 lagopus_result_t
 add_thtable_timer(struct flow_list *flow_list, time_t timeout);
 

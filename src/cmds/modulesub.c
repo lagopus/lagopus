@@ -189,6 +189,22 @@ s_once_proc(void) {
     lagopus_perror(r);
     lagopus_exit_fatal("can't register the \"%s\" module.\n", name);
   }
+
+#ifdef PIPELINER
+  name = "dp_legacy_sw_pipeline";
+  r = lagopus_module_register(name,
+                              dp_legacy_sw_thread_init,
+                              NULL,
+                              dp_legacy_sw_thread_start,
+                              dp_legacy_sw_thread_shutdown,
+                              dp_legacy_sw_thread_stop,
+                              dp_legacy_sw_thread_fini,
+                              NULL);
+  if (r != LAGOPUS_RESULT_OK) {
+    lagopus_perror(r);
+    lagopus_exit_fatal("can't register the \"%s\" module.\n", name);
+  }
+#endif /* PIPELINER */
 #endif /* HYBRID */
 
   name = "agent";

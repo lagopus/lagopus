@@ -15,8 +15,8 @@
  */
 
 /**
- *      @file   rib.c
- *      @brief  Routing Information Base.
+ *      @file   route.c
+ *      @brief  Routing table.
  */
 
 #include <stdio.h>
@@ -27,24 +27,7 @@
 #include <arpa/inet.h>
 #include "lagopus/dp_apis.h"
 #include <net/ethernet.h>
-#include "rib.h"
-#include "arp.h"
-#include "route.h"
-#include "ip_addr.h"
-
-#define LPM_PTREE
-//#define LPM_DIR_24_8
-#ifdef LPM_PTREE
-#define _PT_PRIVATE
-#include "lagopus/ptree.h"
-#include "nexthop.h"
-#elif defined LPM_DIR_24_8
-#include <rte_config.h>
-#include <rte_ip.h>
-#include <rte_lpm.h>
-#include <rte_eal.h>
-#include <rte_lcore.h>
-#endif
+#include "lagopus/updater.h"
 
 #undef ROUTE_DEBUG
 #ifdef ROUTE_DEBUG
@@ -53,30 +36,389 @@
 #define PRINTF(...)
 #endif
 
-#ifdef LPM_PTREE
-struct route_ipv4_table
+#ifdef LPM_PTREE /*** use ptree ***/
+#define IPV4_BITLEN   32
+#define IPV6_BITLEN  128
+struct route_entry {
+  pt_node_t route_node; /* Patricia tree node.  */
+  struct in_addr dest;  /* Destination address. */
+  struct in_addr gate;  /* Nexthop address. */
+  int ifindex;          /* Nexthop interface index. */
+  int prefixlen;        /* Length of prefix. */
+  uint8_t scope;        /* Scope of interface. */
+  uint8_t mac[UPDATER_ETH_LEN];
+} __attribute__ ((aligned(128)));
+
+
+/*** static functions ***/
+/**
+ * Allocate entry object of route information.
+ */
+static struct route_ipv4 *
+route_entry_alloc(struct in_addr *addr) {
+  struct route_entry *entry;
+
+  entry = calloc(1, sizeof(struct route_entry));
+  if (entry == NULL) {
+    return NULL;
+  }
+  entry->dest = *addr;
+
+  return entry;
+}
+
+/**
+ * Free route entry object.
+ */
+static void
+route_entry_free(struct route_entry *entry)
 {
-  pt_tree_t rib;
-  struct nexthop_ipv4_table *nexthop_table;
-};
+  free(entry);
+}
 
-static struct route_ipv4_table route_ipv4;
+/**
+ * Whether or not to mask for ptree.
+ */
+static bool
+ptree_mask_filter(void *filter_arg, const void *entry, int pt_filter_mask) {
+  int *arg = (int *)filter_arg;
+  int val = *arg;
+  struct route_entry *re = (struct route_entry *)entry;
+  pt_node_t *pt = &re->route_node;
 
-struct route_ipv4 {
-  /* Patricia tree node.  */
-  pt_node_t route_node;
+  if (val == IPV4_BITLEN) {
+    if (pt_filter_mask == false) {
+      return true;
+    }
+  } else {
+    if (pt_filter_mask == true && PTN_MASK_BITLEN(pt) == val) {
+      return true;
+    }
+  }
 
-  /* RIB IP address.  */
-  struct in_addr route_addr;
+  return false;
+}
 
-  /* Nexthop pointer.  */
-  struct nexthop_ipv4 *nexthop;
-};
+/**
+ * Output log for route information.
+ */
+static void
+route_entry_log(const char *type_str, struct in_addr *dest,
+                int prefixlen, struct in_addr *gate, int ifindex) {
+  PRINTF("Route %s:", type_str);
 
-struct route_ipv6 {
-  struct nexthop_ipv6 *nexthop;
-};
-#elif defined LPM_DIR_24_8
+  if (dest) {
+    char buf[BUFSIZ];
+    inet_ntop(AF_INET, dest, buf, BUFSIZ);
+    PRINTF(" %s/%d", buf, prefixlen);
+  }
+
+  if (gate) {
+    char buf[BUFSIZ];
+    inet_ntop(AF_INET, gate, buf, BUFSIZ);
+    PRINTF(" gateway %s", buf);
+  }
+
+  PRINTF(" ifindex %d\n", ifindex);
+}
+
+/*** public functions ***/
+/**
+ * Initialize route table.
+ * Create ptree.
+ */
+void
+route_init(struct route_table *route_table) {
+  ptree_init(&route_table->table, NULL,
+             (void *)(sizeof(struct in_addr) / sizeof(uint32_t)),
+             offsetof(struct route_entry, route_node), /* set node offset */
+             offsetof(struct route_entry, dest));      /* set key offset */
+}
+
+/**
+ * Finalize route table.
+ * Delete all entries in ptree.
+ */
+void
+route_fini(struct route_table *route_table) {
+  route_entries_all_clear(route_table);
+  /* ptree_fini does not exist. */
+}
+
+/**
+ * Add a route entry to ptree.
+ */
+lagopus_result_t
+route_entry_add(struct route_table *route_table, struct in_addr *dest,
+                int prefixlen, struct in_addr *gate, int ifindex,
+                uint8_t scope, uint8_t *mac) {
+  lagopus_result_t rv = LAGOPUS_RESULT_OK;
+  struct route_entry *entry;
+  bool ret;
+
+  route_entry_log("add", dest, prefixlen, gate, ifindex);
+
+  if (route_table == NULL || dest == NULL || gate == NULL) {
+    return LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  /* create a new entry and add to ptree. */
+  entry = route_entry_alloc(dest);
+  if (entry == NULL) {
+    return LAGOPUS_RESULT_NO_MEMORY;
+  }
+  entry->ifindex = ifindex;
+  entry->scope = scope;
+  entry->gate = *gate;
+  entry->prefixlen = prefixlen;
+  memcpy(entry->mac, mac, UPDATER_ETH_LEN);
+
+  /* insert entry to ptree. */
+  if (prefixlen == IPV4_BITLEN) {
+    ret = ptree_insert_node(&route_table->table, entry);
+  } else {
+    ret = ptree_insert_mask_node(&route_table->table, entry, prefixlen);
+  }
+
+  /* failed to insert entry, free new entry object. */
+  if (!ret) {
+    route_entry_free(entry);
+    lagopus_msg_warning("Failed to insert the entry to ptree\n");
+    return LAGOPUS_RESULT_ANY_FAILURES;
+  }
+  route_table->num++;
+
+  return rv;
+}
+
+/**
+ * Delete a route entry from ptree.
+ */
+lagopus_result_t
+route_entry_delete(struct route_table *route_table, struct in_addr *dest,
+                   int prefixlen, struct in_addr *gate, int ifindex)   {
+  lagopus_result_t rv = LAGOPUS_RESULT_OK;
+  struct route_entry *entry = NULL;
+  route_entry_log("delete", dest, prefixlen, gate, ifindex);
+
+  if (route_table == NULL || dest == NULL || gate == NULL) {
+    return LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  /* check if the entry is exist.*/
+  if (prefixlen == IPV4_BITLEN) {
+    entry = ptree_find_node(&route_table->table, dest);
+  } else {
+    entry = ptree_find_filtered_node(&route_table->table, dest,
+                                     ptree_mask_filter, (void *)&prefixlen);
+  }
+
+  /* delete the entry from ptree. */
+  if (entry) {
+    ptree_remove_node(&route_table->table, entry);
+    route_entry_free(entry);
+  }
+
+  return rv;
+}
+
+/**
+ * Update a route entry.
+ */
+lagopus_result_t
+route_entry_update(struct route_table *route_table, struct in_addr *dest,
+                   int prefixlen, struct in_addr *gate, int ifindex,
+                   uint8_t scope, uint8_t *mac) {
+  lagopus_result_t rv = LAGOPUS_RESULT_OK;
+  struct route_entry *entry = NULL;
+
+  /* delete old entry. */
+  rv = route_entry_delete(&route_table->table,
+                          dest, prefixlen, gate, ifindex);
+  if (rv != LAGOPUS_RESULT_OK) {
+    lagopus_msg_warning("route_entry_delete failed.\n");
+    goto out;
+  }
+  /* add new entry */
+  rv = route_entry_add(&route_table->table,
+                       dest, prefixlen, gate, ifindex, scope, mac);
+  if (rv != LAGOPUS_RESULT_OK) {
+    lagopus_msg_warning("route_entry_add failed.\n");
+    goto out;
+  }
+
+out:
+  return rv;
+}
+
+/**
+ * Get a route entry from ptree.
+ */
+lagopus_result_t
+route_entry_get(struct route_table *route_table,
+                const struct in_addr *dest, int prefixlen,
+                struct in_addr *nexthop, uint8_t *scope, uint8_t *mac) {
+  lagopus_result_t rv = LAGOPUS_RESULT_OK;
+  struct route_entry *entry;
+
+  /* check if the entry is exist.*/
+  if (prefixlen == IPV4_BITLEN) {
+    entry = ptree_find_node(&route_table->table, dest);
+  } else {
+    entry = ptree_find_filtered_node(&route_table->table, dest,
+                                     ptree_mask_filter, (void *)&prefixlen);
+  }
+
+  /* set nexthop information. */
+  if (entry) {
+    *scope = entry->scope;
+    *nexthop = entry->gate;
+    memcpy(mac, entry->mac, UPDATER_ETH_LEN);
+    route_entry_log("get", dest, prefixlen, nexthop, entry->ifindex);
+  } else {
+    rv = LAGOPUS_RESULT_NOT_FOUND;
+  }
+
+  return rv;
+}
+
+/**
+ * Modify route entries about if information.
+ */
+lagopus_result_t
+route_entry_modify(struct route_table *route_table,
+                   int in_ifindex, uint8_t *in_mac) {
+  lagopus_result_t rv = LAGOPUS_RESULT_OK;
+  struct in_addr dest, gate;
+  int prefixlen;
+  uint32_t ifindex;
+  void *item = NULL;
+  uint8_t scope;
+
+  while (1) {
+    rv = route_rule_get(&route_table->table,
+                        &dest, &gate, &prefixlen, &ifindex, &scope, &item);
+    if (rv != LAGOPUS_RESULT_OK || item == NULL) {
+      break;
+    }
+
+    /* check ifindex. */
+    if (ifindex == in_ifindex) {
+      /* update entry */
+      rv = route_entry_update(&route_table->table,
+                              &dest, prefixlen, &gate, in_ifindex,
+                              scope, in_mac);
+      if (rv != LAGOPUS_RESULT_OK) {
+        break;
+      }
+    }
+  }
+
+  return rv;
+}
+
+/**
+ * Get rules from ptree to dump route iformations by datastore.
+ */
+lagopus_result_t
+route_rule_get(struct route_table *route_table, struct in_addr *dest,
+               struct in_addr *gate, int *prefixlen, uint32_t *ifindex,
+               uint8_t *scope, void **item) {
+  struct route_entry *entry = (struct route_entry *)*item;
+
+  /* get entry */
+  if ((entry = ptree_iterate(&route_table->table, entry, PT_ASCENDING))
+      != NULL) {
+    *dest = entry->dest;
+    *gate = entry->gate;
+    *ifindex = entry->ifindex;
+    *prefixlen = entry->prefixlen;
+    *scope = entry->scope;
+  }
+
+  *item = entry;
+
+  return LAGOPUS_RESULT_OK;
+}
+
+/**
+ * Clear all entries in route table.
+ */
+void
+route_entries_all_clear(struct route_table *route_table) {
+  struct route_entry *entry = NULL;
+
+  while ((entry = ptree_iterate(&route_table->table, NULL, PT_ASCENDING))
+         != NULL) {
+    ptree_remove_node(&route_table->table, entry);
+    route_entry_free(entry);
+    route_table->num--;
+  }
+}
+
+/**
+ * Copy all entries.
+ */
+lagopus_result_t
+route_entries_all_copy(struct route_table *src, struct route_table *dst) {
+  lagopus_result_t rv;
+  struct route_entry *entry = NULL;
+
+  /* clear dst table. */
+  route_entries_all_clear(dst);
+
+  /* get entry from src table. */
+  while ((entry = ptree_iterate(&src->table, entry, PT_ASCENDING))
+      != NULL) {
+    /* create a new entry and add to ptree. */
+    rv = route_entry_add(dst, &entry->dest, entry->prefixlen, &entry->gate,
+                         entry->ifindex, entry->scope, entry->mac);
+    if (rv != LAGOPUS_RESULT_OK) {
+      return LAGOPUS_RESULT_ANY_FAILURES;
+    }
+  }
+
+  return LAGOPUS_RESULT_OK;
+}
+
+
+/*** not supported ipv6. ***/
+static void
+route_ipv6_log(const char *type_str, struct in6_addr *dest,
+               int prefixlen, struct in6_addr *gate, int ifindex) {
+  (void) ifindex;
+
+  PRINTF("Route %s:", type_str);
+
+  if (dest) {
+    char buf[BUFSIZ];
+    inet_ntop(AF_INET6, dest, buf, BUFSIZ);
+    PRINTF(" %s/%d", buf, prefixlen);
+  }
+
+  if (gate) {
+    char buf[BUFSIZ];
+    inet_ntop(AF_INET6, gate, buf, BUFSIZ);
+    PRINTF(" via %s", buf);
+  }
+
+  PRINTF("\n");
+}
+
+void
+route_ipv6_add(struct in6_addr *dest, int prefixlen,
+                   struct in6_addr *gate, int ifindex) {
+  route_ipv6_log("add", dest, prefixlen, gate, ifindex);
+}
+
+void
+route_ipv6_delete(struct in6_addr *dest, int prefixlen,
+                      struct in6_addr *gate, int ifindex) {
+  route_ipv6_log("del", dest, prefixlen, gate, ifindex);
+}
+
+/* end of ptree */
+#elif defined LPM_DIR_24_8 /*** use dir-24-8 ***/
 #define IPV4_LPM_MAX_RULES 1024
 #define IPV4_NEXTHOPS 255
 #define LAGOPUS_LCORE_SOCKETS 8
@@ -91,56 +433,13 @@ typedef struct ipv4_nexthop {
   uint32_t ifindex;
 } ipv4_nexthop_t;
 static ipv4_nexthop_t nexthops[IPV4_NEXTHOPS] = {0};
-#endif /* LPM_XXX */
 
-#ifdef LPM_PTREE
-#define IPV4_BITLEN   32
-#define IPV4_SIZE      4
-#define IPV6_BITLEN  128
-#define IPV6_SIZE     16
 
-static struct route_ipv4 *
-route_ipv4_alloc(struct in_addr *addr)
-{
-  struct route_ipv4 *rib;
+/* end of dir-24-8*/
+#endif /* LPM_XXXXX*/
 
-  rib = calloc(1, sizeof(struct route_ipv4));
-  if (rib == NULL) {
-    return NULL;
-  }
-  rib->route_addr = *addr;
-
-  return rib;
-}
-
-static void
-route_ipv4_free(struct route_ipv4 *rib)
-{
-  free(rib);
-}
-
-static bool
-ptree_mask_filter(void *filter_arg, const void *entry, int pt_filter_mask) {
-  int *arg = (int *)filter_arg;
-  int val = *arg;
-  struct route_ipv4 *r = (struct route_ipv4 *)entry;
-  pt_node_t *pt = &r->route_node;
-
-  if (val == IPV4_BITLEN) {
-    if (pt_filter_mask == false) {
-      return true;
-    }
-  } else {
-    if (pt_filter_mask == true && PTN_MASK_BITLEN(pt) == val) {
-      return true;
-    }
-  }
-  return false;
-}
-#endif /* LPM_PTREE */
-
+#if 0
 #ifdef LPM_DIR_24_8
-
 static unsigned int
 get_socket_id() {
   unsigned int sockid = 0;
@@ -150,18 +449,9 @@ get_socket_id() {
   }
   return sockid;
 }
-#endif /* LPM_DIR_24_8 */
 
 void
 route_init(void) {
-#ifdef LPM_PTREE
-  ptree_init(&route_ipv4.rib, NULL,
-             (void *)(sizeof(struct in_addr) / sizeof(uint32_t)),
-             offsetof(struct route_ipv4, route_node),
-             offsetof(struct route_ipv4, route_addr));
-
-  route_ipv4.nexthop_table = nexthop_ipv4_table_alloc();
-#elif defined LPM_DIR_24_8
   unsigned int sockid = 0;
   uint32_t lcore = rte_lcore_id();
 
@@ -174,138 +464,21 @@ route_init(void) {
   if (ipv4_lookup_struct[sockid] == NULL) {
     printf("unable to create the lpm table\n");
   }
-#endif /* LPM_XXX */
 }
 
-#ifdef LPM_PTREE
-void
-route_fini(void) {
-  struct route_ipv4 *rib = NULL;
-  while ((rib = ptree_iterate(&route_ipv4.rib, rib, PT_ASCENDING)) != NULL) {
-    if (rib) {
-      if (rib->nexthop) {
-        nexthop_ipv4_release(route_ipv4.nexthop_table, rib->nexthop);
-      }
-      ptree_remove_node(&route_ipv4.rib, rib);
-      route_ipv4_free(rib);
-    }
-  }
-}
-#elif defined LPM_DIR_24_8
 void
 route_fini(void) {
   struct rte_lpm *lpm = ipv4_lookup_struct[get_socket_id()];
   rte_lpm_delete_all(lpm);
   rte_lpm_free(lpm);
 }
-#endif
 
-static void
-route_ipv4_log(const char *type_str, struct in_addr *dest,
-                   int prefixlen, struct in_addr *gate, int ifindex) {
-  PRINTF("Route %s:", type_str);
-
-  if (dest) {
-    char buf[BUFSIZ];
-
-    inet_ntop(AF_INET, dest, buf, BUFSIZ);
-    PRINTF(" %s/%d", buf, prefixlen);
-  }
-  if (gate) {
-    char buf[BUFSIZ];
-
-    inet_ntop(AF_INET, gate, buf, BUFSIZ);
-    PRINTF(" via %s", buf);
-  }
-
-  PRINTF(" ifindex %d\n", ifindex);
-}
-
-#ifdef LPM_PTREE
-static void
-route_ipv4_dump(void)
-{
-  struct route_ipv4 *rib = NULL;
-
-  while ((rib = ptree_iterate(&route_ipv4.rib, rib, PT_ASCENDING)) != NULL) {
-    pt_bitlen_t blen;
-    int mask = ptree_mask_node_p(&route_ipv4.rib, rib, &blen);
-
-    if (mask) {
-      PRINTF("[%s/%d]\n", inet_ntoa(rib->route_addr), blen);
-    } else {
-      PRINTF("[%s/32]\n", inet_ntoa(rib->route_addr));
-    }
-  }
-}
-#elif defined LPM_DIR_24_8
 static void
 route_ipv4_dump(void)
 {
   /* TODO */
 }
-#endif /* LPM_XXX */
 
-lagopus_result_t
-route_rule_get(struct in_addr *dest, struct in_addr *gate,
-                   int *prefixlen, uint32_t *ifindex, void **item) {
-#ifdef LPM_PTREE
-  struct route_ipv4 *rib = (struct route_ipv4 *)*item;
-  char string[BUFSIZ];
-
-  if ((rib = ptree_iterate(&route_ipv4.rib, rib, PT_ASCENDING)) != NULL) {
-    pt_bitlen_t blen;
-    int mask = ptree_mask_node_p(&route_ipv4.rib, rib, &blen);
-
-    *dest = rib->route_addr;
-    if (mask) {
-      *prefixlen = blen;
-    } else {
-      *prefixlen = 32;
-    }
-
-    if (rib->nexthop) {
-      *gate = rib->nexthop->gate;
-      *ifindex = rib->nexthop->ifindex;
-    }
-  }
-  *item = rib;
-#endif /* LPM_PTREE */
-
-  return LAGOPUS_RESULT_OK;
-}
-
-#ifdef LPM_PTREE
-int
-route_ipv4_add(struct in_addr *dest, int prefixlen, struct in_addr *gate,
-                   int ifindex, uint8_t scope) {
-  int ret;
-  struct route_ipv4 *rib;
-  struct nexthop_ipv4 *nexthop;
-
-  route_ipv4_log("add", dest, prefixlen, gate, ifindex);
-
-  rib = route_ipv4_alloc(dest);
-  if (! rib) {
-    return LAGOPUS_RESULT_NO_MEMORY;
-  }
-
-  if (prefixlen == IPV4_BITLEN) {
-    ret = ptree_insert_node(&route_ipv4.rib, rib);
-  } else {
-    ret = ptree_insert_mask_node(&route_ipv4.rib, rib, prefixlen);
-  }
-
-  nexthop = nexthop_ipv4_get(route_ipv4.nexthop_table, gate, ifindex, scope);
-  if (nexthop == NULL) {
-    return LAGOPUS_RESULT_NO_MEMORY;
-  }
-  rib->nexthop = nexthop;
-
-  route_ipv4_dump();
-  return LAGOPUS_RESULT_OK;
-}
-#elif defined LPM_DIR_24_8
 int
 route_ipv4_add(struct in_addr *dest, int prefixlen, struct in_addr *gate,
                    int ifindex, uint8_t scope) {
@@ -343,36 +516,7 @@ route_ipv4_add(struct in_addr *dest, int prefixlen, struct in_addr *gate,
   }
   return LAGOPUS_RESULT_OK;
 }
-#endif /* LPM_XXX */
 
-#ifdef LPM_PTREE
-int
-route_ipv4_delete(struct in_addr *dest, int prefixlen,
-                      struct in_addr *gate, int ifindex)   {
-  struct route_ipv4 *rib = NULL;
-
-  route_ipv4_log("del", dest, prefixlen, gate, ifindex);
-
-  if (prefixlen == IPV4_BITLEN) {
-    rib = ptree_find_node(&route_ipv4.rib, dest);
-  } else {
-    rib = ptree_find_filtered_node(&route_ipv4.rib,
-                                   dest, ptree_mask_filter, (void *)&prefixlen);
-  }
-
-  if (rib) {
-    if (rib->nexthop) {
-      nexthop_ipv4_release(route_ipv4.nexthop_table, rib->nexthop);
-    }
-    ptree_remove_node(&route_ipv4.rib, rib);
-    route_ipv4_free(rib);
-  }
-
-  route_ipv4_dump();
-
-  return LAGOPUS_RESULT_OK;
-}
-#elif defined LPM_DIR_24_8
 int
 route_ipv4_delete(struct in_addr *dest, int prefixlen,
                       struct in_addr *gate, int ifindex)   {
@@ -386,7 +530,7 @@ route_ipv4_delete(struct in_addr *dest, int prefixlen,
                        htonl(*((uint32_t *)dest)), prefixlen);
   if (ret != 0) {
     /* delete failed. */
-    lagopus_msg_warning("[route(DIR-24-8)] route entry delete failed from lpm.");
+    lagopus_msg_warning("[route(DIR-24-8)]route entry delete failed from lpm.");
   }
 
   if (ret == 0 && nexthop_index >= 0) {
@@ -398,37 +542,7 @@ route_ipv4_delete(struct in_addr *dest, int prefixlen,
 
   return LAGOPUS_RESULT_OK;
 }
-#endif /* LPM_XXX */
 
-#ifdef LPM_PTREE
-lagopus_result_t
-route_ipv4_nexthop_get(const struct in_addr *ip_dst,
-                       int prefixlen,
-                       struct in_addr *nexthop,
-                       uint8_t *scope) {
-  struct route_ipv4 *rib = NULL;
-
-  /* get nexthop and scope by dst ip addr. */
-  if (prefixlen == IPV4_BITLEN) {
-    rib = ptree_find_node(&route_ipv4.rib, ip_dst);
-  } else {
-    rib = ptree_find_filtered_node(&route_ipv4.rib, ip_dst,
-                                   ptree_mask_filter,
-                                   (void *)&prefixlen);
-  }
-
-  if (rib) {
-    if (rib->nexthop) {
-      *scope = rib->nexthop->scope;
-      memcpy(nexthop, &(rib->nexthop->gate), sizeof(struct in_addr));
-    }
-  }
-
-  route_ipv4_dump();
-
-  return LAGOPUS_RESULT_OK;
-}
-#elif defined LPM_DIR_24_8
 lagopus_result_t
 route_ipv4_nexthop_get(const struct in_addr *ip_dst,
                        int prefixlen,
@@ -448,38 +562,6 @@ route_ipv4_nexthop_get(const struct in_addr *ip_dst,
 
   return LAGOPUS_RESULT_OK;
 }
-#endif /* LPM_XXX */
 
-static void
-route_ipv6_log(const char *type_str, struct in6_addr *dest,
-                   int prefixlen, struct in6_addr *gate, int ifindex) {
-  PRINTF("Route %s:", type_str);
-
-  if (dest) {
-    char buf[BUFSIZ];
-
-    inet_ntop(AF_INET6, dest, buf, BUFSIZ);
-    PRINTF(" %s/%d", buf, prefixlen);
-  }
-  if (gate) {
-    char buf[BUFSIZ];
-
-    inet_ntop(AF_INET6, gate, buf, BUFSIZ);
-    PRINTF(" via %s", buf);
-  }
-
-  PRINTF("\n");
-}
-
-void
-route_ipv6_add(struct in6_addr *dest, int prefixlen,
-                   struct in6_addr *gate, int ifindex) {
-  route_ipv6_log("add", dest, prefixlen, gate, ifindex);
-}
-
-void
-route_ipv6_delete(struct in6_addr *dest, int prefixlen,
-                      struct in6_addr *gate, int ifindex) {
-  route_ipv6_log("del", dest, prefixlen, gate, ifindex);
-}
-
+#endif
+#endif

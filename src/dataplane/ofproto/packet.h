@@ -43,6 +43,10 @@
 #endif /* HAVE_NET_ETHERNET_H */
 #endif /* HAVE_DPDK */
 
+#if defined HYBRID && defined PIPELINER
+#include "lagopus/pipeline.h"
+#endif /* HYBRID && PIPELINER */
+
 #define __FAVOR_BSD
 #include <netinet/if_ether.h>
 #include <netinet/in.h>
@@ -216,11 +220,13 @@ enum {
  */
 #define LAGOPUS_DP_PIPELINE_MAX 254
 
+#define MBUF2PKT(m) ((struct lagopus_packet *)&(m)[1])
+#define PKT2MBUF(p) (&((OS_MBUF *)(p))[-1])
+
 /**
  * lagopus packet structure
  */
 struct lagopus_packet {
-  OS_MBUF *mbuf;
   union {
     uint64_t hash64;
     struct {
@@ -304,6 +310,15 @@ struct lagopus_packet {
 
   uint32_t queue_id;
   uint32_t flags;
+
+#ifdef HYBRID
+  uint32_t output_port;
+  bool send_kernel;
+  struct interface *ifp;
+#ifdef PIPELINER
+  struct pipeline_context pipeline_context;
+#endif /* PIPELINER */
+#endif /* HYBRID */
 };
 
 #define ETHER_HDR     struct ether_header

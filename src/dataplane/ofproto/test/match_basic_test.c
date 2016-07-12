@@ -72,7 +72,7 @@ test_match_flow_basic(void) {
   /* prepare packet */
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "alloc_lagopus_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
   OS_M_APPEND(m, 64);
   lagopus_packet_init(pkt, m, &port);
 
@@ -149,7 +149,7 @@ test_match_basic_IN_PORT(void) {
   /* prepare packet */
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "alloc_lagopus_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
   OS_M_APPEND(m, 64);
 
   /* prepare flow */
@@ -187,7 +187,7 @@ test_match_basic_PHY_PORT(void) {
   memset(&port, 0, sizeof(port));
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "alloc_lagopus_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
   OS_M_APPEND(m, 64);
 
   /* prepare flow */
@@ -223,7 +223,7 @@ test_match_basic_METADATA(void) {
   /* prepare packet */
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "alloc_lagopus_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
   OS_M_APPEND(m, 64);
 
   /* prepare flow */
@@ -258,7 +258,7 @@ test_match_basic_METADATA_W(void) {
   /* prepare packet */
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "alloc_lagopus_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
   OS_M_APPEND(m, 64);
 
   /* prepare flow */

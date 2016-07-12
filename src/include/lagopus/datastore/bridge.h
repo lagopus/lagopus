@@ -255,6 +255,7 @@ typedef struct datastore_bridge_stats {
   uint64_t flow_entries;
   uint64_t flow_lookup_count;
   uint64_t flow_matched_count;
+  struct table_stats_list flow_table_stats;
 } datastore_bridge_stats_t;
 
 

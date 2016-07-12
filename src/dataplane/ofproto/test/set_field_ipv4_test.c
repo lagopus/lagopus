@@ -52,7 +52,7 @@ test_set_field_IPV4_IP_DSCP(void) {
 
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
 
   OS_M_APPEND(m, 64);
   OS_MTOD(m, uint8_t *)[12] = 0x08;
@@ -85,7 +85,7 @@ test_set_field_IPV4_IP_ECN(void) {
 
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
 
   OS_M_APPEND(m, 64);
   OS_MTOD(m, uint8_t *)[12] = 0x08;
@@ -118,7 +118,7 @@ test_set_field_IPV4_IP_PROTO(void) {
 
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
 
   OS_M_APPEND(m, 64);
   OS_MTOD(m, uint8_t *)[12] = 0x08;
@@ -151,7 +151,7 @@ test_set_field_IPV4_SRC(void) {
 
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
 
   OS_M_APPEND(m, 64);
   OS_MTOD(m, uint8_t *)[12] = 0x08;
@@ -189,7 +189,7 @@ test_set_field_IPV4_DST(void) {
 
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
 
   OS_M_APPEND(m, 64);
   OS_MTOD(m, uint8_t *)[12] = 0x08;
@@ -229,7 +229,7 @@ test_set_field_IPV4_TCP_SRC(void) {
 
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
 
   OS_M_APPEND(m, 64);
   len = (uint16_t)(OS_M_PKTLEN(m) - sizeof(ETHER_HDR));
@@ -269,7 +269,7 @@ test_set_field_IPV4_TCP_DST(void) {
 
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
 
   OS_M_APPEND(m, 64);
   len = (uint16_t)(OS_M_PKTLEN(m) - sizeof(ETHER_HDR));
@@ -309,7 +309,7 @@ test_set_field_IPV4_UDP_SRC(void) {
 
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
 
   OS_M_APPEND(m, 64);
   len = (uint16_t)(OS_M_PKTLEN(m) - sizeof(ETHER_HDR));
@@ -349,7 +349,7 @@ test_set_field_IPV4_UDP_DST(void) {
 
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
 
   OS_M_APPEND(m, 64);
   len = (uint16_t)(OS_M_PKTLEN(m) - sizeof(ETHER_HDR));
@@ -389,7 +389,7 @@ test_set_field_IPV4_SCTP_SRC(void) {
 
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
 
   OS_M_APPEND(m, 64);
   len = (uint16_t)(OS_M_PKTLEN(m) - sizeof(ETHER_HDR));
@@ -429,7 +429,7 @@ test_set_field_IPV4_SCTP_DST(void) {
 
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
 
   OS_M_APPEND(m, 64);
   len = (uint16_t)(OS_M_PKTLEN(m) - sizeof(ETHER_HDR));
@@ -469,7 +469,7 @@ test_set_field_ICMPV4_TYPE(void) {
 
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
 
   OS_M_APPEND(m, 64);
   len = (uint16_t)(OS_M_PKTLEN(m) - sizeof(ETHER_HDR));
@@ -506,7 +506,7 @@ test_set_field_ICMPV4_CODE(void) {
 
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
 
   OS_M_APPEND(m, 64);
   len = (uint16_t)(OS_M_PKTLEN(m) - sizeof(ETHER_HDR));

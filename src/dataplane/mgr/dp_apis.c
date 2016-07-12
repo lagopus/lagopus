@@ -339,16 +339,11 @@ dp_interface_ip_set(const char *in_name, int family, const struct in_addr *ip,
 }
 
 lagopus_result_t
-dp_interface_ip_get(const char *name, int family, struct in_addr *addr,
+dp_interface_ip_get(struct interface *ifp, int family, struct in_addr *addr,
                     struct in_addr *broad, uint8_t *prefixlen) {
-  struct interface *ifp;
   lagopus_ip_address_t **ip_addr;
-  lagopus_result_t rv = LAGOPUS_RESULT_ANY_FAILURES;
+  lagopus_result_t rv = LAGOPUS_RESULT_OK;
 
-  rv = lagopus_hashmap_find(&interface_hashmap, (void *)name, (void **)&ifp);
-  if (rv != LAGOPUS_RESULT_OK) {
-    return rv;
-  }
 #ifdef HAVE_DPDK
   ip_addr = &(ifp->info.eth_dpdk_phy.ip_addr);
 #else /* HAVE_DPDK */
@@ -499,6 +494,19 @@ dp_port_stop(const char *name) {
   port->ofp_port.config |= OFPPC_PORT_DOWN;
 
   return rv;
+}
+
+lagopus_result_t
+dp_port_cookie_get(const char *name, void **cookiep) {
+  return lagopus_hashmap_find(&port_hashmap, (void *)name, cookiep);
+}
+
+lagopus_result_t
+dp_port_rx_burst(const void *cookie, void *mbufs[], size_t nb) {
+  struct port *port;
+
+  port = cookie;
+  return dp_interface_rx_burst_internal(port->interface, mbufs, nb);
 }
 
 lagopus_result_t
@@ -945,6 +953,7 @@ dp_bridge_mactable_configs_get(const char *name,
 out:
   return rv;
 }
+
 #endif /* HYBRID */
 
 lagopus_result_t
@@ -1176,7 +1185,6 @@ dp_bridge_port_count(const char *name) {
 lagopus_result_t
 dp_bridge_stats_get(const char *name,
                     datastore_bridge_stats_t *stats) {
-  struct table_stats_list list;
   struct ofp_error error;
   struct ofcachestat cache_stats;
   struct bridge *bridge;
@@ -1194,19 +1202,14 @@ dp_bridge_stats_get(const char *name,
   stats->flow_entries = 0;
   stats->flow_lookup_count = 0;
   stats->flow_matched_count = 0;
-  TAILQ_INIT(&list);
-  rv = flowdb_table_stats(bridge->flowdb, &list, &error);
+  rv = flowdb_table_stats(bridge->flowdb, &stats->flow_table_stats, &error);
   if (rv == LAGOPUS_RESULT_OK) {
     struct table_stats *table_stats;
 
-    TAILQ_FOREACH(table_stats, &list, entry) {
+    TAILQ_FOREACH(table_stats, &stats->flow_table_stats, entry) {
       stats->flow_entries += table_stats->ofp.active_count;
       stats->flow_lookup_count += table_stats->ofp.lookup_count;
       stats->flow_matched_count += table_stats->ofp.matched_count;
-    }
-    while ((table_stats = TAILQ_FIRST(&list)) != NULL) {
-      TAILQ_REMOVE(&list, table_stats, entry);
-      free(table_stats);
     }
   }
   dp_get_flowcache_statistics(bridge, &cache_stats);
@@ -1330,7 +1333,8 @@ dp_queue_create(const char *name,
     goto out;
   }
   memcpy(queue, queue_info, sizeof(datastore_queue_info_t));
-  rv = lagopus_hashmap_add(&queue_hashmap, (void *)name, (void **)&queue, false);
+  rv = lagopus_hashmap_add(&queue_hashmap, (void *)name,
+                           (void **)&queue, false);
   if (rv == LAGOPUS_RESULT_OK) {
     rv = lagopus_hashmap_find(&queue_hashmap, (void *)name, (void **)&queue);
     if (rv != LAGOPUS_RESULT_OK) {
@@ -1450,3 +1454,5 @@ dp_policer_action_stop(const char *name) {
   (void) name;
   return LAGOPUS_RESULT_OK;
 }
+
+

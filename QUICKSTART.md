@@ -451,15 +451,3 @@ Development
 ==========================
 Lagopus has the developer's mode build to proceed unit tests in Lagopus.
 Details can be found docs/how-to-write-tests-in-lagopus.md.
-
-You can enable developer mode with the following configure option.
-
-```
-	$ ./configure --enable-developer
-```
-
-To conduct developer's mode, you should install the following packages:
-
-* ruby
-* Unity (a unit test framework)
-* gcovr
