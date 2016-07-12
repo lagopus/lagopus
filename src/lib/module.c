@@ -29,6 +29,21 @@
 
 
 typedef enum {
+  MODULE_GLOBAL_STATE_UNKNOWN = 0,
+  MODULE_GLOBAL_STATE_INITIALIZING,
+  MODULE_GLOBAL_STATE_INITIALIZED,
+  MODULE_GLOBAL_STATE_STARTING,
+  MODULE_GLOBAL_STATE_STARTED,
+  MODULE_GLOBAL_STATE_SHUTTINGDOWN,
+  MODULE_GLOBAL_STATE_STOPPING,
+  MODULE_GLOBAL_STATE_WAITING,
+  MODULE_GLOBAL_STATE_SHUTDOWN,
+  MODULE_GLOBAL_STATE_FINALIZING,
+  MODULE_GLOBAL_STATE_FINALIZED
+} s_module_global_state_t;
+
+  
+typedef enum {
   MODULE_STATE_UNKNOWN = 0,
   MODULE_STATE_REGISTERED,
   MODULE_STATE_INITIALIZED,
@@ -57,21 +72,28 @@ typedef struct {
 
 
 
+static volatile s_module_global_state_t s_gstate = MODULE_GLOBAL_STATE_UNKNOWN;
+static pthread_t s_initializer_tid = LAGOPUS_INVALID_THREAD;
+
 static size_t s_n_modules = 0;
-static volatile size_t s_n_finalized_modules = 0;
-static volatile bool s_is_finalized = false;
-static volatile bool s_is_unloading = false;
 static a_module s_modules[MAX_MODULES];
+static volatile size_t s_n_finalized_modules = 0;
+static volatile size_t s_cur_module_idx = 0;
+
+static volatile bool s_is_unloading = false;
 
 static pthread_once_t s_once = PTHREAD_ONCE_INIT;
 static lagopus_mutex_t s_lck = NULL;
 static lagopus_cond_t s_cnd = NULL;
 
+static volatile int s_is_exit_handler_called = 0;
+
+
 /*
  * NOTE:
  *
- *	This module must be initialized at the last of static
- *	onstruction sequence. So check the priority when new modules
+ *	This module must be initialized at last of the static
+ *	construction sequence. So check the priority when new modules
  *	are added.
  */
 static void	s_ctors(void) __attr_constructor__(113);
@@ -87,12 +109,16 @@ static void
 s_once_proc(void) {
   lagopus_result_t r;
 
+  s_gstate = MODULE_GLOBAL_STATE_UNKNOWN;
   s_n_modules = 0;
   s_n_finalized_modules = 0;
-  s_is_finalized = false;
   s_is_unloading = false;
+  s_cur_module_idx = 0;
+  s_initializer_tid = pthread_self();
+  (void)__sync_add_and_fetch(&s_is_exit_handler_called, 0);
   (void)memset((void *)s_modules, 0, sizeof(s_modules));
-
+  mbar();
+  
   if ((r = lagopus_mutex_create(&s_lck)) != LAGOPUS_RESULT_OK) {
     lagopus_perror(r);
     lagopus_exit_fatal("can't initialize a mutex.\n");
@@ -153,6 +179,15 @@ s_lock(void) {
 }
 
 
+static inline lagopus_result_t
+s_trylock(void) {
+  if (s_lck != NULL) {
+    return lagopus_mutex_trylock(&s_lck);
+  }
+  return LAGOPUS_RESULT_INVALID_ARGS;
+}
+
+
 static inline void
 s_unlock(void) {
   if (s_lck != NULL) {
@@ -182,36 +217,122 @@ s_wakeup(void) {
 
 
 
-
 static void
 s_atexit_handler(void) {
-  lagopus_result_t r;
+  if (likely(__sync_fetch_and_add(&s_is_exit_handler_called, 1) == 0)) {
+    lagopus_result_t r;
+    r = s_trylock();
 
-  s_lock();
-  {
+    if (likely(r == LAGOPUS_RESULT_OK)) {
+      bool is_finished_cleanly = false;
 
-    if (s_n_modules > 0) {
-      mbar();
-   recheck:
-      if (s_is_finalized == false) {
-        r = s_wait(100LL * 1000LL * 1000LL);
-        if (r == LAGOPUS_RESULT_OK) {
-          goto recheck;
-        } else if (r == LAGOPUS_RESULT_TIMEDOUT) {
-          lagopus_msg_warning("Module finaliations seems not completed.\n");
+      if (s_n_modules > 0) {
+
+     recheck:
+        mbar();
+	if (s_gstate == MODULE_GLOBAL_STATE_UNKNOWN) {
+          is_finished_cleanly = true;
+        } else if (s_gstate == MODULE_GLOBAL_STATE_STARTED) {
+          (void)global_state_request_shutdown(SHUTDOWN_RIGHT_NOW);
+        } else if (s_gstate != MODULE_GLOBAL_STATE_FINALIZED) {
+          r = s_wait(100LL * 1000LL * 1000LL);
+          if (r == LAGOPUS_RESULT_OK) {
+            goto recheck;
+          } else if (r == LAGOPUS_RESULT_TIMEDOUT) {
+            lagopus_msg_warning("Module finalization seems not completed.\n");
+          } else {
+            lagopus_perror(r);
+            lagopus_msg_error("module finalization wait failed.\n");
+          }
         } else {
-          lagopus_perror(r);
-          lagopus_msg_error("module finalization wait failed.\n");
+          is_finished_cleanly = true;
         }
       }
 
-      s_is_unloading = true;
-      mbar();
+      if (is_finished_cleanly == true) {
+        s_is_unloading = true;
+        mbar();
+      }
+
+      s_unlock();
+
+    } else if (r == LAGOPUS_RESULT_BUSY) {
+      /*
+       * The lock failure. Snoop s_gstate anyway. Note that it's safe
+       * since the modules are always accessesed only by a single
+       * thread and the thread is calling exit(3) at this moment.
+       */
+      if (s_gstate == MODULE_GLOBAL_STATE_UNKNOWN) {
+        /*
+         * No modules are initialized. Just exit cleanly and let all
+         * the static destructors run.
+         */
+        s_is_unloading = true;
+        mbar();
+      } else {
+        if (pthread_self() == s_initializer_tid) {
+          /*
+           * Made sure that this very thread is the module
+           * initializer. So we can safely unlock the lock.
+           */
+
+          switch (s_gstate) {
+
+            case MODULE_GLOBAL_STATE_FINALIZING:
+            case MODULE_GLOBAL_STATE_FINALIZED:
+            case MODULE_GLOBAL_STATE_UNKNOWN: {
+              s_unlock();
+              /*
+               * Nothing is needed to do.
+               */
+              break;
+            }
+
+            case MODULE_GLOBAL_STATE_INITIALIZING:
+            case MODULE_GLOBAL_STATE_INITIALIZED:
+            case MODULE_GLOBAL_STATE_STARTING: {
+              s_unlock();
+              /*
+               * With this only modules safely finalizable so far are
+               * finalized.
+               */
+              lagopus_module_finalize_all();
+              break;
+            }
+
+            case MODULE_GLOBAL_STATE_STARTED: {
+              s_unlock();
+              (void)global_state_request_shutdown(SHUTDOWN_RIGHT_NOW);
+              break;
+            }
+
+            case MODULE_GLOBAL_STATE_SHUTTINGDOWN:
+            case MODULE_GLOBAL_STATE_STOPPING:
+            case MODULE_GLOBAL_STATE_WAITING:
+            case MODULE_GLOBAL_STATE_SHUTDOWN: {
+              s_unlock();
+              /*
+               * There's nothing we can do at this moment.
+               */
+              break;
+            }
+
+            default: {
+              s_unlock();
+              break;
+            }
+          }
+
+        } else { /* (pthread_self() == s_initializer_tid) */
+          /*
+           * This menas that a thread other than module initialized is
+           * locking the lock. There's nothing we can do at this moment.
+           */
+          return;
+        }
+      } /* (s_gstate == MODULE_GLOBAL_STATE_UNKNOWN) */
     }
-
   }
-  s_unlock();
-
 }
 
 
@@ -470,10 +591,14 @@ static inline void
 s_finalize_module(a_module *mptr) {
   if (mptr != NULL &&
       mptr->m_finalize_proc != NULL) {
-    if (mptr->m_status != MODULE_STATE_STARTED &&
-        mptr->m_status != MODULE_STATE_CANCELLING) {
+    if (mptr->m_status == MODULE_STATE_INITIALIZED ||
+        mptr->m_status == MODULE_STATE_SHUTDOWN ||
+        mptr->m_status == MODULE_STATE_STOPPED) {
       (mptr->m_finalize_proc)();
       (void)__sync_fetch_and_add(&s_n_finalized_modules, 1);
+    } else if (mptr->m_status == MODULE_STATE_UNKNOWN ||
+               mptr->m_status == MODULE_STATE_REGISTERED) {
+      return;
     } else {
       lagopus_msg_warning("the module \"%s\" seems to be still running, "
                           "won't destruct it for safe.\n",
@@ -553,9 +678,12 @@ lagopus_module_initialize_all(int argc, const char *const argv[]) {
 
   s_lock();
   {
+
     if (s_n_modules > 0) {
       size_t i;
       a_module *mptr;
+
+      s_gstate = MODULE_GLOBAL_STATE_INITIALIZING;
 
       for (ret = LAGOPUS_RESULT_OK, i = 0;
            ret == LAGOPUS_RESULT_OK && i < s_n_modules;
@@ -571,6 +699,11 @@ lagopus_module_initialize_all(int argc, const char *const argv[]) {
     } else {
       ret = LAGOPUS_RESULT_OK;
     }
+
+    if (ret == LAGOPUS_RESULT_OK) {
+      s_gstate = MODULE_GLOBAL_STATE_INITIALIZED;
+    }
+
   }
   s_unlock();
 
@@ -584,6 +717,9 @@ lagopus_module_start_all(void) {
 
   s_lock();
   {
+
+    s_gstate = MODULE_GLOBAL_STATE_STARTING;
+
     if (s_n_modules > 0) {
       size_t i;
       a_module *mptr;
@@ -602,6 +738,11 @@ lagopus_module_start_all(void) {
     } else {
       ret = LAGOPUS_RESULT_OK;
     }
+
+    if (ret == LAGOPUS_RESULT_OK) {
+      s_gstate = MODULE_GLOBAL_STATE_STARTED;
+    }
+
   }
   s_unlock();
 
@@ -617,6 +758,9 @@ lagopus_module_shutdown_all(shutdown_grace_level_t level) {
 
     s_lock();
     {
+
+      s_gstate = MODULE_GLOBAL_STATE_SHUTTINGDOWN;
+
       if (s_n_modules > 0) {
         lagopus_result_t first_err = LAGOPUS_RESULT_OK;
         size_t i;
@@ -647,6 +791,7 @@ lagopus_module_shutdown_all(shutdown_grace_level_t level) {
       } else {
         ret = LAGOPUS_RESULT_OK;
       }
+
     }
     s_unlock();
 
@@ -664,6 +809,9 @@ lagopus_module_stop_all(void) {
 
   s_lock();
   {
+
+    s_gstate = MODULE_GLOBAL_STATE_STOPPING;
+
     if (s_n_modules > 0) {
       lagopus_result_t first_err = LAGOPUS_RESULT_OK;
       size_t i;
@@ -694,6 +842,7 @@ lagopus_module_stop_all(void) {
     } else {
       ret = LAGOPUS_RESULT_OK;
     }
+
   }
   s_unlock();
 
@@ -707,6 +856,9 @@ lagopus_module_wait_all(lagopus_chrono_t nsec) {
 
   s_lock();
   {
+
+    s_gstate = MODULE_GLOBAL_STATE_WAITING;
+
     if (s_n_modules > 0) {
       lagopus_result_t first_err = LAGOPUS_RESULT_OK;
       size_t i;
@@ -770,6 +922,11 @@ lagopus_module_wait_all(lagopus_chrono_t nsec) {
     } else {
       ret = LAGOPUS_RESULT_OK;
     }
+
+    if (ret == LAGOPUS_RESULT_OK) {
+      s_gstate = MODULE_GLOBAL_STATE_SHUTDOWN;
+    }
+
   }
   s_unlock();
 
@@ -781,6 +938,9 @@ void
 lagopus_module_finalize_all(void) {
   s_lock();
   {
+
+    s_gstate = MODULE_GLOBAL_STATE_FINALIZING;
+
     if (s_n_modules > 0) {
       size_t i;
       a_module *mptr;
@@ -794,7 +954,7 @@ lagopus_module_finalize_all(void) {
       }
     }
 
-    s_is_finalized = true;
+    s_gstate = MODULE_GLOBAL_STATE_FINALIZED;
 
     s_wakeup();
   }

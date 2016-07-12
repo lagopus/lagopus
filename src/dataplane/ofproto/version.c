@@ -26,6 +26,11 @@
 #include <inttypes.h>
 #include <string.h>
 
+#include "lagopus_apis.h"
+#include "openflow.h"
+#include "lagopus/flowdb.h"
+#include "lagopus/dataplane.h"
+
 #ifdef HAVE_DPDK
 #include <rte_config.h>
 #include <rte_memory.h>
@@ -33,11 +38,6 @@
 #include <rte_version.h>
 #include "dpdk/dpdk.h"
 #endif /* HAVE_DPDK */
-
-#include "lagopus_apis.h"
-#include "openflow.h"
-#include "lagopus/flowdb.h"
-#include "lagopus/dataplane.h"
 
 void
 copy_dataplane_info(char *buf, int len) {

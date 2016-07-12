@@ -34,7 +34,7 @@
 #include "lagopus/dataplane.h"
 #include "netlink.h"
 #include "event.h"
-#include "rib.h"
+#include "rib_notifier.h"
 #include "thread.h"
 
 #ifdef HYBRID
@@ -383,22 +383,26 @@ netlink_addr(__UNUSED struct sockaddr_nl *snl, struct nlmsghdr *h) {
 
   if (ifa->ifa_family == AF_INET) {
     if (h->nlmsg_type == RTM_NEWADDR) {
-      rib_ipv4_addr_add(ifindex, (struct in_addr *)addr, ifa->ifa_prefixlen,
-                        (struct in_addr *)broad, label);
+      rib_notifier_ipv4_addr_add(ifindex, (struct in_addr *)addr,
+                                 ifa->ifa_prefixlen,
+                                 (struct in_addr *)broad, label);
     } else {
 #ifdef HYBRID
       dp_interface_ip_unset(label);
 #endif
-      rib_ipv4_addr_delete(ifindex, (struct in_addr *)addr, ifa->ifa_prefixlen,
-                           (struct in_addr *)broad, label);
+      rib_notifier_ipv4_addr_delete(ifindex, (struct in_addr *)addr,
+                                    ifa->ifa_prefixlen,
+                                    (struct in_addr *)broad, label);
     }
   } else {
     if (h->nlmsg_type == RTM_NEWADDR) {
-      rib_ipv6_addr_add(ifindex, (struct in6_addr *)addr, ifa->ifa_prefixlen,
-                        (struct in6_addr *)broad, label);
+      rib_notifier_ipv6_addr_add(ifindex, (struct in6_addr *)addr,
+                                 ifa->ifa_prefixlen,
+                                 (struct in6_addr *)broad, label);
     } else {
-      rib_ipv6_addr_delete(ifindex, (struct in6_addr *)addr, ifa->ifa_prefixlen,
-                           (struct in6_addr *)broad, label);
+      rib_notifier_ipv6_addr_delete(ifindex, (struct in6_addr *)addr,
+                                    ifa->ifa_prefixlen,
+                                    (struct in6_addr *)broad, label);
     }
   }
 
@@ -491,11 +495,11 @@ netlink_route(__UNUSED struct sockaddr_nl *snl, struct nlmsghdr *h) {
     } else {
       memset(&g, 0, 4);
     }
-    
+
     if (h->nlmsg_type == RTM_NEWROUTE) {
-      rib_ipv4_route_add(&p, plen, &g, ifindex, rtm->rtm_scope);
+      rib_notifier_ipv4_route_add(&p, plen, &g, ifindex, rtm->rtm_scope);
     } else {
-      rib_ipv4_route_delete(&p, plen, gate ? &g : NULL, ifindex);
+      rib_notifier_ipv4_route_delete(&p, plen, &g, ifindex);
     }
   }  else {
     struct in6_addr p;
@@ -505,11 +509,13 @@ netlink_route(__UNUSED struct sockaddr_nl *snl, struct nlmsghdr *h) {
     if (gate) {
       memcpy(&g, gate, 16);
     }
-    
+
     if (h->nlmsg_type == RTM_NEWROUTE) {
-      rib_ipv6_route_add((struct in6_addr *)dest, plen, gate ? &g : NULL, ifindex);
+      rib_notifier_ipv6_route_add((struct in6_addr *)dest, plen,
+                                  &g, ifindex);
     } else {
-      rib_ipv6_route_delete((struct in6_addr *)dest, plen, gate ? &g : NULL, ifindex);
+      rib_notifier_ipv6_route_delete((struct in6_addr *)dest, plen,
+                                  &g, ifindex);
     }
   }
   return 0;
@@ -563,9 +569,9 @@ netlink_link(__UNUSED struct sockaddr_nl *snl, struct nlmsghdr *h) {
 
   if (h->nlmsg_type == RTM_NEWLINK) {
     netlink_ifparam_parse(&param, tb, ifi);
-    rib_interface_update(ifindex, &param);
+    rib_notifier_interface_update(ifindex, &param);
   } else {
-    rib_interface_delete(ifindex);
+    rib_notifier_interface_delete(ifindex);
   }
 
   return 0;
@@ -636,15 +642,19 @@ netlink_neigh(__UNUSED struct sockaddr_nl *snl, struct nlmsghdr *h) {
 
   if (ndm->ndm_family == AF_INET) {
     if (h->nlmsg_type == RTM_NEWNEIGH && ll_addr != NULL) {
-      rib_arp_add(ndm->ndm_ifindex, (struct in_addr *)dst_addr, ll_addr);
+      rib_notifier_arp_add(ndm->ndm_ifindex,
+                           (struct in_addr *)dst_addr, ll_addr);
     } else {
-      rib_arp_delete(ndm->ndm_ifindex, (struct in_addr *)dst_addr, ll_addr);
+      rib_notifier_arp_delete(ndm->ndm_ifindex,
+                              (struct in_addr *)dst_addr, ll_addr);
     }
   } else {
     if (h->nlmsg_type == RTM_NEWNEIGH) {
-      rib_ndp_add(ndm->ndm_ifindex, (struct in6_addr *)dst_addr, ll_addr);
+      rib_notifier_ndp_add(ndm->ndm_ifindex,
+                           (struct in6_addr *)dst_addr, ll_addr);
     } else {
-      rib_ndp_delete(ndm->ndm_ifindex, (struct in6_addr *)dst_addr, ll_addr);
+      rib_notifier_ndp_delete(ndm->ndm_ifindex,
+                              (struct in6_addr *)dst_addr, ll_addr);
     }
   }
   return 0;
@@ -818,8 +828,8 @@ dp_netlink_thread_loop(__UNUSED const lagopus_thread_t *selfptr,
   struct event_manager *em;
   struct event *event;
 
-  rib_init();
-  
+  rib_notifier_init();
+
   em = event_manager_alloc();
   if (em == NULL) {
     lagopus_msg_error("dp_netlink_thread_loop(): event_manager alloc failed\n");
@@ -867,62 +877,13 @@ dp_netlink_thread_fini(void) {
 
 lagopus_result_t
 dp_netlink_thread_shutdown(shutdown_grace_level_t level) {
-  return dp_thread_shutdown(&netlink_thread, &netlink_lock, &netlink_run, level);
+  return dp_thread_shutdown(&netlink_thread, &netlink_lock,
+                            &netlink_run, level);
 }
 
 lagopus_result_t
 dp_netlink_thread_stop(void) {
   return dp_thread_stop(&netlink_thread, &netlink_run);
 }
-#endif
+#endif /* HYBRID */
 
-#if 0
-int
-netlink_socket_create(struct netlink *netlink) {
-  int sock;
-  int ret;
-  struct sockaddr_nl remote;
-  struct sockaddr_nl local;
-  socklen_t local_len;
-
-  netlink->sock = socket(AF_NETLINK, SOCK_RAW, NETLINK_GENERIC);
-  if (netlink->sock < 0) {
-    return -1;
-  }
-
-  memset(&remote, 0, sizeof(remote));
-  remote.nl_family = AF_NETLINK;
-  ret = connect(netlink->sock, (struct sockaddr *)&remote, sizeof(remote));
-  if (ret < 0) {
-    goto error;
-  }
-
-  memset(&local, 0, sizeof(local));
-  local_len = sizeof(local);
-  ret = getsockname(netlink->sock, (struct sockaddr *)&local, &local_len);
-  if (ret < 0) {
-    goto error;
-  }
-  netlink->pid = local.nl_pid;
-
-error:
-  if (ret < 0) {
-    netlink_socket_close(netlink);
-    return ret;
-  }
-
-  return sock;
-}
-
-void
-netlink_socket_close(struct netlink *netlink) {
-  if (netlink->sock > 0) {
-    close(netlink->sock);
-  }
-}
-
-int
-netlink_socket_send(struct netlink *netlink) {
-  int ret;
-}
-#endif

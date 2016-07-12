@@ -50,7 +50,7 @@ test_execute_instruction_GOTO_TABLE(void) {
   struct ofp_instruction_goto_table *ofp_insn;
   OS_MBUF *m;
 
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
   OS_M_APPEND(m, 64);
 
   insn = calloc(1, sizeof(struct instruction) +
@@ -119,7 +119,7 @@ test_execute_instruction_WRITE_ACTIONS(void) {
   struct ofp_action_push *action_push;
   OS_MBUF *m;
 
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
   OS_M_APPEND(m, 64);
 
   ofp_insn = &insn.ofpit;
@@ -152,7 +152,7 @@ test_execute_instruction_CLEAR_ACTIONS(void) {
   struct ofp_action_push *action_push;
   OS_MBUF *m;
 
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
   OS_M_APPEND(m, 64);
 
   ofp_insn = &insn.ofpit;
@@ -187,7 +187,7 @@ test_execute_instruction_APPLY_ACTIONS(void) {
   struct ofp_action_push *action_push;
   OS_MBUF *m;
 
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
   OS_M_APPEND(m, 64);
   OS_MTOD(m, uint8_t *)[12] = 0x08;
   OS_MTOD(m, uint8_t *)[13] = 0x00;
@@ -232,7 +232,7 @@ test_execute_instruction_EXPERIMENTER(void) {
   struct ofp_instruction_experimenter *ofp_insn;
   OS_MBUF *m;
 
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
   OS_M_APPEND(m, 64);
 
   insn = calloc(1, sizeof(struct instruction) +
@@ -258,7 +258,7 @@ test_execute_instruction_METER(void) {
   struct ofp_instruction_meter *ofp_insn;
   OS_MBUF *m;
 
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
   OS_M_APPEND(m, 64);
   m->refcnt = 1;
 

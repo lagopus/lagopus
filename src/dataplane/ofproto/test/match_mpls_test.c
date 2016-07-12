@@ -53,7 +53,7 @@ test_match_flow_mpls(void) {
   /* prepare packet */
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
   OS_M_APPEND(m, 64);
 
   /* prepare flow table */
@@ -113,7 +113,7 @@ test_match_basic_MPLS_LABEL(void) {
   /* prepare packet */
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
   OS_M_APPEND(m, 64);
 
   /* prepare flow */
@@ -166,7 +166,7 @@ test_match_basic_MPLS_TC(void) {
   /* prepare packet */
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
   OS_M_APPEND(m, 64);
 
   /* prepare flow */
@@ -219,7 +219,7 @@ test_match_basic_MPLS_BOS(void) {
   /* prepare packet */
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
   OS_M_APPEND(m, 64);
 
   /* prepare flow */
@@ -272,7 +272,7 @@ test_match_basic_MPLSMC_LABEL(void) {
   /* prepare packet */
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
   OS_M_APPEND(m, 64);
 
   /* prepare flow */
@@ -325,7 +325,7 @@ test_match_basic_MPLSMC_TC(void) {
   /* prepare packet */
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
   OS_M_APPEND(m, 64);
 
   /* prepare flow */
@@ -378,7 +378,7 @@ test_match_basic_MPLSMC_BOS(void) {
   /* prepare packet */
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
   OS_M_APPEND(m, 64);
 
   /* prepare flow */

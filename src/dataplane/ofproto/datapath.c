@@ -354,7 +354,7 @@ classify_packet_ipv6(struct lagopus_packet *pkt) {
   pkt->v6src = IPV6_SRC(ipv6_hdr);
   pkt->v6dst = IPV6_DST(ipv6_hdr);
   next_hdr = pkt->l3_hdr + sizeof(IPV6_HDR);
-  pktlen = OS_M_PKTLEN(pkt->mbuf) - (uint32_t)(pkt->l3_hdr - pkt->l2_hdr);
+  pktlen = OS_M_PKTLEN(PKT2MBUF(pkt)) - (uint32_t)(pkt->l3_hdr - pkt->l2_hdr);
   for (;;) {
     if (pktlen <= 2) {
       /* valid protocol is not found */
@@ -482,7 +482,7 @@ classify_packet_l2(struct lagopus_packet *pkt) {
   pkt->base[OOB_BASE] = (void *)&pkt->oob_data;
   pkt->base[OOB2_BASE] = (void *)&pkt->oob2_data;
 
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
   pktlen = (ssize_t)OS_M_PKTLEN(m);
 
   pkt->eth = OS_MTOD(m, ETHER_HDR *);
@@ -602,7 +602,6 @@ lagopus_packet_init(struct lagopus_packet *pkt, void *m, struct port *port) {
   pkt->flags = 0;
   pkt->nmatched = 0;
   /* set raw packet data and port */
-  pkt->mbuf = (OS_MBUF *)m;
   pkt->in_port = port;
   pkt->bridge = port->bridge;
   pkt->oob_data.in_port = htonl(port->ofp_port.port_no);
@@ -675,11 +674,11 @@ copy_packet(struct lagopus_packet *src_pkt) {
     lagopus_msg_error("alloc_lagopus_packet failed\n");
     return NULL;
   }
-  mbuf = pkt->mbuf;
-  pktlen = OS_M_PKTLEN(src_pkt->mbuf);
+  mbuf = PKT2MBUF(pkt);
+  pktlen = OS_M_PKTLEN(PKT2MBUF(src_pkt));
   OS_M_APPEND(mbuf, pktlen);
-  srcm = OS_MTOD(src_pkt->mbuf, uint8_t *);
-  dstm = OS_MTOD(pkt->mbuf, uint8_t *);
+  srcm = OS_MTOD(PKT2MBUF(src_pkt), uint8_t *);
+  dstm = OS_MTOD(PKT2MBUF(pkt), uint8_t *);
   memcpy(dstm, srcm, pktlen);
   pkt->in_port = src_pkt->in_port;
   pkt->bridge = src_pkt->bridge;
@@ -1350,7 +1349,7 @@ execute_group_action(struct lagopus_packet *pkt, uint32_t group_id) {
     return LAGOPUS_RESULT_NOT_FOUND;
   }
   group->packet_count++;
-  group->byte_count += OS_M_PKTLEN(pkt->mbuf);
+  group->byte_count += OS_M_PKTLEN(PKT2MBUF(pkt));
   rv = LAGOPUS_RESULT_OK;
 
   switch (group->type) {
@@ -1359,7 +1358,7 @@ execute_group_action(struct lagopus_packet *pkt, uint32_t group_id) {
         struct lagopus_packet *cpkt;
 
         bucket->counter.packet_count++;
-        bucket->counter.byte_count += OS_M_PKTLEN(pkt->mbuf);
+        bucket->counter.byte_count += OS_M_PKTLEN(PKT2MBUF(pkt));
         cpkt = copy_packet(pkt);
         if (cpkt != NULL) {
           re_classify_packet(cpkt);
@@ -1388,7 +1387,7 @@ execute_group_action(struct lagopus_packet *pkt, uint32_t group_id) {
       bucket = group_select_bucket(pkt, &group->bucket_list);
       if (bucket != NULL) {
         bucket->counter.packet_count++;
-        bucket->counter.byte_count += OS_M_PKTLEN(pkt->mbuf);
+        bucket->counter.byte_count += OS_M_PKTLEN(PKT2MBUF(pkt));
         rv = execute_action_set(pkt, bucket->actions);
       }
       break;
@@ -1398,7 +1397,7 @@ execute_group_action(struct lagopus_packet *pkt, uint32_t group_id) {
       bucket = TAILQ_FIRST(&group->bucket_list);
       if (bucket != NULL) {
         bucket->counter.packet_count++;
-        bucket->counter.byte_count += OS_M_PKTLEN(pkt->mbuf);
+        bucket->counter.byte_count += OS_M_PKTLEN(PKT2MBUF(pkt));
         rv = execute_action_set(pkt, bucket->actions);
       }
       break;
@@ -1408,7 +1407,7 @@ execute_group_action(struct lagopus_packet *pkt, uint32_t group_id) {
       bucket = group_live_bucket(pkt->bridge, group);
       if (bucket != NULL) {
         bucket->counter.packet_count++;
-        bucket->counter.byte_count += OS_M_PKTLEN(pkt->mbuf);
+        bucket->counter.byte_count += OS_M_PKTLEN(PKT2MBUF(pkt));
         rv = execute_action_set(pkt, bucket->actions);
       }
       break;
@@ -1630,7 +1629,7 @@ send_packet_in(struct lagopus_packet *pkt,
   data->packet_in.ofp_packet_in.reason = reason;
   data->packet_in.ofp_packet_in.table_id = pkt->table_id;
   data->packet_in.ofp_packet_in.cookie = cookie;
-  ENCODE_PUT(OS_MTOD(pkt->mbuf, void *), size);
+  ENCODE_PUT(OS_MTOD(PKT2MBUF(pkt), void *), size);
   data->packet_in.data = pbuf;
   data->packet_in.miss_send_len = miss_send_len;
 
@@ -1690,16 +1689,17 @@ lagopus_do_send_iterate(void *key, void *val,
       port != pkt->in_port &&
       (port->ofp_port.config & OFPPC_NO_FWD) == 0) {
     /* send packet */
-    OS_M_ADDREF(pkt->mbuf);
+    OS_M_ADDREF(PKT2MBUF(pkt));
     lagopus_send_packet_physical(pkt, port->interface);
   }
   return true;
 }
 
 
-void
-lagopus_forward_packet_to_port(struct lagopus_packet *pkt,
-                               uint32_t out_port) {
+static void
+dp_interface_tx_packet(struct lagopus_packet *pkt,
+                       uint32_t out_port,
+                       uint64_t cookie) {
   struct port *port;
   uint32_t in_port;
 
@@ -1751,9 +1751,16 @@ lagopus_forward_packet_to_port(struct lagopus_packet *pkt,
       /* required: send packet-in message with OFPR_ACTION to controller */
       /* XXX max_len from config */
       DP_PRINT("OFPP_CONTROLLER\n");
-      if ((pkt->in_port->ofp_port.config & OFPPC_NO_PACKET_IN) == 0) {
-        send_packet_in(pkt, OS_M_PKTLEN(pkt->mbuf), OFPR_ACTION,
-                       OFPCML_NO_BUFFER, 0);
+      if ((pkt->bridge->controller_port.config & OFPPC_NO_PACKET_IN) == 0) {
+        uint8_t reason;
+
+        if (pkt->flow != NULL && pkt->flow->priority == 0) {
+          reason = OFPR_NO_MATCH;
+        } else {
+          reason = OFPR_ACTION;
+        }
+        send_packet_in(pkt, OS_M_PKTLEN(PKT2MBUF(pkt)), reason,
+                       OFPCML_NO_BUFFER, cookie);
       }
       lagopus_packet_free(pkt);
       break;
@@ -1783,6 +1790,19 @@ lagopus_forward_packet_to_port(struct lagopus_packet *pkt,
   }
 }
 
+#ifdef HYBRID
+void
+lagopus_forward_packet_to_port_hybrid(struct lagopus_packet *pkt) {
+  dp_interface_tx_packet(pkt, pkt->output_port, 0);
+}
+#endif /* HYBRID */
+
+void
+lagopus_forward_packet_to_port(struct lagopus_packet *pkt,
+                               uint32_t out_port) {
+  dp_interface_tx_packet(pkt, out_port, 0);
+}
+
 /**
  * Output action.
  * If last action is this, free packet.
@@ -1798,44 +1818,19 @@ execute_action_output(struct lagopus_packet *pkt,
   /* required action */
   port = ((struct ofp_action_output *)&action->ofpat)->port;
   DP_PRINT("action output: %d\n", port);
-  if (likely(port != OFPP_CONTROLLER)) {
-    if (unlikely(action->flags == OUTPUT_COPIED_PACKET)) {
-      /* send copied packet */
-      lagopus_forward_packet_to_port(copy_packet(pkt), port);
-      rv = LAGOPUS_RESULT_OK;
-    } else {
-      if ((pkt->flags & PKT_FLAG_CACHED_FLOW) == 0 && pkt->cache != NULL &&
-          pkt->hash64 != 0) {
-        /* register crc and flows to cache. */
-        register_cache(pkt->cache, pkt->hash64,
-                       pkt->nmatched, pkt->matched_flow);
-      }
-      lagopus_forward_packet_to_port(pkt, port);
-      rv = LAGOPUS_RESULT_NO_MORE_ACTION;
-    }
+  if (unlikely(action->flags == OUTPUT_COPIED_PACKET)) {
+    /* send copied packet */
+    dp_interface_tx_packet(copy_packet(pkt), port, action->cookie);
+    rv = LAGOPUS_RESULT_OK;
   } else {
-    struct bridge *bridge;
-
-    bridge = pkt->bridge;
-    if ((bridge->controller_port.config & OFPPC_NO_PACKET_IN) == 0) {
-      uint8_t reason;
-
-      if (pkt->flow != NULL && pkt->flow->priority == 0) {
-        reason = OFPR_NO_MATCH;
-      } else {
-        reason = OFPR_ACTION;
-      }
-      send_packet_in(pkt, OS_M_PKTLEN(pkt->mbuf), reason,
-                     OFPCML_NO_BUFFER, action->cookie);
-      if (likely(action->flags != OUTPUT_COPIED_PACKET)) {
-        lagopus_packet_free(pkt);
-        rv = LAGOPUS_RESULT_NO_MORE_ACTION;
-      } else {
-        rv = LAGOPUS_RESULT_OK;
-      }
-    } else {
-      rv = LAGOPUS_RESULT_OK;
+    if ((pkt->flags & PKT_FLAG_CACHED_FLOW) == 0 && pkt->cache != NULL &&
+        pkt->hash64 != 0) {
+      /* register crc and flows to cache. */
+      register_cache(pkt->cache, pkt->hash64,
+                     pkt->nmatched, pkt->matched_flow);
     }
+    dp_interface_tx_packet(pkt, port, action->cookie);
+    rv = LAGOPUS_RESULT_NO_MORE_ACTION;
   }
   return rv;
 }
@@ -1850,7 +1845,7 @@ execute_action_copy_ttl_out(struct lagopus_packet *pkt,
 
   DP_PRINT("action copy_ttl_out\n");
 
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
 
   /* optional */
   if (pkt->mpls != NULL) {
@@ -1895,7 +1890,7 @@ execute_action_copy_ttl_in(struct lagopus_packet *pkt,
 
   DP_PRINT("action copy_ttl_in\n");
 
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
 
   /* optional */
   if (pkt->mpls != NULL) {
@@ -1964,7 +1959,7 @@ execute_action_dec_mpls_ttl(struct lagopus_packet *pkt,
       miss_send_len = 128;
     }
     send_packet_in(pkt,
-                   OS_M_PKTLEN(pkt->mbuf),
+                   OS_M_PKTLEN(PKT2MBUF(pkt)),
                    OFPR_INVALID_TTL,
                    miss_send_len,
                    action->cookie);
@@ -1981,7 +1976,7 @@ execute_action_decap(struct lagopus_packet *pkt,
   void *new_p;
   uint32_t new_type;
 
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
   switch (decap->cur_pkt_type) {
     case (OFPHTN_ONF << 16) | OFPHTO_ETHERNET:
       new_type = (OFPHTN_ETHERTYPE << 16) | ETHER_TYPE(pkt->eth);
@@ -2085,7 +2080,7 @@ execute_action_encap(struct lagopus_packet *pkt,
   struct ofp_action_encap *encap = &action->ofpat;
   OS_MBUF *m;
 
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
   switch (encap->packet_type) {
     case (OFPHTN_ETHERTYPE << 16) | ETHERTYPE_MPLS:
     case (OFPHTN_ETHERTYPE << 16) | ETHERTYPE_MPLS_MCAST: {
@@ -2199,7 +2194,7 @@ execute_action_push_vlan(struct lagopus_packet *pkt,
   DP_PRINT("action push_vlan: 0x%04x\n",
            ((struct ofp_action_push *)&action->ofpat)->ethertype);
 
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
 
   /* optional */
   new_hdr = (ETHER_HDR *)OS_M_PREPEND(m, sizeof(VLAN_HDR));
@@ -2230,7 +2225,7 @@ execute_action_pop_vlan(struct lagopus_packet *pkt,
 
   DP_PRINT("action pop_vlan\n");
 
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
 
   /* optional */
   new_hdr = MTOD_OFS(m, sizeof(VLAN_HDR), ETHER_HDR *);
@@ -2284,7 +2279,7 @@ execute_action_push_mpls(struct lagopus_packet *pkt,
     copy_size = (size_t)(pkt->base[L3_BASE] - pkt->base[ETH_BASE]);
   }
 
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
   new_hdr = (ETHER_HDR *)OS_M_PREPEND(m, sizeof(struct mpls_hdr));
   if (NEED_COPY_ETH_ADDR(action->flags)) {
     memmove(new_hdr, pkt->eth, copy_size);
@@ -2315,7 +2310,7 @@ execute_action_pop_mpls(struct lagopus_packet *pkt,
   DP_PRINT("action pop_mpls: 0x%04x\n",
            ((struct ofp_action_push *)&action->ofpat)->ethertype);
 
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
   /* optional */
   /*
    * XXX
@@ -2408,7 +2403,7 @@ execute_action_dec_nw_ttl(struct lagopus_packet *pkt,
         miss_send_len = 128;
       }
       send_packet_in(pkt,
-                     OS_M_PKTLEN(pkt->mbuf),
+                     OS_M_PKTLEN(PKT2MBUF(pkt)),
                      OFPR_INVALID_TTL,
                      miss_send_len,
                      action->cookie);
@@ -2427,7 +2422,7 @@ execute_action_dec_nw_ttl(struct lagopus_packet *pkt,
         miss_send_len = 128;
       }
       send_packet_in(pkt,
-                     OS_M_PKTLEN(pkt->mbuf),
+                     OS_M_PKTLEN(PKT2MBUF(pkt)),
                      OFPR_INVALID_TTL,
                      miss_send_len,
                      action->cookie);
@@ -2448,7 +2443,7 @@ execute_action_push_pbb(struct lagopus_packet *pkt,
   DP_PRINT("action push_pbb: 0x%04x\n",
            ((struct ofp_action_push *)&action->ofpat)->ethertype);
 
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
 
   /* optional */
   /* inherit field value of vlan, ether, or PBB header. */
@@ -2488,7 +2483,7 @@ execute_action_pop_pbb(struct lagopus_packet *pkt,
 
   DP_PRINT("action pop_pbb\n");
 
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
   /* optional */
   OS_MEMCPY(ETHER_DST(pkt->eth), pkt->pbb->c_dhost, ETHER_ADDR_LEN);
   OS_MEMCPY(ETHER_SRC(pkt->eth), pkt->pbb->c_shost, ETHER_ADDR_LEN);
@@ -2740,7 +2735,7 @@ dp_openflow_do_cached_action(struct lagopus_packet *pkt) {
     for (i = 0; i < cache_entry->nmatched; i++) {
       flow = *flowp++;
       flow->packet_count++;
-      flow->byte_count += OS_M_PKTLEN(pkt->mbuf);
+      flow->byte_count += OS_M_PKTLEN(PKT2MBUF(pkt));
       if (flow->idle_timeout != 0 || flow->hard_timeout != 0) {
         flow->update_time = get_current_time();
       }

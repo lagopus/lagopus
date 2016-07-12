@@ -50,7 +50,7 @@ test_match_basic_IPV6_ND_TARGET(void) {
   /* prepare packet */
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
   OS_M_PKTLEN(m) = 128;
 
   /* prepare flow */
@@ -127,7 +127,7 @@ test_match_basic_IPV6_ND_SLL(void) {
   /* prepare packet */
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
   OS_M_PKTLEN(m) = 128;
 
   /* prepare flow */
@@ -181,7 +181,7 @@ test_match_basic_IPV6_ND_TLL(void) {
   /* prepare packet */
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
   OS_M_PKTLEN(m) = 128;
 
   /* prepare flow */

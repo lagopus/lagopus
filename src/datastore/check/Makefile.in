@@ -21,15 +21,15 @@ include $(MKRULESDIR)/vars.mk
 include $(MKRULESDIR)/rules.mk
 
 check0::	check0.lo $(DEP_LAGOPUS_UTIL_LIB) $(DEP_LAGOPUS_DATASTORE_LIB)
-	$(LTCLEAN) $@
+	$(RM) -f $@ .libs/lt-$@ .libs/$@
 	$(LTLINK_CC) -o $@ check0.lo $(DEP_LIBS) $(CHECK_LDFLAGS)
 
 check1::	check1.lo $(DEP_LAGOPUS_UTIL_LIB) $(DEP_LAGOPUS_DATASTORE_LIB)
-	$(LTCLEAN) $@
+	$(RM) -f $@ .libs/lt-$@ .libs/$@
 	$(LTLINK_CC) -o $@ check1.lo $(DEP_LIBS) $(CHECK_LDFLAGS)
 
 check_cmd::	check_cmd.lo $(DEP_LAGOPUS_UTIL_LIB) $(DEP_LAGOPUS_DATASTORE_LIB) $(DEP_LAGOPUS_DATAPLANE_LIB)
-	$(LTCLEAN) $@
+	$(RM) -f $@ .libs/lt-$@ .libs/$@
 	$(LTLINK_CC) -o $@ check_cmd.lo $(DEP_LIBS) $(CHECK_LDFLAGS)
 
 include .depend

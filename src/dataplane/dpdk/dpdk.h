@@ -56,6 +56,7 @@
 #define SRC_DATAPLANE_DPDK_DPDK_H_
 
 #include <rte_config.h>
+#include "lagopus/interface.h"
 
 /* Logical cores */
 #ifndef APP_MAX_SOCKETS
@@ -247,6 +248,8 @@
 #error "APP_DEFAULT_BURST_SIZE_WORKER_WRITE is too big"
 #endif
 
+#define DP_MBUF_ROUNDUP(a, b) (((a) + (b) - 1) & ~((b) - 1))
+
 #define CORE_ASSIGN_PERFORMANCE 0 /* default */
 #define CORE_ASSIGN_BALANCE     1
 #define CORE_ASSIGN_MINIMUM     2
@@ -284,6 +287,8 @@ struct app_lcore_params_io {
       uint8_t enabled;
     } nic_queues[APP_MAX_NIC_RX_QUEUES_PER_IO_LCORE];
     uint32_t n_nic_queues;
+    struct interface *ifp[APP_MAX_NIC_RX_QUEUES_PER_IO_LCORE];
+    uint32_t nifs;
 
     /* Rings */
     struct rte_ring *rings[APP_MAX_WORKER_LCORES];
@@ -400,14 +405,44 @@ extern struct app_params app;
 
 extern rte_atomic32_t dpdk_stop;
 
+struct interface;
+extern struct interface *ifp_table[];
+
+/**
+ * Find interface pointer from DPDK port id.
+ *
+ * @param[in]   portid  DPDK port id.
+ *
+ * @retval      !=NULL  Pointer of interface.
+ * @retval      ==NULL  interface is not assigned.
+ */
+static inline struct interface *
+dpdk_interface_lookup(uint8_t portid) {
+  return ifp_table[portid];
+}
+
+/**
+ * Receive packet from specified interface.
+ *
+ * @param[in]	ifp	Interface.
+ * @param[out]	mbufs	Buffer of packets.
+ * @param[in]	nb	Buffer size.
+ *
+ * @retval	>=0	Number of received packets.
+ * @retval	<0	Error.
+ */
+static inline lagopus_result_t
+dpdk_rx_burst(struct interface *ifp, void *mbufs[], size_t nb) {
+  return (lagopus_result_t)rte_eth_rx_burst(ifp->info.eth.port_number, 0,
+                                            mbufs, nb);
+}
+
 int app_parse_args(int argc, const char *argv[]);
-void app_init(void);
-void app_assign_worker_ids(void);
-void app_init_mbuf_pools(void);
-void app_init_rings_rx(void);
-void app_init_rings_tx(void);
-void app_init_nics(void);
-void app_init_kni(void);
+void dp_dpdk_init(void);
+
+void dpdk_assign_worker_ids(void);
+void dpdk_init_mbuf_pools(void);
+
 void app_lcore_io_flush(struct app_lcore_params_io *lp,
                         uint32_t n_workers,
                         void *arg);
@@ -437,5 +472,14 @@ bool is_rawsocket_only_mode(void);
 bool set_rawsocket_only_mode(bool newval);
 
 struct interface *dpdk_interface_lookup(uint8_t portid);
+
+bool dp_dpdk_is_portid_specified(void);
+
+struct app_lcore_params *dp_dpdk_get_lcore_param(unsigned lcore);
+
+unsigned dp_dpdk_lcore_count(void);
+
+void dp_bulk_match_and_action(struct rte_mbuf *mbufs[], size_t n_mbufs,
+                              struct flowcache *cache);
 
 #endif /* SRC_DATAPLANE_DPDK_DPDK_H_ */

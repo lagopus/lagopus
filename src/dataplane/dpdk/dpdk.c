@@ -164,12 +164,9 @@ app_lcore_main_loop(void *arg) {
 }
 
 void
-app_init(void) {
-  app_assign_worker_ids();
-  app_init_mbuf_pools();
-  app_init_rings_rx();
-  app_init_rings_tx();
-  app_init_nics();
+dp_dpdk_init(void) {
+  dpdk_assign_worker_ids();
+  dpdk_init_mbuf_pools();
 
   printf("Initialization completed.\n");
 }
@@ -197,19 +194,22 @@ alloc_lagopus_packet(void) {
     }
   } else {
     /* do not use rte_mempool because it is not initialized. */
-    mbuf = calloc(1, sizeof(struct rte_mbuf) + APP_DEFAULT_MBUF_SIZE);
+    mbuf = calloc(1, sizeof(struct rte_mbuf) +
+                  DP_MBUF_ROUNDUP(sizeof(struct lagopus_packet),
+                                  RTE_MBUF_PRIV_ALIGN) +
+                  RTE_PKTMBUF_HEADROOM + MAX_PACKET_SZ);
     if (mbuf == NULL) {
       lagopus_msg_error("memory exhausted\n");
       return NULL;
     }
-    mbuf->buf_addr = (void *)&mbuf[1];
-    mbuf->buf_len = APP_DEFAULT_MBUF_SIZE;
+    mbuf->priv_size = DP_MBUF_ROUNDUP(sizeof(struct lagopus_packet),
+                                      RTE_MBUF_PRIV_ALIGN);
+    mbuf->buf_addr = ((uint8_t *)&mbuf[1]) + mbuf->priv_size;
+    mbuf->buf_len = RTE_PKTMBUF_HEADROOM + MAX_PACKET_SZ;
     rte_pktmbuf_reset(mbuf);
     rte_mbuf_refcnt_set(mbuf, 1);
   }
-  pkt = (struct lagopus_packet *)
-        (mbuf->buf_addr + APP_DEFAULT_MBUF_LOCALDATA_OFFSET);
-  pkt->mbuf = mbuf;
+  pkt = MBUF2PKT(mbuf);
   return pkt;
 }
 
@@ -307,7 +307,7 @@ dpdk_dataplane_init(int argc, const char *const argv[]) {
 
   if (is_rawsocket_only_mode() != true) {
     /* Init */
-    app_init();
+    dp_dpdk_init();
     app_print_params();
   }
 

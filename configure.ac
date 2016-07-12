@@ -208,6 +208,21 @@ fi
 AC_SUBST(HYBRID)
 AC_SUBST(HYBRID_CPPFLAGS)
 
+# pipeliner
+AC_ARG_ENABLE([pipeliner],
+	[AC_HELP_STRING([--enable-pipeliner],
+	 [enable build as pipeliner [default is no]])]
+	 ,[pipeliner="$enableval"], [pipeliner=no])
+
+if test "X${pipeliner}" != "Xno"; then
+   PIPELINER="yes"
+   PIPELINER_CPPFLAGS=-DPIPELINER
+else
+   PIPELINER=""
+   PIPELINER_CPPFLAGS=""
+fi
+AC_SUBST(PIPELINER)
+AC_SUBST(PIPELINER_CPPFLAGS)
 # headers/macros
 
 oLIBS=${LIBS}
@@ -370,6 +385,21 @@ else
     AC_MSG_ERROR([The GNU MP library must be installed.])
 fi
 AC_SUBST(GMP_LIBS)
+
+# check for papi
+PAPI_LIBS=
+HAVE_PAPI=
+if test "X${developer}" != "Xno"; then
+   AC_CHECK_HEADER(papi.h,, [AC_MSG_ERROR([papi.h is required!])])
+   oLIBS=${LIBS}
+   LIBS=''
+   AC_CHECK_LIB(papi, PAPI_library_init,, [AC_MSG_ERROR([libpapi is required!])])
+   PAPI_LIBS=${LIBS}
+   LIBS=${oLIBS}
+   HAVE_PAPI=yes
+fi
+AC_SUBST(HAVE_PAPI)
+AC_SUBST(PAPI_LIBS)
 
 AC_ARG_ENABLE([jumbo-frame],
 	[AC_HELP_STRING([--enable-jumbo-frame],
@@ -673,6 +703,7 @@ AC_CONFIG_COMMANDS_PRE([
 			AC_CONFIG_FILES(
 				tools/unity/src/Makefile
 				tools/benchmark/sample/dump_pkts/Makefile
+				tools/benchmark/sample/match_pkts/Makefile
 			)
 		else
 			HAVE_UNITY=

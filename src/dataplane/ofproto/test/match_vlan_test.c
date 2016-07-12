@@ -46,7 +46,7 @@ test_match_basic_VLAN_VID(void) {
   /* prepare packet */
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
   OS_M_APPEND(m, 64);
 
   /* prepare flow */
@@ -83,7 +83,7 @@ test_match_basic_VLAN_VID_W(void) {
   /* prepare packet */
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
   OS_M_APPEND(m, 64);
 
   /* prepare flow */

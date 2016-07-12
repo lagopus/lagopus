@@ -50,7 +50,7 @@ STUB_OBJS = $(STUB_SRCS:.c=.lo)
 stub: $(TARGET_STUB_LIB)
 
 $(TARGET_STUB_LIB):	$(STUB_OBJS)
-	$(LTCLEAN) $@
+	$(RM) -f $@ .libs/$(@F:.la=.*)
 	$(LTLIB_CC) -o $@ $(STUB_OBJS) $(LDFLAGS) $(DEP_LIBS)
 
 clean::

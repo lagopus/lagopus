@@ -25,14 +25,19 @@
 #include "lagopus/interface.h"
 
 #include "lagopus/ofp_dp_apis.h" /* for port_stats */
+#ifdef HAVE_DPDK
+#include "dpdk.h"
+#endif /* HAVE_DPDK */
 
 #ifdef HYBRID
-#include <linux/rtnetlink.h>
 #include "lagopus/mactable.h"
 #include "tap_io.h"
-#include "rib.h"
+#include "lagopus/rib.h"
 #include "lagopus/ethertype.h"
 #include "pktbuf.h"
+#include "packet.h"
+
+#include "lagopus/bridge.h"
 #include "packet.h"
 
 #define IPV4(a,b,c,d) ((uint32_t)(((a) & 0xff) << 24) | \
@@ -239,6 +244,40 @@ dp_interface_stop_internal(struct interface *ifp) {
   return LAGOPUS_RESULT_OK;
 }
 
+lagopus_result_t
+dp_interface_rx_burst_internal(struct interface *ifp,
+                               void *mbufs[], size_t nb) {
+  if (ifp == NULL) {
+    return LAGOPUS_RESULT_INVALID_ARGS;
+  }
+  switch (ifp->info.type) {
+    case DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_PHY:
+    case DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_VDEV:
+#ifdef HAVE_DPDK
+      return dpdk_rx_burst(ifp->info.eth.port_number, mbufs, nb);
+#else
+      break;
+#endif
+    case DATASTORE_INTERFACE_TYPE_ETHERNET_RAWSOCK:
+      return rawsock_rx_burst(ifp, mbufs, nb);
+
+    case DATASTORE_INTERFACE_TYPE_UNKNOWN:
+      break;
+
+    case DATASTORE_INTERFACE_TYPE_GRE:
+    case DATASTORE_INTERFACE_TYPE_NVGRE:
+    case DATASTORE_INTERFACE_TYPE_VXLAN:
+    case DATASTORE_INTERFACE_TYPE_VHOST_USER:
+      /* TODO */
+      break;
+
+    default:
+      break;
+  }
+
+  return LAGOPUS_RESULT_OK;
+}
+
 #ifdef HYBRID
 lagopus_result_t
 dp_interface_send_packet_kernel(struct lagopus_packet *pkt,
@@ -250,6 +289,18 @@ dp_interface_send_packet_kernel(struct lagopus_packet *pkt,
 }
 
 static lagopus_result_t
+send_packet(struct lagopus_packet *pkt) {
+  if (pkt->send_kernel) {
+    dp_interface_send_packet_kernel(pkt, pkt->ifp);
+  } else {
+    lagopus_forward_packet_to_port_hybrid(pkt);
+  }
+}
+
+/**
+ * L2 witching main routine.
+ */
+static lagopus_result_t
 interface_l2_switching(struct lagopus_packet *pkt,
                        struct interface *ifp) {
   uint32_t port;
@@ -259,19 +310,26 @@ interface_l2_switching(struct lagopus_packet *pkt,
   dst = pkt->eth->ether_dhost;
 
   /* dst is self mac */
-  if (!memcmp(OS_MTOD(pkt->mbuf, uint8_t *), ifp->hw_addr, ETHER_ADDR_LEN)) {
+  if (!memcmp(OS_MTOD(PKT2MBUF(pkt), uint8_t *), ifp->hw_addr, ETHER_ADDR_LEN)) {
     return dp_interface_send_packet_kernel(pkt, ifp);
   }
   /* dst is broadcast or multicast */
   if ((dst[0] & 0x01) == 0x01) {
-    OS_M_ADDREF(pkt->mbuf);
+    OS_M_ADDREF(PKT2MBUF(pkt));
     dp_interface_send_packet_kernel(pkt, ifp);
   }
 
   /* l2 switching */
-  port = find_and_learn_port_in_mac_table(pkt);
+#if defined HYBRID && defined PIPELINER
+  pkt->pipeline_context.pipeline_idx = L2_PIPELINE;
+  pipeline_process(pkt);
+#else
+  mactable_port_learning(pkt);
+  mactable_port_lookup(pkt);
 
-  lagopus_forward_packet_to_port(pkt, port);
+  /* forwarding packet to output port */
+  lagopus_forward_packet_to_port_hybrid(pkt);
+#endif
 
   return LAGOPUS_RESULT_OK;
 }
@@ -291,19 +349,15 @@ is_broadcast(struct in_addr dst_addr, struct in_addr broad_addr) {
   }
 }
 
+/**
+ * L3 routing main routine.
+ */
 static lagopus_result_t
 interface_l3_routing(struct lagopus_packet *pkt,
                      struct interface *ifp) {
   lagopus_result_t rv = LAGOPUS_RESULT_OK;
-  struct interface *out_if = NULL;
-  uint32_t port;
-  int ifindex;
-  uint8_t mac_addr[ETHER_ADDR_LEN];
-  uint8_t scope = 0;
   uint16_t ether_type;
   int prefix;
-  char ifname[IFNAMSIZ + 1];
-
 
   ether_type = lagopus_get_ethertype(pkt);
 
@@ -313,73 +367,38 @@ interface_l3_routing(struct lagopus_packet *pkt,
   }
 
   if (ether_type == ETHERTYPE_IP) {
-    struct in_addr *addr;
-    struct in_addr nexthop;
     struct in_addr dst_addr;
     struct in_addr self_addr;
     struct in_addr broad_addr;
-    char ipv4dst[INET_ADDRSTRLEN] = {0};
+
+    /* initialize l3 routing */
+    pkt->ifp = ifp;
+    pkt->send_kernel = false;
 
     /* get dst ip address from input packet */
     lagopus_get_ip(pkt, &dst_addr, AF_INET);
 
     /* check dst ip addr. */
-    dp_interface_ip_get(ifp->name, AF_INET, &self_addr, &broad_addr, &prefix);
+    dp_interface_ip_get(ifp, AF_INET, &self_addr, &broad_addr, &prefix);
     if (is_self_ip_addr(dst_addr, self_addr) == true ||
         is_broadcast(dst_addr, broad_addr) == true ||
         IS_IPV4_MULTICAST(htonl(dst_addr.s_addr)) == true) {
       return dp_interface_send_packet_kernel(pkt, ifp);
     }
 
+#if defined HYBRID && defined PIPELINER
+    pkt->pipeline_context.pipeline_idx = L3_PIPELINE;
+    pipeline_process(pkt);
+#else
     /* learning l2 info */
-    learning_port_in_mac_table(pkt);
+    mactable_port_learning(pkt);
 
-    /* get nexthop info from routing table(lpm). */
-    rv = rib_nexthop_ipv4_get(&dst_addr, &nexthop, &scope);
-    if (rv != LAGOPUS_RESULT_OK) {
-      lagopus_msg_info("routing entry is not found.\n");
-      lagopus_packet_free(pkt);
-      return rv;
-    }
+    /* l3 routing */
+    rib_lookup(pkt);
 
-    addr = (scope == RT_SCOPE_LINK) ? &dst_addr : &nexthop;
-
-    /* get dst mac address and output port from arp table(hash table). */
-    rib_arp_get(addr, mac_addr, &ifindex);
-
-    if (ifindex == -1) {
-      /* it is no entry on the arp table, send packet to tap(kernel). */
-      lagopus_msg_info("no entry in arp table. sent to kernel.\n");
-      return dp_interface_send_packet_kernel(pkt, ifp);
-    }
-
-    /* get output interface to determine the src mac address. */
-    rib_ipv4_addr_get(ifindex, ifname);
-    out_if = dp_tapio_interface_get(ifname);
-    if (!out_if) {
-      /* invalid ifindex */
-      lagopus_msg_warning("invalid ifindex[%d] ifname[%s].\n", ifindex, ifname);
-      lagopus_packet_free(pkt);
-      return LAGOPUS_RESULT_OK;
-    }
-
-    /* rewrite ether header. (pkt, src hw addr, dst hw addr) */
-    rv = lagopus_rewrite_pkt_header(pkt, out_if->hw_addr, mac_addr);
-    if (rv == LAGOPUS_RESULT_STOP) {
-      lagopus_msg_warning("ttl stop\n");
-      lagopus_packet_free(pkt);
-      return rv;
-    } else if (rv != LAGOPUS_RESULT_OK) {
-      lagopus_msg_warning("failed rewrite ether header.");
-      lagopus_packet_free(pkt);
-      return rv;
-    }
-
-    /* lookup output port */
-    port = lookup_port_in_mac_table(pkt);
-
-    /* forward packets */
-    lagopus_forward_packet_to_port(pkt, port);
+    /* forwarding packet */
+    send_packet(pkt);
+#endif
   } else if (ether_type == ETHERTYPE_IPV6) {
     /* TODO: */
     lagopus_packet_free(pkt);
@@ -392,32 +411,33 @@ interface_l3_routing(struct lagopus_packet *pkt,
 
   return rv;
 }
-
 #endif /* HYBRID */
 
 lagopus_result_t
 dp_interface_send_packet_normal(struct lagopus_packet *pkt,
                                 struct interface *ifp,
                                 bool l2_bridge) {
+  lagopus_result_t rv = LAGOPUS_RESULT_OK;
 #ifdef HYBRID
   if (unlikely(l2_bridge != true)) {
-    return LAGOPUS_RESULT_OK;
+    return rv;
   }
 
   /* check port type */
   if (ifp->addr_info.set) {
     /* set ip address = l3 port */
-    interface_l3_routing(pkt, ifp);
+    rv = interface_l3_routing(pkt, ifp);
   } else {
     /* no ip address = l2 port */
-    interface_l2_switching(pkt, ifp);
+    rv = interface_l2_switching(pkt, ifp);
   }
 #else /* HYBRID */
+  /* no hybrid mode, drop packets. */
   (void) pkt;
   (void) ifp;
   lagopus_packet_free(pkt);
 #endif /* HYBRID */
-  return LAGOPUS_RESULT_OK;
+  return rv;
 }
 
 lagopus_result_t

@@ -126,9 +126,9 @@ dp_process_event_data(uint64_t dpid, struct eventq_data *data) {
             break;
           }
 
-          (void)OS_M_APPEND(pkt->mbuf, data_len);
-          DECODE_GET(OS_MTOD(pkt->mbuf, char *), data_len);
-          lagopus_packet_init(pkt, pkt->mbuf, port);
+          (void)OS_M_APPEND(PKT2MBUF(pkt), data_len);
+          DECODE_GET(OS_MTOD(PKT2MBUF(pkt), char *), data_len);
+          lagopus_packet_init(pkt, PKT2MBUF(pkt), port);
           pkt->cache = NULL;
           pkt->hash64 = 0;
           if (lagopus_register_action_hook != NULL) {
@@ -139,7 +139,7 @@ dp_process_event_data(uint64_t dpid, struct eventq_data *data) {
             }
           }
           /* XXX so far, call from comm thread directly. */
-          OS_M_ADDREF(pkt->mbuf);
+          OS_M_ADDREF(PKT2MBUF(pkt));
           execute_action(pkt, &data->packet_out.action_list);
           lagopus_packet_free(pkt);
         }

@@ -102,6 +102,9 @@ lagopus_result_t dp_interface_stop_internal(struct interface *ifp);
 lagopus_result_t dp_interface_configure_internal(struct interface *ifp);
 lagopus_result_t dp_interface_unconfigure_internal(struct interface *ifp);
 
+lagopus_result_t
+dp_interface_rx_burst_internal(struct interface *ifp,
+                               void *mbufs[], size_t nb);
 
 /**
  * Send packet to tap interface.

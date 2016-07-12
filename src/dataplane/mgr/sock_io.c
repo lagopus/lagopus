@@ -52,6 +52,7 @@
 #include "csum.h"
 #include "thread.h"
 #include "lock.h"
+#include "sock_io.h"
 
 #ifdef HAVE_DPDK
 #include "dpdk.h"
@@ -163,6 +164,44 @@ read_packet(int fd, uint8_t *buf, size_t buflen) {
     pktlen += 4;
   }
   return pktlen;
+}
+
+lagopus_result_t
+rawsock_rx_burst(struct interface *ifp, void *mbufs[], size_t nb) {
+  lagopus_result_t i;
+
+  for (i = 0; i < nb; i++) {
+    struct lagopus_packet *pkt;
+    ssize_t len;
+
+    pkt = alloc_lagopus_packet();
+    mbufs[i] = PKT2MBUF(pkt);
+    len = read_packet(pollfd[ifp->info.eth_rawsock.port_number].fd,
+                      OS_MTOD((OS_MBUF *)mbufs[i], uint8_t *), MAX_PACKET_SZ);
+    if (len < 0) {
+      switch (errno) {
+        case ENETDOWN:
+        case ENETRESET:
+        case ECONNABORTED:
+        case ECONNRESET:
+        case EAGAIN:
+          lagopus_packet_free(pkt);
+          goto out;
+        case EINTR:
+          continue;
+
+        default:
+          lagopus_exit_fatal("read: %s", strerror(errno));
+      }
+    }
+    if (len == 0) {
+      lagopus_packet_free(pkt);
+      break;
+    }
+    OS_M_TRIM((OS_MBUF *)mbufs[i], MAX_PACKET_SZ - len);
+  }
+out:
+  return i;
 }
 
 #ifndef HAVE_DPDK
@@ -367,7 +406,7 @@ rawsock_send_packet_physical(struct lagopus_packet *pkt, uint32_t portid) {
     OS_MBUF *m;
     size_t plen;
 
-    m = pkt->mbuf;
+    m = PKT2MBUF(pkt);
     plen = OS_M_PKTLEN(m);
     if (plen < 60) {
       memset(OS_M_APPEND(m, 60 - plen), 0, (uint32_t)(60 - plen));
@@ -623,6 +662,11 @@ rawsock_change_config(struct interface *ifp,
   return LAGOPUS_RESULT_OK;
 }
 
+void
+clear_rawsock_flowcache(void) {
+  clear_cache = true;
+}
+
 /**
  * Raw socket I/O process function.
  *
@@ -696,8 +740,8 @@ dp_rawsock_thread_loop(__UNUSED const lagopus_thread_t *selfptr,
         pkt->cache = flowcache;
 
         /* not enough? */
-        (void)OS_M_APPEND(pkt->mbuf, MAX_PACKET_SZ);
-        len = read_packet(pollfd[i].fd, OS_MTOD(pkt->mbuf, uint8_t *),
+        (void)OS_M_APPEND(PKT2MBUF(pkt), MAX_PACKET_SZ);
+        len = read_packet(pollfd[i].fd, OS_MTOD(PKT2MBUF(pkt), uint8_t *),
                           MAX_PACKET_SZ);
         if (len < 0) {
           switch (errno) {
@@ -713,14 +757,14 @@ dp_rawsock_thread_loop(__UNUSED const lagopus_thread_t *selfptr,
               lagopus_exit_fatal("read: %s", strerror(errno));
           }
         }
-        OS_M_TRIM(pkt->mbuf, MAX_PACKET_SZ - len);
-        lagopus_packet_init(pkt, pkt->mbuf, port);
+        OS_M_TRIM(PKT2MBUF(pkt), MAX_PACKET_SZ - len);
+        lagopus_packet_init(pkt, PKT2MBUF(pkt), port);
         flowdb_switch_mode_get(port->bridge->flowdb, &mode);
         if (
 #ifdef HYBRID
-                !memcmp(OS_MTOD(pkt->mbuf, uint8_t *),
+                !memcmp(OS_MTOD(PKT2MBUF(pkt), uint8_t *),
                         port->interface->hw_addr, ETHER_ADDR_LEN) ||
-                !memcmp(OS_MTOD(pkt->mbuf, uint8_t *),
+                !memcmp(OS_MTOD(PKT2MBUF(pkt), uint8_t *),
                         eth_bcast, ETHER_ADDR_LEN) ||
 #endif /* HYBRID */
                 mode == SWITCH_MODE_STANDALONE) {

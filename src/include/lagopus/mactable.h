@@ -23,8 +23,10 @@
 #ifndef SRC_INCLUDE_LAGOPUS_MACTABLE_H_
 #define SRC_INCLUDE_LAGOPUS_MACTABLE_H_
 
-/* cleanup timer */
-#define MACTABLE_CLEANUP_TIME  (60 * 24)
+#include "updater.h"
+
+/* ether addr history size */
+#define MACTABLE_HISTORY_MAX_NUM (10)
 
 /**
  * Address type.
@@ -33,6 +35,18 @@ enum address_type {
   MACTABLE_SETTYPE_STATIC = 0,
   MACTABLE_SETTYPE_DYNAMIC
 };
+
+/**
+ * Local data for each worker.
+ */
+struct local_data {
+  lagopus_hashmap_t localcache;
+  lagopus_bbq_t bbq;
+  uint64_t eth_history[MACTABLE_HISTORY_MAX_NUM];
+  uint16_t history_index;
+  uint32_t referred_table;
+  uint16_t referring;
+} __attribute__ ((aligned(128)));
 
 /**
  * MAC address entry.
@@ -50,79 +64,83 @@ struct macentry {
  * MAC address table.
  */
 struct mactable {
-  lagopus_hashmap_t hashmap; /**< Hashmap for MAC address table. */
-  unsigned int nentries; /**< Current number of entries in this table. */
-  uint32_t maxentries;   /**< Max number of entries for this table. */
-  lagopus_rwlock_t lock; /**< Read-write lock. */
+  lagopus_rwlock_t lock;        /**< Read-write lock. */
+
+  uint32_t maxentries;          /**< Max number of entries for this table. */
+  uint32_t ageing_time;         /**< Aging time(default 300sec). */
+  unsigned int nentries;        /**< Current number of entries in this table. */
+
+  lagopus_hashmap_t hashmap[2]; /**< Hashmap for MAC address table. */
+  uint32_t read_table;          /**< Current read table index. */
+
   TAILQ_HEAD(macentry_list, macentry) macentry_list; /**< MAC address entry list. */
 
-  uint32_t ageing_time;  /**< Aging time(default 300sec). */
-
-  struct mactable **mactable_timer;  /**< Timer for cleanup mactable. */
+  struct local_data local[UPDATER_LOCALDATA_MAX_NUM];
 };
 
 /**
- * Initialize the mactable.
- * @param[in] mactable MAC address table.
+ * Initialize mactable object.
+ * This function must be called when the bridge object creation.
+ * @param[in] mactable MAC address table object.
  * @retval    LAGOPUS_RESULT_OK            Succeeded.
  * @retval    LAGOPUS_RESULT_INVALID_ARGS  Arguments are invalid.
  * @retval    LAGOPUS_RESULT_NO_MEMORY     Memory exhausted.
  */
 lagopus_result_t
-init_mactable(struct mactable *mactable);
+mactable_init(struct mactable *mactable);
 
 /**
- * Finalize the mactable.
+ * Finalize mactable object.
+ * This function must be called when the bridge object discarded.
  * @param[in] mactable MAC address table.
  * @retval    LAGOPUS_RESULT_OK            Succeeded.
  */
 lagopus_result_t
-fini_mactable(struct mactable *mactable);
+mactable_fini(struct mactable *mactable);
 
 /**
- * Find port and learn mac address in mactable.
+ * Update mac address table by timer('updater').
+ * Entry data are written to the writing mac table by only 'updater'.
+ * They are merged read mac table and bbq.
+ * @param[in] mactable MAC address table object.
+ */
+lagopus_result_t
+mactable_update(struct mactable *mactable);
+
+/**
+ * Learning mac address and input port number when packet handling.
+ * This function is called from l3 routing function in interface.c.
+ * @param[in] pkt Packet data.
+ */
+void
+mactable_port_learning(struct lagopus_packet *pkt);
+
+/**
+ * Look up output port in mac address table when packet handling.
+ * This function is called from l3 routing function in interface.c.
  * @param[in] pkt Packet data.
  * @retval    !=OFPP_ALL  Output port number.
  * @retval    ==OFPP_ALL  No corresponding data, packet will be flooding.
  */
-uint32_t
-find_and_learn_port_in_mac_table(struct lagopus_packet *pkt);
-
-/**
- * Learn mac address in mactable.
- * @param[in] pkt Packet data.
- */
 void
-learning_port_in_mac_table(struct lagopus_packet *pkt);
+mactable_port_lookup(struct lagopus_packet *pkt);
 
 /**
- * Find port in mactable.
- * @param[in] pkt Packet data.
- * @retval    !=OFPP_ALL  Output port number.
- * @retval    ==OFPP_ALL  No corresponding data, packet will be flooding.
- */
-uint32_t
-lookup_port_in_mac_table(struct lagopus_packet *pkt);
-
-/**
- * Set ageing time.
+ * Clear all entries in mactable.
  * @param[in] mactable MAC address table.
- * @param[in] ageing_time Ageing time of mac address table.
  * @retval    LAGOPUS_RESULT_OK               Succeeded.
  */
-void
-mactable_set_ageing_time(struct mactable *mactable, uint32_t ageing_time);
+lagopus_result_t
+mactable_entry_clear(struct mactable *mactable);
 
 /**
- * Set num of max entries.
+ * Delete a entry.
  * @param[in] mactable MAC address table.
- * @param[in] max_entries Number of max entries of mac address table.
+ * @param[in] ethaddr MAC address.
  * @retval    LAGOPUS_RESULT_OK               Succeeded.
- * @retval    LAGOPUS_RESULT_INVALID_ARGS     Arguments are invalid.
- * @retval    LAGOPUS_RESULT_NO_MEMORY        Memory exhausted.
  */
-void
-mactable_set_max_entries(struct mactable *mactable, uint32_t max_entries);
+lagopus_result_t
+mactable_entry_delete(struct mactable *mactable, const uint8_t ethaddr[]);
 
 /**
  * Update entry informations.
@@ -135,21 +153,12 @@ lagopus_result_t
 mactable_entry_update(struct mactable *mactable, const uint8_t ethaddr[], uint32_t portid);
 
 /**
- * Delete a entry.
+ * Get number of max entries.
  * @param[in] mactable MAC address table.
- * @param[in] ethaddr MAC address.
- * @retval    LAGOPUS_RESULT_OK               Succeeded.
+ * @retval    Number of max entries..
  */
-lagopus_result_t
-mactable_entry_delete(struct mactable *mactable, const uint8_t ethaddr[]);
-
-/**
- * Clear all entries in mactable.
- * @param[in] mactable MAC address table.
- * @retval    LAGOPUS_RESULT_OK               Succeeded.
- */
-lagopus_result_t
-mactable_entry_clear(struct mactable *mactable);
+uint32_t
+mactable_max_entries_get(struct mactable *mactable);
 
 /**
  * Get ageing time.
@@ -157,33 +166,26 @@ mactable_entry_clear(struct mactable *mactable);
  * @retval    Ageing time.
  */
 uint32_t
-mactable_get_ageing_time(struct mactable *mactable);
+mactable_ageing_time_get(struct mactable *mactable);
 
 /**
- * Get number of max entries.
+ * Set num of max entries.
  * @param[in] mactable MAC address table.
- * @retval    Number of max entries..
- */
-uint32_t
-mactable_get_max_entries(struct mactable *mactable);
-
-/**
- * Age out process.
- * @param[in] mactable MAC address table.
+ * @param[in] max_entries Number of max entries of mac address table.
  * @retval    LAGOPUS_RESULT_OK               Succeeded.
+ * @retval    LAGOPUS_RESULT_INVALID_ARGS     Arguments are invalid.
+ * @retval    LAGOPUS_RESULT_NO_MEMORY        Memory exhausted.
  */
-lagopus_result_t
-mactable_age_out(struct mactable *mactable);
-
-/**
- * Set timer for clean up mactable.
- * @param[in] mactable MAC address table.
- * @param[in] timer value.
- * @retval    LAGOPUS_RESULT_OK               Succeeded.
- */
-lagopus_result_t
-add_mactable_timer(struct mactable *mactable, time_t timeout);
-
 void
-print_macaddr_in_ethheader(struct lagopus_packet *pkt);
+mactable_max_entries_set(struct mactable *mactable, uint32_t max_entries);
+
+/**
+ * Set ageing time.
+ * @param[in] mactable MAC address table.
+ * @param[in] ageing_time Ageing time of mac address table.
+ * @retval    LAGOPUS_RESULT_OK               Succeeded.
+ */
+void
+mactable_ageing_time_set(struct mactable *mactable, uint32_t ageing_time);
+
 #endif /* SRC_INCLUDE_LAGOPUS_MACTABLE_H_ */

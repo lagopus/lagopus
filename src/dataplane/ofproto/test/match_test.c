@@ -59,7 +59,7 @@ test_lagopus_find_flow(void) {
 
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
   OS_M_APPEND(m, 64);
   m->refcnt = 2;
 

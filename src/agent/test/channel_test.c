@@ -353,3 +353,76 @@ test_channel_auxiliary_get_set(void) {
 
   channel_free(channel);
 }
+
+void
+test_channel_multipart_get_put(void) {
+  char buf[16];
+  lagopus_result_t ret;
+  struct channel *channel;
+  struct ofp_header xid_header;
+  struct pbuf *pbuf[2], *pbuf2 = NULL;
+  
+  xid_header.xid = 0;
+  channel = s_create_data_channel();
+
+  pbuf[0] = pbuf_alloc(64);
+  pbuf_plen_set(pbuf[0], 64);
+  pbuf_encode(pbuf[0], buf, sizeof(buf));
+  pbuf[1] = pbuf_alloc(64);
+  pbuf_plen_set(pbuf[1], 64);
+  pbuf_encode(pbuf[1], buf, 15);
+  /* Call func. */
+  ret = channel_multipart_put(channel, pbuf[0], &xid_header, 0);
+  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, ret,
+                            "channel_multipart_put() error.");
+  ret = channel_multipart_put(channel, pbuf[1], &xid_header, 0);
+  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, ret,
+                            "channel_multipart_put() error.");
+  ret = channel_multipart_used_count_get(channel);
+  TEST_ASSERT_EQUAL_MESSAGE(1, ret,
+                            "channel_multipart_used_count_get() error.");
+  ret = channel_multipart_get(channel, &pbuf2, &xid_header, 0);
+  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, ret,
+                            "channel_multipart_get() error.");
+  TEST_ASSERT_EQUAL_MESSAGE(16+15, pbuf_plen_get(pbuf2),
+                            "pbuf plen error.");
+  ret = channel_multipart_used_count_get(channel);
+  TEST_ASSERT_EQUAL_MESSAGE(0, ret,
+                            "channel_multipart_used_count_get() error.");
+  pbuf_free(pbuf2);
+
+  channel_free(channel);
+}
+
+void
+test_channel_multipart_get_put_err(void) {
+  char buf[16];
+  lagopus_result_t ret;
+  struct channel *channel;
+  struct ofp_header xid_header;
+  struct pbuf *pbuf, *pbuf2 = NULL;
+  
+  xid_header.xid = 0;
+  channel = s_create_data_channel();
+
+  pbuf = pbuf_alloc(64);
+  pbuf_plen_set(pbuf, 64);
+  pbuf_encode(pbuf, buf, 8);
+  /* Call func. */
+  ret = channel_multipart_put(channel, pbuf, &xid_header, 0);
+  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, ret,
+                            "channel_multipart_put() error.");
+  pbuf->putp=NULL;
+  ret = channel_multipart_used_count_get(channel);
+  TEST_ASSERT_EQUAL_MESSAGE(1, ret,
+                            "channel_multipart_used_count_get() error.");
+  ret = channel_multipart_get(channel, &pbuf2, &xid_header, 0);
+  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_NO_MEMORY, ret,
+                            "channel_multipart_get() error.");
+  ret = channel_multipart_used_count_get(channel);
+  TEST_ASSERT_EQUAL_MESSAGE(0, ret,
+                            "channel_multipart_used_count_get() error.");
+  pbuf_free(pbuf2);
+
+  channel_free(channel);
+}

@@ -31,6 +31,7 @@
 #include "conv_json.h"
 #include "lagopus/dp_apis.h"
 #include "../agent/channel_mgr.h"
+#include "../agent/ofp_table_handler.h"
 
 /* command name. */
 #define CMD_NAME "bridge"
@@ -116,6 +117,8 @@ enum bridge_stats {
   STATS_FLOW_ENTRIES,
   STATS_FLOW_LOOKUP_COUNT,
   STATS_FLOW_MATCHED_COUNT,
+  STATS_TABLES,
+  STATS_TABLE_ID,
 
   STATS_MAX,
 };
@@ -186,6 +189,8 @@ static const char *const stat_strs[STATS_MAX] = {
   "*flow-entries",            /* STATS_FLOW_ENTRIES (not option) */
   "*flow-lookup-count",       /* STATS_FLOW_LOOKUP_COUNT (not option) */
   "*flow-matched-count",      /* STATS_FLOW_MATCHED_COUNT (not option) */
+  "*tables",                  /* STATS_TABLES (not option) */
+  "*table-id",                /* STATS_TABLE_ID (not option) */
 };
 
 typedef struct configs {
@@ -5764,6 +5769,78 @@ bridge_cmd_json_create(lagopus_dstring_t *ds,
   return ret;
 }
 
+static inline lagopus_result_t
+bridge_cmd_stats_table(lagopus_dstring_t *ds,
+                       configs_t *configs) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  struct table_stats *table_stats = NULL;
+  bool is_table_first = true;
+
+  if (TAILQ_EMPTY(&configs->stats.flow_table_stats) == false) {
+    TAILQ_FOREACH(table_stats, &configs->stats.flow_table_stats, entry) {
+      if ((ret = lagopus_dstring_appendf(
+              ds, DS_JSON_DELIMITER(is_table_first, "{"))) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+
+      /* table_id */
+      if ((ret = datastore_json_uint8_append(
+              ds, ATTR_NAME_GET(stat_strs, STATS_TABLE_ID),
+              table_stats->ofp.table_id, false)) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+
+      /* flow_entries */
+      if ((ret = datastore_json_uint64_append(
+              ds, ATTR_NAME_GET(stat_strs, STATS_FLOW_ENTRIES),
+              table_stats->ofp.active_count, true)) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+
+      /* flow_lookup_count */
+      if ((ret = datastore_json_uint64_append(
+              ds, ATTR_NAME_GET(stat_strs, STATS_FLOW_LOOKUP_COUNT),
+              table_stats->ofp.lookup_count, true)) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+
+      /* flow_matched_count */
+      if ((ret = datastore_json_uint64_append(
+              ds, ATTR_NAME_GET(stat_strs, STATS_FLOW_MATCHED_COUNT),
+              table_stats->ofp.matched_count, true)) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+
+      if ((ret = lagopus_dstring_appendf(
+              ds, "}")) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(ret);
+        goto done;
+      }
+
+      if (is_table_first == true) {
+        is_table_first = false;
+      }
+    }
+    ret = LAGOPUS_RESULT_OK;
+  } else {
+    ret = LAGOPUS_RESULT_OK;
+  }
+
+done:
+  return ret;
+}
+
 static lagopus_result_t
 bridge_cmd_stats_json_create(lagopus_dstring_t *ds,
                              configs_t *configs,
@@ -5865,6 +5942,29 @@ bridge_cmd_stats_json_create(lagopus_dstring_t *ds,
           goto done;
         }
 
+        /* tables */
+        if ((ret = lagopus_dstring_appendf(
+                ds, DELIMITER_INSTERN(KEY_FMT "["),
+                ATTR_NAME_GET(stat_strs, STATS_TABLES))) !=
+            LAGOPUS_RESULT_OK) {
+          lagopus_perror(ret);
+          goto done;
+        }
+
+        /* table */
+        if ((ret = bridge_cmd_stats_table(ds, configs)) !=
+            LAGOPUS_RESULT_OK) {
+          lagopus_perror(ret);
+          goto done;
+        }
+
+        if ((ret = lagopus_dstring_appendf(
+                ds, "]")) !=
+            LAGOPUS_RESULT_OK) {
+          lagopus_perror(ret);
+          goto done;
+        }
+
         if ((ret = lagopus_dstring_appendf(ds, "}")) != LAGOPUS_RESULT_OK) {
           goto done;
         }
@@ -5900,7 +6000,7 @@ bridge_cmd_parse(datastore_interp_t *iptr,
   size_t i;
   void *sub_cmd_proc;
   configs_t out_configs = {0, 0LL, false, false, false,
-                           {0LL, 0LL, 0LL, 0LL, 0LL, 0LL, 0LL, 0LL, 0LL},
+                           {0LL, 0LL, 0LL, 0LL, 0LL, 0LL, 0LL, 0LL, 0LL, {0LL}},
                            NULL};
   char *name = NULL;
   char *fullname = NULL;
@@ -5917,6 +6017,7 @@ bridge_cmd_parse(datastore_interp_t *iptr,
 
   if (iptr != NULL && argv != NULL && hptr != NULL &&
       u_proc != NULL && result != NULL) {
+    TAILQ_INIT(&out_configs.stats.flow_table_stats);
 
     if ((ret = lagopus_dstring_create(&conf_result)) == LAGOPUS_RESULT_OK) {
       argv++;
@@ -6004,6 +6105,7 @@ bridge_cmd_parse(datastore_interp_t *iptr,
     free(out_configs.list);
     free(str);
     lagopus_dstring_destroy(&conf_result);
+    table_stats_list_elem_free(&out_configs.stats.flow_table_stats);
   } else {
     ret = LAGOPUS_RESULT_INVALID_ARGS;
   }

@@ -51,7 +51,7 @@ test_match_flow_eth_type(void) {
   /* prepare packet */
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
   OS_M_APPEND(m, 64);
 
   /* prepare flow table */
@@ -128,7 +128,7 @@ test_match_basic_ETH_DST(void) {
   /* prepare packet */
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
   OS_M_APPEND(m, 64);
 
   /* prepare flow */
@@ -178,7 +178,7 @@ test_match_basic_ETH_DST_W(void) {
   /* prepare packet */
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
   OS_M_APPEND(m, 64);
 
   /* prepare flow */
@@ -224,7 +224,7 @@ test_match_basic_ETH_SRC(void) {
   /* prepare packet */
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
   OS_M_APPEND(m, 64);
 
   /* prepare flow */
@@ -274,7 +274,7 @@ test_match_basic_ETH_SRC_W(void) {
   /* prepare packet */
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
   OS_M_APPEND(m, 64);
 
   /* prepare flow */

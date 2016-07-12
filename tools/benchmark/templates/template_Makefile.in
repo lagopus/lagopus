@@ -5,7 +5,7 @@ DEPEND	= .depend
 
 include $(MKRULESDIR)/vars.mk
 
-ifneq ($(and $(RTE_SDK),$(HAVE_UNITY)),)
+ifneq ($(and $(RTE_SDK),$(HAVE_PAPI)),)
 TARGETS	= \
 {% for benchmark in benchmarks %}
  {{ benchmark.file }}
@@ -17,17 +17,22 @@ SRCS	= \
 {%- endfor %}
 
 BENCHMARK_LIBS	= \
-	$(DEP_LAGOPUS_UTIL_LIB)
+	$(DEP_LAGOPUS_AGENT_LIB)   \
+	$(DEP_LAGOPUS_DATAPLANE_LIB) \
+	$(DEP_LAGOPUS_UTIL_LIB)    \
+	$(DEP_LAGOPUS_DATASTORE_LIB) \
+	$(DEP_LAGOPUS_CONFIG_LIB)
 
 DEP_LIBS	+= $(BENCHMARK_LIBS)
+CPPFLAGS+= -I$(TOPDIR)/src/datastore -I$(TOPDIR)/src/agent -I$(TOPDIR)/src/dataplane
 
 TESTPDM_DIR=$(RTE_SDK)/build/build/app/test-pmd/
-BENCHMARK_LDFLAGS	+= $(RTE_LIBS) $(LDFLAGS) -lpcap  -lm
+BENCHMARK_LDFLAGS	+= $(RTE_LIBS) $(LDFLAGS) @PCAP_LIBS@ @PAPI_LIBS@ -lm
 endif
 
 include $(MKRULESDIR)/rules.mk
 
-ifneq ($(and $(RTE_SDK),$(HAVE_UNITY)),)
+ifneq ($(and $(RTE_SDK),$(HAVE_PAPI)),)
 {% for benchmark in benchmarks %}
 {{ benchmark.file }}:	{{ benchmark.file }}.lo $(DEP_LIBS)
 {%- if benchmark.lib_files is defined and benchmark.lib_files %}
@@ -35,7 +40,7 @@ ifneq ($(and $(RTE_SDK),$(HAVE_UNITY)),)
 
 {%- endif %}
 
-	$(LTCLEAN) $@
+	$(RM) -f $@ .libs/lt-$@ .libs/$@
 	$(LTLINK_CC) -o $@ $(BENCHMARK_LDFLAGS)
 {%- if benchmark.external_libs is defined and benchmark.external_libs %}
  {{ benchmark.external_libs }}
@@ -46,12 +51,25 @@ ifneq ($(and $(RTE_SDK),$(HAVE_UNITY)),)
 
 benchmark::
 {% for benchmark in benchmarks %}
-	./{{ benchmark.file }} {{ benchmark.pcap }}
-{%- if benchmark.times is defined and benchmark.times %}
- -t {{ benchmark.times }}
+	sudo ./{{ benchmark.file }} {{ benchmark.pcap }}
+{%- if benchmark.num_measurements is defined and benchmark.num_measurements %}
+ -n {{ benchmark.num_measurements }}
 {%- endif %}
 {%- if benchmark.batch_size is defined and benchmark.batch_size %}
  -b {{ benchmark.batch_size }}
+{%- endif %}
+{%- if benchmark.dsl is defined and benchmark.dsl %}
+ -C {{ benchmark.dsl }}
+{%- if benchmark.dpdk_opts is defined and benchmark.dpdk_opts %}
+ -- {{ benchmark.dpdk_opts }}
+{%- else %}
+ -- -cf -n4
+{%- endif %}
+{%- if benchmark.dp_opts is defined and benchmark.dp_opts %}
+ -- {{ benchmark.dp_opts }}
+{%- else %}
+ -- -p3
+{%- endif %}
 {%- endif %}
 
 {% endfor %}

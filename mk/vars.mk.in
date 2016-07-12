@@ -140,7 +140,7 @@ RUNPATH_SNMP_HANDLER_LIB	= $(BUILD_SNMPDIR)/.libs
 #---------------------------------------------------------------------
 
 CPPFLAGS	+= @OS_CPPFLAGS@ @SNMP_CPPFLAGS@
-CPPFLAGS	+= @FRAME_CPPFLAGS@ @HYBRID_CPPFLAGS@
+CPPFLAGS	+= @FRAME_CPPFLAGS@ @HYBRID_CPPFLAGS@ @PIPELINER_CPPFLAGS@
 CPPFLAGS	+= -I$(BUILD_INCDIR) -DCONFDIR='"$(CONFDIR)"'
 ifneq ($(RTE_SDK),)
 # so far, hardcoded to use dpdk version.
@@ -258,6 +258,8 @@ UNITY_LIB		= libunity.la
 DEP_UNITY_LIB		= $(BUILDUNITY_DIR)/$(UNITY_LIB)
 
 HAVE_GCOVR		= @HAVE_GCOVR@
+
+HAVE_PAPI		= @HAVE_PAPI@
 
 ifdef SITECONF_MK
 __SITECONF__=.post.

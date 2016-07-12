@@ -37,7 +37,7 @@ testcases:
           - cmd_type: ds
             cmd: >-
                flow bridge01 add
-               vxlan_flags=1/0x02
+               vxlan_flags=1/0x01
                vxlan_vni=3
             result: '{"ret":"OK"}'
           # dump flow
@@ -51,7 +51,7 @@ testcases:
               "idle_timeout":0,
               "hard_timeout":0,
               "cookie":0,
-              "vxlan_flags":"1\/0x02",
+              "vxlan_flags":"1\/0x01",
               "vxlan_vni":3,
               "actions":[]}]}]}]}
   - testcase: vxlan (set_field)

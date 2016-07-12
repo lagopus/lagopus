@@ -27,6 +27,8 @@ static volatile bool s_is_gracefull = false;
 static lagopus_thread_t s_thd = NULL;
 static lagopus_mutex_t s_lck = NULL;
 
+static int s_exit_code = 0;
+
 
 static void
 s_dummy_thd_finalize(const lagopus_thread_t *tptr, bool is_canceled,
@@ -67,8 +69,12 @@ s_dummy_thd_main(const lagopus_thread_t *tptr, void *arg) {
   (void)tptr;
   (void)arg;
 
-  lagopus_msg_debug(5, "waiting for the gala opening...\n");
+  if (s_exit_code == 2) {
+    exit(2);
+  }
 
+  lagopus_msg_debug(5, "waiting for the gala opening...\n");
+  
   ret = global_state_wait_for(GLOBAL_STATE_STARTED, &s, &l, -1LL);
   if (ret == LAGOPUS_RESULT_OK &&
       s == GLOBAL_STATE_STARTED) {
@@ -88,6 +94,10 @@ s_dummy_thd_main(const lagopus_thread_t *tptr, void *arg) {
        * none of it.
        */
       pthread_testcancel();
+
+      if (s_exit_code == 3) {
+        exit(3);
+      }
     }
     if (s_is_gracefull == true) {
       /*
@@ -129,6 +139,41 @@ s_unlock(void) {
 
 
 
+static inline lagopus_result_t
+s_parse_args(int argc, const char * const argv[]) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+
+  (void)argc;
+
+  while (*argv != NULL) {
+    if (strcmp("--exit", *argv) == 0) {
+      if (IS_VALID_STRING(*(argv + 1)) == true) {
+        int32_t tmp = 0;
+
+        if (lagopus_str_parse_int32(*(++argv), &tmp) == LAGOPUS_RESULT_OK) {
+          if (tmp >= 0) {
+            s_exit_code = tmp;
+          } else {
+            lagopus_msg_error("The exit code must be >= 0.\n");
+            ret = LAGOPUS_RESULT_INVALID_ARGS;
+            goto bailout;
+          }
+        } else {
+          lagopus_msg_error("can't parse '%s' as an integer.\n", *argv);
+          ret = LAGOPUS_RESULT_INVALID_ARGS;
+          goto bailout;
+        }
+      }
+    }
+    argv++;
+  }
+  ret = LAGOPUS_RESULT_OK;
+  
+bailout:
+  return ret;
+}
+
+
 static lagopus_result_t
 dummy_module_initialize(int argc,
                         const char *const argv[],
@@ -139,6 +184,14 @@ dummy_module_initialize(int argc,
   (void)extarg;
 
   lagopus_msg_debug(5, "called.\n");
+
+  if ((ret = s_parse_args(argc, argv)) != LAGOPUS_RESULT_OK) {
+    return ret;
+  }
+
+  if (s_exit_code == 1) {
+    exit(1);
+  }
 
   if (thdptr != NULL) {
     *thdptr = NULL;
@@ -153,7 +206,7 @@ dummy_module_initialize(int argc,
       for (i = 0; i < argc; i++) {
         lagopus_msg_debug(5, "%5d: '%s'\n", i, argv[i]);
       }
-
+      
       ret = lagopus_thread_create(&s_thd,
                                   s_dummy_thd_main,
                                   s_dummy_thd_finalize,
@@ -279,7 +332,7 @@ dummy_module_finalize(void) {
 static void
 dummy_module_usage(FILE *fd) {
   if (fd != NULL) {
-    fprintf(fd, "\t--dummy\tdummy.\n");
+    fprintf(fd, "\t--exit #\tspecify the exit code/mode.\n");
   }
 }
 

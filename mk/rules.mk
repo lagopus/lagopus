@@ -222,13 +222,13 @@ pkg-deb:: clean
 
 ifdef TARGET_LIB
 $(TARGET_LIB):	$(OBJS)
-	$(LTCLEAN) $@
+	$(RM) -f $@ .libs/$(@F:.la=.*)
 	$(LTLIB_CC) -o $@ $(OBJS) $(LDFLAGS) $(DEP_LIBS)
 endif
 
 ifdef TARGET_EXE
 $(TARGET_EXE):	$(OBJS)
-	$(LTCLEAN) $@
+	$(RM) -f $@ .libs/lt-$@ .libs/$@
 	$(LTLINK_CC) -o $@ $(OBJS) $(DEP_LIBS) $(LDFLAGS) 
 endif
 
@@ -571,7 +571,7 @@ $(DEP_UNITY_LIB)::
 depend::
 	@for i in $(TESTS) ; do \
 		echo "$${i}:$${i}.lo $${i}_runner.lo \$$(TEST_DEPS) \$$(DEP_UNITY_LIB)" >> .depend; \
-		echo '	$$(LTCLEAN) $$@' >> .depend; \
+		echo '	$$(RM) -f $$@ .libs/lt-$$@ .libs/$$@' >> .depend; \
 		echo '	$$(LTLINK_CC) -o $$@ $$^ $$(DEP_LIBS) $$(LDFLAGS)' >> .depend; \
 	done
 

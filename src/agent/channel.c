@@ -425,24 +425,33 @@ channel_send_packet_by_event(struct channel *channel, struct pbuf *pbuf) {
   }
 }
 
-static void
-channel_send_packet_nolock(struct channel *channel, struct pbuf *pbuf) {
+static lagopus_result_t
+channel_send_packet_nolock_internal(struct channel *channel,
+                                    struct pbuf_list *out_list) {
   ssize_t nbytes;
 
-  pbuf_list_add(channel->out, pbuf);
-
   /* Write packet to the socket. */
-  nbytes = pbuf_list_session_write(channel->out, channel->session);
+  nbytes = pbuf_list_session_write(out_list, channel->session);
 
   /* Write error. */
   if (nbytes < 0) {
     /* EAGAIN is not an error.  Simply ignore it. */
     if (errno == EAGAIN) {
-      return;
+      return LAGOPUS_RESULT_OK;
     }
     lagopus_msg_warning("FAILED : write packet.\n");
-    return;
+    return LAGOPUS_RESULT_POSIX_API_ERROR;
   }
+
+  return LAGOPUS_RESULT_OK;
+}
+
+static void
+channel_send_packet_nolock(struct channel *channel, struct pbuf *pbuf) {
+  pbuf_list_add(channel->out, pbuf);
+
+  /* Write packet. */
+  (void) channel_send_packet_nolock_internal(channel, channel->out);
 }
 
 void
@@ -452,21 +461,21 @@ channel_send_packet(struct channel *channel, struct pbuf *pbuf) {
   channel_unlock(channel);
 }
 
-
 lagopus_result_t
 channel_send_packet_list(struct channel *channel,
                          struct pbuf_list *pbuf_list) {
   lagopus_result_t res = LAGOPUS_RESULT_ANY_FAILURES;
-  struct pbuf *pbuf = NULL;
 
   if (channel != NULL && pbuf_list != NULL) {
     channel_lock(channel);
-    while ((pbuf = TAILQ_FIRST(&pbuf_list->tailq)) != NULL) {
-      TAILQ_REMOVE(&pbuf_list->tailq, pbuf, entry);
-      channel_send_packet_nolock(channel, pbuf);
+    while (TAILQ_EMPTY(&pbuf_list->tailq) == false) {
+      if ((res = channel_send_packet_nolock_internal(channel, pbuf_list)) !=
+          LAGOPUS_RESULT_OK) {
+        lagopus_perror(res);
+        break;
+      }
     }
     channel_unlock(channel);
-    res = LAGOPUS_RESULT_OK;
   } else {
     res = LAGOPUS_RESULT_INVALID_ARGS;
   }
@@ -896,10 +905,16 @@ session_set(struct channel *channel) {
   return ret;
 }
 
+static void
+multipart_reset(struct multipart *m) {
+  m->used = 0;
+}
+
 /* Multipart object init. */
 static void
 multipart_init(struct multipart *m) {
   TAILQ_INIT(&m->multipart_list);
+  multipart_reset(m);
 }
 
 /* Channel allocation. */
@@ -1061,6 +1076,7 @@ multipart_free(struct multipart *m) {
       pbuf_reset(p);
       pbuf_free(p);
     }
+    multipart_reset(m);
   }
 }
 
@@ -1536,12 +1552,6 @@ channel_multipart_put(struct channel *channel, struct pbuf *pbuf,
   return ret;
 }
 
-static void
-reset(struct multipart *m) {
-  m->used = 0;
-}
-
-
 lagopus_result_t
 channel_multipart_get(struct channel *channel, struct pbuf **pbuf,
                       struct ofp_header *xid_header, uint16_t mtype) {
@@ -1551,7 +1561,8 @@ channel_multipart_get(struct channel *channel, struct pbuf **pbuf,
 
   channel_lock(channel);
   for (i = 0; i < CHANNEL_SIMULTANEOUS_MULTIPART_MAX; i++) {
-    if (channel->multipart[i].ofp_header.xid == xid_header->xid
+    if (channel->multipart[i].used == 1 
+        && channel->multipart[i].ofp_header.xid == xid_header->xid
         && channel->multipart[i].multipart_type == mtype) {
       /* found */
       break;
@@ -1584,7 +1595,7 @@ channel_multipart_get(struct channel *channel, struct pbuf **pbuf,
       }
 
       if (ret == LAGOPUS_RESULT_OK) {
-        reset(&channel->multipart[i]);
+        multipart_reset(&channel->multipart[i]);
       } else {
         multipart_free(&channel->multipart[i]);
       }

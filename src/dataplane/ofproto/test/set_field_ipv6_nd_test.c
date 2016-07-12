@@ -55,7 +55,7 @@ test_set_field_IPV6_ND_TARGET(void) {
 
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
 
   OS_M_APPEND(m, 64);
   OS_MTOD(m, uint8_t *)[12] = 0x86;
@@ -161,7 +161,7 @@ test_set_field_IPV6_ND_SLL(void) {
 
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
 
   OS_M_PKTLEN(m) = 96;
   OS_MTOD(m, uint8_t *)[12] = 0x86;
@@ -211,7 +211,7 @@ test_set_field_IPV6_ND_TLL(void) {
 
   pkt = alloc_lagopus_packet();
   TEST_ASSERT_NOT_NULL_MESSAGE(pkt, "lagopus_alloc_packet error.");
-  m = pkt->mbuf;
+  m = PKT2MBUF(pkt);
 
   OS_M_PKTLEN(m) = 128;
   OS_MTOD(m, uint8_t *)[12] = 0x86;

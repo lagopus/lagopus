@@ -45,13 +45,13 @@ s_parse_dryrun(datastore_interp_t *iptr,
 
     ret = lagopus_dstring_appendf(result,
                                   "{\"ret\":\"OK\",\n"
-                                  "\"dryrun\": ");
+                                  "\"data\":{\"dryrun\": ");
 
     if (ret == LAGOPUS_RESULT_OK) {
       if (state == DATASTORE_INTERP_STATE_DRYRUN) {
-        ret = lagopus_dstring_appendf(result, "true}");
+        ret = lagopus_dstring_appendf(result, "true}}");
       } else {
-        ret = lagopus_dstring_appendf(result, "false}");
+        ret = lagopus_dstring_appendf(result, "false}}");
       }
 
       if (ret != LAGOPUS_RESULT_OK) {

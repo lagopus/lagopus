@@ -528,6 +528,27 @@ bad_out:
 }
 
 static lagopus_result_t
+flow_mask_check(struct match_list *match_list, struct ofp_error *error) {
+  struct match *match;
+  size_t len, i;
+
+  /* Iterate match entry. */
+  TAILQ_FOREACH(match, match_list, entry) {
+    if ((match->oxm_field & 1) != 0) {
+      len = match->oxm_length >> 1;
+      for (i = 0; i < len; i++) {
+        if ((match->oxm_value[i] & ~match->oxm_value[len + i]) != 0) {
+          error->type = OFPET_BAD_MATCH;
+          error->code = OFPBMC_BAD_WILDCARDS;
+          return LAGOPUS_RESULT_OFP_ERROR;
+        }
+      }
+    }
+  }
+  return LAGOPUS_RESULT_OK;
+}
+
+static lagopus_result_t
 flow_action_check(struct bridge *bridge,
                   struct flow *flow,
                   struct ofp_error *error) {
@@ -726,6 +747,7 @@ flow_remove_with_reason_nolock(struct flow *flow,
 #ifdef HAVE_DPDK
   clear_worker_flowcache(false);
 #endif /* HAVE_DPDK */
+  clear_rawsock_flowcache();
 
   group_table = bridge->group_table;
   meter_table = bridge->meter_table;
@@ -1034,6 +1056,11 @@ flowdb_flow_add(struct bridge *bridge,
     flow_free(flow);
     goto out;
   }
+  ret = flow_mask_check(&flow->match_list, error);
+  if (ret != LAGOPUS_RESULT_OK) {
+    flow_free(flow);
+    goto out;
+  }
 
   /* Overlapping flow check. */
   if (lagopus_find_flow_hook != NULL) {
@@ -1124,6 +1151,7 @@ flowdb_flow_add(struct bridge *bridge,
 #ifdef HAVE_DPDK
   clear_worker_flowcache(false);
 #endif /* HAVE_DPDK */
+  clear_rawsock_flowcache();
 
 out:
   /* Unlock the flowdb then return result. */
@@ -1657,6 +1685,7 @@ flowdb_flow_modify(struct bridge *bridge,
 #ifdef HAVE_DPDK
   clear_worker_flowcache(false);
 #endif /* HAVE_DPDK */
+  clear_rawsock_flowcache();
 
   /* Unlock the flowdb and return result. */
 out:
@@ -1725,6 +1754,7 @@ flowdb_flow_delete(struct bridge *bridge,
 #ifdef HAVE_DPDK
   clear_worker_flowcache(false);
 #endif /* HAVE_DPDK */
+  clear_rawsock_flowcache();
 
   /* Unlock the flowdb and return result. */
 out:

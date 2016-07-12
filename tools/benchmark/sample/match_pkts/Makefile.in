@@ -1,0 +1,13 @@
+TOPDIR		= @TOPDIR@
+MKRULESDIR	= @MKRULESDIR@
+
+SRCS	= match_pkts.c
+
+TARGETS	= match_pkts.lo
+
+include $(MKRULESDIR)/vars.mk
+include $(MKRULESDIR)/rules.mk
+
+CPPFLAGS	+= -I$(TOPDIR)/src/dataplane
+
+include .depend

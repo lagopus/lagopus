@@ -35,6 +35,7 @@ By the support of Unity, you can write the Four-Phase test case (i.e. Fixture se
 * Ruby 1.9.3
 * gcovr 2.4
 * jq 1.3
+* PAPI 5.4.3.0
 
 ### Install Ruby
 
@@ -65,12 +66,12 @@ If Ubuntu version is 13.04 or higher, you can use apt-get.
 $ sudo apt-get install gcovr
 ```
 
-### Install jq
+### Install jq and PAPI
 
-Install jq (Command-line JSON processor).
+Install jq (Command-line JSON processor) and PAPI (Performance Application Programming Interface).
 
 ```
-$ sudo apt-get install jq
+$ sudo apt-get install jq libpapi-dev
 ```
 
 Test Your Code
