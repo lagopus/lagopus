@@ -13,7 +13,7 @@ fi
 PKGWORKDIR=lagopus
 TMP_TAR="/tmp/lagopus_pkg_$$.tar.gz"
 
-. ${TOPDIR}/mk/pkg_param.conf
+. ${TOPDIR}/mk/pkg_param.conf ${TOPDIR}
 
 #
 
@@ -44,7 +44,7 @@ cd ${PKGDIR} && tar zxf lagopus_${PKG_VERSION}.orig.tar.gz -C ${PKGWORKDIR}
 cd ${PKGDIR}/${PKGWORKDIR} &&
     DEB_CPPFLAGS_SET= DEB_CFLAGS_SET= DEB_LDFLAGS_SET= \
     DEB_CXXFLAGS_SET= DEB_FFLAGS_SET= \
-    dpkg-buildpackage -rfakeroot
+    dpkg-buildpackage -uc -us -rfakeroot
 
 cleanup
 

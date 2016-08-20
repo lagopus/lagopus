@@ -38,11 +38,11 @@ configure-%:
 	tar xvzf $(TAR_FILE) -C $(BUILD_DIR)/$*
 	if [ $* = dpdk ] ; then \
 		dh_auto_configure -D "$(BUILD_DIR)/$*" -- \
-		  	--sysconfdir=$(SYSCONFDIR) \
-			--with-dpdk-dir=$(RTE_SDK_DIR); \
+			--sysconfdir=$(SYSCONFDIR); \
 	else \
 		dh_auto_configure -D "$(BUILD_DIR)/$*" -- \
-		  	--sysconfdir=$(SYSCONFDIR); \
+			--sysconfdir=$(SYSCONFDIR) \
+			--disable-dpdk; \
 	fi
 
 override_dh_auto_configure:

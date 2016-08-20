@@ -25,22 +25,22 @@ PKG_PURGE_FILES="@PKG_PURGE_FILES@"
 
 case "$1" in
     remove|upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
-        for DIR in ${PKG_REMOVE_DIRS}; do
-            rm -rf ${DIR}
-        done
-
         for FILE in ${PKG_REMOVE_FILES}; do
             rm -f ${FILE}
+        done
+
+        for DIR in ${PKG_REMOVE_DIRS}; do
+            rm -rf ${DIR}
         done
         ;;
 
     purge)
-        for DIR in ${PKG_PURGE_DIRS}; do
-            rm -rf ${DIR}
-        done
-
         for FILE in ${PKG_PURGE_FILES}; do
             rm -f ${FILE}
+        done
+
+        for DIR in ${PKG_PURGE_DIRS}; do
+            rm -rf ${DIR}
         done
         ;;
     *)
