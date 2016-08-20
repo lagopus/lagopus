@@ -296,14 +296,14 @@ ofp_hello_send(struct channel *channel) {
 
     if (ret == LAGOPUS_RESULT_OK) {
       /* send. */
-      channel_send_packet_by_event(channel, pbuf);
+      channel_send_packet_by_event_nolock(channel, pbuf);
 
       /* Success. */
       ret = LAGOPUS_RESULT_OK;
     }
 
     if (ret != LAGOPUS_RESULT_OK && pbuf != NULL) {
-      channel_pbuf_list_unget(channel, pbuf);
+      channel_pbuf_list_unget_nolock(channel, pbuf);
     }
   } else {
     ret = LAGOPUS_RESULT_INVALID_ARGS;
