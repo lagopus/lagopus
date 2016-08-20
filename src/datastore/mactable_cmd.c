@@ -134,6 +134,7 @@ tmp_dir_opt_parse(const char *const *argv[],
                      result, ATTR_NAME_GET(opt_strs, OPT_TMP_DIR),
                      path, false)) !=
             LAGOPUS_RESULT_OK) {
+          lagopus_dstring_appendf(result, "}");
           lagopus_perror(ret);
           goto done;
         }

@@ -896,6 +896,7 @@ test_bridge_attr_create_and_destroy(void) {
     TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
     TEST_ASSERT_EQUAL_UINT32(expected_down_streamq_max_batches,
                              actual_down_streamq_max_batches);
+
   }
 
   bridge_attr_destroy(attr);
@@ -903,6 +904,250 @@ test_bridge_attr_create_and_destroy(void) {
   datastore_names_destroy(actual_port_names);
 
   bridge_finalize();
+}
+
+void
+test_bridge_attr_create_and_destroy_hybrid(void) {
+#ifdef HYBRID
+  lagopus_result_t rc;
+  bridge_attr_t *attr = NULL;
+  uint64_t actual_dpid = 0;
+  const uint64_t expected_dpid = 0;
+  datastore_name_info_t *actual_controller_names = NULL;
+  struct datastore_name_entry *expected_controller_entry = NULL;
+  datastore_name_info_t *actual_port_names = NULL;
+  struct datastore_name_entry *expected_port_entry = NULL;
+  datastore_bridge_fail_mode_t actual_fail_mode = 0;
+  const datastore_bridge_fail_mode_t expected_fail_mode =
+    DATASTORE_BRIDGE_FAIL_MODE_UNKNOWN;
+  bool actual_flow_statistics = false;
+  bool actual_group_statistics = false;
+  bool actual_port_statistics = false;
+  bool actual_queue_statistics = false;
+  bool actual_table_statistics = false;
+  bool actual_reassemble_ip_fragments = true;
+  uint32_t actual_max_buffered_packets = 0;
+  const uint32_t expected_max_buffered_packets = 65535;
+  uint16_t actual_max_ports = 0;
+  const uint16_t expected_max_ports = 255;
+  uint8_t actual_max_tables = 0;
+  const uint8_t expected_max_tables = 255;
+  bool actual_block_looping_ports = true;
+  uint64_t actual_action_types = 0;
+  const uint64_t expected_action_types = UINT64_MAX;
+  uint64_t actual_instruction_types = 0;
+  const uint64_t expected_instruction_types = UINT64_MAX;
+  uint32_t actual_max_flows = 0;
+  const uint32_t expected_max_flows = MAXIMUM_FLOWS;
+  uint64_t actual_reserved_port_types = 0;
+  const uint64_t expected_reserved_port_types = UINT64_MAX;
+  uint64_t actual_group_types = 0;
+  const uint64_t expected_group_types = UINT64_MAX;
+  uint64_t actual_group_capabilities = 0;
+  const uint64_t expected_group_capabilities = UINT64_MAX;
+  uint16_t actual_packet_inq_size = 0;
+  const uint16_t expected_packet_inq_size = 1000;
+  uint16_t actual_packet_inq_max_batches = 0;
+  const uint16_t expected_packet_inq_max_batches = 1000;
+  uint16_t actual_up_streamq_size = 0;
+  const uint16_t expected_up_streamq_size = 1000;
+  uint16_t actual_up_streamq_max_batches = 0;
+  const uint16_t expected_up_streamq_max_batches = 1000;
+  uint16_t actual_down_streamq_size = 0;
+  const uint16_t expected_down_streamq_size = 1000;
+  uint16_t actual_down_streamq_max_batches = 0;
+  const uint16_t expected_down_streamq_max_batches = 1000;
+  uint32_t actual_mactable_max_entries = 0;
+  const uint32_t expected_mactable_max_entries = 8192;
+  uint32_t actual_mactable_ageing_time = 0;
+  const uint32_t expected_mactable_ageing_time = 300;
+
+  bridge_initialize();
+
+  // Normal case
+  {
+    rc = bridge_attr_create(&attr);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+    TEST_ASSERT_NOT_NULL_MESSAGE(attr, "attr_create() will create new interface");
+
+    // dpid
+    rc = bridge_get_dpid(attr, &actual_dpid);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+    TEST_ASSERT_EQUAL_UINT64(expected_dpid, actual_dpid);
+
+    // controller_names
+    rc = bridge_get_controller_names(attr, &actual_controller_names);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+    TEST_ASSERT_EQUAL_UINT32(0, actual_controller_names->size);
+    expected_controller_entry = TAILQ_FIRST(&(actual_controller_names->head));
+    TEST_ASSERT_NULL(expected_controller_entry);
+
+    // port_names
+    rc = bridge_get_port_names(attr, &actual_port_names);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+    TEST_ASSERT_EQUAL_UINT32(0, actual_port_names->size);
+    expected_port_entry = TAILQ_FIRST(&(actual_port_names->head));
+    TEST_ASSERT_NULL(expected_port_entry);
+
+    // fail_mode
+    rc = bridge_get_fail_mode(attr, &actual_fail_mode);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+    TEST_ASSERT_EQUAL_UINT32(expected_fail_mode, actual_fail_mode);
+
+    // flow_statistics
+    rc = bridge_is_flow_statistics(attr, &actual_flow_statistics);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+    TEST_ASSERT_TRUE(actual_flow_statistics);
+
+    // group_statistics
+    rc = bridge_is_group_statistics(attr, &actual_group_statistics);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+    TEST_ASSERT_TRUE(actual_group_statistics);
+
+    // port_statistics
+    rc = bridge_is_port_statistics(attr, &actual_port_statistics);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+    TEST_ASSERT_TRUE(actual_port_statistics);
+
+    // queue_statistics
+    rc = bridge_is_queue_statistics(attr, &actual_queue_statistics);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+    TEST_ASSERT_TRUE(actual_queue_statistics);
+
+    // table_statistics
+    rc = bridge_is_table_statistics(attr, &actual_table_statistics);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+    TEST_ASSERT_TRUE(actual_table_statistics);
+
+    // reassemble_ip_fragments
+    rc = bridge_is_reassemble_ip_fragments(attr, &actual_reassemble_ip_fragments);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+    TEST_ASSERT_FALSE(actual_reassemble_ip_fragments);
+
+    // max_buffered_packets
+    rc = bridge_get_max_buffered_packets(attr, &actual_max_buffered_packets);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+    TEST_ASSERT_EQUAL_UINT32(expected_max_buffered_packets,
+                             actual_max_buffered_packets);
+
+    // max_ports
+    rc = bridge_get_max_ports(attr, &actual_max_ports);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+    TEST_ASSERT_EQUAL_UINT32(expected_max_ports, actual_max_ports);
+
+    // max_tables
+    rc = bridge_get_max_tables(attr, &actual_max_tables);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+    TEST_ASSERT_EQUAL_UINT32(expected_max_tables, actual_max_tables);
+
+    // block_looping_ports
+    rc = bridge_is_block_looping_ports(attr, &actual_block_looping_ports);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+    TEST_ASSERT_FALSE(actual_block_looping_ports);
+
+    // action_types
+    rc = bridge_get_action_types(attr, &actual_action_types);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+    TEST_ASSERT_EQUAL_UINT64(expected_action_types, actual_action_types);
+
+    // instruction_types
+    rc = bridge_get_instruction_types(attr, &actual_instruction_types);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+    TEST_ASSERT_EQUAL_UINT64(expected_instruction_types, actual_instruction_types);
+
+    // max_flows
+    rc = bridge_get_max_flows(attr, &actual_max_flows);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+    TEST_ASSERT_EQUAL_UINT32(expected_max_flows, actual_max_flows);
+
+    // reserved_port_types
+    rc = bridge_get_reserved_port_types(attr, &actual_reserved_port_types);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+    TEST_ASSERT_EQUAL_UINT64(expected_reserved_port_types,
+                             actual_reserved_port_types);
+
+    // group_types
+    rc = bridge_get_group_types(attr, &actual_group_types);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+    TEST_ASSERT_EQUAL_UINT64(expected_group_types, actual_group_types);
+
+    // group_capabilities
+    rc = bridge_get_group_capabilities(attr, &actual_group_capabilities);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+    TEST_ASSERT_EQUAL_UINT64(expected_group_capabilities,
+                             actual_group_capabilities);
+
+    // packet_inq_size
+    rc = bridge_get_packet_inq_size(attr,
+                                    &actual_packet_inq_size);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+    TEST_ASSERT_EQUAL_UINT32(expected_packet_inq_size,
+                             actual_packet_inq_size);
+
+    // packet_inq_max_batches
+    rc = bridge_get_packet_inq_max_batches(attr,
+                                           &actual_packet_inq_max_batches);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+    TEST_ASSERT_EQUAL_UINT32(expected_packet_inq_max_batches,
+                             actual_packet_inq_max_batches);
+
+    // up_streamq_size
+    rc = bridge_get_up_streamq_size(attr,
+                                    &actual_up_streamq_size);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+    TEST_ASSERT_EQUAL_UINT32(expected_up_streamq_size,
+                             actual_up_streamq_size);
+
+    // up_streamq_max_batches
+    rc = bridge_get_up_streamq_max_batches(attr,
+                                           &actual_up_streamq_max_batches);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+    TEST_ASSERT_EQUAL_UINT32(expected_up_streamq_max_batches,
+                             actual_up_streamq_max_batches);
+
+    // down_streamq_size
+    rc = bridge_get_down_streamq_size(attr,
+                                      &actual_down_streamq_size);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+    TEST_ASSERT_EQUAL_UINT32(expected_down_streamq_size,
+                             actual_down_streamq_size);
+
+    // down_streamq_max_batches
+    rc = bridge_get_down_streamq_max_batches(attr,
+         &actual_down_streamq_max_batches);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+    TEST_ASSERT_EQUAL_UINT32(expected_down_streamq_max_batches,
+                             actual_down_streamq_max_batches);
+
+    // mactable_entries
+    TEST_ASSERT_NOT_NULL(attr->mactable_entries);
+
+    // l2_bridge
+    TEST_ASSERT_FALSE(attr->l2_bridge);
+
+    // mactable_max_entries
+    rc = bridge_get_mactable_max_entries(attr,
+         &actual_mactable_max_entries);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+    TEST_ASSERT_EQUAL(expected_mactable_max_entries,
+                      actual_mactable_max_entries);
+
+    // mactable_ageing_time
+    rc = bridge_get_mactable_ageing_time(attr,
+         &actual_mactable_ageing_time);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+    TEST_ASSERT_EQUAL(expected_mactable_ageing_time,
+                      actual_mactable_ageing_time);
+  }
+
+  bridge_attr_destroy(attr);
+  datastore_names_destroy(actual_controller_names);
+  datastore_names_destroy(actual_port_names);
+
+  bridge_finalize();
+#else // HYBRID
+  TEST_IGNORE_MESSAGE("HYBRID is not defined.");
+#endif // HYBRID
 }
 
 void
@@ -1273,6 +1518,311 @@ test_bridge_attr_equals(void) {
   bridge_attr_destroy(attr3);
 
   bridge_finalize();
+}
+
+void
+test_bridge_mactable_entry_create_and_destroy(void) {
+#ifdef HYBRID
+  lagopus_result_t rc;
+  bridge_mactable_info_t *entries = NULL;
+
+  // Normal case
+  {
+    rc = bridge_mactable_entry_create(&entries);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+    TEST_ASSERT_NOT_NULL(entries);
+  }
+
+  // Abnormal case
+  {
+    rc = bridge_mactable_entry_create(NULL);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_INVALID_ARGS, rc);
+  }
+
+  // Normal case
+  {
+    rc = bridge_mactable_entry_destroy(entries);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+  }
+
+  // Abnormal case
+  {
+    rc = bridge_mactable_entry_destroy(NULL);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_INVALID_ARGS, rc);
+  }
+#else // HYBRID
+  TEST_IGNORE_MESSAGE("HYBRID is not defined.");
+#endif // HYBRID
+}
+
+void
+test_bridge_mactable_add_entries(void) {
+#ifdef HYBRID
+  lagopus_result_t rc;
+  bridge_mactable_info_t *entries = NULL;
+  const uint32_t port_no = 1;
+  mac_address_t addr;
+
+  addr[0] = 0xaa;
+  addr[1] = 0xbb;
+  addr[2] = 0xcc;
+  addr[3] = 0xdd;
+  addr[4] = 0xee;
+  addr[5] = 0xff;
+
+  bridge_mactable_entry_create(&entries);
+
+  // Normal case
+  {
+    rc = bridge_mactable_add_entries(entries, addr, port_no);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+  }
+
+  // Abnormal case
+  {
+    rc = bridge_mactable_add_entries(NULL, addr, port_no);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_INVALID_ARGS, rc);
+    rc = bridge_mactable_add_entries(entries, NULL, port_no);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_INVALID_ARGS, rc);
+    rc = bridge_mactable_add_entries(entries, addr, NULL);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_INVALID_ARGS, rc);
+  }
+
+  bridge_mactable_entry_destroy(entries);
+#else // HYBRID
+  TEST_IGNORE_MESSAGE("HYBRID is not defined.");
+#endif // HYBRID
+}
+
+void
+test_bridge_mactable_entry_exists(void) {
+#ifdef HYBRID
+  lagopus_result_t rc;
+  bridge_mactable_info_t *entries1 = NULL;
+  bridge_mactable_info_t *entries2 = NULL;
+  struct bridge_mactable_entry *entry = NULL;
+  const uint32_t port_no1 = 1;
+  const uint32_t port_no2 = 2;
+  mac_address_t addr;
+
+  addr[0] = 0xaa;
+  addr[1] = 0xbb;
+  addr[2] = 0xcc;
+  addr[3] = 0xdd;
+  addr[4] = 0xee;
+  addr[5] = 0xff;
+
+  bridge_mactable_entry_create(&entries1);
+  bridge_mactable_entry_create(&entries2);
+
+  // Normal case 1
+  {
+    bridge_mactable_add_entries(entries1, addr, port_no1);
+    entry = TAILQ_FIRST(&(entries1->head));
+    TEST_ASSERT_TRUE(bridge_mactable_entry_exists(entries1, entry) == true);
+  }
+
+  // Normal case 2
+  {
+    bridge_mactable_add_entries(entries2, addr, port_no2);
+    TEST_ASSERT_TRUE(bridge_mactable_entry_exists(entries2, entry) == false);
+  }
+
+  // Abnormal case
+  {
+    TEST_ASSERT_TRUE(bridge_mactable_entry_exists(NULL, entry) == false);
+    TEST_ASSERT_TRUE(bridge_mactable_entry_exists(entries1, NULL) == false);
+  }
+
+  bridge_mactable_entry_destroy(entries1);
+  bridge_mactable_entry_destroy(entries2);
+#else // HYBRID
+  TEST_IGNORE_MESSAGE("HYBRID is not defined.");
+#endif //HYBRID
+}
+
+void
+test_bridge_mactable_entry_equals(void) {
+#ifdef HYBRID
+  bridge_mactable_info_t *entries1 = NULL;
+  bridge_mactable_info_t *entries2 = NULL;
+  bridge_mactable_info_t *entries3 = NULL;
+  const uint32_t port_no1 = 1;
+  const uint32_t port_no2 = 2;
+  mac_address_t addr1;
+  mac_address_t addr2;
+
+  addr1[0] = 0xaa;
+  addr1[1] = 0xbb;
+  addr1[2] = 0xcc;
+  addr1[3] = 0xdd;
+  addr1[4] = 0xee;
+
+  addr2[0] = 0x11;
+  addr2[1] = 0x22;
+  addr2[2] = 0x33;
+  addr2[3] = 0x44;
+  addr2[4] = 0x55;
+
+  bridge_mactable_entry_create(&entries1);
+  bridge_mactable_entry_create(&entries2);
+  bridge_mactable_entry_create(&entries3);
+
+  bridge_mactable_add_entries(entries1, addr1, port_no1);
+  bridge_mactable_add_entries(entries2, addr1, port_no1);
+  bridge_mactable_add_entries(entries3, addr2, port_no2);
+
+  // Normal case
+  {
+    TEST_ASSERT_TRUE(bridge_mactable_entry_equals(entries1, entries2) == true);
+    TEST_ASSERT_TRUE(bridge_mactable_entry_equals(entries1, entries3) == false);
+  }
+
+  // Abnormal case
+  {
+    TEST_ASSERT_TRUE(bridge_mactable_entry_equals(entries1, NULL) == false);
+    TEST_ASSERT_TRUE(bridge_mactable_entry_equals(NULL, entries2) == false);
+  }
+
+  bridge_mactable_entry_destroy(entries1);
+  bridge_mactable_entry_destroy(entries2);
+  bridge_mactable_entry_destroy(entries3);
+#else // HYBRID
+  TEST_IGNORE_MESSAGE("HYBRID is not defined.");
+#endif // HYBRID
+}
+
+void
+test_bridge_mactable_entry_duplicate(void) {
+#ifdef HYBRID
+  lagopus_result_t rc;
+  bridge_mactable_info_t *src_entries = NULL;
+  bridge_mactable_info_t *dst_entries = NULL;
+  const uint32_t port_no = 1;
+  mac_address_t addr;
+
+  addr[0] = 0xaa;
+  addr[1] = 0xbb;
+  addr[2] = 0xcc;
+  addr[3] = 0xdd;
+  addr[4] = 0xee;
+
+  bridge_mactable_entry_create(&src_entries);
+  bridge_mactable_entry_create(&dst_entries);
+
+  bridge_mactable_add_entries(src_entries, addr, port_no);
+
+  // Normal case
+  {
+    rc = bridge_mactable_entry_duplicate(src_entries, &dst_entries);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+    TEST_ASSERT_TRUE(bridge_mactable_entry_equals(src_entries,
+                                                  dst_entries) == true);
+  }
+
+  // Abnormal case
+  {
+    rc = bridge_mactable_entry_duplicate(NULL, &dst_entries);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_INVALID_ARGS, rc);
+    rc = bridge_mactable_entry_duplicate(src_entries, NULL);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_INVALID_ARGS, rc);
+  }
+
+  bridge_mactable_entry_destroy(src_entries);
+  bridge_mactable_entry_destroy(dst_entries);
+#else // HYBRID
+  TEST_IGNORE_MESSAGE("HYBRID is not defined.");
+#endif // HYBRID
+}
+
+void
+test_bridge_mactable_remove_entry(void) {
+#ifdef HYBRID
+  lagopus_result_t rc;
+  bridge_mactable_info_t *entries = NULL;
+  struct bridge_mactable_entry *entry = NULL;
+  const uint32_t port_no = 1;
+  mac_address_t addr;
+
+  addr[0] = 0xaa;
+  addr[1] = 0xbb;
+  addr[2] = 0xcc;
+  addr[3] = 0xdd;
+  addr[4] = 0xee;
+  addr[5] = 0xff;
+
+  bridge_mactable_entry_create(&entries);
+
+  // Normal case
+  {
+    bridge_mactable_add_entries(entries, addr, port_no);
+    entry = TAILQ_FIRST(&(entries->head));
+    rc = bridge_mactable_remove_entry(entries, addr);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+    TEST_ASSERT_TRUE(bridge_mactable_entry_exists(entries, entry) == false);
+  }
+
+  // Abnormal case
+  {
+    bridge_mactable_add_entries(entries, addr, port_no);
+    rc = bridge_mactable_remove_entry(NULL, addr);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_INVALID_ARGS, rc);
+    rc = bridge_mactable_remove_entry(entries, NULL);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_INVALID_ARGS, rc);
+  }
+
+  bridge_mactable_entry_destroy(entries);
+#else // HYBRID
+  TEST_IGNORE_MESSAGE("HYBRID is not defined.");
+#endif // HYBRID
+}
+
+void
+test_bridge_mactable_remove_all_entries(void) {
+#ifdef HYBRID
+  lagopus_result_t rc;
+  bridge_mactable_info_t *entries1 = NULL;
+  bridge_mactable_info_t *entries2 = NULL;
+  const uint32_t port_no1 = 1;
+  const uint32_t port_no2 = 2;
+  mac_address_t addr1;
+  mac_address_t addr2;
+
+  addr1[0] = 0xaa;
+  addr1[1] = 0xbb;
+  addr1[2] = 0xcc;
+  addr1[3] = 0xdd;
+  addr1[4] = 0xee;
+  addr1[5] = 0xff;
+
+  addr2[0] = 0x11;
+  addr2[1] = 0x22;
+  addr2[2] = 0x33;
+  addr2[3] = 0x44;
+  addr2[4] = 0x55;
+  addr2[5] = 0x66;
+
+  bridge_mactable_entry_create(&entries1);
+  bridge_mactable_entry_create(&entries2);
+
+  bridge_mactable_add_entries(entries1, addr1, port_no1);
+  bridge_mactable_add_entries(entries1, addr2, port_no2);
+  bridge_mactable_add_entries(entries2, addr1, port_no1);
+  bridge_mactable_add_entries(entries2, addr2, port_no2);
+  TEST_ASSERT_TRUE(bridge_mactable_entry_equals(entries1, entries2) == true);
+
+  // Normal case
+  {
+    rc = bridge_mactable_remove_all_entries(entries1);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+    TEST_ASSERT_TRUE(bridge_mactable_entry_equals(entries1, entries2) == false);
+  }
+
+  bridge_mactable_entry_destroy(entries1);
+  bridge_mactable_entry_destroy(entries2);
+#else // HYBRID
+  TEST_IGNORE_MESSAGE("HYBRID is not defined.");
+#endif // HYBRID
 }
 
 void
@@ -3388,6 +3938,247 @@ test_bridge_attr_public_max_buffered_packets(void) {
   }
 
   bridge_finalize();
+}
+
+void
+test_bridge_attr_private_mactable_max_entries(void) {
+#ifdef HYBRID
+  lagopus_result_t rc;
+  bridge_attr_t *attr = NULL;
+  uint32_t actual_mactable_max_entries = 0;
+  uint64_t set_mactable_max_entries1 = MAXIMUM_MACTABLE_MAX_ENTRIES;
+  uint64_t set_mactable_max_entries2 = MINIMUM_MACTABLE_MAX_ENTRIES;
+
+  bridge_initialize();
+
+  rc = bridge_attr_create(&attr);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+  TEST_ASSERT_NOT_NULL_MESSAGE(attr, "attr_create() will create new bridge");
+
+  // Normal case of getter
+  {
+    rc = bridge_get_mactable_max_entries(attr, &actual_mactable_max_entries);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+    TEST_ASSERT_EQUAL_UINT32(DEFAULT_MACTABLE_MAX_ENTRIES,
+                             actual_mactable_max_entries);
+  }
+
+  // Abnormal case of getter
+  {
+    rc = bridge_get_mactable_max_entries(NULL, &actual_mactable_max_entries);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_INVALID_ARGS, rc);
+    rc = bridge_get_mactable_max_entries(attr, NULL);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_INVALID_ARGS, rc);
+  }
+
+  // Normal case of setter
+  {
+    rc = bridge_set_mactable_max_entries(attr, set_mactable_max_entries1);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+    rc = bridge_get_mactable_max_entries(attr, &actual_mactable_max_entries);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+    TEST_ASSERT_EQUAL_UINT32(MAXIMUM_MACTABLE_MAX_ENTRIES,
+                             actual_mactable_max_entries);
+
+    rc = bridge_set_mactable_max_entries(attr, set_mactable_max_entries2);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+    rc = bridge_get_mactable_max_entries(attr, &actual_mactable_max_entries);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+    TEST_ASSERT_EQUAL_UINT32(MINIMUM_MACTABLE_MAX_ENTRIES,
+                             actual_mactable_max_entries);
+  }
+
+  // Abnormal case of setter
+  {
+    rc = bridge_set_mactable_max_entries(NULL, set_mactable_max_entries1);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_INVALID_ARGS, rc);
+
+    rc = bridge_set_mactable_max_entries(attr, NULL);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_TOO_SHORT, rc);
+
+    rc = bridge_set_mactable_max_entries(attr,
+                                        (MINIMUM_MACTABLE_MAX_ENTRIES - 1));
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_TOO_SHORT, rc);
+
+    rc = bridge_set_mactable_max_entries(attr,
+                                        (MAXIMUM_MACTABLE_MAX_ENTRIES + 1));
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_TOO_LONG, rc);
+  }
+#else // HYBRID
+  TEST_IGNORE_MESSAGE("HYBRID is not defined.");
+#endif // HYBRID
+}
+
+void
+test_bridge_attr_public_mactable_max_entries(void) {
+#ifdef HYBRID
+  lagopus_result_t rc;
+  bridge_conf_t * conf = NULL;
+  const char *name = "bridge_name";
+  uint32_t actual_mactable_max_entries = 0;
+
+  bridge_initialize();
+
+  rc = bridge_conf_create(&conf, name);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+  TEST_ASSERT_NOT_NULL_MESSAGE(conf, "conf_create() will create new bridge");
+
+  rc = bridge_conf_add(conf);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+
+  // Normal case of getter
+  {
+    rc = datastore_bridge_get_mactable_max_entries(name, true,
+                                          &actual_mactable_max_entries);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_INVALID_OBJECT, rc);
+
+    rc = datastore_bridge_get_mactable_max_entries(name, false,
+                                          &actual_mactable_max_entries);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+    TEST_ASSERT_EQUAL_UINT32(DEFAULT_MACTABLE_MAX_ENTRIES,
+                             actual_mactable_max_entries);
+  }
+
+  // Abnormal case of getter
+  {
+    rc = datastore_bridge_get_mactable_max_entries(NULL, true,
+                                          &actual_mactable_max_entries);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_INVALID_ARGS, rc);
+
+    rc = datastore_bridge_get_mactable_max_entries(NULL, false,
+                                          &actual_mactable_max_entries);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_INVALID_ARGS, rc);
+
+    rc = datastore_bridge_get_mactable_max_entries(name, true, NULL);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_INVALID_ARGS, rc);
+
+    rc = datastore_bridge_get_mactable_max_entries(name, false, NULL);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_INVALID_ARGS, rc);
+  }
+#else // HYBRID
+  TEST_IGNORE_MESSAGE("HYBRID is not defined.");
+#endif // HYBRID
+}
+
+void
+test_bridge_attr_private_mactable_ageing_time(void) {
+#ifdef HYBRID
+  lagopus_result_t rc;
+  bridge_attr_t *attr = NULL;
+  uint32_t actual_mactable_ageing_time = 0;
+  uint64_t set_mactable_ageing_time1 = MAXIMUM_MACTABLE_AGEING_TIME;
+  uint64_t set_mactable_ageing_time2 = MINIMUM_MACTABLE_AGEING_TIME;
+
+  bridge_initialize();
+
+  rc = bridge_attr_create(&attr);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+  TEST_ASSERT_NOT_NULL_MESSAGE(attr, "attr_create() will create new bridge");
+
+  // Normal case of getter
+  {
+    rc = bridge_get_mactable_ageing_time(attr, &actual_mactable_ageing_time);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+    TEST_ASSERT_EQUAL_UINT32(DEFAULT_MACTABLE_AGEING_TIME,
+                             actual_mactable_ageing_time);
+  }
+
+  // Abnormal case of getter
+  {
+    rc = bridge_get_mactable_ageing_time(NULL, &actual_mactable_ageing_time);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_INVALID_ARGS, rc);
+    rc = bridge_get_mactable_ageing_time(attr, NULL);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_INVALID_ARGS, rc);
+  }
+
+  // Normal case of setter
+  {
+    rc = bridge_set_mactable_ageing_time(attr, set_mactable_ageing_time1);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+    rc = bridge_get_mactable_ageing_time(attr, &actual_mactable_ageing_time);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+    TEST_ASSERT_EQUAL_UINT32(MAXIMUM_MACTABLE_AGEING_TIME,
+                             actual_mactable_ageing_time);
+
+    rc = bridge_set_mactable_ageing_time(attr, set_mactable_ageing_time2);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+    rc = bridge_get_mactable_ageing_time(attr, &actual_mactable_ageing_time);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+    TEST_ASSERT_EQUAL_UINT32(MINIMUM_MACTABLE_AGEING_TIME,
+                             actual_mactable_ageing_time);
+  }
+
+  // Abnormal case of setter
+  {
+    rc = bridge_set_mactable_ageing_time(NULL, set_mactable_ageing_time1);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_INVALID_ARGS, rc);
+
+    rc = bridge_set_mactable_ageing_time(attr, NULL);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_TOO_SHORT, rc);
+
+    rc = bridge_set_mactable_ageing_time(attr,
+                                         (MINIMUM_MACTABLE_AGEING_TIME - 1));
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_TOO_SHORT, rc);
+
+    rc = bridge_set_mactable_ageing_time(attr,
+                                        (MAXIMUM_MACTABLE_AGEING_TIME + 1));
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_TOO_LONG, rc);
+  }
+#else // HYBRID
+  TEST_IGNORE_MESSAGE("HYBRID is not defined.");
+#endif // HYBRID
+}
+
+void
+test_bridge_attr_public_mactable_ageing_time(void) {
+#ifdef HYBRID
+  lagopus_result_t rc;
+  bridge_conf_t * conf = NULL;
+  const char *name = "bridge_name";
+  uint32_t actual_mactable_ageing_time = 0;
+  const uint32_t expected_mactable_ageing_time = 0;
+
+  bridge_initialize();
+
+  rc = bridge_conf_create(&conf, name);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+  TEST_ASSERT_NOT_NULL_MESSAGE(conf, "conf_create() will create new bridge");
+
+  rc = bridge_conf_add(conf);
+  TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+
+  // Normal case of getter
+  {
+    rc = datastore_bridge_get_mactable_ageing_time(name, true,
+                                          &actual_mactable_ageing_time);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_INVALID_OBJECT, rc);
+
+    rc = datastore_bridge_get_mactable_ageing_time(name, false,
+                                          &actual_mactable_ageing_time);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK, rc);
+    TEST_ASSERT_EQUAL_UINT32(DEFAULT_MACTABLE_AGEING_TIME,
+                             actual_mactable_ageing_time);
+  }
+
+  // Abnormal case of getter
+  {
+    rc = datastore_bridge_get_mactable_ageing_time(NULL, true,
+                                          &actual_mactable_ageing_time);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_INVALID_ARGS, rc);
+
+    rc = datastore_bridge_get_mactable_ageing_time(NULL, false,
+                                          &actual_mactable_ageing_time);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_INVALID_ARGS, rc);
+
+    rc = datastore_bridge_get_mactable_ageing_time(name, true, NULL);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_INVALID_ARGS, rc);
+
+    rc = datastore_bridge_get_mactable_ageing_time(name, false, NULL);
+    TEST_ASSERT_EQUAL(LAGOPUS_RESULT_INVALID_ARGS, rc);
+  }
+#else // HYBRID
+  TEST_IGNORE_MESSAGE("HYBRID is not defined.");
+#endif // HYBRID
 }
 
 void

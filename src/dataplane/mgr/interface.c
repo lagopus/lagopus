@@ -394,10 +394,14 @@ interface_l3_routing(struct lagopus_packet *pkt,
     mactable_port_learning(pkt);
 
     /* l3 routing */
-    rib_lookup(pkt);
+    rv = rib_lookup(pkt);
 
     /* forwarding packet */
-    send_packet(pkt);
+    if (rv == LAGOPUS_RESULT_OK) {
+      send_packet(pkt);
+    } else if (rv == LAGOPUS_RESULT_NOT_FOUND) {
+      return LAGOPUS_RESULT_OK;
+    }
 #endif
   } else if (ether_type == ETHERTYPE_IPV6) {
     /* TODO: */
