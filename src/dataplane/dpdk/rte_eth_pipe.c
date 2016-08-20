@@ -526,4 +526,6 @@ static struct rte_driver pmd_pipe_drv = {
   .uninit = rte_pmd_pipe_devuninit,
 };
 
-PMD_REGISTER_DRIVER(pmd_pipe_drv);
+PMD_REGISTER_DRIVER(pmd_pipe_drv, eth_pipe);
+DRIVER_REGISTER_PARAM_STRING(eth_pipe,
+                             "iface=<string> ");
