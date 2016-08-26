@@ -146,7 +146,11 @@ rib_arp_get(struct rib *rib, struct in_addr *addr, uint8_t *mac, int *ifindex);
 void
 rib_ipv4_interface_get(int ifindex, uint8_t *hwaddr);
 
+#if defined PIPELINER
 void
+#else
+lagopus_result_t
+#endif
 rib_lookup(struct lagopus_packet *pkt);
 
 lagopus_result_t

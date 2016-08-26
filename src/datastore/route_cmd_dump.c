@@ -149,8 +149,9 @@ dump_bridge_route(const char *name,
 
 
   /* dump a table. */
-  if ((ret = dump_table_ipv4_routes(name, result) != LAGOPUS_RESULT_OK)) {
+  if ((ret = dump_table_ipv4_routes(name, result)) != LAGOPUS_RESULT_OK) {
     lagopus_perror(ret);
+    lagopus_dstring_appendf(result, "]}");
     goto done;
   }
 
@@ -158,6 +159,7 @@ dump_bridge_route(const char *name,
   if (ret == LAGOPUS_RESULT_OK) {
     if ((ret = lagopus_dstring_appendf(result, "]")) !=
         LAGOPUS_RESULT_OK) {
+      lagopus_dstring_appendf(result, "}");
       lagopus_perror(ret);
       goto done;
     }

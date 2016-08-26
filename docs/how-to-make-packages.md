@@ -67,8 +67,9 @@ cf.) https://www.debian.org/doc/debian-policy/ch-controlfields.html
 
 #### MUST
   * PKG_NAME : The package name (Same as `Source` in debian/control file.)
-  * PKG_VERSION : The package version (Same as `Package` in debian/control file.)
+  * PKG_VERSION(auto generate) : The package version (Same as `Package` in debian/control file.).
   * PKG_REVISION : The package revision number (Same as `Package` in debian/control file.)
+  * PKG_DATE(auto generate) : Creation date of the packages
   * PKG_MAINTAINER : The package maintainer's name and email address (Same as `Maintainer` in debian/control file.)
   * PKG_SECTION : Classification of the packages (Same as `Section` in debian/control file.)
   * PKG_PRIORITY : Priority of the packages (Same as `Priority` in debian/control file.)
@@ -88,8 +89,9 @@ e.g.)
 
 ```
  PKG_NAME="lagopus"
- PKG_VERSION="1.0.0"
+ PKG_VERSION="1.0.0" # auto generate.
  PKG_REVISION="1"
+ PKG_DATE="Fri, 6 Nov 2015 00:00:00 +0000" # auto generate.
  PKG_MAINTAINER="lagopus <lagopus@lagopus.org>"
  PKG_SECTION="unknown"
  PKG_PRIORITY="extra"
@@ -109,17 +111,7 @@ e.g.)
                   /etc/lagopus/ofconf-passwords'
 ```
 
-### 2. Edit `debian/changelog` file.
-You execute the following commands and update the changelog file.  
-`<version>-<release no>` is the same as the value of `PKG_VERSION-PKG_REVISION`.  
-More information about the fields in changelog, see the following URL:  
-cf.) https://www.debian.org/doc/manuals/maint-guide/dreq.en.html#changelog
-
-```
- % dch -v <version>-<release no>
-```
-
-### 3. Execute configure.
+### 2. Execute configure.
 * In the case of make the package for raw socket version:  
   You execute `configure` script with no options.
 
@@ -135,7 +127,7 @@ cf.) https://www.debian.org/doc/manuals/maint-guide/dreq.en.html#changelog
      % ./configure --with-dpdk-dir=${RTE_SDK}
     ```
 
-### 4. Execute make.
+### 3. Execute make.
 You execute the following commands.
 
 ```

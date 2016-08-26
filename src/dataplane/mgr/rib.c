@@ -490,9 +490,17 @@ rib_route_rule_get(const char *name,
                    struct in_addr *dest, struct in_addr *gate,
                    int *prefixlen, uint32_t *ifindex, void **item) {
   struct bridge *bridge = dp_bridge_lookup(name);
-  struct rib *rib = &bridge->rib;
+  struct rib *rib;
   uint8_t scope;
-  uint32_t read_table = __sync_add_and_fetch(&rib->read_table, 0);
+  uint32_t read_table;
+
+  if (bridge == NULL) {
+    return LAGOPUS_RESULT_NOT_FOUND;
+  }
+
+  rib = &bridge->rib;
+  read_table = __sync_add_and_fetch(&rib->read_table, 0);
+
   return route_rule_get(&rib->ribs[read_table].route_table,
                         dest, gate, prefixlen, ifindex, &scope, item);
 }
@@ -503,7 +511,11 @@ rib_route_rule_get(const char *name,
  * Check arp table / routing table , rewrite header and lookup output port.
  * For IPv4 packet only.
  */
+#if defined PIPELINER
 void
+#else
+lagopus_result_t
+#endif
 rib_lookup(struct lagopus_packet *pkt) {
   lagopus_result_t rv = LAGOPUS_RESULT_OK;
   int ifindex;
@@ -553,7 +565,11 @@ rib_lookup(struct lagopus_packet *pkt) {
     rv = rib_route_nexthop_get(rib, &dst_addr, &nexthop, &scope, src_mac);
     if (rv != LAGOPUS_RESULT_OK) {
       lagopus_msg_info("routing entry is not found.\n");
+#ifdef PIPELINER
+      pkt->pipeline_context.error = true;
+#else
       lagopus_packet_free(pkt);
+#endif
       goto out;
     }
 
@@ -589,7 +605,9 @@ rib_lookup(struct lagopus_packet *pkt) {
 out:
   /* decrement referring flag. */
   __sync_sub_and_fetch(&fib->referring, 1);
+#if !defined PIPELINER
   return rv;
+#endif
 }
 
 

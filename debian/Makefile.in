@@ -5,5 +5,5 @@ include $(MKRULESDIR)/vars.mk
 include $(MKRULESDIR)/rules.mk
 
 distclean::
-	$(RM) rules control control.in copyright \
+	$(RM) rules control control.in copyright changelog \
           lagopus-DATAPLANE.postrm lagopus-DATAPLANE.install

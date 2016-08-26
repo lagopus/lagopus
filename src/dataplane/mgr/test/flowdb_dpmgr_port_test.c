@@ -326,6 +326,10 @@ tearDown(void) {
  */
 void
 test_flowdb_ports(void) {
+#ifdef HYBRID
+  lagopus_thread_t *thdptr = NULL;
+  dp_tapio_thread_init(NULL, NULL, NULL, &thdptr);
+#endif /* HYBRID */
   char buf[TEST_ASSERT_MESSAGE_BUFSIZE];
 
   /* Step 0. */
@@ -456,4 +460,8 @@ test_flowdb_ports(void) {
   TEST_ASSERT_PORT_FIND_NG(0, TEST_PORT_EXTRA_NUM, buf);
   TEST_ASSERT_BRIDGE_COUNT_PORT(0, TEST_PORT_EXTRA_NUM, 0, buf);
   TEST_ASSERT_BRIDGE_FIND_PORT_NG(0, TEST_PORT_EXTRA_NUM, buf);
+
+#ifdef HYBRID
+  dp_tapio_thread_fini();
+#endif /* HYBRID */
 }

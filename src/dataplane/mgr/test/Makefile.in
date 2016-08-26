@@ -1,15 +1,28 @@
 TOPDIR		= @TOPDIR@
 MKRULESDIR	= @MKRULESDIR@
+RTE_SDK         = @RTE_SDK@
 
 TESTS = bridge_test flowdb_test 					\
 	flowdb_dpmgr_port_test flowdb_table_features_test meter_test	\
-	port_test group_test interface_test queue_test timer_test
+	port_test group_test interface_test queue_test timer_test	\
+	mactable_test arp_test route_test rib_test rib_notifier_test	\
+	netlink_test
 SRCS = bridge_test.c flowdb_test.c 					\
 	flowdb_dpmgr_port_test.c flowdb_table_features_test.c		\
 	meter_test.c port_test.c group_test.c interface_test.c		\
-	queue_test.c timer_test.c
+	queue_test.c timer_test.c mactable_test.c arp_test.c 		\
+	route_test.c rib_test.c rib_notifier_test.c netlink_test.c
+
+OFPROTODIR=$(BUILD_DATAPLANEDIR)/ofproto
+ifeq ($(RTE_SDK),)
+DPDIR=$(BUILD_DATAPLANEDIR)/sock
+else
+DPDIR=$(BUILD_DATAPLANEDIR)/dpdk
+endif
 
 CPPFLAGS += -I$(PWD)/.. -I$(BUILD_AGENTDIR) -I$(BUILD_DATAPLANETESTLIBDIR)
+CPPFLAGS += -I$(BUILD_DATAPLANEDIR) -I$(BUILD_LIBDIR)
+CPPFLAGS += -I$(DPDIR) -I$(OFPROTODIR)
 
 TEST_DEPS	= \
 	$(DEP_LAGOPUS_DATAPLANE_LIB) \
