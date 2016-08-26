@@ -1,0 +1,5 @@
+lagopus (@PKG_VERSION@-@PKG_REVISION@) unstable; urgency=low
+
+  * Pakaged a version @PKG_VERSION@-@PKG_REVISION@
+
+ -- lagopus <lagopus@lagopus.org>  @PKG_DATE@ +0000

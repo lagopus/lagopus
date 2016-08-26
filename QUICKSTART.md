@@ -107,7 +107,7 @@ Check PCI ID to enable DPDK on 2nd, 3rd, and 4th NIC.
 If NIC used for management (ex: ssh) was selected, you will lose connection.
 
 ```
-	$ sudo ./src/dpdk/tools/dpdk_nic_bind.py --status
+	$ sudo ./src/dpdk/tools/dpdk-devbind.py --status
 
 	Network devices using IGB_UIO driver
 	====================================
@@ -129,11 +129,11 @@ If NIC used for management (ex: ssh) was selected, you will lose connection.
 Unbound NICs from ixgbe driver.
 
 ```
-	$ sudo ./src/dpdk/tools/dpdk_nic_bind.py --bind=igb_uio 0000:02:02.0 0000:02:03.0 0000:02:04.0
+	$ sudo ./src/dpdk/tools/dpdk-devbind.py --bind=igb_uio 0000:02:02.0 0000:02:03.0 0000:02:04.0
 
 Check the current status of NICs whehter the 2nd, 3rd and 4th interface is registerd with igb_uio driver
 
-	$ sudo ./src/dpdk/tools/dpdk_nic_bind.py --status
+	$ sudo ./src/dpdk/tools/dpdk-devbind.py --status
 
 	Network devices using IGB_UIO driver
 	====================================

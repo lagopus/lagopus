@@ -23,12 +23,22 @@
 #include "lagopus/dp_apis.h"
 #include "openflow13.h"
 #include "ofp_band.h"
-
 #include "bridge.c"
+
+#ifdef HYBRID
+#include "mactable.c"
+#endif /* HYBRID */
+
+#ifdef HAVE_DPDK
+#include "../dpdk/build/include/rte_config.h"
+#include "../dpdk/lib/librte_eal/common/include/rte_lcore.h"
+#endif /* HAVE_DPDK */
 
 static struct bridge *bridge;
 static const char bridge_name[] = "br0";
 static const uint64_t dpid = 12345678;
+static const uint8_t macaddr[] = {0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF};
+static const uint32_t port = 1;
 
 void
 setUp(void) {
@@ -37,6 +47,10 @@ setUp(void) {
   memset(&info, 0, sizeof(info));
   info.dpid = dpid;
   info.fail_mode = DATASTORE_BRIDGE_FAIL_MODE_SECURE;
+#ifdef HYBRID
+  info.mactable_ageing_time = 300;
+  info.mactable_max_entries = 8192;
+#endif
   TEST_ASSERT_NULL(bridge);
   TEST_ASSERT_EQUAL(dp_api_init(), LAGOPUS_RESULT_OK);
   TEST_ASSERT_EQUAL(dp_bridge_create(bridge_name, &info), LAGOPUS_RESULT_OK);
@@ -221,3 +235,66 @@ test_dp_bridge_group_stats(void) {
   TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
 }
 
+void
+test_dp_bridge_mactable_entry(void) {
+#ifdef HYBRID
+  static const uint32_t port2 = 2;
+  unsigned int num_entries;
+  datastore_macentry_t e;
+  lagopus_result_t rv;
+
+#ifdef HAVE_DPDK
+  RTE_PER_LCORE(_lcore_id) = 0;
+#endif /* DPDK */
+
+  /* set mactable entry */
+  rv = dp_bridge_mactable_entry_set(bridge_name, macaddr, port);
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
+  rv = dp_bridge_mactable_entry_set("bad", macaddr, port);
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_NOT_FOUND);
+
+  /* modify mactable entry */
+  rv = dp_bridge_mactable_entry_modify(bridge_name, macaddr, port2);
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
+  rv = dp_bridge_mactable_entry_modify("bad", macaddr, port2);
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_NOT_FOUND);
+
+  /* get mactable entries from bbq and write entries to write table. */
+  mactable_update(&bridge->mactable);
+
+  /* get mactable num entries */
+  rv = dp_bridge_mactable_num_entries_get(bridge_name, &num_entries);
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
+  TEST_ASSERT_EQUAL(num_entries, 1);
+  rv = dp_bridge_mactable_num_entries_get("bad", &num_entries);
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_NOT_FOUND);
+
+  /* get mactable entries. */
+  rv = dp_bridge_mactable_entries_get(bridge_name, &e, num_entries);
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
+  rv = dp_bridge_mactable_entries_get("bad", &e, num_entries);
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_NOT_FOUND);
+#else /* HYBRID */
+  tearDown();
+  TEST_IGNORE_MESSAGE("HYBRID is not defined.");
+#endif /* HYBRID */
+}
+
+void
+test_dp_bridge_mactable_configs_get(void) {
+#ifdef HYBRID
+  uint32_t ageing_time;
+  uint32_t max_entries;
+  lagopus_result_t rv;
+
+  rv = dp_bridge_mactable_configs_get(bridge_name, &ageing_time, &max_entries);
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_OK);
+  TEST_ASSERT_EQUAL(ageing_time, 300);
+  TEST_ASSERT_EQUAL(max_entries, 8192);
+  rv = dp_bridge_mactable_configs_get("bad", &ageing_time, &max_entries);
+  TEST_ASSERT_EQUAL(rv, LAGOPUS_RESULT_NOT_FOUND);
+#else /* HYBRID */
+  tearDown();
+  TEST_IGNORE_MESSAGE("HYBRID is not defined.");
+#endif /* HYBRID */
+}

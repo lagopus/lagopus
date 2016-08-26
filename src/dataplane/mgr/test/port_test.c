@@ -160,6 +160,11 @@ test_lagopus_get_port_statistics(void) {
   struct ofp_error error;
   lagopus_result_t rv;
 
+#ifdef HYBRID
+  lagopus_thread_t *thdptr = NULL;
+  dp_tapio_thread_init(NULL, NULL, NULL, &thdptr);
+#endif /* HYBRID */
+
   memset(&info, 0, sizeof(info));
   memset(&ifinfo, 0, sizeof(ifinfo));
   info.fail_mode = DATASTORE_BRIDGE_FAIL_MODE_SECURE;
@@ -224,6 +229,10 @@ test_lagopus_get_port_statistics(void) {
   TAILQ_INIT(&list);
   rv = lagopus_get_port_statistics(&bridge->ports, &req, &list, &error);
   TEST_ASSERT_EQUAL_MESSAGE(rv, LAGOPUS_RESULT_OFP_ERROR, "result error");
+
+#ifdef HYBRID
+  dp_tapio_thread_fini();
+#endif /* HYBRID */
 }
 
 void

@@ -28,6 +28,11 @@
 #include "../datastore_internal.h"
 #include "../../agent/channel_mgr.h"
 
+#ifdef HAVE_DPDK
+#include "../../dpdk/build/include/rte_config.h"
+#include "../../dpdk/lib/librte_eal/common/include/rte_lcore.h"
+#endif /* HAVE_DPDK */
+
 static lagopus_dstring_t ds = NULL;
 static lagopus_hashmap_t tbl = NULL;
 static lagopus_hashmap_t tbl_port = NULL;
@@ -58,6 +63,7 @@ tearDown(void) {
 
 void
 test_bridge_cmd_parse_create_01(void) {
+#ifndef HYBRID
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
   char *str = NULL;
@@ -357,6 +363,346 @@ test_bridge_cmd_parse_create_01(void) {
   TEST_PORT_DESTROY(ret, &interp, state, &tbl, &ds, str, "i2", "p2");
   TEST_CONTROLLER_DESTROY(ret, &interp, state, &tbl, &ds, str, "cha5", "c5");
   TEST_PORT_DESTROY(ret, &interp, state, &tbl, &ds, str, "i5", "p5");
+#else /* HYBRID */
+  TEST_IGNORE_MESSAGE("HYBRID is defined.");
+#endif /* HYBRID */
+}
+
+void
+test_bridge_cmd_parse_create_01_hybrid(void) {
+#ifdef HYBRID
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv[] = {"bridge", "test_name01", "create",
+                        "-controller", "c1",
+                        "-controller", "c2",
+                        "-port", "p1", "1",
+                        "-port", "p2", "2",
+                        "-dpid", "18446744073709551615",
+                        "-fail-mode", "secure",
+                        "-flow-statistics", "true",
+                        "-group-statistics", "true",
+                        "-port-statistics", "true",
+                        "-queue-statistics", "true",
+                        "-table-statistics", "true",
+                        "-reassemble-ip-fragments", "true",
+                        "-max-buffered-packets", "65535",
+                        "-max-ports", "2048",
+                        "-max-tables", "255",
+                        "-max-flows", "4294967295",
+                        "-l2-bridge", "true",
+                        "-mactable-ageing-time", "300",
+                        "-mactable-max-entries", "8192",
+                        "-packet-inq-size", "65535",
+                        "-packet-inq-max-batches", "65535",
+                        "-up-streamq-size", "65535",
+                        "-up-streamq-max-batches", "65535",
+                        "-down-streamq-size", "65535",
+                        "-down-streamq-max-batches", "65535",
+                        "-block-looping-ports", "true",
+                        "-action-type", "copy-ttl-out",
+                        "-instruction-type", "apply-actions",
+                        NULL
+                       };
+  const char test_str[] = "{\"ret\":\"OK\"}";
+  const char *argv1[] = {"bridge", "test_name02", "create",
+                         "-controller", "c5",
+                         "-port", "p5", "5",
+                         "-dpid", "5",
+                         "-fail-mode", "standalone",
+                         "-flow-statistics", "false",
+                         "-group-statistics", "false",
+                         "-port-statistics", "false",
+                         "-queue-statistics", "false",
+                         "-table-statistics", "false",
+                         "-reassemble-ip-fragments", "false",
+                         "-max-buffered-packets", "65535",
+                         "-max-ports", "2048",
+                         "-max-tables", "255",
+                         "-max-flows", "4294967295",
+                         "-l2-bridge", "false",
+                         "-mactable-ageing-time", "300",
+                         "-mactable-max-entries", "8192",
+                         "-packet-inq-size", "65535",
+                         "-packet-inq-max-batches", "65535",
+                         "-up-streamq-size", "65535",
+                         "-up-streamq-max-batches", "65535",
+                         "-down-streamq-size", "65535",
+                         "-down-streamq-max-batches", "65535",
+                         "-block-looping-ports", "false",
+                         "-action-type", "copy-ttl-out",
+                         "-instruction-type", "apply-actions",
+                         NULL
+                        };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char *argv2[] = {"bridge", "test_name02", "enable",
+                         NULL
+                        };
+  const char test_str2[] = "{\"ret\":\"OK\"}";
+  const char *argv3[] = {"bridge", NULL};
+  const char test_str3[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name02\",\n"
+    "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c5\"],\n"
+    "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p5\":5},\n"
+    "\"dpid\":5,\n"
+    "\"fail-mode\":\"standalone\",\n"
+    "\"flow-statistics\":false,\n"
+    "\"group-statistics\":false,\n"
+    "\"port-statistics\":false,\n"
+    "\"queue-statistics\":false,\n"
+    "\"table-statistics\":false,\n"
+    "\"reassemble-ip-fragments\":false,\n"
+    "\"max-buffered-packets\":65535,\n"
+    "\"max-ports\":2048,\n"
+    "\"max-tables\":255,\n"
+    "\"max-flows\":4294967295,\n"
+    "\"l2-bridge\":false,\n"
+    "\"mactable-ageing-time\":300,\n"
+    "\"mactable-max-entries\":8192,\n"
+    "\"packet-inq-size\":65535,\n"
+    "\"packet-inq-max-batches\":65535,\n"
+    "\"up-streamq-size\":65535,\n"
+    "\"up-streamq-max-batches\":65535,\n"
+    "\"down-streamq-size\":65535,\n"
+    "\"down-streamq-max-batches\":65535,\n"
+    "\"block-looping-ports\":false,\n"
+    "\"action-types\":[\"copy-ttl-out\",\"copy-ttl-in\","
+    "\"set-mpls-ttl\",\"dec-mpls-ttl\",\"push-vlan\",\"pop-vlan\","
+    "\"push-mpls\",\"pop-mpls\",\"set-queue\",\"group\",\"set-nw-ttl\","
+    "\"dec-nw-ttl\",\"set-field\"],\n"
+    "\"instruction-types\":[\"apply-actions\",\"clear-actions\","
+    "\"write-actions\",\"write-metadata\",\"goto-table\"],\n"
+    "\"reserved-port-types\":[\"all\",\"controller\",\"table\","
+    "\"inport\",\"any\",\"normal\",\"flood\"],\n"
+    "\"group-types\":[\"all\",\"select\",\"indirect\",\"fast-failover\"],\n"
+    "\"group-capabilities\":[\"select-weight\","
+    "\"select-liveness\",\"chaining\",\"chaining-check\"],\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":true},\n"
+    "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name01\",\n"
+    "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c1\",\""DATASTORE_NAMESPACE_DELIMITER"c2\"],\n"
+    "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p1\":1,\n"
+    "\""DATASTORE_NAMESPACE_DELIMITER"p2\":2},\n"
+    "\"dpid\":18446744073709551615,\n"
+    "\"fail-mode\":\"secure\",\n"
+    "\"flow-statistics\":true,\n"
+    "\"group-statistics\":true,\n"
+    "\"port-statistics\":true,\n"
+    "\"queue-statistics\":true,\n"
+    "\"table-statistics\":true,\n"
+    "\"reassemble-ip-fragments\":true,\n"
+    "\"max-buffered-packets\":65535,\n"
+    "\"max-ports\":2048,\n"
+    "\"max-tables\":255,\n"
+    "\"max-flows\":4294967295,\n"
+    "\"l2-bridge\":true,\n"
+    "\"mactable-ageing-time\":300,\n"
+    "\"mactable-max-entries\":8192,\n"
+    "\"packet-inq-size\":65535,\n"
+    "\"packet-inq-max-batches\":65535,\n"
+    "\"up-streamq-size\":65535,\n"
+    "\"up-streamq-max-batches\":65535,\n"
+    "\"down-streamq-size\":65535,\n"
+    "\"down-streamq-max-batches\":65535,\n"
+    "\"block-looping-ports\":true,\n"
+    "\"action-types\":[\"copy-ttl-out\",\"copy-ttl-in\","
+    "\"set-mpls-ttl\",\"dec-mpls-ttl\",\"push-vlan\",\"pop-vlan\","
+    "\"push-mpls\",\"pop-mpls\",\"set-queue\",\"group\",\"set-nw-ttl\","
+    "\"dec-nw-ttl\",\"set-field\"],\n"
+    "\"instruction-types\":[\"apply-actions\",\"clear-actions\","
+    "\"write-actions\",\"write-metadata\",\"goto-table\"],\n"
+    "\"reserved-port-types\":[\"all\",\"controller\",\"table\","
+    "\"inport\",\"any\",\"normal\",\"flood\"],\n"
+    "\"group-types\":[\"all\",\"select\",\"indirect\",\"fast-failover\"],\n"
+    "\"group-capabilities\":[\"select-weight\","
+    "\"select-liveness\",\"chaining\",\"chaining-check\"],\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+  const char *argv4[] = {"bridge", "test_name02", NULL};
+  const char test_str4[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name02\",\n"
+    "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c5\"],\n"
+    "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p5\":5},\n"
+    "\"dpid\":5,\n"
+    "\"fail-mode\":\"standalone\",\n"
+    "\"flow-statistics\":false,\n"
+    "\"group-statistics\":false,\n"
+    "\"port-statistics\":false,\n"
+    "\"queue-statistics\":false,\n"
+    "\"table-statistics\":false,\n"
+    "\"reassemble-ip-fragments\":false,\n"
+    "\"max-buffered-packets\":65535,\n"
+    "\"max-ports\":2048,\n"
+    "\"max-tables\":255,\n"
+    "\"max-flows\":4294967295,\n"
+    "\"l2-bridge\":false,\n"
+    "\"mactable-ageing-time\":300,\n"
+    "\"mactable-max-entries\":8192,\n"
+    "\"packet-inq-size\":65535,\n"
+    "\"packet-inq-max-batches\":65535,\n"
+    "\"up-streamq-size\":65535,\n"
+    "\"up-streamq-max-batches\":65535,\n"
+    "\"down-streamq-size\":65535,\n"
+    "\"down-streamq-max-batches\":65535,\n"
+    "\"block-looping-ports\":false,\n"
+    "\"action-types\":[\"copy-ttl-out\",\"copy-ttl-in\","
+    "\"set-mpls-ttl\",\"dec-mpls-ttl\",\"push-vlan\",\"pop-vlan\","
+    "\"push-mpls\",\"pop-mpls\",\"set-queue\",\"group\",\"set-nw-ttl\","
+    "\"dec-nw-ttl\",\"set-field\"],\n"
+    "\"instruction-types\":[\"apply-actions\",\"clear-actions\","
+    "\"write-actions\",\"write-metadata\",\"goto-table\"],\n"
+    "\"reserved-port-types\":[\"all\",\"controller\",\"table\","
+    "\"inport\",\"any\",\"normal\",\"flood\"],\n"
+    "\"group-types\":[\"all\",\"select\",\"indirect\",\"fast-failover\"],\n"
+    "\"group-capabilities\":[\"select-weight\","
+    "\"select-liveness\",\"chaining\",\"chaining-check\"],\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":true}]}";
+  const char *argv5[] = {"bridge", "test_name02", "disable",
+                         NULL
+                        };
+  const char test_str5[] = "{\"ret\":\"OK\"}";
+  const char *argv6[] = {"bridge", "test_name02", "destroy",
+                         NULL
+                        };
+  const char test_str6[] = "{\"ret\":\"OK\"}";
+  const char *argv7[] = {"bridge", "test_name01", "destroy",
+                         NULL
+                        };
+  const char test_str7[] = "{\"ret\":\"OK\"}";
+  const char *port_argv1[] = {"port", "p5", NULL};
+  const char port_test_str1[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"p5\",\n"
+    "\"port-number\":5,\n"
+    "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"i5\",\n"
+    "\"policer\":\"\",\n"
+    "\"queues\":[],\n"
+    "\"is-used\":true,\n"
+    "\"is-enabled\":true}]}";
+  const char *port_argv2[] = {"port", "p5", NULL};
+  const char port_test_str2[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"p5\",\n"
+    "\"port-number\":5,\n"
+    "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"i5\",\n"
+    "\"policer\":\"\",\n"
+    "\"queues\":[],\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+  const char *ctrler_argv1[] = {"controller", "c5", NULL};
+  const char ctrler_test_str1[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"c5\",\n"
+    "\"channel\":\""DATASTORE_NAMESPACE_DELIMITER"cha5\",\n"
+    "\"role\":\"equal\",\n"
+    "\"connection-type\":\"main\",\n"
+    "\"is-used\":true,\n"
+    "\"is-enabled\":true}]}";
+  const char *ctrler_argv2[] = {"controller", "c5", NULL};
+  const char ctrler_test_str2[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"c5\",\n"
+    "\"channel\":\""DATASTORE_NAMESPACE_DELIMITER"cha5\",\n"
+    "\"role\":\"equal\",\n"
+    "\"connection-type\":\"main\",\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+
+  struct interface *ifp;
+  ifp = dp_interface_alloc();
+  lagopus_thread_t *thdptr = NULL;
+  dp_tapio_thread_init(NULL, NULL, NULL, &thdptr);
+  ret = dp_tap_interface_create(":i5", ifp);
+  TEST_ASSERT_EQUAL(ret, LAGOPUS_RESULT_OK);
+
+#ifdef HAVE_DPDK
+  RTE_PER_LCORE(_lcore_id) = 0;
+#endif /* HAVE_DPDL */
+
+  TEST_CONTROLLER_CREATE(ret, &interp, state, &tbl, &ds, str, "cha1", "c1");
+  TEST_CONTROLLER_CREATE(ret, &interp, state, &tbl, &ds, str, "cha2", "c2");
+  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i1", "p1");
+  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i2", "p2");
+  TEST_CONTROLLER_CREATE(ret, &interp, state, &tbl, &ds, str, "cha5", "c5");
+  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i5", "p5");
+
+  /* create cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv), argv, &tbl, bridge_cmd_update,
+                 &ds, str, test_str);
+
+  /* create cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, bridge_cmd_update,
+                 &ds, str, test_str1);
+
+  /* enable cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv2), argv2, &tbl, bridge_cmd_update,
+                 &ds, str, test_str2);
+
+  /* show all cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv3), argv3, &tbl, bridge_cmd_update,
+                 &ds, str, test_str3);
+
+  /* show cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv4), argv4, &tbl, bridge_cmd_update,
+                 &ds, str, test_str4);
+
+  /* port show cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, port_cmd_parse, &interp, state,
+                 ARGV_SIZE(port_argv1), port_argv1, &tbl, port_cmd_update,
+                 &ds, str, port_test_str1);
+
+  /* controller show cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, controller_cmd_parse, &interp, state,
+                 ARGV_SIZE(ctrler_argv1), ctrler_argv1, &tbl, controller_cmd_update,
+                 &ds, str, ctrler_test_str1);
+
+  /* disable cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv5), argv5, &tbl, bridge_cmd_update,
+                 &ds, str, test_str5);
+
+  /* destroy cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv6), argv6, &tbl, bridge_cmd_update,
+                 &ds, str, test_str6);
+
+  /* destroy cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv7), argv7, &tbl, bridge_cmd_update,
+                 &ds, str, test_str7);
+
+  /* port show cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, port_cmd_parse, &interp, state,
+                 ARGV_SIZE(port_argv2), port_argv2, &tbl, port_cmd_update,
+                 &ds, str, port_test_str2);
+
+  /* controller show cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, controller_cmd_parse, &interp, state,
+                 ARGV_SIZE(ctrler_argv2), ctrler_argv2, &tbl, controller_cmd_update,
+                 &ds, str, ctrler_test_str2);
+
+  dp_tap_interface_destroy(":i5");
+  dp_interface_free(ifp);
+  dp_tapio_thread_fini();
+
+  TEST_CONTROLLER_DESTROY(ret, &interp, state, &tbl, &ds, str, "cha1", "c1");
+  TEST_CONTROLLER_DESTROY(ret, &interp, state, &tbl, &ds, str, "cha2", "c2");
+  TEST_PORT_DESTROY(ret, &interp, state, &tbl, &ds, str, "i1", "p1");
+  TEST_PORT_DESTROY(ret, &interp, state, &tbl, &ds, str, "i2", "p2");
+  TEST_CONTROLLER_DESTROY(ret, &interp, state, &tbl, &ds, str, "cha5", "c5");
+  TEST_PORT_DESTROY(ret, &interp, state, &tbl, &ds, str, "i5", "p5");
+#else /* HYBRID */
+  TEST_IGNORE_MESSAGE("HYBRID is not defined.");
+#endif /* HYBRID */
 }
 
 void
@@ -882,6 +1228,7 @@ test_bridge_cmd_parse_create_controller_not_exists(void) {
 
 void
 test_bridge_cmd_enable_destroy_propagation(void) {
+#ifndef HYBRID
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
   char *str = NULL;
@@ -1055,10 +1402,209 @@ test_bridge_cmd_enable_destroy_propagation(void) {
 
   TEST_CONTROLLER_DESTROY(ret, &interp, state, &tbl, &ds, str, "cha8", "c8");
   TEST_PORT_DESTROY(ret, &interp, state, &tbl, &ds, str, "i8", "p8");
+#else /* HYBRID */
+  TEST_IGNORE_MESSAGE("HYBRID is defined");
+#endif /* HYBRID */
+}
+
+void
+test_bridge_cmd_enable_destroy_propagation_hybrid(void) {
+#ifdef HYBRID
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"bridge", "test_name24", "create",
+                         "-controller", "c8",
+                         "-port", "p8", "8",
+                         "-dpid", "18446744073709551615",
+                         "-fail-mode", "standalone",
+                         "-flow-statistics", "false",
+                         "-group-statistics", "false",
+                         "-port-statistics", "false",
+                         "-queue-statistics", "false",
+                         "-table-statistics", "false",
+                         "-reassemble-ip-fragments", "false",
+                         "-max-buffered-packets", "65535",
+                         "-max-ports", "2048",
+                         "-max-tables", "255",
+                         "-l2-bridge", "false",
+                         "-mactable-ageing-time", "300",
+                         "-mactable-max-entries", "8192",
+                         "-block-looping-ports", "false",
+                         "-action-type", "copy-ttl-out",
+                         "-instruction-type", "apply-actions",
+                         NULL
+                        };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char *argv2[] = {"bridge", "test_name24", "enable",
+                         NULL
+                        };
+  const char test_str2[] = "{\"ret\":\"OK\"}";
+  const char *argv3[] = {"bridge", "test_name24", "destroy",
+                         NULL
+                        };
+  const char test_str3[] = "{\"ret\":\"OK\"}";
+  const char *inter_argv1[] = {"interface", "i8", NULL};
+  const char inter_test_str1[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"i8\",\n"
+    "\"type\":\"ethernet-rawsock\",\n"
+    "\"device\":\"i8\",\n"
+    "\"mtu\":1500,\n"
+    "\"ip-addr\":\"127.0.0.1\",\n"
+    "\"is-used\":true,\n"
+    "\"is-enabled\":true}]}";
+  const char *inter_argv2[] = {"interface", "i8", NULL};
+  const char inter_test_str2[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"i8\",\n"
+    "\"type\":\"ethernet-rawsock\",\n"
+    "\"device\":\"i8\",\n"
+    "\"mtu\":1500,\n"
+    "\"ip-addr\":\"127.0.0.1\",\n"
+    "\"is-used\":true,\n"
+    "\"is-enabled\":false}]}";
+  const char *port_argv1[] = {"port", "p8", NULL};
+  const char port_test_str1[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"p8\",\n"
+    "\"port-number\":8,\n"
+    "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"i8\",\n"
+    "\"policer\":\"\",\n"
+    "\"queues\":[],\n"
+    "\"is-used\":true,\n"
+    "\"is-enabled\":true}]}";
+  const char *port_argv2[] = {"port", "p8", NULL};
+  const char port_test_str2[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"p8\",\n"
+    "\"port-number\":8,\n"
+    "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"i8\",\n"
+    "\"policer\":\"\",\n"
+    "\"queues\":[],\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+  const char *cha_argv1[] = {"channel", "cha8", NULL};
+  const char cha_test_str1[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"cha8\",\n"
+    "\"dst-addr\":\"127.0.0.1\",\n"
+    "\"dst-port\":3000,\n"
+    "\"local-addr\":\"127.0.0.1\",\n"
+    "\"local-port\":3000,\n"
+    "\"protocol\":\"tcp\",\n"
+    "\"is-used\":true,\n"
+    "\"is-enabled\":true}]}";
+  const char *cha_argv2[] = {"channel", "cha8", NULL};
+  const char cha_test_str2[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"cha8\",\n"
+    "\"dst-addr\":\"127.0.0.1\",\n"
+    "\"dst-port\":3000,\n"
+    "\"local-addr\":\"127.0.0.1\",\n"
+    "\"local-port\":3000,\n"
+    "\"protocol\":\"tcp\",\n"
+    "\"is-used\":true,\n"
+    "\"is-enabled\":false}]}";
+  const char *ctrler_argv1[] = {"controller", "c8", NULL};
+  const char ctrler_test_str1[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"c8\",\n"
+    "\"channel\":\""DATASTORE_NAMESPACE_DELIMITER"cha8\",\n"
+    "\"role\":\"equal\",\n"
+    "\"connection-type\":\"main\",\n"
+    "\"is-used\":true,\n"
+    "\"is-enabled\":true}]}";
+  const char *ctrler_argv2[] = {"controller", "c8", NULL};
+  const char ctrler_test_str2[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"c8\",\n"
+    "\"channel\":\""DATASTORE_NAMESPACE_DELIMITER"cha8\",\n"
+    "\"role\":\"equal\",\n"
+    "\"connection-type\":\"main\",\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+
+  struct interface *ifp;
+  ifp = dp_interface_alloc();
+  lagopus_thread_t *thdptr = NULL;
+  dp_tapio_thread_init(NULL, NULL, NULL, &thdptr);
+  ret = dp_tap_interface_create(":i8", ifp);
+  TEST_ASSERT_EQUAL(ret, LAGOPUS_RESULT_OK);
+
+  TEST_CONTROLLER_CREATE(ret, &interp, state, &tbl, &ds, str, "cha8", "c8");
+  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i8", "p8");
+  /* create cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, bridge_cmd_update,
+                 &ds, str, test_str1);
+
+  /* enable cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv2), argv2, &tbl, bridge_cmd_update,
+                 &ds, str, test_str2);
+
+  /* interface show cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, interface_cmd_parse, &interp, state,
+                 ARGV_SIZE(inter_argv1), inter_argv1, &tbl, interface_cmd_update,
+                 &ds, str, inter_test_str1);
+
+  /* port show cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, port_cmd_parse, &interp, state,
+                 ARGV_SIZE(port_argv1), port_argv1, &tbl, port_cmd_update,
+                 &ds, str, port_test_str1);
+
+  /* channel show cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, channel_cmd_parse, &interp, state,
+                 ARGV_SIZE(cha_argv1), cha_argv1, &tbl,
+                 channel_cmd_update,
+                 &ds, str, cha_test_str1);
+
+  /* controller show cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, controller_cmd_parse, &interp, state,
+                 ARGV_SIZE(ctrler_argv1), ctrler_argv1, &tbl, controller_cmd_update,
+                 &ds, str, ctrler_test_str1);
+
+  /* destroy cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv3), argv3, &tbl, bridge_cmd_update,
+                 &ds, str, test_str3);
+
+  /* interface show cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, interface_cmd_parse, &interp, state,
+                 ARGV_SIZE(inter_argv2), inter_argv2, &tbl, interface_cmd_update,
+                 &ds, str, inter_test_str2);
+
+  /* port show cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, port_cmd_parse, &interp, state,
+                 ARGV_SIZE(port_argv2), port_argv2, &tbl, port_cmd_update,
+                 &ds, str, port_test_str2);
+
+  /* channel show cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, channel_cmd_parse, &interp, state,
+                 ARGV_SIZE(cha_argv2), cha_argv2, &tbl,
+                 channel_cmd_update,
+                 &ds, str, cha_test_str2);
+
+  /* controller show cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, controller_cmd_parse, &interp, state,
+                 ARGV_SIZE(ctrler_argv2), ctrler_argv2, &tbl, controller_cmd_update,
+                 &ds, str, ctrler_test_str2);
+
+  dp_tap_interface_destroy(":i8");
+  dp_interface_free(ifp);
+  dp_tapio_thread_fini();
+
+  TEST_CONTROLLER_DESTROY(ret, &interp, state, &tbl, &ds, str, "cha8", "c8");
+  TEST_PORT_DESTROY(ret, &interp, state, &tbl, &ds, str, "i8", "p8");
+#else /* HYBRID */
+  TEST_IGNORE_MESSAGE("HYBRID is not defined");
+#endif /* HYBRID */
 }
 
 void
 test_bridge_cmd_parse_config_01(void) {
+#ifndef HYBRID
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
   char *str = NULL;
@@ -1327,10 +1873,299 @@ test_bridge_cmd_parse_config_01(void) {
   TEST_PORT_DESTROY(ret, &interp, state, &tbl, &ds, str, "i25", "p25");
   TEST_CONTROLLER_DESTROY(ret, &interp, state, &tbl, &ds, str, "cha26", "c26");
   TEST_PORT_DESTROY(ret, &interp, state, &tbl, &ds, str, "i26", "p26");
+#else /* HYBRID */
+  TEST_IGNORE_MESSAGE("HYBRID is defined");
+#endif /* HYBRID */
+}
+
+void
+test_bridge_cmd_parse_config_01_hybrid(void) {
+#ifdef HYBRID
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"bridge", "test_name25", "create",
+                         "-controller", "c25",
+                         "-port", "p25", "25",
+                         "-dpid", "18446744073709551615",
+                         "-fail-mode", "standalone",
+                         "-flow-statistics", "false",
+                         "-group-statistics", "false",
+                         "-port-statistics", "false",
+                         "-queue-statistics", "false",
+                         "-table-statistics", "false",
+                         "-reassemble-ip-fragments", "false",
+                         "-max-buffered-packets", "65535",
+                         "-max-ports", "2048",
+                         "-max-tables", "255",
+                         "-max-flows", "4294967295",
+                         "-l2-bridge", "false",
+                         "-mactable-ageing-time", "300",
+                         "-mactable-max-entries", "8192",
+                         "-packet-inq-size", "65535",
+                         "-packet-inq-max-batches", "65535",
+                         "-up-streamq-size", "65535",
+                         "-up-streamq-max-batches", "65535",
+                         "-down-streamq-size", "65535",
+                         "-down-streamq-max-batches", "65535",
+                         "-block-looping-ports", "false",
+                         "-action-type", "copy-ttl-out",
+                         "-instruction-type", "apply-actions",
+                         NULL
+                        };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char *argv2[] = {"bridge", "test_name25", NULL};
+  const char test_str2[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name25\",\n"
+    "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c25\"],\n"
+    "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p25\":25},\n"
+    "\"dpid\":18446744073709551615,\n"
+    "\"fail-mode\":\"standalone\",\n"
+    "\"flow-statistics\":false,\n"
+    "\"group-statistics\":false,\n"
+    "\"port-statistics\":false,\n"
+    "\"queue-statistics\":false,\n"
+    "\"table-statistics\":false,\n"
+    "\"reassemble-ip-fragments\":false,\n"
+    "\"max-buffered-packets\":65535,\n"
+    "\"max-ports\":2048,\n"
+    "\"max-tables\":255,\n"
+    "\"max-flows\":4294967295,\n"
+    "\"l2-bridge\":false,\n"
+    "\"mactable-ageing-time\":300,\n"
+    "\"mactable-max-entries\":8192,\n"
+    "\"packet-inq-size\":65535,\n"
+    "\"packet-inq-max-batches\":65535,\n"
+    "\"up-streamq-size\":65535,\n"
+    "\"up-streamq-max-batches\":65535,\n"
+    "\"down-streamq-size\":65535,\n"
+    "\"down-streamq-max-batches\":65535,\n"
+    "\"block-looping-ports\":false,\n"
+    "\"action-types\":[\"copy-ttl-out\",\"copy-ttl-in\","
+    "\"set-mpls-ttl\",\"dec-mpls-ttl\",\"push-vlan\",\"pop-vlan\","
+    "\"push-mpls\",\"pop-mpls\",\"set-queue\",\"group\",\"set-nw-ttl\","
+    "\"dec-nw-ttl\",\"set-field\"],\n"
+    "\"instruction-types\":[\"apply-actions\",\"clear-actions\","
+    "\"write-actions\",\"write-metadata\",\"goto-table\"],\n"
+    "\"reserved-port-types\":[\"all\",\"controller\",\"table\","
+    "\"inport\",\"any\",\"normal\",\"flood\"],\n"
+    "\"group-types\":[\"all\",\"select\",\"indirect\",\"fast-failover\"],\n"
+    "\"group-capabilities\":[\"select-weight\","
+    "\"select-liveness\",\"chaining\",\"chaining-check\"],\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+  const char *argv3[] = {"bridge", "test_name25", "config",
+                         "-controller", "c26",
+                         "-port", "p26", "26",
+                         NULL
+                        };
+  const char test_str3[] = "{\"ret\":\"OK\"}";
+  const char *argv4[] = {"bridge", "test_name25", NULL};
+  const char test_str4[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name25\",\n"
+    "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c25\",\""DATASTORE_NAMESPACE_DELIMITER"c26\"],\n"
+    "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p25\":25,\n"
+    "\""DATASTORE_NAMESPACE_DELIMITER"p26\":26},\n"
+    "\"dpid\":18446744073709551615,\n"
+    "\"fail-mode\":\"standalone\",\n"
+    "\"flow-statistics\":false,\n"
+    "\"group-statistics\":false,\n"
+    "\"port-statistics\":false,\n"
+    "\"queue-statistics\":false,\n"
+    "\"table-statistics\":false,\n"
+    "\"reassemble-ip-fragments\":false,\n"
+    "\"max-buffered-packets\":65535,\n"
+    "\"max-ports\":2048,\n"
+    "\"max-tables\":255,\n"
+    "\"max-flows\":4294967295,\n"
+    "\"l2-bridge\":false,\n"
+    "\"mactable-ageing-time\":300,\n"
+    "\"mactable-max-entries\":8192,\n"
+    "\"packet-inq-size\":65535,\n"
+    "\"packet-inq-max-batches\":65535,\n"
+    "\"up-streamq-size\":65535,\n"
+    "\"up-streamq-max-batches\":65535,\n"
+    "\"down-streamq-size\":65535,\n"
+    "\"down-streamq-max-batches\":65535,\n"
+    "\"block-looping-ports\":false,\n"
+    "\"action-types\":[\"copy-ttl-out\",\"copy-ttl-in\","
+    "\"set-mpls-ttl\",\"dec-mpls-ttl\",\"push-vlan\",\"pop-vlan\","
+    "\"push-mpls\",\"pop-mpls\",\"set-queue\",\"group\",\"set-nw-ttl\","
+    "\"dec-nw-ttl\",\"set-field\"],\n"
+    "\"instruction-types\":[\"apply-actions\",\"clear-actions\","
+    "\"write-actions\",\"write-metadata\",\"goto-table\"],\n"
+    "\"reserved-port-types\":[\"all\",\"controller\",\"table\","
+    "\"inport\",\"any\",\"normal\",\"flood\"],\n"
+    "\"group-types\":[\"all\",\"select\",\"indirect\",\"fast-failover\"],\n"
+    "\"group-capabilities\":[\"select-weight\","
+    "\"select-liveness\",\"chaining\",\"chaining-check\"],\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+  const char *argv5[] = {"bridge", "test_name25", "destroy",
+                         NULL
+                        };
+  const char test_str5[] = "{\"ret\":\"OK\"}";
+  const char *port_argv1[] = {"port", "p25", NULL};
+  const char port_test_str1[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"p25\",\n"
+    "\"port-number\":25,\n"
+    "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"i25\",\n"
+    "\"policer\":\"\",\n"
+    "\"queues\":[],\n"
+    "\"is-used\":true,\n"
+    "\"is-enabled\":false}]}";
+  const char *port_argv2[] = {"port", "p25", NULL};
+  const char port_test_str2[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"p25\",\n"
+    "\"port-number\":25,\n"
+    "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"i25\",\n"
+    "\"policer\":\"\",\n"
+    "\"queues\":[],\n"
+    "\"is-used\":true,\n"
+    "\"is-enabled\":false}]}";
+  const char *port_argv3[] = {"port", "p26", NULL};
+  const char port_test_str3[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"p26\",\n"
+    "\"port-number\":0,\n"
+    "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"i26\",\n"
+    "\"policer\":\"\",\n"
+    "\"queues\":[],\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+  const char *port_argv4[] = {"port", "p26", NULL};
+  const char port_test_str4[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"p26\",\n"
+    "\"port-number\":26,\n"
+    "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"i26\",\n"
+    "\"policer\":\"\",\n"
+    "\"queues\":[],\n"
+    "\"is-used\":true,\n"
+    "\"is-enabled\":false}]}";
+  const char *ctrler_argv1[] = {"controller", "c25", NULL};
+  const char ctrler_test_str1[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"c25\",\n"
+    "\"channel\":\""DATASTORE_NAMESPACE_DELIMITER"cha25\",\n"
+    "\"role\":\"equal\",\n"
+    "\"connection-type\":\"main\",\n"
+    "\"is-used\":true,\n"
+    "\"is-enabled\":false}]}";
+  const char *ctrler_argv2[] = {"controller", "c25", NULL};
+  const char ctrler_test_str2[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"c25\",\n"
+    "\"channel\":\""DATASTORE_NAMESPACE_DELIMITER"cha25\",\n"
+    "\"role\":\"equal\",\n"
+    "\"connection-type\":\"main\",\n"
+    "\"is-used\":true,\n"
+    "\"is-enabled\":false}]}";
+  const char *ctrler_argv3[] = {"controller", "c26", NULL};
+  const char ctrler_test_str3[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"c26\",\n"
+    "\"channel\":\""DATASTORE_NAMESPACE_DELIMITER"cha26\",\n"
+    "\"role\":\"equal\",\n"
+    "\"connection-type\":\"main\",\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+  const char *ctrler_argv4[] = {"controller", "c26", NULL};
+  const char ctrler_test_str4[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"c26\",\n"
+    "\"channel\":\""DATASTORE_NAMESPACE_DELIMITER"cha26\",\n"
+    "\"role\":\"equal\",\n"
+    "\"connection-type\":\"main\",\n"
+    "\"is-used\":true,\n"
+    "\"is-enabled\":false}]}";
+
+  TEST_CONTROLLER_CREATE(ret, &interp, state, &tbl, &ds, str, "cha25", "c25");
+  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i25", "p25");
+  TEST_CONTROLLER_CREATE(ret, &interp, state, &tbl, &ds, str, "cha26", "c26");
+  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i26", "p26");
+
+  /* create cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, bridge_cmd_update,
+                 &ds, str, test_str1);
+
+  /* show cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv2), argv2, &tbl, bridge_cmd_update,
+                 &ds, str, test_str2);
+
+  /* port show cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, port_cmd_parse, &interp, state,
+                 ARGV_SIZE(port_argv1), port_argv1, &tbl, port_cmd_update,
+                 &ds, str, port_test_str1);
+
+  /* port show cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, port_cmd_parse, &interp, state,
+                 ARGV_SIZE(port_argv3), port_argv3, &tbl, port_cmd_update,
+                 &ds, str, port_test_str3);
+
+  /* controller show cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, controller_cmd_parse, &interp, state,
+                 ARGV_SIZE(ctrler_argv1), ctrler_argv1, &tbl, controller_cmd_update,
+                 &ds, str, ctrler_test_str1);
+
+  /* controller show cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, controller_cmd_parse, &interp, state,
+                 ARGV_SIZE(ctrler_argv3), ctrler_argv3, &tbl, controller_cmd_update,
+                 &ds, str, ctrler_test_str3);
+
+  /* config cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv3), argv3, &tbl, bridge_cmd_update,
+                 &ds, str, test_str3);
+
+  /* show cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv4), argv4, &tbl, bridge_cmd_update,
+                 &ds, str, test_str4);
+
+  /* port show cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, port_cmd_parse, &interp, state,
+                 ARGV_SIZE(port_argv2), port_argv2, &tbl, port_cmd_update,
+                 &ds, str, port_test_str2);
+
+  /* port show cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, port_cmd_parse, &interp, state,
+                 ARGV_SIZE(port_argv4), port_argv4, &tbl, port_cmd_update,
+                 &ds, str, port_test_str4);
+
+  /* controller show cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, controller_cmd_parse, &interp, state,
+                 ARGV_SIZE(ctrler_argv2), ctrler_argv2, &tbl, controller_cmd_update,
+                 &ds, str, ctrler_test_str2);
+
+  /* controller show cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, controller_cmd_parse, &interp, state,
+                 ARGV_SIZE(ctrler_argv4), ctrler_argv4, &tbl, controller_cmd_update,
+                 &ds, str, ctrler_test_str4);
+
+  /* destroy cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv5), argv5, &tbl, bridge_cmd_update,
+                 &ds, str, test_str5);
+
+  TEST_CONTROLLER_DESTROY(ret, &interp, state, &tbl, &ds, str, "cha25", "c25");
+  TEST_PORT_DESTROY(ret, &interp, state, &tbl, &ds, str, "i25", "p25");
+  TEST_CONTROLLER_DESTROY(ret, &interp, state, &tbl, &ds, str, "cha26", "c26");
+  TEST_PORT_DESTROY(ret, &interp, state, &tbl, &ds, str, "i26", "p26");
+#else /* HYBRID */
+  TEST_IGNORE_MESSAGE("HYBRID is not defined");
+#endif /* HYBRID */
 }
 
 void
 test_bridge_cmd_parse_config_02(void) {
+#ifndef HYBRID
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
   char *str = NULL;
@@ -1515,10 +2350,229 @@ test_bridge_cmd_parse_config_02(void) {
 
   TEST_CONTROLLER_DESTROY(ret, &interp, state, &tbl, &ds, str, "cha27", "c\"27");
   TEST_PORT_DESTROY(ret, &interp, state, &tbl, &ds, str, "i27", "p\"27");
+#else /* HYBRID */
+  TEST_IGNORE_MESSAGE("HYBRID is defined");
+#endif /* HYBRID */
+}
+
+void
+test_bridge_cmd_parse_config_02_hybrid(void) {
+#ifdef HYBRID
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"bridge", "test_name\"27", "create",
+                         "-controller", "c\"27",
+                         "-port", "p\"27", "27",
+                         "-dpid", "18446744073709551615",
+                         "-fail-mode", "standalone",
+                         "-flow-statistics", "false",
+                         "-group-statistics", "false",
+                         "-port-statistics", "false",
+                         "-queue-statistics", "false",
+                         "-table-statistics", "false",
+                         "-reassemble-ip-fragments", "false",
+                         "-max-buffered-packets", "65535",
+                         "-max-ports", "2048",
+                         "-max-tables", "255",
+                         "-max-flows", "4294967295",
+                         "-l2-bridge", "false",
+                         "-mactable-ageing-time", "300",
+                         "-mactable-max-entries", "8192",
+                         "-packet-inq-size", "65535",
+                         "-packet-inq-max-batches", "65535",
+                         "-up-streamq-size", "65535",
+                         "-up-streamq-max-batches", "65535",
+                         "-down-streamq-size", "65535",
+                         "-down-streamq-max-batches", "65535",
+                         "-block-looping-ports", "false",
+                         "-action-type", "copy-ttl-out",
+                         "-instruction-type", "apply-actions",
+                         NULL
+                        };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char *argv2[] = {"bridge", "test_name\"27", "enable",
+                         NULL
+                        };
+  const char test_str2[] = "{\"ret\":\"OK\"}";
+  const char *argv3[] = {"bridge", "test_name\"27", NULL};
+  const char test_str3[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name\\\"27\",\n"
+    "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c\\\"27\"],\n"
+    "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p\\\"27\":27},\n"
+    "\"dpid\":18446744073709551615,\n"
+    "\"fail-mode\":\"standalone\",\n"
+    "\"flow-statistics\":false,\n"
+    "\"group-statistics\":false,\n"
+    "\"port-statistics\":false,\n"
+    "\"queue-statistics\":false,\n"
+    "\"table-statistics\":false,\n"
+    "\"reassemble-ip-fragments\":false,\n"
+    "\"max-buffered-packets\":65535,\n"
+    "\"max-ports\":2048,\n"
+    "\"max-tables\":255,\n"
+    "\"max-flows\":4294967295,\n"
+    "\"l2-bridge\":false,\n"
+    "\"mactable-ageing-time\":300,\n"
+    "\"mactable-max-entries\":8192,\n"
+    "\"packet-inq-size\":65535,\n"
+    "\"packet-inq-max-batches\":65535,\n"
+    "\"up-streamq-size\":65535,\n"
+    "\"up-streamq-max-batches\":65535,\n"
+    "\"down-streamq-size\":65535,\n"
+    "\"down-streamq-max-batches\":65535,\n"
+    "\"block-looping-ports\":false,\n"
+    "\"action-types\":[\"copy-ttl-out\",\"copy-ttl-in\","
+    "\"set-mpls-ttl\",\"dec-mpls-ttl\",\"push-vlan\",\"pop-vlan\","
+    "\"push-mpls\",\"pop-mpls\",\"set-queue\",\"group\",\"set-nw-ttl\","
+    "\"dec-nw-ttl\",\"set-field\"],\n"
+    "\"instruction-types\":[\"apply-actions\",\"clear-actions\","
+    "\"write-actions\",\"write-metadata\",\"goto-table\"],\n"
+    "\"reserved-port-types\":[\"all\",\"controller\",\"table\","
+    "\"inport\",\"any\",\"normal\",\"flood\"],\n"
+    "\"group-types\":[\"all\",\"select\",\"indirect\",\"fast-failover\"],\n"
+    "\"group-capabilities\":[\"select-weight\","
+    "\"select-liveness\",\"chaining\",\"chaining-check\"],\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":true}]}";
+  const char *argv4[] = {"bridge", "test_name\"27", "config",
+                         "-dpid", "1",
+                         "-fail-mode", "standalone",
+                         "-flow-statistics", "false",
+                         "-group-statistics", "false",
+                         "-port-statistics", "false",
+                         "-queue-statistics", "false",
+                         "-table-statistics", "false",
+                         "-reassemble-ip-fragments", "false",
+                         "-max-buffered-packets", "65535",
+                         "-max-ports", "2048",
+                         "-max-tables", "255",
+                         "-max-flows", "4294967295",
+                         "-l2-bridge", "false",
+                         "-mactable-ageing-time", "300",
+                         "-mactable-max-entries", "8192",
+                         "-packet-inq-size", "65535",
+                         "-packet-inq-max-batches", "65535",
+                         "-up-streamq-size", "65535",
+                         "-up-streamq-max-batches", "65535",
+                         "-down-streamq-size", "65535",
+                         "-down-streamq-max-batches", "65535",
+                         "-block-looping-ports", "false",
+                         "-action-type", "copy-ttl-out",
+                         "-instruction-type", "apply-actions",
+                         NULL
+                        };
+  const char test_str4[] = "{\"ret\":\"OK\"}";
+  const char *argv5[] = {"bridge", "test_name\"27", NULL};
+  const char test_str5[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name\\\"27\",\n"
+    "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c\\\"27\"],\n"
+    "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p\\\"27\":27},\n"
+    "\"dpid\":1,\n"
+    "\"fail-mode\":\"standalone\",\n"
+    "\"flow-statistics\":false,\n"
+    "\"group-statistics\":false,\n"
+    "\"port-statistics\":false,\n"
+    "\"queue-statistics\":false,\n"
+    "\"table-statistics\":false,\n"
+    "\"reassemble-ip-fragments\":false,\n"
+    "\"max-buffered-packets\":65535,\n"
+    "\"max-ports\":2048,\n"
+    "\"max-tables\":255,\n"
+    "\"max-flows\":4294967295,\n"
+    "\"l2-bridge\":false,\n"
+    "\"mactable-ageing-time\":300,\n"
+    "\"mactable-max-entries\":8192,\n"
+    "\"packet-inq-size\":65535,\n"
+    "\"packet-inq-max-batches\":65535,\n"
+    "\"up-streamq-size\":65535,\n"
+    "\"up-streamq-max-batches\":65535,\n"
+    "\"down-streamq-size\":65535,\n"
+    "\"down-streamq-max-batches\":65535,\n"
+    "\"block-looping-ports\":false,\n"
+    "\"action-types\":[\"copy-ttl-out\",\"copy-ttl-in\","
+    "\"set-mpls-ttl\",\"dec-mpls-ttl\",\"push-vlan\",\"pop-vlan\","
+    "\"push-mpls\",\"pop-mpls\",\"set-queue\",\"group\",\"set-nw-ttl\","
+    "\"dec-nw-ttl\",\"set-field\"],\n"
+    "\"instruction-types\":[\"apply-actions\",\"clear-actions\","
+    "\"write-actions\",\"write-metadata\",\"goto-table\"],\n"
+    "\"reserved-port-types\":[\"all\",\"controller\",\"table\","
+    "\"inport\",\"any\",\"normal\",\"flood\"],\n"
+    "\"group-types\":[\"all\",\"select\",\"indirect\",\"fast-failover\"],\n"
+    "\"group-capabilities\":[\"select-weight\","
+    "\"select-liveness\",\"chaining\",\"chaining-check\"],\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":true}]}";
+  const char *argv6[] = {"bridge", "test_name\"27", "disable",
+                         NULL
+                        };
+  const char test_str6[] = "{\"ret\":\"OK\"}";
+  const char *argv7[] = {"bridge", "test_name\"27", "destroy",
+                         NULL
+                        };
+  const char test_str7[] = "{\"ret\":\"OK\"}";
+
+  struct interface *ifp;
+  ifp = dp_interface_alloc();
+  lagopus_thread_t *thdptr = NULL;
+  dp_tapio_thread_init(NULL, NULL, NULL, &thdptr);
+  ret = dp_tap_interface_create(":i27", ifp);
+  TEST_ASSERT_EQUAL(ret, LAGOPUS_RESULT_OK);
+
+  TEST_CONTROLLER_CREATE(ret, &interp, state, &tbl, &ds, str, "cha27", "c\"27");
+  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i27", "p\"27");
+
+  /* create cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, bridge_cmd_update,
+                 &ds, str, test_str1);
+
+  /* enable cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv2), argv2, &tbl, bridge_cmd_update,
+                 &ds, str, test_str2);
+
+  /* show cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv3), argv3, &tbl, bridge_cmd_update,
+                 &ds, str, test_str3);
+
+  /* config cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv4), argv4, &tbl, bridge_cmd_update,
+                 &ds, str, test_str4);
+
+  /* show cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv5), argv5, &tbl, bridge_cmd_update,
+                 &ds, str, test_str5);
+
+  /* disable cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv6), argv6, &tbl, bridge_cmd_update,
+                 &ds, str, test_str6);
+
+  /* destroy cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv7), argv7, &tbl, bridge_cmd_update,
+                 &ds, str, test_str7);
+
+  dp_tap_interface_destroy(":i27");
+  dp_interface_free(ifp);
+  dp_tapio_thread_fini();
+
+  TEST_CONTROLLER_DESTROY(ret, &interp, state, &tbl, &ds, str, "cha27", "c\"27");
+  TEST_PORT_DESTROY(ret, &interp, state, &tbl, &ds, str, "i27", "p\"27");
+#else /* HYBRID */
+  TEST_IGNORE_MESSAGE("HYBRID is not defined");
+#endif /* HYBRID */
 }
 
 void
 test_bridge_cmd_parse_config_delete_port_ctrler(void) {
+#ifndef HYBRID
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
   char *str = NULL;
@@ -1705,10 +2759,231 @@ test_bridge_cmd_parse_config_delete_port_ctrler(void) {
 
   TEST_CONTROLLER_DESTROY(ret, &interp, state, &tbl, &ds, str, "cha28", "c28");
   TEST_PORT_DESTROY(ret, &interp, state, &tbl, &ds, str, "i28", "p28");
+#else /* HYBRID */
+  TEST_IGNORE_MESSAGE("HYBRID is defined");
+#endif /* HYBRID */
+}
+
+void
+test_bridge_cmd_parse_config_delete_port_ctrler_hybrid(void) {
+#ifdef HYBRID
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"bridge", "test_name28", "create",
+                         "-controller", "+c28",
+                         "-port", "p28", "28",
+                         "-dpid", "18446744073709551615",
+                         "-fail-mode", "standalone",
+                         "-flow-statistics", "false",
+                         "-group-statistics", "false",
+                         "-port-statistics", "false",
+                         "-queue-statistics", "false",
+                         "-table-statistics", "false",
+                         "-reassemble-ip-fragments", "false",
+                         "-max-buffered-packets", "65535",
+                         "-max-ports", "2048",
+                         "-max-tables", "255",
+                         "-max-flows", "4294967295",
+                         "-l2-bridge", "false",
+                         "-mactable-ageing-time", "300",
+                         "-mactable-max-entries", "8192",
+                         "-packet-inq-size", "65535",
+                         "-packet-inq-max-batches", "65535",
+                         "-up-streamq-size", "65535",
+                         "-up-streamq-max-batches", "65535",
+                         "-down-streamq-size", "65535",
+                         "-down-streamq-max-batches", "65535",
+                         "-block-looping-ports", "false",
+                         "-action-type", "copy-ttl-out",
+                         "-instruction-type", "apply-actions",
+                         NULL
+                        };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char *argv2[] = {"bridge", "test_name28", "enable",
+                         NULL
+                        };
+  const char test_str2[] = "{\"ret\":\"OK\"}";
+  const char *argv3[] = {"bridge", "test_name28", NULL};
+  const char test_str3[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name28\",\n"
+    "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c28\"],\n"
+    "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p28\":28},\n"
+    "\"dpid\":18446744073709551615,\n"
+    "\"fail-mode\":\"standalone\",\n"
+    "\"flow-statistics\":false,\n"
+    "\"group-statistics\":false,\n"
+    "\"port-statistics\":false,\n"
+    "\"queue-statistics\":false,\n"
+    "\"table-statistics\":false,\n"
+    "\"reassemble-ip-fragments\":false,\n"
+    "\"max-buffered-packets\":65535,\n"
+    "\"max-ports\":2048,\n"
+    "\"max-tables\":255,\n"
+    "\"max-flows\":4294967295,\n"
+    "\"l2-bridge\":false,\n"
+    "\"mactable-ageing-time\":300,\n"
+    "\"mactable-max-entries\":8192,\n"
+    "\"packet-inq-size\":65535,\n"
+    "\"packet-inq-max-batches\":65535,\n"
+    "\"up-streamq-size\":65535,\n"
+    "\"up-streamq-max-batches\":65535,\n"
+    "\"down-streamq-size\":65535,\n"
+    "\"down-streamq-max-batches\":65535,\n"
+    "\"block-looping-ports\":false,\n"
+    "\"action-types\":[\"copy-ttl-out\",\"copy-ttl-in\","
+    "\"set-mpls-ttl\",\"dec-mpls-ttl\",\"push-vlan\",\"pop-vlan\","
+    "\"push-mpls\",\"pop-mpls\",\"set-queue\",\"group\",\"set-nw-ttl\","
+    "\"dec-nw-ttl\",\"set-field\"],\n"
+    "\"instruction-types\":[\"apply-actions\",\"clear-actions\","
+    "\"write-actions\",\"write-metadata\",\"goto-table\"],\n"
+    "\"reserved-port-types\":[\"all\",\"controller\",\"table\","
+    "\"inport\",\"any\",\"normal\",\"flood\"],\n"
+    "\"group-types\":[\"all\",\"select\",\"indirect\",\"fast-failover\"],\n"
+    "\"group-capabilities\":[\"select-weight\","
+    "\"select-liveness\",\"chaining\",\"chaining-check\"],\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":true}]}";
+  const char *argv4[] = {"bridge", "test_name28", "config",
+                         "-controller", "-c28",
+                         "-port", "~p28",
+                         "-dpid", "1",
+                         "-fail-mode", "standalone",
+                         "-flow-statistics", "false",
+                         "-group-statistics", "false",
+                         "-port-statistics", "false",
+                         "-queue-statistics", "false",
+                         "-table-statistics", "false",
+                         "-reassemble-ip-fragments", "false",
+                         "-max-buffered-packets", "65535",
+                         "-max-ports", "2048",
+                         "-max-tables", "255",
+                         "-max-flows", "4294967295",
+                         "-l2-bridge", "false",
+                         "-mactable-ageing-time", "300",
+                         "-mactable-max-entries", "8192",
+                         "-packet-inq-size", "65535",
+                         "-packet-inq-max-batches", "65535",
+                         "-up-streamq-size", "65535",
+                         "-up-streamq-max-batches", "65535",
+                         "-down-streamq-size", "65535",
+                         "-down-streamq-max-batches", "65535",
+                         "-block-looping-ports", "false",
+                         "-action-type", "copy-ttl-out",
+                         "-instruction-type", "apply-actions",
+                         NULL
+                        };
+  const char test_str4[] = "{\"ret\":\"OK\"}";
+  const char *argv5[] = {"bridge", "test_name28", NULL};
+  const char test_str5[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name28\",\n"
+    "\"controllers\":[],\n"
+    "\"ports\":{},\n"
+    "\"dpid\":1,\n"
+    "\"fail-mode\":\"standalone\",\n"
+    "\"flow-statistics\":false,\n"
+    "\"group-statistics\":false,\n"
+    "\"port-statistics\":false,\n"
+    "\"queue-statistics\":false,\n"
+    "\"table-statistics\":false,\n"
+    "\"reassemble-ip-fragments\":false,\n"
+    "\"max-buffered-packets\":65535,\n"
+    "\"max-ports\":2048,\n"
+    "\"max-tables\":255,\n"
+    "\"max-flows\":4294967295,\n"
+    "\"l2-bridge\":false,\n"
+    "\"mactable-ageing-time\":300,\n"
+    "\"mactable-max-entries\":8192,\n"
+    "\"packet-inq-size\":65535,\n"
+    "\"packet-inq-max-batches\":65535,\n"
+    "\"up-streamq-size\":65535,\n"
+    "\"up-streamq-max-batches\":65535,\n"
+    "\"down-streamq-size\":65535,\n"
+    "\"down-streamq-max-batches\":65535,\n"
+    "\"block-looping-ports\":false,\n"
+    "\"action-types\":[\"copy-ttl-out\",\"copy-ttl-in\","
+    "\"set-mpls-ttl\",\"dec-mpls-ttl\",\"push-vlan\",\"pop-vlan\","
+    "\"push-mpls\",\"pop-mpls\",\"set-queue\",\"group\",\"set-nw-ttl\","
+    "\"dec-nw-ttl\",\"set-field\"],\n"
+    "\"instruction-types\":[\"apply-actions\",\"clear-actions\","
+    "\"write-actions\",\"write-metadata\",\"goto-table\"],\n"
+    "\"reserved-port-types\":[\"all\",\"controller\",\"table\","
+    "\"inport\",\"any\",\"normal\",\"flood\"],\n"
+    "\"group-types\":[\"all\",\"select\",\"indirect\",\"fast-failover\"],\n"
+    "\"group-capabilities\":[\"select-weight\","
+    "\"select-liveness\",\"chaining\",\"chaining-check\"],\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":true}]}";
+  const char *argv6[] = {"bridge", "test_name28", "disable",
+                         NULL
+                        };
+  const char test_str6[] = "{\"ret\":\"OK\"}";
+  const char *argv7[] = {"bridge", "test_name28", "destroy",
+                         NULL
+                        };
+  const char test_str7[] = "{\"ret\":\"OK\"}";
+
+  TEST_CONTROLLER_CREATE(ret, &interp, state, &tbl, &ds, str, "cha28", "c28");
+  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i28", "p28");
+
+  struct interface *ifp;
+  ifp = dp_interface_alloc();
+  lagopus_thread_t *thdptr = NULL;
+  dp_tapio_thread_init(NULL, NULL, NULL, &thdptr);
+  ret = dp_tap_interface_create(":i28", ifp);
+  TEST_ASSERT_EQUAL(ret, LAGOPUS_RESULT_OK);
+
+  /* create cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, bridge_cmd_update,
+                 &ds, str, test_str1);
+
+  /* enable cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv2), argv2, &tbl, bridge_cmd_update,
+                 &ds, str, test_str2);
+
+  /* show cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv3), argv3, &tbl, bridge_cmd_update,
+                 &ds, str, test_str3);
+
+  /* config cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv4), argv4, &tbl, bridge_cmd_update,
+                 &ds, str, test_str4);
+
+  /* show cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv5), argv5, &tbl, bridge_cmd_update,
+                 &ds, str, test_str5);
+
+  /* disable cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv6), argv6, &tbl, bridge_cmd_update,
+                 &ds, str, test_str6);
+
+  /* destroy cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv7), argv7, &tbl, bridge_cmd_update,
+                 &ds, str, test_str7);
+
+  dp_tap_interface_destroy(":i28");
+  dp_interface_free(ifp);
+  dp_tapio_thread_fini();
+
+  TEST_CONTROLLER_DESTROY(ret, &interp, state, &tbl, &ds, str, "cha28", "c28");
+  TEST_PORT_DESTROY(ret, &interp, state, &tbl, &ds, str, "i28", "p28");
+#else /* HYBRID */
+  TEST_IGNORE_MESSAGE("HYBRID is not defined");
+#endif /* HYBRID */
 }
 
 void
 test_bridge_cmd_parse_config_show_01(void) {
+#ifndef HYBRID
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
   char *str = NULL;
@@ -1824,10 +3099,143 @@ test_bridge_cmd_parse_config_show_01(void) {
 
   TEST_CONTROLLER_DESTROY(ret, &interp, state, &tbl, &ds, str, "cha29", "c29");
   TEST_PORT_DESTROY(ret, &interp, state, &tbl, &ds, str, "i29", "p29");
+#else /* HYBRID */
+  TEST_IGNORE_MESSAGE("HYBRID is defined");
+#endif /* HYBRID */
+}
+
+void
+test_bridge_cmd_parse_config_show_01_hybrid(void) {
+#ifdef HYBRID
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"bridge", "test_name29", "create",
+                         "-controller", "c29",
+                         "-port", "p29", "29",
+                         "-dpid", "18446744073709551615",
+                         "-fail-mode", "standalone",
+                         "-flow-statistics", "false",
+                         "-group-statistics", "false",
+                         "-port-statistics", "false",
+                         "-queue-statistics", "false",
+                         "-table-statistics", "false",
+                         "-reassemble-ip-fragments", "false",
+                         "-max-buffered-packets", "65535",
+                         "-max-ports", "2048",
+                         "-max-tables", "255",
+                         "-max-flows", "4294967295",
+                         "-l2-bridge", "false",
+                         "-mactable-ageing-time", "300",
+                         "-mactable-max-entries", "8192",
+                         "-packet-inq-size", "65535",
+                         "-packet-inq-max-batches", "65535",
+                         "-up-streamq-size", "65535",
+                         "-up-streamq-max-batches", "65535",
+                         "-down-streamq-size", "65535",
+                         "-down-streamq-max-batches", "65535",
+                         "-block-looping-ports", "false",
+                         "-action-type", "copy-ttl-out",
+                         "-instruction-type", "apply-actions",
+                         NULL
+                        };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char *argv2[] = {"bridge", "test_name29", NULL};
+  const char test_str2[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name29\",\n"
+    "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c29\"],\n"
+    "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p29\":29},\n"
+    "\"dpid\":18446744073709551615,\n"
+    "\"fail-mode\":\"standalone\",\n"
+    "\"flow-statistics\":false,\n"
+    "\"group-statistics\":false,\n"
+    "\"port-statistics\":false,\n"
+    "\"queue-statistics\":false,\n"
+    "\"table-statistics\":false,\n"
+    "\"reassemble-ip-fragments\":false,\n"
+    "\"max-buffered-packets\":65535,\n"
+    "\"max-ports\":2048,\n"
+    "\"max-tables\":255,\n"
+    "\"max-flows\":4294967295,\n"
+    "\"l2-bridge\":false,\n"
+    "\"mactable-ageing-time\":300,\n"
+    "\"mactable-max-entries\":8192,\n"
+    "\"packet-inq-size\":65535,\n"
+    "\"packet-inq-max-batches\":65535,\n"
+    "\"up-streamq-size\":65535,\n"
+    "\"up-streamq-max-batches\":65535,\n"
+    "\"down-streamq-size\":65535,\n"
+    "\"down-streamq-max-batches\":65535,\n"
+    "\"block-looping-ports\":false,\n"
+    "\"action-types\":[\"copy-ttl-out\",\"copy-ttl-in\","
+    "\"set-mpls-ttl\",\"dec-mpls-ttl\",\"push-vlan\",\"pop-vlan\","
+    "\"push-mpls\",\"pop-mpls\",\"set-queue\",\"group\",\"set-nw-ttl\","
+    "\"dec-nw-ttl\",\"set-field\"],\n"
+    "\"instruction-types\":[\"apply-actions\",\"clear-actions\","
+    "\"write-actions\",\"write-metadata\",\"goto-table\"],\n"
+    "\"reserved-port-types\":[\"all\",\"controller\",\"table\","
+    "\"inport\",\"any\",\"normal\",\"flood\"],\n"
+    "\"group-types\":[\"all\",\"select\",\"indirect\",\"fast-failover\"],\n"
+    "\"group-capabilities\":[\"select-weight\","
+    "\"select-liveness\",\"chaining\",\"chaining-check\"],\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+  const char *argv3[] = {"bridge", "test_name29", "config",
+                         "-dpid", "1",
+                         NULL
+                        };
+  const char test_str3[] = "{\"ret\":\"OK\"}";
+  const char *argv4[] = {"bridge", "test_name29", "config",
+                         "-dpid", NULL
+                        };
+  const char test_str4[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name29\",\n"
+    "\"dpid\":1}]}";
+  const char *argv5[] = {"bridge", "test_name29", "destroy",
+                         NULL
+                        };
+  const char test_str5[] = "{\"ret\":\"OK\"}";
+
+  TEST_CONTROLLER_CREATE(ret, &interp, state, &tbl, &ds, str, "cha29", "c29");
+  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i29", "p29");
+
+  /* create cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, bridge_cmd_update,
+                 &ds, str, test_str1);
+
+  /* show cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv2), argv2, &tbl, bridge_cmd_update,
+                 &ds, str, test_str2);
+
+  /* config cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv3), argv3, &tbl, bridge_cmd_update,
+                 &ds, str, test_str3);
+
+  /* config cmd (show). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv4), argv4, &tbl, bridge_cmd_update,
+                 &ds, str, test_str4);
+
+  /* destroy cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv5), argv5, &tbl, bridge_cmd_update,
+                 &ds, str, test_str5);
+
+  TEST_CONTROLLER_DESTROY(ret, &interp, state, &tbl, &ds, str, "cha29", "c29");
+  TEST_PORT_DESTROY(ret, &interp, state, &tbl, &ds, str, "i29", "p29");
+#else /* HYBRID */
+  TEST_IGNORE_MESSAGE("HYBRID is not defined");
+#endif /* HYBRID */
 }
 
 void
 test_bridge_cmd_show_01(void) {
+#ifndef HYBRID
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   datastore_interp_state_t state1 = DATASTORE_INTERP_STATE_AUTO_COMMIT;
   char *str = NULL;
@@ -1955,10 +3363,155 @@ test_bridge_cmd_show_01(void) {
 
   TEST_CONTROLLER_DESTROY(ret, &interp, state1, &tbl, &ds, str, "cha30", "c30");
   TEST_PORT_DESTROY(ret, &interp, state1, &tbl, &ds, str, "i30", "p30");
+#else /* HYBRID */
+  TEST_IGNORE_MESSAGE("HYBRID is defined");
+#endif /* HYBRID */
+}
+
+void
+test_bridge_cmd_show_01_hybrid(void) {
+#ifdef HYBRID
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state1 = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"bridge", "test_name30", "create",
+                         "-controller", "c30",
+                         "-port", "p30", "30",
+                         "-dpid", "18446744073709551615",
+                         "-fail-mode", "standalone",
+                         "-flow-statistics", "false",
+                         "-group-statistics", "false",
+                         "-port-statistics", "false",
+                         "-queue-statistics", "false",
+                         "-table-statistics", "false",
+                         "-reassemble-ip-fragments", "false",
+                         "-max-buffered-packets", "65535",
+                         "-max-ports", "2048",
+                         "-max-tables", "255",
+                         "-max-flows", "4294967295",
+                         "-l2-bridge", "false",
+                         "-mactable-ageing-time", "300",
+                         "-mactable-max-entries", "8192",
+                         "-packet-inq-size", "65535",
+                         "-packet-inq-max-batches", "65535",
+                         "-up-streamq-size", "65535",
+                         "-up-streamq-max-batches", "65535",
+                         "-down-streamq-size", "65535",
+                         "-down-streamq-max-batches", "65535",
+                         "-block-looping-ports", "false",
+                         "-action-type", "copy-ttl-out",
+                         "-instruction-type", "apply-actions",
+                         NULL
+                        };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char *argv2[] = {"bridge", "test_name30", "current",
+                         NULL
+                        };
+  const char test_str2[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name30\",\n"
+    "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c30\"],\n"
+    "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p30\":30},\n"
+    "\"dpid\":18446744073709551615,\n"
+    "\"fail-mode\":\"standalone\",\n"
+    "\"flow-statistics\":false,\n"
+    "\"group-statistics\":false,\n"
+    "\"port-statistics\":false,\n"
+    "\"queue-statistics\":false,\n"
+    "\"table-statistics\":false,\n"
+    "\"reassemble-ip-fragments\":false,\n"
+    "\"max-buffered-packets\":65535,\n"
+    "\"max-ports\":2048,\n"
+    "\"max-tables\":255,\n"
+    "\"max-flows\":4294967295,\n"
+    "\"l2-bridge\":false,\n"
+    "\"mactable-ageing-time\":300,\n"
+    "\"mactable-max-entries\":8192,\n"
+    "\"packet-inq-size\":65535,\n"
+    "\"packet-inq-max-batches\":65535,\n"
+    "\"up-streamq-size\":65535,\n"
+    "\"up-streamq-max-batches\":65535,\n"
+    "\"down-streamq-size\":65535,\n"
+    "\"down-streamq-max-batches\":65535,\n"
+    "\"block-looping-ports\":false,\n"
+    "\"action-types\":[\"copy-ttl-out\",\"copy-ttl-in\","
+    "\"set-mpls-ttl\",\"dec-mpls-ttl\",\"push-vlan\",\"pop-vlan\","
+    "\"push-mpls\",\"pop-mpls\",\"set-queue\",\"group\",\"set-nw-ttl\","
+    "\"dec-nw-ttl\",\"set-field\"],\n"
+    "\"instruction-types\":[\"apply-actions\",\"clear-actions\","
+    "\"write-actions\",\"write-metadata\",\"goto-table\"],\n"
+    "\"reserved-port-types\":[\"all\",\"controller\",\"table\","
+    "\"inport\",\"any\",\"normal\",\"flood\"],\n"
+    "\"group-types\":[\"all\",\"select\",\"indirect\",\"fast-failover\"],\n"
+    "\"group-capabilities\":[\"select-weight\","
+    "\"select-liveness\",\"chaining\",\"chaining-check\"],\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+  const char *argv3[] = {"bridge", "test_name30", "modified",
+                         NULL
+                        };
+  const char test_str3[] = {"{\"ret\":\"NOT_OPERATIONAL\",\n"
+                            "\"data\":\"Not set modified.\"}"
+                           };
+  const char *argv4[] = {"bridge", "test_name30", "config",
+                         "-dpid", "1",
+                         NULL
+                        };
+  const char test_str4[] = "{\"ret\":\"OK\"}";
+  const char *argv5[] = {"bridge", "test_name30", "modified",
+                         NULL
+                        };
+  const char test_str5[] =  {"{\"ret\":\"NOT_OPERATIONAL\",\n"
+                             "\"data\":\"Not set modified.\"}"
+                            };
+  const char *argv6[] = {"bridge", "test_name30", "destroy",
+                         NULL
+                        };
+  const char test_str6[] = "{\"ret\":\"OK\"}";
+
+  TEST_CONTROLLER_CREATE(ret, &interp, state1, &tbl, &ds, str, "cha30", "c30");
+  TEST_PORT_CREATE(ret, &interp, state1, &tbl, &ds, str, "i30", "p30");
+
+  /* create cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv1), argv1, &tbl, bridge_cmd_update,
+                 &ds, str, test_str1);
+
+  /* show cmd (current). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv2), argv2, &tbl, bridge_cmd_update,
+                 &ds, str, test_str2);
+
+  /* show cmd (modified). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR, bridge_cmd_parse,
+                 &interp, state1, ARGV_SIZE(argv3), argv3, &tbl,
+                 bridge_cmd_update, &ds, str, test_str3);
+
+  /* config cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv4), argv4, &tbl, bridge_cmd_update,
+                 &ds, str, test_str4);
+
+  /* show cmd (modified : AUTO COMMIT mode). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR, bridge_cmd_parse,
+                 &interp, state1, ARGV_SIZE(argv5), argv5, &tbl,
+                 bridge_cmd_update, &ds, str, test_str5);
+
+  /* destroy cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv6), argv6, &tbl, bridge_cmd_update,
+                 &ds, str, test_str6);
+
+  TEST_CONTROLLER_DESTROY(ret, &interp, state1, &tbl, &ds, str, "cha30", "c30");
+  TEST_PORT_DESTROY(ret, &interp, state1, &tbl, &ds, str, "i30", "p30");
+#else /* HYBRID */
+  TEST_IGNORE_MESSAGE("HYBRID is not defined");
+#endif /* HYBRID */
 }
 
 void
 test_bridge_cmd_parse_config_port_number_01(void) {
+#ifndef HYBRID
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
   char *str = NULL;
@@ -2124,10 +3677,207 @@ test_bridge_cmd_parse_config_port_number_01(void) {
 
   TEST_CONTROLLER_DESTROY(ret, &interp, state, &tbl, &ds, str, "cha31", "c31");
   TEST_PORT_DESTROY(ret, &interp, state, &tbl, &ds, str, "i31", "p31");
+#else /* HYBRID */
+  TEST_IGNORE_MESSAGE("HYBRID is defined");
+#endif /* HYBRID */
+}
+
+void
+test_bridge_cmd_parse_config_port_number_01_hybrid(void) {
+#ifdef HYBRID
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"bridge", "test_name31", "create",
+                         "-controller", "c31",
+                         "-port", "p31", "31",
+                         "-dpid", "18446744073709551615",
+                         "-fail-mode", "standalone",
+                         "-flow-statistics", "false",
+                         "-group-statistics", "false",
+                         "-port-statistics", "false",
+                         "-queue-statistics", "false",
+                         "-table-statistics", "false",
+                         "-reassemble-ip-fragments", "false",
+                         "-max-buffered-packets", "65535",
+                         "-max-ports", "2048",
+                         "-max-tables", "255",
+                         "-max-flows", "4294967295",
+                         "-l2-bridge", "false",
+                         "-mactable-ageing-time", "300",
+                         "-mactable-max-entries", "8192",
+                         "-packet-inq-size", "65535",
+                         "-packet-inq-max-batches", "65535",
+                         "-up-streamq-size", "65535",
+                         "-up-streamq-max-batches", "65535",
+                         "-down-streamq-size", "65535",
+                         "-down-streamq-max-batches", "65535",
+                         "-block-looping-ports", "false",
+                         "-action-type", "copy-ttl-out",
+                         "-instruction-type", "apply-actions",
+                         NULL
+                        };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char *argv2[] = {"bridge", "test_name31", "enable",
+                         NULL
+                        };
+  const char test_str2[] = "{\"ret\":\"OK\"}";
+  const char *argv3[] = {"bridge", "test_name31", NULL};
+  const char test_str3[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name31\",\n"
+    "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c31\"],\n"
+    "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p31\":31},\n"
+    "\"dpid\":18446744073709551615,\n"
+    "\"fail-mode\":\"standalone\",\n"
+    "\"flow-statistics\":false,\n"
+    "\"group-statistics\":false,\n"
+    "\"port-statistics\":false,\n"
+    "\"queue-statistics\":false,\n"
+    "\"table-statistics\":false,\n"
+    "\"reassemble-ip-fragments\":false,\n"
+    "\"max-buffered-packets\":65535,\n"
+    "\"max-ports\":2048,\n"
+    "\"max-tables\":255,\n"
+    "\"max-flows\":4294967295,\n"
+    "\"l2-bridge\":false,\n"
+    "\"mactable-ageing-time\":300,\n"
+    "\"mactable-max-entries\":8192,\n"
+    "\"packet-inq-size\":65535,\n"
+    "\"packet-inq-max-batches\":65535,\n"
+    "\"up-streamq-size\":65535,\n"
+    "\"up-streamq-max-batches\":65535,\n"
+    "\"down-streamq-size\":65535,\n"
+    "\"down-streamq-max-batches\":65535,\n"
+    "\"block-looping-ports\":false,\n"
+    "\"action-types\":[\"copy-ttl-out\",\"copy-ttl-in\","
+    "\"set-mpls-ttl\",\"dec-mpls-ttl\",\"push-vlan\",\"pop-vlan\","
+    "\"push-mpls\",\"pop-mpls\",\"set-queue\",\"group\",\"set-nw-ttl\","
+    "\"dec-nw-ttl\",\"set-field\"],\n"
+    "\"instruction-types\":[\"apply-actions\",\"clear-actions\","
+    "\"write-actions\",\"write-metadata\",\"goto-table\"],\n"
+    "\"reserved-port-types\":[\"all\",\"controller\",\"table\","
+    "\"inport\",\"any\",\"normal\",\"flood\"],\n"
+    "\"group-types\":[\"all\",\"select\",\"indirect\",\"fast-failover\"],\n"
+    "\"group-capabilities\":[\"select-weight\","
+    "\"select-liveness\",\"chaining\",\"chaining-check\"],\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":true}]}";
+  const char *argv4[] = {"bridge", "test_name31", "config",
+                         "-port", "~p31",
+                         "-port", "p31", "32",
+                         NULL
+                        };
+  const char test_str4[] = "{\"ret\":\"OK\"}";
+  const char *argv5[] = {"bridge", "test_name31", NULL};
+  const char test_str5[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name31\",\n"
+    "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c31\"],\n"
+    "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p31\":32},\n"
+    "\"dpid\":18446744073709551615,\n"
+    "\"fail-mode\":\"standalone\",\n"
+    "\"flow-statistics\":false,\n"
+    "\"group-statistics\":false,\n"
+    "\"port-statistics\":false,\n"
+    "\"queue-statistics\":false,\n"
+    "\"table-statistics\":false,\n"
+    "\"reassemble-ip-fragments\":false,\n"
+    "\"max-buffered-packets\":65535,\n"
+    "\"max-ports\":2048,\n"
+    "\"max-tables\":255,\n"
+    "\"max-flows\":4294967295,\n"
+    "\"l2-bridge\":false,\n"
+    "\"mactable-ageing-time\":300,\n"
+    "\"mactable-max-entries\":8192,\n"
+    "\"packet-inq-size\":65535,\n"
+    "\"packet-inq-max-batches\":65535,\n"
+    "\"up-streamq-size\":65535,\n"
+    "\"up-streamq-max-batches\":65535,\n"
+    "\"down-streamq-size\":65535,\n"
+    "\"down-streamq-max-batches\":65535,\n"
+    "\"block-looping-ports\":false,\n"
+    "\"action-types\":[\"copy-ttl-out\",\"copy-ttl-in\","
+    "\"set-mpls-ttl\",\"dec-mpls-ttl\",\"push-vlan\",\"pop-vlan\","
+    "\"push-mpls\",\"pop-mpls\",\"set-queue\",\"group\",\"set-nw-ttl\","
+    "\"dec-nw-ttl\",\"set-field\"],\n"
+    "\"instruction-types\":[\"apply-actions\",\"clear-actions\","
+    "\"write-actions\",\"write-metadata\",\"goto-table\"],\n"
+    "\"reserved-port-types\":[\"all\",\"controller\",\"table\","
+    "\"inport\",\"any\",\"normal\",\"flood\"],\n"
+    "\"group-types\":[\"all\",\"select\",\"indirect\",\"fast-failover\"],\n"
+    "\"group-capabilities\":[\"select-weight\","
+    "\"select-liveness\",\"chaining\",\"chaining-check\"],\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":true}]}";
+  const char *argv6[] = {"bridge", "test_name31", "disable",
+                         NULL
+                        };
+  const char test_str6[] = "{\"ret\":\"OK\"}";
+  const char *argv7[] = {"bridge", "test_name31", "destroy",
+                         NULL
+                        };
+  const char test_str7[] = "{\"ret\":\"OK\"}";
+
+  struct interface *ifp;
+  ifp = dp_interface_alloc();
+  lagopus_thread_t *thdptr = NULL;
+  dp_tapio_thread_init(NULL, NULL, NULL, &thdptr);
+  ret = dp_tap_interface_create(":i31", ifp);
+  TEST_ASSERT_EQUAL(ret, LAGOPUS_RESULT_OK);
+
+  TEST_CONTROLLER_CREATE(ret, &interp, state, &tbl, &ds, str, "cha31", "c31");
+  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i31", "p31");
+
+  /* create cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, bridge_cmd_update,
+                 &ds, str, test_str1);
+
+  /* enable cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv2), argv2, &tbl, bridge_cmd_update,
+                 &ds, str, test_str2);
+
+  /* show cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv3), argv3, &tbl, bridge_cmd_update,
+                 &ds, str, test_str3);
+
+  /* config cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv4), argv4, &tbl, bridge_cmd_update,
+                 &ds, str, test_str4);
+
+  /* show cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv5), argv5, &tbl, bridge_cmd_update,
+                 &ds, str, test_str5);
+
+  /* disable cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv6), argv6, &tbl, bridge_cmd_update,
+                 &ds, str, test_str6);
+
+  /* destroy cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv7), argv7, &tbl, bridge_cmd_update,
+                 &ds, str, test_str7);
+
+  dp_tap_interface_destroy(":i31");
+  dp_interface_free(ifp);
+  dp_tapio_thread_fini();
+
+  TEST_CONTROLLER_DESTROY(ret, &interp, state, &tbl, &ds, str, "cha31", "c31");
+  TEST_PORT_DESTROY(ret, &interp, state, &tbl, &ds, str, "i31", "p31");
+#else /* HYBRID */
+  TEST_IGNORE_MESSAGE("HYBRID is not defined");
+#endif /* HYBRID */
 }
 
 void
 test_bridge_cmd_parse_config_port_number_02(void) {
+#ifndef HYBRID
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
   char *str = NULL;
@@ -2291,10 +4041,208 @@ test_bridge_cmd_parse_config_port_number_02(void) {
   TEST_CONTROLLER_DESTROY(ret, &interp, state, &tbl, &ds, str, "cha32", "c32");
   TEST_PORT_DESTROY(ret, &interp, state, &tbl, &ds, str, "i32", "p32");
   TEST_PORT_DESTROY(ret, &interp, state, &tbl, &ds, str, "i33", "p33");
+#else /* HYBRID */
+  TEST_IGNORE_MESSAGE("HYBRID is defined");
+#endif /* HYBRID */
+}
+
+void
+test_bridge_cmd_parse_config_port_number_02_hybrid(void) {
+#ifdef HYBRID
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"bridge", "test_name32", "create",
+                         "-controller", "c32",
+                         "-port", "p32", "32",
+                         "-dpid", "32",
+                         "-fail-mode", "standalone",
+                         "-flow-statistics", "false",
+                         "-group-statistics", "false",
+                         "-port-statistics", "false",
+                         "-queue-statistics", "false",
+                         "-table-statistics", "false",
+                         "-reassemble-ip-fragments", "false",
+                         "-max-buffered-packets", "65535",
+                         "-max-ports", "2048",
+                         "-max-tables", "255",
+                         "-max-flows", "4294967295",
+                         "-l2-bridge", "false",
+                         "-mactable-ageing-time", "300",
+                         "-mactable-max-entries", "8192",
+                         "-packet-inq-size", "65535",
+                         "-packet-inq-max-batches", "65535",
+                         "-up-streamq-size", "65535",
+                         "-up-streamq-max-batches", "65535",
+                         "-down-streamq-size", "65535",
+                         "-down-streamq-max-batches", "65535",
+                         "-block-looping-ports", "false",
+                         "-action-type", "copy-ttl-out",
+                         "-instruction-type", "apply-actions",
+                         NULL
+                        };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char *argv2[] = {"bridge", "test_name32", "enable",
+                         NULL
+                        };
+  const char test_str2[] = "{\"ret\":\"OK\"}";
+  const char *argv3[] = {"bridge", "test_name32", NULL};
+  const char test_str3[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name32\",\n"
+    "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c32\"],\n"
+    "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p32\":32},\n"
+    "\"dpid\":32,\n"
+    "\"fail-mode\":\"standalone\",\n"
+    "\"flow-statistics\":false,\n"
+    "\"group-statistics\":false,\n"
+    "\"port-statistics\":false,\n"
+    "\"queue-statistics\":false,\n"
+    "\"table-statistics\":false,\n"
+    "\"reassemble-ip-fragments\":false,\n"
+    "\"max-buffered-packets\":65535,\n"
+    "\"max-ports\":2048,\n"
+    "\"max-tables\":255,\n"
+    "\"max-flows\":4294967295,\n"
+    "\"l2-bridge\":false,\n"
+    "\"mactable-ageing-time\":300,\n"
+    "\"mactable-max-entries\":8192,\n"
+    "\"packet-inq-size\":65535,\n"
+    "\"packet-inq-max-batches\":65535,\n"
+    "\"up-streamq-size\":65535,\n"
+    "\"up-streamq-max-batches\":65535,\n"
+    "\"down-streamq-size\":65535,\n"
+    "\"down-streamq-max-batches\":65535,\n"
+    "\"block-looping-ports\":false,\n"
+    "\"action-types\":[\"copy-ttl-out\",\"copy-ttl-in\","
+    "\"set-mpls-ttl\",\"dec-mpls-ttl\",\"push-vlan\",\"pop-vlan\","
+    "\"push-mpls\",\"pop-mpls\",\"set-queue\",\"group\",\"set-nw-ttl\","
+    "\"dec-nw-ttl\",\"set-field\"],\n"
+    "\"instruction-types\":[\"apply-actions\",\"clear-actions\","
+    "\"write-actions\",\"write-metadata\",\"goto-table\"],\n"
+    "\"reserved-port-types\":[\"all\",\"controller\",\"table\","
+    "\"inport\",\"any\",\"normal\",\"flood\"],\n"
+    "\"group-types\":[\"all\",\"select\",\"indirect\",\"fast-failover\"],\n"
+    "\"group-capabilities\":[\"select-weight\","
+    "\"select-liveness\",\"chaining\",\"chaining-check\"],\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":true}]}";
+  const char *argv4[] = {"bridge", "test_name32", "config",
+                         "-port", "~p32",
+                         NULL
+                        };
+  const char test_str4[] = "{\"ret\":\"OK\"}";
+  const char *argv5[] = {"bridge", "test_name32", "config",
+                         "-port", "p33", "33",
+                         NULL
+                        };
+  const char test_str5[] = "{\"ret\":\"OK\"}";
+  const char *argv6[] = {"bridge", "test_name32", "disable",
+                         NULL
+                        };
+  const char test_str6[] = "{\"ret\":\"OK\"}";
+  const char *argv7[] = {"bridge", "test_name32", "destroy",
+                         NULL
+                        };
+  const char test_str7[] = "{\"ret\":\"OK\"}";
+  const char *port_argv1[] = {"port", "p32", NULL};
+  const char port_test_str1[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"p32\",\n"
+    "\"port-number\":0,\n"
+    "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"i32\",\n"
+    "\"policer\":\"\",\n"
+    "\"queues\":[],\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+  const char *port_argv2[] = {"port", "p33", NULL};
+  const char port_test_str2[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"p33\",\n"
+    "\"port-number\":33,\n"
+    "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"i33\",\n"
+    "\"policer\":\"\",\n"
+    "\"queues\":[],\n"
+    "\"is-used\":true,\n"
+    "\"is-enabled\":true}]}";
+
+  struct interface *ifp1, *ifp2;
+  lagopus_thread_t *thdptr1 = NULL, *thdptr2 = NULL;
+  ifp1 = dp_interface_alloc();
+  ifp2 = dp_interface_alloc();
+  dp_tapio_thread_init(NULL, NULL, NULL, &thdptr1);
+  dp_tapio_thread_init(NULL, NULL, NULL, &thdptr2);
+  ret = dp_tap_interface_create(":i32", ifp1);
+  TEST_ASSERT_EQUAL(ret, LAGOPUS_RESULT_OK);
+  ret = dp_tap_interface_create(":i33", ifp2);
+  TEST_ASSERT_EQUAL(ret, LAGOPUS_RESULT_OK);
+
+  TEST_CONTROLLER_CREATE(ret, &interp, state, &tbl, &ds, str, "cha32", "c32");
+  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i32", "p32");
+  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i33", "p33");
+
+  /* create cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, bridge_cmd_update,
+                 &ds, str, test_str1);
+
+  /* enable cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv2), argv2, &tbl, bridge_cmd_update,
+                 &ds, str, test_str2);
+
+  /* show cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv3), argv3, &tbl, bridge_cmd_update,
+                 &ds, str, test_str3);
+
+  /* config cmd (del port). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv4), argv4, &tbl, bridge_cmd_update,
+                 &ds, str, test_str4);
+
+  /* config cmd (add port). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv5), argv5, &tbl, bridge_cmd_update,
+                 &ds, str, test_str5);
+
+  /* port show cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, port_cmd_parse, &interp, state,
+                 ARGV_SIZE(port_argv1), port_argv1, &tbl, port_cmd_update,
+                 &ds, str, port_test_str1);
+
+  /* port show cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, port_cmd_parse, &interp, state,
+                 ARGV_SIZE(port_argv2), port_argv2, &tbl, port_cmd_update,
+                 &ds, str, port_test_str2);
+
+  /* disable cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv6), argv6, &tbl, bridge_cmd_update,
+                 &ds, str, test_str6);
+
+  /* destroy cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv7), argv7, &tbl, bridge_cmd_update,
+                 &ds, str, test_str7);
+
+  dp_tap_interface_destroy(":i32");
+  dp_tap_interface_destroy(":i33");
+  dp_interface_free(ifp1);
+  dp_interface_free(ifp2);
+  dp_tapio_thread_fini();
+
+  TEST_CONTROLLER_DESTROY(ret, &interp, state, &tbl, &ds, str, "cha32", "c32");
+  TEST_PORT_DESTROY(ret, &interp, state, &tbl, &ds, str, "i32", "p32");
+  TEST_PORT_DESTROY(ret, &interp, state, &tbl, &ds, str, "i33", "p33");
+#else /* HYBRID */
+  TEST_IGNORE_MESSAGE("HYBRID is not defined");
+#endif /* HYBRID */
 }
 
 void
 test_bridge_cmd_parse_config_controller_02(void) {
+#ifndef HYBRID
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
   char *str = NULL;
@@ -2426,10 +4374,170 @@ test_bridge_cmd_parse_config_controller_02(void) {
 
   TEST_CONTROLLER_DESTROY(ret, &interp, state, &tbl, &ds, str, "cha36", "c36");
   TEST_PORT_DESTROY(ret, &interp, state, &tbl, &ds, str, "i36", "p36");
+#else /* HYBRID */
+  TEST_IGNORE_MESSAGE("HYBRID is defined");
+#endif /* HYBRID */
+}
+
+void
+test_bridge_cmd_parse_config_controller_02_hybrid(void) {
+#ifdef HYBRID
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"bridge", "test_name36", "create",
+                         "-controller", "c36",
+                         "-port", "p36", "36",
+                         "-dpid", "36",
+                         "-fail-mode", "standalone",
+                         "-flow-statistics", "false",
+                         "-group-statistics", "false",
+                         "-port-statistics", "false",
+                         "-queue-statistics", "false",
+                         "-table-statistics", "false",
+                         "-reassemble-ip-fragments", "false",
+                         "-max-buffered-packets", "65535",
+                         "-max-ports", "2048",
+                         "-max-tables", "255",
+                         "-max-flows", "4294967295",
+                         "-l2-bridge", "false",
+                         "-mactable-ageing-time", "300",
+                         "-mactable-max-entries", "8192",
+                         "-packet-inq-size", "65535",
+                         "-packet-inq-max-batches", "65535",
+                         "-up-streamq-size", "65535",
+                         "-up-streamq-max-batches", "65535",
+                         "-down-streamq-size", "65535",
+                         "-down-streamq-max-batches", "65535",
+                         "-block-looping-ports", "false",
+                         "-action-type", "copy-ttl-out",
+                         "-instruction-type", "apply-actions",
+                         NULL
+                        };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char *argv2[] = {"bridge", "test_name36", "enable",
+                         NULL
+                        };
+  const char test_str2[] = "{\"ret\":\"OK\"}";
+  const char *argv3[] = {"bridge", "test_name36", NULL};
+  const char test_str3[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name36\",\n"
+    "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c36\"],\n"
+    "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p36\":36},\n"
+    "\"dpid\":36,\n"
+    "\"fail-mode\":\"standalone\",\n"
+    "\"flow-statistics\":false,\n"
+    "\"group-statistics\":false,\n"
+    "\"port-statistics\":false,\n"
+    "\"queue-statistics\":false,\n"
+    "\"table-statistics\":false,\n"
+    "\"reassemble-ip-fragments\":false,\n"
+    "\"max-buffered-packets\":65535,\n"
+    "\"max-ports\":2048,\n"
+    "\"max-tables\":255,\n"
+    "\"max-flows\":4294967295,\n"
+    "\"l2-bridge\":false,\n"
+    "\"mactable-ageing-time\":300,\n"
+    "\"mactable-max-entries\":8192,\n"
+    "\"packet-inq-size\":65535,\n"
+    "\"packet-inq-max-batches\":65535,\n"
+    "\"up-streamq-size\":65535,\n"
+    "\"up-streamq-max-batches\":65535,\n"
+    "\"down-streamq-size\":65535,\n"
+    "\"down-streamq-max-batches\":65535,\n"
+    "\"block-looping-ports\":false,\n"
+    "\"action-types\":[\"copy-ttl-out\",\"copy-ttl-in\","
+    "\"set-mpls-ttl\",\"dec-mpls-ttl\",\"push-vlan\",\"pop-vlan\","
+    "\"push-mpls\",\"pop-mpls\",\"set-queue\",\"group\",\"set-nw-ttl\","
+    "\"dec-nw-ttl\",\"set-field\"],\n"
+    "\"instruction-types\":[\"apply-actions\",\"clear-actions\","
+    "\"write-actions\",\"write-metadata\",\"goto-table\"],\n"
+    "\"reserved-port-types\":[\"all\",\"controller\",\"table\","
+    "\"inport\",\"any\",\"normal\",\"flood\"],\n"
+    "\"group-types\":[\"all\",\"select\",\"indirect\",\"fast-failover\"],\n"
+    "\"group-capabilities\":[\"select-weight\","
+    "\"select-liveness\",\"chaining\",\"chaining-check\"],\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":true}]}";
+  const char *argv4[] = {"bridge", "test_name36", "config",
+                         "-controller", "~c36",
+                         NULL
+                        };
+  const char test_str4[] = "{\"ret\":\"OK\"}";
+  const char *argv5[] = {"bridge", "test_name36", "config",
+                         "-controller", "c36",
+                         NULL
+                        };
+  const char test_str5[] = "{\"ret\":\"OK\"}";
+  const char *argv6[] = {"bridge", "test_name36", "disable",
+                         NULL
+                        };
+  const char test_str6[] = "{\"ret\":\"OK\"}";
+  const char *argv7[] = {"bridge", "test_name36", "destroy",
+                         NULL
+                        };
+  const char test_str7[] = "{\"ret\":\"OK\"}";
+
+  struct interface *ifp;
+  ifp = dp_interface_alloc();
+  lagopus_thread_t *thdptr = NULL;
+  dp_tapio_thread_init(NULL, NULL, NULL, &thdptr);
+  ret = dp_tap_interface_create(":i36", ifp);
+  TEST_ASSERT_EQUAL(ret, LAGOPUS_RESULT_OK);
+
+  TEST_CONTROLLER_CREATE(ret, &interp, state, &tbl, &ds, str, "cha36", "c36");
+  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i36", "p36");
+
+  /* create cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, bridge_cmd_update,
+                 &ds, str, test_str1);
+
+  /* enable cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv2), argv2, &tbl, bridge_cmd_update,
+                 &ds, str, test_str2);
+
+  /* show cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv3), argv3, &tbl, bridge_cmd_update,
+                 &ds, str, test_str3);
+
+  /* config cmd (del port). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv4), argv4, &tbl, bridge_cmd_update,
+                 &ds, str, test_str4);
+
+  /* config cmd (add port). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv5), argv5, &tbl, bridge_cmd_update,
+                 &ds, str, test_str5);
+
+  /* disable cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv6), argv6, &tbl, bridge_cmd_update,
+                 &ds, str, test_str6);
+
+  /* destroy cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv7), argv7, &tbl, bridge_cmd_update,
+                 &ds, str, test_str7);
+
+  dp_tap_interface_destroy(":i36");
+  dp_interface_free(ifp);
+  dp_tapio_thread_fini();
+
+  TEST_CONTROLLER_DESTROY(ret, &interp, state, &tbl, &ds, str, "cha36", "c36");
+  TEST_PORT_DESTROY(ret, &interp, state, &tbl, &ds, str, "i36", "p36");
+#else /* HYBRID */
+  TEST_IGNORE_MESSAGE("HYBRID is not defined");
+#endif /* HYBRID */
 }
 
 void
 test_bridge_cmd_serialize_default_opt(void) {
+#ifndef HYBRID
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
   char *str = NULL;
@@ -2482,10 +4590,77 @@ test_bridge_cmd_serialize_default_opt(void) {
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse,
                  &interp, state, ARGV_SIZE(argv2), argv2, &tbl,
                  bridge_cmd_update, &ds, str, test_str2);
+#else /* HYBRID */
+  TEST_IGNORE_MESSAGE("HYBRID is defined");
+#endif /* HYBRID */
+}
+
+void
+test_bridge_cmd_serialize_default_opt_hybrid(void) {
+#ifdef HYBRID
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  void *conf = NULL;
+
+  /* bridge create cmd str. */
+  const char *argv1[] = {"bridge", "test_name37", "create",
+                         "-dpid", "1", NULL
+                        };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+
+  /* interface destroy cmd str. */
+  const char *argv2[] = {"bridge", "test_name37", "destroy", NULL};
+  const char test_str2[] = "{\"ret\":\"OK\"}";
+
+  /* serialize result str. */
+  const char serialize_str1[] = "bridge "
+                                DATASTORE_NAMESPACE_DELIMITER"test_name37 create "
+                                "-dpid 1 "
+                                "-fail-mode secure "
+                                "-flow-statistics true "
+                                "-group-statistics true "
+                                "-port-statistics true "
+                                "-queue-statistics true "
+                                "-table-statistics true "
+                                "-reassemble-ip-fragments false "
+                                "-max-buffered-packets 65535 "
+                                "-max-ports 255 "
+                                "-max-tables 255 "
+                                "-max-flows 4294967295 "
+                                "-l2-bridge false "
+                                "-mactable-ageing-time 300 "
+                                "-mactable-max-entries 8192 "
+                                "-packet-inq-size 1000 "
+                                "-packet-inq-max-batches 1000 "
+                                "-up-streamq-size 1000 "
+                                "-up-streamq-max-batches 1000 "
+                                "-down-streamq-size 1000 "
+                                "-down-streamq-max-batches 1000 "
+                                "-block-looping-ports false\n";
+
+  /* bridge create cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, bridge_cmd_update,
+                 &ds, str, test_str1);
+
+  /* TEST : serialize. */
+  TEST_CMD_PROC(ret, LAGOPUS_RESULT_OK, bridge_cmd_serialize, &interp, state,
+                &tbl,
+                DATASTORE_NAMESPACE_DELIMITER"test_name37", conf, &ds, str, serialize_str1);
+
+  /* destroy cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse,
+                 &interp, state, ARGV_SIZE(argv2), argv2, &tbl,
+                 bridge_cmd_update, &ds, str, test_str2);
+#else /* HYBRID */
+  TEST_IGNORE_MESSAGE("HYBRID is not defined");
+#endif /* HYBRID */
 }
 
 void
 test_bridge_cmd_serialize_default_opt_escape(void) {
+#ifndef HYBRID
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
   char *str = NULL;
@@ -2538,10 +4713,77 @@ test_bridge_cmd_serialize_default_opt_escape(void) {
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse,
                  &interp, state, ARGV_SIZE(argv2), argv2, &tbl,
                  bridge_cmd_update, &ds, str, test_str2);
+#else /* HYBRID */
+  TEST_IGNORE_MESSAGE("HYBRID is defined");
+#endif /* HYBRID */
+}
+
+void
+test_bridge_cmd_serialize_default_opt_escape_hybrid(void) {
+#ifdef HYBRID
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  void *conf = NULL;
+
+  /* bridge create cmd str. */
+  const char *argv1[] = {"bridge", "test_\"name38", "create",
+                         "-dpid", "1", NULL
+                        };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+
+  /* interface destroy cmd str. */
+  const char *argv2[] = {"bridge", "test_\"name38", "destroy", NULL};
+  const char test_str2[] = "{\"ret\":\"OK\"}";
+
+  /* serialize result str. */
+  const char serialize_str1[] = "bridge "
+                                "\""DATASTORE_NAMESPACE_DELIMITER"test_\\\"name38\" create "
+                                "-dpid 1 "
+                                "-fail-mode secure "
+                                "-flow-statistics true "
+                                "-group-statistics true "
+                                "-port-statistics true "
+                                "-queue-statistics true "
+                                "-table-statistics true "
+                                "-reassemble-ip-fragments false "
+                                "-max-buffered-packets 65535 "
+                                "-max-ports 255 "
+                                "-max-tables 255 "
+                                "-max-flows 4294967295 "
+                                "-l2-bridge false "
+                                "-mactable-ageing-time 300 "
+                                "-mactable-max-entries 8192 "
+                                "-packet-inq-size 1000 "
+                                "-packet-inq-max-batches 1000 "
+                                "-up-streamq-size 1000 "
+                                "-up-streamq-max-batches 1000 "
+                                "-down-streamq-size 1000 "
+                                "-down-streamq-max-batches 1000 "
+                                "-block-looping-ports false\n";
+
+  /* bridge create cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, bridge_cmd_update,
+                 &ds, str, test_str1);
+
+  /* TEST : serialize. */
+  TEST_CMD_PROC(ret, LAGOPUS_RESULT_OK, bridge_cmd_serialize, &interp, state,
+                &tbl,
+                DATASTORE_NAMESPACE_DELIMITER"test_\"name38", conf, &ds, str, serialize_str1);
+
+  /* destroy cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse,
+                 &interp, state, ARGV_SIZE(argv2), argv2, &tbl,
+                 bridge_cmd_update, &ds, str, test_str2);
+#else /* HYBRID */
+  TEST_IGNORE_MESSAGE("HYBRID is not defined");
+#endif /* HYBRID */
 }
 
 void
 test_bridge_cmd_serialize_default_opt_escape_white_space(void) {
+#ifndef HYBRID
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
   char *str = NULL;
@@ -2594,10 +4836,77 @@ test_bridge_cmd_serialize_default_opt_escape_white_space(void) {
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse,
                  &interp, state, ARGV_SIZE(argv2), argv2, &tbl,
                  bridge_cmd_update, &ds, str, test_str2);
+#else /* HYBRID */
+  TEST_IGNORE_MESSAGE("HYBRID is defined");
+#endif /* HYBRID */
+}
+
+void
+test_bridge_cmd_serialize_default_opt_escape_white_space_hybrid(void) {
+#ifdef HYBRID
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  void *conf = NULL;
+
+  /* bridge create cmd str. */
+  const char *argv1[] = {"bridge", "test name39", "create",
+                         "-dpid", "1", NULL
+                        };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+
+  /* interface destroy cmd str. */
+  const char *argv2[] = {"bridge", "test name39", "destroy", NULL};
+  const char test_str2[] = "{\"ret\":\"OK\"}";
+
+  /* serialize result str. */
+  const char serialize_str1[] = "bridge "
+                                "\""DATASTORE_NAMESPACE_DELIMITER"test name39\" create "
+                                "-dpid 1 "
+                                "-fail-mode secure "
+                                "-flow-statistics true "
+                                "-group-statistics true "
+                                "-port-statistics true "
+                                "-queue-statistics true "
+                                "-table-statistics true "
+                                "-reassemble-ip-fragments false "
+                                "-max-buffered-packets 65535 "
+                                "-max-ports 255 "
+                                "-max-tables 255 "
+                                "-max-flows 4294967295 "
+                                "-l2-bridge false "
+                                "-mactable-ageing-time 300 "
+                                "-mactable-max-entries 8192 "
+                                "-packet-inq-size 1000 "
+                                "-packet-inq-max-batches 1000 "
+                                "-up-streamq-size 1000 "
+                                "-up-streamq-max-batches 1000 "
+                                "-down-streamq-size 1000 "
+                                "-down-streamq-max-batches 1000 "
+                                "-block-looping-ports false\n";
+
+  /* bridge create cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, bridge_cmd_update,
+                 &ds, str, test_str1);
+
+  /* TEST : serialize. */
+  TEST_CMD_PROC(ret, LAGOPUS_RESULT_OK, bridge_cmd_serialize, &interp, state,
+                &tbl,
+                DATASTORE_NAMESPACE_DELIMITER"test name39", conf, &ds, str, serialize_str1);
+
+  /* destroy cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse,
+                 &interp, state, ARGV_SIZE(argv2), argv2, &tbl,
+                 bridge_cmd_update, &ds, str, test_str2);
+#else /* HYBRID */
+  TEST_IGNORE_MESSAGE("HYBRID is not defined");
+#endif /* HYBRID */
 }
 
 void
 test_bridge_cmd_serialize_all_opt(void) {
+#ifndef HYBRID
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
   char *str = NULL;
@@ -2698,6 +5007,125 @@ test_bridge_cmd_serialize_all_opt(void) {
 
   TEST_CONTROLLER_DESTROY(ret, &interp, state, &tbl, &ds, str, "cha40", "c40");
   TEST_PORT_DESTROY(ret, &interp, state, &tbl, &ds, str, "i40", "p40");
+#else /* HYBRID */
+  TEST_IGNORE_MESSAGE("HYBRID is defined");
+#endif /* HYBRID */
+}
+
+void
+test_bridge_cmd_serialize_all_opt_hybrid(void) {
+#ifdef HYBRID
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  void *conf = NULL;
+
+  /* bridge create cmd str. */
+  const char *argv1[] = {"bridge", "test_name40", "create",
+                         "-controller", "c40",
+                         "-port", "p40", "40",
+                         "-dpid", "4321",
+                         "-flow-statistics", "true",
+                         "-group-statistics", "true",
+                         "-port-statistics", "true",
+                         "-queue-statistics", "true",
+                         "-table-statistics", "true",
+                         "-reassemble-ip-fragments", "true",
+                         "-max-buffered-packets", "33333",
+                         "-max-ports", "128",
+                         "-max-tables", "128",
+                         "-max-flows", "128",
+                         "-l2-bridge", "true",
+                         "-mactable-ageing-time", "300",
+                         "-mactable-max-entries", "8192",
+                         "-mactable-entry", "00:11:22:33:44:55", "1",
+                         "-packet-inq-size", "128",
+                         "-packet-inq-max-batches", "128",
+                         "-up-streamq-size", "128",
+                         "-up-streamq-max-batches", "128",
+                         "-down-streamq-size", "128",
+                         "-down-streamq-max-batches", "128",
+                         "-block-looping-ports", "true",
+                         "-action-type", "~copy-ttl-out",
+                         "-action-type", "~copy-ttl-in",
+                         "-instruction-type", "~apply-actions",
+                         "-instruction-type", "~clear-actions",
+                         "-reserved-port-type", "~all",
+                         "-reserved-port-type", "~controller",
+                         "-group-type", "~all",
+                         "-group-type", "~select",
+                         "-group-capability", "~select-weight",
+                         "-group-capability", "~select-liveness",
+                         NULL
+                        };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+
+  /* interface destroy cmd str. */
+  const char *argv2[] = {"bridge", "test_name40", "destroy", NULL};
+  const char test_str2[] = "{\"ret\":\"OK\"}";
+
+  /* serialize result str. */
+  const char serialize_str1[] = "bridge "
+                                DATASTORE_NAMESPACE_DELIMITER"test_name40 create "
+                                "-dpid 4321 "
+                                "-controller "DATASTORE_NAMESPACE_DELIMITER"c40 "
+                                "-port "DATASTORE_NAMESPACE_DELIMITER"p40 40 "
+                                "-fail-mode secure "
+                                "-flow-statistics true "
+                                "-group-statistics true "
+                                "-port-statistics true "
+                                "-queue-statistics true "
+                                "-table-statistics true "
+                                "-reassemble-ip-fragments true "
+                                "-max-buffered-packets 33333 "
+                                "-max-ports 128 "
+                                "-max-tables 128 "
+                                "-max-flows 128 "
+                                "-l2-bridge true "
+                                "-mactable-ageing-time 300 "
+                                "-mactable-max-entries 8192 "
+                                "-mactable-entry 00:11:22:33:44:55 1 "
+                                "-packet-inq-size 128 "
+                                "-packet-inq-max-batches 128 "
+                                "-up-streamq-size 128 "
+                                "-up-streamq-max-batches 128 "
+                                "-down-streamq-size 128 "
+                                "-down-streamq-max-batches 128 "
+                                "-block-looping-ports true "
+                                "-action-type ~copy-ttl-out "
+                                "-action-type ~copy-ttl-in "
+                                "-instruction-type ~apply-actions "
+                                "-instruction-type ~clear-actions "
+                                "-reserved-port-type ~all "
+                                "-reserved-port-type ~controller "
+                                "-group-type ~all "
+                                "-group-type ~select "
+                                "-group-capability ~select-weight "
+                                "-group-capability ~select-liveness\n";
+
+  TEST_CONTROLLER_CREATE(ret, &interp, state, &tbl, &ds, str, "cha40", "c40");
+  TEST_PORT_CREATE(ret, &interp, state, &tbl, &ds, str, "i40", "p40");
+
+  /* bridge create cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, bridge_cmd_update,
+                 &ds, str, test_str1);
+
+  /* TEST : serialize. */
+  TEST_CMD_PROC(ret, LAGOPUS_RESULT_OK, bridge_cmd_serialize, &interp, state,
+                &tbl,
+                DATASTORE_NAMESPACE_DELIMITER"test_name40", conf, &ds, str, serialize_str1);
+
+  /* destroy cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse,
+                 &interp, state, ARGV_SIZE(argv2), argv2, &tbl,
+                 bridge_cmd_update, &ds, str, test_str2);
+
+  TEST_CONTROLLER_DESTROY(ret, &interp, state, &tbl, &ds, str, "cha40", "c40");
+  TEST_PORT_DESTROY(ret, &interp, state, &tbl, &ds, str, "i40", "p40");
+#else /* HYBRID */
+  TEST_IGNORE_MESSAGE("HYBRID is not defined");
+#endif /* HYBRID */
 }
 
 void
@@ -2773,6 +5201,7 @@ test_bridge_cmd_parse_create_bad_max_flows(void) {
 
 void
 test_bridge_cmd_parse_atomic_commit(void) {
+#ifndef HYBRID
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   datastore_interp_state_t state1 = DATASTORE_INTERP_STATE_ATOMIC;
   datastore_interp_state_t state2 = DATASTORE_INTERP_STATE_COMMITING;
@@ -3029,10 +5458,290 @@ test_bridge_cmd_parse_atomic_commit(void) {
                           "c43_2");
   TEST_PORT_DESTROY(ret, &interp, state4, &tbl_port, &ds, str, "i43", "p43");
   TEST_PORT_DESTROY(ret, &interp, state4, &tbl_port, &ds, str, "i43_2", "p43_2");
+#else /* HYBRID */
+  TEST_IGNORE_MESSAGE("HYBRID is defined");
+#endif /* HYBRID */
+}
+
+void
+test_bridge_cmd_parse_atomic_commit_hybrid(void) {
+#ifdef HYBRID
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state1 = DATASTORE_INTERP_STATE_ATOMIC;
+  datastore_interp_state_t state2 = DATASTORE_INTERP_STATE_COMMITING;
+  datastore_interp_state_t state3 = DATASTORE_INTERP_STATE_COMMITED;
+  datastore_interp_state_t state4 = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  void *conf = NULL;
+  const char *argv1[] = {"bridge", "test_name43", "create",
+                         "-controller", "c43",
+                         "-port", "p43", "43",
+                         "-dpid", "43",
+                         "-fail-mode", "standalone",
+                         "-flow-statistics", "false",
+                         "-group-statistics", "false",
+                         "-port-statistics", "false",
+                         "-queue-statistics", "false",
+                         "-table-statistics", "false",
+                         "-reassemble-ip-fragments", "false",
+                         "-max-buffered-packets", "65535",
+                         "-max-ports", "2048",
+                         "-max-tables", "255",
+                         "-max-flows", "4294967295",
+                         "-l2-bridge", "false",
+                         "-mactable-ageing-time", "300",
+                         "-mactable-max-entries", "8192",
+                         "-packet-inq-size", "65535",
+                         "-packet-inq-max-batches", "65535",
+                         "-up-streamq-size", "65535",
+                         "-up-streamq-max-batches", "65535",
+                         "-down-streamq-size", "65535",
+                         "-down-streamq-max-batches", "65535",
+                         "-block-looping-ports", "false",
+                         "-action-type", "copy-ttl-out",
+                         "-instruction-type", "apply-actions",
+                         NULL
+                        };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char *argv2[] = {"bridge", "test_name43", NULL};
+  const char test_str2[] =
+    "{\"ret\":\"NOT_OPERATIONAL\",\n"
+    "\"data\":\"Not set current.\"}";
+  const char *argv3[] = {"bridge", "test_name43", "modified", NULL};
+  const char test_str3[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name43\",\n"
+    "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c43\"],\n"
+    "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p43\":43},\n"
+    "\"dpid\":43,\n"
+    "\"fail-mode\":\"standalone\",\n"
+    "\"flow-statistics\":false,\n"
+    "\"group-statistics\":false,\n"
+    "\"port-statistics\":false,\n"
+    "\"queue-statistics\":false,\n"
+    "\"table-statistics\":false,\n"
+    "\"reassemble-ip-fragments\":false,\n"
+    "\"max-buffered-packets\":65535,\n"
+    "\"max-ports\":2048,\n"
+    "\"max-tables\":255,\n"
+    "\"max-flows\":4294967295,\n"
+    "\"l2-bridge\":false,\n"
+    "\"mactable-ageing-time\":300,\n"
+    "\"mactable-max-entries\":8192,\n"
+    "\"packet-inq-size\":65535,\n"
+    "\"packet-inq-max-batches\":65535,\n"
+    "\"up-streamq-size\":65535,\n"
+    "\"up-streamq-max-batches\":65535,\n"
+    "\"down-streamq-size\":65535,\n"
+    "\"down-streamq-max-batches\":65535,\n"
+    "\"block-looping-ports\":false,\n"
+    "\"action-types\":[\"copy-ttl-out\",\"copy-ttl-in\","
+    "\"set-mpls-ttl\",\"dec-mpls-ttl\",\"push-vlan\",\"pop-vlan\","
+    "\"push-mpls\",\"pop-mpls\",\"set-queue\",\"group\",\"set-nw-ttl\","
+    "\"dec-nw-ttl\",\"set-field\"],\n"
+    "\"instruction-types\":[\"apply-actions\",\"clear-actions\","
+    "\"write-actions\",\"write-metadata\",\"goto-table\"],\n"
+    "\"reserved-port-types\":[\"all\",\"controller\",\"table\","
+    "\"inport\",\"any\",\"normal\",\"flood\"],\n"
+    "\"group-types\":[\"all\",\"select\",\"indirect\",\"fast-failover\"],\n"
+    "\"group-capabilities\":[\"select-weight\","
+    "\"select-liveness\",\"chaining\",\"chaining-check\"],\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+  const char *argv4[] = {"bridge", "test_name43", "config",
+                         "-controller", "c43_2",
+                         "-port", "p43_2", "143",
+                         NULL
+                        };
+  const char test_str4[] = "{\"ret\":\"OK\"}";
+  const char *argv5[] = {"bridge", "test_name43", NULL};
+  const char test_str5[] =
+    "{\"ret\":\"NOT_OPERATIONAL\",\n"
+    "\"data\":\"Not set current.\"}";
+  const char *argv6[] = {"bridge", "test_name43", "modified", NULL};
+  const char test_str6[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name43\",\n"
+    "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c43\",\""DATASTORE_NAMESPACE_DELIMITER"c43_2\"],\n"
+    "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p43\":43,\n"
+    "\""DATASTORE_NAMESPACE_DELIMITER"p43_2\":143},\n"
+    "\"dpid\":43,\n"
+    "\"fail-mode\":\"standalone\",\n"
+    "\"flow-statistics\":false,\n"
+    "\"group-statistics\":false,\n"
+    "\"port-statistics\":false,\n"
+    "\"queue-statistics\":false,\n"
+    "\"table-statistics\":false,\n"
+    "\"reassemble-ip-fragments\":false,\n"
+    "\"max-buffered-packets\":65535,\n"
+    "\"max-ports\":2048,\n"
+    "\"max-tables\":255,\n"
+    "\"max-flows\":4294967295,\n"
+    "\"l2-bridge\":false,\n"
+    "\"mactable-ageing-time\":300,\n"
+    "\"mactable-max-entries\":8192,\n"
+    "\"packet-inq-size\":65535,\n"
+    "\"packet-inq-max-batches\":65535,\n"
+    "\"up-streamq-size\":65535,\n"
+    "\"up-streamq-max-batches\":65535,\n"
+    "\"down-streamq-size\":65535,\n"
+    "\"down-streamq-max-batches\":65535,\n"
+    "\"block-looping-ports\":false,\n"
+    "\"action-types\":[\"copy-ttl-out\",\"copy-ttl-in\","
+    "\"set-mpls-ttl\",\"dec-mpls-ttl\",\"push-vlan\",\"pop-vlan\","
+    "\"push-mpls\",\"pop-mpls\",\"set-queue\",\"group\",\"set-nw-ttl\","
+    "\"dec-nw-ttl\",\"set-field\"],\n"
+    "\"instruction-types\":[\"apply-actions\",\"clear-actions\","
+    "\"write-actions\",\"write-metadata\",\"goto-table\"],\n"
+    "\"reserved-port-types\":[\"all\",\"controller\",\"table\","
+    "\"inport\",\"any\",\"normal\",\"flood\"],\n"
+    "\"group-types\":[\"all\",\"select\",\"indirect\",\"fast-failover\"],\n"
+    "\"group-capabilities\":[\"select-weight\","
+    "\"select-liveness\",\"chaining\",\"chaining-check\"],\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+  const char *argv7[] = {"bridge", "test_name43", NULL};
+  const char test_str7[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name43\",\n"
+    "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c43\",\""DATASTORE_NAMESPACE_DELIMITER"c43_2\"],\n"
+    "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p43\":43,\n"
+    "\""DATASTORE_NAMESPACE_DELIMITER"p43_2\":143},\n"
+    "\"dpid\":43,\n"
+    "\"fail-mode\":\"standalone\",\n"
+    "\"flow-statistics\":false,\n"
+    "\"group-statistics\":false,\n"
+    "\"port-statistics\":false,\n"
+    "\"queue-statistics\":false,\n"
+    "\"table-statistics\":false,\n"
+    "\"reassemble-ip-fragments\":false,\n"
+    "\"max-buffered-packets\":65535,\n"
+    "\"max-ports\":2048,\n"
+    "\"max-tables\":255,\n"
+    "\"max-flows\":4294967295,\n"
+    "\"l2-bridge\":false,\n"
+    "\"mactable-ageing-time\":300,\n"
+    "\"mactable-max-entries\":8192,\n"
+    "\"packet-inq-size\":65535,\n"
+    "\"packet-inq-max-batches\":65535,\n"
+    "\"up-streamq-size\":65535,\n"
+    "\"up-streamq-max-batches\":65535,\n"
+    "\"down-streamq-size\":65535,\n"
+    "\"down-streamq-max-batches\":65535,\n"
+    "\"block-looping-ports\":false,\n"
+    "\"action-types\":[\"copy-ttl-out\",\"copy-ttl-in\","
+    "\"set-mpls-ttl\",\"dec-mpls-ttl\",\"push-vlan\",\"pop-vlan\","
+    "\"push-mpls\",\"pop-mpls\",\"set-queue\",\"group\",\"set-nw-ttl\","
+    "\"dec-nw-ttl\",\"set-field\"],\n"
+    "\"instruction-types\":[\"apply-actions\",\"clear-actions\","
+    "\"write-actions\",\"write-metadata\",\"goto-table\"],\n"
+    "\"reserved-port-types\":[\"all\",\"controller\",\"table\","
+    "\"inport\",\"any\",\"normal\",\"flood\"],\n"
+    "\"group-types\":[\"all\",\"select\",\"indirect\",\"fast-failover\"],\n"
+    "\"group-capabilities\":[\"select-weight\","
+    "\"select-liveness\",\"chaining\",\"chaining-check\"],\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+  const char *argv8[] = {"bridge", "test_name43", "modified", NULL};
+  const char test_str8[] =
+    "{\"ret\":\"NOT_OPERATIONAL\",\n"
+    "\"data\":\"Not set modified.\"}";
+  const char *argv9[] = {"bridge", "test_name43", "destroy",
+                         NULL
+                        };
+  const char test_str9[] = "{\"ret\":\"OK\"}";
+
+  TEST_CONTROLLER_CREATE(ret, &interp, state4, &tbl, &ds, str, "cha43", "c43");
+  TEST_CONTROLLER_CREATE(ret, &interp, state4, &tbl, &ds, str, "cha43_2",
+                         "c43_2");
+  TEST_PORT_CREATE(ret, &interp, state4, &tbl_port, &ds, str, "i43", "p43");
+  TEST_PORT_CREATE(ret, &interp, state4, &tbl_port, &ds, str, "i43_2", "p43_2");
+
+  /* create cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv1), argv1, &tbl, bridge_cmd_update,
+                 &ds, str, test_str1);
+
+  /* show cmd (current). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv2), argv2, &tbl, bridge_cmd_update,
+                 &ds, str, test_str2);
+
+  /* show cmd (modified). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv3), argv3, &tbl, bridge_cmd_update,
+                 &ds, str, test_str3);
+
+  /* config cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv4), argv4, &tbl, bridge_cmd_update,
+                 &ds, str, test_str4);
+
+  /* show cmd (current). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv5), argv5, &tbl, bridge_cmd_update,
+                 &ds, str, test_str5);
+
+  /* show cmd (modified). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv6), argv6, &tbl, bridge_cmd_update,
+                 &ds, str, test_str6);
+
+  /* port commiting. */
+  TEST_PROC(ret, LAGOPUS_RESULT_OK, port_cmd_update, &interp, state2, &tbl_port,
+            DATASTORE_NAMESPACE_DELIMITER"p43", conf, &ds);
+
+  /* port commiting. */
+  TEST_PROC(ret, LAGOPUS_RESULT_OK, port_cmd_update, &interp, state2, &tbl_port,
+            DATASTORE_NAMESPACE_DELIMITER"p43_2", conf, &ds);
+
+  /* commiting. */
+  TEST_PROC(ret, LAGOPUS_RESULT_OK, bridge_cmd_update, &interp, state2, &tbl,
+            DATASTORE_NAMESPACE_DELIMITER"test_name43", conf, &ds);
+
+  /* port commited. */
+  TEST_PROC(ret, LAGOPUS_RESULT_OK, port_cmd_update, &interp, state3, &tbl_port,
+            DATASTORE_NAMESPACE_DELIMITER"p43", conf, &ds);
+
+  /* port commited. */
+  TEST_PROC(ret, LAGOPUS_RESULT_OK, port_cmd_update, &interp, state3, &tbl_port,
+            DATASTORE_NAMESPACE_DELIMITER"p43_2", conf, &ds);
+
+  /* commited. */
+  TEST_PROC(ret, LAGOPUS_RESULT_OK, bridge_cmd_update, &interp, state3, &tbl,
+            DATASTORE_NAMESPACE_DELIMITER"test_name43", conf, &ds);
+
+  /* show cmd (current). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv7), argv7, &tbl, bridge_cmd_update,
+                 &ds, str, test_str7);
+
+  /* show cmd (modified). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv8), argv8, &tbl, bridge_cmd_update,
+                 &ds, str, test_str8);
+
+  /* destroy cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state4,
+                 ARGV_SIZE(argv9), argv9, &tbl, bridge_cmd_update,
+                 &ds, str, test_str9);
+
+  TEST_CONTROLLER_DESTROY(ret, &interp, state4, &tbl, &ds, str, "cha43", "c43");
+  TEST_CONTROLLER_DESTROY(ret, &interp, state4, &tbl, &ds, str, "cha43_2",
+                          "c43_2");
+  TEST_PORT_DESTROY(ret, &interp, state4, &tbl_port, &ds, str, "i43", "p43");
+  TEST_PORT_DESTROY(ret, &interp, state4, &tbl_port, &ds, str, "i43_2", "p43_2");
+#else /* HYBRID */
+  TEST_IGNORE_MESSAGE("HYBRID is not defined");
+#endif /* HYBRID */
 }
 
 void
 test_bridge_cmd_parse_atomic_rollback(void) {
+#ifndef HYBRID
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   datastore_interp_state_t state1 = DATASTORE_INTERP_STATE_ATOMIC;
   datastore_interp_state_t state2 = DATASTORE_INTERP_STATE_ROLLBACKING;
@@ -3236,10 +5945,234 @@ test_bridge_cmd_parse_atomic_rollback(void) {
                           "c44_2");
   TEST_PORT_DESTROY(ret, &interp, state4, &tbl_port, &ds, str, "i44", "p44");
   TEST_PORT_DESTROY(ret, &interp, state4, &tbl_port, &ds, str, "i44_2", "p44_2");
+#else /* HYBRID */
+  TEST_IGNORE_MESSAGE("HYBRID is defined");
+#endif /* HYBRID */
+}
+
+void
+test_bridge_cmd_parse_atomic_rollback_hybrid(void) {
+#ifdef HYBRID
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state1 = DATASTORE_INTERP_STATE_ATOMIC;
+  datastore_interp_state_t state2 = DATASTORE_INTERP_STATE_ROLLBACKING;
+  datastore_interp_state_t state3 = DATASTORE_INTERP_STATE_ROLLBACKED;
+  datastore_interp_state_t state4 = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  void *conf = NULL;
+  const char *argv1[] = {"bridge", "test_name44", "create",
+                         "-controller", "c44",
+                         "-port", "p44", "44",
+                         "-dpid", "44",
+                         "-fail-mode", "standalone",
+                         "-flow-statistics", "false",
+                         "-group-statistics", "false",
+                         "-port-statistics", "false",
+                         "-queue-statistics", "false",
+                         "-table-statistics", "false",
+                         "-reassemble-ip-fragments", "false",
+                         "-max-buffered-packets", "65535",
+                         "-max-ports", "2048",
+                         "-max-tables", "255",
+                         "-max-flows", "4294967295",
+                         "-l2-bridge", "false",
+                         "-mactable-ageing-time", "300",
+                         "-mactable-max-entries", "8192",
+                         "-packet-inq-size", "65535",
+                         "-packet-inq-max-batches", "65535",
+                         "-up-streamq-size", "65535",
+                         "-up-streamq-max-batches", "65535",
+                         "-down-streamq-size", "65535",
+                         "-down-streamq-max-batches", "65535",
+                         "-block-looping-ports", "false",
+                         "-action-type", "copy-ttl-out",
+                         "-instruction-type", "apply-actions",
+                         NULL
+                        };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char *argv2[] = {"bridge", "test_name44", NULL};
+  const char test_str2[] =
+    "{\"ret\":\"NOT_OPERATIONAL\",\n"
+    "\"data\":\"Not set current.\"}";
+  const char *argv3[] = {"bridge", "test_name44", "modified", NULL};
+  const char test_str3[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name44\",\n"
+    "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c44\"],\n"
+    "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p44\":44},\n"
+    "\"dpid\":44,\n"
+    "\"fail-mode\":\"standalone\",\n"
+    "\"flow-statistics\":false,\n"
+    "\"group-statistics\":false,\n"
+    "\"port-statistics\":false,\n"
+    "\"queue-statistics\":false,\n"
+    "\"table-statistics\":false,\n"
+    "\"reassemble-ip-fragments\":false,\n"
+    "\"max-buffered-packets\":65535,\n"
+    "\"max-ports\":2048,\n"
+    "\"max-tables\":255,\n"
+    "\"max-flows\":4294967295,\n"
+    "\"l2-bridge\":false,\n"
+    "\"mactable-ageing-time\":300,\n"
+    "\"mactable-max-entries\":8192,\n"
+    "\"packet-inq-size\":65535,\n"
+    "\"packet-inq-max-batches\":65535,\n"
+    "\"up-streamq-size\":65535,\n"
+    "\"up-streamq-max-batches\":65535,\n"
+    "\"down-streamq-size\":65535,\n"
+    "\"down-streamq-max-batches\":65535,\n"
+    "\"block-looping-ports\":false,\n"
+    "\"action-types\":[\"copy-ttl-out\",\"copy-ttl-in\","
+    "\"set-mpls-ttl\",\"dec-mpls-ttl\",\"push-vlan\",\"pop-vlan\","
+    "\"push-mpls\",\"pop-mpls\",\"set-queue\",\"group\",\"set-nw-ttl\","
+    "\"dec-nw-ttl\",\"set-field\"],\n"
+    "\"instruction-types\":[\"apply-actions\",\"clear-actions\","
+    "\"write-actions\",\"write-metadata\",\"goto-table\"],\n"
+    "\"reserved-port-types\":[\"all\",\"controller\",\"table\","
+    "\"inport\",\"any\",\"normal\",\"flood\"],\n"
+    "\"group-types\":[\"all\",\"select\",\"indirect\",\"fast-failover\"],\n"
+    "\"group-capabilities\":[\"select-weight\","
+    "\"select-liveness\",\"chaining\",\"chaining-check\"],\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+  const char *argv4[] = {"bridge", "test_name44", "config",
+                         "-controller", "c44_2",
+                         "-port", "p44_2", "144",
+                         NULL
+                        };
+  const char test_str4[] = "{\"ret\":\"OK\"}";
+  const char *argv5[] = {"bridge", "test_name44", NULL};
+  const char test_str5[] =
+    "{\"ret\":\"NOT_OPERATIONAL\",\n"
+    "\"data\":\"Not set current.\"}";
+  const char *argv6[] = {"bridge", "test_name44", "modified", NULL};
+  const char test_str6[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name44\",\n"
+    "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c44\",\""DATASTORE_NAMESPACE_DELIMITER"c44_2\"],\n"
+    "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p44\":44,\n"
+    "\""DATASTORE_NAMESPACE_DELIMITER"p44_2\":144},\n"
+    "\"dpid\":44,\n"
+    "\"fail-mode\":\"standalone\",\n"
+    "\"flow-statistics\":false,\n"
+    "\"group-statistics\":false,\n"
+    "\"port-statistics\":false,\n"
+    "\"queue-statistics\":false,\n"
+    "\"table-statistics\":false,\n"
+    "\"reassemble-ip-fragments\":false,\n"
+    "\"max-buffered-packets\":65535,\n"
+    "\"max-ports\":2048,\n"
+    "\"max-tables\":255,\n"
+    "\"max-flows\":4294967295,\n"
+    "\"l2-bridge\":false,\n"
+    "\"mactable-ageing-time\":300,\n"
+    "\"mactable-max-entries\":8192,\n"
+    "\"packet-inq-size\":65535,\n"
+    "\"packet-inq-max-batches\":65535,\n"
+    "\"up-streamq-size\":65535,\n"
+    "\"up-streamq-max-batches\":65535,\n"
+    "\"down-streamq-size\":65535,\n"
+    "\"down-streamq-max-batches\":65535,\n"
+    "\"block-looping-ports\":false,\n"
+    "\"action-types\":[\"copy-ttl-out\",\"copy-ttl-in\","
+    "\"set-mpls-ttl\",\"dec-mpls-ttl\",\"push-vlan\",\"pop-vlan\","
+    "\"push-mpls\",\"pop-mpls\",\"set-queue\",\"group\",\"set-nw-ttl\","
+    "\"dec-nw-ttl\",\"set-field\"],\n"
+    "\"instruction-types\":[\"apply-actions\",\"clear-actions\","
+    "\"write-actions\",\"write-metadata\",\"goto-table\"],\n"
+    "\"reserved-port-types\":[\"all\",\"controller\",\"table\","
+    "\"inport\",\"any\",\"normal\",\"flood\"],\n"
+    "\"group-types\":[\"all\",\"select\",\"indirect\",\"fast-failover\"],\n"
+    "\"group-capabilities\":[\"select-weight\","
+    "\"select-liveness\",\"chaining\",\"chaining-check\"],\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+  const char *argv7[] = {"bridge", "test_name44", NULL};
+  const char test_str7[] =
+    "{\"ret\":\"NOT_FOUND\",\n"
+    "\"data\":\"name = :test_name44\"}";
+
+  TEST_CONTROLLER_CREATE(ret, &interp, state4, &tbl, &ds, str, "cha44", "c44");
+  TEST_CONTROLLER_CREATE(ret, &interp, state4, &tbl, &ds, str, "cha44_2",
+                         "c44_2");
+  TEST_PORT_CREATE(ret, &interp, state4, &tbl_port, &ds, str, "i44", "p44");
+  TEST_PORT_CREATE(ret, &interp, state4, &tbl_port, &ds, str, "i44_2", "p44_2");
+
+  /* create cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv1), argv1, &tbl, bridge_cmd_update,
+                 &ds, str, test_str1);
+
+  /* show cmd (current). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv2), argv2, &tbl, bridge_cmd_update,
+                 &ds, str, test_str2);
+
+  /* show cmd (modified). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv3), argv3, &tbl, bridge_cmd_update,
+                 &ds, str, test_str3);
+
+  /* config cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv4), argv4, &tbl, bridge_cmd_update,
+                 &ds, str, test_str4);
+
+  /* show cmd (current). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv5), argv5, &tbl, bridge_cmd_update,
+                 &ds, str, test_str5);
+
+  /* show cmd (modified). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv6), argv6, &tbl, bridge_cmd_update,
+                 &ds, str, test_str6);
+
+  /* port rollbacking. */
+  TEST_PROC(ret, LAGOPUS_RESULT_OK, port_cmd_update, &interp, state2, &tbl_port,
+            DATASTORE_NAMESPACE_DELIMITER"p44", conf, &ds);
+
+  /* port rollbacking. */
+  TEST_PROC(ret, LAGOPUS_RESULT_OK, port_cmd_update, &interp, state2, &tbl_port,
+            DATASTORE_NAMESPACE_DELIMITER"p44_2", conf, &ds);
+
+  /* rollbacking. */
+  TEST_PROC(ret, LAGOPUS_RESULT_OK, bridge_cmd_update, &interp, state2, &tbl,
+            DATASTORE_NAMESPACE_DELIMITER"test_name44", conf, &ds);
+
+  /* port rollbacked. */
+  TEST_PROC(ret, LAGOPUS_RESULT_OK, port_cmd_update, &interp, state3, &tbl_port,
+            DATASTORE_NAMESPACE_DELIMITER"p44", conf, &ds);
+
+  /* port rollbacked. */
+  TEST_PROC(ret, LAGOPUS_RESULT_OK, port_cmd_update, &interp, state3, &tbl_port,
+            DATASTORE_NAMESPACE_DELIMITER"p44_2", conf, &ds);
+
+  /* rollbacked. */
+  TEST_PROC(ret, LAGOPUS_RESULT_OK, bridge_cmd_update, &interp, state3, &tbl,
+            DATASTORE_NAMESPACE_DELIMITER"test_name44", conf, &ds);
+
+  /* show cmd (current). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv7), argv7, &tbl, bridge_cmd_update,
+                 &ds, str, test_str7);
+
+  TEST_CONTROLLER_DESTROY(ret, &interp, state4, &tbl, &ds, str, "cha44", "c44");
+  TEST_CONTROLLER_DESTROY(ret, &interp, state4, &tbl, &ds, str, "cha44_2",
+                          "c44_2");
+  TEST_PORT_DESTROY(ret, &interp, state4, &tbl_port, &ds, str, "i44", "p44");
+  TEST_PORT_DESTROY(ret, &interp, state4, &tbl_port, &ds, str, "i44_2", "p44_2");
+#else /* HYBRID */
+  TEST_IGNORE_MESSAGE("HYBRID is not defined");
+#endif /* HYBRID */
 }
 
 void
 test_bridge_cmd_parse_atomic_delay_enable(void) {
+#ifndef HYBRID
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   datastore_interp_state_t state1 = DATASTORE_INTERP_STATE_ATOMIC;
   datastore_interp_state_t state2 = DATASTORE_INTERP_STATE_COMMITING;
@@ -3478,10 +6411,283 @@ test_bridge_cmd_parse_atomic_delay_enable(void) {
 
   TEST_CONTROLLER_DESTROY(ret, &interp, state4, &tbl, &ds, str, "cha45", "c45");
   TEST_PORT_DESTROY(ret, &interp, state4, &tbl_port, &ds, str, "i45", "p45");
+#else /* HYBRID */
+  TEST_IGNORE_MESSAGE("HYBRID is defined");
+#endif /* HYBRID */
+}
+
+void
+test_bridge_cmd_parse_atomic_delay_enable_hybrid(void) {
+#ifdef HYBRID
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state1 = DATASTORE_INTERP_STATE_ATOMIC;
+  datastore_interp_state_t state2 = DATASTORE_INTERP_STATE_COMMITING;
+  datastore_interp_state_t state3 = DATASTORE_INTERP_STATE_COMMITED;
+  datastore_interp_state_t state4 = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  void *conf = NULL;
+  const char *argv1[] = {"bridge", "test_name45", "create",
+                         "-controller", "c45",
+                         "-port", "p45", "45",
+                         "-dpid", "45",
+                         "-fail-mode", "standalone",
+                         "-flow-statistics", "false",
+                         "-group-statistics", "false",
+                         "-port-statistics", "false",
+                         "-queue-statistics", "false",
+                         "-table-statistics", "false",
+                         "-reassemble-ip-fragments", "false",
+                         "-max-buffered-packets", "65535",
+                         "-max-ports", "2048",
+                         "-max-tables", "255",
+                         "-max-flows", "4294967295",
+                         "-l2-bridge", "false",
+                         "-mactable-ageing-time", "300",
+                         "-mactable-max-entries", "8192",
+                         "-packet-inq-size", "65535",
+                         "-packet-inq-max-batches", "65535",
+                         "-up-streamq-size", "65535",
+                         "-up-streamq-max-batches", "65535",
+                         "-down-streamq-size", "65535",
+                         "-down-streamq-max-batches", "65535",
+                         "-block-looping-ports", "false",
+                         "-action-type", "copy-ttl-out",
+                         "-instruction-type", "apply-actions",
+                         NULL
+                        };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char *argv2[] = {"bridge", "test_name45", "enable",
+                         NULL
+                        };
+  const char test_str2[] = "{\"ret\":\"OK\"}";
+  const char *argv3[] = {"bridge", "test_name45", NULL};
+  const char test_str3[] =
+    "{\"ret\":\"NOT_OPERATIONAL\",\n"
+    "\"data\":\"Not set current.\"}";
+  const char *argv4[] = {"bridge", "test_name45", "modified", NULL};
+  const char test_str4[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name45\",\n"
+    "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c45\"],\n"
+    "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p45\":45},\n"
+    "\"dpid\":45,\n"
+    "\"fail-mode\":\"standalone\",\n"
+    "\"flow-statistics\":false,\n"
+    "\"group-statistics\":false,\n"
+    "\"port-statistics\":false,\n"
+    "\"queue-statistics\":false,\n"
+    "\"table-statistics\":false,\n"
+    "\"reassemble-ip-fragments\":false,\n"
+    "\"max-buffered-packets\":65535,\n"
+    "\"max-ports\":2048,\n"
+    "\"max-tables\":255,\n"
+    "\"max-flows\":4294967295,\n"
+    "\"l2-bridge\":false,\n"
+    "\"mactable-ageing-time\":300,\n"
+    "\"mactable-max-entries\":8192,\n"
+    "\"packet-inq-size\":65535,\n"
+    "\"packet-inq-max-batches\":65535,\n"
+    "\"up-streamq-size\":65535,\n"
+    "\"up-streamq-max-batches\":65535,\n"
+    "\"down-streamq-size\":65535,\n"
+    "\"down-streamq-max-batches\":65535,\n"
+    "\"block-looping-ports\":false,\n"
+    "\"action-types\":[\"copy-ttl-out\",\"copy-ttl-in\","
+    "\"set-mpls-ttl\",\"dec-mpls-ttl\",\"push-vlan\",\"pop-vlan\","
+    "\"push-mpls\",\"pop-mpls\",\"set-queue\",\"group\",\"set-nw-ttl\","
+    "\"dec-nw-ttl\",\"set-field\"],\n"
+    "\"instruction-types\":[\"apply-actions\",\"clear-actions\","
+    "\"write-actions\",\"write-metadata\",\"goto-table\"],\n"
+    "\"reserved-port-types\":[\"all\",\"controller\",\"table\","
+    "\"inport\",\"any\",\"normal\",\"flood\"],\n"
+    "\"group-types\":[\"all\",\"select\",\"indirect\",\"fast-failover\"],\n"
+    "\"group-capabilities\":[\"select-weight\","
+    "\"select-liveness\",\"chaining\",\"chaining-check\"],\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+  const char *argv5[] = {"bridge", "test_name45", NULL};
+  const char test_str5[] =
+    "{\"ret\":\"NOT_OPERATIONAL\",\n"
+    "\"data\":\"Not set current.\"}";
+  const char *argv6[] = {"bridge", "test_name45", "modified", NULL};
+  const char test_str6[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name45\",\n"
+    "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c45\"],\n"
+    "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p45\":45},\n"
+    "\"dpid\":45,\n"
+    "\"fail-mode\":\"standalone\",\n"
+    "\"flow-statistics\":false,\n"
+    "\"group-statistics\":false,\n"
+    "\"port-statistics\":false,\n"
+    "\"queue-statistics\":false,\n"
+    "\"table-statistics\":false,\n"
+    "\"reassemble-ip-fragments\":false,\n"
+    "\"max-buffered-packets\":65535,\n"
+    "\"max-ports\":2048,\n"
+    "\"max-tables\":255,\n"
+    "\"max-flows\":4294967295,\n"
+    "\"l2-bridge\":false,\n"
+    "\"mactable-ageing-time\":300,\n"
+    "\"mactable-max-entries\":8192,\n"
+    "\"packet-inq-size\":65535,\n"
+    "\"packet-inq-max-batches\":65535,\n"
+    "\"up-streamq-size\":65535,\n"
+    "\"up-streamq-max-batches\":65535,\n"
+    "\"down-streamq-size\":65535,\n"
+    "\"down-streamq-max-batches\":65535,\n"
+    "\"block-looping-ports\":false,\n"
+    "\"action-types\":[\"copy-ttl-out\",\"copy-ttl-in\","
+    "\"set-mpls-ttl\",\"dec-mpls-ttl\",\"push-vlan\",\"pop-vlan\","
+    "\"push-mpls\",\"pop-mpls\",\"set-queue\",\"group\",\"set-nw-ttl\","
+    "\"dec-nw-ttl\",\"set-field\"],\n"
+    "\"instruction-types\":[\"apply-actions\",\"clear-actions\","
+    "\"write-actions\",\"write-metadata\",\"goto-table\"],\n"
+    "\"reserved-port-types\":[\"all\",\"controller\",\"table\","
+    "\"inport\",\"any\",\"normal\",\"flood\"],\n"
+    "\"group-types\":[\"all\",\"select\",\"indirect\",\"fast-failover\"],\n"
+    "\"group-capabilities\":[\"select-weight\","
+    "\"select-liveness\",\"chaining\",\"chaining-check\"],\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":true}]}";
+  const char *argv7[] = {"bridge", "test_name45", NULL};
+  const char test_str7[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name45\",\n"
+    "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c45\"],\n"
+    "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p45\":45},\n"
+    "\"dpid\":45,\n"
+    "\"fail-mode\":\"standalone\",\n"
+    "\"flow-statistics\":false,\n"
+    "\"group-statistics\":false,\n"
+    "\"port-statistics\":false,\n"
+    "\"queue-statistics\":false,\n"
+    "\"table-statistics\":false,\n"
+    "\"reassemble-ip-fragments\":false,\n"
+    "\"max-buffered-packets\":65535,\n"
+    "\"max-ports\":2048,\n"
+    "\"max-tables\":255,\n"
+    "\"max-flows\":4294967295,\n"
+    "\"l2-bridge\":false,\n"
+    "\"mactable-ageing-time\":300,\n"
+    "\"mactable-max-entries\":8192,\n"
+    "\"packet-inq-size\":65535,\n"
+    "\"packet-inq-max-batches\":65535,\n"
+    "\"up-streamq-size\":65535,\n"
+    "\"up-streamq-max-batches\":65535,\n"
+    "\"down-streamq-size\":65535,\n"
+    "\"down-streamq-max-batches\":65535,\n"
+    "\"block-looping-ports\":false,\n"
+    "\"action-types\":[\"copy-ttl-out\",\"copy-ttl-in\","
+    "\"set-mpls-ttl\",\"dec-mpls-ttl\",\"push-vlan\",\"pop-vlan\","
+    "\"push-mpls\",\"pop-mpls\",\"set-queue\",\"group\",\"set-nw-ttl\","
+    "\"dec-nw-ttl\",\"set-field\"],\n"
+    "\"instruction-types\":[\"apply-actions\",\"clear-actions\","
+    "\"write-actions\",\"write-metadata\",\"goto-table\"],\n"
+    "\"reserved-port-types\":[\"all\",\"controller\",\"table\","
+    "\"inport\",\"any\",\"normal\",\"flood\"],\n"
+    "\"group-types\":[\"all\",\"select\",\"indirect\",\"fast-failover\"],\n"
+    "\"group-capabilities\":[\"select-weight\","
+    "\"select-liveness\",\"chaining\",\"chaining-check\"],\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":true}]}";
+  const char *argv8[] = {"bridge", "test_name45", "modified", NULL};
+  const char test_str8[] =
+    "{\"ret\":\"NOT_OPERATIONAL\",\n"
+    "\"data\":\"Not set modified.\"}";
+  const char *argv9[] = {"bridge", "test_name45", "destroy",
+                         NULL
+                        };
+  const char test_str9[] = "{\"ret\":\"OK\"}";
+
+  struct interface *ifp;
+  ifp = dp_interface_alloc();
+  lagopus_thread_t *thdptr = NULL;
+  dp_tapio_thread_init(NULL, NULL, NULL, &thdptr);
+  ret = dp_tap_interface_create(":i45", ifp);
+  TEST_ASSERT_EQUAL(ret, LAGOPUS_RESULT_OK);
+
+  TEST_CONTROLLER_CREATE(ret, &interp, state4, &tbl, &ds, str, "cha45", "c45");
+  TEST_PORT_CREATE(ret, &interp, state4, &tbl_port, &ds, str, "i45", "p45");
+
+  /* create cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv1), argv1, &tbl, bridge_cmd_update,
+                 &ds, str, test_str1);
+
+  /* enable cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv2), argv2, &tbl, bridge_cmd_update,
+                 &ds, str, test_str2);
+
+  /* show cmd (current). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv3), argv3, &tbl, bridge_cmd_update,
+                 &ds, str, test_str3);
+
+  /* show cmd (modified). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv4), argv4, &tbl, bridge_cmd_update,
+                 &ds, str, test_str4);
+
+  /* port commiting. */
+  TEST_PROC(ret, LAGOPUS_RESULT_OK, port_cmd_update, &interp, state2, &tbl_port,
+            DATASTORE_NAMESPACE_DELIMITER"p45", conf, &ds);
+
+  /* commiting. */
+  TEST_PROC(ret, LAGOPUS_RESULT_OK, bridge_cmd_update, &interp, state2, &tbl,
+            DATASTORE_NAMESPACE_DELIMITER"test_name45", conf, &ds);
+
+  /* show cmd (current). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv5), argv5, &tbl, bridge_cmd_update,
+                 &ds, str, test_str5);
+
+  /* show cmd (modified). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv6), argv6, &tbl, bridge_cmd_update,
+                 &ds, str, test_str6);
+
+  /* port commited. */
+  TEST_PROC(ret, LAGOPUS_RESULT_OK, port_cmd_update, &interp, state3, &tbl_port,
+            DATASTORE_NAMESPACE_DELIMITER"p45", conf, &ds);
+
+  /* commited. */
+  TEST_PROC(ret, LAGOPUS_RESULT_OK, bridge_cmd_update, &interp, state3, &tbl,
+            DATASTORE_NAMESPACE_DELIMITER"test_name45", conf, &ds);
+
+  /* show cmd (current). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv7), argv7, &tbl, bridge_cmd_update,
+                 &ds, str, test_str7);
+
+  /* show cmd (modified). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv8), argv8, &tbl, bridge_cmd_update,
+                 &ds, str, test_str8);
+
+  /* destroy cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state4,
+                 ARGV_SIZE(argv9), argv9, &tbl, bridge_cmd_update,
+                 &ds, str, test_str9);
+
+  dp_tap_interface_destroy(":i45");
+  dp_interface_free(ifp);
+  dp_tapio_thread_fini();
+
+  TEST_CONTROLLER_DESTROY(ret, &interp, state4, &tbl, &ds, str, "cha45", "c45");
+  TEST_PORT_DESTROY(ret, &interp, state4, &tbl_port, &ds, str, "i45", "p45");
+#else /* HYBRID */
+  TEST_IGNORE_MESSAGE("HYBRID is not defined");
+#endif /* HYBRID */
 }
 
 void
 test_bridge_cmd_parse_atomic_delay_disable(void) {
+#ifndef HYBRID
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   datastore_interp_state_t state1 = DATASTORE_INTERP_STATE_ATOMIC;
   datastore_interp_state_t state2 = DATASTORE_INTERP_STATE_COMMITING;
@@ -3699,6 +6905,257 @@ test_bridge_cmd_parse_atomic_delay_disable(void) {
 
   TEST_CONTROLLER_DESTROY(ret, &interp, state4, &tbl, &ds, str, "cha46", "c46");
   TEST_PORT_DESTROY(ret, &interp, state4, &tbl_port, &ds, str, "i46", "p46");
+#else /* HYBRID */
+  TEST_IGNORE_MESSAGE("HYBRID is defined");
+#endif /* HYBRID */
+}
+
+void
+test_bridge_cmd_parse_atomic_delay_disable_hybrid(void) {
+#ifdef HYBRID
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state1 = DATASTORE_INTERP_STATE_ATOMIC;
+  datastore_interp_state_t state2 = DATASTORE_INTERP_STATE_COMMITING;
+  datastore_interp_state_t state3 = DATASTORE_INTERP_STATE_COMMITED;
+  datastore_interp_state_t state4 = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  void *conf = NULL;
+  const char *argv1[] = {"bridge", "test_name46", "create",
+                         "-controller", "c46",
+                         "-port", "p46", "46",
+                         "-dpid", "46",
+                         "-fail-mode", "standalone",
+                         "-flow-statistics", "false",
+                         "-group-statistics", "false",
+                         "-port-statistics", "false",
+                         "-queue-statistics", "false",
+                         "-table-statistics", "false",
+                         "-reassemble-ip-fragments", "false",
+                         "-max-buffered-packets", "65535",
+                         "-max-ports", "2048",
+                         "-max-tables", "255",
+                         "-max-flows", "4294967295",
+                         "-l2-bridge", "false",
+                         "-mactable-ageing-time", "300",
+                         "-mactable-max-entries", "8192",
+                         "-packet-inq-size", "65535",
+                         "-packet-inq-max-batches", "65535",
+                         "-up-streamq-size", "65535",
+                         "-up-streamq-max-batches", "65535",
+                         "-down-streamq-size", "65535",
+                         "-down-streamq-max-batches", "65535",
+                         "-block-looping-ports", "false",
+                         "-action-type", "copy-ttl-out",
+                         "-instruction-type", "apply-actions",
+                         NULL
+                        };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char *argv2[] = {"bridge", "test_name46", "enable",
+                         NULL
+                        };
+  const char test_str2[] = "{\"ret\":\"OK\"}";
+  const char *argv3[] = {"bridge", "test_name46", "disable",
+                         NULL
+                        };
+  const char test_str3[] = "{\"ret\":\"OK\"}";
+  const char *argv4[] = {"bridge", "test_name46", NULL};
+  const char test_str4[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name46\",\n"
+    "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c46\"],\n"
+    "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p46\":46},\n"
+    "\"dpid\":46,\n"
+    "\"fail-mode\":\"standalone\",\n"
+    "\"flow-statistics\":false,\n"
+    "\"group-statistics\":false,\n"
+    "\"port-statistics\":false,\n"
+    "\"queue-statistics\":false,\n"
+    "\"table-statistics\":false,\n"
+    "\"reassemble-ip-fragments\":false,\n"
+    "\"max-buffered-packets\":65535,\n"
+    "\"max-ports\":2048,\n"
+    "\"max-tables\":255,\n"
+    "\"max-flows\":4294967295,\n"
+    "\"l2-bridge\":false,\n"
+    "\"mactable-ageing-time\":300,\n"
+    "\"mactable-max-entries\":8192,\n"
+    "\"packet-inq-size\":65535,\n"
+    "\"packet-inq-max-batches\":65535,\n"
+    "\"up-streamq-size\":65535,\n"
+    "\"up-streamq-max-batches\":65535,\n"
+    "\"down-streamq-size\":65535,\n"
+    "\"down-streamq-max-batches\":65535,\n"
+    "\"block-looping-ports\":false,\n"
+    "\"action-types\":[\"copy-ttl-out\",\"copy-ttl-in\","
+    "\"set-mpls-ttl\",\"dec-mpls-ttl\",\"push-vlan\",\"pop-vlan\","
+    "\"push-mpls\",\"pop-mpls\",\"set-queue\",\"group\",\"set-nw-ttl\","
+    "\"dec-nw-ttl\",\"set-field\"],\n"
+    "\"instruction-types\":[\"apply-actions\",\"clear-actions\","
+    "\"write-actions\",\"write-metadata\",\"goto-table\"],\n"
+    "\"reserved-port-types\":[\"all\",\"controller\",\"table\","
+    "\"inport\",\"any\",\"normal\",\"flood\"],\n"
+    "\"group-types\":[\"all\",\"select\",\"indirect\",\"fast-failover\"],\n"
+    "\"group-capabilities\":[\"select-weight\","
+    "\"select-liveness\",\"chaining\",\"chaining-check\"],\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":true}]}";
+  const char *argv5[] = {"bridge", "test_name46", NULL};
+  const char test_str5[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name46\",\n"
+    "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c46\"],\n"
+    "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p46\":46},\n"
+    "\"dpid\":46,\n"
+    "\"fail-mode\":\"standalone\",\n"
+    "\"flow-statistics\":false,\n"
+    "\"group-statistics\":false,\n"
+    "\"port-statistics\":false,\n"
+    "\"queue-statistics\":false,\n"
+    "\"table-statistics\":false,\n"
+    "\"reassemble-ip-fragments\":false,\n"
+    "\"max-buffered-packets\":65535,\n"
+    "\"max-ports\":2048,\n"
+    "\"max-tables\":255,\n"
+    "\"max-flows\":4294967295,\n"
+    "\"l2-bridge\":false,\n"
+    "\"mactable-ageing-time\":300,\n"
+    "\"mactable-max-entries\":8192,\n"
+    "\"packet-inq-size\":65535,\n"
+    "\"packet-inq-max-batches\":65535,\n"
+    "\"up-streamq-size\":65535,\n"
+    "\"up-streamq-max-batches\":65535,\n"
+    "\"down-streamq-size\":65535,\n"
+    "\"down-streamq-max-batches\":65535,\n"
+    "\"block-looping-ports\":false,\n"
+    "\"action-types\":[\"copy-ttl-out\",\"copy-ttl-in\","
+    "\"set-mpls-ttl\",\"dec-mpls-ttl\",\"push-vlan\",\"pop-vlan\","
+    "\"push-mpls\",\"pop-mpls\",\"set-queue\",\"group\",\"set-nw-ttl\","
+    "\"dec-nw-ttl\",\"set-field\"],\n"
+    "\"instruction-types\":[\"apply-actions\",\"clear-actions\","
+    "\"write-actions\",\"write-metadata\",\"goto-table\"],\n"
+    "\"reserved-port-types\":[\"all\",\"controller\",\"table\","
+    "\"inport\",\"any\",\"normal\",\"flood\"],\n"
+    "\"group-types\":[\"all\",\"select\",\"indirect\",\"fast-failover\"],\n"
+    "\"group-capabilities\":[\"select-weight\","
+    "\"select-liveness\",\"chaining\",\"chaining-check\"],\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+  const char *argv6[] = {"bridge", "test_name46", NULL};
+  const char test_str6[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name46\",\n"
+    "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c46\"],\n"
+    "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p46\":46},\n"
+    "\"dpid\":46,\n"
+    "\"fail-mode\":\"standalone\",\n"
+    "\"flow-statistics\":false,\n"
+    "\"group-statistics\":false,\n"
+    "\"port-statistics\":false,\n"
+    "\"queue-statistics\":false,\n"
+    "\"table-statistics\":false,\n"
+    "\"reassemble-ip-fragments\":false,\n"
+    "\"max-buffered-packets\":65535,\n"
+    "\"max-ports\":2048,\n"
+    "\"max-tables\":255,\n"
+    "\"max-flows\":4294967295,\n"
+    "\"l2-bridge\":false,\n"
+    "\"mactable-ageing-time\":300,\n"
+    "\"mactable-max-entries\":8192,\n"
+    "\"packet-inq-size\":65535,\n"
+    "\"packet-inq-max-batches\":65535,\n"
+    "\"up-streamq-size\":65535,\n"
+    "\"up-streamq-max-batches\":65535,\n"
+    "\"down-streamq-size\":65535,\n"
+    "\"down-streamq-max-batches\":65535,\n"
+    "\"block-looping-ports\":false,\n"
+    "\"action-types\":[\"copy-ttl-out\",\"copy-ttl-in\","
+    "\"set-mpls-ttl\",\"dec-mpls-ttl\",\"push-vlan\",\"pop-vlan\","
+    "\"push-mpls\",\"pop-mpls\",\"set-queue\",\"group\",\"set-nw-ttl\","
+    "\"dec-nw-ttl\",\"set-field\"],\n"
+    "\"instruction-types\":[\"apply-actions\",\"clear-actions\","
+    "\"write-actions\",\"write-metadata\",\"goto-table\"],\n"
+    "\"reserved-port-types\":[\"all\",\"controller\",\"table\","
+    "\"inport\",\"any\",\"normal\",\"flood\"],\n"
+    "\"group-types\":[\"all\",\"select\",\"indirect\",\"fast-failover\"],\n"
+    "\"group-capabilities\":[\"select-weight\","
+    "\"select-liveness\",\"chaining\",\"chaining-check\"],\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+  const char *argv7[] = {"bridge", "test_name46", "destroy",
+                         NULL
+                        };
+  const char test_str7[] = "{\"ret\":\"OK\"}";
+
+  struct interface *ifp;
+  ifp = dp_interface_alloc();
+  lagopus_thread_t *thdptr = NULL;
+  dp_tapio_thread_init(NULL, NULL, NULL, &thdptr);
+  ret = dp_tap_interface_create(":i46", ifp);
+  TEST_ASSERT_EQUAL(ret, LAGOPUS_RESULT_OK);
+
+  TEST_CONTROLLER_CREATE(ret, &interp, state4, &tbl, &ds, str, "cha46", "c46");
+  TEST_PORT_CREATE(ret, &interp, state4, &tbl_port, &ds, str, "i46", "p46");
+
+  /* create cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state4,
+                 ARGV_SIZE(argv1), argv1, &tbl, bridge_cmd_update,
+                 &ds, str, test_str1);
+
+  /* enable cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state4,
+                 ARGV_SIZE(argv2), argv2, &tbl, bridge_cmd_update,
+                 &ds, str, test_str2);
+
+  /* disable cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv3), argv3, &tbl, bridge_cmd_update,
+                 &ds, str, test_str3);
+
+  /* show cmd (current). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv4), argv4, &tbl, bridge_cmd_update,
+                 &ds, str, test_str4);
+
+  /* port commiting. */
+  TEST_PROC(ret, LAGOPUS_RESULT_OK, port_cmd_update, &interp, state2, &tbl_port,
+            DATASTORE_NAMESPACE_DELIMITER"p46", conf, &ds);
+
+  /* commiting. */
+  TEST_PROC(ret, LAGOPUS_RESULT_OK, bridge_cmd_update, &interp, state2, &tbl,
+            DATASTORE_NAMESPACE_DELIMITER"test_name46", conf, &ds);
+
+  /* show cmd (current). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv5), argv5, &tbl, bridge_cmd_update,
+                 &ds, str, test_str5);
+
+  /* port commited. */
+  TEST_PROC(ret, LAGOPUS_RESULT_OK, port_cmd_update, &interp, state3, &tbl_port,
+            DATASTORE_NAMESPACE_DELIMITER"p46", conf, &ds);
+
+  /* commited. */
+  TEST_PROC(ret, LAGOPUS_RESULT_OK, bridge_cmd_update, &interp, state3, &tbl,
+            DATASTORE_NAMESPACE_DELIMITER"test_name46", conf, &ds);
+
+  /* show cmd (current). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv6), argv6, &tbl, bridge_cmd_update,
+                 &ds, str, test_str6);
+
+  /* destroy cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state4,
+                 ARGV_SIZE(argv7), argv7, &tbl, bridge_cmd_update,
+                 &ds, str, test_str7);
+
+  dp_tap_interface_destroy(":i46");
+  dp_interface_free(ifp);
+  dp_tapio_thread_fini();
+
+  TEST_CONTROLLER_DESTROY(ret, &interp, state4, &tbl, &ds, str, "cha46", "c46");
+  TEST_PORT_DESTROY(ret, &interp, state4, &tbl_port, &ds, str, "i46", "p46");
+#else /* HYBRID */
+  TEST_IGNORE_MESSAGE("HYBRID is not defined");
+#endif /* HYBRID */
 }
 
 void
@@ -3833,6 +7290,7 @@ test_bridge_cmd_parse_atomic_delay_destroy(void) {
 
 void
 test_bridge_cmd_parse_atomic_abort_01(void) {
+#ifndef HYBRID
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   datastore_interp_state_t state1 = DATASTORE_INTERP_STATE_ATOMIC;
   datastore_interp_state_t state2 = DATASTORE_INTERP_STATE_ABORTING;
@@ -4091,10 +7549,292 @@ test_bridge_cmd_parse_atomic_abort_01(void) {
   TEST_PORT_DESTROY(ret, &interp, state4, &tbl_port, &ds, str, "i48", "p48");
   TEST_PORT_DESTROY(ret, &interp, state4, &tbl_port, &ds, str, "i48_2", "p48_2");
 
+#else /* HYBRID */
+  TEST_IGNORE_MESSAGE("HYBRID is defined");
+#endif /* HYBRID */
+}
+
+void
+test_bridge_cmd_parse_atomic_abort_01_hybrid(void) {
+#ifdef HYBRID
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state1 = DATASTORE_INTERP_STATE_ATOMIC;
+  datastore_interp_state_t state2 = DATASTORE_INTERP_STATE_ABORTING;
+  datastore_interp_state_t state3 = DATASTORE_INTERP_STATE_ABORTED;
+  datastore_interp_state_t state4 = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  void *conf = NULL;
+  const char *argv1[] = {"bridge", "test_name48", "create",
+                         "-controller", "c48",
+                         "-port", "p48", "48",
+                         "-dpid", "48",
+                         "-fail-mode", "standalone",
+                         "-flow-statistics", "false",
+                         "-group-statistics", "false",
+                         "-port-statistics", "false",
+                         "-queue-statistics", "false",
+                         "-table-statistics", "false",
+                         "-reassemble-ip-fragments", "false",
+                         "-max-buffered-packets", "65535",
+                         "-max-ports", "2048",
+                         "-max-tables", "255",
+                         "-max-flows", "4294967295",
+                         "-l2-bridge", "false",
+                         "-mactable-ageing-time", "300",
+                         "-mactable-max-entries", "8192",
+                         "-packet-inq-size", "65535",
+                         "-packet-inq-max-batches", "65535",
+                         "-up-streamq-size", "65535",
+                         "-up-streamq-max-batches", "65535",
+                         "-down-streamq-size", "65535",
+                         "-down-streamq-max-batches", "65535",
+                         "-block-looping-ports", "false",
+                         "-action-type", "copy-ttl-out",
+                         "-instruction-type", "apply-actions",
+                         NULL
+                        };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char *argv2[] = {"bridge", "test_name48", NULL};
+  const char test_str2[] =
+    "{\"ret\":\"NOT_OPERATIONAL\",\n"
+    "\"data\":\"Not set current.\"}";
+  const char *argv3[] = {"bridge", "test_name48", "modified", NULL};
+  const char test_str3[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name48\",\n"
+    "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c48\"],\n"
+    "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p48\":48},\n"
+    "\"dpid\":48,\n"
+    "\"fail-mode\":\"standalone\",\n"
+    "\"flow-statistics\":false,\n"
+    "\"group-statistics\":false,\n"
+    "\"port-statistics\":false,\n"
+    "\"queue-statistics\":false,\n"
+    "\"table-statistics\":false,\n"
+    "\"reassemble-ip-fragments\":false,\n"
+    "\"max-buffered-packets\":65535,\n"
+    "\"max-ports\":2048,\n"
+    "\"max-tables\":255,\n"
+    "\"max-flows\":4294967295,\n"
+    "\"l2-bridge\":false,\n"
+    "\"mactable-ageing-time\":300,\n"
+    "\"mactable-max-entries\":8192,\n"
+    "\"packet-inq-size\":65535,\n"
+    "\"packet-inq-max-batches\":65535,\n"
+    "\"up-streamq-size\":65535,\n"
+    "\"up-streamq-max-batches\":65535,\n"
+    "\"down-streamq-size\":65535,\n"
+    "\"down-streamq-max-batches\":65535,\n"
+    "\"block-looping-ports\":false,\n"
+    "\"action-types\":[\"copy-ttl-out\",\"copy-ttl-in\","
+    "\"set-mpls-ttl\",\"dec-mpls-ttl\",\"push-vlan\",\"pop-vlan\","
+    "\"push-mpls\",\"pop-mpls\",\"set-queue\",\"group\",\"set-nw-ttl\","
+    "\"dec-nw-ttl\",\"set-field\"],\n"
+    "\"instruction-types\":[\"apply-actions\",\"clear-actions\","
+    "\"write-actions\",\"write-metadata\",\"goto-table\"],\n"
+    "\"reserved-port-types\":[\"all\",\"controller\",\"table\","
+    "\"inport\",\"any\",\"normal\",\"flood\"],\n"
+    "\"group-types\":[\"all\",\"select\",\"indirect\",\"fast-failover\"],\n"
+    "\"group-capabilities\":[\"select-weight\","
+    "\"select-liveness\",\"chaining\",\"chaining-check\"],\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+  const char *argv4[] = {"bridge", "test_name48", "config",
+                         "-controller", "c48_2",
+                         "-port", "p48_2", "148",
+                         NULL
+                        };
+  const char test_str4[] = "{\"ret\":\"OK\"}";
+  const char *argv5[] = {"bridge", "test_name48", NULL};
+  const char test_str5[] =
+    "{\"ret\":\"NOT_OPERATIONAL\",\n"
+    "\"data\":\"Not set current.\"}";
+  const char *argv6[] = {"bridge", "test_name48", "modified", NULL};
+  const char test_str6[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name48\",\n"
+    "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c48\",\""DATASTORE_NAMESPACE_DELIMITER"c48_2\"],\n"
+    "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p48\":48,\n"
+    "\""DATASTORE_NAMESPACE_DELIMITER"p48_2\":148},\n"
+    "\"dpid\":48,\n"
+    "\"fail-mode\":\"standalone\",\n"
+    "\"flow-statistics\":false,\n"
+    "\"group-statistics\":false,\n"
+    "\"port-statistics\":false,\n"
+    "\"queue-statistics\":false,\n"
+    "\"table-statistics\":false,\n"
+    "\"reassemble-ip-fragments\":false,\n"
+    "\"max-buffered-packets\":65535,\n"
+    "\"max-ports\":2048,\n"
+    "\"max-tables\":255,\n"
+    "\"max-flows\":4294967295,\n"
+    "\"l2-bridge\":false,\n"
+    "\"mactable-ageing-time\":300,\n"
+    "\"mactable-max-entries\":8192,\n"
+    "\"packet-inq-size\":65535,\n"
+    "\"packet-inq-max-batches\":65535,\n"
+    "\"up-streamq-size\":65535,\n"
+    "\"up-streamq-max-batches\":65535,\n"
+    "\"down-streamq-size\":65535,\n"
+    "\"down-streamq-max-batches\":65535,\n"
+    "\"block-looping-ports\":false,\n"
+    "\"action-types\":[\"copy-ttl-out\",\"copy-ttl-in\","
+    "\"set-mpls-ttl\",\"dec-mpls-ttl\",\"push-vlan\",\"pop-vlan\","
+    "\"push-mpls\",\"pop-mpls\",\"set-queue\",\"group\",\"set-nw-ttl\","
+    "\"dec-nw-ttl\",\"set-field\"],\n"
+    "\"instruction-types\":[\"apply-actions\",\"clear-actions\","
+    "\"write-actions\",\"write-metadata\",\"goto-table\"],\n"
+    "\"reserved-port-types\":[\"all\",\"controller\",\"table\","
+    "\"inport\",\"any\",\"normal\",\"flood\"],\n"
+    "\"group-types\":[\"all\",\"select\",\"indirect\",\"fast-failover\"],\n"
+    "\"group-capabilities\":[\"select-weight\","
+    "\"select-liveness\",\"chaining\",\"chaining-check\"],\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+  const char *argv7[] = {"bridge", "test_name48", NULL};
+  const char test_str7[] =
+    "{\"ret\":\"NOT_OPERATIONAL\",\n"
+    "\"data\":\"Not set current.\"}";
+  const char *argv8[] = {"bridge", "test_name48", "modified", NULL};
+  const char test_str8[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name48\",\n"
+    "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c48\",\""DATASTORE_NAMESPACE_DELIMITER"c48_2\"],\n"
+    "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p48\":48,\n"
+    "\""DATASTORE_NAMESPACE_DELIMITER"p48_2\":148},\n"
+    "\"dpid\":48,\n"
+    "\"fail-mode\":\"standalone\",\n"
+    "\"flow-statistics\":false,\n"
+    "\"group-statistics\":false,\n"
+    "\"port-statistics\":false,\n"
+    "\"queue-statistics\":false,\n"
+    "\"table-statistics\":false,\n"
+    "\"reassemble-ip-fragments\":false,\n"
+    "\"max-buffered-packets\":65535,\n"
+    "\"max-ports\":2048,\n"
+    "\"max-tables\":255,\n"
+    "\"max-flows\":4294967295,\n"
+    "\"l2-bridge\":false,\n"
+    "\"mactable-ageing-time\":300,\n"
+    "\"mactable-max-entries\":8192,\n"
+    "\"packet-inq-size\":65535,\n"
+    "\"packet-inq-max-batches\":65535,\n"
+    "\"up-streamq-size\":65535,\n"
+    "\"up-streamq-max-batches\":65535,\n"
+    "\"down-streamq-size\":65535,\n"
+    "\"down-streamq-max-batches\":65535,\n"
+    "\"block-looping-ports\":false,\n"
+    "\"action-types\":[\"copy-ttl-out\",\"copy-ttl-in\","
+    "\"set-mpls-ttl\",\"dec-mpls-ttl\",\"push-vlan\",\"pop-vlan\","
+    "\"push-mpls\",\"pop-mpls\",\"set-queue\",\"group\",\"set-nw-ttl\","
+    "\"dec-nw-ttl\",\"set-field\"],\n"
+    "\"instruction-types\":[\"apply-actions\",\"clear-actions\","
+    "\"write-actions\",\"write-metadata\",\"goto-table\"],\n"
+    "\"reserved-port-types\":[\"all\",\"controller\",\"table\","
+    "\"inport\",\"any\",\"normal\",\"flood\"],\n"
+    "\"group-types\":[\"all\",\"select\",\"indirect\",\"fast-failover\"],\n"
+    "\"group-capabilities\":[\"select-weight\","
+    "\"select-liveness\",\"chaining\",\"chaining-check\"],\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+  const char *argv9[] = {"bridge", "test_name48", NULL};
+  const char test_str9[] =
+    "{\"ret\":\"NOT_FOUND\",\n"
+    "\"data\":\"name = "DATASTORE_NAMESPACE_DELIMITER"test_name48\"}";
+
+  TEST_CONTROLLER_CREATE(ret, &interp, state4, &tbl, &ds, str, "cha48", "c48");
+  TEST_CONTROLLER_CREATE(ret, &interp, state4, &tbl, &ds, str, "cha48_2",
+                         "c48_2");
+  TEST_PORT_CREATE(ret, &interp, state4, &tbl_port, &ds, str, "i48", "p48");
+  TEST_PORT_CREATE(ret, &interp, state4, &tbl_port, &ds, str, "i48_2", "p48_2");
+
+  /* create cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv1), argv1, &tbl, bridge_cmd_update,
+                 &ds, str, test_str1);
+
+  /* show cmd (current). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv2), argv2, &tbl, bridge_cmd_update,
+                 &ds, str, test_str2);
+
+  /* show cmd (modified). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv3), argv3, &tbl, bridge_cmd_update,
+                 &ds, str, test_str3);
+
+  /* config cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv4), argv4, &tbl, bridge_cmd_update,
+                 &ds, str, test_str4);
+
+  /* show cmd (current). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv5), argv5, &tbl, bridge_cmd_update,
+                 &ds, str, test_str5);
+
+  /* show cmd (modified). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv6), argv6, &tbl, bridge_cmd_update,
+                 &ds, str, test_str6);
+
+  /* port commiting. */
+  TEST_PROC(ret, LAGOPUS_RESULT_OK, port_cmd_update, &interp, state2, &tbl_port,
+            DATASTORE_NAMESPACE_DELIMITER"p48", conf, &ds);
+
+  /* port commiting. */
+  TEST_PROC(ret, LAGOPUS_RESULT_OK, port_cmd_update, &interp, state2, &tbl_port,
+            DATASTORE_NAMESPACE_DELIMITER"p48_2", conf, &ds);
+
+  /* aborting. */
+  TEST_PROC(ret, LAGOPUS_RESULT_OK, bridge_cmd_update, &interp, state2, &tbl,
+            DATASTORE_NAMESPACE_DELIMITER"test_name48", conf, &ds);
+
+  /* show cmd (current). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv7), argv7, &tbl, bridge_cmd_update,
+                 &ds, str, test_str7);
+
+  /* show cmd (modified). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv8), argv8, &tbl, bridge_cmd_update,
+                 &ds, str, test_str8);
+
+  /* port commited. */
+  TEST_PROC(ret, LAGOPUS_RESULT_OK, port_cmd_update, &interp, state3, &tbl_port,
+            DATASTORE_NAMESPACE_DELIMITER"p48", conf, &ds);
+
+  /* port commited. */
+  TEST_PROC(ret, LAGOPUS_RESULT_OK, port_cmd_update, &interp, state3, &tbl_port,
+            DATASTORE_NAMESPACE_DELIMITER"p48_2", conf, &ds);
+
+  /* aborted. */
+  TEST_PROC(ret, LAGOPUS_RESULT_OK, bridge_cmd_update, &interp, state3, &tbl,
+            DATASTORE_NAMESPACE_DELIMITER"test_name48", conf, &ds);
+
+  /* show cmd (current). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv9), argv9, &tbl, bridge_cmd_update,
+                 &ds, str, test_str9);
+
+  TEST_CONTROLLER_DESTROY(ret, &interp, state4, &tbl, &ds, str, "cha48", "c48");
+  TEST_CONTROLLER_DESTROY(ret, &interp, state4, &tbl, &ds, str, "cha48_2",
+                          "c48_2");
+  TEST_PORT_DESTROY(ret, &interp, state4, &tbl_port, &ds, str, "i48", "p48");
+  TEST_PORT_DESTROY(ret, &interp, state4, &tbl_port, &ds, str, "i48_2", "p48_2");
+
+#else /* HYBRID */
+  TEST_IGNORE_MESSAGE("HYBRID is not defined");
+#endif /* HYBRID */
 }
 
 void
 test_bridge_cmd_parse_atomic_abort_02(void) {
+#ifndef HYBRID
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   datastore_interp_state_t state1 = DATASTORE_INTERP_STATE_ATOMIC;
   datastore_interp_state_t state2 = DATASTORE_INTERP_STATE_ABORTING;
@@ -4470,10 +8210,418 @@ test_bridge_cmd_parse_atomic_abort_02(void) {
                           "c49_2");
   TEST_PORT_DESTROY(ret, &interp, state4, &tbl_port, &ds, str, "i49", "p49");
   TEST_PORT_DESTROY(ret, &interp, state4, &tbl_port, &ds, str, "i49_2", "p49_2");
+#else /* HYBRID */
+  TEST_IGNORE_MESSAGE("HYBRID is defined");
+#endif /* HYBRID */
+}
+
+void
+test_bridge_cmd_parse_atomic_abort_02_hybrid(void) {
+#ifdef HYBRID
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state1 = DATASTORE_INTERP_STATE_ATOMIC;
+  datastore_interp_state_t state2 = DATASTORE_INTERP_STATE_ABORTING;
+  datastore_interp_state_t state3 = DATASTORE_INTERP_STATE_ABORTED;
+  datastore_interp_state_t state4 = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  void *conf = NULL;
+  const char *argv1[] = {"bridge", "test_name49", "create",
+                         "-controller", "c49",
+                         "-port", "p49", "49",
+                         "-dpid", "49",
+                         "-fail-mode", "standalone",
+                         "-flow-statistics", "false",
+                         "-group-statistics", "false",
+                         "-port-statistics", "false",
+                         "-queue-statistics", "false",
+                         "-table-statistics", "false",
+                         "-reassemble-ip-fragments", "false",
+                         "-max-buffered-packets", "65535",
+                         "-max-ports", "2048",
+                         "-max-tables", "255",
+                         "-max-flows", "4294967295",
+                         "-l2-bridge", "false",
+                         "-mactable-ageing-time", "300",
+                         "-mactable-max-entries", "8192",
+                         "-packet-inq-size", "65535",
+                         "-packet-inq-max-batches", "65535",
+                         "-up-streamq-size", "65535",
+                         "-up-streamq-max-batches", "65535",
+                         "-down-streamq-size", "65535",
+                         "-down-streamq-max-batches", "65535",
+                         "-block-looping-ports", "false",
+                         "-action-type", "copy-ttl-out",
+                         "-instruction-type", "apply-actions",
+                         NULL
+                        };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char *argv2[] = {"bridge", "test_name49", NULL};
+  const char test_str2[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name49\",\n"
+    "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c49\"],\n"
+    "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p49\":49},\n"
+    "\"dpid\":49,\n"
+    "\"fail-mode\":\"standalone\",\n"
+    "\"flow-statistics\":false,\n"
+    "\"group-statistics\":false,\n"
+    "\"port-statistics\":false,\n"
+    "\"queue-statistics\":false,\n"
+    "\"table-statistics\":false,\n"
+    "\"reassemble-ip-fragments\":false,\n"
+    "\"max-buffered-packets\":65535,\n"
+    "\"max-ports\":2048,\n"
+    "\"max-tables\":255,\n"
+    "\"max-flows\":4294967295,\n"
+    "\"l2-bridge\":false,\n"
+    "\"mactable-ageing-time\":300,\n"
+    "\"mactable-max-entries\":8192,\n"
+    "\"packet-inq-size\":65535,\n"
+    "\"packet-inq-max-batches\":65535,\n"
+    "\"up-streamq-size\":65535,\n"
+    "\"up-streamq-max-batches\":65535,\n"
+    "\"down-streamq-size\":65535,\n"
+    "\"down-streamq-max-batches\":65535,\n"
+    "\"block-looping-ports\":false,\n"
+    "\"action-types\":[\"copy-ttl-out\",\"copy-ttl-in\","
+    "\"set-mpls-ttl\",\"dec-mpls-ttl\",\"push-vlan\",\"pop-vlan\","
+    "\"push-mpls\",\"pop-mpls\",\"set-queue\",\"group\",\"set-nw-ttl\","
+    "\"dec-nw-ttl\",\"set-field\"],\n"
+    "\"instruction-types\":[\"apply-actions\",\"clear-actions\","
+    "\"write-actions\",\"write-metadata\",\"goto-table\"],\n"
+    "\"reserved-port-types\":[\"all\",\"controller\",\"table\","
+    "\"inport\",\"any\",\"normal\",\"flood\"],\n"
+    "\"group-types\":[\"all\",\"select\",\"indirect\",\"fast-failover\"],\n"
+    "\"group-capabilities\":[\"select-weight\","
+    "\"select-liveness\",\"chaining\",\"chaining-check\"],\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+  const char *argv3[] = {"bridge", "test_name49", "modified", NULL};
+  const char test_str3[] =
+    "{\"ret\":\"NOT_OPERATIONAL\",\n"
+    "\"data\":\"Not set modified.\"}";
+  const char *argv4[] = {"bridge", "test_name49", "config",
+                         "-controller", "c49_2",
+                         "-port", "p49_2", "149",
+                         NULL
+                        };
+  const char test_str4[] = "{\"ret\":\"OK\"}";
+  const char *argv5[] = {"bridge", "test_name49", NULL};
+  const char test_str5[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name49\",\n"
+    "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c49\"],\n"
+    "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p49\":49},\n"
+    "\"dpid\":49,\n"
+    "\"fail-mode\":\"standalone\",\n"
+    "\"flow-statistics\":false,\n"
+    "\"group-statistics\":false,\n"
+    "\"port-statistics\":false,\n"
+    "\"queue-statistics\":false,\n"
+    "\"table-statistics\":false,\n"
+    "\"reassemble-ip-fragments\":false,\n"
+    "\"max-buffered-packets\":65535,\n"
+    "\"max-ports\":2048,\n"
+    "\"max-tables\":255,\n"
+    "\"max-flows\":4294967295,\n"
+    "\"l2-bridge\":false,\n"
+    "\"mactable-ageing-time\":300,\n"
+    "\"mactable-max-entries\":8192,\n"
+    "\"packet-inq-size\":65535,\n"
+    "\"packet-inq-max-batches\":65535,\n"
+    "\"up-streamq-size\":65535,\n"
+    "\"up-streamq-max-batches\":65535,\n"
+    "\"down-streamq-size\":65535,\n"
+    "\"down-streamq-max-batches\":65535,\n"
+    "\"block-looping-ports\":false,\n"
+    "\"action-types\":[\"copy-ttl-out\",\"copy-ttl-in\","
+    "\"set-mpls-ttl\",\"dec-mpls-ttl\",\"push-vlan\",\"pop-vlan\","
+    "\"push-mpls\",\"pop-mpls\",\"set-queue\",\"group\",\"set-nw-ttl\","
+    "\"dec-nw-ttl\",\"set-field\"],\n"
+    "\"instruction-types\":[\"apply-actions\",\"clear-actions\","
+    "\"write-actions\",\"write-metadata\",\"goto-table\"],\n"
+    "\"reserved-port-types\":[\"all\",\"controller\",\"table\","
+    "\"inport\",\"any\",\"normal\",\"flood\"],\n"
+    "\"group-types\":[\"all\",\"select\",\"indirect\",\"fast-failover\"],\n"
+    "\"group-capabilities\":[\"select-weight\","
+    "\"select-liveness\",\"chaining\",\"chaining-check\"],\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+  const char *argv6[] = {"bridge", "test_name49", "modified", NULL};
+  const char test_str6[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name49\",\n"
+    "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c49\",\""DATASTORE_NAMESPACE_DELIMITER"c49_2\"],\n"
+    "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p49\":49,\n"
+    "\""DATASTORE_NAMESPACE_DELIMITER"p49_2\":149},\n"
+    "\"dpid\":49,\n"
+    "\"fail-mode\":\"standalone\",\n"
+    "\"flow-statistics\":false,\n"
+    "\"group-statistics\":false,\n"
+    "\"port-statistics\":false,\n"
+    "\"queue-statistics\":false,\n"
+    "\"table-statistics\":false,\n"
+    "\"reassemble-ip-fragments\":false,\n"
+    "\"max-buffered-packets\":65535,\n"
+    "\"max-ports\":2048,\n"
+    "\"max-tables\":255,\n"
+    "\"max-flows\":4294967295,\n"
+    "\"l2-bridge\":false,\n"
+    "\"mactable-ageing-time\":300,\n"
+    "\"mactable-max-entries\":8192,\n"
+    "\"packet-inq-size\":65535,\n"
+    "\"packet-inq-max-batches\":65535,\n"
+    "\"up-streamq-size\":65535,\n"
+    "\"up-streamq-max-batches\":65535,\n"
+    "\"down-streamq-size\":65535,\n"
+    "\"down-streamq-max-batches\":65535,\n"
+    "\"block-looping-ports\":false,\n"
+    "\"action-types\":[\"copy-ttl-out\",\"copy-ttl-in\","
+    "\"set-mpls-ttl\",\"dec-mpls-ttl\",\"push-vlan\",\"pop-vlan\","
+    "\"push-mpls\",\"pop-mpls\",\"set-queue\",\"group\",\"set-nw-ttl\","
+    "\"dec-nw-ttl\",\"set-field\"],\n"
+    "\"instruction-types\":[\"apply-actions\",\"clear-actions\","
+    "\"write-actions\",\"write-metadata\",\"goto-table\"],\n"
+    "\"reserved-port-types\":[\"all\",\"controller\",\"table\","
+    "\"inport\",\"any\",\"normal\",\"flood\"],\n"
+    "\"group-types\":[\"all\",\"select\",\"indirect\",\"fast-failover\"],\n"
+    "\"group-capabilities\":[\"select-weight\","
+    "\"select-liveness\",\"chaining\",\"chaining-check\"],\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+  const char *argv7[] = {"bridge", "test_name49", NULL};
+  const char test_str7[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name49\",\n"
+    "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c49\"],\n"
+    "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p49\":49},\n"
+    "\"dpid\":49,\n"
+    "\"fail-mode\":\"standalone\",\n"
+    "\"flow-statistics\":false,\n"
+    "\"group-statistics\":false,\n"
+    "\"port-statistics\":false,\n"
+    "\"queue-statistics\":false,\n"
+    "\"table-statistics\":false,\n"
+    "\"reassemble-ip-fragments\":false,\n"
+    "\"max-buffered-packets\":65535,\n"
+    "\"max-ports\":2048,\n"
+    "\"max-tables\":255,\n"
+    "\"max-flows\":4294967295,\n"
+    "\"l2-bridge\":false,\n"
+    "\"mactable-ageing-time\":300,\n"
+    "\"mactable-max-entries\":8192,\n"
+    "\"packet-inq-size\":65535,\n"
+    "\"packet-inq-max-batches\":65535,\n"
+    "\"up-streamq-size\":65535,\n"
+    "\"up-streamq-max-batches\":65535,\n"
+    "\"down-streamq-size\":65535,\n"
+    "\"down-streamq-max-batches\":65535,\n"
+    "\"block-looping-ports\":false,\n"
+    "\"action-types\":[\"copy-ttl-out\",\"copy-ttl-in\","
+    "\"set-mpls-ttl\",\"dec-mpls-ttl\",\"push-vlan\",\"pop-vlan\","
+    "\"push-mpls\",\"pop-mpls\",\"set-queue\",\"group\",\"set-nw-ttl\","
+    "\"dec-nw-ttl\",\"set-field\"],\n"
+    "\"instruction-types\":[\"apply-actions\",\"clear-actions\","
+    "\"write-actions\",\"write-metadata\",\"goto-table\"],\n"
+    "\"reserved-port-types\":[\"all\",\"controller\",\"table\","
+    "\"inport\",\"any\",\"normal\",\"flood\"],\n"
+    "\"group-types\":[\"all\",\"select\",\"indirect\",\"fast-failover\"],\n"
+    "\"group-capabilities\":[\"select-weight\","
+    "\"select-liveness\",\"chaining\",\"chaining-check\"],\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+  const char *argv8[] = {"bridge", "test_name49", "modified", NULL};
+  const char test_str8[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name49\",\n"
+    "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c49\",\""DATASTORE_NAMESPACE_DELIMITER"c49_2\"],\n"
+    "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p49\":49,\n"
+    "\""DATASTORE_NAMESPACE_DELIMITER"p49_2\":149},\n"
+    "\"dpid\":49,\n"
+    "\"fail-mode\":\"standalone\",\n"
+    "\"flow-statistics\":false,\n"
+    "\"group-statistics\":false,\n"
+    "\"port-statistics\":false,\n"
+    "\"queue-statistics\":false,\n"
+    "\"table-statistics\":false,\n"
+    "\"reassemble-ip-fragments\":false,\n"
+    "\"max-buffered-packets\":65535,\n"
+    "\"max-ports\":2048,\n"
+    "\"max-tables\":255,\n"
+    "\"max-flows\":4294967295,\n"
+    "\"l2-bridge\":false,\n"
+    "\"mactable-ageing-time\":300,\n"
+    "\"mactable-max-entries\":8192,\n"
+    "\"packet-inq-size\":65535,\n"
+    "\"packet-inq-max-batches\":65535,\n"
+    "\"up-streamq-size\":65535,\n"
+    "\"up-streamq-max-batches\":65535,\n"
+    "\"down-streamq-size\":65535,\n"
+    "\"down-streamq-max-batches\":65535,\n"
+    "\"block-looping-ports\":false,\n"
+    "\"action-types\":[\"copy-ttl-out\",\"copy-ttl-in\","
+    "\"set-mpls-ttl\",\"dec-mpls-ttl\",\"push-vlan\",\"pop-vlan\","
+    "\"push-mpls\",\"pop-mpls\",\"set-queue\",\"group\",\"set-nw-ttl\","
+    "\"dec-nw-ttl\",\"set-field\"],\n"
+    "\"instruction-types\":[\"apply-actions\",\"clear-actions\","
+    "\"write-actions\",\"write-metadata\",\"goto-table\"],\n"
+    "\"reserved-port-types\":[\"all\",\"controller\",\"table\","
+    "\"inport\",\"any\",\"normal\",\"flood\"],\n"
+    "\"group-types\":[\"all\",\"select\",\"indirect\",\"fast-failover\"],\n"
+    "\"group-capabilities\":[\"select-weight\","
+    "\"select-liveness\",\"chaining\",\"chaining-check\"],\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+  const char *argv9[] = {"bridge", "test_name49", NULL};
+  const char test_str9[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name49\",\n"
+    "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c49\"],\n"
+    "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p49\":49},\n"
+    "\"dpid\":49,\n"
+    "\"fail-mode\":\"standalone\",\n"
+    "\"flow-statistics\":false,\n"
+    "\"group-statistics\":false,\n"
+    "\"port-statistics\":false,\n"
+    "\"queue-statistics\":false,\n"
+    "\"table-statistics\":false,\n"
+    "\"reassemble-ip-fragments\":false,\n"
+    "\"max-buffered-packets\":65535,\n"
+    "\"max-ports\":2048,\n"
+    "\"max-tables\":255,\n"
+    "\"max-flows\":4294967295,\n"
+    "\"l2-bridge\":false,\n"
+    "\"mactable-ageing-time\":300,\n"
+    "\"mactable-max-entries\":8192,\n"
+    "\"packet-inq-size\":65535,\n"
+    "\"packet-inq-max-batches\":65535,\n"
+    "\"up-streamq-size\":65535,\n"
+    "\"up-streamq-max-batches\":65535,\n"
+    "\"down-streamq-size\":65535,\n"
+    "\"down-streamq-max-batches\":65535,\n"
+    "\"block-looping-ports\":false,\n"
+    "\"action-types\":[\"copy-ttl-out\",\"copy-ttl-in\","
+    "\"set-mpls-ttl\",\"dec-mpls-ttl\",\"push-vlan\",\"pop-vlan\","
+    "\"push-mpls\",\"pop-mpls\",\"set-queue\",\"group\",\"set-nw-ttl\","
+    "\"dec-nw-ttl\",\"set-field\"],\n"
+    "\"instruction-types\":[\"apply-actions\",\"clear-actions\","
+    "\"write-actions\",\"write-metadata\",\"goto-table\"],\n"
+    "\"reserved-port-types\":[\"all\",\"controller\",\"table\","
+    "\"inport\",\"any\",\"normal\",\"flood\"],\n"
+    "\"group-types\":[\"all\",\"select\",\"indirect\",\"fast-failover\"],\n"
+    "\"group-capabilities\":[\"select-weight\","
+    "\"select-liveness\",\"chaining\",\"chaining-check\"],\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+  const char *argv10[] = {"bridge", "test_name49", "modified", NULL};
+  const char test_str10[] =
+    "{\"ret\":\"NOT_OPERATIONAL\",\n"
+    "\"data\":\"Not set modified.\"}";
+  const char *argv11[] = {"bridge", "test_name49", "destroy",
+                          NULL
+                         };
+  const char test_str11[] = "{\"ret\":\"OK\"}";
+
+  TEST_CONTROLLER_CREATE(ret, &interp, state4, &tbl, &ds, str, "cha49", "c49");
+  TEST_CONTROLLER_CREATE(ret, &interp, state4, &tbl, &ds, str, "cha49_2",
+                         "c49_2");
+  TEST_PORT_CREATE(ret, &interp, state4, &tbl_port, &ds, str, "i49", "p49");
+  TEST_PORT_CREATE(ret, &interp, state4, &tbl_port, &ds, str, "i49_2", "p49_2");
+
+  /* create cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state4,
+                 ARGV_SIZE(argv1), argv1, &tbl, bridge_cmd_update,
+                 &ds, str, test_str1);
+
+  /* show cmd (current). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv2), argv2, &tbl, bridge_cmd_update,
+                 &ds, str, test_str2);
+
+  /* show cmd (modified). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv3), argv3, &tbl, bridge_cmd_update,
+                 &ds, str, test_str3);
+
+  /* config cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv4), argv4, &tbl, bridge_cmd_update,
+                 &ds, str, test_str4);
+
+  /* show cmd (current). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv5), argv5, &tbl, bridge_cmd_update,
+                 &ds, str, test_str5);
+
+  /* show cmd (modified). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv6), argv6, &tbl, bridge_cmd_update,
+                 &ds, str, test_str6);
+
+  /* port commiting. */
+  TEST_PROC(ret, LAGOPUS_RESULT_OK, port_cmd_update, &interp, state2, &tbl_port,
+            DATASTORE_NAMESPACE_DELIMITER"p49", conf, &ds);
+
+  /* port commiting. */
+  TEST_PROC(ret, LAGOPUS_RESULT_OK, port_cmd_update, &interp, state2, &tbl_port,
+            DATASTORE_NAMESPACE_DELIMITER"p49_2", conf, &ds);
+
+  /* aborting. */
+  TEST_PROC(ret, LAGOPUS_RESULT_OK, bridge_cmd_update, &interp, state2, &tbl,
+            DATASTORE_NAMESPACE_DELIMITER"test_name49", conf, &ds);
+
+  /* show cmd (current). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv7), argv7, &tbl, bridge_cmd_update,
+                 &ds, str, test_str7);
+
+  /* show cmd (modified). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv8), argv8, &tbl, bridge_cmd_update,
+                 &ds, str, test_str8);
+
+  /* port commited. */
+  TEST_PROC(ret, LAGOPUS_RESULT_OK, port_cmd_update, &interp, state3, &tbl_port,
+            DATASTORE_NAMESPACE_DELIMITER"p49", conf, &ds);
+
+  /* port commited. */
+  TEST_PROC(ret, LAGOPUS_RESULT_OK, port_cmd_update, &interp, state3, &tbl_port,
+            DATASTORE_NAMESPACE_DELIMITER"p49_2", conf, &ds);
+
+  /* aborted. */
+  TEST_PROC(ret, LAGOPUS_RESULT_OK, bridge_cmd_update, &interp, state3, &tbl,
+            DATASTORE_NAMESPACE_DELIMITER"test_name49", conf, &ds);
+
+  /* show cmd (current). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv9), argv9, &tbl, bridge_cmd_update,
+                 &ds, str, test_str9);
+
+  /* show cmd (modified). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv10), argv10, &tbl, bridge_cmd_update,
+                 &ds, str, test_str10);
+
+  /* destroy cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state4,
+                 ARGV_SIZE(argv11), argv11, &tbl, bridge_cmd_update,
+                 &ds, str, test_str11);
+
+  TEST_CONTROLLER_DESTROY(ret, &interp, state4, &tbl, &ds, str, "cha49", "c49");
+  TEST_CONTROLLER_DESTROY(ret, &interp, state4, &tbl, &ds, str, "cha49_2",
+                          "c49_2");
+  TEST_PORT_DESTROY(ret, &interp, state4, &tbl_port, &ds, str, "i49", "p49");
+  TEST_PORT_DESTROY(ret, &interp, state4, &tbl_port, &ds, str, "i49_2", "p49_2");
+#else /* HYBRID */
+  TEST_IGNORE_MESSAGE("HYBRID is defined");
+#endif /* HYBRID */
 }
 
 void
 test_bridge_cmd_parse_atomic_destroy_create(void) {
+#ifndef HYBRID
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   datastore_interp_state_t state1 = DATASTORE_INTERP_STATE_ATOMIC;
   datastore_interp_state_t state2 = DATASTORE_INTERP_STATE_COMMITING;
@@ -4750,6 +8898,308 @@ test_bridge_cmd_parse_atomic_destroy_create(void) {
                           "c50_2");
   TEST_PORT_DESTROY(ret, &interp, state4, &tbl_port, &ds, str, "i50", "p50");
   TEST_PORT_DESTROY(ret, &interp, state4, &tbl_port, &ds, str, "i50_2", "p50_2");
+#else /* HYBRID */
+  TEST_IGNORE_MESSAGE("HYBRID is defined");
+#endif /* HYBRID */
+}
+
+void
+test_bridge_cmd_parse_atomic_destroy_create_hybrid(void) {
+#ifdef HYBRID
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state1 = DATASTORE_INTERP_STATE_ATOMIC;
+  datastore_interp_state_t state2 = DATASTORE_INTERP_STATE_COMMITING;
+  datastore_interp_state_t state3 = DATASTORE_INTERP_STATE_COMMITED;
+  datastore_interp_state_t state4 = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  void *conf = NULL;
+  const char *argv1[] = {"bridge", "test_name50", "create",
+                         "-controller", "c50",
+                         "-port", "p50", "50",
+                         "-dpid", "50",
+                         "-fail-mode", "standalone",
+                         "-flow-statistics", "false",
+                         "-group-statistics", "false",
+                         "-port-statistics", "false",
+                         "-queue-statistics", "false",
+                         "-table-statistics", "false",
+                         "-reassemble-ip-fragments", "false",
+                         "-max-buffered-packets", "65535",
+                         "-max-ports", "2048",
+                         "-max-tables", "255",
+                         "-max-flows", "4294967295",
+                         "-l2-bridge", "false",
+                         "-mactable-ageing-time", "300",
+                         "-mactable-max-entries", "8192",
+                         "-packet-inq-size", "65535",
+                         "-packet-inq-max-batches", "65535",
+                         "-up-streamq-size", "65535",
+                         "-up-streamq-max-batches", "65535",
+                         "-down-streamq-size", "65535",
+                         "-down-streamq-max-batches", "65535",
+                         "-block-looping-ports", "false",
+                         "-action-type", "copy-ttl-out",
+                         "-instruction-type", "apply-actions",
+                         NULL
+                        };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char *argv2[] = {"bridge", "test_name50", "destroy",
+                         NULL
+                        };
+  const char test_str2[] = "{\"ret\":\"OK\"}";
+  const char *argv3[] = {"bridge", "test_name50", NULL};
+  const char test_str3[] =
+    "{\"ret\":\"NOT_FOUND\",\n"
+    "\"data\":\"name = "DATASTORE_NAMESPACE_DELIMITER"test_name50\"}";
+  const char *argv4[] = {"bridge", "test_name50", "create",
+                         "-controller", "c50_2",
+                         "-port", "p50_2", "150",
+                         "-dpid", "150",
+                         "-fail-mode", "standalone",
+                         "-flow-statistics", "false",
+                         "-group-statistics", "false",
+                         "-port-statistics", "false",
+                         "-queue-statistics", "false",
+                         "-table-statistics", "false",
+                         "-reassemble-ip-fragments", "false",
+                         "-max-buffered-packets", "65535",
+                         "-max-ports", "2048",
+                         "-max-tables", "255",
+                         "-max-flows", "4294967295",
+                         "-l2-bridge", "false",
+                         "-mactable-ageing-time", "300",
+                         "-mactable-max-entries", "8192",
+                         "-packet-inq-size", "65535",
+                         "-packet-inq-max-batches", "65535",
+                         "-up-streamq-size", "65535",
+                         "-up-streamq-max-batches", "65535",
+                         "-down-streamq-size", "65535",
+                         "-down-streamq-max-batches", "65535",
+                         "-block-looping-ports", "false",
+                         "-action-type", "copy-ttl-out",
+                         "-instruction-type", "apply-actions",
+                         NULL
+                        };
+  const char test_str4[] = "{\"ret\":\"OK\"}";
+  const char *argv5[] = {"bridge", "test_name50", NULL};
+  const char test_str5[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name50\",\n"
+    "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c50\"],\n"
+    "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p50\":50},\n"
+    "\"dpid\":50,\n"
+    "\"fail-mode\":\"standalone\",\n"
+    "\"flow-statistics\":false,\n"
+    "\"group-statistics\":false,\n"
+    "\"port-statistics\":false,\n"
+    "\"queue-statistics\":false,\n"
+    "\"table-statistics\":false,\n"
+    "\"reassemble-ip-fragments\":false,\n"
+    "\"max-buffered-packets\":65535,\n"
+    "\"max-ports\":2048,\n"
+    "\"max-tables\":255,\n"
+    "\"max-flows\":4294967295,\n"
+    "\"l2-bridge\":false,\n"
+    "\"mactable-ageing-time\":300,\n"
+    "\"mactable-max-entries\":8192,\n"
+    "\"packet-inq-size\":65535,\n"
+    "\"packet-inq-max-batches\":65535,\n"
+    "\"up-streamq-size\":65535,\n"
+    "\"up-streamq-max-batches\":65535,\n"
+    "\"down-streamq-size\":65535,\n"
+    "\"down-streamq-max-batches\":65535,\n"
+    "\"block-looping-ports\":false,\n"
+    "\"action-types\":[\"copy-ttl-out\",\"copy-ttl-in\","
+    "\"set-mpls-ttl\",\"dec-mpls-ttl\",\"push-vlan\",\"pop-vlan\","
+    "\"push-mpls\",\"pop-mpls\",\"set-queue\",\"group\",\"set-nw-ttl\","
+    "\"dec-nw-ttl\",\"set-field\"],\n"
+    "\"instruction-types\":[\"apply-actions\",\"clear-actions\","
+    "\"write-actions\",\"write-metadata\",\"goto-table\"],\n"
+    "\"reserved-port-types\":[\"all\",\"controller\",\"table\","
+    "\"inport\",\"any\",\"normal\",\"flood\"],\n"
+    "\"group-types\":[\"all\",\"select\",\"indirect\",\"fast-failover\"],\n"
+    "\"group-capabilities\":[\"select-weight\","
+    "\"select-liveness\",\"chaining\",\"chaining-check\"],\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+  const char *argv6[] = {"bridge", "test_name50", "modified", NULL};
+  const char test_str6[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name50\",\n"
+    "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c50\",\""DATASTORE_NAMESPACE_DELIMITER"c50_2\"],\n"
+    "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p50\":50,\n"
+    "\""DATASTORE_NAMESPACE_DELIMITER"p50_2\":150},\n"
+    "\"dpid\":150,\n"
+    "\"fail-mode\":\"standalone\",\n"
+    "\"flow-statistics\":false,\n"
+    "\"group-statistics\":false,\n"
+    "\"port-statistics\":false,\n"
+    "\"queue-statistics\":false,\n"
+    "\"table-statistics\":false,\n"
+    "\"reassemble-ip-fragments\":false,\n"
+    "\"max-buffered-packets\":65535,\n"
+    "\"max-ports\":2048,\n"
+    "\"max-tables\":255,\n"
+    "\"max-flows\":4294967295,\n"
+    "\"l2-bridge\":false,\n"
+    "\"mactable-ageing-time\":300,\n"
+    "\"mactable-max-entries\":8192,\n"
+    "\"packet-inq-size\":65535,\n"
+    "\"packet-inq-max-batches\":65535,\n"
+    "\"up-streamq-size\":65535,\n"
+    "\"up-streamq-max-batches\":65535,\n"
+    "\"down-streamq-size\":65535,\n"
+    "\"down-streamq-max-batches\":65535,\n"
+    "\"block-looping-ports\":false,\n"
+    "\"action-types\":[\"copy-ttl-out\",\"copy-ttl-in\","
+    "\"set-mpls-ttl\",\"dec-mpls-ttl\",\"push-vlan\",\"pop-vlan\","
+    "\"push-mpls\",\"pop-mpls\",\"set-queue\",\"group\",\"set-nw-ttl\","
+    "\"dec-nw-ttl\",\"set-field\"],\n"
+    "\"instruction-types\":[\"apply-actions\",\"clear-actions\","
+    "\"write-actions\",\"write-metadata\",\"goto-table\"],\n"
+    "\"reserved-port-types\":[\"all\",\"controller\",\"table\","
+    "\"inport\",\"any\",\"normal\",\"flood\"],\n"
+    "\"group-types\":[\"all\",\"select\",\"indirect\",\"fast-failover\"],\n"
+    "\"group-capabilities\":[\"select-weight\","
+    "\"select-liveness\",\"chaining\",\"chaining-check\"],\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+  const char *argv7[] = {"bridge", "test_name50", NULL};
+  const char test_str7[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name50\",\n"
+    "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c50\",\""DATASTORE_NAMESPACE_DELIMITER"c50_2\"],\n"
+    "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p50\":50,\n"
+    "\""DATASTORE_NAMESPACE_DELIMITER"p50_2\":150},\n"
+    "\"dpid\":150,\n"
+    "\"fail-mode\":\"standalone\",\n"
+    "\"flow-statistics\":false,\n"
+    "\"group-statistics\":false,\n"
+    "\"port-statistics\":false,\n"
+    "\"queue-statistics\":false,\n"
+    "\"table-statistics\":false,\n"
+    "\"reassemble-ip-fragments\":false,\n"
+    "\"max-buffered-packets\":65535,\n"
+    "\"max-ports\":2048,\n"
+    "\"max-tables\":255,\n"
+    "\"max-flows\":4294967295,\n"
+    "\"l2-bridge\":false,\n"
+    "\"mactable-ageing-time\":300,\n"
+    "\"mactable-max-entries\":8192,\n"
+    "\"packet-inq-size\":65535,\n"
+    "\"packet-inq-max-batches\":65535,\n"
+    "\"up-streamq-size\":65535,\n"
+    "\"up-streamq-max-batches\":65535,\n"
+    "\"down-streamq-size\":65535,\n"
+    "\"down-streamq-max-batches\":65535,\n"
+    "\"block-looping-ports\":false,\n"
+    "\"action-types\":[\"copy-ttl-out\",\"copy-ttl-in\","
+    "\"set-mpls-ttl\",\"dec-mpls-ttl\",\"push-vlan\",\"pop-vlan\","
+    "\"push-mpls\",\"pop-mpls\",\"set-queue\",\"group\",\"set-nw-ttl\","
+    "\"dec-nw-ttl\",\"set-field\"],\n"
+    "\"instruction-types\":[\"apply-actions\",\"clear-actions\","
+    "\"write-actions\",\"write-metadata\",\"goto-table\"],\n"
+    "\"reserved-port-types\":[\"all\",\"controller\",\"table\","
+    "\"inport\",\"any\",\"normal\",\"flood\"],\n"
+    "\"group-types\":[\"all\",\"select\",\"indirect\",\"fast-failover\"],\n"
+    "\"group-capabilities\":[\"select-weight\","
+    "\"select-liveness\",\"chaining\",\"chaining-check\"],\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+  const char *argv8[] = {"bridge", "test_name50", "modified", NULL};
+  const char test_str8[] =
+    "{\"ret\":\"NOT_OPERATIONAL\",\n"
+    "\"data\":\"Not set modified.\"}";
+  const char *argv9[] = {"bridge", "test_name50", "destroy",
+                         NULL
+                        };
+  const char test_str9[] = "{\"ret\":\"OK\"}";
+
+  TEST_CONTROLLER_CREATE(ret, &interp, state4, &tbl, &ds, str, "cha50", "c50");
+  TEST_CONTROLLER_CREATE(ret, &interp, state4, &tbl, &ds, str, "cha50_2",
+                         "c50_2");
+  TEST_PORT_CREATE(ret, &interp, state4, &tbl_port, &ds, str, "i50", "p50");
+  TEST_PORT_CREATE(ret, &interp, state4, &tbl_port, &ds, str, "i50_2", "p50_2");
+
+  /* create cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state4,
+                 ARGV_SIZE(argv1), argv1, &tbl, bridge_cmd_update,
+                 &ds, str, test_str1);
+
+  /* destroy cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv2), argv2, &tbl, bridge_cmd_update,
+                 &ds, str, test_str2);
+
+  /* show cmd (current). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv3), argv3, &tbl, bridge_cmd_update,
+                 &ds, str, test_str3);
+
+  /* create cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv4), argv4, &tbl, bridge_cmd_update,
+                 &ds, str, test_str4);
+
+  /* show cmd (current). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv5), argv5, &tbl, bridge_cmd_update,
+                 &ds, str, test_str5);
+
+  /* show cmd (modified). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv6), argv6, &tbl, bridge_cmd_update,
+                 &ds, str, test_str6);
+
+  /* port commiting. */
+  TEST_PROC(ret, LAGOPUS_RESULT_OK, port_cmd_update, &interp, state2, &tbl_port,
+            DATASTORE_NAMESPACE_DELIMITER"p50", conf, &ds);
+
+  /* port commiting. */
+  TEST_PROC(ret, LAGOPUS_RESULT_OK, port_cmd_update, &interp, state2, &tbl_port,
+            DATASTORE_NAMESPACE_DELIMITER"p50_2", conf, &ds);
+
+  /* commiting. */
+  TEST_PROC(ret, LAGOPUS_RESULT_OK, bridge_cmd_update, &interp, state2, &tbl,
+            DATASTORE_NAMESPACE_DELIMITER"test_name50", conf, &ds);
+
+  /* port commited. */
+  TEST_PROC(ret, LAGOPUS_RESULT_OK, port_cmd_update, &interp, state3, &tbl_port,
+            DATASTORE_NAMESPACE_DELIMITER"p50", conf, &ds);
+
+  /* port commited. */
+  TEST_PROC(ret, LAGOPUS_RESULT_OK, port_cmd_update, &interp, state3, &tbl_port,
+            DATASTORE_NAMESPACE_DELIMITER"p50_2", conf, &ds);
+
+  /* commited. */
+  TEST_PROC(ret, LAGOPUS_RESULT_OK, bridge_cmd_update, &interp, state3, &tbl,
+            DATASTORE_NAMESPACE_DELIMITER"test_name50", conf, &ds);
+
+  /* show cmd (current). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state4,
+                 ARGV_SIZE(argv7), argv7, &tbl, bridge_cmd_update,
+                 &ds, str, test_str7);
+
+  /* show cmd (modified). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 bridge_cmd_parse, &interp, state4,
+                 ARGV_SIZE(argv8), argv8, &tbl, bridge_cmd_update,
+                 &ds, str, test_str8);
+
+  /* destroy cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state4,
+                 ARGV_SIZE(argv9), argv9, &tbl, bridge_cmd_update,
+                 &ds, str, test_str9);
+
+  TEST_CONTROLLER_DESTROY(ret, &interp, state4, &tbl, &ds, str, "cha50", "c50");
+  TEST_CONTROLLER_DESTROY(ret, &interp, state4, &tbl, &ds, str, "cha50_2",
+                          "c50_2");
+  TEST_PORT_DESTROY(ret, &interp, state4, &tbl_port, &ds, str, "i50", "p50");
+  TEST_PORT_DESTROY(ret, &interp, state4, &tbl_port, &ds, str, "i50_2", "p50_2");
+#else /* HYBRID */
+  TEST_IGNORE_MESSAGE("HYBRID is not defined");
+#endif /* HYBRID */
 }
 
 void
@@ -4865,6 +9315,7 @@ test_bridge_cmd_parse_port_no_already_exists(void) {
 
 void
 test_bridge_cmd_parse_create_action_type(void) {
+#ifndef HYBRID
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
   char *str = NULL;
@@ -4984,6 +9435,142 @@ test_bridge_cmd_parse_create_action_type(void) {
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
                  ARGV_SIZE(argv5), argv5, &tbl, bridge_cmd_update,
                  &ds, str, test_str5);
+#else /* HYBRID */
+  TEST_IGNORE_MESSAGE("HYBRID is defined");
+#endif /* HYBRID */
+}
+
+void
+test_bridge_cmd_parse_create_action_type_hybrid(void) {
+#ifdef HYBRID
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"bridge", "test_name53", "create",
+                         "-dpid", "53",
+                         "-action-type", "~copy-ttl-out",
+                         NULL
+                        };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char *argv2[] = {"bridge", "test_name53", NULL};
+  const char test_str2[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name53\",\n"
+    "\"controllers\":[],\n"
+    "\"ports\":{},\n"
+    "\"dpid\":53,\n"
+    "\"fail-mode\":\"secure\",\n"
+    "\"flow-statistics\":true,\n"
+    "\"group-statistics\":true,\n"
+    "\"port-statistics\":true,\n"
+    "\"queue-statistics\":true,\n"
+    "\"table-statistics\":true,\n"
+    "\"reassemble-ip-fragments\":false,\n"
+    "\"max-buffered-packets\":65535,\n"
+    "\"max-ports\":255,\n"
+    "\"max-tables\":255,\n"
+    "\"max-flows\":4294967295,\n"
+    "\"l2-bridge\":false,\n"
+    "\"mactable-ageing-time\":300,\n"
+    "\"mactable-max-entries\":8192,\n"
+    "\"packet-inq-size\":1000,\n"
+    "\"packet-inq-max-batches\":1000,\n"
+    "\"up-streamq-size\":1000,\n"
+    "\"up-streamq-max-batches\":1000,\n"
+    "\"down-streamq-size\":1000,\n"
+    "\"down-streamq-max-batches\":1000,\n"
+    "\"block-looping-ports\":false,\n"
+    "\"action-types\":[\"copy-ttl-in\","
+    "\"set-mpls-ttl\",\"dec-mpls-ttl\",\"push-vlan\",\"pop-vlan\","
+    "\"push-mpls\",\"pop-mpls\",\"set-queue\",\"group\",\"set-nw-ttl\","
+    "\"dec-nw-ttl\",\"set-field\"],\n"
+    "\"instruction-types\":[\"apply-actions\",\"clear-actions\","
+    "\"write-actions\",\"write-metadata\",\"goto-table\"],\n"
+    "\"reserved-port-types\":[\"all\",\"controller\",\"table\","
+    "\"inport\",\"any\",\"normal\",\"flood\"],\n"
+    "\"group-types\":[\"all\",\"select\",\"indirect\",\"fast-failover\"],\n"
+    "\"group-capabilities\":[\"select-weight\","
+    "\"select-liveness\",\"chaining\",\"chaining-check\"],\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+  const char *argv3[] = {"bridge", "test_name53", "config",
+                         "-action-type", "copy-ttl-out",
+                         NULL
+                        };
+  const char test_str3[] = "{\"ret\":\"OK\"}";
+  const char *argv4[] = {"bridge", "test_name53", NULL};
+  const char test_str4[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name53\",\n"
+    "\"controllers\":[],\n"
+    "\"ports\":{},\n"
+    "\"dpid\":53,\n"
+    "\"fail-mode\":\"secure\",\n"
+    "\"flow-statistics\":true,\n"
+    "\"group-statistics\":true,\n"
+    "\"port-statistics\":true,\n"
+    "\"queue-statistics\":true,\n"
+    "\"table-statistics\":true,\n"
+    "\"reassemble-ip-fragments\":false,\n"
+    "\"max-buffered-packets\":65535,\n"
+    "\"max-ports\":255,\n"
+    "\"max-tables\":255,\n"
+    "\"max-flows\":4294967295,\n"
+    "\"l2-bridge\":false,\n"
+    "\"mactable-ageing-time\":300,\n"
+    "\"mactable-max-entries\":8192,\n"
+    "\"packet-inq-size\":1000,\n"
+    "\"packet-inq-max-batches\":1000,\n"
+    "\"up-streamq-size\":1000,\n"
+    "\"up-streamq-max-batches\":1000,\n"
+    "\"down-streamq-size\":1000,\n"
+    "\"down-streamq-max-batches\":1000,\n"
+    "\"block-looping-ports\":false,\n"
+    "\"action-types\":[\"copy-ttl-out\",\"copy-ttl-in\","
+    "\"set-mpls-ttl\",\"dec-mpls-ttl\",\"push-vlan\",\"pop-vlan\","
+    "\"push-mpls\",\"pop-mpls\",\"set-queue\",\"group\",\"set-nw-ttl\","
+    "\"dec-nw-ttl\",\"set-field\"],\n"
+    "\"instruction-types\":[\"apply-actions\",\"clear-actions\","
+    "\"write-actions\",\"write-metadata\",\"goto-table\"],\n"
+    "\"reserved-port-types\":[\"all\",\"controller\",\"table\","
+    "\"inport\",\"any\",\"normal\",\"flood\"],\n"
+    "\"group-types\":[\"all\",\"select\",\"indirect\",\"fast-failover\"],\n"
+    "\"group-capabilities\":[\"select-weight\","
+    "\"select-liveness\",\"chaining\",\"chaining-check\"],\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+  const char *argv5[] = {"bridge", "test_name53", "destroy",
+                         NULL
+                        };
+  const char test_str5[] = "{\"ret\":\"OK\"}";
+
+  /* create cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, bridge_cmd_update,
+                 &ds, str, test_str1);
+
+  /* show cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv2), argv2, &tbl, bridge_cmd_update,
+                 &ds, str, test_str2);
+
+  /* config cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv3), argv3, &tbl, bridge_cmd_update,
+                 &ds, str, test_str3);
+
+  /* show cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv4), argv4, &tbl, bridge_cmd_update,
+                 &ds, str, test_str4);
+
+  /* destroy cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv5), argv5, &tbl, bridge_cmd_update,
+                 &ds, str, test_str5);
+#else /* HYBRID */
+  TEST_IGNORE_MESSAGE("HYBRID is not defined");
+#endif /* HYBRID */
 }
 
 void
@@ -5009,6 +9596,7 @@ test_bridge_cmd_parse_create_bad_action_type(void) {
 
 void
 test_bridge_cmd_parse_create_instruction_type(void) {
+#ifndef HYBRID
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
   char *str = NULL;
@@ -5128,6 +9716,142 @@ test_bridge_cmd_parse_create_instruction_type(void) {
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
                  ARGV_SIZE(argv5), argv5, &tbl, bridge_cmd_update,
                  &ds, str, test_str5);
+#else /* HYBRID */
+  TEST_IGNORE_MESSAGE("HYBRID is defined");
+#endif /* HYBRID */
+}
+
+void
+test_bridge_cmd_parse_create_instruction_type_hybrid(void) {
+#ifdef HYBRID
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"bridge", "test_name55", "create",
+                         "-dpid", "55",
+                         "-instruction-type", "~apply-actions",
+                         NULL
+                        };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char *argv2[] = {"bridge", "test_name55", NULL};
+  const char test_str2[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name55\",\n"
+    "\"controllers\":[],\n"
+    "\"ports\":{},\n"
+    "\"dpid\":55,\n"
+    "\"fail-mode\":\"secure\",\n"
+    "\"flow-statistics\":true,\n"
+    "\"group-statistics\":true,\n"
+    "\"port-statistics\":true,\n"
+    "\"queue-statistics\":true,\n"
+    "\"table-statistics\":true,\n"
+    "\"reassemble-ip-fragments\":false,\n"
+    "\"max-buffered-packets\":65535,\n"
+    "\"max-ports\":255,\n"
+    "\"max-tables\":255,\n"
+    "\"max-flows\":4294967295,\n"
+    "\"l2-bridge\":false,\n"
+    "\"mactable-ageing-time\":300,\n"
+    "\"mactable-max-entries\":8192,\n"
+    "\"packet-inq-size\":1000,\n"
+    "\"packet-inq-max-batches\":1000,\n"
+    "\"up-streamq-size\":1000,\n"
+    "\"up-streamq-max-batches\":1000,\n"
+    "\"down-streamq-size\":1000,\n"
+    "\"down-streamq-max-batches\":1000,\n"
+    "\"block-looping-ports\":false,\n"
+    "\"action-types\":[\"copy-ttl-out\",\"copy-ttl-in\","
+    "\"set-mpls-ttl\",\"dec-mpls-ttl\",\"push-vlan\",\"pop-vlan\","
+    "\"push-mpls\",\"pop-mpls\",\"set-queue\",\"group\",\"set-nw-ttl\","
+    "\"dec-nw-ttl\",\"set-field\"],\n"
+    "\"instruction-types\":[\"clear-actions\","
+    "\"write-actions\",\"write-metadata\",\"goto-table\"],\n"
+    "\"reserved-port-types\":[\"all\",\"controller\",\"table\","
+    "\"inport\",\"any\",\"normal\",\"flood\"],\n"
+    "\"group-types\":[\"all\",\"select\",\"indirect\",\"fast-failover\"],\n"
+    "\"group-capabilities\":[\"select-weight\","
+    "\"select-liveness\",\"chaining\",\"chaining-check\"],\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+  const char *argv3[] = {"bridge", "test_name55", "config",
+                         "-instruction-type", "apply-actions",
+                         NULL
+                        };
+  const char test_str3[] = "{\"ret\":\"OK\"}";
+  const char *argv4[] = {"bridge", "test_name55", NULL};
+  const char test_str4[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name55\",\n"
+    "\"controllers\":[],\n"
+    "\"ports\":{},\n"
+    "\"dpid\":55,\n"
+    "\"fail-mode\":\"secure\",\n"
+    "\"flow-statistics\":true,\n"
+    "\"group-statistics\":true,\n"
+    "\"port-statistics\":true,\n"
+    "\"queue-statistics\":true,\n"
+    "\"table-statistics\":true,\n"
+    "\"reassemble-ip-fragments\":false,\n"
+    "\"max-buffered-packets\":65535,\n"
+    "\"max-ports\":255,\n"
+    "\"max-tables\":255,\n"
+    "\"max-flows\":4294967295,\n"
+    "\"l2-bridge\":false,\n"
+    "\"mactable-ageing-time\":300,\n"
+    "\"mactable-max-entries\":8192,\n"
+    "\"packet-inq-size\":1000,\n"
+    "\"packet-inq-max-batches\":1000,\n"
+    "\"up-streamq-size\":1000,\n"
+    "\"up-streamq-max-batches\":1000,\n"
+    "\"down-streamq-size\":1000,\n"
+    "\"down-streamq-max-batches\":1000,\n"
+    "\"block-looping-ports\":false,\n"
+    "\"action-types\":[\"copy-ttl-out\",\"copy-ttl-in\","
+    "\"set-mpls-ttl\",\"dec-mpls-ttl\",\"push-vlan\",\"pop-vlan\","
+    "\"push-mpls\",\"pop-mpls\",\"set-queue\",\"group\",\"set-nw-ttl\","
+    "\"dec-nw-ttl\",\"set-field\"],\n"
+    "\"instruction-types\":[\"apply-actions\",\"clear-actions\","
+    "\"write-actions\",\"write-metadata\",\"goto-table\"],\n"
+    "\"reserved-port-types\":[\"all\",\"controller\",\"table\","
+    "\"inport\",\"any\",\"normal\",\"flood\"],\n"
+    "\"group-types\":[\"all\",\"select\",\"indirect\",\"fast-failover\"],\n"
+    "\"group-capabilities\":[\"select-weight\","
+    "\"select-liveness\",\"chaining\",\"chaining-check\"],\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+  const char *argv5[] = {"bridge", "test_name55", "destroy",
+                         NULL
+                        };
+  const char test_str5[] = "{\"ret\":\"OK\"}";
+
+  /* create cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, bridge_cmd_update,
+                 &ds, str, test_str1);
+
+  /* show cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv2), argv2, &tbl, bridge_cmd_update,
+                 &ds, str, test_str2);
+
+  /* config cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv3), argv3, &tbl, bridge_cmd_update,
+                 &ds, str, test_str3);
+
+  /* show cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv4), argv4, &tbl, bridge_cmd_update,
+                 &ds, str, test_str4);
+
+  /* destroy cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv5), argv5, &tbl, bridge_cmd_update,
+                 &ds, str, test_str5);
+#else /* HYBRID */
+  TEST_IGNORE_MESSAGE("HYBRID is not defined");
+#endif /* HYBRID */
 }
 
 void
@@ -5153,6 +9877,7 @@ test_bridge_cmd_parse_create_bad_instruction_type(void) {
 
 void
 test_bridge_cmd_parse_create_reserved_port_type(void) {
+#ifndef HYBRID
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
   char *str = NULL;
@@ -5272,6 +9997,142 @@ test_bridge_cmd_parse_create_reserved_port_type(void) {
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
                  ARGV_SIZE(argv5), argv5, &tbl, bridge_cmd_update,
                  &ds, str, test_str5);
+#else /* HYBRID */
+  TEST_IGNORE_MESSAGE("HYBRID is defined");
+#endif /* HYBRID */
+}
+
+void
+test_bridge_cmd_parse_create_reserved_port_type_hybrid(void) {
+#ifdef HYBRID
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"bridge", "test_name57", "create",
+                         "-dpid", "57",
+                         "-reserved-port-type", "~all",
+                         NULL
+                        };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char *argv2[] = {"bridge", "test_name57", NULL};
+  const char test_str2[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name57\",\n"
+    "\"controllers\":[],\n"
+    "\"ports\":{},\n"
+    "\"dpid\":57,\n"
+    "\"fail-mode\":\"secure\",\n"
+    "\"flow-statistics\":true,\n"
+    "\"group-statistics\":true,\n"
+    "\"port-statistics\":true,\n"
+    "\"queue-statistics\":true,\n"
+    "\"table-statistics\":true,\n"
+    "\"reassemble-ip-fragments\":false,\n"
+    "\"max-buffered-packets\":65535,\n"
+    "\"max-ports\":255,\n"
+    "\"max-tables\":255,\n"
+    "\"max-flows\":4294967295,\n"
+    "\"l2-bridge\":false,\n"
+    "\"mactable-ageing-time\":300,\n"
+    "\"mactable-max-entries\":8192,\n"
+    "\"packet-inq-size\":1000,\n"
+    "\"packet-inq-max-batches\":1000,\n"
+    "\"up-streamq-size\":1000,\n"
+    "\"up-streamq-max-batches\":1000,\n"
+    "\"down-streamq-size\":1000,\n"
+    "\"down-streamq-max-batches\":1000,\n"
+    "\"block-looping-ports\":false,\n"
+    "\"action-types\":[\"copy-ttl-out\",\"copy-ttl-in\","
+    "\"set-mpls-ttl\",\"dec-mpls-ttl\",\"push-vlan\",\"pop-vlan\","
+    "\"push-mpls\",\"pop-mpls\",\"set-queue\",\"group\",\"set-nw-ttl\","
+    "\"dec-nw-ttl\",\"set-field\"],\n"
+    "\"instruction-types\":[\"apply-actions\",\"clear-actions\","
+    "\"write-actions\",\"write-metadata\",\"goto-table\"],\n"
+    "\"reserved-port-types\":[\"controller\",\"table\","
+    "\"inport\",\"any\",\"normal\",\"flood\"],\n"
+    "\"group-types\":[\"all\",\"select\",\"indirect\",\"fast-failover\"],\n"
+    "\"group-capabilities\":[\"select-weight\","
+    "\"select-liveness\",\"chaining\",\"chaining-check\"],\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+  const char *argv3[] = {"bridge", "test_name57", "config",
+                         "-reserved-port-type", "all",
+                         NULL
+                        };
+  const char test_str3[] = "{\"ret\":\"OK\"}";
+  const char *argv4[] = {"bridge", "test_name57", NULL};
+  const char test_str4[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name57\",\n"
+    "\"controllers\":[],\n"
+    "\"ports\":{},\n"
+    "\"dpid\":57,\n"
+    "\"fail-mode\":\"secure\",\n"
+    "\"flow-statistics\":true,\n"
+    "\"group-statistics\":true,\n"
+    "\"port-statistics\":true,\n"
+    "\"queue-statistics\":true,\n"
+    "\"table-statistics\":true,\n"
+    "\"reassemble-ip-fragments\":false,\n"
+    "\"max-buffered-packets\":65535,\n"
+    "\"max-ports\":255,\n"
+    "\"max-tables\":255,\n"
+    "\"max-flows\":4294967295,\n"
+    "\"l2-bridge\":false,\n"
+    "\"mactable-ageing-time\":300,\n"
+    "\"mactable-max-entries\":8192,\n"
+    "\"packet-inq-size\":1000,\n"
+    "\"packet-inq-max-batches\":1000,\n"
+    "\"up-streamq-size\":1000,\n"
+    "\"up-streamq-max-batches\":1000,\n"
+    "\"down-streamq-size\":1000,\n"
+    "\"down-streamq-max-batches\":1000,\n"
+    "\"block-looping-ports\":false,\n"
+    "\"action-types\":[\"copy-ttl-out\",\"copy-ttl-in\","
+    "\"set-mpls-ttl\",\"dec-mpls-ttl\",\"push-vlan\",\"pop-vlan\","
+    "\"push-mpls\",\"pop-mpls\",\"set-queue\",\"group\",\"set-nw-ttl\","
+    "\"dec-nw-ttl\",\"set-field\"],\n"
+    "\"instruction-types\":[\"apply-actions\",\"clear-actions\","
+    "\"write-actions\",\"write-metadata\",\"goto-table\"],\n"
+    "\"reserved-port-types\":[\"all\",\"controller\",\"table\","
+    "\"inport\",\"any\",\"normal\",\"flood\"],\n"
+    "\"group-types\":[\"all\",\"select\",\"indirect\",\"fast-failover\"],\n"
+    "\"group-capabilities\":[\"select-weight\","
+    "\"select-liveness\",\"chaining\",\"chaining-check\"],\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+  const char *argv5[] = {"bridge", "test_name57", "destroy",
+                         NULL
+                        };
+  const char test_str5[] = "{\"ret\":\"OK\"}";
+
+  /* create cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, bridge_cmd_update,
+                 &ds, str, test_str1);
+
+  /* show cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv2), argv2, &tbl, bridge_cmd_update,
+                 &ds, str, test_str2);
+
+  /* config cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv3), argv3, &tbl, bridge_cmd_update,
+                 &ds, str, test_str3);
+
+  /* show cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv4), argv4, &tbl, bridge_cmd_update,
+                 &ds, str, test_str4);
+
+  /* destroy cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv5), argv5, &tbl, bridge_cmd_update,
+                 &ds, str, test_str5);
+#else /* HYBRID */
+  TEST_IGNORE_MESSAGE("HYBRID is not defined");
+#endif /* HYBRID */
 }
 
 void
@@ -5297,6 +10158,7 @@ test_bridge_cmd_parse_create_bad_reserved_port_type(void) {
 
 void
 test_bridge_cmd_parse_create_group_type(void) {
+#ifndef HYBRID
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
   char *str = NULL;
@@ -5416,6 +10278,142 @@ test_bridge_cmd_parse_create_group_type(void) {
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
                  ARGV_SIZE(argv5), argv5, &tbl, bridge_cmd_update,
                  &ds, str, test_str5);
+#else /* HYBRID */
+  TEST_IGNORE_MESSAGE("HYBRID is defined");
+#endif /* HYBRID */
+}
+
+void
+test_bridge_cmd_parse_create_group_type_hybrid(void) {
+#ifdef HYBRID
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"bridge", "test_name59", "create",
+                         "-dpid", "59",
+                         "-group-type", "~all",
+                         NULL
+                        };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char *argv2[] = {"bridge", "test_name59", NULL};
+  const char test_str2[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name59\",\n"
+    "\"controllers\":[],\n"
+    "\"ports\":{},\n"
+    "\"dpid\":59,\n"
+    "\"fail-mode\":\"secure\",\n"
+    "\"flow-statistics\":true,\n"
+    "\"group-statistics\":true,\n"
+    "\"port-statistics\":true,\n"
+    "\"queue-statistics\":true,\n"
+    "\"table-statistics\":true,\n"
+    "\"reassemble-ip-fragments\":false,\n"
+    "\"max-buffered-packets\":65535,\n"
+    "\"max-ports\":255,\n"
+    "\"max-tables\":255,\n"
+    "\"max-flows\":4294967295,\n"
+    "\"l2-bridge\":false,\n"
+    "\"mactable-ageing-time\":300,\n"
+    "\"mactable-max-entries\":8192,\n"
+    "\"packet-inq-size\":1000,\n"
+    "\"packet-inq-max-batches\":1000,\n"
+    "\"up-streamq-size\":1000,\n"
+    "\"up-streamq-max-batches\":1000,\n"
+    "\"down-streamq-size\":1000,\n"
+    "\"down-streamq-max-batches\":1000,\n"
+    "\"block-looping-ports\":false,\n"
+    "\"action-types\":[\"copy-ttl-out\",\"copy-ttl-in\","
+    "\"set-mpls-ttl\",\"dec-mpls-ttl\",\"push-vlan\",\"pop-vlan\","
+    "\"push-mpls\",\"pop-mpls\",\"set-queue\",\"group\",\"set-nw-ttl\","
+    "\"dec-nw-ttl\",\"set-field\"],\n"
+    "\"instruction-types\":[\"apply-actions\",\"clear-actions\","
+    "\"write-actions\",\"write-metadata\",\"goto-table\"],\n"
+    "\"reserved-port-types\":[\"all\",\"controller\",\"table\","
+    "\"inport\",\"any\",\"normal\",\"flood\"],\n"
+    "\"group-types\":[\"select\",\"indirect\",\"fast-failover\"],\n"
+    "\"group-capabilities\":[\"select-weight\","
+    "\"select-liveness\",\"chaining\",\"chaining-check\"],\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+  const char *argv3[] = {"bridge", "test_name59", "config",
+                         "-group-type", "all",
+                         NULL
+                        };
+  const char test_str3[] = "{\"ret\":\"OK\"}";
+  const char *argv4[] = {"bridge", "test_name59", NULL};
+  const char test_str4[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name59\",\n"
+    "\"controllers\":[],\n"
+    "\"ports\":{},\n"
+    "\"dpid\":59,\n"
+    "\"fail-mode\":\"secure\",\n"
+    "\"flow-statistics\":true,\n"
+    "\"group-statistics\":true,\n"
+    "\"port-statistics\":true,\n"
+    "\"queue-statistics\":true,\n"
+    "\"table-statistics\":true,\n"
+    "\"reassemble-ip-fragments\":false,\n"
+    "\"max-buffered-packets\":65535,\n"
+    "\"max-ports\":255,\n"
+    "\"max-tables\":255,\n"
+    "\"max-flows\":4294967295,\n"
+    "\"l2-bridge\":false,\n"
+    "\"mactable-ageing-time\":300,\n"
+    "\"mactable-max-entries\":8192,\n"
+    "\"packet-inq-size\":1000,\n"
+    "\"packet-inq-max-batches\":1000,\n"
+    "\"up-streamq-size\":1000,\n"
+    "\"up-streamq-max-batches\":1000,\n"
+    "\"down-streamq-size\":1000,\n"
+    "\"down-streamq-max-batches\":1000,\n"
+    "\"block-looping-ports\":false,\n"
+    "\"action-types\":[\"copy-ttl-out\",\"copy-ttl-in\","
+    "\"set-mpls-ttl\",\"dec-mpls-ttl\",\"push-vlan\",\"pop-vlan\","
+    "\"push-mpls\",\"pop-mpls\",\"set-queue\",\"group\",\"set-nw-ttl\","
+    "\"dec-nw-ttl\",\"set-field\"],\n"
+    "\"instruction-types\":[\"apply-actions\",\"clear-actions\","
+    "\"write-actions\",\"write-metadata\",\"goto-table\"],\n"
+    "\"reserved-port-types\":[\"all\",\"controller\",\"table\","
+    "\"inport\",\"any\",\"normal\",\"flood\"],\n"
+    "\"group-types\":[\"all\",\"select\",\"indirect\",\"fast-failover\"],\n"
+    "\"group-capabilities\":[\"select-weight\","
+    "\"select-liveness\",\"chaining\",\"chaining-check\"],\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+  const char *argv5[] = {"bridge", "test_name59", "destroy",
+                         NULL
+                        };
+  const char test_str5[] = "{\"ret\":\"OK\"}";
+
+  /* create cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, bridge_cmd_update,
+                 &ds, str, test_str1);
+
+  /* show cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv2), argv2, &tbl, bridge_cmd_update,
+                 &ds, str, test_str2);
+
+  /* config cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv3), argv3, &tbl, bridge_cmd_update,
+                 &ds, str, test_str3);
+
+  /* show cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv4), argv4, &tbl, bridge_cmd_update,
+                 &ds, str, test_str4);
+
+  /* destroy cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv5), argv5, &tbl, bridge_cmd_update,
+                 &ds, str, test_str5);
+#else /* HYBRID */
+  TEST_IGNORE_MESSAGE("HYBRID is not defined");
+#endif /* HYBRID */
 }
 
 void
@@ -5441,6 +10439,7 @@ test_bridge_cmd_parse_create_bad_group_type(void) {
 
 void
 test_bridge_cmd_parse_create_group_capability(void) {
+#ifndef HYBRID
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
   char *str = NULL;
@@ -5560,6 +10559,142 @@ test_bridge_cmd_parse_create_group_capability(void) {
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
                  ARGV_SIZE(argv5), argv5, &tbl, bridge_cmd_update,
                  &ds, str, test_str5);
+#else /* HYBRID */
+  TEST_IGNORE_MESSAGE("HYBRID is defined");
+#endif /* HYBRID */
+}
+
+void
+test_bridge_cmd_parse_create_group_capability_hybrid(void) {
+#ifdef HYBRID
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  char *str = NULL;
+  const char *argv1[] = {"bridge", "test_name61", "create",
+                         "-dpid", "61",
+                         "-group-capability", "~select-weight",
+                         NULL
+                        };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char *argv2[] = {"bridge", "test_name61", NULL};
+  const char test_str2[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name61\",\n"
+    "\"controllers\":[],\n"
+    "\"ports\":{},\n"
+    "\"dpid\":61,\n"
+    "\"fail-mode\":\"secure\",\n"
+    "\"flow-statistics\":true,\n"
+    "\"group-statistics\":true,\n"
+    "\"port-statistics\":true,\n"
+    "\"queue-statistics\":true,\n"
+    "\"table-statistics\":true,\n"
+    "\"reassemble-ip-fragments\":false,\n"
+    "\"max-buffered-packets\":65535,\n"
+    "\"max-ports\":255,\n"
+    "\"max-tables\":255,\n"
+    "\"max-flows\":4294967295,\n"
+    "\"l2-bridge\":false,\n"
+    "\"mactable-ageing-time\":300,\n"
+    "\"mactable-max-entries\":8192,\n"
+    "\"packet-inq-size\":1000,\n"
+    "\"packet-inq-max-batches\":1000,\n"
+    "\"up-streamq-size\":1000,\n"
+    "\"up-streamq-max-batches\":1000,\n"
+    "\"down-streamq-size\":1000,\n"
+    "\"down-streamq-max-batches\":1000,\n"
+    "\"block-looping-ports\":false,\n"
+    "\"action-types\":[\"copy-ttl-out\",\"copy-ttl-in\","
+    "\"set-mpls-ttl\",\"dec-mpls-ttl\",\"push-vlan\",\"pop-vlan\","
+    "\"push-mpls\",\"pop-mpls\",\"set-queue\",\"group\",\"set-nw-ttl\","
+    "\"dec-nw-ttl\",\"set-field\"],\n"
+    "\"instruction-types\":[\"apply-actions\",\"clear-actions\","
+    "\"write-actions\",\"write-metadata\",\"goto-table\"],\n"
+    "\"reserved-port-types\":[\"all\",\"controller\",\"table\","
+    "\"inport\",\"any\",\"normal\",\"flood\"],\n"
+    "\"group-types\":[\"all\",\"select\",\"indirect\",\"fast-failover\"],\n"
+    "\"group-capabilities\":[\"select-liveness\","
+    "\"chaining\",\"chaining-check\"],\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+  const char *argv3[] = {"bridge", "test_name61", "config",
+                         "-group-capability", "select-weight",
+                         NULL
+                        };
+  const char test_str3[] = "{\"ret\":\"OK\"}";
+  const char *argv4[] = {"bridge", "test_name61", NULL};
+  const char test_str4[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name61\",\n"
+    "\"controllers\":[],\n"
+    "\"ports\":{},\n"
+    "\"dpid\":61,\n"
+    "\"fail-mode\":\"secure\",\n"
+    "\"flow-statistics\":true,\n"
+    "\"group-statistics\":true,\n"
+    "\"port-statistics\":true,\n"
+    "\"queue-statistics\":true,\n"
+    "\"table-statistics\":true,\n"
+    "\"reassemble-ip-fragments\":false,\n"
+    "\"max-buffered-packets\":65535,\n"
+    "\"max-ports\":255,\n"
+    "\"max-tables\":255,\n"
+    "\"max-flows\":4294967295,\n"
+    "\"l2-bridge\":false,\n"
+    "\"mactable-ageing-time\":300,\n"
+    "\"mactable-max-entries\":8192,\n"
+    "\"packet-inq-size\":1000,\n"
+    "\"packet-inq-max-batches\":1000,\n"
+    "\"up-streamq-size\":1000,\n"
+    "\"up-streamq-max-batches\":1000,\n"
+    "\"down-streamq-size\":1000,\n"
+    "\"down-streamq-max-batches\":1000,\n"
+    "\"block-looping-ports\":false,\n"
+    "\"action-types\":[\"copy-ttl-out\",\"copy-ttl-in\","
+    "\"set-mpls-ttl\",\"dec-mpls-ttl\",\"push-vlan\",\"pop-vlan\","
+    "\"push-mpls\",\"pop-mpls\",\"set-queue\",\"group\",\"set-nw-ttl\","
+    "\"dec-nw-ttl\",\"set-field\"],\n"
+    "\"instruction-types\":[\"apply-actions\",\"clear-actions\","
+    "\"write-actions\",\"write-metadata\",\"goto-table\"],\n"
+    "\"reserved-port-types\":[\"all\",\"controller\",\"table\","
+    "\"inport\",\"any\",\"normal\",\"flood\"],\n"
+    "\"group-types\":[\"all\",\"select\",\"indirect\",\"fast-failover\"],\n"
+    "\"group-capabilities\":[\"select-weight\","
+    "\"select-liveness\",\"chaining\",\"chaining-check\"],\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+  const char *argv5[] = {"bridge", "test_name61", "destroy",
+                         NULL
+                        };
+  const char test_str5[] = "{\"ret\":\"OK\"}";
+
+  /* create cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv1), argv1, &tbl, bridge_cmd_update,
+                 &ds, str, test_str1);
+
+  /* show cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv2), argv2, &tbl, bridge_cmd_update,
+                 &ds, str, test_str2);
+
+  /* config cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv3), argv3, &tbl, bridge_cmd_update,
+                 &ds, str, test_str3);
+
+  /* show cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv4), argv4, &tbl, bridge_cmd_update,
+                 &ds, str, test_str4);
+
+  /* destroy cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state,
+                 ARGV_SIZE(argv5), argv5, &tbl, bridge_cmd_update,
+                 &ds, str, test_str5);
+#else /* HYBRID */
+  TEST_IGNORE_MESSAGE("HYBRID is not defined");
+#endif /* HYBRID */
 }
 
 void
@@ -6089,6 +11224,7 @@ test_bridge_cmd_parse_create_bad_down_streamq_max_batches(void) {
 
 void
 test_bridge_cmd_parse_dryrun(void) {
+#ifndef HYBRID
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   datastore_interp_state_t state1 = DATASTORE_INTERP_STATE_AUTO_COMMIT;
   datastore_interp_state_t state2 = DATASTORE_INTERP_STATE_DRYRUN;
@@ -6257,6 +11393,194 @@ test_bridge_cmd_parse_dryrun(void) {
   TEST_CONTROLLER_DESTROY(ret, &interp, state1, &tbl, &ds, str, "cha84_2",
                           "c84_2");
   TEST_PORT_DESTROY(ret, &interp, state1, &tbl_port, &ds, str, "i84_2", "p84_2");
+#else /* HYBRID */
+  TEST_IGNORE_MESSAGE("HYBRID is defined");
+#endif /* HYBRID */
+}
+
+void
+test_bridge_cmd_parse_dryrun_hybrid(void) {
+#ifdef HYBRID
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  datastore_interp_state_t state1 = DATASTORE_INTERP_STATE_AUTO_COMMIT;
+  datastore_interp_state_t state2 = DATASTORE_INTERP_STATE_DRYRUN;
+  char *str = NULL;
+  const char *argv1[] = {"bridge", "test_name84", "create",
+                         "-controller", "c84",
+                         "-port", "p84", "84",
+                         "-dpid", "84",
+                         "-fail-mode", "standalone",
+                         "-flow-statistics", "false",
+                         "-group-statistics", "false",
+                         "-port-statistics", "false",
+                         "-queue-statistics", "false",
+                         "-table-statistics", "false",
+                         "-reassemble-ip-fragments", "false",
+                         "-max-buffered-packets", "65535",
+                         "-max-ports", "2048",
+                         "-max-tables", "255",
+                         "-max-flows", "4294967295",
+                         "-l2-bridge", "false",
+                         "-mactable-ageing-time", "300",
+                         "-mactable-max-entries", "8192",
+                         "-packet-inq-size", "65535",
+                         "-packet-inq-max-batches", "65535",
+                         "-up-streamq-size", "65535",
+                         "-up-streamq-max-batches", "65535",
+                         "-down-streamq-size", "65535",
+                         "-down-streamq-max-batches", "65535",
+                         "-block-looping-ports", "false",
+                         "-action-type", "copy-ttl-out",
+                         "-instruction-type", "apply-actions",
+                         NULL
+                        };
+  const char test_str1[] = "{\"ret\":\"OK\"}";
+  const char *argv2[] = {"bridge", "test_name84", "current", NULL};
+  const char test_str2[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name84\",\n"
+    "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c84\"],\n"
+    "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p84\":84},\n"
+    "\"dpid\":84,\n"
+    "\"fail-mode\":\"standalone\",\n"
+    "\"flow-statistics\":false,\n"
+    "\"group-statistics\":false,\n"
+    "\"port-statistics\":false,\n"
+    "\"queue-statistics\":false,\n"
+    "\"table-statistics\":false,\n"
+    "\"reassemble-ip-fragments\":false,\n"
+    "\"max-buffered-packets\":65535,\n"
+    "\"max-ports\":2048,\n"
+    "\"max-tables\":255,\n"
+    "\"max-flows\":4294967295,\n"
+    "\"l2-bridge\":false,\n"
+    "\"mactable-ageing-time\":300,\n"
+    "\"mactable-max-entries\":8192,\n"
+    "\"packet-inq-size\":65535,\n"
+    "\"packet-inq-max-batches\":65535,\n"
+    "\"up-streamq-size\":65535,\n"
+    "\"up-streamq-max-batches\":65535,\n"
+    "\"down-streamq-size\":65535,\n"
+    "\"down-streamq-max-batches\":65535,\n"
+    "\"block-looping-ports\":false,\n"
+    "\"action-types\":[\"copy-ttl-out\",\"copy-ttl-in\","
+    "\"set-mpls-ttl\",\"dec-mpls-ttl\",\"push-vlan\",\"pop-vlan\","
+    "\"push-mpls\",\"pop-mpls\",\"set-queue\",\"group\",\"set-nw-ttl\","
+    "\"dec-nw-ttl\",\"set-field\"],\n"
+    "\"instruction-types\":[\"apply-actions\",\"clear-actions\","
+    "\"write-actions\",\"write-metadata\",\"goto-table\"],\n"
+    "\"reserved-port-types\":[\"all\",\"controller\",\"table\","
+    "\"inport\",\"any\",\"normal\",\"flood\"],\n"
+    "\"group-types\":[\"all\",\"select\",\"indirect\",\"fast-failover\"],\n"
+    "\"group-capabilities\":[\"select-weight\","
+    "\"select-liveness\",\"chaining\",\"chaining-check\"],\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+  const char *argv3[] = {"bridge", "test_name84", "modified", NULL};
+  const char test_str3[] =
+    "{\"ret\":\"NOT_OPERATIONAL\",\n"
+    "\"data\":\"Not set modified.\"}";
+  const char *argv4[] = {"bridge", "test_name84", "config",
+                         "-controller", "c84_2",
+                         "-port", "p84_2", "184",
+                         NULL
+                        };
+  const char test_str4[] = "{\"ret\":\"OK\"}";
+  const char *argv5[] = {"bridge", "test_name84", "current", NULL};
+  const char test_str5[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name84\",\n"
+    "\"controllers\":[\""DATASTORE_NAMESPACE_DELIMITER"c84\","
+                     "\""DATASTORE_NAMESPACE_DELIMITER"c84_2\"],\n"
+    "\"ports\":{\""DATASTORE_NAMESPACE_DELIMITER"p84\":84,\n"
+               "\""DATASTORE_NAMESPACE_DELIMITER"p84_2\":0},\n"
+    "\"dpid\":84,\n"
+    "\"fail-mode\":\"standalone\",\n"
+    "\"flow-statistics\":false,\n"
+    "\"group-statistics\":false,\n"
+    "\"port-statistics\":false,\n"
+    "\"queue-statistics\":false,\n"
+    "\"table-statistics\":false,\n"
+    "\"reassemble-ip-fragments\":false,\n"
+    "\"max-buffered-packets\":65535,\n"
+    "\"max-ports\":2048,\n"
+    "\"max-tables\":255,\n"
+    "\"max-flows\":4294967295,\n"
+    "\"l2-bridge\":false,\n"
+    "\"mactable-ageing-time\":300,\n"
+    "\"mactable-max-entries\":8192,\n"
+    "\"packet-inq-size\":65535,\n"
+    "\"packet-inq-max-batches\":65535,\n"
+    "\"up-streamq-size\":65535,\n"
+    "\"up-streamq-max-batches\":65535,\n"
+    "\"down-streamq-size\":65535,\n"
+    "\"down-streamq-max-batches\":65535,\n"
+    "\"block-looping-ports\":false,\n"
+    "\"action-types\":[\"copy-ttl-out\",\"copy-ttl-in\","
+    "\"set-mpls-ttl\",\"dec-mpls-ttl\",\"push-vlan\",\"pop-vlan\","
+    "\"push-mpls\",\"pop-mpls\",\"set-queue\",\"group\",\"set-nw-ttl\","
+    "\"dec-nw-ttl\",\"set-field\"],\n"
+    "\"instruction-types\":[\"apply-actions\",\"clear-actions\","
+    "\"write-actions\",\"write-metadata\",\"goto-table\"],\n"
+    "\"reserved-port-types\":[\"all\",\"controller\",\"table\","
+    "\"inport\",\"any\",\"normal\",\"flood\"],\n"
+    "\"group-types\":[\"all\",\"select\",\"indirect\",\"fast-failover\"],\n"
+    "\"group-capabilities\":[\"select-weight\","
+    "\"select-liveness\",\"chaining\",\"chaining-check\"],\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
+  const char *argv6[] = {"bridge", "test_name84", "modified", NULL};
+  const char test_str6[] =
+    "{\"ret\":\"NOT_OPERATIONAL\",\n"
+    "\"data\":\"Not set modified.\"}";
+
+  TEST_CONTROLLER_CREATE(ret, &interp, state1, &tbl, &ds, str, "cha84", "c84");
+  TEST_CONTROLLER_CREATE(ret, &interp, state1, &tbl, &ds, str, "cha84_2",
+                         "c84_2");
+  TEST_PORT_CREATE(ret, &interp, state1, &tbl_port, &ds, str, "i84", "p84");
+  TEST_PORT_CREATE(ret, &interp, state1, &tbl_port, &ds, str, "i84_2", "p84_2");
+
+  /* create cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv1), argv1, &tbl, bridge_cmd_update,
+                 &ds, str, test_str1);
+
+  /* show cmd (current). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv2), argv2, &tbl, bridge_cmd_update,
+                 &ds, str, test_str2);
+
+  /* show cmd (modified). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 bridge_cmd_parse, &interp, state1,
+                 ARGV_SIZE(argv3), argv3, &tbl, bridge_cmd_update,
+                 &ds, str, test_str3);
+
+  /* config cmd. */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state2,
+                 ARGV_SIZE(argv4), argv4, &tbl, bridge_cmd_update,
+                 &ds, str, test_str4);
+
+  /* show cmd (current). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, bridge_cmd_parse, &interp, state2,
+                 ARGV_SIZE(argv5), argv5, &tbl, bridge_cmd_update,
+                 &ds, str, test_str5);
+
+  /* show cmd (modified). */
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
+                 bridge_cmd_parse, &interp, state2,
+                 ARGV_SIZE(argv6), argv6, &tbl, bridge_cmd_update,
+                 &ds, str, test_str6);
+
+  TEST_BRIDGE_DESTROY(ret, &interp, state1, &tbl, &ds, str, "test_name84",
+                      "cha84", "c84", "i84", "p84")
+
+  TEST_CONTROLLER_DESTROY(ret, &interp, state1, &tbl, &ds, str, "cha84_2",
+                          "c84_2");
+  TEST_PORT_DESTROY(ret, &interp, state1, &tbl_port, &ds, str, "i84_2", "p84_2");
+#else /* HYBRID */
+  TEST_IGNORE_MESSAGE("HYBRID is not defined");
+#endif /* HYBRID */
 }
 
 void

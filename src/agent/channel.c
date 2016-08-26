@@ -418,10 +418,19 @@ channel_write(struct channel *channel) {
 }
 
 void
-channel_send_packet_by_event(struct channel *channel, struct pbuf *pbuf) {
+channel_send_packet_by_event_nolock(struct channel *channel, struct pbuf *pbuf) {
   if (channel != NULL) {
     pbuf_list_add(channel->out, pbuf);
     channel_write_on(channel);
+  }
+}
+
+void
+channel_send_packet_by_event(struct channel *channel, struct pbuf *pbuf) {
+  if (channel != NULL) {
+    channel_lock(channel);
+    channel_send_packet_by_event_nolock(channel, pbuf);
+    channel_unlock(channel);
   }
 }
 

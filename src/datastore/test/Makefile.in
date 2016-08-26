@@ -11,7 +11,9 @@ TESTS = datastore_common_test port_test interface_test \
 	meter_cmd_test \
 	group_cmd_test affinition_cmd_test queue_test queue_cmd_test \
 	policer_test policer_action_test policer_action_cmd_test \
-	policer_cmd_test agent_cmd_test ns_util_test flow_cmd_mod_test
+	policer_cmd_test agent_cmd_test ns_util_test flow_cmd_mod_test \
+	mactable_cmd_test mactable_cmd_dump_test route_cmd_test \
+	route_cmd_dump_test
 
 SRCS = datastore_common_test.c port_test.c interface_test.c \
 	channel_test.c controller_test.c bridge_test.c \
@@ -23,7 +25,9 @@ SRCS = datastore_common_test.c port_test.c interface_test.c \
 	meter_cmd_test.c \
 	group_cmd_test.c affinition_cmd_test.c queue_test.c queue_cmd_test.c \
 	policer_test.c policer_action_test.c policer_action_cmd_test.c \
-	policer_cmd_test.c agent_cmd_test.c ns_util_test.c flow_cmd_mod_test.c
+	policer_cmd_test.c agent_cmd_test.c ns_util_test.c flow_cmd_mod_test.c \
+	mactable_cmd_test.c mactable_cmd_dump_test.c route_cmd_test.c \
+	route_cmd_dump_test.c
 
 DEP_LIBS+=$(DEP_LAGOPUS_UTIL_LIB)
 

@@ -616,13 +616,14 @@ AC_SUBST(NUMA_LIBS)
 # packaging
 PKG_CONFFILE="mk/pkg_param.conf"
 if test -f "${PKG_CONFFILE}"; then
-   . "${PKG_CONFFILE}"
+   . "${PKG_CONFFILE}" "${TOPDIR}"
 else
    AC_MSG_ERROR([NOT FOUND : mk/pkg_param.conf])
 fi
 
 AC_SUBST(PKG_NAME)
 AC_SUBST(PKG_VERSION)
+AC_SUBST(PKG_DATE)
 AC_SUBST(PKG_REVISION)
 AC_SUBST(PKG_MAINTAINER)
 AC_SUBST(PKG_SECTION)
@@ -672,6 +673,7 @@ AC_CONFIG_FILES(
 	tools/benchmark/Makefile
 	debian/Makefile
 	debian/control
+	debian/changelog
 	debian/copyright
 	debian/lagopus-DATAPLANE.install
 )

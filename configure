@@ -645,6 +645,7 @@ PKG_PRIORITY
 PKG_SECTION
 PKG_MAINTAINER
 PKG_REVISION
+PKG_DATE
 PKG_VERSION
 PKG_NAME
 NUMA_LIBS
@@ -18386,10 +18387,11 @@ fi
 # packaging
 PKG_CONFFILE="mk/pkg_param.conf"
 if test -f "${PKG_CONFFILE}"; then
-   . "${PKG_CONFFILE}"
+   . "${PKG_CONFFILE}" "${TOPDIR}"
 else
    as_fn_error $? "NOT FOUND : mk/pkg_param.conf" "$LINENO" 5
 fi
+
 
 
 
@@ -18413,7 +18415,7 @@ if test "x$?" != "x0"; then
 fi
 
 # emit.
-ac_config_files="$ac_config_files mk/vars.mk mk/doxygen.conf Makefile src/include/Makefile src/include/lagopus_platform.h src/lib/Makefile src/lib/test/Makefile src/lib/check/Makefile src/agent/Makefile src/agent/test/Makefile src/cmds/Makefile src/config/lagosh/Makefile src/config/lagosh/lagosh.py src/dataplane/Makefile src/dataplane/dpdk/test/Makefile src/dataplane/ofproto/test/Makefile src/dataplane/ofproto/test/lib/Makefile src/dataplane/mgr/test/Makefile src/datastore/Makefile src/datastore/test/Makefile src/datastore/check/Makefile src/snmp/Makefile src/snmp/test/Makefile test/dataplane/benchmark/Makefile tools/Makefile tools/benchmark/Makefile debian/Makefile debian/control debian/copyright debian/lagopus-DATAPLANE.install"
+ac_config_files="$ac_config_files mk/vars.mk mk/doxygen.conf Makefile src/include/Makefile src/include/lagopus_platform.h src/lib/Makefile src/lib/test/Makefile src/lib/check/Makefile src/agent/Makefile src/agent/test/Makefile src/cmds/Makefile src/config/lagosh/Makefile src/config/lagosh/lagosh.py src/dataplane/Makefile src/dataplane/dpdk/test/Makefile src/dataplane/ofproto/test/Makefile src/dataplane/ofproto/test/lib/Makefile src/dataplane/mgr/test/Makefile src/datastore/Makefile src/datastore/test/Makefile src/datastore/check/Makefile src/snmp/Makefile src/snmp/test/Makefile test/dataplane/benchmark/Makefile tools/Makefile tools/benchmark/Makefile debian/Makefile debian/control debian/changelog debian/copyright debian/lagopus-DATAPLANE.install"
 
 
 # emit and set executable attribute.
@@ -19564,6 +19566,7 @@ do
     "tools/benchmark/Makefile") CONFIG_FILES="$CONFIG_FILES tools/benchmark/Makefile" ;;
     "debian/Makefile") CONFIG_FILES="$CONFIG_FILES debian/Makefile" ;;
     "debian/control") CONFIG_FILES="$CONFIG_FILES debian/control" ;;
+    "debian/changelog") CONFIG_FILES="$CONFIG_FILES debian/changelog" ;;
     "debian/copyright") CONFIG_FILES="$CONFIG_FILES debian/copyright" ;;
     "debian/lagopus-DATAPLANE.install") CONFIG_FILES="$CONFIG_FILES debian/lagopus-DATAPLANE.install" ;;
     "debian/rules") CONFIG_FILES="$CONFIG_FILES debian/rules" ;;
