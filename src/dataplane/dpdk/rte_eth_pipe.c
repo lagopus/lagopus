@@ -44,7 +44,7 @@
 #include <rte_malloc.h>
 #include <rte_memcpy.h>
 #include <rte_string_fns.h>
-#include <rte_dev.h>
+#include <rte_vdev.h>
 #include <rte_kvargs.h>
 #include <rte_errno.h>
 
@@ -317,7 +317,7 @@ rte_eth_from_rings(const char *name, struct rte_ring *const rx_queues[],
   }
 
   /* reserve an ethdev entry */
-  eth_dev = rte_eth_dev_allocate(name, RTE_ETH_DEV_VIRTUAL);
+  eth_dev = rte_eth_dev_allocate(name);
   if (eth_dev == NULL) {
     rte_errno = ENOSPC;
     goto error;
@@ -460,8 +460,8 @@ out:
   return ret;
 }
 
-int
-rte_pmd_pipe_devinit(const char *name, const char *params) {
+static int
+rte_pmd_pipe_probe(const char *name, const char *params) {
   struct rte_kvargs *kvlist;
   int ret = 0;
   struct vport_info info;
@@ -501,7 +501,7 @@ out:
 }
 
 static int
-rte_pmd_pipe_devuninit(const char *name) {
+rte_pmd_pipe_remove(const char *name) {
   struct rte_eth_dev *eth_dev;
 
   RTE_LOG(INFO, PMD, "Uninitializing pmd_pipe for %s\n", name);
@@ -519,13 +519,13 @@ rte_pmd_pipe_devuninit(const char *name) {
   return 0;
 }
 
-static struct rte_driver pmd_pipe_drv = {
-  .name = "eth_pipe",
-  .type = PMD_VDEV,
-  .init = rte_pmd_pipe_devinit,
-  .uninit = rte_pmd_pipe_devuninit,
+static struct rte_vdev_driver pipe_drv = {
+  .probe = rte_pmd_pipe_probe,
+  .remove = rte_pmd_pipe_remove,
 };
 
-PMD_REGISTER_DRIVER(pmd_pipe_drv, eth_pipe);
-DRIVER_REGISTER_PARAM_STRING(eth_pipe,
-                             "iface=<string> ");
+RTE_PMD_REGISTER_VDEV(net_pipe, pipe_drv);
+RTE_PMD_REGISTER_ALIAS(net_pipe, eth_pipe);
+
+RTE_PMD_REGISTER_PARAM_STRING(net_pipe,
+			      "iface=<string>");
