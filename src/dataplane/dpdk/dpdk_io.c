@@ -840,6 +840,10 @@ dpdk_configure_interface(struct interface *ifp) {
 
   /* Init port */
   printf("Initializing NIC port %u ...\n", (unsigned) portid);
+  if (!rte_eth_dev_is_valid_port(portid)) {
+    printf("NIC port %u cannot used for DPDK\n", (unsigned) portid);
+    return LAGOPUS_RESULT_INVALID_ARGS;
+  }
   if ((rte_eth_devices[portid].data->dev_flags & RTE_ETH_DEV_INTR_LSC) != 0) {
     port_conf.intr_conf.lsc = 1;
     ret = rte_eth_dev_configure(portid,
