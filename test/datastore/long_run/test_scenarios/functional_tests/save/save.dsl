@@ -24,16 +24,16 @@ policer :policer01 create -action :policer-action01 -bandwidth-limit 1500 -burst
 policer :policer02 create -action :policer-action02 -bandwidth-limit 1500 -burst-size-limit 1500 -bandwidth-percent 0
 
 # all the queue objects' attribute
-queue :queue01 create -type single-rate -id 1 -priority 2 -color color-aware -committed-burst-size 1500 -committed-information-rate 1500 -excess-burst-size 1500
-queue :queue02 create -type single-rate -id 2 -priority 3 -color color-aware -committed-burst-size 1500 -committed-information-rate 1500 -excess-burst-size 1500
+queue :queue01 create -type single-rate -priority 2 -color color-aware -committed-burst-size 1500 -committed-information-rate 1500 -excess-burst-size 1500
+queue :queue02 create -type single-rate -priority 3 -color color-aware -committed-burst-size 1500 -committed-information-rate 1500 -excess-burst-size 1500
 
 # all the interface objects' attribute
 interface :if01 create -type ethernet-rawsock -device lago_eth0 -mtu 1 -ip-addr 127.0.0.1
 interface :if02 create -type ethernet-rawsock -device lago_eth1 -mtu 2 -ip-addr 127.0.0.2
 
 # all the port objects' attribute
-port :port01 create -interface :if01 -policer :policer01 -queue :queue01
-port :port02 create -interface :if02 -policer :policer02 -queue :queue02
+port :port01 create -interface :if01 -policer :policer01 -queue :queue01 1
+port :port02 create -interface :if02 -policer :policer02 -queue :queue02 2
 
 # all the channel objects' attribute
 channel :channel01 create -dst-addr 127.0.0.1 -dst-port 12345 -local-addr 0.0.0.0 -local-port 0 -protocol tcp

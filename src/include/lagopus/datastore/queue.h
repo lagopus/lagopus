@@ -36,7 +36,7 @@ typedef enum datastore_queue_color {
 } datastore_queue_color_t;
 
 typedef struct datastore_queue_info {
-  uint32_t id;
+  uint32_t id; /* TODO: delete. */
   uint16_t priority;
   datastore_queue_type_t type;
   datastore_queue_color_t color;

@@ -98,4 +98,20 @@ queue_cmd_update_propagation(datastore_interp_t *iptr,
                                  char *name,
                                  lagopus_dstring_t *result);
 
+/**
+ * Is exists queue id.
+ *
+ *     @param[in]	name	Queue name.
+ *     @paran[in]	queue id	Queue id.
+ *     @param[out]	b	Is exists queue id.
+ *
+ *     @retval	LAGOPUS_RESULT_OK	Succeeded.
+ *     @retval	LAGOPUS_RESULT_ANY_FAILURES	Failed.
+ *     @retval	LAGOPUS_RESULT_INVALID_ARGS	Failed, invalid argument(s).
+ */
+lagopus_result_t
+queue_cmd_queue_id_is_exists(char *name,
+                             const uint32_t queue_id,
+                             bool *b);
+
 #endif /* __QUEUE_CMD_H__ */

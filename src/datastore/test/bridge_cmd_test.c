@@ -258,7 +258,7 @@ test_bridge_cmd_parse_create_01(void) {
     "\"port-number\":5,\n"
     "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"i5\",\n"
     "\"policer\":\"\",\n"
-    "\"queues\":[],\n"
+    "\"queues\":{},\n"
     "\"is-used\":true,\n"
     "\"is-enabled\":true}]}";
   const char *port_argv2[] = {"port", "p5", NULL};
@@ -268,7 +268,7 @@ test_bridge_cmd_parse_create_01(void) {
     "\"port-number\":5,\n"
     "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"i5\",\n"
     "\"policer\":\"\",\n"
-    "\"queues\":[],\n"
+    "\"queues\":{},\n"
     "\"is-used\":false,\n"
     "\"is-enabled\":false}]}";
   const char *ctrler_argv1[] = {"controller", "c5", NULL};
@@ -580,7 +580,7 @@ test_bridge_cmd_parse_create_01_hybrid(void) {
     "\"port-number\":5,\n"
     "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"i5\",\n"
     "\"policer\":\"\",\n"
-    "\"queues\":[],\n"
+    "\"queues\":{},\n"
     "\"is-used\":true,\n"
     "\"is-enabled\":true}]}";
   const char *port_argv2[] = {"port", "p5", NULL};
@@ -590,7 +590,7 @@ test_bridge_cmd_parse_create_01_hybrid(void) {
     "\"port-number\":5,\n"
     "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"i5\",\n"
     "\"policer\":\"\",\n"
-    "\"queues\":[],\n"
+    "\"queues\":{},\n"
     "\"is-used\":false,\n"
     "\"is-enabled\":false}]}";
   const char *ctrler_argv1[] = {"controller", "c5", NULL};
@@ -1287,7 +1287,7 @@ test_bridge_cmd_enable_destroy_propagation(void) {
     "\"port-number\":8,\n"
     "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"i8\",\n"
     "\"policer\":\"\",\n"
-    "\"queues\":[],\n"
+    "\"queues\":{},\n"
     "\"is-used\":true,\n"
     "\"is-enabled\":true}]}";
   const char *port_argv2[] = {"port", "p8", NULL};
@@ -1297,7 +1297,7 @@ test_bridge_cmd_enable_destroy_propagation(void) {
     "\"port-number\":8,\n"
     "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"i8\",\n"
     "\"policer\":\"\",\n"
-    "\"queues\":[],\n"
+    "\"queues\":{},\n"
     "\"is-used\":false,\n"
     "\"is-enabled\":false}]}";
   const char *cha_argv1[] = {"channel", "cha8", NULL};
@@ -1471,7 +1471,7 @@ test_bridge_cmd_enable_destroy_propagation_hybrid(void) {
     "\"port-number\":8,\n"
     "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"i8\",\n"
     "\"policer\":\"\",\n"
-    "\"queues\":[],\n"
+    "\"queues\":{},\n"
     "\"is-used\":true,\n"
     "\"is-enabled\":true}]}";
   const char *port_argv2[] = {"port", "p8", NULL};
@@ -1481,7 +1481,7 @@ test_bridge_cmd_enable_destroy_propagation_hybrid(void) {
     "\"port-number\":8,\n"
     "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"i8\",\n"
     "\"policer\":\"\",\n"
-    "\"queues\":[],\n"
+    "\"queues\":{},\n"
     "\"is-used\":false,\n"
     "\"is-enabled\":false}]}";
   const char *cha_argv1[] = {"channel", "cha8", NULL};
@@ -1729,7 +1729,7 @@ test_bridge_cmd_parse_config_01(void) {
     "\"port-number\":25,\n"
     "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"i25\",\n"
     "\"policer\":\"\",\n"
-    "\"queues\":[],\n"
+    "\"queues\":{},\n"
     "\"is-used\":true,\n"
     "\"is-enabled\":false}]}";
   const char *port_argv2[] = {"port", "p25", NULL};
@@ -1739,7 +1739,7 @@ test_bridge_cmd_parse_config_01(void) {
     "\"port-number\":25,\n"
     "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"i25\",\n"
     "\"policer\":\"\",\n"
-    "\"queues\":[],\n"
+    "\"queues\":{},\n"
     "\"is-used\":true,\n"
     "\"is-enabled\":false}]}";
   const char *port_argv3[] = {"port", "p26", NULL};
@@ -1749,7 +1749,7 @@ test_bridge_cmd_parse_config_01(void) {
     "\"port-number\":0,\n"
     "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"i26\",\n"
     "\"policer\":\"\",\n"
-    "\"queues\":[],\n"
+    "\"queues\":{},\n"
     "\"is-used\":false,\n"
     "\"is-enabled\":false}]}";
   const char *port_argv4[] = {"port", "p26", NULL};
@@ -1759,7 +1759,7 @@ test_bridge_cmd_parse_config_01(void) {
     "\"port-number\":26,\n"
     "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"i26\",\n"
     "\"policer\":\"\",\n"
-    "\"queues\":[],\n"
+    "\"queues\":{},\n"
     "\"is-used\":true,\n"
     "\"is-enabled\":false}]}";
   const char *ctrler_argv1[] = {"controller", "c25", NULL};
@@ -2014,7 +2014,7 @@ test_bridge_cmd_parse_config_01_hybrid(void) {
     "\"port-number\":25,\n"
     "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"i25\",\n"
     "\"policer\":\"\",\n"
-    "\"queues\":[],\n"
+    "\"queues\":{},\n"
     "\"is-used\":true,\n"
     "\"is-enabled\":false}]}";
   const char *port_argv2[] = {"port", "p25", NULL};
@@ -2024,7 +2024,7 @@ test_bridge_cmd_parse_config_01_hybrid(void) {
     "\"port-number\":25,\n"
     "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"i25\",\n"
     "\"policer\":\"\",\n"
-    "\"queues\":[],\n"
+    "\"queues\":{},\n"
     "\"is-used\":true,\n"
     "\"is-enabled\":false}]}";
   const char *port_argv3[] = {"port", "p26", NULL};
@@ -2034,7 +2034,7 @@ test_bridge_cmd_parse_config_01_hybrid(void) {
     "\"port-number\":0,\n"
     "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"i26\",\n"
     "\"policer\":\"\",\n"
-    "\"queues\":[],\n"
+    "\"queues\":{},\n"
     "\"is-used\":false,\n"
     "\"is-enabled\":false}]}";
   const char *port_argv4[] = {"port", "p26", NULL};
@@ -2044,7 +2044,7 @@ test_bridge_cmd_parse_config_01_hybrid(void) {
     "\"port-number\":26,\n"
     "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"i26\",\n"
     "\"policer\":\"\",\n"
-    "\"queues\":[],\n"
+    "\"queues\":{},\n"
     "\"is-used\":true,\n"
     "\"is-enabled\":false}]}";
   const char *ctrler_argv1[] = {"controller", "c25", NULL};
@@ -3975,7 +3975,7 @@ test_bridge_cmd_parse_config_port_number_02(void) {
     "\"port-number\":0,\n"
     "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"i32\",\n"
     "\"policer\":\"\",\n"
-    "\"queues\":[],\n"
+    "\"queues\":{},\n"
     "\"is-used\":false,\n"
     "\"is-enabled\":false}]}";
   const char *port_argv2[] = {"port", "p33", NULL};
@@ -3985,7 +3985,7 @@ test_bridge_cmd_parse_config_port_number_02(void) {
     "\"port-number\":33,\n"
     "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"i33\",\n"
     "\"policer\":\"\",\n"
-    "\"queues\":[],\n"
+    "\"queues\":{},\n"
     "\"is-used\":true,\n"
     "\"is-enabled\":true}]}";
 
@@ -4152,7 +4152,7 @@ test_bridge_cmd_parse_config_port_number_02_hybrid(void) {
     "\"port-number\":0,\n"
     "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"i32\",\n"
     "\"policer\":\"\",\n"
-    "\"queues\":[],\n"
+    "\"queues\":{},\n"
     "\"is-used\":false,\n"
     "\"is-enabled\":false}]}";
   const char *port_argv2[] = {"port", "p33", NULL};
@@ -4162,7 +4162,7 @@ test_bridge_cmd_parse_config_port_number_02_hybrid(void) {
     "\"port-number\":33,\n"
     "\"interface\":\""DATASTORE_NAMESPACE_DELIMITER"i33\",\n"
     "\"policer\":\"\",\n"
-    "\"queues\":[],\n"
+    "\"queues\":{},\n"
     "\"is-used\":true,\n"
     "\"is-enabled\":true}]}";
 

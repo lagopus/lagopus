@@ -60,7 +60,7 @@ testcases:
               "port-number":1,
               "interface":":interface01",
               "policer":"",
-              "queues": [],
+              "queues": {},
               "is-used":true,
               "is-enabled":false}]}
           - cmd_type: ds
