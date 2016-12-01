@@ -226,9 +226,11 @@ get_fib(struct rib *rib) {
 #if defined PIPELINER
   wid = pipeline_worker_id;
 #elif defined HAVE_DPDK
-  wid = dpdk_get_worker_id();
-  if (wid == UINT32_MAX) {
-    wid = 0;
+  if (is_rawsocket_only_mode() == false) {
+    wid = dpdk_get_worker_id();
+    if (wid == UINT32_MAX) {
+      wid = 0;
+    }
   }
 #endif /* HAVE_DPDK */
 
