@@ -626,7 +626,7 @@ netlink_neigh(__UNUSED struct sockaddr_nl *snl, struct nlmsghdr *h) {
   printf("\n");
 #endif /* NETLINK_DEBUG */
 
-  if (ndm->ndm_state & NUD_NOARP) {
+  if (ndm->ndm_state & (NUD_NOARP | NUD_FAILED | NUD_INCOMPLETE)) {
     return 0;
   }
 
@@ -639,9 +639,12 @@ netlink_neigh(__UNUSED struct sockaddr_nl *snl, struct nlmsghdr *h) {
   if (tb[NDA_LLADDR]) {
     ll_addr = RTA_DATA(tb[NDA_LLADDR]);
   }
+  if (ll_addr == NULL) {
+    return 0;
+  }
 
   if (ndm->ndm_family == AF_INET) {
-    if (h->nlmsg_type == RTM_NEWNEIGH && ll_addr != NULL) {
+    if (h->nlmsg_type == RTM_NEWNEIGH) {
       rib_notifier_arp_add(ndm->ndm_ifindex,
                            (struct in_addr *)dst_addr, ll_addr);
     } else {
