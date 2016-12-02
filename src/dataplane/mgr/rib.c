@@ -37,6 +37,10 @@
 
 #include "rib_notifier.h"
 
+#ifdef HAVE_DPDK
+#include "dpdk.h"
+#endif /* HAVE_DPDK */
+
 #if defined HYBRID && defined PIPELINER
 #include "pipeline.h"
 #endif /* HYBRID && PIPELINER */
