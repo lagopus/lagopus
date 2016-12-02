@@ -731,26 +731,9 @@ dpdk_get_detachable_portid_by_name(const char *name) {
 
   for (portid = 0; portid < RTE_MAX_ETHPORTS; portid++) {
     dev = &rte_eth_devices[portid];
-    if ((dev->attached) && (dev->pci_dev) && (dev->pci_dev->driver) &&
-        (dev->pci_dev->driver->drv_flags & RTE_PCI_DRV_DETACHABLE)) {
-      switch (dev->dev_type) {
-        case RTE_ETH_DEV_PCI:
-          addr = &dev->pci_dev->addr;
-          snprintf(devname, RTE_ETH_NAME_MAX_LEN,
-                   "%04x:%02x:%02x.%d",
-                   addr->domain, addr->bus,
-                   addr->devid, addr->function);
-          if (strcmp(name, devname) == 0) {
-            goto out;
-          }
-          break;
-        case RTE_ETH_DEV_VIRTUAL:
-          if (strncmp(name, dev->data->name, RTE_ETH_NAME_MAX_LEN) == 0) {
-            goto out;
-          }
-          break;
-        default:
-          break;
+    if ((dev->attached) && (dev->data->dev_flags & RTE_ETH_DEV_DETACHABLE)) {
+      if (strncmp(name, dev->data->name, RTE_ETH_NAME_MAX_LEN) == 0) {
+	goto out;
       }
     }
   }
