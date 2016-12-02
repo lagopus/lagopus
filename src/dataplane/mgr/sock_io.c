@@ -357,7 +357,7 @@ rawsock_unconfigure_interface(struct interface *ifp) {
   portid = ifp->info.eth_rawsock.port_number;
   pollfd[portid].events = 0;
   close(pollfd[portid].fd);
-  pollfd[portid].fd = 0;
+  pollfd[portid].fd = -1;
   ifindex[portid] = 0;
   put_port_number(portid);
 
@@ -455,7 +455,10 @@ rawsock_port_stats(struct port *port) {
     return NULL;
   }
 
-  fd = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
+  if (pollfd[port->ifindex].fd == -1) {
+    return LAGOPUS_RESULT_OK;
+  }
+  fd = socket(AF_NETLINK, SOCK_RAW | SOCK_NONBLOCK, NETLINK_ROUTE);
   if (fd == -1) {
     lagopus_msg_error("netlink socket create error: %s\n", strerror(errno));
     free(stats);
@@ -578,7 +581,9 @@ rawsock_get_stats(struct interface *ifp, datastore_interface_stats_t *stats) {
   int fd;
 
   link_stats = NULL;
-
+  if (pollfd[ifp->info.eth_rawsock.port_number].fd == -1) {
+    return LAGOPUS_RESULT_OK;
+  }
   fd = socket(AF_NETLINK, SOCK_RAW | SOCK_NONBLOCK, NETLINK_ROUTE);
   if (fd == -1) {
     lagopus_msg_error("netlink socket create error: %s\n", strerror(errno));
@@ -708,6 +713,9 @@ dp_rawsock_thread_loop(__UNUSED const lagopus_thread_t *selfptr,
   while (*running == true) {
     struct port *port;
 
+    for (i = 0; i < portidx; i++) {
+      pollfd[i].revents = 0;
+    }
     /* wait 0.1 sec. */
     if (poll(pollfd, (nfds_t)portidx, 100) < 0) {
       err(errno, "poll");
@@ -716,6 +724,12 @@ dp_rawsock_thread_loop(__UNUSED const lagopus_thread_t *selfptr,
       if (clear_cache == true && flowcache != NULL) {
         clear_all_cache(flowcache);
         clear_cache = false;
+      }
+      if (pollfd[i].fd == -1 ||
+	  (pollfd[i].revents & (POLLERR | POLLHUP | POLLNVAL)) != 0) {
+	close(pollfd[i].fd);
+	pollfd[i].fd = -1; /* invalidate */
+	continue;
       }
       flowdb_rdlock(NULL);
       port = dp_port_lookup(DATASTORE_INTERFACE_TYPE_ETHERNET_RAWSOCK,
