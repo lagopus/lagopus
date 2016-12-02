@@ -476,7 +476,7 @@ flow_make_match(struct flow *flow) {
         const int off = offsetof(struct vxlanhdr, vni);
 
         byteoff[L4P_BASE].bits |= (uint32_t)BYTEBITS(3, off);
-        memcpy(BYTEPTR(MPLS_BASE, off), match->oxm_value, 3);
+        memcpy(BYTEPTR(L4P_BASE, off), match->oxm_value, 3);
         MASKPTR(L4P_BASE, off)[0] = 0xff;
         MASKPTR(L4P_BASE, off)[1] = 0xff;
         MASKPTR(L4P_BASE, off)[2] = 0xff;
