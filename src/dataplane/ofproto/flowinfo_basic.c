@@ -598,8 +598,8 @@ flow_make_match(struct flow *flow) {
         }
         break;
 
-        MAKE_BYTE(OFPXMT_OFB_GTPU_MSGTYPE, gtpu_hdr, msgtype, L4P_BASE);
-        MAKE_BYTE(OFPXMT_OFB_GTPU_TEID, gtpu_hdr, te_id, L4P_BASE);
+      MAKE_BYTE(OFPXMT_OFB_GTPU_MSGTYPE, gtpu_hdr, msgtype, L4P_BASE);
+      MAKE_BYTE(OFPXMT_OFB_GTPU_TEID, gtpu_hdr, te_id, L4P_BASE);
         /* EXTN_HDR, EXTN_HDP_PORT, EXTN_SCI is not supported yet */
 #endif /* GENERAL_TUNNEL_SUPPORT */
 

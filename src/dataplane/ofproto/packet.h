@@ -285,8 +285,8 @@ struct lagopus_packet {
         uint16_t *l4_hdr_w;
         uint32_t *l4_hdr_l;
         struct icmp *icmp;
-        uint16_t *tcp;
-        uint16_t *udp;
+        struct tcphdr *tcp;
+        struct udphdr *udp;
         uint16_t *sctp;
         struct icmp6_hdr *icmp6;
         struct nd_neighbor_solicit *nd_ns;
@@ -352,15 +352,15 @@ struct lagopus_packet {
 #define IP46_DSCP(n)  (((n)&0xfc)>>2)
 #define IPV6_PROTO(h) ((h)->ip6_nxt)
 #define IPV6_HLIM(h)  ((h)->ip6_hlim)
-#define TCP_HDR       uint16_t
-#define TCP_SPORT(h)  ((h)[0])
-#define TCP_DPORT(h)  ((h)[1])
-#define TCP_CKSUM(h)  ((h)[8])
-#define UDP_HDR       uint16_t
-#define UDP_SPORT(h)  ((h)[0])
-#define UDP_DPORT(h)  ((h)[1])
-#define UDP_LEN(h)    ((h)[2])
-#define UDP_CKSUM(h)  ((h)[3])
+#define TCP_HDR       struct tcphdr
+#define TCP_SPORT(h)  ((h)->th_sport)
+#define TCP_DPORT(h)  ((h)->th_dport)
+#define TCP_CKSUM(h)  ((h)->th_sum)
+#define UDP_HDR       struct udphdr
+#define UDP_SPORT(h)  ((h)->uh_sport)
+#define UDP_DPORT(h)  ((h)->uh_dport)
+#define UDP_LEN(h)    ((h)->uh_ulen)
+#define UDP_CKSUM(h)  ((h)->uh_sum)
 #define SCTP_HDR      uint16_t
 #define SCTP_SPORT(h) ((h)[0])
 #define SCTP_DPORT(h) ((h)[1])

@@ -472,11 +472,11 @@ dpdk_send_packet_physical(struct lagopus_packet *pkt, struct interface *ifp) {
         switch (IPV4_PROTO(pkt->ipv4)) {
           case IPPROTO_TCP:
             m->ol_flags |= PKT_TX_TCP_CKSUM;
-            pkt->tcp[8] = rte_ipv4_phdr_cksum(pkt->ipv4, m->ol_flags);
+            TCP_CKSUM(pkt->tcp) = rte_ipv4_phdr_cksum(pkt->ipv4, m->ol_flags);
             break;
           case IPPROTO_UDP:
             m->ol_flags |= PKT_TX_UDP_CKSUM;
-            pkt->udp[3] = rte_ipv4_phdr_cksum(pkt->ipv4, m->ol_flags);
+            UDP_CKSUM(pkt->udp) = rte_ipv4_phdr_cksum(pkt->ipv4, m->ol_flags);
             break;
           case IPPROTO_SCTP:
             m->ol_flags |= PKT_TX_SCTP_CKSUM;
@@ -492,11 +492,11 @@ dpdk_send_packet_physical(struct lagopus_packet *pkt, struct interface *ifp) {
         switch (IPV4_PROTO(pkt->ipv4)) {
           case IPPROTO_TCP:
             m->ol_flags |= PKT_TX_TCP_CKSUM;
-            pkt->tcp[8] = rte_ipv6_phdr_cksum(pkt->ipv4, m->ol_flags);
+            TCP_CKSUM(pkt->tcp) = rte_ipv6_phdr_cksum(pkt->ipv4, m->ol_flags);
             break;
           case IPPROTO_UDP:
             m->ol_flags |= PKT_TX_UDP_CKSUM;
-            pkt->udp[3] = rte_ipv6_phdr_cksum(pkt->ipv4, m->ol_flags);
+            UDP_CKSUM(pkt->udp) = rte_ipv6_phdr_cksum(pkt->ipv4, m->ol_flags);
             break;
           case IPPROTO_SCTP:
             m->ol_flags |= PKT_TX_SCTP_CKSUM;
