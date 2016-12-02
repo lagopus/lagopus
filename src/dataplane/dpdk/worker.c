@@ -547,7 +547,10 @@ dpdk_get_worker_id(void) {
   uint32_t lcore;
   struct app_lcore_params_worker *lp;
   lcore = rte_lcore_id();
-  lp = &app.lcore_params[lcore].worker;
-  return lp->worker_id;
+  if (lcore < UINT32_MAX) {
+    lp = &app.lcore_params[lcore].worker;
+    return lp->worker_id;
+  }
+  return UINT32_MAX;
 }
 #endif /* HYBRID */
