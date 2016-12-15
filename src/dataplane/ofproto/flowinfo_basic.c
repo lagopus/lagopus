@@ -214,7 +214,7 @@ flow_make_match(struct flow *flow) {
         byteoff[OOB_BASE].bits |= (uint32_t)BYTEBITS(2, off);
         memcpy(val8, match->oxm_value, 2);
         BYTEPTR(OOB_BASE, off)[0] &= 0xe0;
-        BYTEPTR(OOB_BASE, off)[0] |= val8[0] | 0x10;
+        BYTEPTR(OOB_BASE, off)[0] |= val8[0];
         BYTEPTR(OOB_BASE, off)[1] = val8[1];
         MASKPTR(OOB_BASE, off)[0] |= 0x1f;
         MASKPTR(OOB_BASE, off)[1] = 0xff;
@@ -228,7 +228,7 @@ flow_make_match(struct flow *flow) {
         byteoff[OOB_BASE].bits |= (uint32_t)BYTEBITS(2, off);
         memcpy(val8, match->oxm_value, 4);
         BYTEPTR(OOB_BASE, off)[0] &= 0xe0;
-        BYTEPTR(OOB_BASE, off)[0] |= val8[0] | (0x10 & val8[2]);
+        BYTEPTR(OOB_BASE, off)[0] |= val8[0];
         BYTEPTR(OOB_BASE, off)[1] = val8[1];
         MASKPTR(OOB_BASE, off)[0] &= 0xe0;
         MASKPTR(OOB_BASE, off)[0] |= val8[2];
