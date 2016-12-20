@@ -92,6 +92,7 @@ struct interface {
   uint8_t hw_addr[ETHER_ADDR_LEN];
   struct dp_tap_interface *tap;
   struct ip_address_info addr_info; /* ip address informations. */
+  lagopus_hashmap_t queueid_hashmap;
   struct interface **link_timer;
 };
 

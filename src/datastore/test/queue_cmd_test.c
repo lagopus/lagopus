@@ -48,7 +48,6 @@ test_queue_cmd_parse_create_01(void) {
   char *str = NULL;
   const char *argv[] = {"queue", "test_name01", "create",
                         "-type", "single-rate",
-                        "-id", "1",
                         "-priority", "2",
                         "-color", "color-aware",
                         "-committed-burst-size", "1500",
@@ -59,7 +58,6 @@ test_queue_cmd_parse_create_01(void) {
   const char test_str[] = "{\"ret\":\"OK\"}";
   const char *argv1[] = {"queue", "test_name02", "create",
                          "-type", "two-rate",
-                         "-id", "2",
                          "-priority", "3",
                          "-color", "color-blind",
                          "-committed-burst-size", "1500",
@@ -69,27 +67,21 @@ test_queue_cmd_parse_create_01(void) {
                          NULL
                         };
   const char test_str1[] = "{\"ret\":\"OK\"}";
-  const char *argv2[] = {"queue", "test_name02", "enable",
-                         NULL
-                        };
-  const char test_str2[] = "{\"ret\":\"OK\"}";
   const char *argv3[] = {"queue", NULL};
   const char test_str3[] =
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name02\",\n"
     "\"type\":\"two-rate\",\n"
-    "\"id\":2,\n"
     "\"priority\":3,\n"
     "\"color\":\"color-blind\",\n"
     "\"committed-burst-size\":1500,\n"
     "\"committed-information-rate\":1501,\n"
     "\"peak-burst-size\":1502,\n"
     "\"peak-information-rate\":1503,\n"
-    "\"is-used\":true,\n"
-    "\"is-enabled\":true},\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false},\n"
     "{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name01\",\n"
     "\"type\":\"single-rate\",\n"
-    "\"id\":1,\n"
     "\"priority\":2,\n"
     "\"color\":\"color-aware\",\n"
     "\"committed-burst-size\":1500,\n"
@@ -102,15 +94,14 @@ test_queue_cmd_parse_create_01(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name02\",\n"
     "\"type\":\"two-rate\",\n"
-    "\"id\":2,\n"
     "\"priority\":3,\n"
     "\"color\":\"color-blind\",\n"
     "\"committed-burst-size\":1500,\n"
     "\"committed-information-rate\":1501,\n"
     "\"peak-burst-size\":1502,\n"
     "\"peak-information-rate\":1503,\n"
-    "\"is-used\":true,\n"
-    "\"is-enabled\":true}]}";
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
   const char *argv5[] = {"queue", "test_name02", "disable",
                          NULL
                         };
@@ -123,15 +114,6 @@ test_queue_cmd_parse_create_01(void) {
                          NULL
                         };
   const char test_str7[] = "{\"ret\":\"OK\"}";
-  const char *port_argv1[] = {"port", "test_port01", "create",
-                              "-queue", "test_name02",
-                              NULL
-                             };
-  const char port_test_str1[] = "{\"ret\":\"OK\"}";
-  const char *port_argv2[] = {"port", "test_port01", "destroy",
-                              NULL
-                             };
-  const char port_test_str2[] = "{\"ret\":\"OK\"}";
 
   /* create cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, queue_cmd_parse, &interp, state,
@@ -142,16 +124,6 @@ test_queue_cmd_parse_create_01(void) {
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, queue_cmd_parse, &interp, state,
                  ARGV_SIZE(argv1), argv1, &tbl, queue_cmd_update,
                  &ds, str, test_str1);
-
-  /* port create cmd.*/
-  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, port_cmd_parse, &interp, state,
-                 ARGV_SIZE(port_argv1), port_argv1, &tbl, port_cmd_update,
-                 &ds, str, port_test_str1);
-
-  /* enable cmd. */
-  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, queue_cmd_parse, &interp, state,
-                 ARGV_SIZE(argv2), argv2, &tbl, queue_cmd_update,
-                 &ds, str, test_str2);
 
   /* show all cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, queue_cmd_parse, &interp, state,
@@ -167,11 +139,6 @@ test_queue_cmd_parse_create_01(void) {
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, queue_cmd_parse, &interp, state,
                  ARGV_SIZE(argv5), argv5, &tbl, queue_cmd_update,
                  &ds, str, test_str5);
-
-  /* port destroy cmd.*/
-  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, port_cmd_parse, &interp, state,
-                 ARGV_SIZE(port_argv2), port_argv2, &tbl, port_cmd_update,
-                 &ds, str, port_test_str2);
 
   /* destroy cmd. */
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, queue_cmd_parse, &interp, state,
@@ -217,24 +184,6 @@ test_queue_cmd_parse_create_bad_type(void) {
 }
 
 void
-test_queue_cmd_parse_create_over_id(void) {
-  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
-  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
-  char *str = NULL;
-  const char *argv[] = {"queue", "test_name05", "create",
-                        "-type", "single-rate",
-                        "-id", "4294967296", NULL
-                       };
-  const char test_str[] =
-    "{\"ret\":\"OUT_OF_RANGE\",\n"
-    "\"data\":\"Bad opt value = 4294967296.\"}";
-
-  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR, queue_cmd_parse,
-                 &interp, state, ARGV_SIZE(argv), argv,
-                 &tbl, queue_cmd_update, &ds, str, test_str);
-}
-
-void
 test_queue_cmd_parse_create_bad_id(void) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
@@ -245,7 +194,7 @@ test_queue_cmd_parse_create_bad_id(void) {
                        };
   const char test_str[] =
     "{\"ret\":\"INVALID_ARGS\",\n"
-    "\"data\":\"Bad opt value = hoge.\"}";
+    "\"data\":\"Bad opt = -id.\"}";
 
   TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR, queue_cmd_parse,
                  &interp, state, ARGV_SIZE(argv), argv,
@@ -474,7 +423,6 @@ test_queue_cmd_parse_enable_unused(void) {
   char *str = NULL;
   const char *argv1[] = {"queue", "test_name09", "create",
                          "-type", "single-rate",
-                         "-id", "1",
                          "-priority", "2",
                          "-color", "color-aware",
                          "-committed-burst-size", "1500",
@@ -494,7 +442,6 @@ test_queue_cmd_parse_enable_unused(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name09\",\n"
     "\"type\":\"single-rate\",\n"
-    "\"id\":1,\n"
     "\"priority\":2,\n"
     "\"color\":\"color-aware\",\n"
     "\"committed-burst-size\":1500,\n"
@@ -536,7 +483,6 @@ test_queue_cmd_parse_config_01(void) {
   char *str = NULL;
   const char *argv1[] = {"queue", "test_name10", "create",
                          "-type", "single-rate",
-                         "-id", "1",
                          "-priority", "2",
                          "-color", "color-aware",
                          "-committed-burst-size", "1500",
@@ -550,7 +496,6 @@ test_queue_cmd_parse_config_01(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name10\",\n"
     "\"type\":\"single-rate\",\n"
-    "\"id\":1,\n"
     "\"priority\":2,\n"
     "\"color\":\"color-aware\",\n"
     "\"committed-burst-size\":1500,\n"
@@ -559,7 +504,6 @@ test_queue_cmd_parse_config_01(void) {
     "\"is-used\":false,\n"
     "\"is-enabled\":false}]}";
   const char *argv3[] = {"queue", "test_name10", "config",
-                         "-id", "2",
                          "-priority", "3",
                          "-color", "color-blind",
                          "-committed-burst-size", "1600",
@@ -573,7 +517,6 @@ test_queue_cmd_parse_config_01(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name10\",\n"
     "\"type\":\"single-rate\",\n"
-    "\"id\":2,\n"
     "\"priority\":3,\n"
     "\"color\":\"color-blind\",\n"
     "\"committed-burst-size\":1600,\n"
@@ -613,133 +556,12 @@ test_queue_cmd_parse_config_01(void) {
 }
 
 void
-test_queue_cmd_parse_config_02(void) {
-  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
-  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
-  char *str = NULL;
-  const char *argv1[] = {"queue", "test_name11", "create",
-                         "-type", "single-rate",
-                         "-id", "1",
-                         "-priority", "2",
-                         "-color", "color-aware",
-                         "-committed-burst-size", "1500",
-                         "-committed-information-rate", "1501",
-                         "-excess-burst-size", "1502",
-                         NULL
-                        };
-  const char test_str1[] = "{\"ret\":\"OK\"}";
-  const char *argv2[] = {"queue", "test_name11", "enable",
-                         NULL
-                        };
-  const char test_str2[] = "{\"ret\":\"OK\"}";
-  const char *argv3[] = {"queue", "test_name11", NULL};
-  const char test_str3[] =
-    "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name11\",\n"
-    "\"type\":\"single-rate\",\n"
-    "\"id\":1,\n"
-    "\"priority\":2,\n"
-    "\"color\":\"color-aware\",\n"
-    "\"committed-burst-size\":1500,\n"
-    "\"committed-information-rate\":1501,\n"
-    "\"excess-burst-size\":1502,\n"
-    "\"is-used\":true,\n"
-    "\"is-enabled\":true}]}";
-  const char *argv4[] = {"queue", "test_name11", "config",
-                         "-id", "2",
-                         "-priority", "3",
-                         "-color", "color-blind",
-                         "-committed-burst-size", "1600",
-                         "-committed-information-rate", "1601",
-                         "-excess-burst-size", "1602",
-                         NULL
-                        };
-  const char test_str4[] = "{\"ret\":\"OK\"}";
-  const char *argv5[] = {"queue", "test_name11", NULL};
-  const char test_str5[] =
-    "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name11\",\n"
-    "\"type\":\"single-rate\",\n"
-    "\"id\":2,\n"
-    "\"priority\":3,\n"
-    "\"color\":\"color-blind\",\n"
-    "\"committed-burst-size\":1600,\n"
-    "\"committed-information-rate\":1601,\n"
-    "\"excess-burst-size\":1602,\n"
-    "\"is-used\":true,\n"
-    "\"is-enabled\":true}]}";
-  const char *argv6[] = {"queue", "test_name11", "disable",
-                         NULL
-                        };
-  const char test_str6[] = "{\"ret\":\"OK\"}";
-  const char *argv7[] = {"queue", "test_name11", "destroy",
-                         NULL
-                        };
-  const char test_str7[] = "{\"ret\":\"OK\"}";
-  const char *port_argv1[] = {"port", "test_port02", "create",
-                              "-queue", "test_name11",
-                              NULL
-                             };
-  const char port_test_str1[] = "{\"ret\":\"OK\"}";
-  const char *port_argv2[] = {"port", "test_port02", "destroy",
-                              NULL
-                             };
-  const char port_test_str2[] = "{\"ret\":\"OK\"}";
-
-  /* create cmd. */
-  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, queue_cmd_parse, &interp, state,
-                 ARGV_SIZE(argv1), argv1, &tbl, queue_cmd_update,
-                 &ds, str, test_str1);
-
-  /* port create cmd.*/
-  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, port_cmd_parse, &interp, state,
-                 ARGV_SIZE(port_argv1), port_argv1, &tbl, port_cmd_update,
-                 &ds, str, port_test_str1);
-
-  /* enable cmd. */
-  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, queue_cmd_parse, &interp, state,
-                 ARGV_SIZE(argv2), argv2, &tbl, queue_cmd_update,
-                 &ds, str, test_str2);
-
-  /* show cmd. */
-  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, queue_cmd_parse, &interp, state,
-                 ARGV_SIZE(argv3), argv3, &tbl, queue_cmd_update,
-                 &ds, str, test_str3);
-
-  /* config cmd. */
-  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, queue_cmd_parse, &interp, state,
-                 ARGV_SIZE(argv4), argv4, &tbl, queue_cmd_update,
-                 &ds, str, test_str4);
-
-  /* show cmd. */
-  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, queue_cmd_parse, &interp, state,
-                 ARGV_SIZE(argv5), argv5, &tbl, queue_cmd_update,
-                 &ds, str, test_str5);
-
-  /* disable cmd. */
-  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, queue_cmd_parse, &interp, state,
-                 ARGV_SIZE(argv6), argv6, &tbl, queue_cmd_update,
-                 &ds, str, test_str6);
-
-  /* port destroy cmd.*/
-  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, port_cmd_parse, &interp, state,
-                 ARGV_SIZE(port_argv2), port_argv2, &tbl, port_cmd_update,
-                 &ds, str, port_test_str2);
-
-  /* destroy cmd. */
-  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, queue_cmd_parse, &interp, state,
-                 ARGV_SIZE(argv7), argv7, &tbl, queue_cmd_update,
-                 &ds, str, test_str7);
-}
-
-void
 test_queue_cmd_parse_config_show_01(void) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
   char *str = NULL;
   const char *argv1[] = {"queue", "test_name12", "create",
                          "-type", "single-rate",
-                         "-id", "1",
                          "-priority", "2",
                          "-color", "color-aware",
                          "-committed-burst-size", "1500",
@@ -753,7 +575,6 @@ test_queue_cmd_parse_config_show_01(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name12\",\n"
     "\"type\":\"single-rate\",\n"
-    "\"id\":1,\n"
     "\"priority\":2,\n"
     "\"color\":\"color-aware\",\n"
     "\"committed-burst-size\":1500,\n"
@@ -762,7 +583,6 @@ test_queue_cmd_parse_config_show_01(void) {
     "\"is-used\":false,\n"
     "\"is-enabled\":false}]}";
   const char *argv3[] = {"queue", "test_name12", "config",
-                         "-id", "2",
                          "-priority", "3",
                          "-color", "color-blind",
                          "-committed-burst-size", "1600",
@@ -772,12 +592,12 @@ test_queue_cmd_parse_config_show_01(void) {
                         };
   const char test_str3[] = "{\"ret\":\"OK\"}";
   const char *argv4[] = {"queue", "test_name12", "config",
-                         "-id", NULL
+                         "-priority", NULL
                         };
   const char test_str4[] =
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name12\",\n"
-    "\"id\":2}]}";
+    "\"priority\":3}]}";
   const char *argv5[] = {"queue", "test_name12", "destroy",
                          NULL
                         };
@@ -810,77 +630,6 @@ test_queue_cmd_parse_config_show_01(void) {
 }
 
 void
-test_queue_cmd_parse_destroy_used(void) {
-  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
-  datastore_interp_state_t state = DATASTORE_INTERP_STATE_AUTO_COMMIT;
-  char *str = NULL;
-  const char *argv1[] = {"queue", "test_name13", "create",
-                         "-type", "single-rate",
-                         "-id", "1",
-                         "-priority", "2",
-                         "-color", "color-aware",
-                         "-committed-burst-size", "1500",
-                         "-committed-information-rate", "1501",
-                         "-excess-burst-size", "1502",
-                         NULL
-                        };
-  const char test_str1[] = "{\"ret\":\"OK\"}";
-  const char *argv2[] = {"queue", "test_name13", "disable",
-                         NULL
-                        };
-  const char test_str2[] = "{\"ret\":\"OK\"}";
-  const char *argv3[] = {"queue", "test_name13", "destroy",
-                         NULL
-                        };
-  const char test_str3[] = {"{\"ret\":\"NOT_OPERATIONAL\",\n"
-                            "\"data\":\"name = "DATASTORE_NAMESPACE_DELIMITER"test_name13: is used.\"}"
-                           };
-  const char *argv4[] = {"queue", "test_name13", "destroy",
-                         NULL
-                        };
-  const char test_str4[] = "{\"ret\":\"OK\"}";
-  const char *port_argv1[] = {"port", "test_port13", "create",
-                              "-queue", "test_name13",
-                              NULL
-                             };
-  const char port_test_str1[] = "{\"ret\":\"OK\"}";
-  const char *port_argv2[] = {"port", "test_port13", "destroy",
-                              NULL
-                             };
-  const char port_test_str2[] = "{\"ret\":\"OK\"}";
-
-  /* create cmd. */
-  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, queue_cmd_parse, &interp, state,
-                 ARGV_SIZE(argv1), argv1, &tbl, queue_cmd_update,
-                 &ds, str, test_str1);
-
-  /* port create cmd.*/
-  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, port_cmd_parse, &interp, state,
-                 ARGV_SIZE(port_argv1), port_argv1, &tbl, port_cmd_update,
-                 &ds, str, port_test_str1);
-
-  /* disable cmd. */
-  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, queue_cmd_parse, &interp, state,
-                 ARGV_SIZE(argv2), argv2, &tbl, queue_cmd_update,
-                 &ds, str, test_str2);
-
-  /* destroy cmd. */
-  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR, queue_cmd_parse,
-                 &interp, state, ARGV_SIZE(argv3), argv3, &tbl,
-                 queue_cmd_update, &ds, str, test_str3);
-
-  /* port destroy cmd.*/
-  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, port_cmd_parse, &interp, state,
-                 ARGV_SIZE(port_argv2), port_argv2, &tbl, port_cmd_update,
-                 &ds, str, port_test_str2);
-
-  /* destroy cmd. */
-  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, queue_cmd_parse,
-                 &interp, state, ARGV_SIZE(argv4), argv4, &tbl,
-                 queue_cmd_update, &ds, str, test_str4);
-}
-
-void
 test_queue_cmd_parse_show_01(void) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   datastore_interp_state_t state1 = DATASTORE_INTERP_STATE_AUTO_COMMIT;
@@ -888,7 +637,6 @@ test_queue_cmd_parse_show_01(void) {
   char *str = NULL;
   const char *argv1[] = {"queue", "test_name14", "create",
                          "-type", "single-rate",
-                         "-id", "1",
                          "-priority", "2",
                          "-color", "color-aware",
                          "-committed-burst-size", "1500",
@@ -904,7 +652,6 @@ test_queue_cmd_parse_show_01(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name14\",\n"
     "\"type\":\"single-rate\",\n"
-    "\"id\":1,\n"
     "\"priority\":2,\n"
     "\"color\":\"color-aware\",\n"
     "\"committed-burst-size\":1500,\n"
@@ -919,18 +666,25 @@ test_queue_cmd_parse_show_01(void) {
                              "\"data\":\"Not set modified.\"}"
                             };
   const char *argv4[] = {"queue", "test_name14", "config",
-                         "-id", "2",
+                         "-priority", "2",
                          NULL
                         };
   const char test_str4[] = "{\"ret\":\"OK\"}";
   const char *argv5[] = {"queue", "test_name14", "modified",
                          NULL
                         };
-  const char test_str5[] =  {"{\"ret\":\"NOT_OPERATIONAL\",\n"
-                             "\"data\":\"Not set modified.\"}"
-                            };
+  const char test_str5[] =
+    "{\"ret\":\"OK\",\n"
+    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name14\",\n"
+    "\"type\":\"single-rate\",\n"
+    "\"priority\":2,\n"
+    "\"color\":\"color-aware\",\n"
+    "\"committed-burst-size\":1500,\n"
+    "\"committed-information-rate\":1501,\n"
+    "\"excess-burst-size\":1502,\n"
+    "\"is-used\":false,\n"
+    "\"is-enabled\":false}]}";
   const char *argv6[] = {"queue", "test_name14", "config",
-                         "-id", "3",
                          "-priority", "4",
                          "-color", "color-blind",
                          "-committed-burst-size", "1600",
@@ -946,7 +700,6 @@ test_queue_cmd_parse_show_01(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name14\",\n"
     "\"type\":\"single-rate\",\n"
-    "\"id\":3,\n"
     "\"priority\":4,\n"
     "\"color\":\"color-blind\",\n"
     "\"committed-burst-size\":1600,\n"
@@ -979,8 +732,8 @@ test_queue_cmd_parse_show_01(void) {
                  ARGV_SIZE(argv4), argv4, &tbl, queue_cmd_update,
                  &ds, str, test_str4);
 
-  /* show cmd (modified : AUTO COMMIT mode). */
-  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR, queue_cmd_parse,
+  /* show cmd (modified : AUTO COMMIT mode & dup_modified).*/
+  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, queue_cmd_parse,
                  &interp, state1, ARGV_SIZE(argv5), argv5, &tbl,
                  queue_cmd_update, &ds, str, test_str5);
 
@@ -1007,7 +760,6 @@ test_queue_cmd_parse_create_two_rate_01(void) {
   char *str = NULL;
   const char *argv1[] = {"queue", "test_name15", "create",
                          "-type", "two-rate",
-                         "-id", "1",
                          "-priority", "2",
                          "-color", "color-aware",
                          "-committed-burst-size", "1500",
@@ -1022,7 +774,6 @@ test_queue_cmd_parse_create_two_rate_01(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name15\",\n"
     "\"type\":\"two-rate\",\n"
-    "\"id\":1,\n"
     "\"priority\":2,\n"
     "\"color\":\"color-aware\",\n"
     "\"committed-burst-size\":1500,\n"
@@ -1148,7 +899,6 @@ test_queue_cmd_serialize_default_opt(void) {
   const char serialize_str1[] =
     "queue "DATASTORE_NAMESPACE_DELIMITER"test_name27 create "
     "-type single-rate "
-    "-id 0 "
     "-priority 0 "
     "-color color-aware "
     "-committed-burst-size 1500 "
@@ -1193,7 +943,6 @@ test_queue_cmd_serialize_default_opt_escape(void) {
   const char serialize_str1[] =
     "queue \""DATASTORE_NAMESPACE_DELIMITER"test_\\\"name28\" create "
     "-type single-rate "
-    "-id 0 "
     "-priority 0 "
     "-color color-aware "
     "-committed-burst-size 1500 "
@@ -1238,7 +987,6 @@ test_queue_cmd_serialize_default_opt_escape_white_space(void) {
   const char serialize_str1[] =
     "queue \""DATASTORE_NAMESPACE_DELIMITER"test name29\" create "
     "-type single-rate "
-    "-id 0 "
     "-priority 0 "
     "-color color-aware "
     "-committed-burst-size 1500 "
@@ -1271,7 +1019,6 @@ test_queue_cmd_serialize_type_single_rate(void) {
   /* queue create cmd str. */
   const char *argv1[] = {"queue", "test_name30", "create",
                          "-type", "single-rate",
-                         "-id", "1",
                          "-priority", "2",
                          "-color", "color-blind",
                          "-committed-burst-size", "1500",
@@ -1291,7 +1038,6 @@ test_queue_cmd_serialize_type_single_rate(void) {
   const char serialize_str1[] =
     "queue "DATASTORE_NAMESPACE_DELIMITER"test_name30 create "
     "-type single-rate "
-    "-id 1 "
     "-priority 2 "
     "-color color-blind "
     "-committed-burst-size 1500 "
@@ -1321,7 +1067,6 @@ test_queue_cmd_parse_stats_01(void) {
   char *str = NULL;
   const char *argv1[] = {"queue", "test_name33", "create",
                          "-type", "single-rate",
-                         "-id", "1",
                          "-priority", "2",
                          "-color", "color-aware",
                          "-committed-burst-size", "1500",
@@ -1336,8 +1081,6 @@ test_queue_cmd_parse_stats_01(void) {
   const char test_str2[] =
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name33\",\n"
-    "\"port-no\":0,\n"
-    "\"queue-id\":0,\n"
     "\"tx-bytes\":0,\n"
     "\"tx-packets\":0,\n"
     "\"tx-errors\":0,\n"
@@ -1372,7 +1115,6 @@ test_queue_cmd_parse_stats_invalid_args(void) {
   char *str = NULL;
   const char *argv1[] = {"queue", "test_name35", "create",
                          "-type", "single-rate",
-                         "-id", "1",
                          "-priority", "2",
                          "-color", "color-aware",
                          "-committed-burst-size", "1500",
@@ -1421,7 +1163,6 @@ test_queue_cmd_parse_atomic_commit(void) {
   void *conf = NULL;
   const char *argv1[] = {"queue", "test_name36", "create",
                          "-type", "single-rate",
-                         "-id", "1",
                          "-priority", "2",
                          "-color", "color-aware",
                          "-committed-burst-size", "1500",
@@ -1439,7 +1180,6 @@ test_queue_cmd_parse_atomic_commit(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name36\",\n"
     "\"type\":\"single-rate\",\n"
-    "\"id\":1,\n"
     "\"priority\":2,\n"
     "\"color\":\"color-aware\",\n"
     "\"committed-burst-size\":1500,\n"
@@ -1448,7 +1188,6 @@ test_queue_cmd_parse_atomic_commit(void) {
     "\"is-used\":false,\n"
     "\"is-enabled\":false}]}";
   const char *argv4[] = {"queue", "test_name36", "config",
-                         "-id", "2",
                          "-priority", "3",
                          "-color", "color-blind",
                          "-committed-burst-size", "1600",
@@ -1466,7 +1205,6 @@ test_queue_cmd_parse_atomic_commit(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name36\",\n"
     "\"type\":\"single-rate\",\n"
-    "\"id\":2,\n"
     "\"priority\":3,\n"
     "\"color\":\"color-blind\",\n"
     "\"committed-burst-size\":1600,\n"
@@ -1479,7 +1217,6 @@ test_queue_cmd_parse_atomic_commit(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name36\",\n"
     "\"type\":\"single-rate\",\n"
-    "\"id\":2,\n"
     "\"priority\":3,\n"
     "\"color\":\"color-blind\",\n"
     "\"committed-burst-size\":1600,\n"
@@ -1563,7 +1300,6 @@ test_queue_cmd_parse_atomic_rollback(void) {
   void *conf = NULL;
   const char *argv1[] = {"queue", "test_name37", "create",
                          "-type", "single-rate",
-                         "-id", "1",
                          "-priority", "2",
                          "-color", "color-aware",
                          "-committed-burst-size", "1500",
@@ -1581,7 +1317,6 @@ test_queue_cmd_parse_atomic_rollback(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name37\",\n"
     "\"type\":\"single-rate\",\n"
-    "\"id\":1,\n"
     "\"priority\":2,\n"
     "\"color\":\"color-aware\",\n"
     "\"committed-burst-size\":1500,\n"
@@ -1590,7 +1325,6 @@ test_queue_cmd_parse_atomic_rollback(void) {
     "\"is-used\":false,\n"
     "\"is-enabled\":false}]}";
   const char *argv4[] = {"queue", "test_name37", "config",
-                         "-id", "2",
                          "-priority", "3",
                          "-color", "color-blind",
                          "-committed-burst-size", "1600",
@@ -1608,7 +1342,6 @@ test_queue_cmd_parse_atomic_rollback(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name37\",\n"
     "\"type\":\"single-rate\",\n"
-    "\"id\":2,\n"
     "\"priority\":3,\n"
     "\"color\":\"color-blind\",\n"
     "\"committed-burst-size\":1600,\n"
@@ -1669,291 +1402,6 @@ test_queue_cmd_parse_atomic_rollback(void) {
 }
 
 void
-test_queue_cmd_parse_atomic_delay_enable(void) {
-  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
-  datastore_interp_state_t state1 = DATASTORE_INTERP_STATE_ATOMIC;
-  datastore_interp_state_t state2 = DATASTORE_INTERP_STATE_COMMITING;
-  datastore_interp_state_t state3 = DATASTORE_INTERP_STATE_COMMITED;
-  datastore_interp_state_t state4 = DATASTORE_INTERP_STATE_AUTO_COMMIT;
-  char *str = NULL;
-  void *conf = NULL;
-  const char *argv1[] = {"queue", "test_name38", "create",
-                         "-type", "single-rate",
-                         "-id", "1",
-                         "-priority", "2",
-                         "-color", "color-aware",
-                         "-committed-burst-size", "1500",
-                         "-committed-information-rate", "1501",
-                         "-excess-burst-size", "1502",
-                         NULL
-                        };
-  const char test_str1[] = "{\"ret\":\"OK\"}";
-  const char *argv2[] = {"queue", "test_name38", "enable", NULL};
-  const char test_str2[] = "{\"ret\":\"OK\"}";
-  const char *argv3[] = {"queue", "test_name38", NULL};
-  const char test_str3[] =
-    "{\"ret\":\"NOT_OPERATIONAL\",\n"
-    "\"data\":\"Not set current.\"}";
-  const char *argv4[] = {"queue", "test_name38", "modified", NULL};
-  const char test_str4[] =
-    "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name38\",\n"
-    "\"type\":\"single-rate\",\n"
-    "\"id\":1,\n"
-    "\"priority\":2,\n"
-    "\"color\":\"color-aware\",\n"
-    "\"committed-burst-size\":1500,\n"
-    "\"committed-information-rate\":1501,\n"
-    "\"excess-burst-size\":1502,\n"
-    "\"is-used\":true,\n"
-    "\"is-enabled\":false}]}";
-  const char *argv5[] = {"queue", "test_name38", NULL};
-  const char test_str5[] =
-    "{\"ret\":\"NOT_OPERATIONAL\",\n"
-    "\"data\":\"Not set current.\"}";
-  const char *argv6[] = {"queue", "test_name38", "modified", NULL};
-  const char test_str6[] =
-    "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name38\",\n"
-    "\"type\":\"single-rate\",\n"
-    "\"id\":1,\n"
-    "\"priority\":2,\n"
-    "\"color\":\"color-aware\",\n"
-    "\"committed-burst-size\":1500,\n"
-    "\"committed-information-rate\":1501,\n"
-    "\"excess-burst-size\":1502,\n"
-    "\"is-used\":true,\n"
-    "\"is-enabled\":true}]}";
-  const char *argv7[] = {"queue", "test_name38", NULL};
-  const char test_str7[] =
-    "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name38\",\n"
-    "\"type\":\"single-rate\",\n"
-    "\"id\":1,\n"
-    "\"priority\":2,\n"
-    "\"color\":\"color-aware\",\n"
-    "\"committed-burst-size\":1500,\n"
-    "\"committed-information-rate\":1501,\n"
-    "\"excess-burst-size\":1502,\n"
-    "\"is-used\":true,\n"
-    "\"is-enabled\":true}]}";
-  const char *argv8[] = {"queue", "test_name38", "modified", NULL};
-  const char test_str8[] =
-    "{\"ret\":\"NOT_OPERATIONAL\",\n"
-    "\"data\":\"Not set modified.\"}";
-  const char *argv9[] = {"queue", "test_name38", "destroy",
-                         NULL
-                        };
-  const char test_str9[] = "{\"ret\":\"OK\"}";
-  const char *port_argv1[] = {"port", "test_port38", "create",
-                              "-queue", "test_name38",
-                              NULL
-                             };
-  const char port_test_str1[] = "{\"ret\":\"OK\"}";
-  const char *port_argv2[] = {"port", "test_port38", "destroy",
-                              NULL
-                             };
-  const char port_test_str2[] = "{\"ret\":\"OK\"}";
-
-  /* create cmd. */
-  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, queue_cmd_parse, &interp, state1,
-                 ARGV_SIZE(argv1), argv1, &tbl, queue_cmd_update,
-                 &ds, str, test_str1);
-
-  /* port create cmd.*/
-  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, port_cmd_parse, &interp, state1,
-                 ARGV_SIZE(port_argv1), port_argv1, &tbl, port_cmd_update,
-                 &ds, str, port_test_str1);
-
-  /* enable cmd. */
-  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, queue_cmd_parse, &interp, state1,
-                 ARGV_SIZE(argv2), argv2, &tbl, queue_cmd_update,
-                 &ds, str, test_str2);
-
-  /* show cmd (current). */
-  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
-                 queue_cmd_parse, &interp, state1,
-                 ARGV_SIZE(argv3), argv3, &tbl, queue_cmd_update,
-                 &ds, str, test_str3);
-
-  /* show cmd (modified). */
-  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, queue_cmd_parse, &interp, state1,
-                 ARGV_SIZE(argv4), argv4, &tbl, queue_cmd_update,
-                 &ds, str, test_str4);
-
-  /* commiting. */
-  TEST_PROC(ret, LAGOPUS_RESULT_OK, queue_cmd_update, &interp, state2, &tbl,
-            DATASTORE_NAMESPACE_DELIMITER"test_name38", conf, &ds);
-
-  /* show cmd (current). */
-  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
-                 queue_cmd_parse, &interp, state1,
-                 ARGV_SIZE(argv5), argv5, &tbl, queue_cmd_update,
-                 &ds, str, test_str5);
-
-  /* show cmd (modified). */
-  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, queue_cmd_parse, &interp, state1,
-                 ARGV_SIZE(argv6), argv6, &tbl, queue_cmd_update,
-                 &ds, str, test_str6);
-
-  /* commited. */
-  TEST_PROC(ret, LAGOPUS_RESULT_OK, queue_cmd_update, &interp, state3, &tbl,
-            DATASTORE_NAMESPACE_DELIMITER"test_name38", conf, &ds);
-
-  /* show cmd (current). */
-  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, queue_cmd_parse, &interp, state1,
-                 ARGV_SIZE(argv7), argv7, &tbl, queue_cmd_update,
-                 &ds, str, test_str7);
-
-  /* show cmd (modified). */
-  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_DATASTORE_INTERP_ERROR,
-                 queue_cmd_parse, &interp, state1,
-                 ARGV_SIZE(argv8), argv8, &tbl, queue_cmd_update,
-                 &ds, str, test_str8);
-
-  /* port destroy cmd.*/
-  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, port_cmd_parse, &interp, state4,
-                 ARGV_SIZE(port_argv2), port_argv2, &tbl, port_cmd_update,
-                 &ds, str, port_test_str2);
-
-  /* destroy cmd. */
-  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, queue_cmd_parse, &interp, state4,
-                 ARGV_SIZE(argv9), argv9, &tbl, queue_cmd_update,
-                 &ds, str, test_str9);
-}
-
-void
-test_queue_cmd_parse_atomic_delay_disable(void) {
-  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
-  datastore_interp_state_t state1 = DATASTORE_INTERP_STATE_ATOMIC;
-  datastore_interp_state_t state2 = DATASTORE_INTERP_STATE_COMMITING;
-  datastore_interp_state_t state3 = DATASTORE_INTERP_STATE_COMMITED;
-  datastore_interp_state_t state4 = DATASTORE_INTERP_STATE_AUTO_COMMIT;
-  char *str = NULL;
-  void *conf = NULL;
-  const char *argv1[] = {"queue", "test_name39", "create",
-                         "-type", "single-rate",
-                         "-id", "1",
-                         "-priority", "2",
-                         "-color", "color-aware",
-                         "-committed-burst-size", "1500",
-                         "-committed-information-rate", "1501",
-                         "-excess-burst-size", "1502",
-                         NULL
-                        };
-  const char test_str1[] = "{\"ret\":\"OK\"}";
-  const char *argv2[] = {"queue", "test_name39", "enable", NULL};
-  const char test_str2[] = "{\"ret\":\"OK\"}";
-  const char *argv3[] = {"queue", "test_name39", "disable", NULL};
-  const char test_str3[] = "{\"ret\":\"OK\"}";
-  const char *argv4[] = {"queue", "test_name39", NULL};
-  const char test_str4[] =
-    "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name39\",\n"
-    "\"type\":\"single-rate\",\n"
-    "\"id\":1,\n"
-    "\"priority\":2,\n"
-    "\"color\":\"color-aware\",\n"
-    "\"committed-burst-size\":1500,\n"
-    "\"committed-information-rate\":1501,\n"
-    "\"excess-burst-size\":1502,\n"
-    "\"is-used\":true,\n"
-    "\"is-enabled\":true}]}";
-  const char *argv5[] = {"queue", "test_name39", NULL};
-  const char test_str5[] =
-    "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name39\",\n"
-    "\"type\":\"single-rate\",\n"
-    "\"id\":1,\n"
-    "\"priority\":2,\n"
-    "\"color\":\"color-aware\",\n"
-    "\"committed-burst-size\":1500,\n"
-    "\"committed-information-rate\":1501,\n"
-    "\"excess-burst-size\":1502,\n"
-    "\"is-used\":true,\n"
-    "\"is-enabled\":false}]}";
-  const char *argv6[] = {"queue", "test_name39", NULL};
-  const char test_str6[] =
-    "{\"ret\":\"OK\",\n"
-    "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name39\",\n"
-    "\"type\":\"single-rate\",\n"
-    "\"id\":1,\n"
-    "\"priority\":2,\n"
-    "\"color\":\"color-aware\",\n"
-    "\"committed-burst-size\":1500,\n"
-    "\"committed-information-rate\":1501,\n"
-    "\"excess-burst-size\":1502,\n"
-    "\"is-used\":true,\n"
-    "\"is-enabled\":false}]}";
-  const char *argv7[] = {"queue", "test_name39", "destroy",
-                         NULL
-                        };
-  const char test_str7[] = "{\"ret\":\"OK\"}";
-  const char *port_argv1[] = {"port", "test_port39", "create",
-                              "-queue", "test_name39",
-                              NULL
-                             };
-  const char port_test_str1[] = "{\"ret\":\"OK\"}";
-  const char *port_argv2[] = {"port", "test_port39", "destroy",
-                              NULL
-                             };
-  const char port_test_str2[] = "{\"ret\":\"OK\"}";
-
-  /* create cmd. */
-  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, queue_cmd_parse, &interp, state4,
-                 ARGV_SIZE(argv1), argv1, &tbl, queue_cmd_update,
-                 &ds, str, test_str1);
-
-  /* port create cmd.*/
-  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, port_cmd_parse, &interp, state4,
-                 ARGV_SIZE(port_argv1), port_argv1, &tbl, port_cmd_update,
-                 &ds, str, port_test_str1);
-
-  /* enable cmd. */
-  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, queue_cmd_parse, &interp, state4,
-                 ARGV_SIZE(argv2), argv2, &tbl, queue_cmd_update,
-                 &ds, str, test_str2);
-
-  /* disable cmd. */
-  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, queue_cmd_parse, &interp, state1,
-                 ARGV_SIZE(argv3), argv3, &tbl, queue_cmd_update,
-                 &ds, str, test_str3);
-
-  /* show cmd (current). */
-  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, queue_cmd_parse, &interp, state1,
-                 ARGV_SIZE(argv4), argv4, &tbl, queue_cmd_update,
-                 &ds, str, test_str4);
-
-  /* commiting. */
-  TEST_PROC(ret, LAGOPUS_RESULT_OK, queue_cmd_update, &interp, state2, &tbl,
-            DATASTORE_NAMESPACE_DELIMITER"test_name39", conf, &ds);
-
-  /* show cmd (current). */
-  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, queue_cmd_parse, &interp, state1,
-                 ARGV_SIZE(argv5), argv5, &tbl, queue_cmd_update,
-                 &ds, str, test_str5);
-
-  /* commited. */
-  TEST_PROC(ret, LAGOPUS_RESULT_OK, queue_cmd_update, &interp, state3, &tbl,
-            DATASTORE_NAMESPACE_DELIMITER"test_name39", conf, &ds);
-
-  /* show cmd (current). */
-  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, queue_cmd_parse, &interp, state1,
-                 ARGV_SIZE(argv6), argv6, &tbl, queue_cmd_update,
-                 &ds, str, test_str6);
-
-  /* port destroy cmd.*/
-  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, port_cmd_parse, &interp, state4,
-                 ARGV_SIZE(port_argv2), port_argv2, &tbl, port_cmd_update,
-                 &ds, str, port_test_str2);
-
-  /* destroy cmd. */
-  TEST_CMD_PARSE(ret, LAGOPUS_RESULT_OK, queue_cmd_parse, &interp, state4,
-                 ARGV_SIZE(argv7), argv7, &tbl, queue_cmd_update,
-                 &ds, str, test_str7);
-}
-
-void
 test_queue_cmd_parse_atomic_delay_destroy(void) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   datastore_interp_state_t state1 = DATASTORE_INTERP_STATE_ATOMIC;
@@ -1964,7 +1412,6 @@ test_queue_cmd_parse_atomic_delay_destroy(void) {
   void *conf = NULL;
   const char *argv1[] = {"queue", "test_name40", "create",
                          "-type", "single-rate",
-                         "-id", "1",
                          "-priority", "2",
                          "-color", "color-aware",
                          "-committed-burst-size", "1500",
@@ -2063,7 +1510,6 @@ test_queue_cmd_parse_atomic_abort_01(void) {
   void *conf = NULL;
   const char *argv1[] = {"queue", "test_name41", "create",
                          "-type", "single-rate",
-                         "-id", "1",
                          "-priority", "2",
                          "-color", "color-aware",
                          "-committed-burst-size", "1500",
@@ -2081,7 +1527,6 @@ test_queue_cmd_parse_atomic_abort_01(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name41\",\n"
     "\"type\":\"single-rate\",\n"
-    "\"id\":1,\n"
     "\"priority\":2,\n"
     "\"color\":\"color-aware\",\n"
     "\"committed-burst-size\":1500,\n"
@@ -2090,7 +1535,6 @@ test_queue_cmd_parse_atomic_abort_01(void) {
     "\"is-used\":false,\n"
     "\"is-enabled\":false}]}";
   const char *argv4[] = {"queue", "test_name41", "config",
-                         "-id", "2",
                          "-priority", "3",
                          "-color", "color-blind",
                          "-committed-burst-size", "1600",
@@ -2108,7 +1552,6 @@ test_queue_cmd_parse_atomic_abort_01(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name41\",\n"
     "\"type\":\"single-rate\",\n"
-    "\"id\":2,\n"
     "\"priority\":3,\n"
     "\"color\":\"color-blind\",\n"
     "\"committed-burst-size\":1600,\n"
@@ -2125,7 +1568,6 @@ test_queue_cmd_parse_atomic_abort_01(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name41\",\n"
     "\"type\":\"single-rate\",\n"
-    "\"id\":2,\n"
     "\"priority\":3,\n"
     "\"color\":\"color-blind\",\n"
     "\"committed-burst-size\":1600,\n"
@@ -2207,7 +1649,6 @@ test_queue_cmd_parse_atomic_abort_02(void) {
   void *conf = NULL;
   const char *argv1[] = {"queue", "test_name42", "create",
                          "-type", "single-rate",
-                         "-id", "1",
                          "-priority", "2",
                          "-color", "color-aware",
                          "-committed-burst-size", "1500",
@@ -2221,7 +1662,6 @@ test_queue_cmd_parse_atomic_abort_02(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name42\",\n"
     "\"type\":\"single-rate\",\n"
-    "\"id\":1,\n"
     "\"priority\":2,\n"
     "\"color\":\"color-aware\",\n"
     "\"committed-burst-size\":1500,\n"
@@ -2234,7 +1674,6 @@ test_queue_cmd_parse_atomic_abort_02(void) {
     "{\"ret\":\"NOT_OPERATIONAL\",\n"
     "\"data\":\"Not set modified.\"}";
   const char *argv4[] = {"queue", "test_name42", "config",
-                         "-id", "2",
                          "-priority", "3",
                          "-color", "color-blind",
                          "-committed-burst-size", "1600",
@@ -2248,7 +1687,6 @@ test_queue_cmd_parse_atomic_abort_02(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name42\",\n"
     "\"type\":\"single-rate\",\n"
-    "\"id\":1,\n"
     "\"priority\":2,\n"
     "\"color\":\"color-aware\",\n"
     "\"committed-burst-size\":1500,\n"
@@ -2261,7 +1699,6 @@ test_queue_cmd_parse_atomic_abort_02(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name42\",\n"
     "\"type\":\"single-rate\",\n"
-    "\"id\":2,\n"
     "\"priority\":3,\n"
     "\"color\":\"color-blind\",\n"
     "\"committed-burst-size\":1600,\n"
@@ -2274,7 +1711,6 @@ test_queue_cmd_parse_atomic_abort_02(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name42\",\n"
     "\"type\":\"single-rate\",\n"
-    "\"id\":1,\n"
     "\"priority\":2,\n"
     "\"color\":\"color-aware\",\n"
     "\"committed-burst-size\":1500,\n"
@@ -2287,7 +1723,6 @@ test_queue_cmd_parse_atomic_abort_02(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name42\",\n"
     "\"type\":\"single-rate\",\n"
-    "\"id\":2,\n"
     "\"priority\":3,\n"
     "\"color\":\"color-blind\",\n"
     "\"committed-burst-size\":1600,\n"
@@ -2300,7 +1735,6 @@ test_queue_cmd_parse_atomic_abort_02(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name42\",\n"
     "\"type\":\"single-rate\",\n"
-    "\"id\":1,\n"
     "\"priority\":2,\n"
     "\"color\":\"color-aware\",\n"
     "\"committed-burst-size\":1500,\n"
@@ -2395,7 +1829,6 @@ test_queue_cmd_parse_atomic_destroy_create(void) {
   void *conf = NULL;
   const char *argv1[] = {"queue", "test_name43", "create",
                          "-type", "single-rate",
-                         "-id", "1",
                          "-priority", "2",
                          "-color", "color-aware",
                          "-committed-burst-size", "1500",
@@ -2414,7 +1847,6 @@ test_queue_cmd_parse_atomic_destroy_create(void) {
     "\"data\":\"name = "DATASTORE_NAMESPACE_DELIMITER"test_name43\"}";
   const char *argv4[] = {"queue", "test_name43", "create",
                          "-type", "single-rate",
-                         "-id", "2",
                          "-priority", "3",
                          "-color", "color-blind",
                          "-committed-burst-size", "1600",
@@ -2428,7 +1860,6 @@ test_queue_cmd_parse_atomic_destroy_create(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name43\",\n"
     "\"type\":\"single-rate\",\n"
-    "\"id\":1,\n"
     "\"priority\":2,\n"
     "\"color\":\"color-aware\",\n"
     "\"committed-burst-size\":1500,\n"
@@ -2441,7 +1872,6 @@ test_queue_cmd_parse_atomic_destroy_create(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name43\",\n"
     "\"type\":\"single-rate\",\n"
-    "\"id\":2,\n"
     "\"priority\":3,\n"
     "\"color\":\"color-blind\",\n"
     "\"committed-burst-size\":1600,\n"
@@ -2454,7 +1884,6 @@ test_queue_cmd_parse_atomic_destroy_create(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name43\",\n"
     "\"type\":\"single-rate\",\n"
-    "\"id\":2,\n"
     "\"priority\":3,\n"
     "\"color\":\"color-blind\",\n"
     "\"committed-burst-size\":1600,\n"
@@ -2535,7 +1964,6 @@ test_queue_cmd_parse_dryrun(void) {
   char *str = NULL;
   const char *argv1[] = {"queue", "test_name44", "create",
                          "-type", "single-rate",
-                         "-id", "1",
                          "-priority", "2",
                          "-color", "color-aware",
                          "-committed-burst-size", "1500",
@@ -2549,7 +1977,6 @@ test_queue_cmd_parse_dryrun(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name44\",\n"
     "\"type\":\"single-rate\",\n"
-    "\"id\":1,\n"
     "\"priority\":2,\n"
     "\"color\":\"color-aware\",\n"
     "\"committed-burst-size\":1500,\n"
@@ -2562,7 +1989,6 @@ test_queue_cmd_parse_dryrun(void) {
     "{\"ret\":\"NOT_OPERATIONAL\",\n"
     "\"data\":\"Not set modified.\"}";
   const char *argv4[] = {"queue", "test_name44", "config",
-                         "-id", "2",
                          "-priority", "3",
                          "-color", "color-blind",
                          "-committed-burst-size", "1600",
@@ -2576,7 +2002,6 @@ test_queue_cmd_parse_dryrun(void) {
     "{\"ret\":\"OK\",\n"
     "\"data\":[{\"name\":\""DATASTORE_NAMESPACE_DELIMITER"test_name44\",\n"
     "\"type\":\"single-rate\",\n"
-    "\"id\":2,\n"
     "\"priority\":3,\n"
     "\"color\":\"color-blind\",\n"
     "\"committed-burst-size\":1600,\n"

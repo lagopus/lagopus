@@ -30,6 +30,9 @@
 /* command name. */
 #define CMD_NAME "port"
 
+#define UNUSED_QUEUE_ID 0
+
+
 /* option num. */
 enum port_opts {
   OPT_NAME = 0,
@@ -129,6 +132,7 @@ typedef struct configs {
   bool is_show_stats;
   datastore_port_stats_t stats;
   port_conf_t **list;
+  datastore_interp_t *iptr;
 } configs_t;
 
 struct names_info {
@@ -1954,6 +1958,92 @@ done:
   return ret;
 }
 
+static inline bool
+queue_opt_id_is_exists(port_conf_t *conf,
+                       uint32_t queue_id) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  bool rv = false;
+  struct datastore_name_entry *q_name = NULL;
+  datastore_name_info_t *q_c_names = NULL;
+  datastore_name_info_t *q_m_names = NULL;
+
+  if ((ret = port_get_queue_names(conf->current_attr,
+                                  &q_c_names)) ==
+      LAGOPUS_RESULT_OK) {
+    if (TAILQ_EMPTY(&q_c_names->head) == false) {
+      TAILQ_FOREACH(q_name, &q_c_names->head, name_entries) {
+        ret = queue_cmd_queue_id_is_exists(q_name->str,
+                                           queue_id,
+                                           &rv);
+        if (ret == LAGOPUS_RESULT_OK) {
+          if (rv == true) {
+            goto done;
+          }
+        } else {
+          goto done;
+        }
+      }
+    }
+  }
+  if ((ret = port_get_queue_names(conf->modified_attr,
+                                  &q_m_names)) ==
+      LAGOPUS_RESULT_OK) {
+    if (TAILQ_EMPTY(&q_m_names->head) == false) {
+      TAILQ_FOREACH(q_name, &q_m_names->head, name_entries) {
+        ret = queue_cmd_queue_id_is_exists(q_name->str,
+                                           queue_id,
+                                           &rv);
+        if (ret == LAGOPUS_RESULT_OK) {
+          if (rv == true) {
+            goto done;
+          }
+        } else {
+          goto done;
+        }
+      }
+    }
+  }
+
+done:
+  if (q_c_names != NULL) {
+    datastore_names_destroy(q_c_names);
+  }
+  if (q_m_names != NULL) {
+    datastore_names_destroy(q_m_names);
+  }
+
+  return rv;
+}
+
+static inline lagopus_result_t
+generate_queue_cmd(char *name,
+                   uint32_t queue_id,
+                   char **cmd_str) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  lagopus_dstring_t ds = NULL;
+
+  if ((ret = lagopus_dstring_create(&ds)) !=
+      LAGOPUS_RESULT_OK) {
+    goto done;
+  }
+
+  if ((ret = lagopus_dstring_appendf(&ds, "queue %s config -id %"PRIu32,
+                                     name, queue_id)) !=
+      LAGOPUS_RESULT_OK) {
+    goto done;
+  }
+
+  if ((ret = lagopus_dstring_str_get(&ds, cmd_str)) !=
+      LAGOPUS_RESULT_OK) {
+    goto done;
+  }
+
+done:
+  lagopus_dstring_destroy(&ds);
+
+  return ret;
+}
+
 static lagopus_result_t
 queue_opt_parse(const char *const *argv[],
                 void *c, void *out_configs,
@@ -1964,9 +2054,11 @@ queue_opt_parse(const char *const *argv[],
   char *name = NULL;
   char *name_str = NULL;
   char *fullname = NULL;
+  char *queue_cmd = NULL;
   bool is_added = false;
   bool is_exists = false;
   bool is_used = false;
+  union cmd_uint cmd_uint;
 
   if (argv != NULL && c != NULL &&
       out_configs != NULL && result != NULL) {
@@ -2022,6 +2114,45 @@ queue_opt_parse(const char *const *argv[],
             goto done;
           }
 
+          /* parse queue id. */
+          if (*(*argv + 1) == NULL) {
+            ret = datastore_json_result_string_setf(
+                result,
+                LAGOPUS_RESULT_INVALID_ARGS,
+                "Bad opt value.");
+            goto done;
+          }
+
+          if (IS_VALID_OPT(*(*argv + 1)) == true) {
+            /* argv + 1 equals option string(-XXX). */
+            ret = datastore_json_result_string_setf(
+                result, LAGOPUS_RESULT_INVALID_ARGS,
+                "Bad opt value = %s.",
+                *(*argv + 1));
+            goto done;
+          }
+
+          if ((ret = cmd_uint_parse(*(++(*argv)), CMD_UINT32,
+                                    &cmd_uint)) !=
+              LAGOPUS_RESULT_OK) {
+            ret = datastore_json_result_string_setf(
+                result, ret,
+                "Bad opt value = %s.",
+                *(*argv));
+            goto done;
+          }
+
+          /* check exists id. */
+          if (queue_opt_id_is_exists(conf,
+                                     cmd_uint.uint32) ==
+              true) {
+            ret = datastore_json_result_string_setf(
+                result, LAGOPUS_RESULT_ALREADY_EXISTS,
+                "queue name = %s, queue id = %"PRIu32".",
+                fullname, cmd_uint.uint32);
+            goto done;
+          }
+
           /* check is_used. */
           if ((ret =
                datastore_queue_is_used(fullname, &is_used)) ==
@@ -2034,6 +2165,24 @@ queue_opt_parse(const char *const *argv[],
                 ret = datastore_json_result_string_setf(
                     result, ret,
                     "queue name = %s.", fullname);
+              }
+
+
+              /* generate queue cmd. */
+              if ((ret = generate_queue_cmd(fullname, cmd_uint.uint32,
+                                            &queue_cmd)) !=
+                  LAGOPUS_RESULT_OK) {
+                goto done;
+              }
+
+              if ((ret = datastore_interp_eval_cmd(configs->iptr,
+                                                   queue_cmd, result)) ==
+                  LAGOPUS_RESULT_OK) {
+                /* clear result. Delete "OK" string.*/
+                (void) lagopus_dstring_clear(result);
+              } else {
+                lagopus_perror(ret);
+                goto done;
               }
             } else {
               ret = datastore_json_result_string_setf(
@@ -2055,6 +2204,19 @@ queue_opt_parse(const char *const *argv[],
             goto done;
           }
 
+          if (*(*argv + 1) != NULL) {
+            if (IS_VALID_OPT(*(*argv + 1)) == false) {
+              /* argv + 1 equals option string(-XXX). */
+              ret = datastore_json_result_string_setf(
+                  result, LAGOPUS_RESULT_INVALID_ARGS,
+                  "Bad opt value = %s. "
+                  "Do not specify the queue id.",
+                  *(*argv + 1));
+              goto done;
+            }
+          }
+
+          /* reset queue id. */
           ret = port_attr_remove_queue_name(conf->modified_attr,
                                             fullname);
           if (ret == LAGOPUS_RESULT_OK) {
@@ -2062,6 +2224,10 @@ queue_opt_parse(const char *const *argv[],
             ret = ofp_port_queue_used_set_internal(fullname,
                                                    false,
                                                    result);
+            if (ret != LAGOPUS_RESULT_OK) {
+              lagopus_perror(ret);
+              goto done;
+            }
           } else {
             ret = datastore_json_result_string_setf(
                 result, ret,
@@ -2098,6 +2264,7 @@ done:
   free(name);
   free(name_str);
   free(fullname);
+  free(queue_cmd);
 
   return ret;
 }
@@ -2808,28 +2975,43 @@ show_sub_cmd_parse(const char *const argv[],
 }
 
 static inline lagopus_result_t
-names_show(lagopus_dstring_t *ds,
-           const char *key,
-           datastore_name_info_t *names,
-           bool delimiter) {
+queue_names_show(lagopus_dstring_t *ds,
+                 const char *key,
+                 datastore_name_info_t *names,
+                 bool delimiter,
+                 bool is_show_current) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   struct datastore_name_entry *name = NULL;
   char *name_str = NULL;
-  size_t i = 0;
+  uint32_t id;
+  bool is_first = true;
 
   if (key != NULL) {
-    ret = DSTRING_CHECK_APPENDF(ds, delimiter, KEY_FMT"[", key);
+    ret = DSTRING_CHECK_APPENDF(ds, delimiter, KEY_FMT"{", key);
     if (ret == LAGOPUS_RESULT_OK) {
       TAILQ_FOREACH(name, &names->head, name_entries) {
-        ret = datastore_json_string_escape(name->str, &name_str);
+        if (((ret = datastore_queue_get_id(name->str, is_show_current,
+                                           &id)) ==
+             LAGOPUS_RESULT_INVALID_OBJECT) &&
+            is_show_current == false) {
+          ret = datastore_queue_get_id(name->str, true, &id);
+        }
+
         if (ret == LAGOPUS_RESULT_OK) {
-          ret = lagopus_dstring_appendf(ds, DS_JSON_LIST_ITEM_FMT(i),
-                                        name_str);
+          ret = datastore_json_string_escape(name->str, &name_str);
           if (ret == LAGOPUS_RESULT_OK) {
-            i++;
-          } else {
-            goto done;
+            ret = datastore_json_uint32_append(ds, name_str,
+                                               id, !(is_first));
+            if (ret == LAGOPUS_RESULT_OK) {
+              if (is_first == true) {
+                is_first = false;
+              }
+            } else {
+              goto done;
+            }
           }
+        } else {
+          goto done;
         }
         free(name_str);
         name_str = NULL;
@@ -2837,7 +3019,7 @@ names_show(lagopus_dstring_t *ds,
     } else {
       goto done;
     }
-    ret = lagopus_dstring_appendf(ds, "]");
+    ret = lagopus_dstring_appendf(ds, "}");
   } else {
     ret = LAGOPUS_RESULT_INVALID_ARGS;
   }
@@ -2857,6 +3039,7 @@ port_cmd_json_create(lagopus_dstring_t *ds,
   char *interface_name = NULL;
   char *policer_name = NULL;
   port_attr_t *attr = NULL;
+  bool is_show_current = false;
   uint32_t port_no;
   size_t i;
 
@@ -2867,14 +3050,17 @@ port_cmd_json_create(lagopus_dstring_t *ds,
         /* config cmd. */
         if (configs->list[i]->modified_attr != NULL) {
           attr = configs->list[i]->modified_attr;
+          is_show_current = false;
         } else {
           attr = configs->list[i]->current_attr;
+          is_show_current = true;
         }
       } else {
         /* show cmd. */
         if (configs->is_show_modified == true) {
           if (configs->list[i]->modified_attr != NULL) {
             attr = configs->list[i]->modified_attr;
+            is_show_current = false;
           } else {
             if (configs->size == 1) {
               ret = datastore_json_result_string_setf(
@@ -2888,6 +3074,7 @@ port_cmd_json_create(lagopus_dstring_t *ds,
         } else {
           if (configs->list[i]->current_attr != NULL) {
             attr = configs->list[i]->current_attr;
+            is_show_current = true;
           } else {
             if (configs->size == 1) {
               ret = datastore_json_result_string_setf(
@@ -2978,10 +3165,11 @@ port_cmd_json_create(lagopus_dstring_t *ds,
             if ((ret = port_get_queue_names(attr,
                                             &queue_names)) ==
                 LAGOPUS_RESULT_OK) {
-              if ((ret = names_show(ds,
-                                    ATTR_NAME_GET(opt_strs,
-                                                  OPT_QUEUES),
-                                    queue_names, true)) !=
+              if ((ret = queue_names_show(ds,
+                                          ATTR_NAME_GET(opt_strs,
+                                                        OPT_QUEUES),
+                                          queue_names, true,
+                                          is_show_current)) !=
                   LAGOPUS_RESULT_OK) {
                 lagopus_perror(ret);
                 goto done;
@@ -3146,7 +3334,7 @@ port_cmd_parse(datastore_interp_t *iptr,
   void *sub_cmd_proc;
   configs_t out_configs = {0, 0LL, false, false, false,
     {0LL, 0LL, 0LL, 0LL},
-    NULL
+    NULL, NULL,
   };
   char *name = NULL;
   char *fullname = NULL;
@@ -3165,6 +3353,7 @@ port_cmd_parse(datastore_interp_t *iptr,
       u_proc != NULL && result != NULL) {
 
     if ((ret = lagopus_dstring_create(&conf_result)) == LAGOPUS_RESULT_OK) {
+      out_configs.iptr = iptr;
       argv++;
 
       if (IS_VALID_STRING(*argv) == true) {
@@ -3324,6 +3513,7 @@ port_cmd_serialize(datastore_interp_t *iptr,
   char *escaped_policer_name = NULL;
   port_conf_t *conf = NULL;
   bool is_escaped = false;
+  uint32_t queue_id;
   (void) state;
 
   if (iptr != NULL && obj != NULL && result != NULL) {
@@ -3451,6 +3641,20 @@ port_cmd_serialize(datastore_interp_t *iptr,
                            result,
                            ESCAPE_NAME_FMT(is_escaped, escaped_q_names_str),
                            escaped_q_names_str)) !=
+                  LAGOPUS_RESULT_OK) {
+                lagopus_perror(ret);
+                goto done;
+              }
+
+              if ((ret = datastore_queue_get_id(q_entry->str, true,
+                                                &queue_id)) !=
+                  LAGOPUS_RESULT_OK) {
+                lagopus_perror(ret);
+                goto done;
+              }
+
+              if ((ret = lagopus_dstring_appendf(result, " %"PRIu32,
+                                                 queue_id)) !=
                   LAGOPUS_RESULT_OK) {
                 lagopus_perror(ret);
                 goto done;

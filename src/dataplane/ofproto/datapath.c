@@ -2123,7 +2123,7 @@ execute_action_encap(struct lagopus_packet *pkt,
       struct gtpu_hdr *new_gtpu;
 
       new_gtpu = (struct gtpu_hdr *)OS_M_PREPEND(m, sizeof(struct gtpu_hdr));
-      new_gtpu->verflags = 0x20; /* ver = 1 */
+      new_gtpu->verflags = 0x30; /* ver = 1, pt = 1 */
       new_gtpu->msgtype = 255; /* G-PDU */
       /* note: extension header size is included in length */
       new_gtpu->length = OS_HTONS(OS_M_PKTLEN(m) - sizeof(struct gtpu_hdr));

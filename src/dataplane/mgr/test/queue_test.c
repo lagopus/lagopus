@@ -40,10 +40,9 @@ test_dp_queue_create_and_destroy(void) {
   TEST_ASSERT_EQUAL(dp_queue_create("queue01", &qinfo), LAGOPUS_RESULT_OK);
   TEST_ASSERT_EQUAL(dp_queue_create("queue01", &qinfo),
                     LAGOPUS_RESULT_ALREADY_EXISTS);
+  TEST_ASSERT_EQUAL(dp_queue_create("queue02", &qinfo), LAGOPUS_RESULT_OK);
   TEST_ASSERT_EQUAL(dp_queue_create("queue02", &qinfo),
                     LAGOPUS_RESULT_ALREADY_EXISTS);
-  qinfo.id = 1;
-  TEST_ASSERT_EQUAL(dp_queue_create("queue02", &qinfo), LAGOPUS_RESULT_OK);
   dp_queue_destroy("queue01");
   dp_queue_destroy("queue02");
 }

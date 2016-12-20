@@ -297,7 +297,6 @@ app_lcore_io_rx(struct app_lcore_params_io *lpio,
     for (i = 0; i < lpio->rx.nifs; i++) {
       uint32_t n_mbufs;
 
-      portid = lpio->rx.ifp[i]->info.eth.port_number;
       n_mbufs = dpdk_rx_burst(lpio->rx.ifp[i], mbufs, bsz_rd);
       if (n_mbufs != 0) {
         dp_bulk_match_and_action(mbufs, n_mbufs, lp->worker.cache);
@@ -382,6 +381,9 @@ app_lcore_io_tx(struct app_lcore_params_io *lp,
       int ret;
 
       n_mbufs = lp->tx.mbuf_out[port].n_mbufs;
+      if (ring == NULL) {
+        continue;
+      }
       ret = rte_ring_sc_dequeue_burst(ring,
                                       (void **) &lp->tx.mbuf_out[port].array[n_mbufs],
                                       bsz_rd - n_mbufs);
@@ -776,6 +778,7 @@ dpdk_configure_interface(struct interface *ifp) {
   uint32_t n_rx_queues, n_tx_queues;
   uint8_t portid;
   struct rte_mempool *pool;
+  struct app_lcore_params_io *lp;
 
   if (is_rawsocket_only_mode() == true) {
     return LAGOPUS_RESULT_INVALID_ARGS;
@@ -820,6 +823,10 @@ dpdk_configure_interface(struct interface *ifp) {
 
   /* Init port */
   printf("Initializing NIC port %u ...\n", (unsigned) portid);
+  if (!rte_eth_dev_is_valid_port(portid)) {
+    printf("NIC port %u cannot used for DPDK\n", (unsigned) portid);
+    return LAGOPUS_RESULT_INVALID_ARGS;
+  }
   if ((rte_eth_devices[portid].data->dev_flags & RTE_ETH_DEV_INTR_LSC) != 0) {
     port_conf.intr_conf.lsc = 1;
     ret = rte_eth_dev_configure(portid,
@@ -883,36 +890,16 @@ dpdk_configure_interface(struct interface *ifp) {
     if (lp == NULL) {
       lagopus_exit_fatal("Unassigned I/O core\n");
     }
+    lp->io.tx.nic_ports[lp->io.tx.n_nic_ports] = portid;
+    lp->io.tx.n_nic_ports++;
+    app.nic_tx_port_mask[portid] = 1;
     lp->io.rx.nic_queues[lp->io.rx.n_nic_queues].port = portid;
     lp->io.rx.nic_queues[lp->io.rx.n_nic_queues].queue = 0;
     lp->io.rx.n_nic_queues++;
     app.nic_rx_queue_mask[portid][0] = NIC_RX_QUEUE_ENABLED;
-    lp->io.tx.nic_ports[lp->io.tx.n_nic_ports] = portid;
-    lp->io.tx.n_nic_ports++;
-    lp->io.rx.ifp[lp->io.rx.nifs++] = ifp;
-    app.nic_tx_port_mask[portid] = 1;
-  } else {
-    struct app_lcore_params *lp;
-    unsigned lcore;
-    int i;
-
-    if (app_get_lcore_for_nic_rx(portid, 0, &lcore) < 0) {
-      lagopus_exit_fatal("lcore not found for port %d queue %d\n",
-                         portid, 0);
-    }
-    lp = &app.lcore_params[lcore];
-    for (i = 0; i < lp->io.rx.nifs; i++) {
-      if (lp->io.rx.ifp[i]->info.eth.port_number == portid) {
-        break;
-      }
-    }
-    if (i == lp->io.rx.nifs) {
-      lp->io.rx.ifp[lp->io.rx.nifs++] = ifp;
-    }
   }
   /* Init RX queues */
-  for (queue = 0; queue < APP_MAX_RX_QUEUES_PER_NIC_PORT; queue ++) {
-    struct app_lcore_params_io *lp;
+  for (queue = 0; queue < APP_MAX_RX_QUEUES_PER_NIC_PORT; queue++) {
     uint8_t i;
 
     if (app.nic_rx_queue_mask[portid][queue] == NIC_RX_QUEUE_UNCONFIGURED) {
@@ -975,6 +962,10 @@ dpdk_configure_interface(struct interface *ifp) {
 
   ifp->stats = dpdk_port_stats;
   dpdk_interface_set_index(ifp);
+  /* finally, enable rx */
+  app_get_lcore_for_nic_rx(portid, 0, &lcore);
+  lp = &app.lcore_params[lcore].io;
+  lp->rx.ifp[lp->rx.nifs++] = ifp;
 
   return LAGOPUS_RESULT_OK;
 }
@@ -982,6 +973,9 @@ dpdk_configure_interface(struct interface *ifp) {
 lagopus_result_t
 dpdk_unconfigure_interface(struct interface *ifp) {
   uint8_t portid, queue;
+  struct app_lcore_params_io *lp;
+  uint32_t lcore;
+  uint8_t i;
 
   if (strlen(ifp->info.eth_dpdk_phy.device) > 0) {
     uint8_t actual_portid;
@@ -998,11 +992,19 @@ dpdk_unconfigure_interface(struct interface *ifp) {
   portid = (uint8_t)ifp->info.eth.port_number;
 
   dpdk_stop_interface(portid);
+  if (app_get_lcore_for_nic_rx(portid, 0, &lcore) < 0) {
+    lagopus_exit_fatal("lcore not found for port %d queue 0\n", portid);
+  }
+  lp = &app.lcore_params[lcore].io;
+  for (i = 0; i < lp->rx.nifs; i++) {
+    if (lp->rx.ifp[i] == ifp) {
+      lp->rx.nifs--;
+      memmove(&lp->rx.ifp[i], &lp->rx.ifp[i + 1],
+              sizeof(ifp) * (lp->rx.nifs - i));
+      break;
+    }
+  }
   for (queue = 0; queue < APP_MAX_RX_QUEUES_PER_NIC_PORT; queue ++) {
-    struct app_lcore_params_io *lp;
-    uint32_t lcore;
-    uint8_t i;
-
     if (app.nic_rx_queue_mask[portid][queue] == NIC_RX_QUEUE_UNCONFIGURED) {
       continue;
     }

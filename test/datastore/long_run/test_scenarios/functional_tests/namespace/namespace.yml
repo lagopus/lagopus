@@ -276,7 +276,7 @@ testcases:
               "port-number":1,
               "interface":"ns01:if01",
               "policer":"ns01:policer01",
-              "queues":["ns01:queue01"],
+              "queues":{"ns01:queue01":1},
               "is-used":true,
               "is-enabled":false}]}
           - cmd_type: ds
@@ -287,7 +287,7 @@ testcases:
               "port-number":2,
               "interface":"ns01:if02",
               "policer":"ns01:policer02",
-              "queues":["ns01:queue02"],
+              "queues":{"ns01:queue02":2},
               "is-used":true,
               "is-enabled":false}]}
           - cmd_type: ds
@@ -543,7 +543,7 @@ testcases:
               "port-number":1,
               "interface":"ns01:if01",
               "policer":"ns01:policer01",
-              "queues":["ns01:queue01"],
+              "queues":{"ns01:queue01":1},
               "is-used":true,
               "is-enabled":false}]}
           - cmd_type: ds
@@ -554,7 +554,7 @@ testcases:
               "port-number":2,
               "interface":"ns01:if02",
               "policer":"ns01:policer02",
-              "queues":["ns01:queue02"],
+              "queues":{"ns01:queue02":2},
               "is-used":true,
               "is-enabled":false}]}
           - cmd_type: ds

@@ -46,7 +46,6 @@ static lagopus_hashmap_t port_hashmap;
 static lagopus_hashmap_t bridge_hashmap;
 static lagopus_hashmap_t dpid_hashmap;
 static lagopus_hashmap_t queue_hashmap;
-static lagopus_hashmap_t queueid_hashmap;
 
 /**
  * physical port id --> struct port table
@@ -92,11 +91,6 @@ dp_api_init(void) {
                                 LAGOPUS_HASHMAP_TYPE_STRING,
                                 dp_queue_free);
   }
-  if (rv == LAGOPUS_RESULT_OK) {
-    rv = lagopus_hashmap_create(&queueid_hashmap,
-                                LAGOPUS_HASHMAP_TYPE_ONE_WORD,
-                                NULL);
-  }
   /* Initialize read write lock. */
   flowdb_lock_init(NULL);
   init_dp_timer();
@@ -113,7 +107,6 @@ dp_api_fini(void) {
   lagopus_hashmap_destroy(&bridge_hashmap, true);
   lagopus_hashmap_destroy(&dpid_hashmap, false);
   lagopus_hashmap_destroy(&queue_hashmap, true);
-  lagopus_hashmap_destroy(&queueid_hashmap, true);
   for (i = 0; i < DATASTORE_INTERFACE_TYPE_MAX + 1; i++) {
     lagopus_hashmap_destroy(&portid_hashmap[i], false);
   }
@@ -1313,16 +1306,9 @@ lagopus_result_t
 dp_queue_create(const char *name,
                 datastore_queue_info_t *queue_info) {
   datastore_queue_info_t *queue;
-  uint64_t id;
   lagopus_result_t rv;
 
   rv = lagopus_hashmap_find(&queue_hashmap, (void *)name, (void **)&queue);
-  if (rv == LAGOPUS_RESULT_OK) {
-    rv = LAGOPUS_RESULT_ALREADY_EXISTS;
-    goto out;
-  }
-  id = queue_info->id;
-  rv = lagopus_hashmap_find(&queueid_hashmap, (void *)id, (void **)&queue);
   if (rv == LAGOPUS_RESULT_OK) {
     rv = LAGOPUS_RESULT_ALREADY_EXISTS;
     goto out;
@@ -1335,15 +1321,6 @@ dp_queue_create(const char *name,
   memcpy(queue, queue_info, sizeof(datastore_queue_info_t));
   rv = lagopus_hashmap_add(&queue_hashmap, (void *)name,
                            (void **)&queue, false);
-  if (rv == LAGOPUS_RESULT_OK) {
-    rv = lagopus_hashmap_find(&queue_hashmap, (void *)name, (void **)&queue);
-    if (rv != LAGOPUS_RESULT_OK) {
-      goto out;
-    }
-    id = queue_info->id;
-    rv = lagopus_hashmap_add(&queueid_hashmap, (void *)id,
-                             (void **)&queue, false);
-  }
 out:
   return rv;
 }
@@ -1362,10 +1339,36 @@ dp_queue_destroy(const char *name) {
   dp_queue_stop(name);
   rv = lagopus_hashmap_find(&queue_hashmap, (void *)name, (void **)&queue);
   if (rv == LAGOPUS_RESULT_OK) {
-    id = queue->id;
-    lagopus_hashmap_delete(&queueid_hashmap, (void *)id, NULL, false);
     lagopus_hashmap_delete(&queue_hashmap, (void *)name, NULL, true);
   }
+}
+
+lagopus_result_t
+dp_queue_id_set(const char *name, uint32_t id) {
+  datastore_queue_info_t *queue;
+  lagopus_result_t rv;
+
+  rv = lagopus_hashmap_find(&queue_hashmap, (void *)name,
+                            (void **)&queue);
+  if (rv != LAGOPUS_RESULT_OK) {
+    return rv;
+  }
+  queue->id = id;
+  return LAGOPUS_RESULT_OK;
+}
+
+lagopus_result_t
+dp_queue_id_unset(const char *name) {
+  datastore_queue_info_t *queue;
+  lagopus_result_t rv;
+
+  rv = lagopus_hashmap_find(&queue_hashmap, (void *)name,
+                            (void **)&queue);
+  if (rv != LAGOPUS_RESULT_OK) {
+    return rv;
+  }
+  queue->id = 0;
+  return LAGOPUS_RESULT_OK;
 }
 
 lagopus_result_t

@@ -585,6 +585,13 @@ lagopus_result_t
 dp_queue_stats_get(const char *name,
                    datastore_queue_stats_t *stats);
 
+lagopus_result_t
+dp_queue_id_set(const char *name,
+                uint32_t id);
+
+lagopus_result_t
+dp_queue_id_unset(const char *name);
+
 /*
  * policer API
  */

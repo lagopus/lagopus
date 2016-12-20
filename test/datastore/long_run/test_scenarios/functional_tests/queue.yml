@@ -54,7 +54,6 @@ testcases:
               {"ret":"OK",
               "data":[{"name":":queue02",
               "type":"single-rate",
-              "id":2,
               "priority":3,
               "color":"color-aware",
               "committed-burst-size":1500,
@@ -70,13 +69,13 @@ testcases:
               "port-number":1,
               "interface":":if01",
               "policer":"",
-              "queues":[":queue01"],
+              "queues":{":queue01":1},
               "is-used":true,
               "is-enabled":false}]}
 
           # config port (add queue02)
           - cmd_type: ds
-            cmd: port port01 config -queue queue02
+            cmd: port port01 config -queue queue02 2
             result: '{"ret": "OK"}'
           # check show
           - cmd_type: ds
@@ -115,7 +114,7 @@ testcases:
               "port-number":1,
               "interface":":if01",
               "policer":"",
-              "queues":[":queue01", ":queue02"],
+              "queues":{":queue01":1, ":queue02":2},
               "is-used":true,
               "is-enabled":false}]}
 
@@ -130,7 +129,6 @@ testcases:
               {"ret":"OK",
               "data":[{"name":":queue01",
               "type":"single-rate",
-              "id":1,
               "priority":2,
               "color":"color-aware",
               "committed-burst-size":1500,
@@ -160,7 +158,7 @@ testcases:
               "port-number":1,
               "interface":":if01",
               "policer":"",
-              "queues":[":queue02"],
+              "queues":{":queue02":2},
               "is-used":true,
               "is-enabled":false}]}
 
@@ -175,7 +173,6 @@ testcases:
               {"ret":"OK",
               "data":[{"name":":queue01",
               "type":"single-rate",
-              "id":1,
               "priority":2,
               "color":"color-aware",
               "committed-burst-size":1500,
@@ -205,13 +202,13 @@ testcases:
               "port-number":1,
               "interface":":if01",
               "policer":"",
-              "queues":[":queue02"],
+              "queues":{":queue02":2},
               "is-used":true,
               "is-enabled":true}]}
 
-          # config port (add queue01)
+          # # config port (add queue01)
           - cmd_type: ds
-            cmd: port port01 config -queue queue01
+            cmd: port port01 config -queue queue01 1
             result: '{"ret": "OK"}'
           # check show
           - cmd_type: ds
@@ -250,6 +247,50 @@ testcases:
               "port-number":1,
               "interface":":if01",
               "policer":"",
-              "queues":[":queue02", ":queue01"],
+              "queues":{":queue02":2, ":queue01":1},
+              "is-used":true,
+              "is-enabled":true}]}
+
+          # # destroy queue
+          - cmd_type: ds
+            cmd: queue queue01 destroy
+            result: |-
+              {"ret":"NOT_OPERATIONAL",
+              "data":"name = :queue01: is used."}
+          - cmd_type: ds
+            cmd: port port01 config -queue -queue01
+            result: '{"ret": "OK"}'
+          - cmd_type: ds
+            cmd: queue queue01 destroy
+            result: '{"ret": "OK"}'
+          # check show
+          - cmd_type: ds
+            cmd: queue queue01
+            result: |-
+              {"ret":"NOT_FOUND",
+              "data":"name = :queue01"}
+          - cmd_type: ds
+            cmd: queue queue02
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":":queue02",
+              "type":"single-rate",
+              "id":2,
+              "priority":3,
+              "color":"color-aware",
+              "committed-burst-size":1500,
+              "committed-information-rate":1500,
+              "excess-burst-size":1500,
+              "is-used":true ,
+              "is-enabled":true}]}
+          - cmd_type: ds
+            cmd: port port01
+            result: |-
+              {"ret":"OK",
+              "data":[{"name":":port01",
+              "port-number":1,
+              "interface":":if01",
+              "policer":"",
+              "queues":{":queue02":2},
               "is-used":true,
               "is-enabled":true}]}

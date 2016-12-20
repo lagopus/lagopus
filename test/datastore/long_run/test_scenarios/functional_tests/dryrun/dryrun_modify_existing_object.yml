@@ -218,14 +218,14 @@ testcases:
               "port-number":1,
               "interface":":if01",
               "policer":":policer01",
-              "queues":[":queue01"],
+              "queues":{":queue01":1},
               "is-used":true,
               "is-enabled":false},
               {"name":":port02",
               "port-number":2,
               "interface":":if02",
               "policer":":policer02",
-              "queues":[":queue02"],
+              "queues":{":queue02":2},
               "is-used":true,
               "is-enabled":false}]}
           - cmd_type: ds
@@ -236,7 +236,7 @@ testcases:
               "port-number":1,
               "interface":":if01",
               "policer":":policer01",
-              "queues":[":queue01"],
+              "queues":{":queue01":1},
               "is-used":true,
               "is-enabled":false}]}
           - cmd_type: ds
@@ -247,7 +247,7 @@ testcases:
               "port-number":2,
               "interface":":if02",
               "policer":":policer02",
-              "queues":[":queue02"],
+              "queues":{":queue02":2},
               "is-used":true,
               "is-enabled":false}]}
           - cmd_type: ds
@@ -477,16 +477,16 @@ testcases:
               "is-used":true,
               "is-enabled":false}]}
           - cmd_type: ds
-            cmd: queue queue03 create -type single-rate -id 3 -priority 4 -color color-aware -committed-burst-size 1500 -committed-information-rate 1500 -excess-burst-size 1500
+            cmd: queue queue03 create -type single-rate -priority 4 -color color-aware -committed-burst-size 1500 -committed-information-rate 1500 -excess-burst-size 1500
             result: '{"ret": "OK"}'
           - cmd_type: ds
-            cmd: queue queue04 create -type single-rate -id 4 -priority 5 -color color-aware -committed-burst-size 1500 -committed-information-rate 1500 -excess-burst-size 1500
+            cmd: queue queue04 create -type single-rate -priority 5 -color color-aware -committed-burst-size 1500 -committed-information-rate 1500 -excess-burst-size 1500
             result: '{"ret": "OK"}'
           - cmd_type: ds
-            cmd: port port01 config -queue queue03
+            cmd: port port01 config -queue queue03 3
             result: '{"ret": "OK"}'
           - cmd_type: ds
-            cmd: port port02 config -queue queue04
+            cmd: port port02 config -queue queue04 4
             result: '{"ret": "OK"}'
           - cmd_type: ds
             cmd: port
@@ -496,14 +496,14 @@ testcases:
               "port-number":1,
               "interface":"dryrun:if01",
               "policer":"dryrun:policer01",
-              "queues":["dryrun:queue01","dryrun:queue03"],
+              "queues":{"dryrun:queue01":1,"dryrun:queue03":3},
               "is-used":true,
               "is-enabled":false},
               {"name":"dryrun:port02",
               "port-number":2,
               "interface":"dryrun:if02",
               "policer":"dryrun:policer02",
-              "queues":["dryrun:queue02","dryrun:queue04"],
+              "queues":{"dryrun:queue02":2,"dryrun:queue04":4},
               "is-used":true,
               "is-enabled":false}]}
           - cmd_type: ds
@@ -726,14 +726,14 @@ testcases:
               "port-number":1,
               "interface":":if01",
               "policer":":policer01",
-              "queues":[":queue01"],
+              "queues":{":queue01":1},
               "is-used":true,
               "is-enabled":false},
               {"name":":port02",
               "port-number":2,
               "interface":":if02",
               "policer":":policer02",
-              "queues":[":queue02"],
+              "queues":{":queue02":2},
               "is-used":true,
               "is-enabled":false}]}
           - cmd_type: ds
@@ -744,7 +744,7 @@ testcases:
               "port-number":1,
               "interface":":if01",
               "policer":":policer01",
-              "queues":[":queue01"],
+              "queues":{":queue01":1},
               "is-used":true,
               "is-enabled":false}]}
           - cmd_type: ds
@@ -755,7 +755,7 @@ testcases:
               "port-number":2,
               "interface":":if02",
               "policer":":policer02",
-              "queues":[":queue02"],
+              "queues":{":queue02":2},
               "is-used":true,
               "is-enabled":false}]}
           - cmd_type: ds
