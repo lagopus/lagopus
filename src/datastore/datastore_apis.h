@@ -831,6 +831,35 @@ datastore_interp_blocking_session_unset(datastore_interp_t *iptr,
                                         struct session *session);
 
 
+/**
+ * Eval DSL cmd.
+ *
+ *	@param[in]	iptr	An interpreter.
+ *	@param[in]	cmd	A DSL cmd string.
+ *	@param[out]	result	A result/output string.
+ *
+ *	@retval	LAGOPUS_RESULT_OK		Succeeded.
+ *	@retval	LAGOPUS_RESULT_INVALID_ARGS	Failed, invalid args.
+ *	@retval LAGOPUS_RESULT_NO_MEMORY	Failed, no memory.
+ *	@retval LAGOPUS_RESULT_ANY_FAILURES	Failed.
+ */
+lagopus_result_t
+datastore_interp_eval_cmd(datastore_interp_t *iptr,
+                          const char *cmd,
+                          lagopus_dstring_t *result);
+
+
+/**
+ * Is eval cmd.
+ *
+ *	@param[in]	iptr	An interpreter.
+ *
+ *	@retval	true/false
+ */
+bool
+datastore_interp_is_eval_cmd(datastore_interp_t *iptr);
+
+
 
 
 

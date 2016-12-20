@@ -110,6 +110,7 @@ typedef struct configs {
   bool is_show_stats;
   datastore_queue_stats_t stats;
   queue_conf_t **list;
+  datastore_interp_t *iptr;
 } configs_t;
 
 typedef lagopus_result_t
@@ -128,6 +129,7 @@ static lagopus_hashmap_t two_rate_opt_table = NULL;
 static inline lagopus_result_t
 queue_create(const char *name,
              queue_attr_t *attr,
+             bool is_eval_cmd,
              lagopus_dstring_t *result) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   datastore_queue_type_t type;
@@ -188,7 +190,16 @@ queue_create(const char *name,
 
     lagopus_msg_info("create queue. name = %s.\n", name);
     ret = dp_queue_create(name, &info);
-    if (ret != LAGOPUS_RESULT_OK) {
+    if (ret == LAGOPUS_RESULT_OK) {
+      if (is_eval_cmd == true) {
+        ret = dp_queue_id_set(name, info.id);
+
+        if (ret != LAGOPUS_RESULT_OK) {
+          ret = datastore_json_result_string_setf(result, ret,
+                                                  "Can't set queue id.");
+        }
+      }
+    } else {
       ret = datastore_json_result_string_setf(result, ret,
                                               "Can't create queue.");
     }
@@ -376,6 +387,7 @@ queue_cmd_do_update(datastore_interp_t *iptr,
       /* create queue. */
       ret = queue_create(conf->name,
                          conf->modified_attr,
+                         datastore_interp_is_eval_cmd(iptr),
                          result);
       if (ret == LAGOPUS_RESULT_OK) {
         if (conf->is_enabled == true) {
@@ -606,11 +618,22 @@ static lagopus_result_t
 id_opt_parse(const char *const *argv[],
              void *c, void *out_configs,
              lagopus_dstring_t *result) {
-  return uint_opt_parse(argv, (queue_conf_t *) c,
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  configs_t *configs = (configs_t *) out_configs;
+
+  if (datastore_interp_is_eval_cmd(configs->iptr) == true) {
+    ret = uint_opt_parse(argv, (queue_conf_t *) c,
                         (configs_t *) out_configs,
                         queue_set_id,
                         OPT_ID, CMD_UINT32,
                         result);
+  } else {
+    ret = datastore_json_result_string_setf(result, LAGOPUS_RESULT_INVALID_ARGS,
+                                            "Bad opt = %s.",
+                                            *(*argv));
+  }
+
+  return ret;
 }
 
 static lagopus_result_t
@@ -970,16 +993,10 @@ done:
 }
 
 static lagopus_result_t
-config_sub_cmd_parse_internal(datastore_interp_t *iptr,
-                              datastore_interp_state_t state,
-                              size_t argc, const char *const argv[],
-                              queue_conf_t *conf,
-                              datastore_update_proc_t proc,
-                              configs_t *out_configs,
-                              lagopus_dstring_t *result) {
+queue_attr_dup_modified(queue_conf_t *conf,
+                        lagopus_dstring_t *result) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
-  (void) argc;
-  (void) proc;
+
   if (conf->modified_attr == NULL) {
     if (conf->current_attr != NULL) {
       /*
@@ -990,47 +1007,65 @@ config_sub_cmd_parse_internal(datastore_interp_t *iptr,
                                  NULL);
       if (ret != LAGOPUS_RESULT_OK) {
         ret = datastore_json_result_set(result, ret, NULL);
-        goto done;
       }
     } else {
       ret = datastore_json_result_string_setf(result,
                                               LAGOPUS_RESULT_NOT_FOUND,
                                               "Not found attr. : name = %s",
                                               conf->name);
-      goto done;
     }
+  } else {
+    ret = LAGOPUS_RESULT_OK;
   }
 
-  conf->is_destroying = false;
-  out_configs->is_config = true;
-  ret = opt_parse(argv, conf, out_configs, result);
+  return ret;
+}
+
+static lagopus_result_t
+config_sub_cmd_parse_internal(datastore_interp_t *iptr,
+                              datastore_interp_state_t state,
+                              size_t argc, const char *const argv[],
+                              queue_conf_t *conf,
+                              datastore_update_proc_t proc,
+                              configs_t *out_configs,
+                              lagopus_dstring_t *result) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  (void) argc;
+  (void) proc;
+
+  ret = queue_attr_dup_modified(conf, result);
 
   if (ret == LAGOPUS_RESULT_OK) {
-    if (out_configs->flags == 0) {
-      /* update. */
-      ret = queue_cmd_update_internal(iptr, state, conf,
-                                      true, false, result);
+    conf->is_destroying = false;
+    out_configs->is_config = true;
+    ret = opt_parse(argv, conf, out_configs, result);
 
-      if (ret != LAGOPUS_RESULT_OK &&
-          ret != LAGOPUS_RESULT_DATASTORE_INTERP_ERROR) {
-        ret = datastore_json_result_set(result, ret, NULL);
-      }
-    } else {
-      /* show. */
-      ret = queue_conf_one_list(&out_configs->list, conf);
+    if (ret == LAGOPUS_RESULT_OK) {
+      if (out_configs->flags == 0) {
+        /* update. */
+        ret = queue_cmd_update_internal(iptr, state, conf,
+                                        true, false, result);
 
-      if (ret >= 0) {
-        out_configs->size = (size_t) ret;
-        ret = LAGOPUS_RESULT_OK;
+        if (ret != LAGOPUS_RESULT_OK &&
+            ret != LAGOPUS_RESULT_DATASTORE_INTERP_ERROR) {
+          ret = datastore_json_result_set(result, ret, NULL);
+        }
       } else {
-        ret = datastore_json_result_string_setf(
-                result, ret,
-                "Can't create list of queue_conf.");
+        /* show. */
+        ret = queue_conf_one_list(&out_configs->list, conf);
+
+        if (ret >= 0) {
+          out_configs->size = (size_t) ret;
+          ret = LAGOPUS_RESULT_OK;
+        } else {
+          ret = datastore_json_result_string_setf(
+              result, ret,
+              "Can't create list of queue_conf.");
+        }
       }
     }
   }
 
-done:
   return ret;
 }
 
@@ -1616,9 +1651,6 @@ queue_cmd_serialize(datastore_interp_t *iptr,
   const char *color_str = NULL;
   char *escaped_color_str = NULL;
 
-  /* id */
-  uint32_t id = 0;
-
   /* priority */
   uint16_t priority = 0;
 
@@ -1734,30 +1766,6 @@ queue_cmd_serialize(datastore_interp_t *iptr,
         ret = LAGOPUS_RESULT_OUT_OF_RANGE;
         lagopus_perror(ret);
         goto done;
-    }
-
-    /* id opt. */
-    if (IS_BIT_SET(flags, OPT_BIT_GET(OPT_ID)) == true) {
-      if ((ret = queue_get_id(conf->current_attr,
-                              &id)) ==
-          LAGOPUS_RESULT_OK) {
-        if ((ret = lagopus_dstring_appendf(result, " %s",
-                                           opt_strs[OPT_ID])) ==
-            LAGOPUS_RESULT_OK) {
-          if ((ret = lagopus_dstring_appendf(result, " %d",
-                                             id)) !=
-              LAGOPUS_RESULT_OK) {
-            lagopus_perror(ret);
-            goto done;
-          }
-        } else {
-          lagopus_perror(ret);
-          goto done;
-        }
-      } else {
-        lagopus_perror(ret);
-        goto done;
-      }
     }
 
     /* priority opt. */
@@ -2281,20 +2289,23 @@ queue_cmd_json_create(lagopus_dstring_t *ds,
           }
 
           /* id */
-          if (IS_BIT_SET(flags, OPT_BIT_GET(OPT_ID)) == true) {
-            if ((ret = queue_get_id(attr,
-                                    &id)) ==
-                LAGOPUS_RESULT_OK) {
-              if ((ret = datastore_json_uint32_append(
-                           ds, ATTR_NAME_GET(opt_strs, OPT_ID),
-                           id, true)) !=
+          /* When is_used is false, queue_id will be undefined. */
+          if (configs->list[i]->is_used == true) {
+            if (IS_BIT_SET(flags, OPT_BIT_GET(OPT_ID)) == true) {
+              if ((ret = queue_get_id(attr,
+                                      &id)) ==
                   LAGOPUS_RESULT_OK) {
+                if ((ret = datastore_json_uint32_append(
+                        ds, ATTR_NAME_GET(opt_strs, OPT_ID),
+                        id, true)) !=
+                    LAGOPUS_RESULT_OK) {
+                  lagopus_perror(ret);
+                  goto done;
+                }
+              } else {
                 lagopus_perror(ret);
                 goto done;
               }
-            } else {
-              lagopus_perror(ret);
-              goto done;
             }
           }
 
@@ -2509,21 +2520,27 @@ queue_cmd_stats_json_create(lagopus_dstring_t *ds,
         }
 
         /* port_no */
-        if ((ret = datastore_json_uint32_append(
-                     ds, ATTR_NAME_GET(stat_strs, STATS_PORT_NO),
-                     configs->stats.port_no, true)) !=
-            LAGOPUS_RESULT_OK) {
-          lagopus_perror(ret);
-          goto done;
+        /* When port_no is 0, port no will be undefined. */
+        if (configs->stats.port_no != 0) {
+          if ((ret = datastore_json_uint32_append(
+                  ds, ATTR_NAME_GET(stat_strs, STATS_PORT_NO),
+                  configs->stats.port_no, true)) !=
+              LAGOPUS_RESULT_OK) {
+            lagopus_perror(ret);
+            goto done;
+          }
         }
 
         /* queue_id */
-        if ((ret = datastore_json_uint32_append(
-                     ds, ATTR_NAME_GET(stat_strs, STATS_QUEUE_ID),
-                     configs->stats.queue_id, true)) !=
-            LAGOPUS_RESULT_OK) {
-          lagopus_perror(ret);
-          goto done;
+        /* When is_used is false, queue_id will be undefined. */
+        if (configs->list[0]->is_used == true) {
+          if ((ret = datastore_json_uint32_append(
+                  ds, ATTR_NAME_GET(stat_strs, STATS_QUEUE_ID),
+                  configs->stats.queue_id, true)) !=
+              LAGOPUS_RESULT_OK) {
+            lagopus_perror(ret);
+            goto done;
+          }
         }
 
         /* tx_bytes */
@@ -2606,7 +2623,7 @@ queue_cmd_parse(datastore_interp_t *iptr,
   void *sub_cmd_proc;
   configs_t out_configs = {0 , 0LL, false, false, false,
     {0LL, 0LL, 0LL, 0LL, 0LL, 0LL, 0LL},
-    NULL
+    NULL, NULL
   };
   char *name = NULL;
   char *fullname = NULL;
@@ -2625,6 +2642,7 @@ queue_cmd_parse(datastore_interp_t *iptr,
       u_proc != NULL && result != NULL) {
 
     if ((ret = lagopus_dstring_create(&conf_result)) == LAGOPUS_RESULT_OK) {
+      out_configs.iptr = iptr;
       argv++;
 
       if (IS_VALID_STRING(*argv) == true) {
@@ -2785,6 +2803,49 @@ queue_cmd_update_propagation(datastore_interp_t *iptr,
     ret = datastore_json_result_set(result, LAGOPUS_RESULT_INVALID_ARGS, NULL);
   }
 
+  return ret;
+}
+
+lagopus_result_t
+queue_cmd_queue_id_is_exists(char *name,
+                             const uint32_t queue_id,
+                             bool *b) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  queue_conf_t *conf = NULL;
+  uint32_t q_id;
+
+  if (name != NULL && b != NULL) {
+    ret = queue_find(name, &conf);
+
+    *b = false;
+    if (ret == LAGOPUS_RESULT_OK) {
+      if (conf->current_attr != NULL) {
+        if ((ret = queue_get_id(conf->current_attr, &q_id)) ==
+            LAGOPUS_RESULT_OK) {
+          if (queue_id == q_id) {
+            *b = true;
+            goto done;
+          }
+        }
+      }
+      if (conf->modified_attr != NULL) {
+        if ((ret = queue_get_id(conf->modified_attr, &q_id)) ==
+            LAGOPUS_RESULT_OK) {
+          if (queue_id == q_id) {
+            *b = true;
+            goto done;
+          }
+        }
+      }
+    } else if (ret == LAGOPUS_RESULT_NOT_FOUND) {
+      /* ignore LAGOPUS_RESULT_NOT_FOUND. */
+      ret = LAGOPUS_RESULT_OK;
+    }
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+done:
   return ret;
 }
 

@@ -72,9 +72,11 @@ get_local_data (struct mactable *mactable) {
 #if defined PIPELINER
   wid = pipeline_worker_id;
 #elif defined HAVE_DPDK
-  wid = dpdk_get_worker_id();
-  if (wid < 0 || wid >= UPDATER_LOCALDATA_MAX_NUM || wid == UINT32_MAX) {
-    wid = 0;
+  if (is_rawsocket_only_mode() == false) {
+    wid = dpdk_get_worker_id();
+    if (wid < 0 || wid >= UPDATER_LOCALDATA_MAX_NUM || wid == UINT32_MAX) {
+      wid = 0;
+    }
   }
 #endif
   return &mactable->local[wid];

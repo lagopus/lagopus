@@ -347,11 +347,9 @@
   }
 
 #define TEST_QUEUE_CREATE(_ret, _interp, _state, _tbl,                  \
-                          _ds, _str, _name,                             \
-                          _id) {                                        \
+                          _ds, _str, _name) {                           \
     const char *_q[] = {"queue", _name, "create",                       \
                         "-type", "single-rate",                         \
-                        "-id", _id,                                     \
                         NULL};                                          \
     const char _q_str[] = "{\"ret\":\"OK\"}";                           \
     /* queue create cmd. */                                             \

@@ -64,6 +64,12 @@ dp_interface_alloc(void) {
   struct interface *ifp;
   ifp = calloc(1, sizeof(struct interface));
   if (ifp != NULL) {
+    if (lagopus_hashmap_create(&ifp->queueid_hashmap,
+                               LAGOPUS_HASHMAP_TYPE_ONE_WORD,
+                               NULL) != LAGOPUS_RESULT_OK) {
+      free(ifp);
+      return NULL;
+    }
     ifp->stats = unknown_port_stats;
     ifp->addr_info.set = false;
   }
@@ -75,6 +81,7 @@ dp_interface_free(struct interface *ifp) {
   if (ifp == NULL) {
     return LAGOPUS_RESULT_INVALID_ARGS;
   }
+  lagopus_hashmap_destroy(&ifp->queueid_hashmap, false);
   free(ifp);
   return LAGOPUS_RESULT_OK;
 }
@@ -597,34 +604,51 @@ dp_interface_queue_configure(struct interface *ifp) {
 
 lagopus_result_t
 dp_interface_queue_add(struct interface *ifp, dp_queue_info_t *queue) {
+  lagopus_result_t rv;
+  void *v;
+
+  rv = lagopus_hashmap_find(&ifp->queueid_hashmap, (void *)&queue->id, &v);
+  if (rv == LAGOPUS_RESULT_OK) {
+    return LAGOPUS_RESULT_ALREADY_EXISTS;
+  } else if (rv != LAGOPUS_RESULT_NOT_FOUND) {
+    return rv;
+  }
+  rv = LAGOPUS_RESULT_INVALID_ARGS;
   switch (ifp->info.type) {
     case DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_PHY:
     case DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_VDEV:
 #ifdef HAVE_DPDK
-      return dpdk_interface_queue_add(ifp, queue);
+      rv = dpdk_interface_queue_add(ifp, queue);
 #else
       break;
 #endif
 
     case DATASTORE_INTERFACE_TYPE_ETHERNET_RAWSOCK:
     case DATASTORE_INTERFACE_TYPE_UNKNOWN:
-      return LAGOPUS_RESULT_OK;
+      rv = LAGOPUS_RESULT_OK;
+      break;
 
     case DATASTORE_INTERFACE_TYPE_GRE:
     case DATASTORE_INTERFACE_TYPE_NVGRE:
     case DATASTORE_INTERFACE_TYPE_VXLAN:
     case DATASTORE_INTERFACE_TYPE_VHOST_USER:
       /* TODO */
-      return LAGOPUS_RESULT_OK;
+      rv = LAGOPUS_RESULT_OK;
+      break;
 
     default:
       break;
   }
-  return LAGOPUS_RESULT_INVALID_ARGS;
+  if (rv == LAGOPUS_RESULT_OK) {
+    rv = lagopus_hashmap_add(&ifp->queueid_hashmap,
+                             (void *)queue->id, (void *)&queue, false);
+  }
+  return rv;
 }
 
 lagopus_result_t
 dp_interface_queue_delete(struct interface *ifp, uint32_t queue_id) {
+  lagopus_hashmap_delete(&ifp->queueid_hashmap, (void *)queue_id, NULL, false);
   switch (ifp->info.type) {
     case DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_PHY:
     case DATASTORE_INTERFACE_TYPE_ETHERNET_DPDK_VDEV:

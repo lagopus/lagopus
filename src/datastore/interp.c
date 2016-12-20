@@ -54,6 +54,7 @@ typedef struct datastore_interp_record {
   lagopus_hashmap_t m_cmd_tbl;
   lagopus_hashmap_t m_blocking_sessions;
   char m_atomic_auto_save_file[PATH_MAX];
+  char *m_cmd_string;
 } datastore_interp_record;
 
 
@@ -1770,81 +1771,83 @@ s_eval_stream(datastore_interp_t *iptr,
        ((getsproc == s_session_gets || getsproc == s_FILE_gets) &&
         (printproc == NULL || stream_out == NULL)))) {
 
-    char *line = NULL;
+    if ((*iptr)->m_cmd_string == NULL) {
+      char *line = NULL;
 
-    s_linereader_init(*iptr, stream_in, stream_out,
-                      getsproc, printproc);
+      s_linereader_init(*iptr, stream_in, stream_out,
+                        getsproc, printproc);
+      if (s_is_interp_interactive(*iptr) == true) {
 
-    if (s_is_interp_interactive(*iptr) == true) {
-
-      /*
-       * The interactive mode. Get a line, evaluate, and return.
-       */
-      if ((ret = s_getline(*iptr,
-                           stream_in, &line, NULL)) == LAGOPUS_RESULT_OK) {
-        if (IS_VALID_STRING(line) == true) {
-          ret = s_eval_str(iptr, (const char *)line, ds, stream_out);
-        } else {
-          ret = (s_linereader_got_EOF(*iptr) == false) ?
-                LAGOPUS_RESULT_OK : LAGOPUS_RESULT_EOF;
-        }
-      }
-
-    } else {
-
-      size_t lineno = 0;
-
-      /*
-       * The "config file load" mode. Evaluate lines until got an EOF.
-       */
-      while (s_linereader_got_EOF(*iptr) == false) {
-        if (line != NULL) {
-          free((void *)line);
-          line = NULL;
-        }
-        if ((ret = s_getline(*iptr, stream_in, &line, &lineno)) ==
-            LAGOPUS_RESULT_OK) {
+        /*
+         * The interactive mode. Get a line, evaluate, and return.
+         */
+        if ((ret = s_getline(*iptr,
+                             stream_in, &line, NULL)) == LAGOPUS_RESULT_OK) {
           if (IS_VALID_STRING(line) == true) {
-            if ((ret = s_eval_str(iptr, (const char *)line, ds, stream_out)) ==
-                LAGOPUS_RESULT_OK) {
-              continue;
-            } else {
-              /*
-               * return line # in ds.
-               */
-              size_t len = 0;
-              if ((len = (size_t) lagopus_dstring_len_get(ds)) >
+            ret = s_eval_str(iptr, (const char *)line, ds, stream_out);
+          } else {
+            ret = (s_linereader_got_EOF(*iptr) == false) ?
+                LAGOPUS_RESULT_OK : LAGOPUS_RESULT_EOF;
+          }
+        }
+
+      } else {
+
+        size_t lineno = 0;
+
+        /*
+         * The "config file load" mode. Evaluate lines until got an EOF.
+         */
+        while (s_linereader_got_EOF(*iptr) == false) {
+          if (line != NULL) {
+            free((void *)line);
+            line = NULL;
+          }
+          if ((ret = s_getline(*iptr, stream_in, &line, &lineno)) ==
+              LAGOPUS_RESULT_OK) {
+            if (IS_VALID_STRING(line) == true) {
+              if ((ret = s_eval_str(iptr, (const char *)line, ds, stream_out)) ==
                   LAGOPUS_RESULT_OK) {
-                if (lagopus_dstring_insertf(ds,
-                                            len - 1,
-                                            ", \"line\": %zu",
-                                            lineno) == LAGOPUS_RESULT_OK) {
+                continue;
+              } else {
+                /*
+                 * return line # in ds.
+                 */
+                size_t len = 0;
+                if ((len = (size_t) lagopus_dstring_len_get(ds)) >
+                    LAGOPUS_RESULT_OK) {
+                  if (lagopus_dstring_insertf(ds,
+                                              len - 1,
+                                              ", \"line\": %zu",
+                                              lineno) == LAGOPUS_RESULT_OK) {
+                  } else {
+                    lagopus_msg_warning("message create failed.\n");
+                  }
                 } else {
                   lagopus_msg_warning("message create failed.\n");
                 }
-              } else {
-                lagopus_msg_warning("message create failed.\n");
-              }
 
-              break;
+                break;
+              }
+            } else {
+              ret = LAGOPUS_RESULT_OK;
+              if (s_linereader_got_EOF(*iptr) == false) {
+                continue;
+              } else {
+                break;
+              }
             }
           } else {
-            ret = LAGOPUS_RESULT_OK;
-            if (s_linereader_got_EOF(*iptr) == false) {
-              continue;
-            } else {
-              break;
-            }
+            break;
           }
-        } else {
-          break;
         }
+
       }
-
+      free((void *)line);
+      s_linereader_final(*iptr);
+    } else {
+      ret = s_eval_str(iptr, (const char *) (*iptr)->m_cmd_string, ds, stream_out);
     }
-    free((void *)line);
-    s_linereader_final(*iptr);
-
   } else {
     ret = LAGOPUS_RESULT_INVALID_ARGS;
   }
@@ -2270,6 +2273,7 @@ datastore_create_interp(datastore_interp_t *iptr) {
         ip->m_saved_status = DATASTORE_INTERP_STATE_AUTO_COMMIT;
         ip->m_is_stream = false;
         ip->m_atomic_auto_save_file[0] = '\0';
+        ip->m_cmd_string = NULL;
         s_linereader_init(ip, NULL, NULL, NULL, NULL);
       }
     } else {
@@ -2887,6 +2891,59 @@ datastore_interp_get_current_file_context(const datastore_interp_t *iptr,
   return ret;
 }
 
+
+lagopus_result_t
+datastore_interp_eval_cmd(datastore_interp_t *iptr,
+                          const char *cmd,
+                          lagopus_dstring_t *result) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  void *stream_in = NULL;
+  datastore_gets_proc_t getsproc;
+
+  if (iptr != NULL && *iptr != NULL && cmd != NULL) {
+    ret = datastore_interp_get_current_file_context(iptr,
+                                                    NULL,
+                                                    NULL,
+                                                    &stream_in,
+                                                    NULL,
+                                                    &getsproc,
+                                                    NULL,
+                                                    NULL);
+    if (ret == LAGOPUS_RESULT_OK) {
+      (*iptr)->m_cmd_string = strdup(cmd);
+
+      if ((*iptr)->m_cmd_string != NULL) {
+        ret = s_eval_stream_wrap(iptr,
+                                 (const char *) (*iptr)->m_current_configurator,
+                                 (*iptr)->m_is_stream,
+                                 stream_in, getsproc,
+                                 NULL, NULL,
+                                 result);
+      } else {
+        ret = LAGOPUS_RESULT_NO_MEMORY;
+      }
+      free((*iptr)->m_cmd_string);
+      (*iptr)->m_cmd_string = NULL;
+    }
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  return ret;
+}
+
+
+bool
+datastore_interp_is_eval_cmd(datastore_interp_t *iptr) {
+  bool b = false;
+
+  if (iptr != NULL && *iptr != NULL &&
+      (*iptr)->m_cmd_string != NULL) {
+    b = true;
+  }
+
+  return b;
+}
 
 
 

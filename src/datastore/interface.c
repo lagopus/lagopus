@@ -144,7 +144,11 @@ interface_attr_create(interface_attr_t **attr) {
   if (rc != LAGOPUS_RESULT_OK) {
     return rc;
   }
+#if MAX_PACKET_SZ > 2048
+  (*attr)->mtu = 9000; /* preliminary */
+#else
   (*attr)->mtu = 1500;
+#endif /* MAX_PACKET_SZ */
   rc = lagopus_ip_address_create("127.0.0.1", true, &ip_addr);
   if (rc != LAGOPUS_RESULT_OK) {
     goto error;

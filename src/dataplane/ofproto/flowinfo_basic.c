@@ -214,7 +214,7 @@ flow_make_match(struct flow *flow) {
         byteoff[OOB_BASE].bits |= (uint32_t)BYTEBITS(2, off);
         memcpy(val8, match->oxm_value, 2);
         BYTEPTR(OOB_BASE, off)[0] &= 0xe0;
-        BYTEPTR(OOB_BASE, off)[0] |= val8[0] | 0x10;
+        BYTEPTR(OOB_BASE, off)[0] |= val8[0];
         BYTEPTR(OOB_BASE, off)[1] = val8[1];
         MASKPTR(OOB_BASE, off)[0] |= 0x1f;
         MASKPTR(OOB_BASE, off)[1] = 0xff;
@@ -228,7 +228,7 @@ flow_make_match(struct flow *flow) {
         byteoff[OOB_BASE].bits |= (uint32_t)BYTEBITS(2, off);
         memcpy(val8, match->oxm_value, 4);
         BYTEPTR(OOB_BASE, off)[0] &= 0xe0;
-        BYTEPTR(OOB_BASE, off)[0] |= val8[0] | (0x10 & val8[2]);
+        BYTEPTR(OOB_BASE, off)[0] |= val8[0];
         BYTEPTR(OOB_BASE, off)[1] = val8[1];
         MASKPTR(OOB_BASE, off)[0] &= 0xe0;
         MASKPTR(OOB_BASE, off)[0] |= val8[2];
@@ -476,7 +476,7 @@ flow_make_match(struct flow *flow) {
         const int off = offsetof(struct vxlanhdr, vni);
 
         byteoff[L4P_BASE].bits |= (uint32_t)BYTEBITS(3, off);
-        memcpy(BYTEPTR(MPLS_BASE, off), match->oxm_value, 3);
+        memcpy(BYTEPTR(L4P_BASE, off), match->oxm_value, 3);
         MASKPTR(L4P_BASE, off)[0] = 0xff;
         MASKPTR(L4P_BASE, off)[1] = 0xff;
         MASKPTR(L4P_BASE, off)[2] = 0xff;
@@ -598,8 +598,8 @@ flow_make_match(struct flow *flow) {
         }
         break;
 
-        MAKE_BYTE(OFPXMT_OFB_GTPU_MSGTYPE, gtpu_hdr, msgtype, L4P_BASE);
-        MAKE_BYTE(OFPXMT_OFB_GTPU_TEID, gtpu_hdr, te_id, L4P_BASE);
+      MAKE_BYTE(OFPXMT_OFB_GTPU_MSGTYPE, gtpu_hdr, msgtype, L4P_BASE);
+      MAKE_BYTE(OFPXMT_OFB_GTPU_TEID, gtpu_hdr, te_id, L4P_BASE);
         /* EXTN_HDR, EXTN_HDP_PORT, EXTN_SCI is not supported yet */
 #endif /* GENERAL_TUNNEL_SUPPORT */
 

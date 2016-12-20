@@ -174,7 +174,7 @@ testcases:
               "port-number":1,
               "interface":"abc:if01",
               "policer":"abc:policer01",
-              "queues":["abc:queue01"],
+              "queues":{"abc:queue01":1},
               "is-used":true,
               "is-enabled":false}]}
           - cmd_type: ds
@@ -185,7 +185,7 @@ testcases:
               "port-number":2,
               "interface":"abc:if02",
               "policer":"abc:policer02",
-              "queues":["abc:queue02"],
+              "queues":{"abc:queue02":2},
               "is-used":true,
               "is-enabled":false}]}
           - cmd_type: ds
@@ -421,14 +421,14 @@ testcases:
               "port-number":1,
               "interface":"dryrun:if01",
               "policer":"dryrun:policer01",
-              "queues":["dryrun:queue01"],
+              "queues":{"dryrun:queue01":1},
               "is-used":true,
               "is-enabled":false},
               {"name":"dryrun:port02",
               "port-number":2,
               "interface":"dryrun:if02",
               "policer":"dryrun:policer02",
-              "queues":["dryrun:queue02"],
+              "queues":{"dryrun:queue02":2},
               "is-used":true,
               "is-enabled":false}]}
           - cmd_type: ds
@@ -439,7 +439,7 @@ testcases:
               "port-number":1,
               "interface":"dryrun:if01",
               "policer":"dryrun:policer01",
-              "queues":["dryrun:queue01"],
+              "queues":{"dryrun:queue01":1},
               "is-used":true,
               "is-enabled":false}]}
           - cmd_type: ds
@@ -450,7 +450,7 @@ testcases:
               "port-number":2,
               "interface":"dryrun:if02",
               "policer":"dryrun:policer02",
-              "queues":["dryrun:queue02"],
+              "queues":{"dryrun:queue02":2},
               "is-used":true,
               "is-enabled":false}]}
           - cmd_type: ds
@@ -676,7 +676,7 @@ testcases:
               "port-number":1,
               "interface":"abc:if01",
               "policer":"abc:policer01",
-              "queues":["abc:queue01"],
+              "queues":{"abc:queue01":1},
               "is-used":true,
               "is-enabled":false}]}
           - cmd_type: ds
@@ -687,7 +687,7 @@ testcases:
               "port-number":2,
               "interface":"abc:if02",
               "policer":"abc:policer02",
-              "queues":["abc:queue02"],
+              "queues":{"abc:queue02":2},
               "is-used":true,
               "is-enabled":false}]}
           - cmd_type: ds

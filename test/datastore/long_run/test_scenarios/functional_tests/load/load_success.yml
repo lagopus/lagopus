@@ -128,7 +128,7 @@ testcases:
               "port-number":1,
               "interface":":if01",
               "policer":":policer01",
-              "queues":[":queue01"],
+              "queues":{":queue01":1},
               "is-used":true,
               "is-enabled":false}]}
           - cmd_type: ds
@@ -139,7 +139,7 @@ testcases:
               "port-number":2,
               "interface":":if02",
               "policer":":policer02",
-              "queues":[":queue02"],
+              "queues":{":queue02":2},
               "is-used":true,
               "is-enabled":false}]}
           - cmd_type: ds
