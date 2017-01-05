@@ -30,8 +30,12 @@
 
 #### Relevant logs
 
-(Paste any relevant logs - please use code blocks (```) to format console output,
+(Paste any relevant logs - please use code blocks to format console output,
 logs, and code as it's very hard to read otherwise.)
+
+```
+(Sample)
+```
 
 #### Component
 
