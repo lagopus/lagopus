@@ -19,6 +19,7 @@ Compile vswitch
 * DPDK version
 
 ```
+	$ sudo apt-get install linux-headers-$(uname -r)
 	$ cd lagopus
 	$ ./configure
 	$ make
