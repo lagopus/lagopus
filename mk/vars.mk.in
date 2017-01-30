@@ -200,7 +200,7 @@ endif
 OBJS		?= $(SRCS:.c=.lo)
 
 ifdef TARGET_LIB
-SHLIB_VERSION	?= 0:0:0
+SHLIB_VERSION	?= 0:1:0
 LTLINK_VERSION	= -version-info $(SHLIB_VERSION)
 endif
 LTLINK_RPATH	= -rpath $(DEST_LIBDIR)
