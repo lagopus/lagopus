@@ -1518,13 +1518,10 @@ flow_del_sub(struct bridge *bridge,
     add_thtable_timer(flow_list, UPDATE_TIMEOUT);
 #endif /* USE_THTABLEE */
   } else {
-    int new_nflow;
-
     /*
      * not strict. delete all flows if matched by match_list and cookie.
      */
     flow_list = table->flow_list;
-    new_nflow = flow_list->nflow;
     for (i = 0; i < flow_list->nflow; i++) {
       flow = flow_list->flows[i];
       /* filtering by cookie */
@@ -1557,7 +1554,6 @@ flow_del_sub(struct bridge *bridge,
         }
         flow_list->flows[i] = NULL;
         flow_free(flow);
-        new_nflow--;
 #ifdef USE_MBTREE
         if (flow_list->update_timer != NULL) {
           *flow_list->update_timer = NULL;
@@ -1574,7 +1570,7 @@ flow_del_sub(struct bridge *bridge,
     }
     /* compaction. */
     for (i = 0; i < flow_list->nflow; i++) {
-      int st, ed;
+      int st;
 
       if (flow_list->flows[i] == NULL) {
         for (st = i; st < flow_list->nflow; st++) {
@@ -1585,17 +1581,11 @@ flow_del_sub(struct bridge *bridge,
         if (st == flow_list->nflow) {
           break;
         }
-        for (ed = st + 1; ed < flow_list->nflow; ed++) {
-          if (flow_list->flows[ed] == NULL) {
-            break;
-          }
-        }
         memmove(&flow_list->flows[i], &flow_list->flows[st],
-                sizeof(struct flow *) * (unsigned int)(ed - st));
-        i = ed - 1;
+                sizeof(struct flow *) * (unsigned int)(flow_list->nflow - st));
+        flow_list->nflow -= st - i;
       }
     }
-    flow_list->nflow = new_nflow;
   }
 out:
   return ret;
