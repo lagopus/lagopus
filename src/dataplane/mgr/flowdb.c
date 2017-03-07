@@ -1579,6 +1579,7 @@ flow_del_sub(struct bridge *bridge,
           }
         }
         if (st == flow_list->nflow) {
+          flow_list->nflow = i;
           break;
         }
         memmove(&flow_list->flows[i], &flow_list->flows[st],
