@@ -1275,6 +1275,9 @@ execute_action_set(struct lagopus_packet *pkt, struct action_list *actions) {
       break;
     }
   }
+  clear_action_set(pkt);
+  pkt->flags &= (uint32_t)~PKT_FLAG_HAS_ACTION;
+
   return rv;
 }
 
