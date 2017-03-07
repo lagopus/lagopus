@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2017 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -151,7 +151,7 @@ output_top(const char *hname) {
 
   char licence[] =
     "/*\n"
-    " * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.\n"
+    " * Copyright 2014-2017 Nippon Telegraph and Telephone Corporation.\n"
     " *\n"
     " * Licensed under the Apache License, Version 2.0 (the \"License\");\n"
     " * you may not use this file except in compliance with the License.\n"
