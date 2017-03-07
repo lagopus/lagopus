@@ -1704,6 +1704,10 @@ dp_interface_tx_packet(struct lagopus_packet *pkt,
   uint32_t in_port;
 
   in_port = pkt->in_port->ofp_port.port_no;
+  if (out_port == in_port) {
+    lagopus_packet_free(pkt);
+    return;
+  }
 
   switch (out_port) {
     case OFPP_TABLE:
