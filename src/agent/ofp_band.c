@@ -168,8 +168,7 @@ ofp_meter_band_experimenter_parse(struct pbuf *pbuf,
 }
 
 static lagopus_result_t
-ofp_drop_encode(struct pbuf_list *pbuf_list,
-                struct pbuf **pbuf,
+ofp_drop_encode(struct pbuf *pbuf,
                 struct meter_band *meter_band) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   struct ofp_meter_band_drop band;
@@ -183,7 +182,7 @@ ofp_drop_encode(struct pbuf_list *pbuf_list,
   band.burst_size = meter_band->burst_size;
   memset(band.pad, 0, sizeof(band.pad));
 
-  ret = ofp_meter_band_drop_encode_list(pbuf_list, pbuf, &band);
+  ret = ofp_meter_band_drop_encode(pbuf, &band);
 
   if (ret != LAGOPUS_RESULT_OK) {
     lagopus_msg_warning("FAILED (%s)\n", lagopus_error_get_string(ret));
@@ -193,8 +192,7 @@ ofp_drop_encode(struct pbuf_list *pbuf_list,
 }
 
 static lagopus_result_t
-ofp_dscp_remark_encode(struct pbuf_list *pbuf_list,
-                       struct pbuf **pbuf,
+ofp_dscp_remark_encode(struct pbuf *pbuf,
                        struct meter_band *meter_band) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   struct ofp_meter_band_dscp_remark band;
@@ -209,7 +207,7 @@ ofp_dscp_remark_encode(struct pbuf_list *pbuf_list,
   band.prec_level = meter_band->prec_level;
   memset(band.pad, 0, sizeof(band.pad));
 
-  ret = ofp_meter_band_dscp_remark_encode_list(pbuf_list, pbuf, &band);
+  ret = ofp_meter_band_dscp_remark_encode(pbuf, &band);
 
   if (ret != LAGOPUS_RESULT_OK) {
     lagopus_msg_warning("FAILED (%s)\n", lagopus_error_get_string(ret));
@@ -219,8 +217,7 @@ ofp_dscp_remark_encode(struct pbuf_list *pbuf_list,
 }
 
 static lagopus_result_t
-ofp_experimenter_encode(struct pbuf_list *pbuf_list,
-                        struct pbuf **pbuf,
+ofp_experimenter_encode(struct pbuf *pbuf,
                         struct meter_band *meter_band) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   struct ofp_meter_band_experimenter band;
@@ -234,7 +231,7 @@ ofp_experimenter_encode(struct pbuf_list *pbuf_list,
   band.burst_size = meter_band->burst_size;
   band.experimenter = meter_band->experimenter;
 
-  ret = ofp_meter_band_experimenter_encode_list(pbuf_list, pbuf, &band);
+  ret = ofp_meter_band_experimenter_encode(pbuf, &band);
 
   if (ret != LAGOPUS_RESULT_OK) {
     lagopus_msg_warning("FAILED (%s)\n", lagopus_error_get_string(ret));
@@ -244,8 +241,7 @@ ofp_experimenter_encode(struct pbuf_list *pbuf_list,
 }
 
 lagopus_result_t
-ofp_band_list_encode(struct pbuf_list *pbuf_list,
-                     struct pbuf **pbuf,
+ofp_band_list_encode(struct pbuf *pbuf,
                      struct meter_band_list *band_list,
                      uint16_t *total_length) {
   struct meter_band *meter_band;
@@ -258,13 +254,13 @@ ofp_band_list_encode(struct pbuf_list *pbuf_list,
       TAILQ_FOREACH(meter_band, band_list, entry) {
         switch (meter_band->type) {
           case OFPMBT_DROP:
-            ret = ofp_drop_encode(pbuf_list, pbuf, meter_band);
+            ret = ofp_drop_encode(pbuf, meter_band);
             break;
           case OFPMBT_DSCP_REMARK:
-            ret = ofp_dscp_remark_encode(pbuf_list, pbuf, meter_band);
+            ret = ofp_dscp_remark_encode(pbuf, meter_band);
             break;
           case OFPMBT_EXPERIMENTER:
-            ret = ofp_experimenter_encode(pbuf_list, pbuf, meter_band);
+            ret = ofp_experimenter_encode(pbuf, meter_band);
             break;
           default:
             /* error*/

@@ -44,13 +44,14 @@ test_ofp_bridgeq_mgr_bridge(void) {
   char *test_bridge_name = NULL;
   struct ofp_bridgeq *bridgeq = NULL;
   lagopus_qmuxer_poll_t poll = NULL;
-  datastore_bridge_info_t info =
-      {1LL, 2LL, 3LL, 4LL, 5LL,
-       6LL, 7LL, 8LL, 9LL, 10LL,
-       11LL, 12LL};
+  datastore_bridge_info_t info = {
+    1LL, 2LL, 3LL, 4LL, 5LL,
+    6LL, 7LL, 8LL, 9LL, 10LL,
+    11LL, 12LL
+  };
   datastore_bridge_info_t test_info;
   datastore_bridge_queue_info_t q_info =
-      {1000LL, 1000LL, 1000LL, 1000LL, 1000LL, 1000LL};
+  {1000LL, 1000LL, 1000LL, 1000LL, 1000LL, 1000LL};
 
   /* register bridge. */
   ret = ofp_bridgeq_mgr_bridge_register(dpid, bridge_name, &info, &q_info);
@@ -160,7 +161,7 @@ test_ofp_bridgeq_mgr_bridge_register_orver_length(void) {
   } bridges[MAX_BRIDGES + 1];
   datastore_bridge_info_t info = {0};
   datastore_bridge_queue_info_t q_info =
-      {1000LL, 1000LL, 1000LL, 1000LL, 1000LL, 1000LL};
+  {1000LL, 1000LL, 1000LL, 1000LL, 1000LL, 1000LL};
   int i;
 
   /* create data. */
@@ -213,7 +214,7 @@ test_ofp_bridgeq_mgr_bridgeqs_to_array_normal_pattern(void) {
                                      sizeof(lagopus_qmuxer_poll_t));
   datastore_bridge_info_t info = {0};
   datastore_bridge_queue_info_t q_info =
-      {1000LL, 1000LL, 1000LL, 1000LL, 1000LL, 1000LL};
+  {1000LL, 1000LL, 1000LL, 1000LL, 1000LL, 1000LL};
 
   /* register bridge. */
   for (i = 0; i < data_num; i++) {
@@ -391,7 +392,7 @@ test_ofp_bridgeq_mgr_bridgeqs_to_array_unregister(void) {
                                      sizeof(lagopus_qmuxer_poll_t));
   datastore_bridge_info_t info = {0};
   datastore_bridge_queue_info_t q_info =
-      {1000LL, 1000LL, 1000LL, 1000LL, 1000LL, 1000LL};
+  {1000LL, 1000LL, 1000LL, 1000LL, 1000LL, 1000LL};
 
   /* register bridge. */
   for (i = 0; i < data_num; i++) {

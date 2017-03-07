@@ -361,7 +361,7 @@ test_channel_multipart_get_put(void) {
   struct channel *channel;
   struct ofp_header xid_header;
   struct pbuf *pbuf[2], *pbuf2 = NULL;
-  
+
   xid_header.xid = 0;
   channel = s_create_data_channel();
 
@@ -401,7 +401,7 @@ test_channel_multipart_get_put_err(void) {
   struct channel *channel;
   struct ofp_header xid_header;
   struct pbuf *pbuf, *pbuf2 = NULL;
-  
+
   xid_header.xid = 0;
   channel = s_create_data_channel();
 

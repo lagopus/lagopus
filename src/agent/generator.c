@@ -229,18 +229,6 @@ exp_generate_encoder_function(struct exp_list *elist, FILE *fp) {
           elist->name, elist->name);
 }
 
-/* Generate encoder function (list). */
-static void
-exp_generate_list_encoder_function(struct exp_list *elist, FILE *fp) {
-  fprintf(fp, "\n");
-  fprintf(fp, "lagopus_result_t\n");
-  fprintf(fp,
-          "%s_encode_list(struct pbuf_list *pbuf_list, struct pbuf **pbuf,\n",
-          elist->name);
-  fprintf(fp, "    const struct %s *packet)",
-          elist->name);
-}
-
 /* Generate encoder. */
 static void
 exp_generate_encoder(struct exp_list *elist) {
@@ -341,49 +329,6 @@ exp_generate_encoder(struct exp_list *elist) {
   }
   fprintf(fp_source, "\n");
   fprintf(fp_source, "  return LAGOPUS_RESULT_OK;\n");
-  fprintf(fp_source, "}\n");
-}
-
-/* Generate list encoder. */
-static void
-exp_generate_list_encoder(struct exp_list *elist) {
-  /* Header output. */
-  exp_generate_list_encoder_function(elist, fp_header);
-  fprintf(fp_header, ";\n");
-
-  /* Source output. */
-  exp_generate_list_encoder_function(elist, fp_source);
-  fprintf(fp_source, "\n");
-  fprintf(fp_source, "{\n");
-  fprintf(fp_source, "  struct pbuf *before_pbuf;\n");
-  fprintf(fp_source, "  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;\n");
-  fprintf(fp_source, "\n");
-  fprintf(fp_source, "  if (pbuf_list == NULL) {\n");
-  fprintf(fp_source, "    return %s_encode(*pbuf, packet);\n", elist->name);
-  fprintf(fp_source, "  }\n");
-  fprintf(fp_source, "\n");
-  fprintf(fp_source, "  *pbuf = pbuf_list_last_get(pbuf_list);\n");
-  fprintf(fp_source, "  if (*pbuf == NULL) {\n");
-  fprintf(fp_source, "    return LAGOPUS_RESULT_NO_MEMORY;\n");
-  fprintf(fp_source, "  }\n");
-  fprintf(fp_source, "\n");
-  fprintf(fp_source, "  ret = %s_encode(*pbuf, packet);\n", elist->name);
-  fprintf(fp_source, "  if (ret == LAGOPUS_RESULT_OUT_OF_RANGE) {\n");
-  fprintf(fp_source, "    before_pbuf = *pbuf;\n");
-  fprintf(fp_source, "    *pbuf = pbuf_alloc(OFP_PACKET_MAX_SIZE);\n");
-  fprintf(fp_source, "    if (*pbuf == NULL) {\n");
-  fprintf(fp_source, "      return LAGOPUS_RESULT_NO_MEMORY;\n");
-  fprintf(fp_source, "    }\n");
-  fprintf(fp_source, "    pbuf_list_add(pbuf_list, *pbuf);\n");
-  fprintf(fp_source, "    (*pbuf)->plen = OFP_PACKET_MAX_SIZE;\n");
-  fprintf(fp_source, "    ret = ofp_header_mp_copy(*pbuf, before_pbuf);\n");
-  fprintf(fp_source, "    if (ret != LAGOPUS_RESULT_OK) {\n");
-  fprintf(fp_source, "      return ret;\n");
-  fprintf(fp_source, "    }\n");
-  fprintf(fp_source, "    ret = %s_encode(*pbuf, packet);\n", elist->name);
-  fprintf(fp_source, "  }\n");
-  fprintf(fp_source, "\n");
-  fprintf(fp_source, "  return ret;\n");
   fprintf(fp_source, "}\n");
 }
 
@@ -923,7 +868,6 @@ create_statement(void) {
     exp_generate_enum(&top->elist);
   } else {
     exp_generate_encoder(&top->elist);
-    exp_generate_list_encoder(&top->elist);
     exp_generate_decoder(&top->elist);
     exp_generate_sneak_decoder(&top->elist);
     exp_generate_debug(&top->elist);

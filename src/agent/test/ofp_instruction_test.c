@@ -23,6 +23,7 @@
 #include "../ofp_action.h"
 #include "../ofp_instruction.h"
 #include "../ofp_tlv.h"
+#include "../channel_mgr.h"
 #include "handler_test_utils.h"
 
 #define N_CALLOUT_WORKERS	1
@@ -31,9 +32,9 @@ void
 test_prologue(void) {
   lagopus_result_t r;
   const char *argv0 =
-      ((IS_VALID_STRING(lagopus_get_command_name()) == true) ?
-       lagopus_get_command_name() : "callout_test");
-  const char * const argv[] = {
+    ((IS_VALID_STRING(lagopus_get_command_name()) == true) ?
+     lagopus_get_command_name() : "callout_test");
+  const char *const argv[] = {
     argv0, NULL
   };
 
@@ -41,7 +42,8 @@ test_prologue(void) {
   r = lagopus_mainloop_with_callout(1, argv, NULL, NULL,
                                     false, false, true);
   TEST_ASSERT_EQUAL(r, LAGOPUS_RESULT_OK);
-  (void) global_state_wait_for(GLOBAL_STATE_STARTED, NULL, NULL, 1000LL * 1000LL * 100LL);
+  (void) global_state_wait_for(GLOBAL_STATE_STARTED, NULL, NULL,
+                               1000LL * 1000LL * 100LL);
 }
 
 void
@@ -287,7 +289,7 @@ ofp_instruction_list_encode_wrap(struct channel *channel,
   *pbuf = pbuf_alloc(WRITE_ACT_LEN);
   (*pbuf)->plen = WRITE_ACT_LEN;
 
-  ret = ofp_instruction_list_encode(NULL, pbuf, &instruction_list,
+  ret = ofp_instruction_list_encode(*pbuf, &instruction_list,
                                     &total_length);
 
   TEST_ASSERT_EQUAL_MESSAGE(total_length, 0x30,
@@ -322,17 +324,17 @@ test_ofp_instruction_list_encode_null(void) {
   struct pbuf *pbuf = NULL;
   struct instruction_list instruction_list;
 
-  ret = ofp_instruction_list_encode(NULL, NULL, &instruction_list,
+  ret = ofp_instruction_list_encode(NULL, &instruction_list,
                                     &total_length);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS, ret,
                             "ofp_instruction_list_encode(NULL) error.");
 
-  ret = ofp_instruction_list_encode(NULL, &pbuf, NULL,
+  ret = ofp_instruction_list_encode(pbuf, NULL,
                                     &total_length);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS, ret,
                             "ofp_instruction_list_encode(NULL) error.");
 
-  ret = ofp_instruction_list_encode(NULL, &pbuf, &instruction_list,
+  ret = ofp_instruction_list_encode(pbuf, &instruction_list,
                                     NULL);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS, ret,
                             "ofp_instruction_list_encode(NULL) error.");
@@ -434,7 +436,7 @@ ofp_instruction_header_list_encode_wrap(struct channel *channel,
   *pbuf = pbuf_alloc(INS_LEN * 2);
   (*pbuf)->plen = INS_LEN * 2;
 
-  ret = ofp_instruction_header_list_encode(NULL, pbuf, &instruction_list,
+  ret = ofp_instruction_header_list_encode(*pbuf, &instruction_list,
         &total_length);
 
   TEST_ASSERT_EQUAL_MESSAGE(total_length, INS_LEN * 2,
@@ -459,22 +461,22 @@ test_ofp_instruction_header_list_encode(void) {
 
 void
 test_ofp_instruction_header_list_encode_null(void) {
-  struct pbuf *pbuf;
+  struct pbuf *pbuf = NULL;
   struct instruction_list instruction_list;
   uint16_t total_length;
   lagopus_result_t ret;
 
-  ret = ofp_instruction_header_list_encode(NULL, NULL, &instruction_list,
+  ret = ofp_instruction_header_list_encode(NULL, &instruction_list,
         &total_length);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS, ret,
                             "ofp_instruction_header_list_encode(NULL) error.");
 
-  ret = ofp_instruction_header_list_encode(NULL, &pbuf, NULL,
+  ret = ofp_instruction_header_list_encode(pbuf, NULL,
         &total_length);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS, ret,
                             "ofp_instruction_header_list_encode(NULL) error.");
 
-  ret = ofp_instruction_header_list_encode(NULL, &pbuf, &instruction_list,
+  ret = ofp_instruction_header_list_encode(pbuf, &instruction_list,
         NULL);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS, ret,
                             "ofp_instruction_header_list_encode(NULL) error.");

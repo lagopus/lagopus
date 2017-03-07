@@ -170,8 +170,8 @@ pbuf_forward(struct pbuf *pbuf, size_t size) {
 
 /* Copy pbuf for internal. */
 static size_t
-pbuf_copy_internal(struct pbuf *dst, struct pbuf *src,
-                   size_t length, size_t off) {
+copy(struct pbuf *dst, struct pbuf *src,
+     size_t length, size_t off) {
   size_t tail_gap = length - off;
 
   /* Copy forward unreaded data to other new pbuf when it exists. */
@@ -179,9 +179,28 @@ pbuf_copy_internal(struct pbuf *dst, struct pbuf *src,
     memcpy(dst->putp, src->getp + off, tail_gap);
   }
   dst->putp += tail_gap;
-  dst->plen += tail_gap;
 
   assert(dst->data + dst->size >= dst->putp);
+
+  return tail_gap;
+}
+
+/* Copy pbuf for internal. */
+static size_t
+pbuf_copy_internal(struct pbuf *dst, struct pbuf *src,
+                   size_t length, size_t off) {
+  size_t tail_gap = copy(dst, src, length, off);
+  dst->plen += tail_gap;
+
+  return tail_gap;
+}
+
+/* Append pbuf for internal. */
+static size_t
+pbuf_append_internal(struct pbuf *dst, struct pbuf *src,
+                   size_t length) {
+  size_t tail_gap = copy(dst, src, length, 0);
+  dst->plen -= tail_gap;
 
   return tail_gap;
 }
@@ -245,6 +264,32 @@ pbuf_copy_with_length(struct pbuf *dst, struct pbuf *src,
         length <= dst->size) {
       (void) pbuf_copy_internal(dst, src,
                                 length, 0);
+      ret = LAGOPUS_RESULT_OK;
+    } else {
+      lagopus_msg_warning("over length.\n");
+      ret = LAGOPUS_RESULT_OUT_OF_RANGE;
+    }
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  return ret;
+}
+
+/* Append pbuf */
+lagopus_result_t
+pbuf_append(struct pbuf *dst, struct pbuf *src) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  size_t length;
+
+  if (dst != NULL && src != NULL) {
+    length = (size_t) (src->putp - src->getp);
+
+    if ((src->getp <= src->putp) &&
+        (src->getp + length == src->putp) &&
+        length <= dst->plen) {
+      (void) pbuf_append_internal(dst, src,
+                                  length);
       ret = LAGOPUS_RESULT_OK;
     } else {
       lagopus_msg_warning("over length.\n");

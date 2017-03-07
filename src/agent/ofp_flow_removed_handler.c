@@ -60,7 +60,7 @@ ofp_flow_removed_create(struct flow_removed *flow_removed,
       ret = ofp_flow_removed_encode(*pbuf, &flow_removed->ofp_flow_removed);
 
       if (ret == LAGOPUS_RESULT_OK) {
-        ret = ofp_match_list_encode(NULL, pbuf, &flow_removed->match_list,
+        ret = ofp_match_list_encode(*pbuf, &flow_removed->match_list,
                                     &match_total_len);
 
         if (ret == LAGOPUS_RESULT_OK) {

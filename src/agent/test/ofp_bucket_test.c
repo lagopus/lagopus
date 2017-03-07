@@ -135,9 +135,9 @@ void
 test_prologue(void) {
   lagopus_result_t r;
   const char *argv0 =
-      ((IS_VALID_STRING(lagopus_get_command_name()) == true) ?
-       lagopus_get_command_name() : "callout_test");
-  const char * const argv[] = {
+    ((IS_VALID_STRING(lagopus_get_command_name()) == true) ?
+     lagopus_get_command_name() : "callout_test");
+  const char *const argv[] = {
     argv0, NULL
   };
 
@@ -310,7 +310,7 @@ ofp_bucket_list_encode_wrap(struct channel *channel,
   *pbuf = pbuf_alloc(length);
   (*pbuf)->plen = length;
 
-  ret = ofp_bucket_list_encode(NULL, pbuf, &bucket_list,
+  ret = ofp_bucket_list_encode(*pbuf, &bucket_list,
                                &total_length);
 
   TEST_ASSERT_EQUAL_MESSAGE(length, total_length,
@@ -365,17 +365,17 @@ test_ofp_bucket_list_encode_null(void) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   uint16_t total_length;
 
-  ret = ofp_bucket_list_encode(NULL, NULL, &bucket_list,
+  ret = ofp_bucket_list_encode(NULL, &bucket_list,
                                &total_length);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS, ret,
                             "ofp_bucket_list_encode(NULL) error.");
 
-  ret = ofp_bucket_list_encode(NULL, &pbuf, NULL,
+  ret = ofp_bucket_list_encode(pbuf, NULL,
                                &total_length);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS, ret,
                             "ofp_bucket_list_encode(NULL) error.");
 
-  ret = ofp_bucket_list_encode(NULL, &pbuf, &bucket_list,
+  ret = ofp_bucket_list_encode(pbuf, &bucket_list,
                                NULL);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS, ret,
                             "ofp_bucket_list_encode(NULL) error.");

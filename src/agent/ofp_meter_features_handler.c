@@ -57,9 +57,9 @@ ofp_meter_features_reply_create(struct channel *channel,
 
         /* encode message. */
         pbuf_plen_set(pbuf, pbuf_size_get(pbuf));
-        res = ofp_multipart_reply_encode_list(*pbuf_list, &pbuf, &ofpmp_reply);
+        res = ofp_multipart_reply_encode(pbuf, &ofpmp_reply);
         if (res == LAGOPUS_RESULT_OK) {
-          res = ofp_meter_features_encode_list(*pbuf_list, &pbuf, ofp_meter_features);
+          res = ofp_meter_features_encode(pbuf, ofp_meter_features);
           if (res == LAGOPUS_RESULT_OK) {
             /* set packet length */
             res = pbuf_length_get(pbuf, &length);

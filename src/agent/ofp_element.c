@@ -300,7 +300,7 @@ ofp_element_list_encode(struct pbuf *pbuf,
                 if (ret == LAGOPUS_RESULT_OK) {
                   ret = ofp_tlv_length_set(element_head, element_len);
                   if (ret == LAGOPUS_RESULT_OK) {
-                    ret = ofp_padding_encode(NULL, &pbuf, &element_len);
+                    ret = ofp_padding_encode(pbuf, &element_len);
                     if (ret != LAGOPUS_RESULT_OK) {
                       lagopus_msg_warning("FAILED (%s).\n",
                                           lagopus_error_get_string(ret));

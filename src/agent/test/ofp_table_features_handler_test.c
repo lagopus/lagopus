@@ -83,9 +83,10 @@ s_next_table_id_alloc(void) {
 #define INS_LEN 0x04
 #define ACT_LEN 0x08
 
+static struct table_features_list tfeatures_list;
+
 static void
-create_data(struct table_features_list *table_features_list,
-            int test_num)  {
+create_data(int test_num)  {
   struct table_features *table_features;
   struct table_property *table_property;
   struct next_table_id  *next_table_id;
@@ -94,7 +95,7 @@ create_data(struct table_features_list *table_features_list,
   uint16_t length = 0x74;
   int i;
 
-  TAILQ_INIT(table_features_list);
+  TAILQ_INIT(&tfeatures_list);
   for (i = 0; i < test_num; i++) {
     table_features = s_table_features_alloc();
 
@@ -185,7 +186,7 @@ create_data(struct table_features_list *table_features_list,
                         entry);
     }
 
-    TAILQ_INSERT_TAIL(table_features_list, table_features, entry);
+    TAILQ_INSERT_TAIL(&tfeatures_list, table_features, entry);
   }
 }
 
@@ -194,16 +195,29 @@ ofp_table_features_reply_create_wrap(struct channel *channel,
                                      struct pbuf_list **pbuf_list,
                                      struct ofp_header *xid_header) {
   lagopus_result_t ret;
-  struct table_features_list table_features_list;
 
-  create_data(&table_features_list, 1);
+  create_data(1);
 
   ret = ofp_table_features_reply_create(channel, pbuf_list,
-                                        &table_features_list,
+                                        &tfeatures_list,
                                         xid_header);
 
   /* after. */
-  table_features_list_elem_free(&table_features_list);
+  table_features_list_elem_free(&tfeatures_list);
+
+  return ret;
+}
+
+lagopus_result_t
+ofp_table_features_reply_create_wrap_with_self_data(
+  struct channel *channel,
+  struct pbuf_list **pbuf_list,
+  struct ofp_header *xid_header) {
+  lagopus_result_t ret;
+
+  ret = ofp_table_features_reply_create(channel, pbuf_list,
+                                        &tfeatures_list,
+                                        xid_header);
 
   return ret;
 }
@@ -212,9 +226,9 @@ void
 test_prologue(void) {
   lagopus_result_t r;
   const char *argv0 =
-      ((IS_VALID_STRING(lagopus_get_command_name()) == true) ?
-       lagopus_get_command_name() : "callout_test");
-  const char * const argv[] = {
+    ((IS_VALID_STRING(lagopus_get_command_name()) == true) ?
+     lagopus_get_command_name() : "callout_test");
+  const char *const argv[] = {
     argv0, NULL
   };
 
@@ -225,8 +239,9 @@ test_prologue(void) {
   TEST_ASSERT_EQUAL(r, LAGOPUS_RESULT_OK);
   channel_mgr_initialize();
 }
+
 void
-test_ofp_table_features_reply_create(void) {
+test_ofp_table_features_reply_create_01(void) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   const char *data[1] = {
     // header
@@ -274,18 +289,113 @@ test_ofp_table_features_reply_create(void) {
                             "ofp_table_features_reply_create(normal) error.");
 }
 
+void
+test_ofp_table_features_reply_create_02(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  struct table_features *table_features = NULL;
+  struct table_property *table_property = NULL;
+  struct next_table_id  *next_table_id = NULL;
+  const char *header_data[2] = {
+    "04 13 ff b8 00 00 00 10 00 0c 00 01 00 00 00 00 ",
+    "04 13 00 58 00 00 00 10 00 0c 00 00 00 00 00 00 "
+  };
+  const char *body_data[2] = {
+    // ofp_table_features
+    "00 48"                                   // uint16_t length;
+    "01 "                                     // uint8_t table_id;
+    "00 00 00 00 00 "                         // uint8_t pad[5];
+    "61 62 63 00 00 00 00 00 "                // char name[32];
+    "00 00 00 00 00 00 00 00 "                // char name[32];
+    "00 00 00 00 00 00 00 00 "                // char name[32];
+    "00 00 00 00 00 00 00 00 "                // char name[32];
+    "00 00 00 00 00 00 00 02 "                // uint64_t metadata_match;
+    "00 00 00 00 00 00 00 03 "                // uint64_t metadata_write;
+    "00 00 00 04 "                            // uint32_t config;
+    "00 00 00 05 "                            // uint32_t max_entries;
+    // struct ofp_table_feature_prop_next_tables
+    "00 02 "                                  // uint16_t type
+    "00 06 "                                  // uint16_t length
+    "00 01 "                                  // uint8_t next_table_ids
+    "00 00 ",                                 // 64 bit padding
+    // ofp_table_features
+    "00 48"                                   // uint16_t length;
+    "01 "                                     // uint8_t table_id;
+    "00 00 00 00 00 "                         // uint8_t pad[5];
+    "61 62 63 00 00 00 00 00 "                // char name[32];
+    "00 00 00 00 00 00 00 00 "                // char name[32];
+    "00 00 00 00 00 00 00 00 "                // char name[32];
+    "00 00 00 00 00 00 00 00 "                // char name[32];
+    "00 00 00 00 00 00 00 02 "                // uint64_t metadata_match;
+    "00 00 00 00 00 00 00 03 "                // uint64_t metadata_write;
+    "00 00 00 04 "                            // uint32_t config;
+    "00 00 00 05 "                            // uint32_t max_entries;
+    // struct ofp_table_feature_prop_next_tables
+    "00 02 "                                  // uint16_t type
+    "00 06 "                                  // uint16_t length
+    "00 01 "                                  // uint8_t next_table_ids
+    "00 00 ",                                 // 64 bit padding
+  };
+  size_t nums[2] = {909, 1};
+  int i, j;
+
+  /* data */
+  TAILQ_INIT(&tfeatures_list);
+  for (i = 0; i < 910; i++) {
+    table_features = s_table_features_alloc();
+
+    table_features->ofp.length = 0x48;
+    table_features->ofp.table_id = 0x01;
+    table_features->ofp.name[0] = 'a';
+    table_features->ofp.name[1] = 'b';
+    table_features->ofp.name[2] = 'c';
+    table_features->ofp.metadata_match = 0x02;
+    table_features->ofp.metadata_write = 0x03;
+    table_features->ofp.config = 0x04;
+    table_features->ofp.max_entries = 0x05;
+
+    /* OFPTFPT_NEXT_TABLES */
+    table_property = s_table_property_alloc();
+    if (table_property != NULL) {
+      table_property->ofp.type = OFPTFPT_NEXT_TABLES;
+      table_property->ofp.length = 0x06;
+    } else {
+      TEST_FAIL_MESSAGE("allocation error.");
+    }
+    for (j = 0; j < 2; j++) {
+      next_table_id = s_next_table_id_alloc();
+      if (next_table_id != NULL) {
+        next_table_id->ofp.id = (uint8_t) j;
+        TAILQ_INSERT_TAIL(&table_property->next_table_id_list,
+                          next_table_id,
+                          entry);
+      }
+    }
+    TAILQ_INSERT_TAIL(&table_features->table_property_list,
+                      table_property,
+                      entry);
+    TAILQ_INSERT_TAIL(&tfeatures_list, table_features, entry);
+  }
+
+  ret = check_pbuf_list_across_packet_create(
+          ofp_table_features_reply_create_wrap_with_self_data,
+          header_data, body_data, nums, 2);
+  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, ret, "check_pbuf_list error.");
+
+  /* free */
+  table_features_list_elem_free(&tfeatures_list);
+}
+
 lagopus_result_t
 ofp_table_features_reply_create_null_wrap(struct channel *channel,
     struct pbuf_list **pbuf_list,
     struct ofp_header *xid_header) {
   lagopus_result_t ret;
-  struct table_features_list table_features_list;
 
-  create_data(&table_features_list, 1);
+  create_data(1);
 
   ret = ofp_table_features_reply_create(NULL,
                                         pbuf_list,
-                                        &table_features_list,
+                                        &tfeatures_list,
                                         xid_header);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS,
                             ret,
@@ -293,7 +403,7 @@ ofp_table_features_reply_create_null_wrap(struct channel *channel,
 
   ret = ofp_table_features_reply_create(channel,
                                         NULL,
-                                        &table_features_list,
+                                        &tfeatures_list,
                                         xid_header);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS,
                             ret,
@@ -309,14 +419,14 @@ ofp_table_features_reply_create_null_wrap(struct channel *channel,
 
   ret = ofp_table_features_reply_create(channel,
                                         pbuf_list,
-                                        &table_features_list,
+                                        &tfeatures_list,
                                         NULL);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS,
                             ret,
                             "ofp_table_features_reply_create error.");
 
   /* after. */
-  table_features_list_elem_free(&table_features_list);
+  table_features_list_elem_free(&tfeatures_list);
 
   /* Not check return value. */
   return -9999;

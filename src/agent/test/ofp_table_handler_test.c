@@ -46,20 +46,21 @@ table_stats_alloc(void) {
   return table_stats;
 }
 
+static struct table_stats_list tstats_list;
+
 static void
-create_data(struct table_stats_list *table_stats_list,
-            int test_num) {
+create_data(int test_num) {
   struct table_stats *table_stats;
   int i;
 
-  TAILQ_INIT(table_stats_list);
+  TAILQ_INIT(&tstats_list);
   for (i = 0; i < test_num; i++) {
     table_stats = table_stats_alloc();
     table_stats->ofp.table_id      = (uint8_t ) (0x01 + i);
     table_stats->ofp.active_count  = (uint8_t) (0x02 + i);
     table_stats->ofp.lookup_count  = (uint64_t) (0x03 + i);
     table_stats->ofp.matched_count = (uint64_t) (0x04 + i);
-    TAILQ_INSERT_TAIL(table_stats_list, table_stats, entry);
+    TAILQ_INSERT_TAIL(&tstats_list, table_stats, entry);
   }
 }
 
@@ -68,17 +69,31 @@ s_ofp_table_stats_reply_create_wrap(struct channel *channel,
                                     struct pbuf_list **pbuf_list,
                                     struct ofp_header *xid_header) {
   lagopus_result_t ret;
-  struct table_stats_list table_stats_list;
 
-  create_data(&table_stats_list, 1);
+  create_data(1);
 
   ret = ofp_table_stats_reply_create(channel,
                                      pbuf_list,
-                                     &table_stats_list,
+                                     &tstats_list,
                                      xid_header);
 
   /* free. */
-  table_stats_list_elem_free(&table_stats_list);
+  table_stats_list_elem_free(&tstats_list);
+
+  return ret;
+}
+
+static lagopus_result_t
+s_ofp_table_stats_reply_create_wrap_with_self_data(
+  struct channel *channel,
+  struct pbuf_list **pbuf_list,
+  struct ofp_header *xid_header) {
+  lagopus_result_t ret;
+
+  ret = ofp_table_stats_reply_create(channel,
+                                     pbuf_list,
+                                     &tstats_list,
+                                     xid_header);
 
   return ret;
 }
@@ -87,9 +102,9 @@ void
 test_prologue(void) {
   lagopus_result_t r;
   const char *argv0 =
-      ((IS_VALID_STRING(lagopus_get_command_name()) == true) ?
-       lagopus_get_command_name() : "callout_test");
-  const char * const argv[] = {
+    ((IS_VALID_STRING(lagopus_get_command_name()) == true) ?
+     lagopus_get_command_name() : "callout_test");
+  const char *const argv[] = {
     argv0, NULL
   };
 
@@ -180,7 +195,7 @@ test_ofp_table_stats_handle_null(void) {
 }
 
 void
-test_ofp_table_stats_reply_create(void) {
+test_ofp_table_stats_reply_create_01(void) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   const char *data[1] = {"04 13 00 28 00 00 00 10 "
                          "00 03 00 00 00 00 00 00 "
@@ -198,19 +213,61 @@ test_ofp_table_stats_reply_create(void) {
 }
 
 void
+test_ofp_table_stats_reply_create_02(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  struct table_stats *table_stats = NULL;
+  const char *header_data[2] = {
+    "04 13 ff e8 00 00 00 10 00 03 00 01 00 00 00 00 ",
+    "04 13 00 28 00 00 00 10 00 03 00 00 00 00 00 00 "
+  };
+  const char *body_data[2] = {
+    "01 00 00 00 00 00 00 02 "
+    "00 00 00 00 00 00 00 03 "
+    "00 00 00 00 00 00 00 04 ",
+    "01 00 00 00 00 00 00 02 "
+    "00 00 00 00 00 00 00 03 "
+    "00 00 00 00 00 00 00 04 "
+  };
+  size_t nums[2] = {2729, 1};
+  int i;
+
+  /* data */
+  TAILQ_INIT(&tstats_list);
+  for (i = 0; i < 2730; i++) {
+    table_stats = table_stats_alloc();
+    if (table_stats != NULL) {
+      table_stats->ofp.table_id = 0x01;
+      table_stats->ofp.active_count = 0x02;
+      table_stats->ofp.lookup_count = 0x03;
+      table_stats->ofp.matched_count = 0x04;
+    } else {
+      TEST_FAIL_MESSAGE("allocation error.");
+    }
+    TAILQ_INSERT_TAIL(&tstats_list, table_stats, entry);
+  }
+
+  ret = check_pbuf_list_across_packet_create(
+          s_ofp_table_stats_reply_create_wrap_with_self_data,
+          header_data, body_data, nums, 2);
+  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, ret, "check_pbuf_list error.");
+
+  /* free */
+  table_stats_list_elem_free(&tstats_list);
+}
+
+void
 test_ofp_table_stats_reply_create_null(void) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   struct channel *channel = channel_alloc_ip4addr("127.0.0.1", "1000", 0x01);
   struct pbuf_list *pbuf_list = NULL;
-  struct table_stats_list ofp_table_stats_list;
   struct ofp_header xid_header;
 
-  ret = ofp_table_stats_reply_create(NULL, &pbuf_list, &ofp_table_stats_list,
+  ret = ofp_table_stats_reply_create(NULL, &pbuf_list, &tstats_list,
                                      &xid_header);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS, ret,
                             "NULL-check error. (channel)");
 
-  ret = ofp_table_stats_reply_create(channel, NULL, &ofp_table_stats_list,
+  ret = ofp_table_stats_reply_create(channel, NULL, &tstats_list,
                                      &xid_header);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS, ret,
                             "NULL-check error. (pbuf)");
@@ -219,7 +276,7 @@ test_ofp_table_stats_reply_create_null(void) {
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS, ret,
                             "NULL-check error. (ofp_table_stats_list)");
 
-  ret = ofp_table_stats_reply_create(channel, &pbuf_list, &ofp_table_stats_list,
+  ret = ofp_table_stats_reply_create(channel, &pbuf_list, &tstats_list,
                                      NULL);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS, ret,
                             "NULL-check error. (xid_header)");

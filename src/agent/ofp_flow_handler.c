@@ -49,23 +49,31 @@ s_flow_stats_list_encode(struct pbuf_list *pbuf_list,
   uint16_t flow_stats_len;
   uint8_t *flow_stats_head = NULL;
   struct flow_stats *flow_stats = NULL;
+  struct pbuf *entry_pbuf = NULL;
 
   if (TAILQ_EMPTY(flow_stats_list) == false) {
     /* encode flow_stats list */
     TAILQ_FOREACH(flow_stats, flow_stats_list, entry) {
+      entry_pbuf = pbuf_alloc(OFP_PACKET_MAX_SIZE);
+      if (entry_pbuf == NULL) {
+        res = LAGOPUS_RESULT_NO_MEMORY;
+        goto done;
+      }
+      entry_pbuf->plen = OFP_PACKET_MAX_SIZE;
+
       /* encode flow_stats */
-      res = ofp_flow_stats_encode_list(pbuf_list, pbuf, &(flow_stats->ofp));
+      res = ofp_flow_stats_encode(entry_pbuf, &(flow_stats->ofp));
       if (res == LAGOPUS_RESULT_OK) {
 
         /* flow_stats head pointer. */
-        flow_stats_head = pbuf_putp_get(*pbuf) - sizeof(struct ofp_flow_stats);
+        flow_stats_head = pbuf_putp_get(entry_pbuf) - sizeof(struct ofp_flow_stats);
 
         /* encode match */
-        res = ofp_match_list_encode(pbuf_list, pbuf, &(flow_stats->match_list),
+        res = ofp_match_list_encode(entry_pbuf, &(flow_stats->match_list),
                                     &match_total_len);
         if (res == LAGOPUS_RESULT_OK) {
           /* encode instruction */
-          res = ofp_instruction_list_encode(pbuf_list, pbuf,
+          res = ofp_instruction_list_encode(entry_pbuf,
                                             &(flow_stats->instruction_list),
                                             &instruction_total_len);
           if (res == LAGOPUS_RESULT_OK) {
@@ -81,31 +89,38 @@ s_flow_stats_list_encode(struct pbuf_list *pbuf_list,
               if (res == LAGOPUS_RESULT_OK) {
                 res = ofp_multipart_length_set(flow_stats_head,
                                                flow_stats_len);
-                if (res != LAGOPUS_RESULT_OK) {
+                if (res == LAGOPUS_RESULT_OK) {
+                  res = ofp_multipart_append(pbuf_list, entry_pbuf, pbuf);
+                  if (res != LAGOPUS_RESULT_OK) {
+                    lagopus_msg_warning("FAILED (%s).\n",
+                                        lagopus_error_get_string(res));
+                  }
+                } else {
                   lagopus_msg_warning("FAILED (%s).\n",
                                       lagopus_error_get_string(res));
                 }
               } else {
                 lagopus_msg_warning("over flow_stats length.\n");
-                break;
               }
             } else {
               lagopus_msg_warning("over flow_stats length.\n");
-              break;
             }
           } else {
             lagopus_msg_warning("FAILED : ofp_instruction_list_encode (%s).\n",
                                 lagopus_error_get_string(res));
-            break;
           }
         } else {
           lagopus_msg_warning("FAILED : ofp_match_list_encode (%s).\n",
                               lagopus_error_get_string(res));
-          break;
         }
       } else {
         lagopus_msg_warning("FAILED : ofp_flow_stats_encode (%s).\n",
                             lagopus_error_get_string(res));
+      }
+
+      pbuf_free(entry_pbuf);
+      entry_pbuf = NULL;
+      if (res != LAGOPUS_RESULT_OK) {
         break;
       }
     }
@@ -113,6 +128,8 @@ s_flow_stats_list_encode(struct pbuf_list *pbuf_list,
     /* flow_stats_list is empty. */
     res = LAGOPUS_RESULT_OK;
   }
+
+done:
   return res;
 }
 
@@ -146,7 +163,7 @@ ofp_flow_stats_reply_create(struct channel *channel,
 
         /* encode header, multipart reply */
         pbuf_plen_set(pbuf, pbuf_size_get(pbuf));
-        res = ofp_multipart_reply_encode_list(*pbuf_list, &pbuf, &reply);
+        res = ofp_multipart_reply_encode(pbuf, &reply);
         if (res == LAGOPUS_RESULT_OK) {
           res = s_flow_stats_list_encode(*pbuf_list, &pbuf, flow_stats_list);
           if (res == LAGOPUS_RESULT_OK) {

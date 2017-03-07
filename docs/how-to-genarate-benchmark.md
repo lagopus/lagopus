@@ -82,15 +82,17 @@ You write the following fields in the file in YAML format.
 || include\_files | list of string | O | This field describes the name of include files (\*.h, \*.c). |
 || lib\_files | list of string | X | This field describes the name of lib files(\*.o, etc.). |
 || external\_libs | string | X | This field describes the external libs(e.g. "-lFOO -lBAR"). |
+|| setup\_modules\_func | string | X | Excecute once at runtime. This field describes the name of setup function [lagopus\_result\_t setup\_modules(int argc, const char *const argv[])]. |
+|| teardown\_modules\_func | string | X | Excecute once at finish. This field describes the name of teardown function [lagopus\_result\_t teardown\_modules()]. |
 || setup\_func | string | X | This field describes the name of setup function [lagopus\_result\_t setup(void *pkts, size\_t pkts\_size)]. |
 || teardown\_func | string | X | This field describes the name of teardown function [lagopus\_result\_t teardown(void *pkts, size\_t pkts\_size)]. |
 || target\_func | string | X | This field describes the name of benchmark target function [lagopus\_result\_t func(void *pkts, size\_t pkts\_size)]. |
 || pcap | string | O | This field describes the name of pcap file (\*.pcap, etc.). |
 || dsl | string | X | This field describes the name of lagopus DSL file. The lagopus module thread is started when you specify this field. |
-|| dpdk_opts | string | X | This field describes DPDK opts (default: -cf -n4). |
-|| dp_opts | string | X | This field describes Dataplne opts (default: -p3). |
-|| num_measurements | int | X | This field describes the number of executions of target\_func (default: 1). 1 is outputs cache references/misses, CPU cycles and page faults.|
-|| batch_size | int | O | This field describes the size of batches(default: 0) . 0 is read all packets in pcap file. |
+|| dpdk\_opts | string | X | This field describes DPDK opts (default: -cf -n4). |
+|| dp\_opts | string | X | This field describes Dataplne opts (default: -p3). |
+|| num\_measurements | int | X | This field describes the number of executions of target\_func (default: 1). 1 is outputs cache references/misses, CPU cycles and page faults.|
+|| batch\_size | int | O | This field describes the size of batches(default: 0) . 0 is read all packets in pcap file. |
 
 e.g.)
 sample: tools/benchmark/sample/benchmark/benchmark\_sample.yml
@@ -103,7 +105,7 @@ benchmarks:
     lib_files:
       - ../dump_pkts/dump_pkts.o
     setup_func: setup
-        teardown_func: teardown
+    teardown_func: teardown
     target_func: dump_pkts
     pcap: icmp.pcap
   - file : benchmark_sample2

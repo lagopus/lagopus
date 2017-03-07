@@ -30,7 +30,6 @@
 /**
  * Encode padding.
  *
- *     @param[out]	pbuf_list	A pointer to list of \e pbuf structures.
  *     @param[out]	pbuf	A pointer to \e pbuf structure.
  *     @param[in]	length	Size of packet.
  *
@@ -39,8 +38,7 @@
  *     @retval	LAGOPUS_RESULT_ANY_FAILURES Failed.
  */
 lagopus_result_t
-ofp_padding_encode(struct pbuf_list *pbuf_list,
-                   struct pbuf **pbuf, uint16_t *length);
+ofp_padding_encode(struct pbuf *pbuf, uint16_t *length);
 
 /**
  * Add padding.

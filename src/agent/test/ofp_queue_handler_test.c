@@ -48,13 +48,14 @@ queue_stats_alloc(void) {
   return queue_stats;
 }
 
+static struct queue_stats_list qstats_list;
+
 static void
-create_data(struct queue_stats_list *queue_stats_list,
-            int test_num) {
+create_data(int test_num) {
   struct queue_stats *queue_stats;
   int i;
 
-  TAILQ_INIT(queue_stats_list);
+  TAILQ_INIT(&qstats_list);
   for (i = 0; i < test_num; i++) {
     queue_stats = queue_stats_alloc();
 
@@ -66,8 +67,22 @@ create_data(struct queue_stats_list *queue_stats_list,
     queue_stats->ofp.duration_sec = (uint32_t) (0x06 + i);
     queue_stats->ofp.duration_nsec = (uint32_t) (0x07 + i);
 
-    TAILQ_INSERT_TAIL(queue_stats_list, queue_stats, entry);
+    TAILQ_INSERT_TAIL(&qstats_list, queue_stats, entry);
   }
+}
+
+lagopus_result_t
+ofp_queue_stats_reply_create_wrap_with_self_data(
+  struct channel *channel,
+  struct pbuf_list **pbuf_list,
+  struct ofp_header *xid_header) {
+  lagopus_result_t ret;
+
+  ret = ofp_queue_stats_reply_create(channel, pbuf_list,
+                                     &qstats_list,
+                                     xid_header);
+
+  return ret;
 }
 
 lagopus_result_t
@@ -75,16 +90,15 @@ ofp_queue_stats_reply_create_wrap(struct channel *channel,
                                   struct pbuf_list **pbuf_list,
                                   struct ofp_header *xid_header) {
   lagopus_result_t ret;
-  struct queue_stats_list queue_stats_list;
 
-  create_data(&queue_stats_list, 1);
+  create_data(1);
 
   ret = ofp_queue_stats_reply_create(channel, pbuf_list,
-                                     &queue_stats_list,
+                                     &qstats_list,
                                      xid_header);
 
   /* free. */
-  queue_stats_list_elem_free(&queue_stats_list);
+  queue_stats_list_elem_free(&qstats_list);
 
   return ret;
 }
@@ -93,9 +107,9 @@ void
 test_prologue(void) {
   lagopus_result_t r;
   const char *argv0 =
-      ((IS_VALID_STRING(lagopus_get_command_name()) == true) ?
-       lagopus_get_command_name() : "callout_test");
-  const char * const argv[] = {
+    ((IS_VALID_STRING(lagopus_get_command_name()) == true) ?
+     lagopus_get_command_name() : "callout_test");
+  const char *const argv[] = {
     argv0, NULL
   };
 
@@ -106,8 +120,9 @@ test_prologue(void) {
   TEST_ASSERT_EQUAL(r, LAGOPUS_RESULT_OK);
   channel_mgr_initialize();
 }
+
 void
-test_ofp_queue_stats_reply_create(void) {
+test_ofp_queue_stats_reply_create_01(void) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   const char *data[1] = {"04 13 00 38 00 00 00 10"
                          "00 05 00 00 00 00 00 00"
@@ -125,21 +140,70 @@ test_ofp_queue_stats_reply_create(void) {
                             "ofp_queue_stats_reply_create(normal) error.");
 }
 
+void
+test_ofp_queue_stats_reply_create_02(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  struct queue_stats *queue_stats;
+  const char *header_data[2] = {
+    "04 13 ff d8 00 00 00 10 00 05 00 01 00 00 00 00 ",
+    "04 13 00 38 00 00 00 10 00 05 00 00 00 00 00 00 "
+  };
+  const char *body_data[2] = {
+    "00 00 00 01 00 00 00 02"
+    "00 00 00 00 00 00 00 03"
+    "00 00 00 00 00 00 00 04"
+    "00 00 00 00 00 00 00 05"
+    "00 00 00 06 00 00 00 07",
+    "00 00 00 01 00 00 00 02"
+    "00 00 00 00 00 00 00 03"
+    "00 00 00 00 00 00 00 04"
+    "00 00 00 00 00 00 00 05"
+    "00 00 00 06 00 00 00 07"
+  };
+  size_t nums[2] = {1637, 1};
+  int i;
+
+  /* data */
+  TAILQ_INIT(&qstats_list);
+  for (i = 0; i < 1638; i++) {
+    queue_stats = queue_stats_alloc();
+    if (queue_stats != NULL) {
+      queue_stats->ofp.port_no = 0x01;
+      queue_stats->ofp.queue_id = 0x02;
+      queue_stats->ofp.tx_bytes = 0x03;
+      queue_stats->ofp.tx_packets = 0x04;
+      queue_stats->ofp.tx_errors = 0x05;
+      queue_stats->ofp.duration_sec = 0x06;
+      queue_stats->ofp.duration_nsec = 0x07;
+    } else {
+      TEST_FAIL_MESSAGE("allocation error.");
+    }
+    TAILQ_INSERT_TAIL(&qstats_list, queue_stats, entry);
+  }
+
+  ret = check_pbuf_list_across_packet_create(
+          ofp_queue_stats_reply_create_wrap_with_self_data,
+          header_data, body_data, nums, 2);
+  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, ret, "check_pbuf_list error.");
+
+  /* free */
+  queue_stats_list_elem_free(&qstats_list);
+}
+
 lagopus_result_t
 ofp_queue_stats_reply_create_null_wrap(struct channel *channel,
                                        struct pbuf_list **pbuf_list,
                                        struct ofp_header *xid_header) {
   lagopus_result_t ret;
-  struct queue_stats_list queue_stats_list;
 
   ret = ofp_queue_stats_reply_create(NULL, pbuf_list,
-                                     &queue_stats_list,
+                                     &qstats_list,
                                      xid_header);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS, ret,
                             "ofp_queue_stats_request_create error.");
 
   ret = ofp_queue_stats_reply_create(channel, NULL,
-                                     &queue_stats_list,
+                                     &qstats_list,
                                      xid_header);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS, ret,
                             "ofp_queue_stats_request_create error.");
@@ -150,7 +214,7 @@ ofp_queue_stats_reply_create_null_wrap(struct channel *channel,
                             "ofp_queue_stats_request_create error.");
 
   ret = ofp_queue_stats_reply_create(channel, pbuf_list,
-                                     &queue_stats_list,
+                                     &qstats_list,
                                      NULL);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS, ret,
                             "ofp_queue_stats_request_create error.");

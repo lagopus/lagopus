@@ -39,51 +39,13 @@ padding_encode(struct pbuf *pbuf, uint16_t length) {
 }
 
 static lagopus_result_t
-padding_encode_list(struct pbuf_list *pbuf_list, struct pbuf **pbuf,
-                    uint16_t length) {
-  struct pbuf *before_pbuf;
-  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
-
-  if (pbuf_list == NULL) {
-    return padding_encode(*pbuf, length);
-  }
-
-  *pbuf = pbuf_list_last_get(pbuf_list);
-  if (*pbuf == NULL) {
-    return LAGOPUS_RESULT_NO_MEMORY;
-  }
-
-  ret = padding_encode(*pbuf, length);
-  if (ret == LAGOPUS_RESULT_OUT_OF_RANGE) {
-    before_pbuf = *pbuf;
-    *pbuf = pbuf_alloc(OFP_PACKET_MAX_SIZE);
-    if (*pbuf == NULL) {
-      return LAGOPUS_RESULT_NO_MEMORY;
-    }
-    pbuf_plen_set(*pbuf, OFP_PACKET_MAX_SIZE);
-    ret = ofp_header_mp_copy(*pbuf, before_pbuf);
-    if (ret != LAGOPUS_RESULT_OK) {
-      if (*pbuf != NULL) {
-        pbuf_free(*pbuf);
-      }
-      return ret;
-    }
-    pbuf_list_add(pbuf_list, *pbuf);
-    ret = padding_encode(*pbuf, length);
-  }
-
-  return ret;
-}
-
-static lagopus_result_t
-ofp_padding_encode_internal(struct pbuf_list *pbuf_list,
-                            struct pbuf **pbuf, uint16_t length,
+ofp_padding_encode_internal(struct pbuf *pbuf, uint16_t length,
                             uint16_t *pad_length) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
 
   if (pbuf != NULL && pad_length != NULL) {
     *pad_length = GET_64BIT_PADDING_LENGTH(length);
-    ret = padding_encode_list(pbuf_list, pbuf, *pad_length);
+    ret = padding_encode(pbuf, *pad_length);
 
     if (ret != LAGOPUS_RESULT_OK) {
       lagopus_msg_warning("FAILED (%s)\n",
@@ -98,13 +60,12 @@ ofp_padding_encode_internal(struct pbuf_list *pbuf_list,
 }
 
 lagopus_result_t
-ofp_padding_encode(struct pbuf_list *pbuf_list,
-                   struct pbuf **pbuf, uint16_t *length) {
+ofp_padding_encode(struct pbuf *pbuf, uint16_t *length) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   uint16_t pad_length;
 
   if (pbuf != NULL && length != NULL) {
-    ret = ofp_padding_encode_internal(pbuf_list, pbuf, *length,
+    ret = ofp_padding_encode_internal(pbuf, *length,
                                       &pad_length);
     if (ret == LAGOPUS_RESULT_OK) {
       /* Sum length. And check overflow. */

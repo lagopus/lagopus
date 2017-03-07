@@ -58,9 +58,9 @@ void
 test_prologue(void) {
   lagopus_result_t r;
   const char *argv0 =
-      ((IS_VALID_STRING(lagopus_get_command_name()) == true) ?
-       lagopus_get_command_name() : "callout_test");
-  const char * const argv[] = {
+    ((IS_VALID_STRING(lagopus_get_command_name()) == true) ?
+     lagopus_get_command_name() : "callout_test");
+  const char *const argv[] = {
     argv0, NULL
   };
 
@@ -315,7 +315,7 @@ ofp_band_list_encode_wrap(struct channel *channel,
   *pbuf = pbuf_alloc(length);
   (*pbuf)->plen = length;
 
-  ret = ofp_band_list_encode(NULL, pbuf, &band_list,
+  ret = ofp_band_list_encode(*pbuf, &band_list,
                              &total_length);
 
   TEST_ASSERT_EQUAL_MESSAGE(length, total_length,
@@ -357,21 +357,21 @@ test_ofp_band_list_encode_band_list_empty(void) {
 void
 test_ofp_band_list_encode_null(void) {
   struct meter_band_list band_list;
-  struct pbuf *pbuf;
+  struct pbuf *pbuf = NULL;
   lagopus_result_t ret;
   uint16_t total_length;
 
-  ret = ofp_band_list_encode(NULL, NULL, &band_list,
+  ret = ofp_band_list_encode(NULL, &band_list,
                              &total_length);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS, ret,
                             "ofp_band_list_encode(NULL) error.");
 
-  ret = ofp_band_list_encode(NULL, &pbuf, NULL,
+  ret = ofp_band_list_encode(pbuf, NULL,
                              &total_length);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS, ret,
                             "ofp_band_list_encode(NULL) error.");
 
-  ret = ofp_band_list_encode(NULL, &pbuf, &band_list,
+  ret = ofp_band_list_encode(pbuf, &band_list,
                              NULL);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS, ret,
                             "ofp_band_list_encode(NULL) error.");

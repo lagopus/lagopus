@@ -55,9 +55,9 @@ ofp_aggregate_stats_reply_create(struct channel *channel,
 
         /* encode header, multipart reply */
         pbuf_plen_set(pbuf, pbuf_size_get(pbuf));
-        res = ofp_multipart_reply_encode_list(*pbuf_list, &pbuf, &mp_reply);
+        res = ofp_multipart_reply_encode(pbuf, &mp_reply);
         if (res == LAGOPUS_RESULT_OK) {
-          res = ofp_aggregate_stats_reply_encode_list(*pbuf_list, &pbuf, aggre_reply);
+          res = ofp_aggregate_stats_reply_encode(pbuf, aggre_reply);
           if (res == LAGOPUS_RESULT_OK) {
             /* set packet length */
             res = pbuf_length_get(pbuf, &length);

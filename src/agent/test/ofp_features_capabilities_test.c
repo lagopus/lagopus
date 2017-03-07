@@ -33,13 +33,13 @@ void
 test_ofp_features_capabilities_convert(void) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   uint64_t ds_capabilities =
-      DATASTORE_BRIDGE_BIT_CAPABILITY_TABLE_STATS |
-      DATASTORE_BRIDGE_BIT_CAPABILITY_GROUP_STATS |
-      DATASTORE_BRIDGE_BIT_CAPABILITY_BLOCK_LOOPING_PORTS;
+    DATASTORE_BRIDGE_BIT_CAPABILITY_TABLE_STATS |
+    DATASTORE_BRIDGE_BIT_CAPABILITY_GROUP_STATS |
+    DATASTORE_BRIDGE_BIT_CAPABILITY_BLOCK_LOOPING_PORTS;
   uint32_t features_capabilities =
-      OFPC_TABLE_STATS |
-      OFPC_GROUP_STATS |
-      OFPC_PORT_BLOCKED;
+    OFPC_TABLE_STATS |
+    OFPC_GROUP_STATS |
+    OFPC_PORT_BLOCKED;
   uint32_t test_features_capabilities;
 
   ret = ofp_features_capabilities_convert(ds_capabilities,

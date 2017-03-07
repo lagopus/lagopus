@@ -258,11 +258,9 @@ ofp_match_parse(struct channel *channel, struct pbuf *pbuf,
 }
 
 lagopus_result_t
-ofp_match_list_encode(struct pbuf_list *pbuf_list,
-                      struct pbuf **pbuf,
+ofp_match_list_encode(struct pbuf *pbuf,
                       struct match_list *match_list,
                       uint16_t *total_length) {
-  struct pbuf *before_pbuf = NULL;
   struct match *match = NULL;
   struct ofp_oxm ofp_oxm;
   struct ofp_tlv ofp_tlv;
@@ -276,13 +274,13 @@ ofp_match_list_encode(struct pbuf_list *pbuf_list,
     /* length is replaced later. */
     ofp_tlv.length = 0;
 
-    ret = ofp_tlv_encode_list(pbuf_list, pbuf, &ofp_tlv);
+    ret = ofp_tlv_encode(pbuf, &ofp_tlv);
     if (ret != LAGOPUS_RESULT_OK) {
-      lagopus_msg_warning("FAILED : ofp_tlv_encode_list.\n");
+      lagopus_msg_warning("FAILED : ofp_tlv_encode.\n");
       goto done;
     }
 
-    match_head = pbuf_putp_get(*pbuf) - sizeof(struct ofp_tlv);
+    match_head = pbuf_putp_get(pbuf) - sizeof(struct ofp_tlv);
     *total_length = (uint16_t) sizeof(struct ofp_tlv);
 
     if (TAILQ_EMPTY(match_list) == false) {
@@ -291,39 +289,19 @@ ofp_match_list_encode(struct pbuf_list *pbuf_list,
         ofp_oxm.oxm_field = match->oxm_field;
         ofp_oxm.oxm_length = match->oxm_length;
 
-        ret = ofp_oxm_encode_list(pbuf_list, pbuf, &ofp_oxm);
+        ret = ofp_oxm_encode(pbuf, &ofp_oxm);
 
         if (ret == LAGOPUS_RESULT_OK) {
           /* check oxm_length. */
-          ret = pbuf_plen_check(*pbuf, match->oxm_length);
-          if (ret == LAGOPUS_RESULT_OUT_OF_RANGE) {
-            if (pbuf_list != NULL) {
-              before_pbuf = *pbuf;
-              *pbuf = pbuf_alloc(OFP_PACKET_MAX_SIZE);
-              if (*pbuf == NULL) {
-                ret = LAGOPUS_RESULT_NO_MEMORY;
-                break;
-              }
-              pbuf_list_add(pbuf_list, *pbuf);
-              pbuf_plen_set(*pbuf, OFP_PACKET_MAX_SIZE);
-              ret = ofp_header_mp_copy(*pbuf, before_pbuf);
-              if (ret != LAGOPUS_RESULT_OK) {
-                lagopus_msg_warning("FAILED : ofp_header_mp_copy.\n");
-                break;
-              }
-            } else {
-              lagopus_msg_warning("FAILED : over packet length.\n");
-              ret = LAGOPUS_RESULT_OUT_OF_RANGE;
-              break;
-            }
-          } else if (ret != LAGOPUS_RESULT_OK) {
+          ret = pbuf_plen_check(pbuf, match->oxm_length);
+          if (ret != LAGOPUS_RESULT_OK) {
             lagopus_msg_warning("FAILED (%s).\n",
                                 lagopus_error_get_string(ret));
             break;
           }
 
           /* copy oxm_value. */
-          ret = pbuf_encode(*pbuf, match->oxm_value,
+          ret = pbuf_encode(pbuf, match->oxm_value,
                             match->oxm_length);
           if (ret == LAGOPUS_RESULT_OK) {
             /* Sum length (size of ofp_oxm[header] + ofp_oxm.oxm_length). */
@@ -362,7 +340,7 @@ ofp_match_list_encode(struct pbuf_list *pbuf_list,
       ret = ofp_tlv_length_set(match_head, *total_length);
 
       if (ret == LAGOPUS_RESULT_OK) {
-        ret = ofp_padding_encode(pbuf_list, pbuf,
+        ret = ofp_padding_encode(pbuf,
                                  total_length);
 
         if (ret != LAGOPUS_RESULT_OK) {

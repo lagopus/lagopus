@@ -49,7 +49,6 @@ bucket_counter_list_elem_free(struct bucket_counter_list
 /**
  * Encode bucket_counter_list.
  *
- *     @param[out]	pbuf_list	A pointer to list of \e pbuf structures.
  *     @param[out]	pbuf	A pointer to \e pbuf structure.
  *     @param[in]	bucket_counter_list	A pointer to list of
  *     \e bucket_counter structures.
@@ -60,8 +59,7 @@ bucket_counter_list_elem_free(struct bucket_counter_list
  *     @retval	LAGOPUS_RESULT_ANY_FAILURES Failed.
  */
 lagopus_result_t
-ofp_bucket_counter_list_encode(struct pbuf_list *pbuf_list,
-                               struct pbuf **pbuf,
+ofp_bucket_counter_list_encode(struct pbuf *pbuf,
                                struct bucket_counter_list *bucket_counter_list,
                                uint16_t *total_length);
 

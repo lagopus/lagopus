@@ -49,7 +49,6 @@ meter_band_stats_list_elem_free(struct meter_band_stats_list
 /**
  * Encode ofp_meter_band_stats_list.
  *
- *     @param[out]	pbuf_list	A pointer to list of \e pbuf structures.
  *     @param[out]	pbuf	A pointer to \e pbuf structure.
  *     @param[in]	band_stats_list	A pointer to list of
  *     \e meter_band_stats structures.
@@ -60,8 +59,7 @@ meter_band_stats_list_elem_free(struct meter_band_stats_list
  *     @retval	LAGOPUS_RESULT_ANY_FAILURES Failed.
  */
 lagopus_result_t
-ofp_meter_band_stats_list_encode(struct pbuf_list *pbuf_list,
-                                 struct pbuf **pbuf,
+ofp_meter_band_stats_list_encode(struct pbuf *pbuf,
                                  struct meter_band_stats_list *band_stats_list,
                                  uint16_t *total_length);
 

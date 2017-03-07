@@ -22,6 +22,13 @@
 #define __BENCHMARK_MATCH_PKTS_H__
 
 lagopus_result_t
+setup_modules(int argc,
+              const char *const argv[]);
+
+lagopus_result_t
+teardown_modules(void);
+
+lagopus_result_t
 setup(void *pkts, size_t size);
 
 lagopus_result_t

@@ -58,8 +58,8 @@ features_reply_features_get(struct channel *channel,
   /* set capabilities. */
   features->capabilities = 0;
   if ((ret = ofp_features_capabilities_convert(
-          info.capabilities,
-          &features->capabilities)) != LAGOPUS_RESULT_OK) {
+               info.capabilities,
+               &features->capabilities)) != LAGOPUS_RESULT_OK) {
     lagopus_msg_warning("FAILED (%s).\n",
                         lagopus_error_get_string(ret));
     goto done;

@@ -36,6 +36,71 @@ group_desc_list_elem_free(struct group_desc_list *group_desc_list) {
   }
 }
 
+static lagopus_result_t
+group_desc_reply_create(struct pbuf_list *pbuf_list,
+                        struct pbuf **pbuf,
+                        struct group_desc_list *group_desc_list) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  uint8_t *group_desc_head = NULL;
+  uint16_t bucket_total_length = 0;
+  struct group_desc *group_desc = NULL;
+  struct pbuf *entry_pbuf = NULL;
+
+  if (TAILQ_EMPTY(group_desc_list) == false) {
+    TAILQ_FOREACH(group_desc, group_desc_list, entry) {
+      entry_pbuf = pbuf_alloc(OFP_PACKET_MAX_SIZE);
+      if (entry_pbuf == NULL) {
+        ret = LAGOPUS_RESULT_NO_MEMORY;
+        goto done;
+      }
+      entry_pbuf->plen = OFP_PACKET_MAX_SIZE;
+
+      ret = ofp_group_desc_encode(entry_pbuf,
+                                  &group_desc->ofp);
+      if (ret == LAGOPUS_RESULT_OK) {
+        group_desc_head = pbuf_putp_get(entry_pbuf) - sizeof(struct ofp_group_desc);
+
+        ret = ofp_bucket_list_encode(entry_pbuf,
+                                     &group_desc->bucket_list,
+                                     &bucket_total_length);
+        if (ret == LAGOPUS_RESULT_OK) {
+          ret = ofp_multipart_length_set(group_desc_head,
+                                         (uint16_t) (bucket_total_length +
+                                             sizeof(struct ofp_group_desc)));
+          if (ret == LAGOPUS_RESULT_OK) {
+            ret = ofp_multipart_append(pbuf_list, entry_pbuf, pbuf);
+            if (ret != LAGOPUS_RESULT_OK) {
+              lagopus_msg_warning("FAILED (%s).\n",
+                                  lagopus_error_get_string(ret));
+            }
+          } else {
+            lagopus_msg_warning("FAILED (%s).\n",
+                                lagopus_error_get_string(ret));
+          }
+        } else {
+          lagopus_msg_warning("FAILED (%s).\n",
+                              lagopus_error_get_string(ret));
+        }
+      } else {
+        lagopus_msg_warning("FAILED (%s).\n",
+                            lagopus_error_get_string(ret));
+      }
+
+      pbuf_free(entry_pbuf);
+      entry_pbuf = NULL;
+      if (ret != LAGOPUS_RESULT_OK) {
+        break;
+      }
+    }
+  } else {
+    /* group_desc_list is empyt. */
+    ret = LAGOPUS_RESULT_OK;
+  }
+
+done:
+  return ret;
+}
+
 /* Send */
 STATIC lagopus_result_t
 ofp_group_desc_reply_create(struct channel *channel,
@@ -44,12 +109,9 @@ ofp_group_desc_reply_create(struct channel *channel,
                             struct ofp_header *xid_header) {
   uint16_t tmp_length = 0;
   uint16_t length = 0;
-  uint8_t *group_desc_head = NULL;
-  uint16_t bucket_total_length = 0;
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   struct pbuf *pbuf = NULL;
   struct ofp_multipart_reply mp_reply;
-  struct group_desc *group_desc = NULL;
 
   if (channel != NULL && pbuf_list != NULL &&
       group_desc_list != NULL && xid_header != NULL) {
@@ -73,43 +135,9 @@ ofp_group_desc_reply_create(struct channel *channel,
 
         /* Encode multipart reply. */
         ret = ofp_multipart_reply_encode(pbuf, &mp_reply);
-
         if (ret == LAGOPUS_RESULT_OK) {
-          if (TAILQ_EMPTY(group_desc_list) == false) {
-            TAILQ_FOREACH(group_desc, group_desc_list, entry) {
-              ret = ofp_group_desc_encode_list(*pbuf_list, &pbuf,
-                                               &group_desc->ofp);
-              if (ret == LAGOPUS_RESULT_OK) {
-                group_desc_head = pbuf_putp_get(pbuf) - sizeof(struct ofp_group_desc);
-
-                ret = ofp_bucket_list_encode(*pbuf_list, &pbuf,
-                                             &group_desc->bucket_list,
-                                             &bucket_total_length);
-                if (ret != LAGOPUS_RESULT_OK) {
-                  lagopus_msg_warning("FAILED (%s).\n",
-                                      lagopus_error_get_string(ret));
-                  break;
-                } else {
-                  ret = ofp_multipart_length_set(group_desc_head,
-                                                 (uint16_t) (bucket_total_length +
-                                                     sizeof(struct ofp_group_desc)));
-                  if (ret != LAGOPUS_RESULT_OK) {
-                    lagopus_msg_warning("FAILED (%s).\n",
-                                        lagopus_error_get_string(ret));
-                    break;
-                  }
-                }
-              } else {
-                lagopus_msg_warning("FAILED (%s).\n",
-                                    lagopus_error_get_string(ret));
-                break;
-              }
-            }
-          } else {
-            /* group_desc_list is empyt. */
-            ret = LAGOPUS_RESULT_OK;
-          }
-
+          ret = group_desc_reply_create(*pbuf_list, &pbuf,
+                                        group_desc_list);
           if (ret == LAGOPUS_RESULT_OK) {
             /* set length for last pbuf. */
             ret = pbuf_length_get(pbuf, &length);
@@ -126,6 +154,9 @@ ofp_group_desc_reply_create(struct channel *channel,
               lagopus_msg_warning("FAILED (%s).\n",
                                   lagopus_error_get_string(ret));
             }
+          } else {
+            lagopus_msg_warning("FAILED (%s).\n",
+                                lagopus_error_get_string(ret));
           }
         } else {
           lagopus_msg_warning("FAILED (%s).\n",

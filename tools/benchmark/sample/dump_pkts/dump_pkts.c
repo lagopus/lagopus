@@ -20,6 +20,22 @@
 #include "dump_pkts.h"
 
 lagopus_result_t
+setup_modules(int argc,
+              const char *const argv[]) {
+  printf("call setup_modules.\n");
+  for (int i = 0; i < argc; i++) {
+    printf("argv[%d] = %s\n", i, argv[i]);
+  }
+  return LAGOPUS_RESULT_OK;
+}
+
+lagopus_result_t
+teardown_modules(void) {
+  printf("call teardown_modules.\n");
+  return LAGOPUS_RESULT_OK;
+}
+
+lagopus_result_t
 setup(void *pkts, size_t size) {
   (void) pkts;
   (void) size;

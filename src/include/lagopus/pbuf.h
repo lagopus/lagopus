@@ -238,6 +238,9 @@ lagopus_result_t
 pbuf_copy_with_length(struct pbuf *dst, struct pbuf *src,
                       size_t length);
 
+lagopus_result_t
+pbuf_append(struct pbuf *dst, struct pbuf *src);
+
 struct pbuf *
 pbuf_list_last_get(struct pbuf_list *pbuf_list);
 

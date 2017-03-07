@@ -37,6 +37,73 @@ meter_config_list_elem_free(struct meter_config_list *meter_config_list) {
   }
 }
 
+static lagopus_result_t
+meter_config_reply_create(struct pbuf_list *pbuf_list,
+                          struct pbuf **pbuf,
+                          struct meter_config_list *meter_config_list) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  uint16_t band_total_length = 0;
+  uint8_t *meter_config_head = NULL;
+  struct meter_config *meter_config = NULL;
+  struct pbuf *entry_pbuf = NULL;
+
+  if (TAILQ_EMPTY(meter_config_list) == false) {
+    TAILQ_FOREACH(meter_config, meter_config_list, entry) {
+      entry_pbuf = pbuf_alloc(OFP_PACKET_MAX_SIZE);
+      if (entry_pbuf == NULL) {
+        ret = LAGOPUS_RESULT_NO_MEMORY;
+        goto done;
+      }
+      entry_pbuf->plen = OFP_PACKET_MAX_SIZE;
+
+      ret = ofp_meter_config_encode(entry_pbuf,
+                                    &meter_config->ofp);
+
+      if (ret == LAGOPUS_RESULT_OK) {
+        meter_config_head = pbuf_putp_get(entry_pbuf) -
+                            sizeof(struct ofp_meter_config);
+
+        ret = ofp_band_list_encode(entry_pbuf,
+                                   &meter_config->band_list,
+                                   &band_total_length);
+        if (ret == LAGOPUS_RESULT_OK) {
+          ret = ofp_multipart_length_set(meter_config_head,
+                                         (uint16_t) (band_total_length +
+                                             sizeof(struct ofp_meter_config)));
+          if (ret == LAGOPUS_RESULT_OK) {
+            ret = ofp_multipart_append(pbuf_list, entry_pbuf, pbuf);
+            if (ret != LAGOPUS_RESULT_OK) {
+              lagopus_msg_warning("FAILED (%s).\n",
+                                  lagopus_error_get_string(ret));
+            }
+          } else {
+            lagopus_msg_warning("FAILED (%s).\n",
+                                lagopus_error_get_string(ret));
+          }
+        } else {
+          lagopus_msg_warning("FAILED (%s).\n",
+                              lagopus_error_get_string(ret));
+        }
+      } else {
+        lagopus_msg_warning("FAILED (%s).\n",
+                            lagopus_error_get_string(ret));
+      }
+
+      pbuf_free(entry_pbuf);
+      entry_pbuf = NULL;
+      if (ret != LAGOPUS_RESULT_OK) {
+        break;
+      }
+    }
+  } else {
+    /* meter_config_list is empty. */
+    ret = LAGOPUS_RESULT_OK;
+  }
+
+done:
+  return ret;
+}
+
 /* Send */
 STATIC lagopus_result_t
 ofp_meter_config_reply_create(struct channel *channel,
@@ -46,11 +113,8 @@ ofp_meter_config_reply_create(struct channel *channel,
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   uint16_t tmp_length = 0;
   uint16_t length = 0;
-  uint16_t band_total_length = 0;
-  uint8_t *meter_config_head = NULL;
   struct pbuf *pbuf = NULL;
   struct ofp_multipart_reply mp_reply;
-  struct meter_config *meter_config;
 
   if (channel != NULL && pbuf_list != NULL &&
       meter_config_list != NULL && xid_header != NULL) {
@@ -76,43 +140,8 @@ ofp_meter_config_reply_create(struct channel *channel,
         ret = ofp_multipart_reply_encode(pbuf, &mp_reply);
 
         if (ret == LAGOPUS_RESULT_OK) {
-          if (TAILQ_EMPTY(meter_config_list) == false) {
-            TAILQ_FOREACH(meter_config, meter_config_list, entry) {
-              ret = ofp_meter_config_encode_list(*pbuf_list, &pbuf,
-                                                 &meter_config->ofp);
-
-              if (ret == LAGOPUS_RESULT_OK) {
-                meter_config_head = pbuf_putp_get(pbuf) -
-                    sizeof(struct ofp_meter_config);
-
-                ret = ofp_band_list_encode(*pbuf_list, &pbuf,
-                                           &meter_config->band_list,
-                                           &band_total_length);
-                if (ret == LAGOPUS_RESULT_OK) {
-                  ret = ofp_multipart_length_set(meter_config_head,
-                                                 (uint16_t) (band_total_length +
-                                                     sizeof(struct ofp_meter_config)));
-                  if (ret != LAGOPUS_RESULT_OK) {
-                    lagopus_msg_warning("FAILED (%s).\n",
-                                        lagopus_error_get_string(ret));
-                    break;
-                  }
-                } else {
-                  lagopus_msg_warning("FAILED (%s).\n",
-                                      lagopus_error_get_string(ret));
-                  break;
-                }
-              } else {
-                lagopus_msg_warning("FAILED (%s).\n",
-                                    lagopus_error_get_string(ret));
-                break;
-              }
-            }
-          } else {
-            /* meter_config_list is empty. */
-            ret = LAGOPUS_RESULT_OK;
-          }
-
+          ret = meter_config_reply_create(*pbuf_list, &pbuf,
+                                          meter_config_list);
           if (ret == LAGOPUS_RESULT_OK) {
             /* set length for last pbuf. */
             ret = pbuf_length_get(pbuf, &length);

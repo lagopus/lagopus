@@ -140,31 +140,39 @@ ofp_write_channel(struct channel *channel,
                   struct pbuf *pbuf) {
   lagopus_result_t ret = LAGOPUS_RESULT_OK;
   struct pbuf *send_pbuf = NULL;
+  uint16_t len = 0;
 
   if (channel != NULL && pbuf != NULL) {
-    send_pbuf = channel_pbuf_list_get(channel,
-                                      pbuf_plen_get(pbuf));
-    if (send_pbuf != NULL) {
-      /* Copy pbuf. */
-      ret = pbuf_copy(send_pbuf, pbuf);
+    ret = pbuf_length_get(pbuf, &len);
 
-      if (ret == LAGOPUS_RESULT_OK) {
-        ret = ofp_header_packet_set(channel, send_pbuf);
+    if (ret == LAGOPUS_RESULT_OK) {
+      send_pbuf = channel_pbuf_list_get(channel,
+                                        (size_t) len);
+      if (send_pbuf != NULL) {
+        /* Copy pbuf. */
+        ret = pbuf_copy(send_pbuf, pbuf);
 
         if (ret == LAGOPUS_RESULT_OK) {
-          channel_send_packet(channel, send_pbuf);
-          ret = LAGOPUS_RESULT_OK;
+          ret = ofp_header_packet_set(channel, send_pbuf);
+
+          if (ret == LAGOPUS_RESULT_OK) {
+            channel_send_packet(channel, send_pbuf);
+            ret = LAGOPUS_RESULT_OK;
+          } else {
+            lagopus_msg_warning("FAILED (%s).\n",
+                                lagopus_error_get_string(ret));
+          }
         } else {
           lagopus_msg_warning("FAILED (%s).\n",
                               lagopus_error_get_string(ret));
         }
       } else {
-        lagopus_msg_warning("FAILED (%s).\n",
-                            lagopus_error_get_string(ret));
+        lagopus_msg_warning("Can't allocate pbuf.\n");
+        ret = LAGOPUS_RESULT_NO_MEMORY;
       }
     } else {
-      lagopus_msg_warning("Can't allocate pbuf.\n");
-      ret = LAGOPUS_RESULT_NO_MEMORY;
+      lagopus_msg_warning("FAILED (%s).\n",
+                          lagopus_error_get_string(ret));
     }
 
     if (ret != LAGOPUS_RESULT_OK && send_pbuf != NULL) {

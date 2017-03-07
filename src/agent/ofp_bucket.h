@@ -76,7 +76,6 @@ ofp_bucket_parse(struct pbuf *pbuf,
 /**
  * Encode bucket_list.
  *
- *     @param[out]	pbuf_list	A pointer to list of \e pbuf structures.
  *     @param[out]	pbuf	A pointer to \e pbuf structure.
  *     @param[in]	bucket_list	A pointer to list of \e bucket structures.
  *     @param[out]	total_length	A pointer to \e size of packet.
@@ -86,8 +85,7 @@ ofp_bucket_parse(struct pbuf *pbuf,
  *     @retval	LAGOPUS_RESULT_ANY_FAILURES Failed.
  */
 lagopus_result_t
-ofp_bucket_list_encode(struct pbuf_list *pbuf_list,
-                       struct pbuf **pbuf,
+ofp_bucket_list_encode(struct pbuf *pbuf,
                        struct bucket_list *bucket_list,
                        uint16_t *total_length);
 

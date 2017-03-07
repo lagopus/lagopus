@@ -351,7 +351,7 @@ free_rte_mbuf(struct rte_mbuf *p, size_t size) {
 static inline void
 print_usage(const char *pname) {
   fprintf(stderr, "usage: %s [-n <NUM_MEASUREMENTS>] [-b <BATCH_SIZE>] "
-          "[-C DSL_FILE] [-- DPDK_OPTS] [-- DP_OPTS] <PCAP_FILE>\n", pname);
+          "[-C DSL_FILE] <PCAP_FILE> [-- DPDK_OPTS] [-- DP_OPTS]\n", pname);
   fprintf(stderr, "\n");
   fprintf(stderr, "positional arguments:\n");
   fprintf(stderr, "  PCAP_FILE\t\tPacket capture file.\n");
@@ -393,7 +393,11 @@ parse_args(int argc, const char *const argv[]) {
 
   if (argc != optind ) {
     opt_pcap_file = argv[optind];
-    ret = LAGOPUS_RESULT_OK;
+    if (argc != optind + 1) {
+      ret = (lagopus_result_t) (optind + 1);
+    } else {
+      ret = (lagopus_result_t) optind;
+    }
   } else {
     ret = LAGOPUS_RESULT_INVALID_ARGS;
   }
@@ -538,6 +542,7 @@ done:
 int
 main(int argc, const char *const argv[]) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  lagopus_result_t arg_pos = LAGOPUS_RESULT_ANY_FAILURES;
   pcap_t *pcap = NULL;
   char errbuf[PCAP_ERRBUF_SIZE];
   size_t i, count;
@@ -548,7 +553,8 @@ main(int argc, const char *const argv[]) {
   struct rte_mbuf **pkts = NULL;
   struct pcap_pkthdr header;
 
-  if ((ret = parse_args(argc, argv)) != LAGOPUS_RESULT_OK) {
+  if ((arg_pos = parse_args(argc, argv)) <= 0) {
+    ret = arg_pos;
     lagopus_perror(ret);
     print_usage(argv[0]);
     goto done;
@@ -578,6 +584,14 @@ main(int argc, const char *const argv[]) {
 
   if (opt_dsl_file != NULL) {
     start_modules(argc, argv, opt_dsl_file);
+  } else {
+{% if setup_modules_func is defined and setup_modules_func %}
+    ret = {{ setup_modules_func }}((int) (argc - arg_pos), &argv[arg_pos]);
+    if (ret != LAGOPUS_RESULT_OK) {
+      lagopus_perror(ret);
+      goto done;
+    }
+{% endif %}
   }
 
   count = 0;
@@ -611,7 +625,8 @@ main(int argc, const char *const argv[]) {
   }
   fprintf(stdout, "read %zu packets.\n", count);
 
-  ret = measure_benchmark(pkts, &throughput, &nspp, count, papi_values);
+  ret = measure_benchmark(pkts, &throughput,
+                          &nspp, count, papi_values);
   if (ret != LAGOPUS_RESULT_OK) {
     goto done;
   }
@@ -621,7 +636,15 @@ main(int argc, const char *const argv[]) {
 done:
   if (opt_dsl_file != NULL) {
     stop_modules();
-  }
+  } else {
+{% if teardown_modules_func is defined and teardown_modules_func %}
+    ret = {{ teardown_modules_func }}();
+    if (ret != LAGOPUS_RESULT_OK) {
+      lagopus_perror(ret);
+      goto done;
+    }
+{% endif %}
+}
 
   /* free. */
   if (pkts != NULL) {

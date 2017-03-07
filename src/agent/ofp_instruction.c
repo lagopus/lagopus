@@ -26,7 +26,7 @@
 #include "ofp_tlv.h"
 
 struct instruction *
-instruction_alloc(void) {
+  instruction_alloc(void) {
   struct instruction *instruction;
 
   instruction = (struct instruction *)
@@ -192,8 +192,7 @@ ofp_instruction_parse(struct pbuf *pbuf,
 }
 
 lagopus_result_t
-ofp_instruction_list_encode(struct pbuf_list *pbuf_list,
-                            struct pbuf **pbuf,
+ofp_instruction_list_encode(struct pbuf *pbuf,
                             struct instruction_list *instruction_list,
                             uint16_t *total_length) {
   lagopus_result_t res = LAGOPUS_RESULT_ANY_FAILURES;
@@ -209,40 +208,40 @@ ofp_instruction_list_encode(struct pbuf_list *pbuf_list,
     if (TAILQ_EMPTY(instruction_list) == false) {
       TAILQ_FOREACH(instruction, instruction_list, entry) {
         /* instruction head pointer. */
-        instruction_head = pbuf_putp_get(*pbuf);
+        instruction_head = pbuf_putp_get(pbuf);
 
         switch (instruction->ofpit.type) {
           case OFPIT_GOTO_TABLE:
             instruction->ofpit.len = (uint16_t)
                                      (sizeof(struct ofp_instruction_goto_table));
-            res = ofp_instruction_goto_table_encode_list(
-                    pbuf_list, pbuf, &(instruction->ofpit_goto_table));
+            res = ofp_instruction_goto_table_encode(
+                    pbuf, &(instruction->ofpit_goto_table));
             break;
           case OFPIT_WRITE_METADATA:
             instruction->ofpit.len = (uint16_t)
                                      (sizeof(struct ofp_instruction_write_metadata));
-            res = ofp_instruction_write_metadata_encode_list(
-                    pbuf_list, pbuf, &(instruction->ofpit_write_metadata));
+            res = ofp_instruction_write_metadata_encode(
+                    pbuf, &(instruction->ofpit_write_metadata));
             break;
           case OFPIT_WRITE_ACTIONS:
           case OFPIT_APPLY_ACTIONS:
           case OFPIT_CLEAR_ACTIONS:
             instruction->ofpit.len = (uint16_t)
                                      (sizeof(struct ofp_instruction_actions));
-            res = ofp_instruction_actions_encode_list(
-                    pbuf_list, pbuf, &(instruction->ofpit_actions));
+            res = ofp_instruction_actions_encode(
+                    pbuf, &(instruction->ofpit_actions));
             break;
           case OFPIT_METER:
             instruction->ofpit.len = (uint16_t)
                                      (sizeof(struct ofp_instruction_meter));
-            res = ofp_instruction_meter_encode_list(
-                    pbuf_list, pbuf, &(instruction->ofpit_meter));
+            res = ofp_instruction_meter_encode(
+                    pbuf, &(instruction->ofpit_meter));
             break;
           case OFPIT_EXPERIMENTER:
             instruction->ofpit.len = (uint16_t)
                                      (sizeof(struct ofp_instruction_experimenter));
-            res = ofp_instruction_experimenter_encode_list(
-                    pbuf_list, pbuf, &(instruction->ofpit_experimenter));
+            res = ofp_instruction_experimenter_encode(
+                    pbuf, &(instruction->ofpit_experimenter));
             break;
           default:
             lagopus_msg_warning("FAILED: unknown instruction (%d)\n",
@@ -252,7 +251,7 @@ ofp_instruction_list_encode(struct pbuf_list *pbuf_list,
         }
 
         if (res == LAGOPUS_RESULT_OK) {
-          res = ofp_action_list_encode(pbuf_list, pbuf,
+          res = ofp_action_list_encode(pbuf,
                                        &(instruction->action_list),
                                        &action_total_len);
           if (res == LAGOPUS_RESULT_OK) {
@@ -384,8 +383,7 @@ ofp_instruction_header_parse(struct pbuf *pbuf,
 
 /* encode ofp_instruction header for ofp_table_feature. */
 lagopus_result_t
-ofp_instruction_header_list_encode(struct pbuf_list *pbuf_list,
-                                   struct pbuf **pbuf,
+ofp_instruction_header_list_encode(struct pbuf *pbuf,
                                    struct instruction_list *instruction_list,
                                    uint16_t *total_length) {
   lagopus_result_t res = LAGOPUS_RESULT_ANY_FAILURES;
@@ -407,8 +405,8 @@ ofp_instruction_header_list_encode(struct pbuf_list *pbuf_list,
           case OFPIT_EXPERIMENTER:
             instruction->ofpit.len = (uint16_t)
                                      (sizeof(struct ofp_instruction));
-            res = ofp_instruction_encode_list(
-                    pbuf_list, pbuf, &(instruction->ofpit));
+            res = ofp_instruction_encode(
+                    pbuf, &(instruction->ofpit));
             break;
           default:
             lagopus_msg_warning("FAILED: unknown instruction (%d)\n",

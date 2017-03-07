@@ -52,15 +52,16 @@ meter_stats_alloc(size_t length) {
 static uint16_t meter_stats_length = 0x00;
 static int meter_stats_num = 0;
 static int band_stats_num = 0;
+static struct meter_stats_list mstats_list;
 
 static void
-create_data(struct meter_stats_list *meter_stats_list) {
+create_data(void) {
   struct meter_stats *meter_stats;
   struct meter_band_stats *band_stats;
   int i;
   int j;
 
-  TAILQ_INIT(meter_stats_list);
+  TAILQ_INIT(&mstats_list);
   for (i = 0; i < meter_stats_num; i++) {
     meter_stats = meter_stats_alloc(OFP_PACKET_MAX_SIZE);
 
@@ -81,7 +82,7 @@ create_data(struct meter_stats_list *meter_stats_list) {
       TAILQ_INSERT_TAIL(&meter_stats->meter_band_stats_list, band_stats,
                         entry);
     }
-    TAILQ_INSERT_TAIL(meter_stats_list, meter_stats, entry);
+    TAILQ_INSERT_TAIL(&mstats_list, meter_stats, entry);
   }
 }
 
@@ -90,15 +91,28 @@ ofp_meter_stats_reply_create_wrap(struct channel *channel,
                                   struct pbuf_list **pbuf_list,
                                   struct ofp_header *xid_header) {
   lagopus_result_t ret;
-  struct meter_stats_list meter_stats_list;
 
-  create_data(&meter_stats_list);
+  create_data();
 
   ret = ofp_meter_stats_reply_create(channel, pbuf_list,
-                                     &meter_stats_list,
+                                     &mstats_list,
                                      xid_header);
   /* after. */
-  meter_stats_list_elem_free(&meter_stats_list);
+  meter_stats_list_elem_free(&mstats_list);
+
+  return ret;
+}
+
+lagopus_result_t
+ofp_meter_stats_reply_create_wrap_with_self_data(
+  struct channel *channel,
+  struct pbuf_list **pbuf_list,
+  struct ofp_header *xid_header) {
+  lagopus_result_t ret;
+
+  ret = ofp_meter_stats_reply_create(channel, pbuf_list,
+                                     &mstats_list,
+                                     xid_header);
 
   return ret;
 }
@@ -107,9 +121,9 @@ void
 test_prologue(void) {
   lagopus_result_t r;
   const char *argv0 =
-      ((IS_VALID_STRING(lagopus_get_command_name()) == true) ?
-       lagopus_get_command_name() : "callout_test");
-  const char * const argv[] = {
+    ((IS_VALID_STRING(lagopus_get_command_name()) == true) ?
+     lagopus_get_command_name() : "callout_test");
+  const char *const argv[] = {
     argv0, NULL
   };
 
@@ -120,8 +134,9 @@ test_prologue(void) {
   TEST_ASSERT_EQUAL(r, LAGOPUS_RESULT_OK);
   channel_mgr_initialize();
 }
+
 void
-test_ofp_meter_stats_reply_create(void) {
+test_ofp_meter_stats_reply_create_01(void) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   const char *data[1] = {"04 13 00 a0 00 00 00 10"
                          "00 09 00 00 00 00 00 00"
@@ -156,6 +171,72 @@ test_ofp_meter_stats_reply_create(void) {
 
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, ret,
                             "ofp_meter_stats_reply_create(normal) error.");
+}
+
+void
+test_ofp_meter_stats_reply_create_02(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  struct meter_stats *meter_stats = NULL;
+  struct meter_band_stats *band_stats = NULL;
+  const char *header_data[2] = {
+    "04 13 ff c8 00 00 00 10 00 09 00 01 00 00 00 00 ",
+    "04 13 00 48 00 00 00 10 00 09 00 00 00 00 00 00 "
+  };
+  const char *body_data[2] = {
+    "00 00 00 01 00 38 00 00"
+    "00 00 00 00 00 00 00 02"
+    "00 00 00 00 00 00 00 03"
+    "00 00 00 00 00 00 00 04"
+    "00 00 00 05 00 00 00 06"
+    "00 00 00 00 00 00 00 07"
+    "00 00 00 00 00 00 00 08",
+    "00 00 00 01 00 38 00 00"
+    "00 00 00 00 00 00 00 02"
+    "00 00 00 00 00 00 00 03"
+    "00 00 00 00 00 00 00 04"
+    "00 00 00 05 00 00 00 06"
+    "00 00 00 00 00 00 00 07"
+    "00 00 00 00 00 00 00 08"
+  };
+  size_t nums[2] = {1169, 1};
+  int i;
+
+  /* data */
+  TAILQ_INIT(&mstats_list);
+  for (i = 0; i < 1170; i++) {
+    meter_stats = meter_stats_alloc(OFP_PACKET_MAX_SIZE);
+    if (meter_stats != NULL) {
+      meter_stats->ofp.meter_id = 0x01;
+      meter_stats->ofp.len = 0x38;
+      meter_stats->ofp.flow_count = 0x02;
+      meter_stats->ofp.packet_in_count = 0x03;
+      meter_stats->ofp.byte_in_count = 0x04;
+      meter_stats->ofp.duration_sec = 0x05;
+      meter_stats->ofp.duration_nsec = 0x06;
+    } else {
+      TEST_FAIL_MESSAGE("allocation error.");
+    }
+
+    TAILQ_INIT(&meter_stats->meter_band_stats_list);
+    band_stats = meter_band_stats_alloc();
+    if (band_stats != NULL) {
+      band_stats->ofp.packet_band_count = 0x07;
+      band_stats->ofp.byte_band_count = 0x08;
+    } else {
+      TEST_FAIL_MESSAGE("allocation error.");
+    }
+    TAILQ_INSERT_TAIL(&meter_stats->meter_band_stats_list, band_stats,
+                      entry);
+    TAILQ_INSERT_TAIL(&mstats_list, meter_stats, entry);
+  }
+
+  ret = check_pbuf_list_across_packet_create(
+          ofp_meter_stats_reply_create_wrap_with_self_data,
+          header_data, body_data, nums, 2);
+  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, ret, "check_pbuf_list error.");
+
+  /* free */
+  meter_stats_list_elem_free(&mstats_list);
 }
 
 void
@@ -231,21 +312,20 @@ ofp_meter_stats_reply_create_null_wrap(struct channel *channel,
                                        struct pbuf_list **pbuf_list,
                                        struct ofp_header *xid_header) {
   lagopus_result_t ret;
-  struct meter_stats_list meter_stats_list;
 
   meter_stats_length = 0x48;
   meter_stats_num = 2;
   band_stats_num = 2;
-  create_data(&meter_stats_list);
+  create_data();
 
   ret = ofp_meter_stats_reply_create(NULL, pbuf_list,
-                                     &meter_stats_list,
+                                     &mstats_list,
                                      xid_header);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS, ret,
                             "ofp_meter_stats_reply_create error.");
 
   ret = ofp_meter_stats_reply_create(channel, NULL,
-                                     &meter_stats_list,
+                                     &mstats_list,
                                      xid_header);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS, ret,
                             "ofp_meter_stats_reply_create error.");
@@ -257,13 +337,13 @@ ofp_meter_stats_reply_create_null_wrap(struct channel *channel,
                             "ofp_meter_stats_reply_create error.");
 
   ret = ofp_meter_stats_reply_create(channel, pbuf_list,
-                                     &meter_stats_list,
+                                     &mstats_list,
                                      NULL);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS, ret,
                             "ofp_meter_stats_reply_create error.");
 
   /* after. */
-  meter_stats_list_elem_free(&meter_stats_list);
+  meter_stats_list_elem_free(&mstats_list);
 
   /* Not check return value. */
   return -9999;

@@ -76,7 +76,7 @@ ofp_packet_in_create(struct packet_in *packet_in,
         ret = ofp_packet_in_encode(*pbuf, &packet_in->ofp_packet_in);
 
         if (ret == LAGOPUS_RESULT_OK) {
-          ret = ofp_match_list_encode(NULL, pbuf, &packet_in->match_list,
+          ret = ofp_match_list_encode(*pbuf, &packet_in->match_list,
                                       &match_total_len);
 
           if (ret == LAGOPUS_RESULT_OK) {

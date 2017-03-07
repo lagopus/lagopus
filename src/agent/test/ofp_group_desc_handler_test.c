@@ -53,9 +53,10 @@ group_desc_alloc(size_t length) {
 static int group_desc_num = 0;
 static int bucket_num = 0;
 static int action_num = 0;
+static struct group_desc_list gdesc_list;
 
 static void
-create_data(struct group_desc_list *group_desc_list) {
+create_data(void) {
   struct group_desc *group_desc;
   struct bucket *bucket;
   struct action *action;
@@ -65,7 +66,7 @@ create_data(struct group_desc_list *group_desc_list) {
   int j;
   int k;
 
-  TAILQ_INIT(group_desc_list);
+  TAILQ_INIT(&gdesc_list);
   for (i = 0; i < group_desc_num; i++) {
     group_desc = group_desc_alloc(length);
     group_desc->ofp.length = length;
@@ -92,7 +93,7 @@ create_data(struct group_desc_list *group_desc_list) {
       }
       TAILQ_INSERT_TAIL(&group_desc->bucket_list, bucket, entry);
     }
-    TAILQ_INSERT_TAIL(group_desc_list, group_desc, entry);
+    TAILQ_INSERT_TAIL(&gdesc_list, group_desc, entry);
   }
 }
 
@@ -101,16 +102,29 @@ ofp_group_desc_reply_create_wrap(struct channel *channel,
                                  struct pbuf_list **pbuf_list,
                                  struct ofp_header *xid_header) {
   lagopus_result_t ret;
-  struct group_desc_list group_desc_list;
 
-  create_data(&group_desc_list);
+  create_data();
 
   ret = ofp_group_desc_reply_create(channel, pbuf_list,
-                                    &group_desc_list,
+                                    &gdesc_list,
                                     xid_header);
 
   /* after. */
-  group_desc_list_elem_free(&group_desc_list);
+  group_desc_list_elem_free(&gdesc_list);
+
+  return ret;
+}
+
+lagopus_result_t
+ofp_group_desc_reply_create_wrap_with_self_data(
+  struct channel *channel,
+  struct pbuf_list **pbuf_list,
+  struct ofp_header *xid_header) {
+  lagopus_result_t ret;
+
+  ret = ofp_group_desc_reply_create(channel, pbuf_list,
+                                    &gdesc_list,
+                                    xid_header);
 
   return ret;
 }
@@ -119,9 +133,9 @@ void
 test_prologue(void) {
   lagopus_result_t r;
   const char *argv0 =
-      ((IS_VALID_STRING(lagopus_get_command_name()) == true) ?
-       lagopus_get_command_name() : "callout_test");
-  const char * const argv[] = {
+    ((IS_VALID_STRING(lagopus_get_command_name()) == true) ?
+     lagopus_get_command_name() : "callout_test");
+  const char *const argv[] = {
     argv0, NULL
   };
 
@@ -132,8 +146,9 @@ test_prologue(void) {
   TEST_ASSERT_EQUAL(r, LAGOPUS_RESULT_OK);
   channel_mgr_initialize();
 }
+
 void
-test_ofp_group_desc_reply_create(void) {
+test_ofp_group_desc_reply_create_01(void) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   const char *data[1] = {"04 13 00 e0 00 00 00 10"
                          "00 07 00 00 00 00 00 00"
@@ -175,6 +190,80 @@ test_ofp_group_desc_reply_create(void) {
 
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, ret,
                             "ofp_group_desc_reply_create(normal) error.");
+}
+
+void
+test_ofp_group_desc_reply_create_02(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  struct group_desc *group_desc = NULL;
+  struct bucket *bucket = NULL;
+  struct action *action = NULL;
+  struct ofp_action_output *action_output = NULL;
+  const char *header_data[2] = {
+    "04 13 ff d8 00 00 00 10 00 07 00 01 00 00 00 00 ",
+    "04 13 00 38 00 00 00 10 00 07 00 00 00 00 00 00 "
+  };
+  const char *body_data[2] = {
+    "00 28 01 00 00 00 00 01"
+    "00 20 00 02 00 00 00 03"
+    "00 00 00 04 00 00 00 00"
+    "00 00 00 10 00 00 00 05"
+    "00 06 00 00 00 00 00 00",
+    "00 28 01 00 00 00 00 01"
+    "00 20 00 02 00 00 00 03"
+    "00 00 00 04 00 00 00 00"
+    "00 00 00 10 00 00 00 05"
+    "00 06 00 00 00 00 00 00"
+  };
+  size_t nums[2] = {1637, 1};
+  int i;
+
+  /* data */
+  TAILQ_INIT(&gdesc_list);
+  for (i = 0; i < 1638; i++) {
+    group_desc = group_desc_alloc(0x28);
+    if (group_desc != NULL) {
+      group_desc->ofp.length = 0x28;
+      group_desc->ofp.type = OFPGT_SELECT;
+      group_desc->ofp.group_id = 0x01;
+    } else {
+      TEST_FAIL_MESSAGE("allocation error.");
+    }
+
+    TAILQ_INIT(&group_desc->bucket_list);
+    bucket = bucket_alloc();
+    if (bucket != NULL) {
+      bucket->ofp.len = 0x20;
+      bucket->ofp.weight = 0x02;
+      bucket->ofp.watch_port = 0x03;
+      bucket->ofp.watch_group = 0x4;
+    } else {
+      TEST_FAIL_MESSAGE("allocation error.");
+    }
+
+    TAILQ_INIT(&bucket->action_list);
+    action = action_alloc(0x10);
+    if (action != NULL) {
+      action->ofpat.type = OFPAT_OUTPUT;
+      action->ofpat.len = 0x10;
+      action_output = (struct ofp_action_output *) &action->ofpat;
+      action_output->port = 0x05;
+      action_output->max_len = 0x06;
+    } else {
+      TEST_FAIL_MESSAGE("allocation error.")
+    }
+    TAILQ_INSERT_TAIL(&bucket->action_list, action, entry);
+    TAILQ_INSERT_TAIL(&group_desc->bucket_list, bucket, entry);
+    TAILQ_INSERT_TAIL(&gdesc_list, group_desc, entry);
+  }
+
+  ret = check_pbuf_list_across_packet_create(
+          ofp_group_desc_reply_create_wrap_with_self_data,
+          header_data, body_data, nums, 2);
+  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, ret, "check_pbuf_list error.");
+
+  /* free */
+  group_desc_list_elem_free(&gdesc_list);
 }
 
 void
@@ -248,21 +337,20 @@ ofp_group_desc_reply_create_null_wrap(struct channel *channel,
                                       struct pbuf_list **pbuf_list,
                                       struct ofp_header *xid_header) {
   lagopus_result_t ret;
-  struct group_desc_list group_desc_list;
 
   group_desc_num = 2;
   bucket_num = 2;
   action_num = 2;
-  create_data(&group_desc_list);
+  create_data();
 
   ret = ofp_group_desc_reply_create(NULL, pbuf_list,
-                                    &group_desc_list,
+                                    &gdesc_list,
                                     xid_header);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS, ret,
                             "ofp_group_desc_reply_create error.");
 
   ret = ofp_group_desc_reply_create(channel, NULL,
-                                    &group_desc_list,
+                                    &gdesc_list,
                                     xid_header);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS, ret,
                             "ofp_group_desc_reply_create error.");
@@ -274,13 +362,13 @@ ofp_group_desc_reply_create_null_wrap(struct channel *channel,
                             "ofp_group_desc_reply_create error.");
 
   ret = ofp_group_desc_reply_create(channel, pbuf_list,
-                                    &group_desc_list,
+                                    &gdesc_list,
                                     NULL);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS, ret,
                             "ofp_group_desc_reply_create error.");
 
   /* after. */
-  group_desc_list_elem_free(&group_desc_list);
+  group_desc_list_elem_free(&gdesc_list);
 
   /* Not check return value. */
   return -9999;

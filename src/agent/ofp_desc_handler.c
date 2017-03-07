@@ -53,9 +53,9 @@ ofp_desc_reply_create(struct channel *channel,
 
         /* encode message. */
         pbuf_plen_set(pbuf, pbuf_size_get(pbuf));
-        res = ofp_multipart_reply_encode_list(*pbuf_list, &pbuf, &ofpmp_reply);
+        res = ofp_multipart_reply_encode(pbuf, &ofpmp_reply);
         if (res == LAGOPUS_RESULT_OK) {
-          res = ofp_desc_encode_list(*pbuf_list, &pbuf, ofp_desc);
+          res = ofp_desc_encode(pbuf, ofp_desc);
           if (res == LAGOPUS_RESULT_OK) {
             /* set packet length */
             res = pbuf_length_get(pbuf, &length);
