@@ -796,7 +796,7 @@ execute_action_set_field(struct lagopus_packet *pkt,
         OS_MEMCPY(&val16, oxm_value, sizeof(uint16_t));
         VLAN_TCI(pkt->vlan) &= OS_HTONS(0xf000);
         VLAN_TCI(pkt->vlan) |= val16 & OS_HTONS(0x0fff);
-        pkt->oob_data.vlan_tci = VLAN_TCI(pkt->vlan);
+        pkt->oob_data.vlan_tci = VLAN_TCI(pkt->vlan) | htons(OFPVID_PRESENT);
       }
       break;
 
@@ -806,7 +806,7 @@ execute_action_set_field(struct lagopus_packet *pkt,
       if (pkt->vlan != NULL) {
         VLAN_TCI(pkt->vlan) &= OS_HTONS(0x01fff);
         VLAN_TCI(pkt->vlan) |= OS_HTONS((uint16_t)(*oxm_value << 13));
-        pkt->oob_data.vlan_tci = VLAN_TCI(pkt->vlan);
+        pkt->oob_data.vlan_tci = VLAN_TCI(pkt->vlan) | htons(OFPVID_PRESENT);
       }
       break;
 
