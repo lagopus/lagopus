@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2017 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,8 +44,7 @@ bucket_counter_list_elem_free(struct bucket_counter_list
 }
 
 lagopus_result_t
-ofp_bucket_counter_list_encode(struct pbuf_list *pbuf_list,
-                               struct pbuf **pbuf,
+ofp_bucket_counter_list_encode(struct pbuf *pbuf,
                                struct bucket_counter_list *bucket_counter_list,
                                uint16_t *total_length) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
@@ -56,8 +55,8 @@ ofp_bucket_counter_list_encode(struct pbuf_list *pbuf_list,
     *total_length = 0;
     if (TAILQ_EMPTY(bucket_counter_list) == false) {
       TAILQ_FOREACH(bucket_counter, bucket_counter_list, entry) {
-        ret = ofp_bucket_counter_encode_list(pbuf_list, pbuf,
-                                             &bucket_counter->ofp);
+        ret = ofp_bucket_counter_encode(pbuf,
+                                        &bucket_counter->ofp);
 
         if (ret == LAGOPUS_RESULT_OK) {
           /* Sum length. And check overflow. */

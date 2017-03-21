@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2017 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -53,9 +53,9 @@ ofp_desc_reply_create(struct channel *channel,
 
         /* encode message. */
         pbuf_plen_set(pbuf, pbuf_size_get(pbuf));
-        res = ofp_multipart_reply_encode_list(*pbuf_list, &pbuf, &ofpmp_reply);
+        res = ofp_multipart_reply_encode(pbuf, &ofpmp_reply);
         if (res == LAGOPUS_RESULT_OK) {
-          res = ofp_desc_encode_list(*pbuf_list, &pbuf, ofp_desc);
+          res = ofp_desc_encode(pbuf, ofp_desc);
           if (res == LAGOPUS_RESULT_OK) {
             /* set packet length */
             res = pbuf_length_get(pbuf, &length);

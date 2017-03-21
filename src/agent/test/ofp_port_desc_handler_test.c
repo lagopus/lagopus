@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2017 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,13 +37,14 @@ port_desc_alloc(void) {
 }
 
 static int test_num = 0;
+static struct port_desc_list pdesc_list;
 
 static void
-create_data(struct port_desc_list *port_desc_list) {
+create_data(void) {
   struct port_desc *port_desc;
   int i;
 
-  TAILQ_INIT(port_desc_list);
+  TAILQ_INIT(&pdesc_list);
   for (i = 0; i < test_num; i++) {
     port_desc = port_desc_alloc();
 
@@ -67,7 +68,7 @@ create_data(struct port_desc_list *port_desc_list) {
     port_desc->ofp.curr_speed = (uint32_t) (0x09 + i);
     port_desc->ofp.max_speed  = (uint32_t) (0x0a + i);
 
-    TAILQ_INSERT_TAIL(port_desc_list, port_desc, entry);
+    TAILQ_INSERT_TAIL(&pdesc_list, port_desc, entry);
   }
 }
 
@@ -75,13 +76,32 @@ static lagopus_result_t
 s_ofp_port_desc_reply_create_wrap(struct channel *channel,
                                   struct pbuf_list **pbuf_list,
                                   struct ofp_header *xid_header) {
-  struct port_desc_list port_desc_list;
-  create_data(&port_desc_list);
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
 
-  return ofp_port_desc_reply_create(channel,
-                                    pbuf_list,
-                                    &port_desc_list,
-                                    xid_header);
+  create_data();
+
+  ret = ofp_port_desc_reply_create(channel,
+                                   pbuf_list,
+                                   &pdesc_list,
+                                   xid_header);
+  // after.
+  port_desc_list_elem_free(&pdesc_list);
+
+  return ret;
+}
+
+static lagopus_result_t
+s_ofp_port_desc_reply_create_wrap_with_self_data(
+  struct channel *channel,
+  struct pbuf_list **pbuf_list,
+  struct ofp_header *xid_header) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+
+  ret = ofp_port_desc_reply_create(channel,
+                                   pbuf_list,
+                                   &pdesc_list,
+                                   xid_header);
+  return ret;
 }
 
 /* TODO remove */
@@ -97,9 +117,9 @@ void
 test_prologue(void) {
   lagopus_result_t r;
   const char *argv0 =
-      ((IS_VALID_STRING(lagopus_get_command_name()) == true) ?
-       lagopus_get_command_name() : "callout_test");
-  const char * const argv[] = {
+    ((IS_VALID_STRING(lagopus_get_command_name()) == true) ?
+     lagopus_get_command_name() : "callout_test");
+  const char *const argv[] = {
     argv0, NULL
   };
 
@@ -200,7 +220,7 @@ test_ofp_port_desc_handle_null(void) {
 }
 
 void
-test_ofp_port_desc_reply_create1(void) {
+test_ofp_port_desc_reply_create_01(void) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   const char *data[1] = {"04 13 00 50 00 00 00 10 "
                          "00 0D 00 00 00 00 00 00 "
@@ -229,7 +249,7 @@ test_ofp_port_desc_reply_create1(void) {
 }
 
 void
-test_ofp_port_desc_reply_create2(void) {
+test_ofp_port_desc_reply_create_02(void) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   const char *data[1] = {"04 13 00 90 00 00 00 10 "
                          "00 0D 00 00 00 00 00 00 "
@@ -272,19 +292,99 @@ test_ofp_port_desc_reply_create2(void) {
 }
 
 void
+test_ofp_port_desc_reply_create_03(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  struct port_desc *port_desc = NULL;
+  const char *header_data[2] = {
+    "04 13 ff d0 00 00 00 10 00 0d 00 01 00 00 00 00 ",
+    "04 13 00 50 00 00 00 10 00 0d 00 00 00 00 00 00 "
+  };
+  const char *body_data[2] = {
+    "00 00 00 01 "             /* uint32_t port_no;     */
+    "00 00 00 00 "             /* uint8_t  pad[4];      */
+    "02 03 04 05 06 07 "       /* uint8_t  hw_addr[6];  */
+    "00 00 "                   /* uint8_t  pad2[2];     */
+    "61 62 63 64 00 00 00 00 " /* char     name[16];    */
+    "00 00 00 00 00 00 00 00 " /*                       */
+    "00 00 00 03 "             /* uint32_t config;      */
+    "00 00 00 04 "             /* uint32_t state;       */
+    "00 00 00 05 "             /* uint32_t curr;        */
+    "00 00 00 06 "             /* uint32_t advertised;  */
+    "00 00 00 07 "             /* uint32_t supported;   */
+    "00 00 00 08 "             /* uint32_t peer;        */
+    "00 00 00 09 "             /* uint32_t curr_speed;  */
+    "00 00 00 0a ",            /* uint32_t max_speed;   */
+    "00 00 00 01 "             /* uint32_t port_no;     */
+    "00 00 00 00 "             /* uint8_t  pad[4];      */
+    "02 03 04 05 06 07 "       /* uint8_t  hw_addr[6];  */
+    "00 00 "                   /* uint8_t  pad2[2];     */
+    "61 62 63 64 00 00 00 00 " /* char     name[16];    */
+    "00 00 00 00 00 00 00 00 " /*                       */
+    "00 00 00 03 "             /* uint32_t config;      */
+    "00 00 00 04 "             /* uint32_t state;       */
+    "00 00 00 05 "             /* uint32_t curr;        */
+    "00 00 00 06 "             /* uint32_t advertised;  */
+    "00 00 00 07 "             /* uint32_t supported;   */
+    "00 00 00 08 "             /* uint32_t peer;        */
+    "00 00 00 09 "             /* uint32_t curr_speed;  */
+    "00 00 00 0a ",            /* uint32_t max_speed;   */
+  };
+  size_t nums[2] = {1023, 1};
+  int i;
+
+  /* data */
+  TAILQ_INIT(&pdesc_list);
+  for (i = 0; i < 1024; i++) {
+    port_desc = port_desc_alloc();
+    if (port_desc != NULL) {
+      port_desc->ofp.port_no    = 0x01;
+      port_desc->ofp.hw_addr[0] = 0x02;
+      port_desc->ofp.hw_addr[1] = 0x03;
+      port_desc->ofp.hw_addr[2] = 0x04;
+      port_desc->ofp.hw_addr[3] = 0x05;
+      port_desc->ofp.hw_addr[4] = 0x06;
+      port_desc->ofp.hw_addr[5] = 0x07;
+      port_desc->ofp.name[0]    = 'a';
+      port_desc->ofp.name[1]    = 'b';
+      port_desc->ofp.name[2]    = 'c';
+      port_desc->ofp.name[3]    = 'd';
+      port_desc->ofp.config     = 0x03;
+      port_desc->ofp.state      = 0x04;
+      port_desc->ofp.curr       = 0x05;
+      port_desc->ofp.advertised = 0x06;
+      port_desc->ofp.supported  = 0x07;
+      port_desc->ofp.peer       = 0x08;
+      port_desc->ofp.curr_speed = 0x09;
+      port_desc->ofp.max_speed  = 0x0a;
+    } else {
+      TEST_FAIL_MESSAGE("allocation error.");
+    }
+
+    TAILQ_INSERT_TAIL(&pdesc_list, port_desc, entry);
+  }
+
+  ret = check_pbuf_list_across_packet_create(
+          s_ofp_port_desc_reply_create_wrap_with_self_data,
+          header_data, body_data, nums, 2);
+  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, ret, "check_pbuf_list error.");
+
+  /* free */
+  port_desc_list_elem_free(&pdesc_list);
+}
+
+void
 test_ofp_port_desc_reply_create_null(void) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   struct channel *channel = channel_alloc_ip4addr("127.0.0.1", "1000", 0x01);
   struct pbuf_list *pbuf_list = NULL;
-  struct port_desc_list port_desc_list;
   struct ofp_header xid_header;
 
-  ret = ofp_port_desc_reply_create(NULL, &pbuf_list, &port_desc_list,
+  ret = ofp_port_desc_reply_create(NULL, &pbuf_list, &pdesc_list,
                                    &xid_header);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS, ret,
                             "NULL-check error. (channel)");
 
-  ret = ofp_port_desc_reply_create(channel, NULL, &port_desc_list, &xid_header);
+  ret = ofp_port_desc_reply_create(channel, NULL, &pdesc_list, &xid_header);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS, ret,
                             "NULL-check error. (pbuf)");
 
@@ -292,7 +392,7 @@ test_ofp_port_desc_reply_create_null(void) {
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS, ret,
                             "NULL-check error. (port_desc_list)");
 
-  ret = ofp_port_desc_reply_create(channel, &pbuf_list, &port_desc_list, NULL);
+  ret = ofp_port_desc_reply_create(channel, &pbuf_list, &pdesc_list, NULL);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS, ret,
                             "NULL-check error. (xid_header)");
 

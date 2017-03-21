@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2017 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -50,7 +50,7 @@ ofp_padding_encode_wrap(size_t length,
   ret_pbuf->putp += ret_length;
 
   /* Call func. */
-  ret = ofp_padding_encode(NULL, &test_pbuf, (uint16_t *)&length);
+  ret = ofp_padding_encode(test_pbuf, (uint16_t *)&length);
 
   if (ret == LAGOPUS_RESULT_OK) {
     TEST_ASSERT_EQUAL_MESSAGE(0, test_pbuf->plen,
@@ -123,10 +123,10 @@ test_ofp_padding_encode_null(void) {
   uint16_t length = 0;
   struct pbuf *test_pbuf = pbuf_alloc(OFP_PACKET_MAX_SIZE);
 
-  ret = ofp_padding_encode(NULL, NULL, &length);
+  ret = ofp_padding_encode(NULL, &length);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS, ret,
                             "ofp_padding_encode error (null).");
-  ret = ofp_padding_encode(NULL, &test_pbuf, NULL);
+  ret = ofp_padding_encode(test_pbuf, NULL);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS, ret,
                             "ofp_padding_encode error (null).");
 

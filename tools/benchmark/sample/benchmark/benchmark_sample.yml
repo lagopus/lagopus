@@ -21,6 +21,8 @@ benchmarks:
     lib_files:
       - ../dump_pkts/dump_pkts.o
     external_libs: ""
+    setup_modules_func: setup_modules
+    teardown_modules_func: teardown_modules
     setup_func: setup
     teardown_func: teardown
     target_func: dump_pkts

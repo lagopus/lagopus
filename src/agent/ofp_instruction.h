@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2017 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -68,7 +68,6 @@ ofp_instruction_parse(struct pbuf *pbuf,
 /**
  * Encode instruction_list.
  *
- *     @param[out]	pbuf_list	A pointer to list of \e pbuf structures.
  *     @param[out]	pbuf	A pointer to \e pbuf structure.
  *     @param[in]	instruction_list	A pointer to list of
  *     \e instruction structures.
@@ -79,8 +78,7 @@ ofp_instruction_parse(struct pbuf *pbuf,
  *     @retval	LAGOPUS_RESULT_ANY_FAILURES Failed.
  */
 lagopus_result_t
-ofp_instruction_list_encode(struct pbuf_list *pbuf_list,
-                            struct pbuf **pbuf,
+ofp_instruction_list_encode(struct pbuf *pbuf,
                             struct instruction_list *instruction_list,
                             uint16_t *total_length);
 
@@ -105,7 +103,6 @@ ofp_instruction_header_parse(struct pbuf *pbuf,
 /**
  * Encode instruction_list (header) for ofp_table_feature.
  *
- *     @param[out]	pbuf_list	A pointer to list of \e pbuf structures.
  *     @param[out]	pbuf	A pointer to \e pbuf structure.
  *     @param[in]	instruction_list	A pointer to list of
  *     \e instruction structures.
@@ -116,8 +113,7 @@ ofp_instruction_header_parse(struct pbuf *pbuf,
  *     @retval	LAGOPUS_RESULT_ANY_FAILURES Failed.
  */
 lagopus_result_t
-ofp_instruction_header_list_encode(struct pbuf_list *pbuf_list,
-                                   struct pbuf **pbuf,
+ofp_instruction_header_list_encode(struct pbuf *pbuf,
                                    struct instruction_list *instruction_list,
                                    uint16_t *total_length);
 

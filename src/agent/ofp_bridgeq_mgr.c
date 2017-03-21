@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2017 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -652,7 +652,7 @@ ofp_bridgeq_mgr_dataq_max_batches_set(uint64_t dpid,
     if (ret == LAGOPUS_RESULT_OK) {
       bridgeq_lock(bridgeq);
       if ((ret = ofp_bridge_dataq_max_batches_set(
-              bridgeq->ofp_bridge, val)) !=
+                   bridgeq->ofp_bridge, val)) !=
           LAGOPUS_RESULT_OK) {
         lagopus_perror(ret);
       }
@@ -680,7 +680,7 @@ ofp_bridgeq_mgr_eventq_max_batches_set(uint64_t dpid,
     if (ret == LAGOPUS_RESULT_OK) {
       bridgeq_lock(bridgeq);
       if ((ret = ofp_bridge_eventq_max_batches_set(
-              bridgeq->ofp_bridge, val)) !=
+                   bridgeq->ofp_bridge, val)) !=
           LAGOPUS_RESULT_OK) {
         lagopus_perror(ret);
       }
@@ -697,7 +697,7 @@ ofp_bridgeq_mgr_eventq_max_batches_set(uint64_t dpid,
 
 lagopus_result_t
 ofp_bridgeq_mgr_event_dataq_max_batches_set(uint64_t dpid,
-                                            uint16_t val) {
+    uint16_t val) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   struct ofp_bridgeq *bridgeq = NULL;
 
@@ -708,7 +708,7 @@ ofp_bridgeq_mgr_event_dataq_max_batches_set(uint64_t dpid,
     if (ret == LAGOPUS_RESULT_OK) {
       bridgeq_lock(bridgeq);
       if ((ret = ofp_bridge_event_dataq_max_batches_set(
-              bridgeq->ofp_bridge, val)) !=
+                   bridgeq->ofp_bridge, val)) !=
           LAGOPUS_RESULT_OK) {
         lagopus_perror(ret);
       }
@@ -740,17 +740,17 @@ ofp_bridgeq_mgr_stats_get(uint64_t dpid,
       bridgeq_lock(bridgeq);
 
       if ((ret = ofp_bridge_dataq_stats_get(
-              bridgeq->ofp_bridge, &dataq_stats)) != LAGOPUS_RESULT_OK) {
+                   bridgeq->ofp_bridge, &dataq_stats)) != LAGOPUS_RESULT_OK) {
         lagopus_perror(ret);
         goto done;
       }
       if ((ret = ofp_bridge_eventq_stats_get(
-              bridgeq->ofp_bridge, &eventq_stats)) != LAGOPUS_RESULT_OK) {
+                   bridgeq->ofp_bridge, &eventq_stats)) != LAGOPUS_RESULT_OK) {
         lagopus_perror(ret);
         goto done;
       }
       if ((ret = ofp_bridge_event_dataq_stats_get(
-              bridgeq->ofp_bridge, &event_dataq_stats)) != LAGOPUS_RESULT_OK) {
+                   bridgeq->ofp_bridge, &event_dataq_stats)) != LAGOPUS_RESULT_OK) {
         lagopus_perror(ret);
         goto done;
       }
@@ -759,7 +759,7 @@ ofp_bridgeq_mgr_stats_get(uint64_t dpid,
       stats->up_streamq_entries = eventq_stats;
       stats->down_streamq_entries = event_dataq_stats;
 
-   done:
+    done:
       bridgeq_unlock(bridgeq);
     }
     bridgeq_mgr_unlock();
@@ -859,7 +859,7 @@ ofp_bridgeq_mgr_name_get(uint64_t dpid,
         goto done;
       }
 
-   done:
+    done:
       bridgeq_unlock(bridgeq);
     } else {
       *name = NULL;
@@ -892,7 +892,7 @@ ofp_bridgeq_mgr_info_get(uint64_t dpid,
         goto done;
       }
 
-   done:
+    done:
       bridgeq_unlock(bridgeq);
     }
     bridgeq_mgr_unlock();

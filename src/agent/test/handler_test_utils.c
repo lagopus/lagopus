@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2017 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -159,7 +159,8 @@ static volatile bool s_is_init = false;
 datastore_interface_info_t s_interface_info;
 datastore_bridge_info_t s_bridge_info;
 datastore_bridge_queue_info_t s_queue_info = {1000LL, 1000LL, 1000LL,
-                                              1000LL, 1000LL, 1000LL};
+                                              1000LL, 1000LL, 1000LL
+                                             };
 
 struct channel *
 create_data_channel(void) {
@@ -213,10 +214,10 @@ create_data_channel(void) {
                       dp_bridge_port_set(bridge_name, port_name, 0));
     TEST_ASSERT_EQUAL(LAGOPUS_RESULT_OK,
                       ofp_bridgeq_mgr_bridge_register(
-                          dpid,
-                          bridge_name,
-                          &s_bridge_info,
-                          &s_queue_info));
+                        dpid,
+                        bridge_name,
+                        &s_bridge_info,
+                        &s_queue_info));
     channel_mgr_initialize();
   }
 
@@ -686,6 +687,8 @@ check_pbuf_list_across_packet_create(ofp_reply_list_create_proc_t create_proc,
       }
     }
     pbuf_list_add(test_pbuf_list, test_pbuf);
+    pbuf_free(body_pbuf);
+    body_pbuf = NULL;
   }
 
   xid_header.xid = s_xid;

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2017 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -60,7 +60,7 @@ ofp_flow_removed_create(struct flow_removed *flow_removed,
       ret = ofp_flow_removed_encode(*pbuf, &flow_removed->ofp_flow_removed);
 
       if (ret == LAGOPUS_RESULT_OK) {
-        ret = ofp_match_list_encode(NULL, pbuf, &flow_removed->match_list,
+        ret = ofp_match_list_encode(*pbuf, &flow_removed->match_list,
                                     &match_total_len);
 
         if (ret == LAGOPUS_RESULT_OK) {

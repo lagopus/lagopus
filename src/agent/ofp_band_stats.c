@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2017 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,8 +44,7 @@ meter_band_stats_list_elem_free(struct meter_band_stats_list
 }
 
 lagopus_result_t
-ofp_meter_band_stats_list_encode(struct pbuf_list *pbuf_list,
-                                 struct pbuf **pbuf,
+ofp_meter_band_stats_list_encode(struct pbuf *pbuf,
                                  struct meter_band_stats_list *band_stats_list,
                                  uint16_t *total_length) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
@@ -56,8 +55,8 @@ ofp_meter_band_stats_list_encode(struct pbuf_list *pbuf_list,
     *total_length = 0;
     if (TAILQ_EMPTY(band_stats_list) == false) {
       TAILQ_FOREACH(meter_band_stats, band_stats_list, entry) {
-        ret = ofp_meter_band_stats_encode_list(pbuf_list, pbuf,
-                                               &meter_band_stats->ofp);
+        ret = ofp_meter_band_stats_encode(pbuf,
+                                          &meter_band_stats->ofp);
         if (ret == LAGOPUS_RESULT_OK) {
           /* Sum length. And check overflow. */
           ret = ofp_tlv_length_sum(total_length,

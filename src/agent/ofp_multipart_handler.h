@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2017 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -47,10 +47,28 @@ ofp_multipart_request_handle(struct channel *channel, struct pbuf *pbuf,
  *     @param[in,out]	multipart_head	A pointer to head of multipart in pbuf.
  *     @param[in]	length	Size of multipart packet.
  *
- *     @retval	void
+ *     @retval	LAGOPUS_RESULT_OK	Succeeded.
+ *     @retval	LAGOPUS_RESULT_OFP_ERROR Failed, ofp_error.
+ *     @retval	LAGOPUS_RESULT_ANY_FAILURES Failed.
  */
 lagopus_result_t
 ofp_multipart_length_set(uint8_t *multipart_head,
                          uint16_t length);
+
+/**
+ * Append to pbuf_list for multipart.
+ *
+ *     @param[in]	pbuf_list	List of pbuf.
+ *     @param[in]	src_pbuf	src pbuf.
+ *     @param[out]	pbuf	last pbuf.
+ *
+ *     @retval	LAGOPUS_RESULT_OK	Succeeded.
+ *     @retval	LAGOPUS_RESULT_OFP_ERROR Failed, ofp_error.
+ *     @retval	LAGOPUS_RESULT_ANY_FAILURES Failed.
+ */
+lagopus_result_t
+ofp_multipart_append(struct pbuf_list *pbuf_list,
+                     struct pbuf *src_pbuf,
+                     struct pbuf **pbuf);
 
 #endif /* __OFP_MURTIPART_HANDLER_H__ */

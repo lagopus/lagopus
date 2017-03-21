@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2017 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -97,7 +97,7 @@ s_register_bridge(uint64_t dpid, lagopus_result_t required) {
   const char *bridge_name = "test_bridge01";
   datastore_bridge_info_t info = {0};
   datastore_bridge_queue_info_t q_info =
-      {1000LL, 1000LL, 1000LL, 1000LL, 1000LL, 1000LL};
+  {1000LL, 1000LL, 1000LL, 1000LL, 1000LL, 1000LL};
   lagopus_result_t res = LAGOPUS_RESULT_ANY_FAILURES;
 
   res = ofp_bridgeq_mgr_bridge_register(dpid,
@@ -131,9 +131,9 @@ void
 test_prologue(void) {
   lagopus_result_t r;
   const char *argv0 =
-      ((IS_VALID_STRING(lagopus_get_command_name()) == true) ?
-       lagopus_get_command_name() : "callout_test");
-  const char * const argv[] = {
+    ((IS_VALID_STRING(lagopus_get_command_name()) == true) ?
+     lagopus_get_command_name() : "callout_test");
+  const char *const argv[] = {
     argv0, NULL
   };
 
