@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2017 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,22 @@
 #include <rte_config.h>
 #include <rte_mbuf.h>
 #include "dump_pkts.h"
+
+lagopus_result_t
+setup_modules(int argc,
+              const char *const argv[]) {
+  printf("call setup_modules.\n");
+  for (int i = 0; i < argc; i++) {
+    printf("argv[%d] = %s\n", i, argv[i]);
+  }
+  return LAGOPUS_RESULT_OK;
+}
+
+lagopus_result_t
+teardown_modules(void) {
+  printf("call teardown_modules.\n");
+  return LAGOPUS_RESULT_OK;
+}
 
 lagopus_result_t
 setup(void *pkts, size_t size) {

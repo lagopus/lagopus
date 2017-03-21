@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2017 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -114,9 +114,9 @@ void
 test_prologue(void) {
   lagopus_result_t r;
   const char *argv0 =
-      ((IS_VALID_STRING(lagopus_get_command_name()) == true) ?
-       lagopus_get_command_name() : "callout_test");
-  const char * const argv[] = {
+    ((IS_VALID_STRING(lagopus_get_command_name()) == true) ?
+     lagopus_get_command_name() : "callout_test");
+  const char *const argv[] = {
     argv0, NULL
   };
 
@@ -244,8 +244,8 @@ test_ofp_packet_in_create_long_data_no_buffer_id(void) {
 void
 test_ofp_packet_in_create_null(void) {
   lagopus_result_t ret;
-  struct packet_in packet_in;
-  struct pbuf *pbuf;
+  struct packet_in packet_in = {0};
+  struct pbuf *pbuf = NULL;
 
   ret = ofp_packet_in_create(&packet_in, NULL);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS, ret,

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2017 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1275,6 +1275,9 @@ execute_action_set(struct lagopus_packet *pkt, struct action_list *actions) {
       break;
     }
   }
+  clear_action_set(pkt);
+  pkt->flags &= (uint32_t)~PKT_FLAG_HAS_ACTION;
+
   return rv;
 }
 
@@ -1704,6 +1707,10 @@ dp_interface_tx_packet(struct lagopus_packet *pkt,
   uint32_t in_port;
 
   in_port = pkt->in_port->ofp_port.port_no;
+  if (out_port == in_port) {
+    lagopus_packet_free(pkt);
+    return;
+  }
 
   switch (out_port) {
     case OFPP_TABLE:

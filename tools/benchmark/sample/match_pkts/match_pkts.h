@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2017 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,13 @@
 
 #ifndef __BENCHMARK_MATCH_PKTS_H__
 #define __BENCHMARK_MATCH_PKTS_H__
+
+lagopus_result_t
+setup_modules(int argc,
+              const char *const argv[]);
+
+lagopus_result_t
+teardown_modules(void);
 
 lagopus_result_t
 setup(void *pkts, size_t size);

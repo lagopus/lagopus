@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2017 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -726,42 +726,7 @@ ofp_set_field_encode(struct pbuf *pbuf, uint8_t *val, uint16_t length) {
 }
 
 static lagopus_result_t
-ofp_set_field_encode_list(struct pbuf_list *pbuf_list, struct pbuf **pbuf,
-                          uint8_t *val, uint16_t length) {
-  struct pbuf *before_pbuf;
-  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
-
-  if (pbuf_list == NULL) {
-    return ofp_set_field_encode(*pbuf, val, length);
-  }
-
-  *pbuf = pbuf_list_last_get(pbuf_list);
-  if (*pbuf == NULL) {
-    return LAGOPUS_RESULT_NO_MEMORY;
-  }
-
-  ret = ofp_set_field_encode(*pbuf, val, length);
-  if (ret == LAGOPUS_RESULT_OUT_OF_RANGE) {
-    before_pbuf = *pbuf;
-    *pbuf = pbuf_alloc(OFP_PACKET_MAX_SIZE);
-    if (*pbuf == NULL) {
-      return LAGOPUS_RESULT_NO_MEMORY;
-    }
-    pbuf_plen_set(*pbuf, OFP_PACKET_MAX_SIZE);
-    ret = ofp_header_mp_copy(*pbuf, before_pbuf);
-    if (ret != LAGOPUS_RESULT_OK) {
-      return ret;
-    }
-    pbuf_list_add(pbuf_list, *pbuf);
-    ret = ofp_set_field_encode(*pbuf, val, length);
-  }
-
-  return ret;
-}
-
-static lagopus_result_t
-ofp_action_list_set_field_encode(struct pbuf_list *pbuf_list,
-                                 struct pbuf **pbuf,
+ofp_action_list_set_field_encode(struct pbuf *pbuf,
                                  struct ofp_action_set_field *act_set_field) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   uint8_t *set_field_head;
@@ -775,17 +740,17 @@ ofp_action_list_set_field_encode(struct pbuf_list *pbuf_list,
   /* oxm value. */
   oxm_value = &act_set_field->field[OXM_VALUE_INDEX];
 
-  ret = ofp_action_set_field_encode_list(pbuf_list, pbuf, act_set_field);
+  ret = ofp_action_set_field_encode(pbuf, act_set_field);
   if (ret == LAGOPUS_RESULT_OK) {
     /* set_field head pointer. */
-    set_field_head = pbuf_putp_get(*pbuf) - sizeof(struct ofp_action_set_field);
+    set_field_head = pbuf_putp_get(pbuf) - sizeof(struct ofp_action_set_field);
 
     /* Encode remaining OXM payload. */
-    ret = ofp_set_field_encode_list(pbuf_list, pbuf, oxm_value,
-                                    (uint16_t) (act_set_field->len -
-                                        sizeof(struct ofp_action_set_field)));
+    ret = ofp_set_field_encode(pbuf, oxm_value,
+                               (uint16_t) (act_set_field->len -
+                                           sizeof(struct ofp_action_set_field)));
     if (ret == LAGOPUS_RESULT_OK) {
-      ret = ofp_padding_encode(pbuf_list, pbuf, &act_set_field->len);
+      ret = ofp_padding_encode(pbuf, &act_set_field->len);
 
       if (ret == LAGOPUS_RESULT_OK) {
         /* overwrite action length for padding. */
@@ -811,8 +776,7 @@ ofp_action_list_set_field_encode(struct pbuf_list *pbuf_list,
 }
 
 static lagopus_result_t
-ofp_action_list_action_ed_prop_encode(struct pbuf_list *pbuf_list,
-                                      struct pbuf **pbuf,
+ofp_action_list_action_ed_prop_encode(struct pbuf *pbuf,
                                       struct ed_prop *ed_prop,
                                       uint16_t *total_length) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
@@ -821,11 +785,11 @@ ofp_action_list_action_ed_prop_encode(struct pbuf_list *pbuf_list,
 
   switch (ed_prop->ofp_ed_prop.type) {
     case OFPPPT_PROP_PORT_NAME:
-      ret = ofp_ed_prop_portname_encode_list(pbuf_list, pbuf,
-                                             &ed_prop->ofp_ed_prop_portname);
+      ret = ofp_ed_prop_portname_encode(pbuf,
+                                        &ed_prop->ofp_ed_prop_portname);
       if (ret == LAGOPUS_RESULT_OK) {
         /* head pointer. */
-        prop_head = pbuf_putp_get(*pbuf) - sizeof(struct ofp_ed_prop_portname);
+        prop_head = pbuf_putp_get(pbuf) - sizeof(struct ofp_ed_prop_portname);
         length = sizeof(struct ofp_ed_prop_portname);
       }
       break;
@@ -855,8 +819,7 @@ ofp_action_list_action_ed_prop_encode(struct pbuf_list *pbuf_list,
 }
 
 static lagopus_result_t
-ofp_action_list_action_encap_encode(struct pbuf_list *pbuf_list,
-                                    struct pbuf **pbuf,
+ofp_action_list_action_encap_encode(struct pbuf *pbuf,
                                     struct action *action) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   struct ed_prop *ed_prop = NULL;
@@ -866,17 +829,16 @@ ofp_action_list_action_encap_encode(struct pbuf_list *pbuf_list,
 
   act_encap = (struct ofp_action_encap *)&(action->ofpat);
 
-  ret = ofp_action_encap_encode_list(pbuf_list, pbuf, act_encap);
+  ret = ofp_action_encap_encode(pbuf, act_encap);
   if (ret == LAGOPUS_RESULT_OK) {
     /* head pointer. */
-    encap_head = pbuf_putp_get(*pbuf) - sizeof(struct ofp_action_encap);
+    encap_head = pbuf_putp_get(pbuf) - sizeof(struct ofp_action_encap);
 
     if (TAILQ_EMPTY(&action->ed_prop_list) == false) {
       TAILQ_FOREACH(ed_prop, &action->ed_prop_list, entry) {
-        ret = ofp_action_list_action_ed_prop_encode(pbuf_list,
-                                                    pbuf,
-                                                    ed_prop,
-                                                    &ed_prop_length);
+        ret = ofp_action_list_action_ed_prop_encode(pbuf,
+              ed_prop,
+              &ed_prop_length);
         if (ret != LAGOPUS_RESULT_OK) {
           lagopus_msg_warning("FAILED (%s).\n", lagopus_error_get_string(ret));
           break;
@@ -912,8 +874,7 @@ ofp_action_list_action_encap_encode(struct pbuf_list *pbuf_list,
 }
 
 static lagopus_result_t
-ofp_action_list_action_decap_encode(struct pbuf_list *pbuf_list,
-                                    struct pbuf **pbuf,
+ofp_action_list_action_decap_encode(struct pbuf *pbuf,
                                     struct action *action) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   struct ed_prop *ed_prop = NULL;
@@ -923,17 +884,16 @@ ofp_action_list_action_decap_encode(struct pbuf_list *pbuf_list,
 
   act_decap = (struct ofp_action_decap *)&(action->ofpat);
 
-  ret = ofp_action_decap_encode_list(pbuf_list, pbuf, act_decap);
+  ret = ofp_action_decap_encode(pbuf, act_decap);
   if (ret == LAGOPUS_RESULT_OK) {
     /* head pointer. */
-    decap_head = pbuf_putp_get(*pbuf) - sizeof(struct ofp_action_decap);
+    decap_head = pbuf_putp_get(pbuf) - sizeof(struct ofp_action_decap);
 
     if (TAILQ_EMPTY(&action->ed_prop_list) == false) {
       TAILQ_FOREACH(ed_prop, &action->ed_prop_list, entry) {
-        ret = ofp_action_list_action_ed_prop_encode(pbuf_list,
-                                                    pbuf,
-                                                    ed_prop,
-                                                    &ed_prop_length);
+        ret = ofp_action_list_action_ed_prop_encode(pbuf,
+              ed_prop,
+              &ed_prop_length);
         if (ret != LAGOPUS_RESULT_OK) {
           lagopus_msg_warning("FAILED (%s).\n", lagopus_error_get_string(ret));
           break;
@@ -969,8 +929,7 @@ ofp_action_list_action_decap_encode(struct pbuf_list *pbuf_list,
 }
 
 lagopus_result_t
-ofp_action_list_encode(struct pbuf_list *pbuf_list,
-                       struct pbuf **pbuf,
+ofp_action_list_encode(struct pbuf *pbuf,
                        struct action_list *action_list,
                        uint16_t *total_length) {
   lagopus_result_t res = LAGOPUS_RESULT_ANY_FAILURES;
@@ -985,8 +944,8 @@ ofp_action_list_encode(struct pbuf_list *pbuf_list,
         switch (action->ofpat.type) {
           case OFPAT_OUTPUT:
             action->ofpat.len = (uint16_t) (sizeof(struct ofp_action_output));
-            res = ofp_action_output_encode_list(
-                    pbuf_list, pbuf, (struct ofp_action_output *)&(action->ofpat));
+            res = ofp_action_output_encode(
+                    pbuf, (struct ofp_action_output *)&(action->ofpat));
             break;
           case OFPAT_COPY_TTL_OUT:
           case OFPAT_COPY_TTL_IN:
@@ -995,54 +954,54 @@ ofp_action_list_encode(struct pbuf_list *pbuf_list,
           case OFPAT_DEC_NW_TTL:
           case OFPAT_POP_PBB:
             action->ofpat.len = (uint16_t) (sizeof(struct ofp_action_header));
-            res = ofp_action_header_encode_list(
-                    pbuf_list, pbuf, (struct ofp_action_header *)&(action->ofpat));
+            res = ofp_action_header_encode(
+                    pbuf, (struct ofp_action_header *)&(action->ofpat));
             break;
           case OFPAT_SET_MPLS_TTL:
             action->ofpat.len = (uint16_t) (sizeof(struct ofp_action_mpls_ttl));
-            res = ofp_action_mpls_ttl_encode_list(
-                    pbuf_list, pbuf, (struct ofp_action_mpls_ttl *)&(action->ofpat));
+            res = ofp_action_mpls_ttl_encode(
+                    pbuf, (struct ofp_action_mpls_ttl *)&(action->ofpat));
             break;
           case OFPAT_PUSH_VLAN:
           case OFPAT_PUSH_MPLS:
           case OFPAT_PUSH_PBB:
             action->ofpat.len = (uint16_t) (sizeof(struct ofp_action_push));
-            res = ofp_action_push_encode_list(
-                    pbuf_list, pbuf, (struct ofp_action_push *)&(action->ofpat));
+            res = ofp_action_push_encode(
+                    pbuf, (struct ofp_action_push *)&(action->ofpat));
             break;
           case OFPAT_POP_MPLS:
             action->ofpat.len = (uint16_t) (sizeof(struct ofp_action_pop_mpls));
-            res = ofp_action_pop_mpls_encode_list(
-                    pbuf_list, pbuf, (struct ofp_action_pop_mpls *)&(action->ofpat));
+            res = ofp_action_pop_mpls_encode(
+                    pbuf, (struct ofp_action_pop_mpls *)&(action->ofpat));
             break;
           case OFPAT_SET_QUEUE:
             action->ofpat.len = (uint16_t) (sizeof(struct ofp_action_set_queue));
-            res = ofp_action_set_queue_encode_list(
-                    pbuf_list, pbuf, (struct ofp_action_set_queue *)&(action->ofpat));
+            res = ofp_action_set_queue_encode(
+                    pbuf, (struct ofp_action_set_queue *)&(action->ofpat));
             break;
           case OFPAT_GROUP:
             action->ofpat.len = (uint16_t) (sizeof(struct ofp_action_group));
-            res = ofp_action_group_encode_list(
-                    pbuf_list, pbuf, (struct ofp_action_group *)&(action->ofpat));
+            res = ofp_action_group_encode(
+                    pbuf, (struct ofp_action_group *)&(action->ofpat));
             break;
           case OFPAT_SET_NW_TTL:
             action->ofpat.len = (uint16_t) (sizeof(struct ofp_action_nw_ttl));
-            res = ofp_action_nw_ttl_encode_list(
-                    pbuf_list, pbuf, (struct ofp_action_nw_ttl *)&(action->ofpat));
+            res = ofp_action_nw_ttl_encode(
+                    pbuf, (struct ofp_action_nw_ttl *)&(action->ofpat));
             break;
           case OFPAT_SET_FIELD:
             res = ofp_action_list_set_field_encode(
-                    pbuf_list, pbuf, (struct ofp_action_set_field *)&(action->ofpat));
+                    pbuf, (struct ofp_action_set_field *)&(action->ofpat));
             break;
           case OFPAT_ENCAP:
             action->ofpat.len = 0;
             res = ofp_action_list_action_encap_encode(
-                pbuf_list, pbuf, action);
+                    pbuf, action);
             break;
           case OFPAT_DECAP:
             action->ofpat.len = 0;
             res = ofp_action_list_action_decap_encode(
-                pbuf_list, pbuf, action);
+                    pbuf, action);
             break;
           case OFPAT_EXPERIMENTER:
             break;
@@ -1187,8 +1146,7 @@ ofp_action_header_parse(struct pbuf *pbuf, size_t action_length,
 
 /* encode action header for ofp_table_feature. */
 lagopus_result_t
-ofp_action_header_list_encode(struct pbuf_list *pbuf_list,
-                              struct pbuf **pbuf,
+ofp_action_header_list_encode(struct pbuf *pbuf,
                               struct action_list *action_list,
                               uint16_t *total_length) {
   lagopus_result_t res = LAGOPUS_RESULT_ANY_FAILURES;
@@ -1220,8 +1178,8 @@ ofp_action_header_list_encode(struct pbuf_list *pbuf_list,
           case OFPAT_ENCAP:
           case OFPAT_DECAP:
             action->ofpat.len = (uint16_t) (sizeof(struct ofp_action_header));
-            res = ofp_action_header_encode_list(
-                    pbuf_list, pbuf, (struct ofp_action_header *)&(action->ofpat));
+            res = ofp_action_header_encode(
+                    pbuf, (struct ofp_action_header *)&(action->ofpat));
             break;
           case OFPAT_EXPERIMENTER:
             break;

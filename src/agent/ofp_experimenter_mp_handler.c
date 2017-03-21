@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2017 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -64,9 +64,9 @@ ofp_experimenter_mp_reply_create(
           exper_reply.exp_type = exper_req->exp_type;
 
           /* Encode message. */
-          ret = ofp_experimenter_multipart_header_encode_list(*pbuf_list,
-                &pbuf,
-                &exper_reply);
+          ret = ofp_experimenter_multipart_header_encode(
+                  pbuf,
+                  &exper_reply);
 
           if (ret == LAGOPUS_RESULT_OK) {
             /* set length for last pbuf. */

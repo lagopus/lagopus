@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2017 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -87,21 +87,19 @@ s_prop_next_tables_parse(struct pbuf *pbuf,
 }
 
 static lagopus_result_t
-s_prop_next_tables_list_encode(struct pbuf_list *pbuf_list,
-                               struct pbuf **pbuf,
+s_prop_next_tables_list_encode(struct pbuf *pbuf,
                                const struct next_table_id_list *next_table_id_list,
                                uint16_t *total_length) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   const struct next_table_id *next_table_id = NULL;
 
-  if (pbuf_list != NULL && pbuf != NULL &&
-      next_table_id_list != NULL) {
+  if (pbuf != NULL && next_table_id_list != NULL) {
     *total_length = 0;
     if (TAILQ_EMPTY(next_table_id_list) == false) {
       /* Encode packet. */
       TAILQ_FOREACH(next_table_id, next_table_id_list, entry) {
-        ret = ofp_next_table_id_encode_list(pbuf_list, pbuf,
-                                            &next_table_id->ofp);
+        ret = ofp_next_table_id_encode(pbuf,
+                                       &next_table_id->ofp);
 
         if (ret == LAGOPUS_RESULT_OK) {
           /* Sum length. And check overflow. */
@@ -186,20 +184,18 @@ s_table_feature_prop_oxm_parse(struct pbuf *pbuf,
 }
 
 static lagopus_result_t
-s_prop_oxm_id_list_encode(struct pbuf_list *pbuf_list,
-                          struct pbuf **pbuf,
+s_prop_oxm_id_list_encode(struct pbuf *pbuf,
                           const struct oxm_id_list *oxm_id_list,
                           uint16_t *total_length) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   const struct oxm_id *oxm_id = NULL;
 
-  if (pbuf_list != NULL && pbuf != NULL &&
-      oxm_id_list != NULL) {
+  if (pbuf != NULL && oxm_id_list != NULL) {
     *total_length = 0;
     if (TAILQ_EMPTY(oxm_id_list) == false) {
       /* Encode packet. */
       TAILQ_FOREACH(oxm_id, oxm_id_list, entry) {
-        ret = ofp_oxm_id_encode_list(pbuf_list, pbuf, &oxm_id->ofp);
+        ret = ofp_oxm_id_encode(pbuf, &oxm_id->ofp);
 
         if (ret == LAGOPUS_RESULT_OK) {
           /* Sum length. And check overflow. */
@@ -287,21 +283,20 @@ s_table_feature_prop_experimenter_parse(struct pbuf *pbuf, uint64_t byte,
 }
 
 static lagopus_result_t
-s_prop_experimenter_data_list_encode(struct pbuf_list *pbuf_list,
-                                     struct pbuf **pbuf,
+s_prop_experimenter_data_list_encode(struct pbuf *pbuf,
                                      const struct experimenter_data_list *experimenter_data_list,
                                      uint16_t *total_length) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   const struct experimenter_data *experimenter_data = NULL;
 
-  if (pbuf_list != NULL && pbuf != NULL &&
+  if (pbuf != NULL &&
       experimenter_data_list != NULL) {
     *total_length = 0;
     if (TAILQ_EMPTY(experimenter_data_list) == false) {
       /* Encode packet. */
       TAILQ_FOREACH(experimenter_data, experimenter_data_list, entry) {
-        ret = ofp_experimenter_data_encode_list(pbuf_list, pbuf,
-                                                &experimenter_data->ofp);
+        ret = ofp_experimenter_data_encode(pbuf,
+                                           &experimenter_data->ofp);
 
         if (ret == LAGOPUS_RESULT_OK) {
           /* Sum length. And check overflow. */
@@ -594,8 +589,7 @@ s_parse_table_property_list(struct pbuf *pbuf,
 }
 
 static lagopus_result_t
-s_table_property_list_encode(struct pbuf_list *pbuf_list,
-                             struct pbuf **pbuf,
+s_table_property_list_encode(struct pbuf *pbuf,
                              struct table_property_list *table_property_list,
                              uint16_t *total_length) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
@@ -610,27 +604,25 @@ s_table_property_list_encode(struct pbuf_list *pbuf_list,
     if (TAILQ_EMPTY(table_property_list) == false) {
       TAILQ_FOREACH(table_property, table_property_list, entry) {
         property_len = 0;
-        ret = ofp_table_feature_prop_header_encode_list(pbuf_list,
-              pbuf,
-              &table_property->ofp);
+        ret = ofp_table_feature_prop_header_encode(
+                pbuf,
+                &table_property->ofp);
         if (ret == LAGOPUS_RESULT_OK) {
-          property_head = pbuf_putp_get(*pbuf) -
-              sizeof(struct ofp_table_feature_prop_header);
+          property_head = pbuf_putp_get(pbuf) -
+                          sizeof(struct ofp_table_feature_prop_header);
 
           switch (table_property->ofp.type) {
             case OFPTFPT_INSTRUCTIONS        :
             case OFPTFPT_INSTRUCTIONS_MISS   :
               ret =
-                ofp_instruction_header_list_encode(pbuf_list,
-                                                   pbuf,
+                ofp_instruction_header_list_encode(pbuf,
                                                    &table_property->instruction_list,
                                                    &property_len);
               break;
             case OFPTFPT_NEXT_TABLES         :
             case OFPTFPT_NEXT_TABLES_MISS    :
               ret =
-                s_prop_next_tables_list_encode(pbuf_list,
-                                               pbuf,
+                s_prop_next_tables_list_encode(pbuf,
                                                &table_property->next_table_id_list,
                                                &property_len);
               break;
@@ -639,8 +631,7 @@ s_table_property_list_encode(struct pbuf_list *pbuf_list,
             case OFPTFPT_APPLY_ACTIONS       :
             case OFPTFPT_APPLY_ACTIONS_MISS  :
               ret =
-                ofp_action_header_list_encode(pbuf_list,
-                                              pbuf,
+                ofp_action_header_list_encode(pbuf,
                                               &table_property->action_list,
                                               &property_len);
               break;
@@ -651,8 +642,7 @@ s_table_property_list_encode(struct pbuf_list *pbuf_list,
             case OFPTFPT_WRITE_SETFIELD      :
             case OFPTFPT_APPLY_SETFIELD_MISS :
               ret =
-                s_prop_oxm_id_list_encode(pbuf_list,
-                                          pbuf,
+                s_prop_oxm_id_list_encode(pbuf,
                                           &table_property->oxm_id_list,
                                           &property_len);
               break;
@@ -673,7 +663,7 @@ s_table_property_list_encode(struct pbuf_list *pbuf_list,
             ret = ofp_tlv_length_set(property_head, property_len);
 
             if (ret == LAGOPUS_RESULT_OK) {
-              ret = ofp_padding_encode(pbuf_list, pbuf,
+              ret = ofp_padding_encode(pbuf,
                                        &property_len);
               if (ret == LAGOPUS_RESULT_OK) {
                 /* Sum length. And check overflow. */
@@ -714,19 +704,81 @@ s_table_property_list_encode(struct pbuf_list *pbuf_list,
   return ret;
 }
 
+static lagopus_result_t
+table_features_reply_create(struct pbuf_list *pbuf_list,
+                            struct pbuf **pbuf,
+                            struct table_features_list *table_features_list) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  uint8_t *table_features_head = NULL; // length address
+  uint16_t property_total_length = 0;
+  struct table_features *table_features = NULL;
+  struct pbuf *entry_pbuf = NULL;
+
+  if (TAILQ_EMPTY(table_features_list) == false) {
+    TAILQ_FOREACH(table_features, table_features_list, entry) {
+      entry_pbuf = pbuf_alloc(OFP_PACKET_MAX_SIZE);
+      if (entry_pbuf == NULL) {
+        ret = LAGOPUS_RESULT_NO_MEMORY;
+        goto done;
+      }
+      entry_pbuf->plen = OFP_PACKET_MAX_SIZE;
+
+      ret = ofp_table_features_encode(entry_pbuf,
+                                      &table_features->ofp);
+      if (ret == LAGOPUS_RESULT_OK) {
+        table_features_head = pbuf_putp_get(entry_pbuf) -
+                              sizeof(struct ofp_table_features);
+        ret = s_table_property_list_encode(entry_pbuf,
+                                           &table_features->table_property_list,
+                                           &property_total_length);
+        if (ret == LAGOPUS_RESULT_OK) {
+          ret = ofp_multipart_length_set(table_features_head,
+                                         (uint16_t) (property_total_length +
+                                             sizeof(struct ofp_table_features)));
+          if (ret == LAGOPUS_RESULT_OK) {
+            ret = ofp_multipart_append(pbuf_list, entry_pbuf, pbuf);
+            if (ret != LAGOPUS_RESULT_OK) {
+              lagopus_msg_warning("FAILED (%s).\n",
+                                  lagopus_error_get_string(ret));
+            }
+          } else {
+            lagopus_msg_warning("FAILED ofp_multipart_length_set (%s).\n",
+                                lagopus_error_get_string(ret));
+          }
+        } else {
+          lagopus_msg_warning("FAILED (%s).\n",
+                              lagopus_error_get_string(ret));
+        }
+      } else {
+        lagopus_msg_warning("Can't allocate pbuf.\n");
+        ret = LAGOPUS_RESULT_NO_MEMORY;
+      }
+
+      pbuf_free(entry_pbuf);
+      entry_pbuf = NULL;
+      if (ret != LAGOPUS_RESULT_OK) {
+        break;
+      }
+    }
+  } else {
+    /* table_features_list is empty. */
+    ret = LAGOPUS_RESULT_OK;
+  }
+
+done:
+  return ret;
+}
+
 STATIC lagopus_result_t
 ofp_table_features_reply_create(struct channel *channel,
                                 struct pbuf_list **pbuf_list,
                                 struct table_features_list *table_features_list,
                                 struct ofp_header *xid_header) {
-  uint8_t *table_features_head = NULL; // length address
   uint16_t tmp_length = 0;
   uint16_t length = 0;
-  uint16_t property_total_length = 0;
   lagopus_result_t ret = LAGOPUS_RESULT_OK;
   struct pbuf *pbuf = NULL;
   struct ofp_multipart_reply mp_reply;
-  struct table_features *table_features = NULL;
 
   if (channel != NULL && pbuf_list != NULL &&
       table_features_list != NULL && xid_header != NULL) {
@@ -752,43 +804,8 @@ ofp_table_features_reply_create(struct channel *channel,
         ret = ofp_multipart_reply_encode(pbuf, &mp_reply);
 
         if (ret == LAGOPUS_RESULT_OK) {
-          if (TAILQ_EMPTY(table_features_list) == false) {
-            TAILQ_FOREACH(table_features, table_features_list, entry) {
-              ret = ofp_table_features_encode_list(*pbuf_list,
-                                                   &pbuf,
-                                                   &table_features->ofp);
-              if (ret != LAGOPUS_RESULT_OK) {
-                lagopus_msg_warning("Can't allocate pbuf.\n");
-                ret = LAGOPUS_RESULT_NO_MEMORY;
-                break;
-              } else {
-                table_features_head = pbuf_putp_get(pbuf) -
-                    sizeof(struct ofp_table_features);
-                ret = s_table_property_list_encode(*pbuf_list,
-                                                   &pbuf,
-                                                   &table_features->table_property_list,
-                                                   &property_total_length);
-                if (ret != LAGOPUS_RESULT_OK) {
-                  lagopus_msg_warning("FAILED (%s).\n",
-                                      lagopus_error_get_string(ret));
-                  break;
-                } else {
-                  ret = ofp_multipart_length_set(table_features_head,
-                                                 (uint16_t) (property_total_length +
-                                                     sizeof(struct ofp_table_features)));
-                  if (ret != LAGOPUS_RESULT_OK) {
-                    lagopus_msg_warning("FAILED ofp_multipart_length_set (%s).\n",
-                                        lagopus_error_get_string(ret));
-                    break;
-                  }
-                }
-              }
-            }
-          } else {
-            /* table_features_list is empty. */
-            ret = LAGOPUS_RESULT_OK;
-          }
-
+          ret = table_features_reply_create(*pbuf_list, &pbuf,
+                                            table_features_list);
           if (ret == LAGOPUS_RESULT_OK) {
             /* set length for last pbuf.*/
             ret = pbuf_length_get(pbuf, &length);

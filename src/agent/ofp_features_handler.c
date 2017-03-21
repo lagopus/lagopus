@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2017 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -58,8 +58,8 @@ features_reply_features_get(struct channel *channel,
   /* set capabilities. */
   features->capabilities = 0;
   if ((ret = ofp_features_capabilities_convert(
-          info.capabilities,
-          &features->capabilities)) != LAGOPUS_RESULT_OK) {
+               info.capabilities,
+               &features->capabilities)) != LAGOPUS_RESULT_OK) {
     lagopus_msg_warning("FAILED (%s).\n",
                         lagopus_error_get_string(ret));
     goto done;

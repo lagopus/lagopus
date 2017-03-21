@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2017 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -975,7 +975,7 @@ s_ofph_thread_main(const lagopus_thread_t *selfptr,
     }
     /* Wait for an event. */
     res = lagopus_qmuxer_poll(&(thd->muxer),
-                              (lagopus_qmuxer_poll_t * const)(thd->m_polls),
+                              (lagopus_qmuxer_poll_t *const)(thd->m_polls),
                               (size_t)n_need_watch, MUXER_TIMEOUT);
     if (s_get_status() == OFPH_SHUTDOWN_RIGHT_NOW) {
       res = LAGOPUS_RESULT_NOT_OPERATIONAL;
@@ -1098,7 +1098,7 @@ s_channelq_dequeue(channelq_t *q_ptr,
     int cstate;
 
     gets = (struct channelq_data **)
-        malloc(sizeof(struct channelq_data *) * max_batches);
+           malloc(sizeof(struct channelq_data *) * max_batches);
     if (gets != NULL) {
       res = lagopus_bbq_get_n(q_ptr, gets,
                               (size_t) channelq_max_batches, 0LL,
@@ -1118,7 +1118,7 @@ s_channelq_dequeue(channelq_t *q_ptr,
         lagopus_mutex_enter_critical(&(s_ofp_handler->m_status_lock), &cstate);
         {
           s_process_channelq_entry(gets[i]);
-        channelq_data_destroy(gets[i]);
+          channelq_data_destroy(gets[i]);
         }
         lagopus_mutex_leave_critical(&(s_ofp_handler->m_status_lock), cstate);
       }
@@ -1160,7 +1160,7 @@ s_eventq_dequeue(struct ofp_bridge *ofp_bridge,
     int cstate;
 
     gets = (struct eventq_data **)
-        malloc(sizeof(struct eventq_data *) * max_batches);
+           malloc(sizeof(struct eventq_data *) * max_batches);
     if (gets != NULL) {
       res = lagopus_bbq_get_n(&(ofp_bridge->eventq), gets,
                               (size_t) max_batches, 0LL,
@@ -1212,7 +1212,7 @@ s_dataq_dequeue(struct ofp_bridge *ofp_bridge,
   size_t i;
 
   res = ofp_bridge_dataq_max_batches_get(ofp_bridge,
-                                          &max_batches);
+                                         &max_batches);
   if (res != LAGOPUS_RESULT_OK) {
     lagopus_perror(res);
     goto done;
@@ -1225,7 +1225,7 @@ s_dataq_dequeue(struct ofp_bridge *ofp_bridge,
     int cstate;
 
     gets = (struct eventq_data **)
-        malloc(sizeof(struct eventq_data *) * max_batches);
+           malloc(sizeof(struct eventq_data *) * max_batches);
     if (gets != NULL) {
       res = lagopus_bbq_get_n(&(ofp_bridge->dataq), gets,
                               (size_t) max_batches, 0LL,

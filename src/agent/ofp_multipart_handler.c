@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2017 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -73,8 +73,8 @@ multipart_request_features_check(struct channel *channel,
   }
 
   if ((ret = ofp_features_capabilities_convert(
-          info.capabilities,
-          &features_capabilities)) != LAGOPUS_RESULT_OK) {
+               info.capabilities,
+               &features_capabilities)) != LAGOPUS_RESULT_OK) {
     lagopus_msg_warning("FAILED (%s).\n",
                         lagopus_error_get_string(ret));
     rv = false;
@@ -259,4 +259,45 @@ ofp_multipart_length_set(uint8_t *multipart_head,
   } else {
     return LAGOPUS_RESULT_INVALID_ARGS;
   }
+}
+
+lagopus_result_t
+ofp_multipart_append(struct pbuf_list *pbuf_list,
+                     struct pbuf *src_pbuf,
+                     struct pbuf **pbuf) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  struct pbuf *dst_pbuf = NULL;
+  struct pbuf *before_pbuf = NULL;
+
+  if (pbuf_list != NULL && src_pbuf != NULL) {
+    dst_pbuf = pbuf_list_last_get(pbuf_list);
+    if (dst_pbuf != NULL) {
+      ret = pbuf_append(dst_pbuf, src_pbuf);
+      if (ret == LAGOPUS_RESULT_OUT_OF_RANGE) {
+        before_pbuf = dst_pbuf;
+
+        dst_pbuf = pbuf_alloc(OFP_PACKET_MAX_SIZE);
+        if (dst_pbuf != NULL) {
+          pbuf_list_add(pbuf_list, dst_pbuf);
+          dst_pbuf->plen = OFP_PACKET_MAX_SIZE;
+          ret = ofp_header_mp_copy(dst_pbuf, before_pbuf);
+          if (ret == LAGOPUS_RESULT_OK) {
+            ret = pbuf_append(dst_pbuf, src_pbuf);
+          }
+        } else {
+          ret = LAGOPUS_RESULT_NO_MEMORY;
+        }
+      }
+
+      if (ret == LAGOPUS_RESULT_OK && pbuf != NULL) {
+        *pbuf = dst_pbuf;
+      }
+    } else {
+      ret = LAGOPUS_RESULT_NO_MEMORY;
+    }
+  } else {
+    ret = LAGOPUS_RESULT_INVALID_ARGS;
+  }
+
+  return ret;
 }

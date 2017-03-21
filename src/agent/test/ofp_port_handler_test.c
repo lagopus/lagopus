@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2017 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -63,9 +63,9 @@ void
 test_prologue(void) {
   lagopus_result_t r;
   const char *argv0 =
-      ((IS_VALID_STRING(lagopus_get_command_name()) == true) ?
-       lagopus_get_command_name() : "callout_test");
-  const char * const argv[] = {
+    ((IS_VALID_STRING(lagopus_get_command_name()) == true) ?
+     lagopus_get_command_name() : "callout_test");
+  const char *const argv[] = {
     argv0, NULL
   };
 
@@ -171,7 +171,7 @@ test_ofp_port_stats_handle_null(void) {
 }
 
 void
-test_ofp_port_stats_reply_create(void) {
+test_ofp_port_stats_reply_create_01(void) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   struct port_stats *port_stats = NULL;
   const char *require[1] = {
@@ -221,6 +221,88 @@ test_ofp_port_stats_reply_create(void) {
   /* port 0 */
   ret = check_pbuf_list_packet_create(s_ofp_port_reply_create_wrap, require, 1);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, ret, "create port 0 error.");
+
+  /* free */
+  while ((port_stats = TAILQ_FIRST(&s_port_stats_list)) != NULL) {
+    TAILQ_REMOVE(&s_port_stats_list, port_stats, entry);
+    free(port_stats);
+  }
+}
+
+void
+test_ofp_port_stats_reply_create_02(void) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  struct port_stats *port_stats = NULL;
+  const char *header_data[2] = {
+    "04 13 ff 90 00 00 00 10 00 04 00 01 00 00 00 00 ",
+    "04 13 00 80 00 00 00 10 00 04 00 00 00 00 00 00 "
+  };
+  const char *body_data[2] = {
+    "00 00 00 01 "             //  uint32_t port_no;
+    "00 00 00 00 "             //  uint8_t pad[4];
+    "00 00 00 00 00 00 00 02 " //  uint64_t rx_packets;
+    "00 00 00 00 00 00 00 03 " //  uint64_t tx_packets;
+    "00 00 00 00 00 00 00 04 " //  uint64_t rx_bytes;
+    "00 00 00 00 00 00 00 05 " //  uint64_t tx_bytes;
+    "00 00 00 00 00 00 00 06 " //  uint64_t rx_dropped;
+    "00 00 00 00 00 00 00 07 " //  uint64_t tx_dropped;
+    "00 00 00 00 00 00 00 08 " //  uint64_t rx_errors;
+    "00 00 00 00 00 00 00 09 " //  uint64_t tx_errors;
+    "00 00 00 00 00 00 00 0a " //  uint64_t rx_frame_err;
+    "00 00 00 00 00 00 00 0b " //  uint64_t rx_over_err;
+    "00 00 00 00 00 00 00 0c " //  uint64_t rx_crc_err;
+    "00 00 00 00 00 00 00 0d " //  uint64_t collisions;
+    "00 00 00 0e"              // uint32_t duration_sec;
+    "00 00 00 0f",             // uint32_t duration_nsec;
+    "00 00 00 01 "             //  uint32_t port_no;
+    "00 00 00 00 "             //  uint8_t pad[4];
+    "00 00 00 00 00 00 00 02 " //  uint64_t rx_packets;
+    "00 00 00 00 00 00 00 03 " //  uint64_t tx_packets;
+    "00 00 00 00 00 00 00 04 " //  uint64_t rx_bytes;
+    "00 00 00 00 00 00 00 05 " //  uint64_t tx_bytes;
+    "00 00 00 00 00 00 00 06 " //  uint64_t rx_dropped;
+    "00 00 00 00 00 00 00 07 " //  uint64_t tx_dropped;
+    "00 00 00 00 00 00 00 08 " //  uint64_t rx_errors;
+    "00 00 00 00 00 00 00 09 " //  uint64_t tx_errors;
+    "00 00 00 00 00 00 00 0a " //  uint64_t rx_frame_err;
+    "00 00 00 00 00 00 00 0b " //  uint64_t rx_over_err;
+    "00 00 00 00 00 00 00 0c " //  uint64_t rx_crc_err;
+    "00 00 00 00 00 00 00 0d " //  uint64_t collisions;
+    "00 00 00 0e"              // uint32_t duration_sec;
+    "00 00 00 0f"              // uint32_t duration_nsec;
+  };
+  size_t nums[2] = {584, 1};
+  int i;
+
+  /* data */
+  TAILQ_INIT(&s_port_stats_list);
+  for (i = 0; i < 585; i++) {
+    if ((port_stats = s_port_stats_alloc()) != NULL) {
+      port_stats->ofp.port_no       = 0x01;
+      port_stats->ofp.rx_packets    = 0x02;
+      port_stats->ofp.tx_packets    = 0x03;
+      port_stats->ofp.rx_bytes      = 0x04;
+      port_stats->ofp.tx_bytes      = 0x05;
+      port_stats->ofp.rx_dropped    = 0x06;
+      port_stats->ofp.tx_dropped    = 0x07;
+      port_stats->ofp.rx_errors     = 0x08;
+      port_stats->ofp.tx_errors     = 0x09;
+      port_stats->ofp.rx_frame_err  = 0x0a;
+      port_stats->ofp.rx_over_err   = 0x0b;
+      port_stats->ofp.rx_crc_err    = 0x0c;
+      port_stats->ofp.collisions    = 0x0d;
+      port_stats->ofp.duration_sec  = 0x0e;
+      port_stats->ofp.duration_nsec = 0x0f;
+    } else {
+      TEST_FAIL_MESSAGE("allocation error.");
+    }
+    TAILQ_INSERT_TAIL(&s_port_stats_list, port_stats, entry);
+  }
+
+  ret = check_pbuf_list_across_packet_create(
+          s_ofp_port_reply_create_wrap,
+          header_data, body_data, nums, 2);
+  TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, ret, "check_pbuf_list error.");
 
   /* free */
   while ((port_stats = TAILQ_FIRST(&s_port_stats_list)) != NULL) {

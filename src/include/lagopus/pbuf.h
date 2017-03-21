@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2017 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -237,6 +237,9 @@ pbuf_copy(struct pbuf *dst, struct pbuf *src);
 lagopus_result_t
 pbuf_copy_with_length(struct pbuf *dst, struct pbuf *src,
                       size_t length);
+
+lagopus_result_t
+pbuf_append(struct pbuf *dst, struct pbuf *src);
 
 struct pbuf *
 pbuf_list_last_get(struct pbuf_list *pbuf_list);

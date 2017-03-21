@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2017 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,6 +34,51 @@ port_desc_list_elem_free(struct port_desc_list *port_desc_list) {
   }
 }
 
+static lagopus_result_t
+port_desc_reply_create(struct pbuf_list *pbuf_list,
+                       struct pbuf **pbuf,
+                       struct port_desc_list *port_desc_list) {
+  lagopus_result_t res = LAGOPUS_RESULT_ANY_FAILURES;
+  struct port_desc *port_desc = NULL;
+  struct pbuf *entry_pbuf = NULL;
+
+  if (TAILQ_EMPTY(port_desc_list) == false) {
+    TAILQ_FOREACH(port_desc, port_desc_list, entry) {
+      entry_pbuf = pbuf_alloc(OFP_PACKET_MAX_SIZE);
+      if (entry_pbuf == NULL) {
+        res = LAGOPUS_RESULT_NO_MEMORY;
+        goto done;
+      }
+      entry_pbuf->plen = OFP_PACKET_MAX_SIZE;
+
+      res = ofp_port_encode(entry_pbuf,
+                            &port_desc->ofp);
+      if (res == LAGOPUS_RESULT_OK) {
+        res = ofp_multipart_append(pbuf_list, entry_pbuf, pbuf);
+        if (res != LAGOPUS_RESULT_OK) {
+          lagopus_msg_warning("FAILED (%s).\n",
+                              lagopus_error_get_string(res));
+        }
+      } else {
+        lagopus_msg_warning("FAILED (%s).\n",
+                            lagopus_error_get_string(res));
+      }
+
+      pbuf_free(entry_pbuf);
+      entry_pbuf = NULL;
+      if (res != LAGOPUS_RESULT_OK) {
+        break;
+      }
+    }
+  } else {
+    /* port_desc_list is empyt. */
+    res = LAGOPUS_RESULT_OK;
+  }
+
+done:
+  return res;
+}
+
 STATIC lagopus_result_t
 ofp_port_desc_reply_create(struct channel *channel,
                            struct pbuf_list **pbuf_list,
@@ -42,7 +87,6 @@ ofp_port_desc_reply_create(struct channel *channel,
   lagopus_result_t res = LAGOPUS_RESULT_ANY_FAILURES;
   uint16_t length = 0;
   struct pbuf *pbuf = NULL;
-  struct port_desc *port_desc = NULL;
   struct ofp_multipart_reply ofpmp_reply;
 
   /* check params */
@@ -65,24 +109,11 @@ ofp_port_desc_reply_create(struct channel *channel,
 
         /* encode message. */
         pbuf_plen_set(pbuf, pbuf_size_get(pbuf));
-        res = ofp_multipart_reply_encode_list(*pbuf_list, &pbuf,
-                                              &ofpmp_reply);
+        res = ofp_multipart_reply_encode(pbuf,
+                                         &ofpmp_reply);
         if (res == LAGOPUS_RESULT_OK) {
-          if (TAILQ_EMPTY(port_desc_list) == false) {
-            TAILQ_FOREACH(port_desc, port_desc_list, entry) {
-              res = ofp_port_encode_list(*pbuf_list, &pbuf,
-                                         &port_desc->ofp);
-              if (res != LAGOPUS_RESULT_OK) {
-                lagopus_msg_warning("FAILED (%s).\n",
-                                    lagopus_error_get_string(res));
-                break;
-              }
-            }
-          } else {
-            /* port_desc_list is empyt. */
-            res = LAGOPUS_RESULT_OK;
-          }
-
+          res = port_desc_reply_create(*pbuf_list, &pbuf,
+                                       port_desc_list);
           if (res == LAGOPUS_RESULT_OK) {
             /* set length for last pbuf. */
             res = pbuf_length_get(pbuf, &length);

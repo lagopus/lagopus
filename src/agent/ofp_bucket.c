@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2017 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -137,8 +137,7 @@ ofp_bucket_parse(struct pbuf *pbuf,
 }
 
 lagopus_result_t
-ofp_bucket_list_encode(struct pbuf_list *pbuf_list,
-                       struct pbuf **pbuf,
+ofp_bucket_list_encode(struct pbuf *pbuf,
                        struct bucket_list *bucket_list,
                        uint16_t *total_length) {
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
@@ -152,12 +151,12 @@ ofp_bucket_list_encode(struct pbuf_list *pbuf_list,
     *total_length = 0;
     if (TAILQ_EMPTY(bucket_list) == false) {
       TAILQ_FOREACH(bucket, bucket_list, entry) {
-        ret = ofp_bucket_encode_list(pbuf_list, pbuf, &bucket->ofp);
+        ret = ofp_bucket_encode(pbuf, &bucket->ofp);
         if (ret == LAGOPUS_RESULT_OK) {
           /* bucket head pointer. */
-          bucket_head = pbuf_putp_get(*pbuf) - sizeof(struct ofp_bucket);
+          bucket_head = pbuf_putp_get(pbuf) - sizeof(struct ofp_bucket);
 
-          ret = ofp_action_list_encode(pbuf_list, pbuf, &bucket->action_list,
+          ret = ofp_action_list_encode(pbuf, &bucket->action_list,
                                        &action_total_len);
           if (ret == LAGOPUS_RESULT_OK) {
             /* Set bucket length (action_total_len + size of ofp_bucket). */

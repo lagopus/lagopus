@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2017 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,6 +36,21 @@ lagopus_result_t
 lagopus_match_and_action(struct lagopus_packet *pkt);
 
 static struct table *table = NULL;
+
+lagopus_result_t
+setup_modules(int argc,
+              const char *const argv[]) {
+  (void) argc;
+  (void) argv;
+  printf("call setup_modules.\n");
+  return LAGOPUS_RESULT_OK;
+}
+
+lagopus_result_t
+teardown_modules(void) {
+  printf("call teardown_modules.\n");
+  return LAGOPUS_RESULT_OK;
+}
 
 lagopus_result_t
 setup(void *pkts, size_t size) {

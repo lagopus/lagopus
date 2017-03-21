@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2017 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,7 +36,7 @@ static const capability_proc_info_t capabilities[] = {
 };
 
 static const size_t capabilities_size =
-    sizeof(capabilities) / sizeof(capability_proc_info_t);
+  sizeof(capabilities) / sizeof(capability_proc_info_t);
 
 static void
 features_reply_features_capability_set(uint64_t ds_capability,
@@ -60,8 +60,8 @@ ofp_features_capabilities_convert(uint64_t ds_capabilities,
     *features_capabilities = 0;
     for (i = 0; i < capabilities_size; i++) {
       features_reply_features_capability_set(
-          ds_capabilities, i,
-          features_capabilities);
+        ds_capabilities, i,
+        features_capabilities);
     }
     ret = LAGOPUS_RESULT_OK;
   } else {

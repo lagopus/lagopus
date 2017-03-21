@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2017 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -70,7 +70,7 @@ ofp_meter_band_stats_list_encode_wrap(struct channel *channel,
   *pbuf = pbuf_alloc(length);
   (*pbuf)->plen = length;
 
-  ret = ofp_meter_band_stats_list_encode(NULL, pbuf, &band_stats_list,
+  ret = ofp_meter_band_stats_list_encode(*pbuf, &band_stats_list,
                                          &total_length);
 
   TEST_ASSERT_EQUAL_MESSAGE(length, total_length,
@@ -86,9 +86,9 @@ void
 test_prologue(void) {
   lagopus_result_t r;
   const char *argv0 =
-      ((IS_VALID_STRING(lagopus_get_command_name()) == true) ?
-       lagopus_get_command_name() : "callout_test");
-  const char * const argv[] = {
+    ((IS_VALID_STRING(lagopus_get_command_name()) == true) ?
+     lagopus_get_command_name() : "callout_test");
+  const char *const argv[] = {
     argv0, NULL
   };
 
@@ -129,21 +129,21 @@ test_ofp_meter_band_stats_list_encode_band_stats_list_empty(void) {
 void
 test_ofp_meter_band_stats_list_encode_null(void) {
   struct meter_band_stats_list band_stats_list;
-  struct pbuf *pbuf;
+  struct pbuf *pbuf = NULL;
   lagopus_result_t ret;
   uint16_t total_length;
 
-  ret = ofp_meter_band_stats_list_encode(NULL, NULL, &band_stats_list,
+  ret = ofp_meter_band_stats_list_encode(NULL, &band_stats_list,
                                          &total_length);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS, ret,
                             "ofp_meter_band_stats_list_encode(NULL) error.");
 
-  ret = ofp_meter_band_stats_list_encode(NULL, &pbuf, NULL,
+  ret = ofp_meter_band_stats_list_encode(pbuf, NULL,
                                          &total_length);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS, ret,
                             "ofp_meter_band_stats_list_encode(NULL) error.");
 
-  ret = ofp_meter_band_stats_list_encode(NULL, &pbuf, &band_stats_list,
+  ret = ofp_meter_band_stats_list_encode(pbuf, &band_stats_list,
                                          NULL);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS, ret,
                             "ofp_meter_band_stats_list_encode(NULL) error.");

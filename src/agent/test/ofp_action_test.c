@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2017 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -50,18 +50,20 @@ create_data(struct action_list *action_list) {
   struct ofp_action_set_field *act_set_field;
   uint8_t field[4] = {0x80, 0x00, 0x08, 0x06};
   uint8_t val[6] = {0x00, 0x0c, 0x29, 0x7a, 0x90, 0xb3};
-  struct ofp_ed_prop_portname props[] ={
-    {OFPPPT_PROP_PORT_NAME,
-     0x18,
-     OFPPPT_PROP_PORT_FLAGS_CREATE | OFPPPT_PROP_PORT_FLAGS_SET_INPORT,
-     {0x0, 0x0},
-     "hoge1"
+  struct ofp_ed_prop_portname props[] = {
+    {
+      OFPPPT_PROP_PORT_NAME,
+      0x18,
+      OFPPPT_PROP_PORT_FLAGS_CREATE | OFPPPT_PROP_PORT_FLAGS_SET_INPORT,
+      {0x0, 0x0},
+      "hoge1"
     },
-    {OFPPPT_PROP_PORT_NAME,
-     0x18,
-     OFPPPT_PROP_PORT_FLAGS_CREATE | OFPPPT_PROP_PORT_FLAGS_SET_INPORT,
-     {0x0, 0x0},
-     "hoge2"
+    {
+      OFPPPT_PROP_PORT_NAME,
+      0x18,
+      OFPPPT_PROP_PORT_FLAGS_CREATE | OFPPPT_PROP_PORT_FLAGS_SET_INPORT,
+      {0x0, 0x0},
+      "hoge2"
     }
   };
   int prop_num = 2;
@@ -154,9 +156,9 @@ void
 test_prologue(void) {
   lagopus_result_t r;
   const char *argv0 =
-      ((IS_VALID_STRING(lagopus_get_command_name()) == true) ?
-       lagopus_get_command_name() : "callout_test");
-  const char * const argv[] = {
+    ((IS_VALID_STRING(lagopus_get_command_name()) == true) ?
+     lagopus_get_command_name() : "callout_test");
+  const char *const argv[] = {
     argv0, NULL
   };
 
@@ -207,18 +209,20 @@ ofp_action_parse_wrap(struct channel *channel,
   struct ofp_action_decap *act_decap;
   struct ed_prop *ed_prop;
   struct ofp_ed_prop_portname *p;
-  struct ofp_ed_prop_portname props[] ={
-    {OFPPPT_PROP_PORT_NAME,
-     0x18,
-     OFPPPT_PROP_PORT_FLAGS_CREATE | OFPPPT_PROP_PORT_FLAGS_SET_INPORT,
-     {0x0, 0x0},
-     "hoge1"
+  struct ofp_ed_prop_portname props[] = {
+    {
+      OFPPPT_PROP_PORT_NAME,
+      0x18,
+      OFPPPT_PROP_PORT_FLAGS_CREATE | OFPPPT_PROP_PORT_FLAGS_SET_INPORT,
+      {0x0, 0x0},
+      "hoge1"
     },
-    {OFPPPT_PROP_PORT_NAME,
-     0x18,
-     OFPPPT_PROP_PORT_FLAGS_CREATE | OFPPPT_PROP_PORT_FLAGS_SET_INPORT,
-     {0x0, 0x0},
-     "hoge2"
+    {
+      OFPPPT_PROP_PORT_NAME,
+      0x18,
+      OFPPPT_PROP_PORT_FLAGS_CREATE | OFPPPT_PROP_PORT_FLAGS_SET_INPORT,
+      {0x0, 0x0},
+      "hoge2"
     }
   };
   int i, j;
@@ -331,99 +335,99 @@ test_ofp_action_parse_normal_pattern(void) {
 
   action_len = (size_t) (OUT_LEN + GROUP_LEN + ENCAP_LEN + DECAP_LEN);
   ret = check_packet_parse(ofp_action_parse_wrap,
-                          "00 00 00 10"
-                        /* <----------... struct ofp_action_output
-                         * <---> type : OFPAT_OUTPUT
-                         *       <---> len : 16
-                         */
+                           "00 00 00 10"
+                           /* <----------... struct ofp_action_output
+                            * <---> type : OFPAT_OUTPUT
+                            *       <---> len : 16
+                            */
                            "00 00 01 00 00 20"
-                        /* <------> port : 1
-                         *          <------> max_len : 32
-                         */
+                           /* <------> port : 1
+                            *          <------> max_len : 32
+                            */
                            "00 00 00 00 00 00"
-                         /* <---------------> pad[6]
-                         */
+                           /* <---------------> pad[6]
+                           */
                            "00 1C 00 38"
-                         /* <----------... struct ofp_action_encap
-                            <---> type
-                                  <---> len
-                          */
+                           /* <----------... struct ofp_action_encap
+                              <---> type
+                                    <---> len
+                            */
                            "00 00 00 01"
-                         /* <---------> packet_type
-                          */
+                           /* <---------> packet_type
+                            */
                            "00 01 00 18"
-                         /* <----------... struct ofp_ed_prop_portname[0]
-                            <---> type
-                                  <---> len
-                          */
+                           /* <----------... struct ofp_ed_prop_portname[0]
+                              <---> type
+                                    <---> len
+                            */
                            "00 03 00 00"
-                         /* <---> port_flags
-                                  <---> pad[2]
-                          */
+                           /* <---> port_flags
+                                    <---> pad[2]
+                            */
                            "68 6f 67 65 31 00 00 00"
                            "00 00 00 00 00 00 00 00"
-                         /* <---------------------> name
-                          */
+                           /* <---------------------> name
+                            */
                            "00 01 00 18"
-                         /* <----------... struct ofp_ed_prop_portname[1]
-                            <---> type
-                                  <---> len
-                          */
+                           /* <----------... struct ofp_ed_prop_portname[1]
+                              <---> type
+                                    <---> len
+                            */
                            "00 03 00 00"
-                         /* <---> port_flags
-                                  <---> pad[2]
-                          */
+                           /* <---> port_flags
+                                    <---> pad[2]
+                            */
                            "68 6f 67 65 32 00 00 00"
                            "00 00 00 00 00 00 00 00"
-                         /* <---------------------> name
-                          */
+                           /* <---------------------> name
+                            */
                            "00 1D 00 40"
-                         /* <----------... struct ofp_action_decap
-                            <---> type
-                                  <---> len
-                          */
+                           /* <----------... struct ofp_action_decap
+                              <---> type
+                                    <---> len
+                            */
                            "00 00 00 02"
-                         /* <---------> cur_pkt_type
-                          */
+                           /* <---------> cur_pkt_type
+                            */
                            "00 00 00 03"
-                         /* <---------> new_pkt_type
-                          */
+                           /* <---------> new_pkt_type
+                            */
                            "00 00 00 00"
-                         /* <---------> pad[4]
-                          */
+                           /* <---------> pad[4]
+                            */
                            "00 01 00 18"
-                         /* <----------... struct ofp_ed_prop_portname[0]
-                            <---> type
-                                  <---> len
-                          */
+                           /* <----------... struct ofp_ed_prop_portname[0]
+                              <---> type
+                                    <---> len
+                            */
                            "00 03 00 00"
-                         /* <---> port_flags
-                                  <---> pad[2]
-                          */
+                           /* <---> port_flags
+                                    <---> pad[2]
+                            */
                            "68 6f 67 65 31 00 00 00"
                            "00 00 00 00 00 00 00 00"
-                         /* <---------------------> name
-                          */
+                           /* <---------------------> name
+                            */
                            "00 01 00 18"
-                         /* <----------... struct ofp_ed_prop_portname[1]
-                            <---> type
-                                  <---> len
-                          */
+                           /* <----------... struct ofp_ed_prop_portname[1]
+                              <---> type
+                                    <---> len
+                            */
                            "00 03 00 00"
-                         /* <---> port_flags
-                                  <---> pad[2]
-                          */
+                           /* <---> port_flags
+                                    <---> pad[2]
+                            */
                            "68 6f 67 65 32 00 00 00"
                            "00 00 00 00 00 00 00 00"
-                         /* <---------------------> name
-                          */
+                           /* <---------------------> name
+                            */
                            "00 16 00 08 00 00 00 03"
-                         /* <----------------------> struct ofp_action_group
-                          * <----> type : OFPAT_GROUP
-                          *       <----> len : 8
-                          *              <---------> group_id : 3
-                          */
-                           );
+                           /* <----------------------> struct ofp_action_group
+                            * <----> type : OFPAT_GROUP
+                            *       <----> len : 8
+                            *              <---------> group_id : 3
+                            */
+                          );
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, ret,
                             "ofp_action_parse(normal) error.");
 }
@@ -560,7 +564,7 @@ ofp_action_list_encode_wrap(struct channel *channel,
   *pbuf = pbuf_alloc(length);
   (*pbuf)->plen = length;
 
-  ret = ofp_action_list_encode(NULL, pbuf, &action_list,
+  ret = ofp_action_list_encode(*pbuf, &action_list,
                                &total_length);
 
   TEST_ASSERT_EQUAL_MESSAGE(length,
@@ -579,116 +583,116 @@ test_ofp_action_list_encode(void) {
 
   ret = check_packet_create(ofp_action_list_encode_wrap,
                             "00 00 00 10"
-                          /* <----------... struct ofp_action_output
-                           * <---> type : OFPAT_OUTPUT
-                           *       <---> len : 16
-                           */
+                            /* <----------... struct ofp_action_output
+                             * <---> type : OFPAT_OUTPUT
+                             *       <---> len : 16
+                             */
                             "00 00 01 00 00 20"
-                          /* <------> port : 1
-                           *          <------> max_len : 32
-                           */
+                            /* <------> port : 1
+                             *          <------> max_len : 32
+                             */
                             "00 00 00 00 00 00"
-                          /* <---------------> pad[6]
-                           */
+                            /* <---------------> pad[6]
+                             */
                             "00 1C 00 38"
-                          /* <----------... struct ofp_action_encap
-                             <---> type
-                                   <---> len
-                           */
+                            /* <----------... struct ofp_action_encap
+                               <---> type
+                                     <---> len
+                             */
                             "00 00 00 01"
-                          /* <---------> packet_type
-                           */
+                            /* <---------> packet_type
+                             */
                             "00 01 00 18"
-                          /* <----------... struct ofp_ed_prop_portname[0]
-                             <---> type
-                                   <---> len
-                           */
+                            /* <----------... struct ofp_ed_prop_portname[0]
+                               <---> type
+                                     <---> len
+                             */
                             "00 03 00 00"
-                          /* <---> port_flags
-                                   <---> pad[2]
-                           */
+                            /* <---> port_flags
+                                     <---> pad[2]
+                             */
                             "68 6f 67 65 31 00 00 00"
                             "00 00 00 00 00 00 00 00"
-                          /* <---------------------> name
-                           */
+                            /* <---------------------> name
+                             */
                             "00 01 00 18"
-                          /* <----------... struct ofp_ed_prop_portname[1]
-                             <---> type
-                                   <---> len
-                           */
+                            /* <----------... struct ofp_ed_prop_portname[1]
+                               <---> type
+                                     <---> len
+                             */
                             "00 03 00 00"
-                          /* <---> port_flags
-                                   <---> pad[2]
-                           */
+                            /* <---> port_flags
+                                     <---> pad[2]
+                             */
                             "68 6f 67 65 32 00 00 00"
                             "00 00 00 00 00 00 00 00"
-                          /* <---------------------> name
-                           */
+                            /* <---------------------> name
+                             */
 
-                           "00 1D 00 40"
-                         /* <----------... struct ofp_action_decap
-                            <---> type
-                                  <---> len
-                          */
-                           "00 00 00 02"
-                         /* <---------> cur_pkt_type
-                          */
-                           "00 00 00 03"
-                         /* <---------> new_pkt_type
-                          */
-                           "00 00 00 00"
-                         /* <---------> pad[4]
-                          */
-                           "00 01 00 18"
-                         /* <----------... struct ofp_ed_prop_portname[0]
-                            <---> type
-                                  <---> len
-                          */
-                           "00 03 00 00"
-                         /* <---> port_flags
-                                  <---> pad[2]
-                          */
-                           "68 6f 67 65 31 00 00 00"
-                           "00 00 00 00 00 00 00 00"
-                         /* <---------------------> name
-                          */
-                           "00 01 00 18"
-                         /* <----------... struct ofp_ed_prop_portname[1]
-                            <---> type
-                                  <---> len
-                          */
-                           "00 03 00 00"
-                         /* <---> port_flags
-                                  <---> pad[2]
-                          */
-                           "68 6f 67 65 32 00 00 00"
-                           "00 00 00 00 00 00 00 00"
-                         /* <---------------------> name
-                          */
+                            "00 1D 00 40"
+                            /* <----------... struct ofp_action_decap
+                               <---> type
+                                     <---> len
+                             */
+                            "00 00 00 02"
+                            /* <---------> cur_pkt_type
+                             */
+                            "00 00 00 03"
+                            /* <---------> new_pkt_type
+                             */
+                            "00 00 00 00"
+                            /* <---------> pad[4]
+                             */
+                            "00 01 00 18"
+                            /* <----------... struct ofp_ed_prop_portname[0]
+                               <---> type
+                                     <---> len
+                             */
+                            "00 03 00 00"
+                            /* <---> port_flags
+                                     <---> pad[2]
+                             */
+                            "68 6f 67 65 31 00 00 00"
+                            "00 00 00 00 00 00 00 00"
+                            /* <---------------------> name
+                             */
+                            "00 01 00 18"
+                            /* <----------... struct ofp_ed_prop_portname[1]
+                               <---> type
+                                     <---> len
+                             */
+                            "00 03 00 00"
+                            /* <---> port_flags
+                                     <---> pad[2]
+                             */
+                            "68 6f 67 65 32 00 00 00"
+                            "00 00 00 00 00 00 00 00"
+                            /* <---------------------> name
+                             */
 
                             "00 16 00 08 00 00 00 03"
-                          /* <----------------------> struct ofp_action_group
-                           * <----> type : OFPAT_GROUP
-                           *       <----> len : 8
-                           *              <---------> group_id : 3
-                           */
+                            /* <----------------------> struct ofp_action_group
+                             * <----> type : OFPAT_GROUP
+                             *       <----> len : 8
+                             *              <---------> group_id : 3
+                             */
                             "00 19 00 10 80 00 08 06"
-                          /* <---------------------->
-                           *      struct ofp_action_set_field
-                           * <----> type : OFPAT_SET_FIELD
-                           *       <----> len : 16
-                           *             <-----------... oxm
-                           *             <---> oxm_class : OFPXMC_OPENFLOW_BASIC
-                           *                   <> oxm field
-                           *                         (OFPXMT_OFB_ETH_DST) +
-                           *                         oxm_hasmask(0)
-                           *                      <> oxm_length : 6
-                           */
+                            /* <---------------------->
+                             *      struct ofp_action_set_field
+                             * <----> type : OFPAT_SET_FIELD
+                             *       <----> len : 16
+                             *             <-----------... oxm
+                             *             <---> oxm_class : OFPXMC_OPENFLOW_BASIC
+                             *                   <> oxm field
+                             *                         (OFPXMT_OFB_ETH_DST) +
+                             *                         oxm_hasmask(0)
+                             *                      <> oxm_length : 6
+                             */
                             "00 0c 29 7a 90 b3 00 00"
-                          /* <---------------> oxm_data
-                           *                   <---> padding
-                           */
-                            );
+                            /* <---------------> oxm_data
+                             *                   <---> padding
+                             */
+                           );
 
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, ret,
                             "ofp_action_list_encode(normal) error.");
@@ -698,19 +702,19 @@ void
 test_ofp_action_list_encode_null(void) {
   lagopus_result_t ret;
   uint16_t total_length;
-  struct pbuf *pbuf;
+  struct pbuf *pbuf = NULL;
   struct action_list action_list;
 
-  ret = ofp_action_list_encode(NULL, NULL, &action_list,
+  ret = ofp_action_list_encode(NULL, &action_list,
                                &total_length);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS, ret,
                             "ofp_action_list_encode(null) error.");
 
-  ret = ofp_action_list_encode(NULL, &pbuf, NULL, &total_length);
+  ret = ofp_action_list_encode(pbuf, NULL, &total_length);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS, ret,
                             "ofp_action_list_encode(null) error.");
 
-  ret = ofp_action_list_encode(NULL, &pbuf, &action_list, NULL);
+  ret = ofp_action_list_encode(pbuf, &action_list, NULL);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_INVALID_ARGS, ret,
                             "ofp_action_list_encode(null) error.");
 }
@@ -802,7 +806,7 @@ ofp_action_header_list_encode_wrap(struct channel *channel,
   *pbuf = pbuf_alloc(ACT_LEN * 3);
   (*pbuf)->plen = ACT_LEN * 3;
 
-  ret = ofp_action_header_list_encode(NULL, pbuf, &action_list,
+  ret = ofp_action_header_list_encode(*pbuf, &action_list,
                                       &total_length);
 
   TEST_ASSERT_EQUAL_MESSAGE(ACT_LEN * 3, total_length,

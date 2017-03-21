@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2017 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -94,7 +94,6 @@ ofp_action_parse(struct pbuf *pbuf, size_t action_length,
 /**
  * Encode action list.
  *
- *     @param[out]	pbuf_list	A pointer to list of \e pbuf structures.
  *     @param[out]	pbuf	A pointer to \e pbuf structure.
  *     @param[in]	action_list	A pointer to list of \e action structures.
  *     @param[out]	total_length	A pointer to \e size of packet.
@@ -104,8 +103,7 @@ ofp_action_parse(struct pbuf *pbuf, size_t action_length,
  *     @retval	LAGOPUS_RESULT_ANY_FAILURES Failed.
  */
 lagopus_result_t
-ofp_action_list_encode(struct pbuf_list *pbuf_list,
-                       struct pbuf **pbuf,
+ofp_action_list_encode(struct pbuf *pbuf,
                        struct action_list *action_list,
                        uint16_t *total_length);
 
@@ -130,7 +128,6 @@ ofp_action_header_parse(struct pbuf *pbuf, size_t action_length,
 /**
  * Encode action header for ofp_table_feature.
  *
- *     @param[out]	pbuf_list	A pointer to list of \e pbuf structures.
  *     @param[out]	pbuf	A pointer to \e pbuf structure.
  *     @param[in]	action_list	A pointer to list of \e action structures.
  *     @param[out]	total_length	A pointer to \e size of packet.
@@ -140,8 +137,7 @@ ofp_action_header_parse(struct pbuf *pbuf, size_t action_length,
  *     @retval	LAGOPUS_RESULT_ANY_FAILURES Failed.
  */
 lagopus_result_t
-ofp_action_header_list_encode(struct pbuf_list *pbuf_list,
-                              struct pbuf **pbuf,
+ofp_action_header_list_encode(struct pbuf *pbuf,
                               struct action_list *action_list,
                               uint16_t *total_length);
 

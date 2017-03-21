@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2017 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,6 +36,74 @@ group_stats_list_elem_free(struct group_stats_list *group_stats_list) {
   }
 }
 
+static lagopus_result_t
+group_stats_reply_create(struct pbuf_list *pbuf_list,
+                         struct pbuf **pbuf,
+                         struct group_stats_list *group_stats_list) {
+  lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
+  uint16_t bucket_total_length = 0;
+  uint8_t *group_stats_head = NULL;
+  struct group_stats *group_stats = NULL;
+  struct pbuf *entry_pbuf = NULL;
+
+  if (TAILQ_EMPTY(group_stats_list) == false) {
+    TAILQ_FOREACH(group_stats, group_stats_list, entry) {
+      entry_pbuf = pbuf_alloc(OFP_PACKET_MAX_SIZE);
+      if (entry_pbuf == NULL) {
+        ret = LAGOPUS_RESULT_NO_MEMORY;
+        goto done;
+      }
+      entry_pbuf->plen = OFP_PACKET_MAX_SIZE;
+
+      ret = ofp_group_stats_encode(entry_pbuf,
+                                   &group_stats->ofp);
+      if (ret == LAGOPUS_RESULT_OK) {
+        group_stats_head = pbuf_putp_get(entry_pbuf) -
+                           sizeof(struct ofp_group_stats);
+
+        ret = ofp_bucket_counter_list_encode(entry_pbuf,
+                                             &group_stats->bucket_counter_list,
+                                             &bucket_total_length);
+        if (ret == LAGOPUS_RESULT_OK) {
+          ret = ofp_multipart_length_set(
+                  group_stats_head,
+                  (uint16_t) (bucket_total_length +
+                              sizeof(struct ofp_group_stats)));
+          if (ret == LAGOPUS_RESULT_OK) {
+            ret = ofp_multipart_append(pbuf_list, entry_pbuf, pbuf);
+            if (ret != LAGOPUS_RESULT_OK) {
+              lagopus_msg_warning("FAILED (%s).\n",
+                                  lagopus_error_get_string(ret));
+            }
+          } else {
+            lagopus_msg_warning("FAILED (%s).\n",
+                                lagopus_error_get_string(ret));
+          }
+        } else {
+          lagopus_msg_warning("FAILED (%s).\n",
+                              lagopus_error_get_string(ret));
+        }
+      } else {
+        lagopus_msg_warning("Can't allocate pbuf.\n");
+        ret = LAGOPUS_RESULT_NO_MEMORY;
+      }
+
+      pbuf_free(entry_pbuf);
+      entry_pbuf = NULL;
+      if (ret != LAGOPUS_RESULT_OK) {
+        break;
+      }
+    }
+  } else {
+    /* group_stats_list is empty. */
+    ret = LAGOPUS_RESULT_OK;
+  }
+
+done:
+  return ret;
+}
+
+
 /* SEND */
 STATIC lagopus_result_t
 ofp_group_stats_reply_create(struct channel *channel,
@@ -45,11 +113,8 @@ ofp_group_stats_reply_create(struct channel *channel,
   lagopus_result_t ret = LAGOPUS_RESULT_ANY_FAILURES;
   uint16_t tmp_length = 0;
   uint16_t length = 0;
-  uint16_t bucket_total_length = 0;
-  uint8_t *group_stats_head = NULL;
   struct pbuf *pbuf = NULL;
   struct ofp_multipart_reply mp_reply;
-  struct group_stats *group_stats = NULL;
 
   if (channel != NULL && pbuf_list != NULL &&
       group_stats_list != NULL && xid_header != NULL) {
@@ -75,41 +140,9 @@ ofp_group_stats_reply_create(struct channel *channel,
         ret = ofp_multipart_reply_encode(pbuf, &mp_reply);
 
         if (ret == LAGOPUS_RESULT_OK) {
-          if (TAILQ_EMPTY(group_stats_list) == false) {
-            TAILQ_FOREACH(group_stats, group_stats_list, entry) {
-              ret = ofp_group_stats_encode_list(*pbuf_list, &pbuf,
-                                                &group_stats->ofp);
-              if (ret == LAGOPUS_RESULT_OK) {
-                group_stats_head = pbuf_putp_get(pbuf) -
-                    sizeof(struct ofp_group_stats);
-
-                ret = ofp_bucket_counter_list_encode(*pbuf_list, &pbuf,
-                                                     &group_stats->bucket_counter_list,
-                                                     &bucket_total_length);
-                if (ret != LAGOPUS_RESULT_OK) {
-                  lagopus_msg_warning("FAILED (%s).\n",
-                                      lagopus_error_get_string(ret));
-                  break;
-                } else {
-                  ret = ofp_multipart_length_set(group_stats_head,
-                                                 (uint16_t) (bucket_total_length +
-                                                     sizeof(struct ofp_group_stats)));
-                  if (ret != LAGOPUS_RESULT_OK) {
-                    lagopus_msg_warning("FAILED (%s).\n",
-                                        lagopus_error_get_string(ret));
-                    break;
-                  }
-                }
-              } else {
-                lagopus_msg_warning("Can't allocate pbuf.\n");
-                ret = LAGOPUS_RESULT_NO_MEMORY;
-              }
-            }
-          } else {
-            /* group_stats_list is empty. */
-            ret = LAGOPUS_RESULT_OK;
-          }
-
+          ret = group_stats_reply_create(*pbuf_list,
+                                         &pbuf,
+                                         group_stats_list);
           if (ret == LAGOPUS_RESULT_OK) {
             /* set length for last pbuf. */
             ret = pbuf_length_get(pbuf, &length);

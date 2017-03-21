@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2017 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,21 +39,42 @@ s_port_stats_list_encode(struct pbuf_list *pbuf_list,
                          struct port_stats_list *port_stats_list) {
   lagopus_result_t res = LAGOPUS_RESULT_ANY_FAILURES;
   struct port_stats *port_stats = NULL;
+  struct pbuf *entry_pbuf = NULL;
 
   if (TAILQ_EMPTY(port_stats_list) != true) {
     /* encode port_stats list */
     TAILQ_FOREACH(port_stats, port_stats_list, entry) {
+      entry_pbuf = pbuf_alloc(OFP_PACKET_MAX_SIZE);
+      if (entry_pbuf == NULL) {
+        res = LAGOPUS_RESULT_NO_MEMORY;
+        goto done;
+      }
+      entry_pbuf->plen = OFP_PACKET_MAX_SIZE;
+
       /* encode port_stats */
-      res = ofp_port_stats_encode_list(pbuf_list, pbuf, &(port_stats->ofp));
-      if (res != LAGOPUS_RESULT_OK) {
+      res = ofp_port_stats_encode(entry_pbuf, &(port_stats->ofp));
+      if (res == LAGOPUS_RESULT_OK) {
+        res = ofp_multipart_append(pbuf_list, entry_pbuf, pbuf);
+        if (res != LAGOPUS_RESULT_OK) {
+          lagopus_msg_warning("FAILED (%s).\n",
+                              lagopus_error_get_string(res));
+        }
+      } else {
         lagopus_msg_warning("FAILED (%s).\n",
                             lagopus_error_get_string(res));
+      }
+
+      pbuf_free(entry_pbuf);
+      entry_pbuf = NULL;
+      if (res != LAGOPUS_RESULT_OK) {
         break;
       }
     }
   } else {
     res = LAGOPUS_RESULT_OK;
   }
+
+done:
   return res;
 }
 
@@ -91,7 +112,7 @@ ofp_port_stats_reply_create(struct channel *channel,
 
         /* encode header, multipart reply */
         pbuf_plen_set(pbuf, pbuf_size_get(pbuf));
-        res = ofp_multipart_reply_encode_list(*pbuf_list, &pbuf, &reply);
+        res = ofp_multipart_reply_encode(pbuf, &reply);
         if (res == LAGOPUS_RESULT_OK) {
           res = s_port_stats_list_encode(*pbuf_list, &pbuf, port_stats_list);
           if (res == LAGOPUS_RESULT_OK) {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2017 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -82,7 +82,6 @@ ofp_match_parse(struct channel *channel, struct pbuf *pbuf,
 /**
  * Encode match_list.
  *
- *     @param[out]	pbuf_list	A pointer to list of \e pbuf structures.
  *     @param[out]	pbuf	A pointer to \e pbuf structure.
  *     @param[in]	match_list	A pointer to list of \e match structures.
  *     @param[out]	total_length	A pointer to \e size of packet.
@@ -92,8 +91,7 @@ ofp_match_parse(struct channel *channel, struct pbuf *pbuf,
  *     @retval	LAGOPUS_RESULT_ANY_FAILURES Failed.
  */
 lagopus_result_t
-ofp_match_list_encode(struct pbuf_list *pbuf_list,
-                      struct pbuf **pbuf,
+ofp_match_list_encode(struct pbuf *pbuf,
                       struct match_list *match_list,
                       uint16_t *total_length);
 

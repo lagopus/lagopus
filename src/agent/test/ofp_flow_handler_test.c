@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2017 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -68,9 +68,9 @@ void
 test_prologue(void) {
   lagopus_result_t r;
   const char *argv0 =
-      ((IS_VALID_STRING(lagopus_get_command_name()) == true) ?
-       lagopus_get_command_name() : "callout_test");
-  const char * const argv[] = {
+    ((IS_VALID_STRING(lagopus_get_command_name()) == true) ?
+     lagopus_get_command_name() : "callout_test");
+  const char *const argv[] = {
     argv0, NULL
   };
 
@@ -584,27 +584,29 @@ test_ofp_flow_reply_create_02(void) {
   struct flow_stats *flow_stats = NULL;
   struct match *match = NULL;
   const char *header_data[2] = {
-    "04 13 ff d0 00 00 00 10 00 01 00 01 00 00 00 00 ",
-    "04 13 00 50 00 00 00 10 00 01 00 00 00 00 00 00 "
+    "04 13 ff b8 00 00 00 10 00 01 00 01 00 00 00 00 ",
+    "04 13 00 58 00 00 00 10 00 01 00 00 00 00 00 00 "
   };
   const char *body_data[2] = {
-    "00 40 01 00 00 00 00 02 00 00 00 03 00 04 00 05 "
+    "00 48 01 00 00 00 00 02 00 00 00 03 00 04 00 05 "
     "00 06 00 07 00 00 00 00 00 00 00 00 00 00 00 08 "
     "00 00 00 00 00 00 00 09 00 00 00 00 00 00 00 0a "
-    "00 01 00 10 00 00 01 08 00 00 00 00 00 00 00 00 ",
-    "00 40 01 00 00 00 00 02 00 00 00 03 00 04 00 05 "
+    "00 01 00 18 00 00 01 10 00 00 00 00 00 00 00 00 "
+    "00 00 00 00 00 00 00 00",
+    "00 48 01 00 00 00 00 02 00 00 00 03 00 04 00 05 "
     "00 06 00 07 00 00 00 00 00 00 00 00 00 00 00 08 "
     "00 00 00 00 00 00 00 09 00 00 00 00 00 00 00 0a "
-    "00 01 00 10 00 00 01 08 00 00 00 00 00 00 00 00 "
+    "00 01 00 18 00 00 01 10 00 00 00 00 00 00 00 00 "
+    "00 00 00 00 00 00 00 00"
   };
-  size_t nums[2] = {1023, 1};
+  size_t nums[2] = {909, 1};
   int i;
 
   /* data */
   TAILQ_INIT(&s_flow_stats_list);
-  for (i = 0; i < 1024; i++) {
+  for (i = 0; i < 910; i++) {
     if ((flow_stats = s_flow_stats_alloc()) != NULL) {
-      /* flow_stats = 48, match = 16, sum = 64 */
+      /* flow_stats = 48, match = 24, sum = 72 */
       flow_stats->ofp.length = 0;
       flow_stats->ofp.table_id = 0x01;
       flow_stats->ofp.duration_sec = 0x02;
@@ -616,10 +618,10 @@ test_ofp_flow_reply_create_02(void) {
       flow_stats->ofp.cookie = 0x08;
       flow_stats->ofp.packet_count = 0x09;
       flow_stats->ofp.byte_count = 0x0a;
-      if ((match = match_alloc(8)) != NULL) {
+      if ((match = match_alloc(16)) != NULL) {
         match->oxm_class = 0x00;
         match->oxm_field = 0x01;
-        match->oxm_length = 0x08;
+        match->oxm_length = 0x10;
         TAILQ_INSERT_TAIL(&(flow_stats->match_list), match, entry);
       }
       TAILQ_INSERT_TAIL(&s_flow_stats_list, flow_stats, entry);
@@ -629,7 +631,7 @@ test_ofp_flow_reply_create_02(void) {
   }
 
   ret = check_pbuf_list_across_packet_create(s_ofp_flow_reply_create_wrap,
-                                             header_data, body_data, nums, 2);
+        header_data, body_data, nums, 2);
   TEST_ASSERT_EQUAL_MESSAGE(LAGOPUS_RESULT_OK, ret, "create port 0 error.");
 
   /* free */
