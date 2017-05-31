@@ -2220,8 +2220,11 @@ execute_action_push_vlan(struct lagopus_packet *pkt,
 
   /* optional */
   new_hdr = (ETHER_HDR *)OS_M_PREPEND(m, sizeof(VLAN_HDR));
-  if (NEED_COPY_ETH_ADDR(action->flags)) {
-    memmove(new_hdr, pkt->eth, ETHER_ADDR_LEN * 2);
+  if (pkt->eth != NULL) {
+    if (NEED_COPY_ETH_ADDR(action->flags)) {
+      memmove(new_hdr, pkt->eth, ETHER_ADDR_LEN * 2);
+    }
+    pkt->eth = new_hdr;
   }
   ETHER_TYPE(new_hdr) =
     OS_HTONS(((struct ofp_action_push *)&action->ofpat)->ethertype);
@@ -2233,7 +2236,6 @@ execute_action_push_vlan(struct lagopus_packet *pkt,
     VLAN_TCI(vlan_hdr) = 0;
   }
   /* re-classify packet. */
-  pkt->eth = new_hdr;
   pkt->vlan = vlan_hdr;
   pkt->oob_data.vlan_tci = VLAN_TCI(vlan_hdr) | htons(OFPVID_PRESENT);
   return LAGOPUS_RESULT_OK;
