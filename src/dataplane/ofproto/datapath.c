@@ -690,6 +690,15 @@ copy_packet(struct lagopus_packet *src_pkt) {
   return pkt;
 }
 
+static struct lagopus_packet *
+copy_packet_with_metadata(struct lagopus_packet *src_pkt) {
+  struct lagopus_packet *pkt;
+
+  pkt = copy_packet(src_pkt);
+  pkt->oob_data = src_pkt->oob_data;
+  return pkt;
+}
+
 /*
  * instructions.
  */
@@ -1614,7 +1623,7 @@ send_packet_in(struct lagopus_packet *pkt,
     free(data);
     return LAGOPUS_RESULT_NO_MEMORY;
   }
-  if (pkt->oob_data.metadata != 0) {
+  if (pkt->oob_data.metadata != 0ULL) {
     metadata_match = calloc(1, sizeof(struct match) +
                             sizeof(pkt->oob_data.metadata));
     if (metadata_match == NULL) {
@@ -1652,7 +1661,7 @@ send_packet_in(struct lagopus_packet *pkt,
   /* IN_PHY_PORT for physical port is omitted. */
 
   /* METADATA */
-  if (pkt->oob_data.metadata != 0) {
+  if (pkt->oob_data.metadata != 0ULL) {
     metadata_match->oxm_field = FIELD(OFPXMT_OFB_METADATA);
     metadata_match->oxm_length = sizeof(pkt->oob_data.metadata);
     OS_MEMCPY(metadata_match->oxm_value,
@@ -1822,12 +1831,17 @@ execute_action_output(struct lagopus_packet *pkt,
   lagopus_result_t rv;
   uint32_t port;
 
+  lagopus_msg_info("output: metadata 0x%016" PRIx64 "\n", pkt->oob_data.metadata);
   /* required action */
   port = ((struct ofp_action_output *)&action->ofpat)->port;
   DP_PRINT("action output: %d\n", port);
   if (unlikely(action->flags == OUTPUT_COPIED_PACKET)) {
     /* send copied packet */
-    dp_interface_tx_packet(copy_packet(pkt), port, action->cookie);
+    if (port == OFPP_CONTROLLER) {
+      dp_interface_tx_packet(copy_packet_with_metadata(pkt), port, action->cookie);
+    } else {
+      dp_interface_tx_packet(copy_packet(pkt), port, action->cookie);
+    }
     rv = LAGOPUS_RESULT_OK;
   } else {
     if ((pkt->flags & PKT_FLAG_CACHED_FLOW) == 0 && pkt->cache != NULL &&
