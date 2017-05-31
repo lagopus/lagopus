@@ -1831,7 +1831,6 @@ execute_action_output(struct lagopus_packet *pkt,
   lagopus_result_t rv;
   uint32_t port;
 
-  lagopus_msg_info("output: metadata 0x%016" PRIx64 "\n", pkt->oob_data.metadata);
   /* required action */
   port = ((struct ofp_action_output *)&action->ofpat)->port;
   DP_PRINT("action output: %d\n", port);
