@@ -695,6 +695,7 @@ copy_packet_with_metadata(struct lagopus_packet *src_pkt) {
   struct lagopus_packet *pkt;
 
   pkt = copy_packet(src_pkt);
+  pkt->table_id = src_pkt->table_id;
   pkt->oob_data = src_pkt->oob_data;
   return pkt;
 }
