@@ -2032,6 +2032,7 @@ execute_action_decap(struct lagopus_packet *pkt,
 
     case (OFPHTN_IP_PROTO << 16) | IPPROTO_GRE:
       switch (OS_NTOHS(pkt->gre->ptype)) {
+        case 0x6558:
         case 0x880b:
           new_type = ((OFPHTN_ONF << 16) | OFPHTO_ETHERNET);
           break;
