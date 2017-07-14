@@ -266,7 +266,7 @@ app_lcore_io_rx_buffer_to_send (
   lp->rx.mbuf_out_flush[worker] = 0;
   ret = rte_ring_sp_enqueue_burst(lp->rx.rings[worker],
                                   (void **) lp->rx.mbuf_out[worker].array,
-                                  bsz);
+                                  bsz, NULL);
 
   if (unlikely(ret < (int)bsz)) {
     uint32_t k;
@@ -346,7 +346,7 @@ app_lcore_io_rx_flush(struct app_lcore_params_io *lp, uint32_t n_workers) {
     }
     ret = rte_ring_sp_enqueue_burst(lp->rx.rings[worker],
                                     (void **) lp->rx.mbuf_out[worker].array,
-                                    n_mbufs);
+                                    n_mbufs, NULL);
     if (unlikely(ret < n_mbufs)) {
       uint32_t k;
       for (k = ret; k < n_mbufs; k ++) {
@@ -386,7 +386,7 @@ app_lcore_io_tx(struct app_lcore_params_io *lp,
       }
       ret = rte_ring_sc_dequeue_burst(ring,
                                       (void **) &lp->tx.mbuf_out[port].array[n_mbufs],
-                                      bsz_rd - n_mbufs);
+                                      bsz_rd - n_mbufs, NULL);
 
       if (unlikely(ret == 0)) {
         continue;
@@ -731,7 +731,8 @@ dpdk_get_detachable_portid_by_name(const char *name) {
 
   for (portid = 0; portid < RTE_MAX_ETHPORTS; portid++) {
     dev = &rte_eth_devices[portid];
-    if ((dev->attached) && (dev->data->dev_flags & RTE_ETH_DEV_DETACHABLE)) {
+    if ((dev->state == RTE_ETH_DEV_ATTACHED) &&
+	(dev->data->dev_flags & RTE_ETH_DEV_DETACHABLE)) {
       if (strncmp(name, dev->data->name, RTE_ETH_NAME_MAX_LEN) == 0) {
 	goto out;
       }

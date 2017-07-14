@@ -96,7 +96,7 @@ eth_ring_rx(void *q, struct rte_mbuf **bufs, uint16_t nb_bufs) {
   void **ptrs = (void *)&bufs[0];
   struct ring_queue *r = q;
   const uint16_t nb_rx = (uint16_t)rte_ring_dequeue_burst(r->rng,
-                         ptrs, nb_bufs);
+			 ptrs, nb_bufs, NULL);
   uint16_t cnt;
   if (r->rng->flags & RING_F_SC_DEQ) {
     r->rx_pkts.cnt += nb_rx;
@@ -124,7 +124,7 @@ eth_ring_tx(void *q, struct rte_mbuf **bufs, uint16_t nb_bufs) {
   void **ptrs = (void *)&bufs[0];
   struct ring_queue *r = q;
   const uint16_t nb_tx = (uint16_t)rte_ring_enqueue_burst(r->rng,
-                         ptrs, nb_bufs);
+			 ptrs, nb_bufs, NULL);
   uint16_t cnt;
   if (r->rng->flags & RING_F_SP_ENQ) {
     r->tx_pkts.cnt += nb_tx;
@@ -350,7 +350,6 @@ rte_eth_from_rings(const char *name, struct rte_ring *const rx_queues[],
   data->mac_addrs = &eth_addr;
 
   eth_dev->data = data;
-  eth_dev->driver = NULL;
   eth_dev ->dev_ops = &ops;
   data->dev_flags = RTE_ETH_DEV_DETACHABLE;
   data->kdrv = RTE_KDRV_NONE;
