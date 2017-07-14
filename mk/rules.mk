@@ -277,7 +277,7 @@ dpdk-install::
 	for i in `sed 's/GROUP (\(.*\))/\1/' $(TOPDIR)/src/dpdk/build/lib/libdpdk.so`; do \
 	  if [ -f $(TOPDIR)/src/dpdk/build/lib/$$i ]; then \
 	    $(INSTALL_DATA) $(TOPDIR)/src/dpdk/build/lib/$$i $(DEST_LIBDIR); \
-	    s=`echo $$i | grep librte_pmd_`;\
+	    s=`echo $$i | egrep "(librte_mempool_|librte_pmd_)"`;\
 		if [ -n "$$s" ]; then \
 		    $(LN_S) ../$$i $(DEST_LIBDIR)/dpdk-pmd/$$i; \
 		fi \
