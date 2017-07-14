@@ -203,7 +203,7 @@ del_flow_metadata_mask(struct flowinfo *self, struct flow *flow) {
     if (flowinfo->nflow == 0) {
       flowinfo->destroy_func(flowinfo);
       self->nnext--;
-      memmove(&self->next[i], &self->next[i + 1], (size_t)(self->nnext - i));
+      memmove(&self->next[i], &self->next[i + 1], (self->nnext - i) * sizeof(struct flowinfo **));
     }
   } else {
     rv = self->misc->del_func(self->misc, flow);
