@@ -212,7 +212,7 @@ const struct match_idx match_idx[]  = {
   { MAKE_IDX(L4_BASE, tcphdr, dest), {0xff,0xff}, 0 },
   { MAKE_IDX(L4_BASE, udphdr, source), {0xff,0xff}, 0 },
   { MAKE_IDX(L4_BASE, udphdr, dest), {0xff,0xff}, 0 },
-  { MAKE_IDX(L4_BASE, tcphdr, soruce), {0xff,0xff}, 0 },
+  { MAKE_IDX(L4_BASE, tcphdr, source), {0xff,0xff}, 0 },
   { MAKE_IDX(L4_BASE, tcphdr, dest), {0xff,0xff}, 0 },
 #endif /* __FAVOR_BSD */
   { MAKE_IDX(L4_BASE, icmp, icmp_type), {0xff}, 0 },
