@@ -35,7 +35,6 @@
 #endif /* HAVE_NET_ETHERNET_H */
 #endif /* HAVE_DPDK */
 
-#define __FAVOR_BSD
 #include <netinet/in.h>
 #include <netinet/ip.h>
 #include <netinet/ip_icmp.h>
@@ -279,6 +278,7 @@ flow_make_match(struct flow *flow) {
       MAKE_BYTEOFF(OFPXMT_OFB_IPV6_DST, 0, V6DST_BASE);
       MAKE_BYTEOFF_W(OFPXMT_OFB_IPV6_DST, 0, V6DST_BASE);
 
+#ifdef __FAVOR_BSD
       MAKE_BYTE(OFPXMT_OFB_TCP_SRC, tcphdr, th_sport, L4_BASE);
       MAKE_BYTE(OFPXMT_OFB_TCP_DST, tcphdr, th_dport, L4_BASE);
 
@@ -292,7 +292,21 @@ flow_make_match(struct flow *flow) {
       MAKE_BYTE(OFPXMT_OFB_SCTP_SRC, sctp, sctp_sport, L4_BASE);
       MAKE_BYTE(OFPXMT_OFB_SCTP_DST, sctp, sctp_dport, L4_BASE);
 #endif
+#else
+      MAKE_BYTE(OFPXMT_OFB_TCP_SRC, tcphdr, source, L4_BASE);
+      MAKE_BYTE(OFPXMT_OFB_TCP_DST, tcphdr, dest, L4_BASE);
 
+      MAKE_BYTE(OFPXMT_OFB_UDP_SRC, udphdr, source, L4_BASE);
+      MAKE_BYTE(OFPXMT_OFB_UDP_DST, udphdr, dest, L4_BASE);
+
+#if 1
+      MAKE_BYTE(OFPXMT_OFB_SCTP_SRC, tcphdr, source, L4_BASE);
+      MAKE_BYTE(OFPXMT_OFB_SCTP_DST, tcphdr, dest, L4_BASE);
+#else
+      MAKE_BYTE(OFPXMT_OFB_SCTP_SRC, sctp, sctp_sport, L4_BASE);
+      MAKE_BYTE(OFPXMT_OFB_SCTP_DST, sctp, sctp_dport, L4_BASE);
+#endif
+#endif /* __FAVOR_BSD */
       MAKE_BYTE(OFPXMT_OFB_ICMPV4_TYPE, icmp, icmp_type, L4_BASE);
       MAKE_BYTE(OFPXMT_OFB_ICMPV4_CODE, icmp, icmp_code, L4_BASE);
 
