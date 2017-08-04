@@ -24,7 +24,6 @@
 #include <netinet/in.h>
 #include <sys/ioctl.h>
 #include <errno.h>
-#include <execinfo.h>
 
 #include "openflow.h"
 #include "openflow13packet.h"
