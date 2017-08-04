@@ -51,7 +51,7 @@ generator.o:: generator_lex.o
 generator_lex.o:: generator_parser.o
 
 generator: generator_parser.c generator_lex.c generator.c
-	cc $(CFLAGS) generator_parser.c generator_lex.c generator.c -o generator
+	cc -I$(BUILD_INCDIR) generator_parser.c generator_lex.c generator.c -o generator
 
 clean::
 	$(RM) generator_parser.c generator_parser.h generator_lex.c
