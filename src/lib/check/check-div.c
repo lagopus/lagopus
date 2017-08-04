@@ -28,6 +28,7 @@
   } while (0)
 
 
+#if defined(LAGOPUS_CPU_X86_64) || defined(LAGOPUS_CPU_I386)
 #define ASM_IDIVQ(devidend, divisor, quot, rem)                         \
   do {                                                                  \
     __asm__ volatile                                                    \
@@ -41,6 +42,9 @@
          : "r" (devidend), "r" (divisor)                                \
          : "%rdx", "%rax", "%r10");                                     \
   } while (0)
+#else
+#define ASM_IDIVQ(devidend, divisor, quot, rem)
+#endif
 
 
 #define NSEC_TO_TS_ASM(nsec, ts) \
@@ -91,11 +95,9 @@ main(int argc, const char *const argv[]) {
   end1 = lagopus_rdtsc();
 
   start2 = lagopus_rdtsc();
-#if defined(LAGOPUS_CPU_X86_64) || defined(LAGOPUS_CPU_I386)
   for (i = 0; i < 1000LL * 1000LL * 1000LL; i++) {
     NSEC_TO_TS_ASM((lagopus_chrono_t)i, ts0);
   }
-#endif
   end2 = lagopus_rdtsc();
 
   fprintf(stderr, "cur: " PF64(u) "\n", end0 - start0);
