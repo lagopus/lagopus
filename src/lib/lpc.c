@@ -56,7 +56,17 @@ static int lpc_info_alloc = 0;
 static inline unsigned long
 __fls(unsigned long word)
 {
+#if defined(LAGOPUS_CPU_X86_64) || defined(LAGOPUS_CPU_I386)
   asm("bsr %1,%0" : "=r"(word) : "rm"(word));
+#else
+  if (word != 0) {
+    unsigned long temp = sizeof(word) * 8 - 1;
+    while ((word & (1 << temp)) == 0) {
+      temp--;
+    }
+    word = temp;
+  }
+#endif
   return word;
 }
 

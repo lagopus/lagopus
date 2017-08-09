@@ -376,7 +376,8 @@ AC_RUN_IFELSE(
 		 [return r;]])],
 	[resultOK=1],
 	[AC_MSG_RESULT([not available.])],
-	[AC_MSG_RESULT([not checkable since cross-compilation.])])
+	[resultOK=1
+	 AC_MSG_RESULT([not checkable since cross-compilation.])])
 LIBS=${oLIBS}
 if test ${resultOK} -eq 1; then
     AC_MSG_RESULT([available.])
