@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2017 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@
 
 #define LAGOPUS_VERSION_MAJOR 0
 #define LAGOPUS_VERSION_MINOR 2
-#define LAGOPUS_VERSION_PATCH 11
+#define LAGOPUS_VERSION_PATCH 12
 #define LAGOPUS_VERSION_RELEASE "-release"
 
 #endif /* SRC_INCLUDE_LAGOPUS_VERSION_H_ */
