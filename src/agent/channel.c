@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2017 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,7 +24,6 @@
 #include <netinet/in.h>
 #include <sys/ioctl.h>
 #include <errno.h>
-#include <execinfo.h>
 
 #include "openflow.h"
 #include "openflow13packet.h"

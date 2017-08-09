@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2017 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -244,7 +244,7 @@ app_lcore_worker(struct app_lcore_params_worker *lp,
 
     ret = rte_ring_sc_dequeue_burst(ring_in,
                                     (void **) lp->mbuf_in.array,
-                                    bsz_rd);
+                                    bsz_rd, NULL);
     if (unlikely(ret == 0)) {
 #if defined HYBRID && defined PIPELINER
         pipeline_process_stacked_packets();
@@ -278,7 +278,7 @@ app_lcore_worker_flush(struct app_lcore_params_worker *lp) {
     n = lp->mbuf_out[portid].n_mbufs;
     ret = rte_ring_sp_enqueue_bulk(lp->rings_out[portid],
                                    (void **) lp->mbuf_out[portid].array,
-                                   n);
+                                   n, NULL);
     if (unlikely(ret == -ENOBUFS)) {
       uint32_t k;
       for (k = 0; k < n; k ++) {
@@ -526,7 +526,7 @@ dpdk_send_packet_physical(struct lagopus_packet *pkt, struct interface *ifp) {
   ret = rte_ring_sp_enqueue_bulk(
           lp->rings_out[portid],
           (void **) lp->mbuf_out[portid].array,
-          bsz_wr);
+          bsz_wr, NULL);
 
   if (unlikely(ret == -ENOBUFS)) {
     uint32_t k;

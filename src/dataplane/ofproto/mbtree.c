@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2017 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,7 +36,6 @@
 #endif /* HAVE_NET_ETHERNET_H */
 #endif /* HAVE_DPDK */
 
-#define __FAVOR_BSD
 #include <netinet/in.h>
 #include <netinet/ip.h>
 #include <netinet/ip6.h>
@@ -91,12 +90,21 @@ static const struct match_idx match_idx[] = {
   MAKE_MATCH_IDX(IPPROTO_BASE, ip, ip_p, UINT8_MAX, 0), /* 10 IP_PROTO */
   MAKE_MATCH_IDX(L3_BASE, ip, ip_src, UINT32_MAX, 0),    /* 11 IPV4_SRC */
   MAKE_MATCH_IDX(L3_BASE, ip, ip_dst, UINT32_MAX, 0),    /* 12 IPV4_DST */
+#ifdef __FAVOR_BSD
   MAKE_MATCH_IDX(L4_BASE, tcphdr, th_sport, UINT16_MAX, 0),      /* 13 TCP_SRC */
   MAKE_MATCH_IDX(L4_BASE, tcphdr, th_dport, UINT16_MAX, 0),      /* 14 TCP_DST */
   MAKE_MATCH_IDX(L4_BASE, udphdr, uh_sport, UINT16_MAX, 0),      /* 15 UDP_SRC */
   MAKE_MATCH_IDX(L4_BASE, udphdr, uh_dport, UINT16_MAX, 0),      /* 16 UDP_DST */
   MAKE_MATCH_IDX(L4_BASE, tcphdr, th_sport, UINT16_MAX, 0),      /* 17 SCTP_SRC */
   MAKE_MATCH_IDX(L4_BASE, tcphdr, th_dport, UINT16_MAX, 0),      /* 18 SCTP_DST */
+#else
+  MAKE_MATCH_IDX(L4_BASE, tcphdr, source, UINT16_MAX, 0),      /* 13 TCP_SRC */
+  MAKE_MATCH_IDX(L4_BASE, tcphdr, dest, UINT16_MAX, 0),      /* 14 TCP_DST */
+  MAKE_MATCH_IDX(L4_BASE, udphdr, source, UINT16_MAX, 0),      /* 15 UDP_SRC */
+  MAKE_MATCH_IDX(L4_BASE, udphdr, dest, UINT16_MAX, 0),      /* 16 UDP_DST */
+  MAKE_MATCH_IDX(L4_BASE, tcphdr, source, UINT16_MAX, 0),      /* 17 SCTP_SRC */
+  MAKE_MATCH_IDX(L4_BASE, tcphdr, dest, UINT16_MAX, 0),      /* 18 SCTP_DST */
+#endif /* __FAVOR_BSD */
   MAKE_MATCH_IDX(L4_BASE, icmp, icmp_type, UINT8_MAX, 0),       /* 19 ICMPV4_TYPE */
   MAKE_MATCH_IDX(L4_BASE, icmp, icmp_code, UINT8_MAX, 0),       /* 20 ICMPV4_CODE */
   MAKE_MATCH_IDX(L3_BASE, ether_arp, arp_op, UINT16_MAX, 0),     /* 21 ARP_OP */

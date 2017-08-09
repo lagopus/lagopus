@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2017 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,6 +28,7 @@
   } while (0)
 
 
+#if defined(LAGOPUS_CPU_X86_64) || defined(LAGOPUS_CPU_I386)
 #define ASM_IDIVQ(devidend, divisor, quot, rem)                         \
   do {                                                                  \
     __asm__ volatile                                                    \
@@ -41,6 +42,9 @@
          : "r" (devidend), "r" (divisor)                                \
          : "%rdx", "%rax", "%r10");                                     \
   } while (0)
+#else
+#define ASM_IDIVQ(devidend, divisor, quot, rem)
+#endif
 
 
 #define NSEC_TO_TS_ASM(nsec, ts) \

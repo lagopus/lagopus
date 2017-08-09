@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2017 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -47,7 +47,9 @@
 #include "lagopus/pipeline.h"
 #endif /* HYBRID && PIPELINER */
 
+#ifndef __linux__
 #define __FAVOR_BSD
+#endif /* __linux__ */
 #include <netinet/if_ether.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
@@ -353,14 +355,27 @@ struct lagopus_packet {
 #define IPV6_PROTO(h) ((h)->ip6_nxt)
 #define IPV6_HLIM(h)  ((h)->ip6_hlim)
 #define TCP_HDR       struct tcphdr
+#ifdef __FAVOR_BSD
 #define TCP_SPORT(h)  ((h)->th_sport)
 #define TCP_DPORT(h)  ((h)->th_dport)
 #define TCP_CKSUM(h)  ((h)->th_sum)
+#else
+#define TCP_SPORT(h)  ((h)->source)
+#define TCP_DPORT(h)  ((h)->dest)
+#define TCP_CKSUM(h)  ((h)->check)
+#endif /* __FAVOR_BSD */
 #define UDP_HDR       struct udphdr
+#ifdef __FAVOR_BSD
 #define UDP_SPORT(h)  ((h)->uh_sport)
 #define UDP_DPORT(h)  ((h)->uh_dport)
 #define UDP_LEN(h)    ((h)->uh_ulen)
 #define UDP_CKSUM(h)  ((h)->uh_sum)
+#else
+#define UDP_SPORT(h)  ((h)->source)
+#define UDP_DPORT(h)  ((h)->dest)
+#define UDP_LEN(h)    ((h)->len)
+#define UDP_CKSUM(h)  ((h)->check)
+#endif /* __FAVOR_BSD */
 #define SCTP_HDR      uint16_t
 #define SCTP_SPORT(h) ((h)[0])
 #define SCTP_DPORT(h) ((h)[1])

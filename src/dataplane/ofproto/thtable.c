@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2016 Nippon Telegraph and Telephone Corporation.
+ * Copyright 2014-2017 Nippon Telegraph and Telephone Corporation.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -200,12 +200,21 @@ const struct match_idx match_idx[]  = {
   { IPPROTO_BASE, 0, 1, {0xff}, 0 },
   { MAKE_IDX(L3_BASE, ip, ip_src), {0xff,0xff,0xff,0xff}, 0 },
   { MAKE_IDX(L3_BASE, ip, ip_dst), {0xff,0xff,0xff,0xff}, 0 },
+#ifdef __FAVOR_BSD
   { MAKE_IDX(L4_BASE, tcphdr, th_sport), {0xff,0xff}, 0 },
   { MAKE_IDX(L4_BASE, tcphdr, th_dport), {0xff,0xff}, 0 },
   { MAKE_IDX(L4_BASE, udphdr, uh_sport), {0xff,0xff}, 0 },
   { MAKE_IDX(L4_BASE, udphdr, uh_dport), {0xff,0xff}, 0 },
   { MAKE_IDX(L4_BASE, tcphdr, th_sport), {0xff,0xff}, 0 },
   { MAKE_IDX(L4_BASE, tcphdr, th_dport), {0xff,0xff}, 0 },
+#else
+  { MAKE_IDX(L4_BASE, tcphdr, source), {0xff,0xff}, 0 },
+  { MAKE_IDX(L4_BASE, tcphdr, dest), {0xff,0xff}, 0 },
+  { MAKE_IDX(L4_BASE, udphdr, source), {0xff,0xff}, 0 },
+  { MAKE_IDX(L4_BASE, udphdr, dest), {0xff,0xff}, 0 },
+  { MAKE_IDX(L4_BASE, tcphdr, source), {0xff,0xff}, 0 },
+  { MAKE_IDX(L4_BASE, tcphdr, dest), {0xff,0xff}, 0 },
+#endif /* __FAVOR_BSD */
   { MAKE_IDX(L4_BASE, icmp, icmp_type), {0xff}, 0 },
   { MAKE_IDX(L4_BASE, icmp, icmp_code), {0xff}, 0 },
   { MAKE_IDX(L3_BASE, ether_arp, arp_op), {0xff,0xff}, 0 },
