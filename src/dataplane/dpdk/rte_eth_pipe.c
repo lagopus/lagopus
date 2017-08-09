@@ -33,9 +33,9 @@
 
 /*
  * Usage:
- *  --vdev eth_pipe0[,socket=N] --vdev eth_pipe1[,socket=N]
+ *  --vdev net_pipe0[,socket=N]
+ *  --vdev net_pipe1[,socket=N],attach=net_pipe0
  *  N: numa node (0 or 1) default:0
- *  single --vdev creates twa virtual ports and connected via ring.
  */
 
 #include <rte_config.h>
@@ -147,13 +147,13 @@ eth_dev_configure(struct rte_eth_dev *dev __rte_unused) { return 0; }
 
 static int
 eth_dev_start(struct rte_eth_dev *dev) {
-  dev->data->dev_link.link_status = 1;
+  dev->data->dev_link.link_status = ETH_LINK_UP;
   return 0;
 }
 
 static void
 eth_dev_stop(struct rte_eth_dev *dev) {
-  dev->data->dev_link.link_status = 0;
+  dev->data->dev_link.link_status = ETH_LINK_DOWN;
 }
 
 static int
@@ -195,46 +195,44 @@ static void
 eth_dev_info(struct rte_eth_dev *dev,
              struct rte_eth_dev_info *dev_info) {
   struct pmd_internals *internals = dev->data->dev_private;
-  dev_info->driver_name = drivername;
   dev_info->max_mac_addrs = 1;
   dev_info->max_rx_pktlen = (uint32_t)-1;
   dev_info->max_rx_queues = (uint16_t)internals->nb_rx_queues;
   dev_info->max_tx_queues = (uint16_t)internals->nb_tx_queues;
   dev_info->min_rx_bufsize = 0;
-  dev_info->pci_dev = NULL;
 }
 
 static void
-eth_stats_get(struct rte_eth_dev *dev, struct rte_eth_stats *igb_stats) {
+eth_stats_get(struct rte_eth_dev *dev, struct rte_eth_stats *stats) {
   unsigned i;
   unsigned long rx_total = 0, tx_total = 0, tx_err_total = 0;
   unsigned long rx_btotal = 0, tx_btotal = 0;
   const struct pmd_internals *internal = dev->data->dev_private;
 
-  memset(igb_stats, 0, sizeof(*igb_stats));
+  memset(stats, 0, sizeof(*stats));
   for (i = 0; i < RTE_ETHDEV_QUEUE_STAT_CNTRS &&
        i < internal->nb_rx_queues; i++) {
-    igb_stats->q_ipackets[i] = internal->rx_ring_queues[i].rx_pkts.cnt;
-    igb_stats->q_ibytes[i] = internal->rx_ring_queues[i].rx_bytes.cnt;
-    rx_total += igb_stats->q_ipackets[i];
-    rx_btotal += igb_stats->q_ibytes[i];
+    stats->q_ipackets[i] = internal->rx_ring_queues[i].rx_pkts.cnt;
+    stats->q_ibytes[i] = internal->rx_ring_queues[i].rx_bytes.cnt;
+    rx_total += stats->q_ipackets[i];
+    rx_btotal += stats->q_ibytes[i];
   }
 
   for (i = 0; i < RTE_ETHDEV_QUEUE_STAT_CNTRS &&
        i < internal->nb_tx_queues; i++) {
-    igb_stats->q_opackets[i] = internal->tx_ring_queues[i].tx_pkts.cnt;
-    igb_stats->q_obytes[i] = internal->tx_ring_queues[i].tx_bytes.cnt;
-    igb_stats->q_errors[i] = internal->tx_ring_queues[i].err_pkts.cnt;
-    tx_total += igb_stats->q_opackets[i];
-    tx_btotal += igb_stats->q_obytes[i];
-    tx_err_total += igb_stats->q_errors[i];
+    stats->q_opackets[i] = internal->tx_ring_queues[i].tx_pkts.cnt;
+    stats->q_obytes[i] = internal->tx_ring_queues[i].tx_bytes.cnt;
+    stats->q_errors[i] = internal->tx_ring_queues[i].err_pkts.cnt;
+    tx_total += stats->q_opackets[i];
+    tx_btotal += stats->q_obytes[i];
+    tx_err_total += stats->q_errors[i];
   }
 
-  igb_stats->ipackets = rx_total;
-  igb_stats->opackets = tx_total;
-  igb_stats->ibytes = rx_btotal;
-  igb_stats->obytes = tx_btotal;
-  igb_stats->oerrors = tx_err_total;
+  stats->ipackets = rx_total;
+  stats->opackets = tx_total;
+  stats->ibytes = rx_btotal;
+  stats->obytes = tx_btotal;
+  stats->oerrors = tx_err_total;
 }
 
 static void
@@ -460,10 +458,14 @@ out:
 }
 
 static int
-rte_pmd_pipe_probe(const char *name, const char *params) {
+rte_pmd_pipe_probe(struct rte_vdev_device *dev) {
+  const char *name, *params;
   struct rte_kvargs *kvlist;
   int ret = 0;
   struct vport_info info;
+
+  name = rte_vdev_device_name(dev);
+  params = rte_vdev_device_args(dev);
 
   kvlist = rte_kvargs_parse(params, valid_arguments);
 
@@ -500,7 +502,8 @@ out:
 }
 
 static int
-rte_pmd_pipe_remove(const char *name) {
+rte_pmd_pipe_remove(struct rte_vdev_device *dev) {
+  const char *name = rte_vdev_device_name(dev);
   struct rte_eth_dev *eth_dev;
 
   RTE_LOG(INFO, PMD, "Uninitializing pmd_pipe for %s\n", name);
