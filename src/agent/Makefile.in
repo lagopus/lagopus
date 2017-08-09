@@ -50,8 +50,8 @@ $(SRCS_GENERATE): generator
 generator.o:: generator_lex.o
 generator_lex.o:: generator_parser.o
 
-generator: generator_parser.o generator_lex.o generator.o
-	$(LINK_CC) $(CFLAGS) generator_parser.o generator_lex.o generator.o -o generator
+generator: generator_parser.c generator_lex.c generator.c
+	cc -I$(BUILD_INCDIR) generator_parser.c generator_lex.c generator.c -o generator
 
 clean::
 	$(RM) generator_parser.c generator_parser.h generator_lex.c

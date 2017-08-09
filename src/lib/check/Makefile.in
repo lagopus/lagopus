@@ -12,7 +12,7 @@ TARGETS	= check0 check1 check2 check3 check4 check5 check6 \
 	check10-b check5-a check5-b check11 check12 check13 check-co \
 	check-div check-ml check-spin
 
-DEP_LIBS	+=	-lm @OS_LIBS@
+DEP_LIBS	+=	$(LDFLAGS) @SSL_LIBS@ -lm @OS_LIBS@
 
 include $(MKRULESDIR)/vars.mk
 include $(MKRULESDIR)/rules.mk
