@@ -733,7 +733,7 @@ dpdk_get_detachable_portid_by_name(const char *name) {
     dev = &rte_eth_devices[portid];
     if ((dev->state == RTE_ETH_DEV_ATTACHED) &&
 	(dev->data->dev_flags & RTE_ETH_DEV_DETACHABLE)) {
-      if (strncmp(name, dev->data->name, RTE_ETH_NAME_MAX_LEN) == 0) {
+      if (strncmp(name, dev->device->driver->name, RTE_ETH_NAME_MAX_LEN) == 0) {
 	goto out;
       }
     }

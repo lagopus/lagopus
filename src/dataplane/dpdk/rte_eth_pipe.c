@@ -80,15 +80,18 @@ struct pmd_internals {
 
   struct ring_queue rx_ring_queues[RTE_PMD_PIPE_MAX_RX_RINGS];
   struct ring_queue tx_ring_queues[RTE_PMD_PIPE_MAX_TX_RINGS];
+
+  struct ether_addr address;
 };
 
 
 static struct ether_addr eth_addr = { .addr_bytes = {0} };
-static const char *drivername = "Pipe PMD";
+
 static struct rte_eth_link pmd_link = {
-  .link_speed = 10000,
+  .link_speed = ETH_SPEED_NUM_10G,
   .link_duplex = ETH_LINK_FULL_DUPLEX,
-  .link_status = 0
+  .link_status = ETH_LINK_DOWN,
+  .link_autoneg = ETH_LINK_SPEED_AUTONEG
 };
 
 static uint16_t
@@ -250,12 +253,24 @@ eth_stats_reset(struct rte_eth_dev *dev) {
   }
 }
 
+static void
+eth_mac_addr_remove(struct rte_eth_dev *dev __rte_unused,
+	uint32_t index __rte_unused)
+{
+}
+
 static int
-eth_set_mtu(struct rte_eth_dev *dev __rte_unused,
-            int mtu __rte_unused) { return 0; }
+eth_mac_addr_add(struct rte_eth_dev *dev __rte_unused,
+	struct ether_addr *mac_addr __rte_unused,
+	uint32_t index __rte_unused,
+	uint32_t vmdq __rte_unused)
+{
+	return 0;
+}
 
 static void
 eth_queue_release(void *q __rte_unused) { ; }
+
 static int
 eth_link_update(struct rte_eth_dev *dev __rte_unused,
                 int wait_to_complete __rte_unused) { return 0; }
@@ -274,7 +289,8 @@ static struct eth_dev_ops ops = {
   .link_update = eth_link_update,
   .stats_get = eth_stats_get,
   .stats_reset = eth_stats_reset,
-  .mtu_set = eth_set_mtu,
+  .mac_addr_remove = eth_mac_addr_remove,
+  .mac_addr_add = eth_mac_addr_add,
 };
 
 static int
@@ -282,7 +298,8 @@ rte_eth_from_rings(const char *name, struct rte_ring *const rx_queues[],
                    const unsigned nb_rx_queues,
                    struct rte_ring *const tx_queues[],
                    const unsigned nb_tx_queues,
-                   const unsigned numa_node) {
+                   const unsigned numa_node,
+		   struct rte_vdev_device *dev) {
   struct rte_eth_dev_data *data = NULL;
   struct pmd_internals *internals = NULL;
   struct rte_eth_dev *eth_dev = NULL;
@@ -320,6 +337,7 @@ rte_eth_from_rings(const char *name, struct rte_ring *const rx_queues[],
     rte_errno = ENOSPC;
     goto error;
   }
+  eth_dev->device = &dev->device;
 
   /* now put it all together
    * - store queue data in internals,
@@ -341,17 +359,15 @@ rte_eth_from_rings(const char *name, struct rte_ring *const rx_queues[],
 
   data->dev_private = internals;
   data->port_id = eth_dev->data->port_id;
-  memmove(data->name, eth_dev->data->name, sizeof(data->name));
   data->nb_rx_queues = (uint16_t)nb_rx_queues;
   data->nb_tx_queues = (uint16_t)nb_tx_queues;
   data->dev_link = pmd_link;
-  data->mac_addrs = &eth_addr;
+  data->mac_addrs = &internals->address;
 
   eth_dev->data = data;
   eth_dev ->dev_ops = &ops;
   data->dev_flags = RTE_ETH_DEV_DETACHABLE;
   data->kdrv = RTE_KDRV_NONE;
-  data->drv_name = drivername;
   data->numa_node = numa_node;
 
   TAILQ_INIT(&(eth_dev->link_intr_cbs));
@@ -384,7 +400,8 @@ struct vport_info {
 };
 
 static int
-eth_dev_ring_create(const char *name, struct vport_info *info) {
+eth_dev_ring_create(struct rte_vdev_device *dev,
+		    const char *name, struct vport_info *info) {
   /* rx and tx are so-called from point of view of first port.
    * They are inverted from the point of view of second port
    */
@@ -425,7 +442,7 @@ eth_dev_ring_create(const char *name, struct vport_info *info) {
     }
   }
   if (rte_eth_from_rings(name, rx, num_rings, tx, num_rings,
-                         numa_node)) {
+                         numa_node, dev)) {
     return -1;
   }
 
@@ -475,7 +492,7 @@ rte_pmd_pipe_probe(struct rte_vdev_device *dev) {
             " pipe ethernet device\n");
     info.node = rte_socket_id();
     info.action = DEV_CREATE;
-    eth_dev_ring_create(name, &info);
+    eth_dev_ring_create(dev, name, &info);
     return 0;
   } else {
     ret = rte_kvargs_count(kvlist, ETH_PIPE_ATTACH_ARG);
@@ -495,7 +512,7 @@ rte_pmd_pipe_probe(struct rte_vdev_device *dev) {
       RTE_LOG(INFO, PMD, "Initializing pmd_pipe for %s (attached to %s)\n",
               name, info.name);
     }
-    eth_dev_ring_create(name, &info);
+    eth_dev_ring_create(dev, name, &info);
   }
 out:
   return ret;
