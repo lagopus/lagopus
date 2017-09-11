@@ -76,16 +76,18 @@ static int portidx = 0;
 static lagopus_hashmap_t portid_hashmap;
 
 static uint32_t
-get_port_number(const char *ifname) {
+get_port_number(struct interface *ifp) {
   lagopus_result_t rv;
   uint32_t portid;
 
-  rv = lagopus_hashmap_find(&portid_hashmap, (void *)ifname, (void **)&portid);
+  rv = lagopus_hashmap_find(&portid_hashmap, (void *)ifp->name,
+			    (void **)&portid);
   if (rv == LAGOPUS_RESULT_OK) {
     return portid;
   }
   portid = portidx;
-  lagopus_hashmap_add(&portid_hashmap, (void *)ifname, (void **)&portid, false);
+  lagopus_hashmap_add(&portid_hashmap, (void *)ifp->name,
+		      (void **)&portid, false);
   return portidx++;
 }
 
@@ -281,7 +283,7 @@ rawsock_configure_interface(struct interface *ifp) {
                         ifp->info.eth_rawsock.device, strerror(errno));
     return LAGOPUS_RESULT_POSIX_API_ERROR;
   }
-  portid = get_port_number(ifp->info.eth_rawsock.device);
+  portid = get_port_number(ifp);
   if (portid == UINT32_MAX) {
     close(fd);
     lagopus_msg_error("%s: too many port opened\n",
