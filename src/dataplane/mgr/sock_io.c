@@ -73,29 +73,26 @@ static struct flowcache *flowcache;
 static bool volatile clear_cache = false;
 
 static int portidx = 0;
-
-static uint32_t free_portids[NUM_PORTID];
+static lagopus_hashmap_t portid_hashmap;
 
 static uint32_t
-get_port_number(void) {
-  if (portidx == 0) {
-    int i;
+get_port_number(const char *ifname) {
+  lagopus_result_t rv;
+  uint32_t portid;
 
-    /* initialize */
-    for (i = 0; i < NUM_PORTID; i++) {
-      free_portids[i] = i;
-    }
+  rv = lagopus_hashmap_find(&portid_hashmap, (void *)ifname, (void **)&portid);
+  if (rv == LAGOPUS_RESULT_OK) {
+    return portid;
   }
-  if (portidx == NUM_PORTID) {
-    /* portid exhausted */
-    return UINT32_MAX;
-  }
-  return free_portids[portidx++];
+  portid = portidx;
+  lagopus_hashmap_add(&portid_hashmap, (void *)ifname, (void **)&portid, false);
+  return portidx++;
 }
 
 static void
-put_port_number(int id) {
-  free_portids[--portidx] = id;
+put_port_number(uint32_t portid) {
+  ifindex[portid] = -1;
+  pollfd[portid].fd = -1;
 }
 
 static ssize_t
@@ -284,7 +281,7 @@ rawsock_configure_interface(struct interface *ifp) {
                         ifp->info.eth_rawsock.device, strerror(errno));
     return LAGOPUS_RESULT_POSIX_API_ERROR;
   }
-  portid = get_port_number();
+  portid = get_port_number(ifp->info.eth_rawsock.device);
   if (portid == UINT32_MAX) {
     close(fd);
     lagopus_msg_error("%s: too many port opened\n",
@@ -712,15 +709,16 @@ dp_rawsock_thread_loop(__UNUSED const lagopus_thread_t *selfptr,
 
   while (*running == true) {
     struct port *port;
+    int portmax = portidx;
 
-    for (i = 0; i < portidx; i++) {
+    for (i = 0; i < portmax; i++) {
       pollfd[i].revents = 0;
     }
     /* wait 0.1 sec. */
-    if (poll(pollfd, (nfds_t)portidx, 100) < 0) {
+    if (poll(pollfd, (nfds_t)portmax, 100) < 0) {
       err(errno, "poll");
     }
-    for (i = 0; i < portidx; i++) {
+    for (i = 0; i < portmax; i++) {
       if (clear_cache == true && flowcache != NULL) {
         clear_all_cache(flowcache);
         clear_cache = false;
@@ -816,6 +814,9 @@ dp_rawsock_thread_init(int argc,
     return nb_ports;
   }
   lagopus_meter_init();
+  lagopus_hashmap_create(&portid_hashmap,
+			 LAGOPUS_HASHMAP_TYPE_STRING,
+			 NULL);
   lagopus_register_action_hook = lagopus_set_action_function;
   lagopus_register_instruction_hook = lagopus_set_instruction_function;
   flowinfo_init();
