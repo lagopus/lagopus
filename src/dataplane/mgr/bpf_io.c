@@ -45,6 +45,7 @@
 #include "csum.h"
 #include "thread.h"
 #include "lock.h"
+#include "sock_io.h"
 
 static struct port_stats *bpf_port_stats(struct port *port);
 
