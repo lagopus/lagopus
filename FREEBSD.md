@@ -17,9 +17,12 @@ Compile vswitch
 
 * DPDK version
 
+RESTRICTION: So far, we need little hack to build lagopus with DPDK.
+
 ```
 	$ cd lagopus
-	$ env SYSDIR=$HOME/sys CC=clang CONFIG_SHELL=/usr/local/bin/bash ./configure
+        $ mkdir temp; echo clean: > temp/Makefile
+	$ env RTE_KERNELDIR=$PWD/temp SYSDIR=$HOME/sys CC=clang CONFIG_SHELL=/usr/local/bin/bash ./configure
 	$ gmake
 ```
 
