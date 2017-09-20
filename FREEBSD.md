@@ -10,7 +10,6 @@ Install necessary packages
 
 ```
 	$ sudo pkg install git gmake gmp bash subversion
-        $ svn checkout https://svn.freebsd.org/base/release/11.1.0/sys
 ```
 
 Compile vswitch
@@ -20,6 +19,7 @@ Compile vswitch
 RESTRICTION: So far, we need little hack to build lagopus with DPDK.
 
 ```
+        $ svn checkout https://svn.freebsd.org/base/release/11.1.0/sys
 	$ cd lagopus
         $ mkdir temp; echo clean: > temp/Makefile
 	$ env RTE_KERNELDIR=$PWD/temp SYSDIR=$HOME/sys CC=clang CONFIG_SHELL=/usr/local/bin/bash ./configure
@@ -30,7 +30,7 @@ RESTRICTION: So far, we need little hack to build lagopus with DPDK.
 
 ```
 	$ cd lagopus
-	$ env SYSDIR=$HOME/sys CONFIG_SHELL=/usr/local/bin/bash ./configure --disable-dpdk
+	$ env CONFIG_SHELL=/usr/local/bin/bash ./configure --disable-dpdk
 	$ gmake
 ```
 
