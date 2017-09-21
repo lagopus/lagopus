@@ -60,11 +60,6 @@
 
 static struct port_stats *rawsock_port_stats(struct port *port);
 
-#define NUM_PORTID 256
-
-static struct pollfd pollfd[NUM_PORTID];
-static int ifindex[NUM_PORTID];
-
 static bool no_cache = true;
 static int kvs_type = FLOWCACHE_HASHMAP_NOLOCK;
 static int hashtype = HASH_TYPE_INTEL64;
@@ -73,7 +68,7 @@ static struct flowcache *flowcache;
 static bool volatile clear_cache = false;
 
 static int portidx = 0;
-static lagopus_hashmap_t portid_hashmap;
+static lagopus_hashmap_t fdifp_hashmap;
 
 static uint32_t
 get_port_number(struct interface *ifp) {
@@ -82,34 +77,55 @@ get_port_number(struct interface *ifp) {
   void *val;
 
   portid = portidx;
-  lagopus_hashmap_add(&portid_hashmap, (void *)ifp->fd,
+  lagopus_hashmap_add(&fdifp_hashmap, (void *)ifp->fd,
 		      (void **)&ifp, false);
   return portidx++;
 }
 
 static void
 put_port_number(struct interface *ifp) {
-  lagopus_hashmap_delete(&portid_hashmap, (void *)ifp->fd, NULL, false);
+  lagopus_hashmap_delete(&fdifp_hashmap, (void *)ifp->fd, NULL, false);
 }
+
+struct pollfd_iter {
+  int nfds;
+  struct pollfd pollfd[0];
+};
 
 static bool
 do_pollfd_iterate(void *key, void *val,
                       lagopus_hashentry_t he, void *arg) {
-  int *ip;
+  struct pollfd_iter *iter;
 
-  ip = arg;
-  pollfd[*ip].fd = (int)key;
-  pollfd[*ip].events = POLLIN;
-  *ip = *ip + 1;
+  iter = arg;
+  iter->pollfd[iter->nfds].fd = (int)key;
+  iter->pollfd[iter->nfds].events = POLLIN;
+  iter->nfds++;
   return true;
 }
 
-static int
-update_pollfds(void) {
-  int i = 0;
-  lagopus_hashmap_iterate(&portid_hashmap, do_pollfd_iterate, &i);
-  lagopus_msg_info("pollfds: %d fds found", i);
-  return i;
+static struct pollfd_iter *
+create_pollfds(void) {
+  struct pollfd_iter *iter;
+  lagopus_result_t nfd;
+
+  nfd = lagopus_hashmap_size(&fdifp_hashmap);
+  if (nfd < 0) {
+    return NULL;
+  }
+  iter = malloc(sizeof(struct pollfd_iter) + nfd * sizeof(struct pollfd));
+  if (iter == NULL) {
+    return NULL;
+  }
+  iter->nfds = 0;
+  lagopus_hashmap_iterate(&fdifp_hashmap, do_pollfd_iterate, iter);
+  lagopus_msg_info("pollfds: %d fds found", iter->nfds);
+  return iter;
+}
+
+static void
+destroy_pollfds(struct pollfd_iter *iter) {
+  free(iter);
 }
 
 static ssize_t
@@ -307,7 +323,7 @@ rawsock_configure_interface(struct interface *ifp) {
     return LAGOPUS_RESULT_TOO_MANY_OBJECTS;
   }
   ifp->info.eth_rawsock.port_number = portid;
-  ifindex[portid] = ifreq.ifr_ifindex;
+  ifp->ifindex = ifreq.ifr_ifindex;
   if (ioctl(fd, SIOCGIFHWADDR, &ifreq) != 0) {
     close(fd);
     lagopus_msg_warning("%s: %s\n",
@@ -316,10 +332,10 @@ rawsock_configure_interface(struct interface *ifp) {
     memcpy(ifp->hw_addr, ifreq.ifr_hwaddr.sa_data, ETHER_ADDR_LEN);
   }
   lagopus_msg_info("Configuring %s, ifindex %d\n",
-                   ifp->info.eth_rawsock.device, ifindex[portid]);
+                   ifp->info.eth_rawsock.device, ifp->ifindex);
   sll.sll_family = AF_PACKET;
   sll.sll_protocol = htons(ETH_P_ALL);
-  sll.sll_ifindex = ifindex[portid];
+  sll.sll_ifindex = ifp->ifindex;
   bind(fd, (struct sockaddr *)&sll, sizeof(sll));
 
   /* Set MTU */
@@ -329,7 +345,7 @@ rawsock_configure_interface(struct interface *ifp) {
   req.nlh.nlmsg_flags = NLM_F_REQUEST;
   req.ifinfo.ifi_family = AF_UNSPEC;
   req.ifinfo.ifi_type = ARPHRD_ETHER;
-  req.ifinfo.ifi_index = ifindex[portid];
+  req.ifinfo.ifi_index = ifp->ifindex;
   req.ifinfo.ifi_flags = 0;
   req.ifinfo.ifi_change = 0xffffffff;
   rta = (void *)(((char *)&req) + NLMSG_ALIGN(offsetof(struct nlreq, buf)));
@@ -368,7 +384,7 @@ rawsock_unconfigure_interface(struct interface *ifp) {
 
   put_port_number(ifp);
   portid = ifp->info.eth_rawsock.port_number;
-  ifindex[portid] = 0;
+  ifp->ifindex = 0;
   close(ifp->fd);
 
   return LAGOPUS_RESULT_OK;
@@ -447,8 +463,11 @@ rawsock_port_stats(struct port *port) {
   struct port_stats *stats;
   int fd, len, rta_len;
 
-  link_stats = NULL;
+  if (port->interface == NULL) {
+    return NULL;
+  }
 
+  link_stats = NULL;
   stats = calloc(1, sizeof(struct port_stats));
   if (stats == NULL) {
     return NULL;
@@ -466,7 +485,7 @@ rawsock_port_stats(struct port *port) {
   req.nlh.nlmsg_flags = NLM_F_REQUEST | NLM_F_DUMP;
   req.ifinfo.ifi_family = AF_UNSPEC;
   req.ifinfo.ifi_type = ARPHRD_ETHER;
-  req.ifinfo.ifi_index = ifindex[port->ifindex];
+  req.ifinfo.ifi_index = port->interface->ifindex;
   req.ifinfo.ifi_flags = 0;
   req.ifinfo.ifi_change = 0xffffffff;
   send(fd, &req, req.nlh.nlmsg_len, 0);
@@ -478,7 +497,7 @@ rawsock_port_stats(struct port *port) {
         struct ifinfomsg *ifi;
 
         ifi = NLMSG_DATA(nlh);
-        if (ifi->ifi_index != ifindex[port->ifindex]) {
+        if (ifi->ifi_index != port->interface->ifindex) {
           continue;
         }
         if (ifi->ifi_family == AF_UNSPEC) {
@@ -592,7 +611,7 @@ rawsock_get_stats(struct interface *ifp, datastore_interface_stats_t *stats) {
   req.nlh.nlmsg_flags = NLM_F_REQUEST | NLM_F_DUMP;
   req.ifinfo.ifi_family = AF_UNSPEC;
   req.ifinfo.ifi_type = ARPHRD_ETHER;
-  req.ifinfo.ifi_index = ifindex[ifp->info.eth_rawsock.port_number];
+  req.ifinfo.ifi_index = ifp->ifindex;
   req.ifinfo.ifi_flags = 0;
   req.ifinfo.ifi_change = 0xffffffff;
   send(fd, &req, req.nlh.nlmsg_len, 0);
@@ -604,7 +623,7 @@ rawsock_get_stats(struct interface *ifp, datastore_interface_stats_t *stats) {
         struct ifinfomsg *ifi;
 
         ifi = NLMSG_DATA(nlh);
-        if (ifi->ifi_index != ifindex[ifp->info.eth_rawsock.port_number]) {
+        if (ifi->ifi_index != ifp->ifindex) {
           continue;
         }
         if (ifi->ifi_family == AF_UNSPEC) {
@@ -708,14 +727,17 @@ dp_rawsock_thread_loop(__UNUSED const lagopus_thread_t *selfptr,
 
   while (*running == true) {
     struct port *port;
-    int portmax;
+    struct pollfd_iter *iter;
 
-    portmax = update_pollfds();
+    iter = create_pollfds();
+    if (iter == NULL) {
+      err(errno, "create_pollfds");
+    }
     /* wait 0.1 sec. */
-    if (poll(pollfd, (nfds_t)portmax, 100) < 0) {
+    if (poll(iter->pollfd, (nfds_t)iter->nfds, 100) < 0) {
       err(errno, "poll");
     }
-    for (i = 0; i < portmax; i++) {
+    for (i = 0; i < iter->nfds; i++) {
       struct interface *ifp;
       lagopus_result_t rv;
 
@@ -723,26 +745,23 @@ dp_rawsock_thread_loop(__UNUSED const lagopus_thread_t *selfptr,
         clear_all_cache(flowcache);
         clear_cache = false;
       }
-      if (pollfd[i].fd == -1 ||
-	  (pollfd[i].revents & (POLLERR | POLLHUP | POLLNVAL)) != 0) {
-	close(pollfd[i].fd);
-	pollfd[i].fd = -1; /* invalidate */
+      if ((iter->pollfd[i].revents & (POLLERR | POLLHUP | POLLNVAL)) != 0) {
 	continue;
       }
       flowdb_rdlock(NULL);
-      rv = lagopus_hashmap_find(&portid_hashmap, (void *)pollfd[i].fd,
+      rv = lagopus_hashmap_find(&fdifp_hashmap, (void *)iter->pollfd[i].fd,
 				&ifp);
       if (rv != LAGOPUS_RESULT_OK) {
         flowdb_rdunlock(NULL);
         continue;
       }
       /* update port stats. */
-      if (ifp != NULL && ifp->stats != NULL) {
-        stats = ifp->stats(port);
+      if (ifp != NULL && ifp->port != NULL && ifp->stats != NULL) {
+        stats = ifp->stats(ifp->port);
         free(stats);
       }
 
-      if ((pollfd[i].revents & POLLIN) == 0) {
+      if ((iter->pollfd[i].revents & POLLIN) == 0) {
         flowdb_rdunlock(NULL);
         continue;
       }
@@ -755,7 +774,8 @@ dp_rawsock_thread_loop(__UNUSED const lagopus_thread_t *selfptr,
 
         /* not enough? */
         (void)OS_M_APPEND(PKT2MBUF(pkt), MAX_PACKET_SZ);
-        len = read_packet(pollfd[i].fd, OS_MTOD(PKT2MBUF(pkt), uint8_t *),
+        len = read_packet(iter->pollfd[i].fd,
+			  OS_MTOD(PKT2MBUF(pkt), uint8_t *),
                           MAX_PACKET_SZ);
         if (len < 0) {
           switch (errno) {
@@ -789,6 +809,7 @@ dp_rawsock_thread_loop(__UNUSED const lagopus_thread_t *selfptr,
       }
       flowdb_rdunlock(NULL);
     }
+    destroy_pollfds(iter);
   }
 
   return LAGOPUS_RESULT_OK;
@@ -816,7 +837,7 @@ dp_rawsock_thread_init(int argc,
     return nb_ports;
   }
   lagopus_meter_init();
-  lagopus_hashmap_create(&portid_hashmap,
+  lagopus_hashmap_create(&fdifp_hashmap,
 			 LAGOPUS_HASHMAP_TYPE_ONE_WORD,
 			 NULL);
   lagopus_register_action_hook = lagopus_set_action_function;

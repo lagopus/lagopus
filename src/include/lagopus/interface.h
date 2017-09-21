@@ -87,6 +87,7 @@ struct interface {
   struct rte_sched_port *sched_port;
 #endif /* HAVE_DPDK */
   int fd;
+  int ifindex;
   struct dp_ifqueue ifqueue;
   struct port_stats *(*stats)(struct port *);
   struct port *port;
