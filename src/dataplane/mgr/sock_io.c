@@ -751,7 +751,7 @@ dp_rawsock_thread_loop(__UNUSED const lagopus_thread_t *selfptr,
       flowdb_rdlock(NULL);
       rv = lagopus_hashmap_find(&fdifp_hashmap, (void *)iter->pollfd[i].fd,
 				&ifp);
-      if (rv != LAGOPUS_RESULT_OK) {
+      if (rv != LAGOPUS_RESULT_OK || ifp->fd != iter->pollfd[i].fd) {
         flowdb_rdunlock(NULL);
         continue;
       }
