@@ -79,7 +79,7 @@ struct bucket;
 int
 dpdk_send_packet_physical(struct lagopus_packet *pkt, struct interface *);
 int
-rawsock_send_packet_physical(struct lagopus_packet *pkt, uint32_t portid);
+rawsock_send_packet_physical(struct lagopus_packet *pkt, struct interface *);
 
 lagopus_result_t
 execute_instruction_meter(struct lagopus_packet *pkt,
