@@ -93,6 +93,7 @@
 
 #undef USE_MBTREE
 #undef USE_THTABLE
+#undef USE_PARTITIONSORT
 
 #include "lagopus_platform.h"
 

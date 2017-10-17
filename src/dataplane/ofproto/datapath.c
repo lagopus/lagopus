@@ -56,6 +56,8 @@
 #include "murmurhash3.h"
 #include "mbtree.h"
 
+#include "partitionsort/PartitionSort.h"
+
 #ifdef HAVE_DPDK
 #ifdef __SSE4_2__
 #include "rte_hash_crc.h"
@@ -2808,6 +2810,8 @@ dp_openflow_match(struct lagopus_packet *pkt) {
   table->lookup_count++;
 #ifdef USE_MBTREE
   flow = find_mbtree(pkt, table->flow_list);
+#elif USE_PARTITIONSORT
+  flow = ps_classify_an_l_packet(pkt, table->flow_list);
 #else
   flow = lagopus_find_flow(pkt, table);
 #endif

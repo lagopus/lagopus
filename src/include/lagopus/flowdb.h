@@ -199,6 +199,10 @@ enum action_flag {
 struct flowinfo;
 struct thtable;
 
+
+struct rule;//Defined in ElementaryClasses.h
+struct partition_sort; //Defined in PartitionSort.h
+
 /**
  * @brief List of flow entries.
  */
@@ -238,6 +242,16 @@ struct flow_list {
   uint8_t shift;
   struct flow_list **update_timer;
   struct thtable *thtable;
+
+
+  struct rule_vector *classifier;
+  //struct rule_vector *add_list;
+  //struct rt_pair **del_list;
+  //int _del_size;
+  //int _del_cap;
+  struct partition_sort *partition_sort;
+  uint32_t *pbuf;
+
 
   int nbranch;
   void *branch[0];

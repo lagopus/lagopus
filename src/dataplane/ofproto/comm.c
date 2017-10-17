@@ -179,6 +179,22 @@ dp_process_event_data(uint64_t dpid, struct eventq_data *data) {
           }
         }
 #endif /* USE_THTABLE */
+#ifdef USE_PARTITIONSORT
+        /* rebuild tuple hash table. */
+        {
+          struct flowdb *flowdb;
+          struct table *table;
+          int i;
+
+          flowdb = bridge->flowdb;
+          for (i = 0; i < FLOWDB_TABLE_SIZE_MAX; i++) {
+            table = flowdb_get_table(flowdb, i);
+            if (table != NULL) {
+              classifier_update_simple(table->flow_list);
+            }
+          }
+        }
+#endif /* USE_PARTITIONSORT */
         /* flush pending requests from OFC, and reply. */
         if (cache != NULL) {
           /* clear my own cache */
