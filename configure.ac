@@ -431,6 +431,9 @@ if test "X${dpdk}" != "Xno"; then
         ;;
         FreeBSD)
             RTE_OS=bsdapp
+            if test "x$RTE_ARCH" = "xamd64"; then
+                RTE_ARCH="x86_64"
+            fi
         ;;
 	*)
             AC_MSG_ERROR([DPDK must be supported your OS.])

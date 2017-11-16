@@ -1569,8 +1569,7 @@ lagopus_send_packet_physical(struct lagopus_packet *pkt,
       break;
 #endif
     case DATASTORE_INTERFACE_TYPE_ETHERNET_RAWSOCK:
-      return rawsock_send_packet_physical(pkt,
-                                          ifp->info.eth_rawsock.port_number);
+      return rawsock_send_packet_physical(pkt,ifp);
 
     case DATASTORE_INTERFACE_TYPE_GRE:
     case DATASTORE_INTERFACE_TYPE_NVGRE:

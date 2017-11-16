@@ -604,6 +604,7 @@ flow_action_check(struct bridge *bridge,
               /* is exist specified port? */
               output = (struct ofp_action_output *)&action->ofpat;
               switch (output->port) {
+                case OFPP_IN_PORT:
                 case OFPP_TABLE:
                 case OFPP_NORMAL:
                 case OFPP_FLOOD:
