@@ -819,7 +819,7 @@ s_datastore_thd_main(const lagopus_thread_t *tptr, void *arg) {
                                            false, &server_addr)) !=
           LAGOPUS_RESULT_OK) {
         lagopus_perror(ret);
-        lagopus_msg_error("Can't create a server addr.");
+        lagopus_msg_error("Can't create a server addr.\n");
         goto done;
       }
       lagopus_msg_debug(5, "s_bindaddr_str(IPv6) %s.\n", s_bindaddr_str);
@@ -828,7 +828,7 @@ s_datastore_thd_main(const lagopus_thread_t *tptr, void *arg) {
                                            true, &server_addr)) !=
           LAGOPUS_RESULT_OK) {
         lagopus_perror(ret);
-        lagopus_msg_error("Can't create a server addr.");
+        lagopus_msg_error("Can't create a server addr.\n");
         goto done;
       }
       lagopus_msg_debug(5, "s_bindaddr_str(IPv4) %s.\n", s_bindaddr_str);
@@ -862,7 +862,7 @@ s_datastore_thd_main(const lagopus_thread_t *tptr, void *arg) {
       lagopus_msg_debug(5, "num_session_poll %d.\n", num_session_poll);
       if (ret == LAGOPUS_RESULT_POSIX_API_ERROR) {
         if (errno != EINTR && errno != EAGAIN) {
-          lagopus_msg_warning("poll: %s", strerror(errno));
+          lagopus_msg_warning("poll: %s\n", strerror(errno));
         }
         continue;
       }
@@ -885,7 +885,8 @@ s_datastore_thd_main(const lagopus_thread_t *tptr, void *arg) {
               continue;
             }
             if ((num_session_poll + 1) == DATASTORE_SESSION_MAX) {
-              lagopus_msg_warning("session overflow %d", DATASTORE_SESSION_MAX);
+              lagopus_msg_warning("session overflow %d\n",
+				  DATASTORE_SESSION_MAX);
               session_destroy(accepted_session);
               continue;
             }

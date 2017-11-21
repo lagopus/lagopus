@@ -147,7 +147,7 @@ lagopus_get_port_statistics(lagopus_hashmap_t *hm,
         != LAGOPUS_RESULT_OK) {
       error->type = OFPET_BAD_REQUEST;
       error->code = OFPBRC_BAD_PORT;
-      lagopus_msg_info("port stats: %d: no such port (%d:%d)",
+      lagopus_msg_info("port stats: %d: no such port (%d:%d)\n",
                        request->port_no, error->type, error->code);
       return LAGOPUS_RESULT_OFP_ERROR;
     }
@@ -207,7 +207,7 @@ port_config(struct bridge *bridge,
     if (port == NULL) {
       error->type = OFPET_PORT_MOD_FAILED;
       error->code = OFPPMFC_BAD_PORT;
-      lagopus_msg_info("port config: %d: no such port (%d:%d)",
+      lagopus_msg_info("port config: %d: no such port (%d:%d)\n",
                        port_mod->port_no, error->type, error->code);
       return LAGOPUS_RESULT_OFP_ERROR;
     }
@@ -215,7 +215,7 @@ port_config(struct bridge *bridge,
     if (port->interface == NULL) {
       error->type = OFPET_PORT_MOD_FAILED;
       error->code = OFPPMFC_BAD_HW_ADDR;
-      lagopus_msg_info("port config: %d: do not assigned interface (%d:%d)",
+      lagopus_msg_info("port config: %d: do not assigned interface (%d:%d)\n",
                        port_mod->port_no, error->type, error->code);
       return LAGOPUS_RESULT_OFP_ERROR;
     }
@@ -228,7 +228,7 @@ port_config(struct bridge *bridge,
     error->type = OFPET_PORT_MOD_FAILED;
     error->code = OFPPMFC_BAD_CONFIG;
     lagopus_msg_info("port config: "
-                     "config(0x%x) and mask(0x%x) inconsistency (%d:%d)",
+                     "config(0x%x) and mask(0x%x) inconsistency (%d:%d)\n",
                      port_mod->config, port_mod->mask,
                      error->type, error->code);
     return LAGOPUS_RESULT_OFP_ERROR;

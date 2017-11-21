@@ -1920,7 +1920,7 @@ bridge_cmd_update_aborted(bridge_conf_t *conf) {
       ret = bridge_conf_delete(conf);
       if (ret != LAGOPUS_RESULT_OK) {
         /* ignore error. */
-        lagopus_msg_warning("ret = %s", lagopus_error_get_string(ret));
+        lagopus_msg_warning("ret = %s\n", lagopus_error_get_string(ret));
       }
     } else {
       bridge_attr_destroy(conf->modified_attr);
@@ -1966,7 +1966,7 @@ bridge_cmd_do_destroy(bridge_conf_t *conf,
     ret = bridge_conf_delete(conf);
     if (ret != LAGOPUS_RESULT_OK) {
       /* ignore error. */
-      lagopus_msg_warning("ret = %s", lagopus_error_get_string(ret));
+      lagopus_msg_warning("ret = %s\n", lagopus_error_get_string(ret));
     }
   } else if (state == DATASTORE_INTERP_STATE_DRYRUN) {
     /* unset is_used. */
@@ -1976,7 +1976,7 @@ bridge_cmd_do_destroy(bridge_conf_t *conf,
                                     false, result)) !=
           LAGOPUS_RESULT_OK) {
         /* ignore error. */
-        lagopus_msg_warning("ret = %s", lagopus_error_get_string(ret));
+        lagopus_msg_warning("ret = %s\n", lagopus_error_get_string(ret));
       }
     }
     if (conf->modified_attr != NULL) {
@@ -1985,14 +1985,14 @@ bridge_cmd_do_destroy(bridge_conf_t *conf,
                                     false, result)) !=
           LAGOPUS_RESULT_OK) {
         /* ignore error. */
-        lagopus_msg_warning("ret = %s", lagopus_error_get_string(ret));
+        lagopus_msg_warning("ret = %s\n", lagopus_error_get_string(ret));
       }
     }
 
     ret = bridge_conf_delete(conf);
     if (ret != LAGOPUS_RESULT_OK) {
       /* ignore error. */
-      lagopus_msg_warning("ret = %s", lagopus_error_get_string(ret));
+      lagopus_msg_warning("ret = %s\n", lagopus_error_get_string(ret));
     }
   } else if (conf->is_destroying == true ||
              state == DATASTORE_INTERP_STATE_AUTO_COMMIT) {
@@ -2003,7 +2003,7 @@ bridge_cmd_do_destroy(bridge_conf_t *conf,
                                     false, result)) !=
           LAGOPUS_RESULT_OK) {
         /* ignore error. */
-        lagopus_msg_warning("ret = %s", lagopus_error_get_string(ret));
+        lagopus_msg_warning("ret = %s\n", lagopus_error_get_string(ret));
       }
     }
     if (conf->modified_attr != NULL) {
@@ -2012,7 +2012,7 @@ bridge_cmd_do_destroy(bridge_conf_t *conf,
                                     false, result)) !=
           LAGOPUS_RESULT_OK) {
         /* ignore error. */
-        lagopus_msg_warning("ret = %s", lagopus_error_get_string(ret));
+        lagopus_msg_warning("ret = %s\n", lagopus_error_get_string(ret));
       }
     }
 
@@ -2020,14 +2020,14 @@ bridge_cmd_do_destroy(bridge_conf_t *conf,
       ret = bri_destroy(conf->name, conf->current_attr, result);
       if (ret != LAGOPUS_RESULT_OK) {
         /* ignore error. */
-        lagopus_msg_warning("ret = %s", lagopus_error_get_string(ret));
+        lagopus_msg_warning("ret = %s\n", lagopus_error_get_string(ret));
       }
     }
 
     ret = bridge_conf_delete(conf);
     if (ret != LAGOPUS_RESULT_OK) {
       /* ignore error. */
-      lagopus_msg_warning("ret = %s", lagopus_error_get_string(ret));
+      lagopus_msg_warning("ret = %s\n", lagopus_error_get_string(ret));
     }
   }
 }
@@ -2297,7 +2297,7 @@ bridge_cmd_update_internal(datastore_interp_t *iptr,
                                true, result) !=
             LAGOPUS_RESULT_OK) {
           /* ignore error. */
-          lagopus_msg_warning("ret = %s", lagopus_error_get_string(ret));
+          lagopus_msg_warning("ret = %s\n", lagopus_error_get_string(ret));
         }
       }
       ret = LAGOPUS_RESULT_OK;
@@ -2320,7 +2320,7 @@ bridge_cmd_update_internal(datastore_interp_t *iptr,
                                false, result) !=
             LAGOPUS_RESULT_OK) {
           /* ignore error. */
-          lagopus_msg_warning("ret = %s", lagopus_error_get_string(ret));
+          lagopus_msg_warning("ret = %s\n", lagopus_error_get_string(ret));
         }
         ret = LAGOPUS_RESULT_OK;
       } else {
@@ -2344,7 +2344,7 @@ bridge_cmd_update_internal(datastore_interp_t *iptr,
                                       false, result)) !=
             LAGOPUS_RESULT_OK) {
           /* ignore error. */
-          lagopus_msg_warning("ret = %s", lagopus_error_get_string(ret));
+          lagopus_msg_warning("ret = %s\n", lagopus_error_get_string(ret));
         }
       }
       if (conf->current_attr != NULL) {
@@ -2354,7 +2354,7 @@ bridge_cmd_update_internal(datastore_interp_t *iptr,
                                       true, result)) !=
             LAGOPUS_RESULT_OK) {
           /* ignore error. */
-          lagopus_msg_warning("ret = %s", lagopus_error_get_string(ret));
+          lagopus_msg_warning("ret = %s\n", lagopus_error_get_string(ret));
         }
       }
       ret = LAGOPUS_RESULT_OK;
@@ -4443,7 +4443,7 @@ destroy_sub_cmd_parse_internal(datastore_interp_t *iptr,
                               iptr, state, true, true, result);
       if (ret != LAGOPUS_RESULT_OK) {
         /* ignore error. */
-        lagopus_msg_warning("ret = %s", lagopus_error_get_string(ret));
+        lagopus_msg_warning("ret = %s\n", lagopus_error_get_string(ret));
       }
 
       if (conf->is_enabled == true) {

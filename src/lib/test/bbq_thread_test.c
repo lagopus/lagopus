@@ -292,7 +292,7 @@ s_check_start(test_thread_t *ttptr, lagopus_result_t require_ret) {
     result = true;
   } else {
     lagopus_perror(ret);
-    lagopus_msg_error("start failed");
+    lagopus_msg_error("start failed\n");
     result = false;
   }
   return result;
@@ -305,7 +305,7 @@ s_check_wait(test_thread_t *ttptr, lagopus_result_t require_ret) {
   ret = lagopus_thread_wait((lagopus_thread_t *)ttptr, WAIT_NSEC);
   if (ret != require_ret) {
     lagopus_perror(ret);
-    lagopus_msg_error("wait failed");
+    lagopus_msg_error("wait failed\n");
     result = false;
   } else {
     result = true;
@@ -324,7 +324,7 @@ s_check_cancel(test_thread_t *ttptr,
   lagopus_msg_debug(1, "cancel done, %s\n", lagopus_error_get_string(ret));
   if (ret != require_ret) {
     lagopus_perror(ret);
-    lagopus_msg_error("cancel failed");
+    lagopus_msg_error("cancel failed\n");
     result = false;
   } else {
     result = true;
