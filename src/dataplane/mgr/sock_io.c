@@ -119,7 +119,6 @@ create_pollfds(void) {
   }
   iter->nfds = 0;
   lagopus_hashmap_iterate(&fdifp_hashmap, do_pollfd_iterate, iter);
-  lagopus_msg_info("pollfds: %d fds found", iter->nfds);
   return iter;
 }
 

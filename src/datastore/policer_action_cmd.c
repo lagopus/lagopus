@@ -182,7 +182,7 @@ policer_action_cmd_update_aborted(policer_action_conf_t *conf) {
       ret = policer_action_conf_delete(conf);
       if (ret != LAGOPUS_RESULT_OK) {
         /* ignore error. */
-        lagopus_msg_warning("ret = %s", lagopus_error_get_string(ret));
+        lagopus_msg_warning("ret = %s\n", lagopus_error_get_string(ret));
       }
     } else {
       policer_action_attr_destroy(conf->modified_attr);
@@ -227,13 +227,13 @@ policer_action_cmd_do_destroy(policer_action_conf_t *conf,
     ret = policer_action_conf_delete(conf);
     if (ret != LAGOPUS_RESULT_OK) {
       /* ignore error. */
-      lagopus_msg_warning("ret = %s", lagopus_error_get_string(ret));
+      lagopus_msg_warning("ret = %s\n", lagopus_error_get_string(ret));
     }
   } else if (state == DATASTORE_INTERP_STATE_DRYRUN) {
     ret = policer_action_conf_delete(conf);
     if (ret != LAGOPUS_RESULT_OK) {
       /* ignore error. */
-      lagopus_msg_warning("ret = %s", lagopus_error_get_string(ret));
+      lagopus_msg_warning("ret = %s\n", lagopus_error_get_string(ret));
     }
   } else if (conf->is_destroying == true ||
              state == DATASTORE_INTERP_STATE_AUTO_COMMIT) {
@@ -243,7 +243,7 @@ policer_action_cmd_do_destroy(policer_action_conf_t *conf,
     ret = policer_action_conf_delete(conf);
     if (ret != LAGOPUS_RESULT_OK) {
       /* ignore error. */
-      lagopus_msg_warning("ret = %s", lagopus_error_get_string(ret));
+      lagopus_msg_warning("ret = %s\n", lagopus_error_get_string(ret));
     }
   }
 }

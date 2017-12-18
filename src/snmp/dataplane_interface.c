@@ -277,7 +277,7 @@ dataplane_count_ifNumber(
     *interface_number = 0;
     if ((ret = port_stat_count(port_stat, interface_number))
         != LAGOPUS_RESULT_OK) {
-      lagopus_msg_warning("cannot count ports: %s",
+      lagopus_msg_warning("cannot count ports: %s\n",
                           lagopus_error_get_string(ret));
     }
   }
@@ -635,13 +635,13 @@ dataplane_bridge_stat_get_type(int32_t *value) {
         *value = type;
         ret = LAGOPUS_RESULT_OK;
       } else {
-        lagopus_msg_warning("failed to get the bridge type: %s",
+        lagopus_msg_warning("failed to get the bridge type: %s\n",
                             lagopus_error_get_string(ret));
       }
       bridge_stat_release(bridge_stat);
       free(bridge_stat);
     } else {
-      lagopus_msg_warning("failed to get the bridge statistics: %s",
+      lagopus_msg_warning("failed to get the bridge statistics: %s\n",
                           lagopus_error_get_string(ret));
     }
     return ret;

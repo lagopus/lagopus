@@ -418,7 +418,7 @@ snmpmgr_thread_loop(const lagopus_thread_t *selfptr, void *arg) {
     ret = internal_snmpmgr_poll(interval);
     (void)lagopus_mutex_unlock(&snmp_lock);
     if (ret != LAGOPUS_RESULT_OK && ret != LAGOPUS_RESULT_TIMEDOUT) {
-      lagopus_msg_warning("failed to poll SNMP AgentX request: %s",
+      lagopus_msg_warning("failed to poll SNMP AgentX request: %s\n",
                           lagopus_error_get_string(ret));
     }
     check_status_and_send_traps();

@@ -204,7 +204,7 @@ group_table_add(struct group_table *group_table,
   if (group_loop_detect(group_table, group, group->id) == true) {
     error->type = OFPET_GROUP_MOD_FAILED;
     error->code = OFPGMFC_LOOP;
-    lagopus_msg_info("group add: %d: loop detected (%d:%d)",
+    lagopus_msg_info("group add: %d: loop detected (%d:%d)\n",
                      group->id, error->type, error->code);
     return LAGOPUS_RESULT_OFP_ERROR;
   }
@@ -572,7 +572,7 @@ ofp_group_mod_add(uint64_t dpid,
     /* Group exists, send error. */
     error->type = OFPET_GROUP_MOD_FAILED;
     error->code = OFPGMFC_GROUP_EXISTS;
-    lagopus_msg_info("group add: %d: group exists (%d:%d)",
+    lagopus_msg_info("group add: %d: group exists (%d:%d)\n",
                      group_mod->group_id, error->type, error->code);
     rv = LAGOPUS_RESULT_OFP_ERROR;
   } else {
@@ -612,7 +612,7 @@ ofp_group_mod_modify(uint64_t dpid,
     /* Group does not exist, send error. */
     error->type = OFPET_GROUP_MOD_FAILED;
     error->code = OFPGMFC_UNKNOWN_GROUP;
-    lagopus_msg_info("group modify: %d: group is not exist (%d:%d)",
+    lagopus_msg_info("group modify: %d: group is not exist (%d:%d)\n",
                      group_mod->group_id, error->type, error->code);
     rv = LAGOPUS_RESULT_OFP_ERROR;
   } else {

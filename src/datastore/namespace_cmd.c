@@ -436,7 +436,7 @@ s_namespace_delete_opt_parse(datastore_interp_t *iptr,
 
           if (strcmp(namespace, current_namespace) == 0) {
             if ((ret = s_unset_current_namespace()) == LAGOPUS_RESULT_OK) {
-              lagopus_msg_info("unset %s.", namespace);
+              lagopus_msg_info("unset %s.\n", namespace);
             } else {
               ret = datastore_json_result_string_setf(result, ret,
                                                     "Unset processing failed.");
@@ -446,7 +446,7 @@ s_namespace_delete_opt_parse(datastore_interp_t *iptr,
 
           ret = datastore_interp_destroy_obj(iptr, namespace, result);
           if (ret == LAGOPUS_RESULT_OK) {
-            lagopus_msg_info("destroy %s objects.", namespace);
+            lagopus_msg_info("destroy %s objects.\n", namespace);
           } else {
             ret = datastore_json_result_string_setf(result,
                                                     ret,
@@ -622,10 +622,10 @@ namespace_exists(const char *namespace) {
   void *val = NULL;
 
   if (s_namespace_table == NULL) {
-    lagopus_msg_warning("namespace not initialized.");
+    lagopus_msg_warning("namespace not initialized.\n");
     return false;
   } else if (namespace == NULL) {
-    lagopus_msg_warning("namespace invalid args.");
+    lagopus_msg_warning("namespace invalid args.\n");
     return false;
   } else {
     if (namespace[0] == '\0') {
