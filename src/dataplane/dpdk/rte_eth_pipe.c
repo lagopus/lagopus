@@ -44,7 +44,7 @@
 #include <rte_malloc.h>
 #include <rte_memcpy.h>
 #include <rte_string_fns.h>
-#include <rte_vdev.h>
+#include <rte_bus_vdev.h>
 #include <rte_kvargs.h>
 #include <rte_errno.h>
 
@@ -366,7 +366,6 @@ rte_eth_from_rings(const char *name, struct rte_ring *const rx_queues[],
 
   eth_dev->data = data;
   eth_dev ->dev_ops = &ops;
-  data->dev_flags = RTE_ETH_DEV_DETACHABLE;
   data->kdrv = RTE_KDRV_NONE;
   data->numa_node = numa_node;
 
@@ -545,6 +544,5 @@ static struct rte_vdev_driver pipe_drv = {
 
 RTE_PMD_REGISTER_VDEV(net_pipe, pipe_drv);
 RTE_PMD_REGISTER_ALIAS(net_pipe, eth_pipe);
-
 RTE_PMD_REGISTER_PARAM_STRING(net_pipe,
 			      "iface=<string>");

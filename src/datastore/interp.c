@@ -1629,7 +1629,7 @@ s_eval_str(datastore_interp_t *iptr, const char *str, lagopus_dstring_t *ds,
         for (i = 0; i < (size_t)n_cmds; i++) {
           /* Now sending large data. */
           if (s_is_blocking_session(iptr) == true) {
-            lagopus_msg_warning("Now sending large data. Skip cmd (%s).",
+            lagopus_msg_warning("Now sending large data. Skip cmd (%s).\n",
                                 cmds[i]);
             ret = LAGOPUS_RESULT_OK;
             continue;

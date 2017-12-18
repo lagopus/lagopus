@@ -144,7 +144,7 @@ dp_tap_interface_create(const char *name, struct interface *ifp) {
   }
   if ((tap->fd = open(TUN_DEV, O_RDWR)) < 0) {
     free(tap);
-    lagopus_msg_error("open(%s): %s", TUN_DEV, strerror(errno));
+    lagopus_msg_error("open(%s): %s\n", TUN_DEV, strerror(errno));
     return LAGOPUS_RESULT_POSIX_API_ERROR;
   }
   tap->ifp = ifp;
@@ -153,7 +153,7 @@ dp_tap_interface_create(const char *name, struct interface *ifp) {
   if (tap_ioctl(tap, TUNSETIFF, &ifr) < 0) {
     free(tap->name);
     free(tap);
-    lagopus_msg_error("tap_ioctl(%s, TUNSETIFF): %s",
+    lagopus_msg_error("tap_ioctl(%s, TUNSETIFF): %s\n",
                       ifr.ifr_name, strerror(errno));
     return LAGOPUS_RESULT_POSIX_API_ERROR;
   }

@@ -329,7 +329,7 @@ rewrite_pkt_header(struct lagopus_packet *pkt,
     lagopus_msg_warning("ttl stop\n");
     lagopus_packet_free(pkt);
   } else if (rv != LAGOPUS_RESULT_OK) {
-    lagopus_msg_warning("failed rewrite ether header.");
+    lagopus_msg_warning("failed rewrite ether header.\n");
     lagopus_packet_free(pkt);
   }
 

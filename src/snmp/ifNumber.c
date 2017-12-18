@@ -39,7 +39,7 @@ count_ifNumber(int32_t *ifNumber) {
       port_stat_release(port_stat);
       free(port_stat);
     } else {
-      lagopus_msg_error("cannot count ports: %s",
+      lagopus_msg_error("cannot count ports: %s\n",
                         lagopus_error_get_string(ret));
     }
   }
