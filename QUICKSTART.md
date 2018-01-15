@@ -132,7 +132,7 @@ Unbound NICs from ixgbe driver.
 ```
 	$ sudo ./src/dpdk/tools/dpdk-devbind.py --bind=igb_uio 0000:02:02.0 0000:02:03.0 0000:02:04.0
 
-Check the current status of NICs whehter the 2nd, 3rd and 4th interface is registerd with igb_uio driver
+Check the current status of NICs whether the 2nd, 3rd and 4th interface is registerd with igb_uio driver
 
 	$ sudo ./src/dpdk/tools/dpdk-devbind.py --status
 
