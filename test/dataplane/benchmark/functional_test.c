@@ -742,13 +742,15 @@ flow_benchmark(int type,
     flowdb = pkt->bridge->flowdb;
     table = table_lookup(flowdb, pkt->table_id);
       
-    flow1 = lagopus_find_flow(pkt, table);
+    //flow1 = lagopus_find_flow(pkt, table);
 
     //flow1 = find_linear(pkt, table->flow_list);
 
     flow2 = ps_classify_an_l_packet(pkt, table->flow_list);
 
     flow3 = thtable_match(pkt, table->flow_list->thtable);
+
+    flow1 = flow2;
       
     lookup_count++;
     
@@ -764,7 +766,7 @@ flow_benchmark(int type,
     }
     //Classifiers got different results
     else{
-	//printf("Packet Number: %d\n==============\nPriority of match1: %d\nPriority of match2: %d\nPriority of match3: %d\n\n", 
+	//printf("\n\nPacket Number: %d\n==============\nPriority of match1: %d\nPriority of match2: %d\nPriority of match3: %d\n\n", 
 	//	i, flow1 == NULL? -1: 941 - flow1->priority, 941 - flow2->priority, flow3 == NULL? -1: 941 - flow3->priority);
 
       difference_count++;
@@ -786,12 +788,17 @@ test_classbench_benchmark(void) {
   int n = 0;
   int type;  
 
-  const char *RULE_FILE_NAME = "acl1_seed_1.msu";
-  const char *PACKET_FILE_NAME = "acl1_seed_1.p";
+  const char *RULE_FILE_NAME = "Classifiers/acl2_seed_2.msu";
+  const char *PACKET_FILE_NAME = "Packets/acl2_seed_2.rules.p";
 
   parse_filter_file_MSU(RULE_FILE_NAME);
-  parse_packet_file_MSU(PACKET_FILE_NAME, &pkt, &n); 
+  parse_packet_file_MSU(PACKET_FILE_NAME, &pkt, &n);
 
+//  pkt[0] = pkt[220];
+//  pkt[1] = pkt[221];
+//  pkt[2] = pkt[4108];
+//  pkt[3] = pkt[4342];
+//  pkt[4] = pkt[4572];
 
   printf("******** 940 rules, 10000 packets, 5 Field Match ******************\n");
   printf("******** Fields used: IN_PORT, IPSRC, IPDST, TCPSRC, TCPDST ******************\n");

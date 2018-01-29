@@ -524,17 +524,19 @@ struct flow * ps_classify_an_l_packet(const struct lagopus_packet *pkt, struct f
 
 		t = ps->mitrees[i];
 
-		if (result > t->max_priority){
+		if (result < t->max_priority){
 			break;
 		}
 
 		temp_rule = mit_classify_a_packet(t, p);
 		if(temp_rule != NULL){ //&& rule_matches_l_packet(temp_rule, pkt)){//Packet has to match all of the fields, not just classification fields
 			if(result == -1){
+				//print_rule(temp_rule);	
 				result = temp_rule->master->priority;
 				match = temp_rule->master;
 			}
-			else if(temp_rule->master->priority > match->priority){						
+			else if(temp_rule->master->priority > match->priority){
+				//print_rule(temp_rule);						
 				result = temp_rule->master->priority;
 				match = temp_rule->master;
 			}

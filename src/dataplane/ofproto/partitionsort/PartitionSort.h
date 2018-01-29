@@ -56,8 +56,14 @@ static inline size_t ps_num_tables(struct partition_sort *ps) {
 static inline size_t ps_rules_in_table(struct partition_sort *ps, size_t index) { return ps->mitrees[index]->num_rules; }
 static inline size_t ps_priority_of_table(struct partition_sort *ps, size_t index) { return ps->mitrees[index]->max_priority; }
 
+static int compare_mitrees(void *a, void *b){
+	optimized_mi_tree *m_a = (optimized_mi_tree *)(a), *m_b = (optimized_mi_tree *)(b);
+	return m_b->max_priority - m_a->max_priority; 
+}  
+
 static inline void ps_insertion_sort_mitrees(struct partition_sort *ps) {
 	int i, j, numLength = ps->num_trees;
+	//qsort(ps->mitrees, numLength, sizeof(optimized_mi_tree *), compare_mitrees);
 	struct optimized_mi_tree * key;
 	for (j = 1; j < numLength; ++j)
 	{
