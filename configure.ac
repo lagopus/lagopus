@@ -434,6 +434,7 @@ if test "X${dpdk}" != "Xno"; then
             if test "x$RTE_ARCH" = "xamd64"; then
                 RTE_ARCH="x86_64"
             fi
+            RTE_KERNEL=${SYSDIR}; export RTE_KERNELDIR
         ;;
 	*)
             AC_MSG_ERROR([DPDK must be supported your OS.])
