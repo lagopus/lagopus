@@ -73,7 +73,7 @@ if test $? -ne 0; then
     exit 1
 fi
 
-if [ "x${SYSDIR}" != "" ]; then
+if [ "x${SYSDIR}" != "x" ]; then
     RTE_KERNELDIR=${SYSDIR}; export RTE_KERNELDIR
 fi
 
