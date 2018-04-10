@@ -979,18 +979,6 @@ dpdk_unconfigure_interface(struct interface *ifp) {
   uint32_t lcore;
   uint8_t i;
 
-  if (strlen(ifp->info.eth_dpdk_phy.device) > 0) {
-    uint8_t actual_portid;
-    const char *name;
-
-    name = dpdk_remove_namespace(ifp->info.eth_dpdk_phy.device);
-    actual_portid = dpdk_get_detachable_portid_by_name(name);
-    if (actual_portid == RTE_MAX_ETHPORTS) {
-      return LAGOPUS_RESULT_NOT_FOUND;
-    }
-    /* whenever 'device' is specified, overwrite portid by actual portid. */
-    ifp->info.eth.port_number = (uint32_t)actual_portid;
-  }
   portid = (uint8_t)ifp->info.eth.port_number;
 
   dpdk_stop_interface(portid);
