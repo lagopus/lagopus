@@ -320,12 +320,6 @@ rte_eth_from_rings(const char *name, struct rte_ring *const rx_queues[],
   /* now do all data allocation - for eth_dev structure, dummy pci driver
    * and internal (private) data
    */
-  data = rte_zmalloc_socket(name, sizeof(*data), 0, numa_node);
-  if (data == NULL) {
-    rte_errno = ENOMEM;
-    goto error;
-  }
-
   internals = rte_zmalloc_socket(name, sizeof(*internals), 0, numa_node);
   if (internals == NULL) {
     rte_errno = ENOMEM;
@@ -339,6 +333,7 @@ rte_eth_from_rings(const char *name, struct rte_ring *const rx_queues[],
     goto error;
   }
   eth_dev->device = &dev->device;
+  data = eth_dev->data;
 
   /* now put it all together
    * - store queue data in internals,
@@ -365,7 +360,6 @@ rte_eth_from_rings(const char *name, struct rte_ring *const rx_queues[],
   data->dev_link = pmd_link;
   data->mac_addrs = &internals->address;
 
-  eth_dev->data = data;
   eth_dev ->dev_ops = &ops;
   data->kdrv = RTE_KDRV_NONE;
   data->numa_node = numa_node;
