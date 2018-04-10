@@ -73,6 +73,10 @@ if test $? -ne 0; then
     exit 1
 fi
 
+if [ "x${SYSDIR}" != "x" ]; then
+    RTE_KERNELDIR=${SYSDIR}; export RTE_KERNELDIR
+fi
+
 edit_dpdk_config CONFIG_RTE_BUILD_SHARED_LIB=y $NEWCONFIG
 #edit_dpdk_config CONFIG_RTE_PCI_EXTENDED_TAGS=on $NEWCONFIG
 #edit_dpdk_config CONFIG_RTE_LIBRTE_PMD_QAT=y $NEWCONFIG
