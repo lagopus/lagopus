@@ -111,6 +111,7 @@
 #include "dp_timer.h"
 #include "pktbuf.h"
 #include "packet.h"
+#include "mgr/lock.h"
 #include "dpdk/dpdk.h"
 
 #undef IO_DEBUG
@@ -124,7 +125,7 @@
 #define APP_LCORE_IO_FLUSH           100
 #endif
 
-#define DP_UPDATE_COUNT		     (200 * 10000)
+#define DP_UPDATE_COUNT		     (400 * 10000)
 
 #define APP_IO_RX_DROP_ALL_PACKETS   0
 #define APP_IO_TX_DROP_ALL_PACKETS   0
@@ -227,15 +228,11 @@ dpdk_interface_queue_id_to_index(struct interface *ifp, uint32_t queue_id) {
 }
 
 static inline int
-dpdk_interface_device_name_to_index(char *name) {
+dpdk_interface_device_is_exist(struct interface *ifp) {
   int i;
 
   for (i = 0; i < RTE_MAX_ETHPORTS; i++) {
-    if ((ifp_table[i] != NULL) &&
-        (strlen(ifp_table[i]->info.eth_dpdk_phy.device) > 0) &&
-        (strncmp(name,
-                 ifp_table[i]->info.eth_dpdk_phy.device,
-                 strlen(name)) == 0)) {
+    if (ifp_table[i] == ifp) {
       return i;
     }
   }
@@ -523,12 +520,14 @@ app_lcore_main_loop_io(void *arg) {
 
   if (lp->rx.n_nic_queues > 0 && lp->tx.n_nic_ports == 0) {
     /* receive loop */
+    FLOWDB_RWLOCK_RDLOCK();
     for (;;) {
       if (APP_LCORE_IO_FLUSH && unlikely(flush_count == APP_LCORE_IO_FLUSH)) {
         app_lcore_io_rx_flush(lp, n_workers);
         flush_count = 0;
       }
       if (update_count == DP_UPDATE_COUNT) {
+	flowdb_check_update(NULL);
         if (rte_atomic32_read(&dpdk_stop) != 0) {
           break;
         }
@@ -540,12 +539,14 @@ app_lcore_main_loop_io(void *arg) {
     }
   } else if (lp->rx.n_nic_queues == 0 && lp->tx.n_nic_ports > 0) {
     /* transimit loop */
+    FLOWDB_RWLOCK_RDLOCK();
     for (;;) {
       if (APP_LCORE_IO_FLUSH && unlikely(flush_count == APP_LCORE_IO_FLUSH)) {
         app_lcore_io_tx_flush(lp, arg);
         flush_count = 0;
       }
       if (update_count == DP_UPDATE_COUNT) {
+	flowdb_check_update(NULL);
         if (rte_atomic32_read(&dpdk_stop) != 0) {
           break;
         }
@@ -556,6 +557,7 @@ app_lcore_main_loop_io(void *arg) {
       update_count++;
     }
   } else {
+    FLOWDB_RWLOCK_RDLOCK();
     for (;;) {
       if (APP_LCORE_IO_FLUSH && unlikely(flush_count == APP_LCORE_IO_FLUSH)) {
         app_lcore_io_rx_flush(lp, n_workers);
@@ -563,6 +565,7 @@ app_lcore_main_loop_io(void *arg) {
         flush_count = 0;
       }
       if (update_count == DP_UPDATE_COUNT) {
+	flowdb_check_update(NULL);
         if (rte_atomic32_read(&dpdk_stop) != 0) {
           break;
         }
@@ -790,7 +793,8 @@ dpdk_configure_interface(struct interface *ifp) {
     const char *name;
 
     /* make sure we don't have a interface that has same device option. */
-    if (dpdk_interface_device_name_to_index(ifp->info.eth_dpdk_phy.device) >= 0) {
+    if (dpdk_interface_device_is_exist(ifp) >= 0) {
+      lagopus_msg_notice("%s: already exist\n", ifp->info.eth_dpdk_phy.device);
       return LAGOPUS_RESULT_ALREADY_EXISTS;
     }
 

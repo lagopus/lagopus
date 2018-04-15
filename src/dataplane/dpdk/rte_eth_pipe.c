@@ -316,6 +316,11 @@ rte_eth_from_rings(const char *name, struct rte_ring *const rx_queues[],
     goto error;
   }
 
+  if (rte_eth_dev_allocated(name) != NULL) {
+    RTE_LOG(ERR, PMD, "%s is already exist\n", name);
+    rte_errno = EEXIST;
+    goto error;
+  }
   RTE_LOG(INFO, PMD, "Creating pipe ethdev %s on numa socket %u\n",
           name, numa_node);
 
@@ -475,6 +480,12 @@ eth_dev_ring_create(struct rte_vdev_device *dev,
   if (rte_eth_from_rings(name, rx, num_rings, tx, num_rings,
                          numa_node, dev) < 0) {
     RTE_LOG(ERR, PMD, "rte_eth_from_rings(%s) failed\n", name);
+    if (info->action == DEV_CREATE) {
+      for (i = 0; i < num_rings; i++) {
+	rte_ring_free(rx[i]);
+	rte_ring_free(tx[i]);
+      }
+    }
     return -1;
   }
   if (base_ethdev != NULL) {
@@ -571,6 +582,7 @@ rte_pmd_pipe_remove(struct rte_vdev_device *dev) {
   /* find an ethdev entry */
   eth_dev = rte_eth_dev_allocated(name);
   if (eth_dev == NULL) {
+    RTE_LOG(ERR, PMD, "%s not found\n", name);
     return -ENODEV;
   }
   eth_dev_stop(eth_dev);

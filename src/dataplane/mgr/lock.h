@@ -111,7 +111,9 @@ flowdb_rdlock(struct flowdb *flowdb) {
 static inline void
 flowdb_check_update(struct flowdb *flowdb) {
   (void) flowdb;
+  FLOWDB_RWLOCK_RDUNLOCK();
   FLOWDB_UPDATE_CHECK();
+  FLOWDB_RWLOCK_RDLOCK();
 }
 
 /**
