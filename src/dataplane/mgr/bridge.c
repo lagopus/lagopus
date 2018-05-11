@@ -484,13 +484,6 @@ ofp_switch_config_set(uint64_t dpid,
                      error->type, error->code);
     return LAGOPUS_RESULT_OFP_ERROR;
   }
-  if (switch_config->miss_send_len < 64) {
-    error->type = OFPET_SWITCH_CONFIG_FAILED;
-    error->code = OFPSCFC_BAD_LEN;
-    lagopus_msg_info("switch config: %d: too short length (%d:%d)\n",
-                     switch_config->miss_send_len, error->type, error->code);
-    return LAGOPUS_RESULT_OFP_ERROR;
-  }
   bridge->switch_config = *switch_config;
 
   return LAGOPUS_RESULT_OK;
