@@ -1176,6 +1176,9 @@ flow_modify_sub(struct bridge *bridge,
   if (flow == NULL) {
     goto out;
   }
+  flow->bridge = bridge;
+  flow->table_id = flow_mod->table_id;
+
   ret = flow_pre_requisite_check(flow, &flow->match_list, error);
   if (ret != LAGOPUS_RESULT_OK) {
     flow_free(flow);
