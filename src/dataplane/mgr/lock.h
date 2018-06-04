@@ -46,6 +46,7 @@ rte_rwlock_t dpmgr_lock;
   } while(0)
 #define FLOWDB_UPDATE_CHECK() do {                      \
     rte_rwlock_read_lock(&flowdb_update_lock);          \
+    rte_pause();					\
     rte_rwlock_read_unlock(&flowdb_update_lock);        \
   } while (0)
 #define FLOWDB_UPDATE_BEGIN() do {               \
