@@ -156,11 +156,11 @@ dp_interface_destroy(const char *name) {
   if (rv != LAGOPUS_RESULT_OK) {
     return rv;
   }
+  flowdb_wrlock(NULL);
   rv = dp_interface_info_set(name, NULL);
   if (rv != LAGOPUS_RESULT_OK) {
-    return rv;
+    goto out;
   }
-  flowdb_wrlock(NULL);
   rv = lagopus_hashmap_find(&interface_hashmap, (void *)name, (void **)&ifp);
   if (rv != LAGOPUS_RESULT_OK) {
     goto out;
