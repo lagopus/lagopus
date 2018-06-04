@@ -280,12 +280,14 @@ dpdk_dataplane_init(int argc, const char *const argv[]) {
     rawsocket_only_mode = true;
     rte_openlog_stream(stdout);
   } else {
-    for (n = 1, i++; i < argc; i++) {
-      if (!strcmp(argv[i], "--")) {
-        copy_argv[n++] = "-d";
-        copy_argv[n++] = PMDDIR;
-      }
+    n = 1;
+    copy_argv[n++] = "-d";
+    lagopus_msg_info("argv[%d]: %s\n", n-1, copy_argv[n-1]);
+    copy_argv[n++] = PMDDIR;
+    lagopus_msg_info("argv[%d]: %s\n", n-1, copy_argv[n-1]);
+    for (i++; i < argc; i++) {
       copy_argv[n++] = argv[i];
+      lagopus_msg_info("argv[%d]: %s\n", n-1, copy_argv[n-1]);
     }
     argc = n;
     optind = 1;
