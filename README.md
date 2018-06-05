@@ -25,9 +25,9 @@ Lagopus can run on Intel x86 servers and virtual machine.
 Supported distribution
 ===============================
 - Linux
-  - Ubuntu 14.04, Ubuntu 16.04
+  - Ubuntu 16.04, Ubuntu 18.04
   - CentOS 7
-- FreeBSD
+- FreeBSD 10
 - NetBSD
 
 Support
