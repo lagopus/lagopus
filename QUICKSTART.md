@@ -9,9 +9,9 @@ Software Installation
 Install necessary packages
 
 ```
-	$ sudo apt-get install build-essential libexpat-dev libgmp-dev \
+	$ sudo apt-get install build-essential libgmp-dev \
 	  libssl-dev libpcap-dev libnuma-dev byacc flex git \
-	  python-dev python-pastedeploy python-paste python-twisted
+	  python-dev
 ```
 
 Compile vswitch
@@ -234,12 +234,12 @@ Examples of command line
 ### Simple run
 * CPU core: 1 and 2
 * Number of memory channel: 1
-* NIC port: 0 and 1
+* NIC port: configured by lagopus.dsl
 * Packet processing workers are automatically assigned to CPU cores.
 * Run in debug-mode
 
 ```
-$ sudo lagopus -d -- -c3 -n1 -- -p3
+$ sudo lagopus -d -- -c3 -n1
 ```
 
 ### Run with explicit assignment to achieve maximum performance
