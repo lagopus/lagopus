@@ -54,24 +54,12 @@
 #include "dpdk.h"
 #endif /* HAVE_DPDK */
 
-static struct flowcache *cache;
-
 #define PUT_TIMEOUT 100LL * 1000LL * 1000LL
 
 lagopus_result_t
 dp_process_event_data(uint64_t dpid, struct eventq_data *data) {
   lagopus_result_t rv = LAGOPUS_RESULT_OK;
   struct bridge *bridge;
-
-#ifdef HAVE_DPDK
-  if (!app.no_cache) {
-    cache = init_flowcache(app.kvs_type);
-  } else {
-    cache = NULL;
-  }
-#else
-  cache = NULL;
-#endif /* HAVE_DPDK */
 
   lagopus_msg_debug(10, "get item. %p\n", data);
   if (data == NULL) {
@@ -80,8 +68,6 @@ dp_process_event_data(uint64_t dpid, struct eventq_data *data) {
     goto done;
   }
 
-  flowdb_check_update(NULL);
-  flowdb_rdlock(NULL);
   bridge = dp_bridge_lookup_by_dpid(dpid);
   if (bridge != NULL) {
     struct eventq_data *reply;
@@ -153,6 +139,7 @@ dp_process_event_data(uint64_t dpid, struct eventq_data *data) {
           struct table *table;
           int i;
 
+	  flowdb_wrlock(NULL);
           flowdb = bridge->flowdb;
           for (i = 0; i < FLOWDB_TABLE_SIZE_MAX; i++) {
             table = flowdb_get_table(flowdb, i);
@@ -161,6 +148,7 @@ dp_process_event_data(uint64_t dpid, struct eventq_data *data) {
               build_mbtree(table->flow_list);
             }
           }
+	  flowdb_wrunlock(NULL);
         }
 #endif /* USE_MBTREE */
 #ifdef USE_THTABLE
@@ -170,6 +158,7 @@ dp_process_event_data(uint64_t dpid, struct eventq_data *data) {
           struct table *table;
           int i;
 
+	  flowdb_wrlock(NULL);
           flowdb = bridge->flowdb;
           for (i = 0; i < FLOWDB_TABLE_SIZE_MAX; i++) {
             table = flowdb_get_table(flowdb, i);
@@ -177,6 +166,7 @@ dp_process_event_data(uint64_t dpid, struct eventq_data *data) {
               thtable_update(table->flow_list);
             }
           }
+	  flowdb_wrunlock(NULL);
         }
 #endif /* USE_THTABLE */
 #ifdef USE_PARTITIONSORT
@@ -196,12 +186,8 @@ dp_process_event_data(uint64_t dpid, struct eventq_data *data) {
         }
 #endif /* USE_PARTITIONSORT */
         /* flush pending requests from OFC, and reply. */
-        if (cache != NULL) {
-          /* clear my own cache */
-          clear_all_cache(cache);
-        }
 #ifdef HAVE_DPDK
-        /* and worker cache */
+        /* clear worker cache */
         clear_worker_flowcache(true);
 #endif /* HAVE_DPDK */
         reply = malloc(sizeof(*reply));
@@ -215,13 +201,13 @@ dp_process_event_data(uint64_t dpid, struct eventq_data *data) {
         reply->barrier.channel_id = data->barrier.channel_id;
         (void) dp_eventq_data_put(dpid, &reply, PUT_TIMEOUT);
         break;
+
       default:
         break;
     }
   } else {
     rv = LAGOPUS_RESULT_INVALID_OBJECT;
   }
-  flowdb_rdunlock(NULL);
 
 done:
   return rv;

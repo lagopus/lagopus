@@ -10,7 +10,7 @@ Install necessary packages
 
 ```
 	$ sudo apt-get install build-essential libexpat-dev libgmp-dev \
-	  libssl-dev libpcap-dev byacc flex git \
+	  libssl-dev libpcap-dev libnuma-dev byacc flex git \
 	  python-dev python-pastedeploy python-paste python-twisted
 ```
 
@@ -19,7 +19,7 @@ Compile vswitch
 * DPDK version
 
 ```
-	$ sudo apt-get install linux-headers-$(uname -r)
+	$ sudo apt-get install linux-headers-$(uname -r) libnuma-dev
 	$ cd lagopus
 	$ ./configure
 	$ make
@@ -132,7 +132,7 @@ Unbound NICs from ixgbe driver.
 ```
 	$ sudo ./src/dpdk/tools/dpdk-devbind.py --bind=igb_uio 0000:02:02.0 0000:02:03.0 0000:02:04.0
 
-Check the current status of NICs whehter the 2nd, 3rd and 4th interface is registerd with igb_uio driver
+Check the current status of NICs whether the 2nd, 3rd and 4th interface is registerd with igb_uio driver
 
 	$ sudo ./src/dpdk/tools/dpdk-devbind.py --status
 

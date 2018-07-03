@@ -185,7 +185,7 @@ map_instruction_list_to_array(struct instruction **dest,
     if (idx == INSTRUCTION_INDEX_MAX) {
       error->type = OFPET_BAD_INSTRUCTION;
       error->code = OFPBIC_UNKNOWN_INST;
-      lagopus_msg_info("%d: unknown instruction (%d:%d)",
+      lagopus_msg_info("%d: unknown instruction (%d:%d)\n",
                        inst->ofpit.type, error->type, error->code);
       return LAGOPUS_RESULT_OFP_ERROR;
     }
@@ -193,7 +193,7 @@ map_instruction_list_to_array(struct instruction **dest,
       /* same type instruction has already registered. */
       error->type = OFPET_FLOW_MOD_FAILED;
       error->code = OFPFMFC_UNKNOWN;
-      lagopus_msg_info("%d: already specified instruction (%d:%d)",
+      lagopus_msg_info("%d: already specified instruction (%d:%d)\n",
                        inst->ofpit.type, error->type, error->code);
       return LAGOPUS_RESULT_OFP_ERROR;
     }
@@ -603,7 +603,7 @@ flow_action_check(struct bridge *bridge,
         } else {
           error->type = OFPET_METER_MOD_FAILED;
           error->code = OFPMMFC_UNKNOWN_METER;
-          lagopus_msg_info("%d: no such meter (%d:%d)",
+          lagopus_msg_info("%d: no such meter (%d:%d)\n",
                            instruction->ofpit_meter.meter_id,
                            error->type, error->code);
           return LAGOPUS_RESULT_OFP_ERROR;
@@ -613,7 +613,7 @@ flow_action_check(struct bridge *bridge,
         if (instruction->ofpit_goto_table.table_id > OFPTT_MAX) {
           error->type = OFPET_BAD_INSTRUCTION;
           error->code = OFPBIC_BAD_TABLE_ID;
-          lagopus_msg_info("%d: bad table id (%d:%d)",
+          lagopus_msg_info("%d: bad table id (%d:%d)\n",
                            instruction->ofpit_goto_table.table_id,
                            error->type, error->code);
           return LAGOPUS_RESULT_OFP_ERROR;
@@ -627,6 +627,7 @@ flow_action_check(struct bridge *bridge,
               /* is exist specified port? */
               output = (struct ofp_action_output *)&action->ofpat;
               switch (output->port) {
+                case OFPP_IN_PORT:
                 case OFPP_TABLE:
                 case OFPP_NORMAL:
                 case OFPP_FLOOD:
@@ -639,7 +640,7 @@ flow_action_check(struct bridge *bridge,
                   if (port_lookup(&bridge->ports, output->port) == NULL) {
                     error->type = OFPET_BAD_ACTION;
                     error->code = OFPBAC_BAD_OUT_PORT;
-                    lagopus_msg_info("%d: no such port (%d:%d)",
+                    lagopus_msg_info("%d: no such port (%d:%d)\n",
                                      output->port, error->type, error->code);
                     return LAGOPUS_RESULT_OFP_ERROR;
                   }
@@ -655,7 +656,7 @@ flow_action_check(struct bridge *bridge,
               if (group == NULL) {
                 error->type = OFPET_BAD_ACTION;
                 error->code = OFPBAC_BAD_OUT_GROUP;
-                lagopus_msg_info("%d: group not found (%d:%d)",
+                lagopus_msg_info("%d: group not found (%d:%d)\n",
                                  group_id, error->type, error->code);
                 return LAGOPUS_RESULT_OFP_ERROR;
               }
@@ -1043,7 +1044,7 @@ flowdb_flow_add(struct bridge *bridge,
   if (flow_mod->table_id == OFPTT_ALL) {
     error->type = OFPET_FLOW_MOD_FAILED;
     error->code = OFPFMFC_BAD_TABLE_ID;
-    lagopus_msg_info("flow add: OFPTT_ALL: bad tabld id (%d:%d)",
+    lagopus_msg_info("flow add: OFPTT_ALL: bad tabld id (%d:%d)\n",
                      error->type, error->code);
     return LAGOPUS_RESULT_OFP_ERROR;
   }
@@ -1058,7 +1059,7 @@ flowdb_flow_add(struct bridge *bridge,
   if (table == NULL) {
     error->type = OFPET_FLOW_MOD_FAILED;
     error->code = OFPFMFC_BAD_TABLE_ID;
-    lagopus_msg_info("flow add: %d: table not found (%d:%d)",
+    lagopus_msg_info("flow add: %d: table not found (%d:%d)\n",
                      flow_mod->table_id, error->type, error->code);
     ret = LAGOPUS_RESULT_OFP_ERROR;
     goto out;
@@ -1098,7 +1099,7 @@ flowdb_flow_add(struct bridge *bridge,
       flow_free(flow);
       error->type = OFPET_FLOW_MOD_FAILED;
       error->code = OFPFMFC_OVERLAP;
-      lagopus_msg_info("flow add: overlapped entry detected (%d:%d)",
+      lagopus_msg_info("flow add: overlapped entry detected (%d:%d)\n",
                        error->type, error->code);
       ret = LAGOPUS_RESULT_OFP_ERROR;
       goto out;
@@ -1701,7 +1702,7 @@ flowdb_flow_modify(struct bridge *bridge,
   if (flow_mod->table_id == OFPTT_ALL) {
     error->type = OFPET_FLOW_MOD_FAILED;
     error->code = OFPFMFC_BAD_TABLE_ID;
-    lagopus_msg_info("flow modify: OFPTT_ALL: bad table id (%d:%d)",
+    lagopus_msg_info("flow modify: OFPTT_ALL: bad table id (%d:%d)\n",
                      error->type, error->code);
     return LAGOPUS_RESULT_OFP_ERROR;
   }
@@ -1714,7 +1715,7 @@ flowdb_flow_modify(struct bridge *bridge,
   if (table == NULL) {
     error->type = OFPET_FLOW_MOD_FAILED;
     error->code = OFPFMFC_BAD_TABLE_ID;
-    lagopus_msg_info("flow modify: %d: table not found (%d:%d)",
+    lagopus_msg_info("flow modify: %d: table not found (%d:%d)\n",
                      flow_mod->table_id, error->type, error->code);
     result = LAGOPUS_RESULT_OFP_ERROR;
     goto out;
@@ -1784,7 +1785,7 @@ flowdb_flow_delete(struct bridge *bridge,
     if (table == NULL) {
       error->type = OFPET_FLOW_MOD_FAILED;
       error->code = OFPFMFC_BAD_TABLE_ID;
-      lagopus_msg_info("flow delete: %d: table not found (%d:%d)",
+      lagopus_msg_info("flow delete: %d: table not found (%d:%d)\n",
                        flow_mod->table_id, error->type, error->code);
       result = LAGOPUS_RESULT_OFP_ERROR;
       goto out;
@@ -1914,7 +1915,7 @@ flowdb_flow_stats(struct flowdb *flowdb,
     if (table == NULL) {
       error->type = OFPET_BAD_REQUEST;
       error->code = OFPBRC_BAD_TABLE_ID;
-      lagopus_msg_info("flow stats: %d: table not found (%d:%d)",
+      lagopus_msg_info("flow stats: %d: table not found (%d:%d)\n",
                        request->table_id, error->type, error->code);
       rv = LAGOPUS_RESULT_OFP_ERROR;
       goto out;
@@ -1993,7 +1994,7 @@ flowdb_aggregate_stats(struct flowdb *flowdb,
     if (table == NULL) {
       error->type = OFPET_BAD_REQUEST;
       error->code = OFPBRC_BAD_TABLE_ID;
-      lagopus_msg_info("flow aggr stats: %d: table not found (%d:%d)",
+      lagopus_msg_info("flow aggr stats: %d: table not found (%d:%d)\n",
                        request->table_id, error->type, error->code);
       result = LAGOPUS_RESULT_OFP_ERROR;
       goto out;
@@ -2889,7 +2890,7 @@ ofp_flow_mod_modify(uint64_t dpid,
     default:
       error->type = OFPET_FLOW_MOD_FAILED;
       error->code = OFPFMFC_BAD_COMMAND;
-      lagopus_msg_info("flow mod: %d: bad command (%d:%d)",
+      lagopus_msg_info("flow mod: %d: bad command (%d:%d)\n",
                        flow_mod->command, error->type, error->code);
       ret = LAGOPUS_RESULT_OFP_ERROR;
   }
@@ -2918,7 +2919,7 @@ ofp_flow_mod_delete(uint64_t dpid,
     default:
       error->type = OFPET_FLOW_MOD_FAILED;
       error->code = OFPFMFC_BAD_COMMAND;
-      lagopus_msg_info("flow mod: %d: bad command (%d:%d)",
+      lagopus_msg_info("flow mod: %d: bad command (%d:%d)\n",
                        flow_mod->command, error->type, error->code);
       ret = LAGOPUS_RESULT_OFP_ERROR;
   }
@@ -3014,7 +3015,7 @@ ofp_table_features_set(uint64_t dpid,
   /* so far, we cannot modify table features. */
   error->type = OFPET_BAD_REQUEST;
   error->code = OFPBRC_BAD_LEN;
-  lagopus_msg_info("So far, cannot modify table features (%d:%d)",
+  lagopus_msg_info("So far, cannot modify table features (%d:%d)\n",
                    error->type, error->code);
   return LAGOPUS_RESULT_OFP_ERROR;
 }

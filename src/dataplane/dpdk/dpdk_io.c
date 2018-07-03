@@ -124,7 +124,7 @@
 #define APP_LCORE_IO_FLUSH           100
 #endif
 
-#define DP_UPDATE_COUNT		     (200 * 10000)
+#define DP_UPDATE_COUNT		     (400 * 10000)
 
 #define APP_IO_RX_DROP_ALL_PACKETS   0
 #define APP_IO_TX_DROP_ALL_PACKETS   0
@@ -227,15 +227,11 @@ dpdk_interface_queue_id_to_index(struct interface *ifp, uint32_t queue_id) {
 }
 
 static inline int
-dpdk_interface_device_name_to_index(char *name) {
+dpdk_interface_device_is_exist(struct interface *ifp) {
   int i;
 
   for (i = 0; i < RTE_MAX_ETHPORTS; i++) {
-    if ((ifp_table[i] != NULL) &&
-        (strlen(ifp_table[i]->info.eth_dpdk_phy.device) > 0) &&
-        (strncmp(name,
-                 ifp_table[i]->info.eth_dpdk_phy.device,
-                 strlen(name)) == 0)) {
+    if (ifp_table[i] == ifp) {
       return i;
     }
   }
@@ -293,37 +289,26 @@ app_lcore_io_rx(struct app_lcore_params_io *lpio,
   fifoness = app.fifoness;
   mbufs = lpio->rx.mbuf_in.array;
   lp = (struct app_lcore_params *)lpio;
-  if (lp->type == e_APP_LCORE_IO_WORKER) {
-    for (i = 0; i < lpio->rx.nifs; i++) {
-      uint32_t n_mbufs;
+  for (i = 0; i < lpio->rx.nifs; i++) {
+    uint32_t n_mbufs;
 
-      n_mbufs = dpdk_rx_burst(lpio->rx.ifp[i], mbufs, bsz_rd);
-      if (n_mbufs != 0) {
-        dp_bulk_match_and_action(mbufs, n_mbufs, lp->worker.cache);
+    portid = lpio->rx.ifp[i]->info.eth.port_number;
+    n_mbufs = dpdk_rx_burst(lpio->rx.ifp[i], mbufs, bsz_rd);
+    for (j = 0; j < n_mbufs; j++) {
+      switch (fifoness) {
+      case FIFONESS_FLOW:
+	wkid = CityHash64WithSeed(OS_MTOD(mbufs[j], void *),
+				  sizeof(ETHER_HDR) + 2, portid) % n_workers;
+	break;
+      case FIFONESS_PORT:
+	wkid = portid % n_workers;
+	break;
+      case FIFONESS_NONE:
+      default:
+	wkid = j % n_workers;
+	break;
       }
-    }
-  } else {
-    for (i = 0; i < lpio->rx.nifs; i++) {
-      uint32_t n_mbufs;
-
-      portid = lpio->rx.ifp[i]->info.eth.port_number;
-      n_mbufs = dpdk_rx_burst(lpio->rx.ifp[i], mbufs, bsz_rd);
-      for (j = 0; j < n_mbufs; j++) {
-        switch (fifoness) {
-          case FIFONESS_FLOW:
-            wkid = CityHash64WithSeed(OS_MTOD(mbufs[j], void *),
-                                      sizeof(ETHER_HDR) + 2, portid) % n_workers;
-            break;
-          case FIFONESS_PORT:
-            wkid = portid % n_workers;
-            break;
-          case FIFONESS_NONE:
-          default:
-            wkid = j % n_workers;
-            break;
-        }
-        app_lcore_io_rx_buffer_to_send(lpio, wkid, mbufs[j], bsz_wr);
-      }
+      app_lcore_io_rx_buffer_to_send(lpio, wkid, mbufs[j], bsz_wr);
     }
   }
 }
@@ -511,7 +496,8 @@ app_lcore_io(struct app_lcore_params_io *lp, uint32_t n_workers) {
 void
 app_lcore_main_loop_io(void *arg) {
   uint32_t lcore = rte_lcore_id();
-  struct app_lcore_params_io *lp = &app.lcore_params[lcore].io;
+  struct app_lcore_params *lp = &app.lcore_params[lcore];
+  struct app_lcore_params_io *lpio = &lp->io;
   uint32_t n_workers = app_get_lcores_worker();
   uint32_t flush_count = 0;
   uint32_t update_count = 0;
@@ -521,11 +507,11 @@ app_lcore_main_loop_io(void *arg) {
   uint32_t bsz_tx_rd = app.burst_size_io_tx_read;
   uint32_t bsz_tx_wr = app.burst_size_io_tx_write;
 
-  if (lp->rx.n_nic_queues > 0 && lp->tx.n_nic_ports == 0) {
+  if (lpio->rx.n_nic_queues > 0 && lpio->tx.n_nic_ports == 0) {
     /* receive loop */
     for (;;) {
       if (APP_LCORE_IO_FLUSH && unlikely(flush_count == APP_LCORE_IO_FLUSH)) {
-        app_lcore_io_rx_flush(lp, n_workers);
+        app_lcore_io_rx_flush(lpio, n_workers);
         flush_count = 0;
       }
       if (update_count == DP_UPDATE_COUNT) {
@@ -534,15 +520,15 @@ app_lcore_main_loop_io(void *arg) {
         }
         update_count = 0;
       }
-      app_lcore_io_rx(lp, n_workers, bsz_rx_rd, bsz_rx_wr);
+      app_lcore_io_rx(lpio, n_workers, bsz_rx_rd, bsz_rx_wr);
       flush_count++;
       update_count++;
     }
-  } else if (lp->rx.n_nic_queues == 0 && lp->tx.n_nic_ports > 0) {
+  } else if (lpio->rx.n_nic_queues == 0 && lpio->tx.n_nic_ports > 0) {
     /* transimit loop */
     for (;;) {
       if (APP_LCORE_IO_FLUSH && unlikely(flush_count == APP_LCORE_IO_FLUSH)) {
-        app_lcore_io_tx_flush(lp, arg);
+        app_lcore_io_tx_flush(lpio, arg);
         flush_count = 0;
       }
       if (update_count == DP_UPDATE_COUNT) {
@@ -551,15 +537,16 @@ app_lcore_main_loop_io(void *arg) {
         }
         update_count = 0;
       }
-      app_lcore_io_tx(lp, n_workers, bsz_tx_rd, bsz_tx_wr);
+      app_lcore_io_tx(lpio, n_workers, bsz_tx_rd, bsz_tx_wr);
       flush_count++;
       update_count++;
     }
   } else {
+    /* receive and transimit loop */
     for (;;) {
       if (APP_LCORE_IO_FLUSH && unlikely(flush_count == APP_LCORE_IO_FLUSH)) {
-        app_lcore_io_rx_flush(lp, n_workers);
-        app_lcore_io_tx_flush(lp, arg);
+        app_lcore_io_rx_flush(lpio, n_workers);
+        app_lcore_io_tx_flush(lpio, arg);
         flush_count = 0;
       }
       if (update_count == DP_UPDATE_COUNT) {
@@ -568,15 +555,15 @@ app_lcore_main_loop_io(void *arg) {
         }
         update_count = 0;
       }
-      app_lcore_io_rx(lp, n_workers, bsz_rx_rd, bsz_rx_wr);
-      app_lcore_io_tx(lp, n_workers, bsz_tx_rd, bsz_tx_wr);
+      app_lcore_io_rx(lpio, n_workers, bsz_rx_rd, bsz_rx_wr);
+      app_lcore_io_tx(lpio, n_workers, bsz_tx_rd, bsz_tx_wr);
       flush_count++;
       update_count++;
     }
   }
   /* cleanup */
-  if (likely(lp->tx.n_nic_ports > 0)) {
-    app_lcore_io_tx_cleanup(lp);
+  if (likely(lpio->tx.n_nic_ports > 0)) {
+    app_lcore_io_tx_cleanup(lpio);
   }
 }
 
@@ -731,10 +718,11 @@ dpdk_get_detachable_portid_by_name(const char *name) {
 
   for (portid = 0; portid < RTE_MAX_ETHPORTS; portid++) {
     dev = &rte_eth_devices[portid];
-    if ((dev->state == RTE_ETH_DEV_ATTACHED) &&
-	(dev->data->dev_flags & RTE_ETH_DEV_DETACHABLE)) {
-      if (strncmp(name, dev->data->name, RTE_ETH_NAME_MAX_LEN) == 0) {
-	goto out;
+    if (dev != NULL && dev->device != NULL) {
+      if (dev->state == RTE_ETH_DEV_ATTACHED) {
+	if (strncmp(name, dev->device->name, RTE_ETH_NAME_MAX_LEN) == 0) {
+	  goto out;
+	}
       }
     }
   }
@@ -779,7 +767,7 @@ dpdk_configure_interface(struct interface *ifp) {
   uint32_t n_rx_queues, n_tx_queues;
   uint8_t portid;
   struct rte_mempool *pool;
-  struct app_lcore_params_io *lp;
+  struct app_lcore_params_io *lpio;
 
   if (is_rawsocket_only_mode() == true) {
     return LAGOPUS_RESULT_INVALID_ARGS;
@@ -789,7 +777,8 @@ dpdk_configure_interface(struct interface *ifp) {
     const char *name;
 
     /* make sure we don't have a interface that has same device option. */
-    if (dpdk_interface_device_name_to_index(ifp->info.eth_dpdk_phy.device) >= 0) {
+    if (dpdk_interface_device_is_exist(ifp) >= 0) {
+      lagopus_msg_notice("%s: already exist\n", ifp->info.eth_dpdk_phy.device);
       return LAGOPUS_RESULT_ALREADY_EXISTS;
     }
 
@@ -901,6 +890,7 @@ dpdk_configure_interface(struct interface *ifp) {
   }
   /* Init RX queues */
   for (queue = 0; queue < APP_MAX_RX_QUEUES_PER_NIC_PORT; queue++) {
+    struct app_lcore_params_io *lp;
     uint8_t i;
 
     if (app.nic_rx_queue_mask[portid][queue] == NIC_RX_QUEUE_UNCONFIGURED) {
@@ -965,8 +955,8 @@ dpdk_configure_interface(struct interface *ifp) {
   dpdk_interface_set_index(ifp);
   /* finally, enable rx */
   app_get_lcore_for_nic_rx(portid, 0, &lcore);
-  lp = &app.lcore_params[lcore].io;
-  lp->rx.ifp[lp->rx.nifs++] = ifp;
+  lpio = &app.lcore_params[lcore].io;
+  lpio->rx.ifp[lpio->rx.nifs++] = ifp;
 
   return LAGOPUS_RESULT_OK;
 }
@@ -978,18 +968,6 @@ dpdk_unconfigure_interface(struct interface *ifp) {
   uint32_t lcore;
   uint8_t i;
 
-  if (strlen(ifp->info.eth_dpdk_phy.device) > 0) {
-    uint8_t actual_portid;
-    const char *name;
-
-    name = dpdk_remove_namespace(ifp->info.eth_dpdk_phy.device);
-    actual_portid = dpdk_get_detachable_portid_by_name(name);
-    if (actual_portid == RTE_MAX_ETHPORTS) {
-      return LAGOPUS_RESULT_NOT_FOUND;
-    }
-    /* whenever 'device' is specified, overwrite portid by actual portid. */
-    ifp->info.eth.port_number = (uint32_t)actual_portid;
-  }
   portid = (uint8_t)ifp->info.eth.port_number;
 
   dpdk_stop_interface(portid);

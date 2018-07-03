@@ -504,7 +504,7 @@ route_ipv4_add(struct in_addr *dest, int prefixlen, struct in_addr *gate,
   }
   if (i == IPV4_NEXTHOPS) {
     /* TODO: */
-    lagopus_msg_warning("[route(DIR-24-8)] table is full.");
+    lagopus_msg_warning("[route(DIR-24-8)] table is full.\n");
     /* delete route entry from routing table on kernel. */
   }
 
@@ -530,7 +530,8 @@ route_ipv4_delete(struct in_addr *dest, int prefixlen,
                        htonl(*((uint32_t *)dest)), prefixlen);
   if (ret != 0) {
     /* delete failed. */
-    lagopus_msg_warning("[route(DIR-24-8)]route entry delete failed from lpm.");
+    lagopus_msg_warning("[route(DIR-24-8)]"
+			"route entry delete failed from lpm.\n");
   }
 
   if (ret == 0 && nexthop_index >= 0) {

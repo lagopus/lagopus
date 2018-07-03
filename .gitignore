@@ -45,6 +45,8 @@ mk/doxygen.conf
 # Generated file.
 src/agent/generator
 src/agent/generator_parser.h
+src/agent/generator_lex.c
+src/agent/generator_parser.c
 src/agent/openflow13packet.c
 src/agent/openflow13packet.h
 src/cmds/lagopus

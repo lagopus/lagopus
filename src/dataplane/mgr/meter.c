@@ -178,7 +178,7 @@ meter_table_meter_add(struct meter_table *meter_table,
   if (rv == LAGOPUS_RESULT_OK) {
     error->type = OFPET_METER_MOD_FAILED;
     error->code = OFPMMFC_METER_EXISTS;
-    lagopus_msg_info("meter add: %d: meter is exist (%d:%d)",
+    lagopus_msg_info("meter add: %d: meter is exist (%d:%d)\n",
                      mod->meter_id, error->type, error->code);
     rv = LAGOPUS_RESULT_OFP_ERROR;
     goto out;
@@ -225,7 +225,7 @@ meter_table_meter_modify(struct meter_table *meter_table,
   if (ret != LAGOPUS_RESULT_OK) {
     error->type = OFPET_METER_MOD_FAILED;
     error->code = OFPMMFC_UNKNOWN_METER;
-    lagopus_msg_info("meter modify: %d: meter is not exist (%d:%d)",
+    lagopus_msg_info("meter modify: %d: meter is not exist (%d:%d)\n",
                      mod->meter_id, error->type, error->code);
     ret = LAGOPUS_RESULT_OFP_ERROR;
     goto out;

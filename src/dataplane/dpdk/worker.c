@@ -304,6 +304,7 @@ app_lcore_main_loop_worker(void *arg) {
   }
   i = 0;
   warg.pkt = NULL;
+  FLOWDB_RWLOCK_RDLOCK();
   for (;;) {
     if (APP_LCORE_WORKER_FLUSH &&
         (unlikely(i == APP_LCORE_WORKER_FLUSH))) {
@@ -337,10 +338,12 @@ app_lcore_main_loop_io_worker(void *arg) {
   }
   i = 0;
   warg.pkt = NULL;
+  FLOWDB_RWLOCK_RDLOCK();
   for (;;) {
     if (APP_LCORE_WORKER_FLUSH &&
         (unlikely(i == APP_LCORE_WORKER_FLUSH))) {
       if (rte_atomic32_read(&dpdk_stop) != 0) {
+	FLOWDB_RWLOCK_RDUNLOCK();
         break;
       }
       app_lcore_io_flush(lp_io, n_workers, arg);

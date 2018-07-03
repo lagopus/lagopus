@@ -158,20 +158,20 @@ netlink_read(struct nlsock *nlsock,
       if (errno == EWOULDBLOCK || errno == EAGAIN) {
         break;
       }
-      lagopus_msg_error("%s recvmsg overrun: %s", nlsock->name,
+      lagopus_msg_error("%s recvmsg overrun: %s\n", nlsock->name,
                         strerror(errno));
       continue;
     }
 
     /* End of the message. */
     if (status == 0) {
-      lagopus_msg_error("%s EOF", nlsock->name);
+      lagopus_msg_error("%s EOF\n", nlsock->name);
       return -1;
     }
 
     /* Name length check. */
     if (msg.msg_namelen != sizeof snl) {
-      lagopus_msg_error("%s sender address length error: length %d",
+      lagopus_msg_error("%s sender address length error: length %d\n",
                         nlsock->name, msg.msg_namelen);
       return -1;
     }
@@ -224,7 +224,7 @@ netlink_read(struct nlsock *nlsock,
           return 0;
         }
 
-        lagopus_msg_error("%s error: %s, %s(%u), seq=%u, pid=%u",
+        lagopus_msg_error("%s error: %s, %s(%u), seq=%u, pid=%u\n",
                           nlsock->name, strerror(-errnum),
                           nlmsg_str(msg_type),
                           msg_type, err->msg.nlmsg_seq, err->msg.nlmsg_pid);
@@ -244,27 +244,27 @@ netlink_read(struct nlsock *nlsock,
       if (nlsock != &netlink_command &&
           h->nlmsg_pid == netlink_command.snl.nl_pid &&
           (h->nlmsg_type != RTM_NEWADDR && h->nlmsg_type != RTM_DELADDR)) {
-        lagopus_msg_error("netlink_read: %s packet comes from %s",
+        lagopus_msg_error("netlink_read: %s packet comes from %s\n",
                           netlink_command.name, nlsock->name);
         continue;
       }
 
       error = (*filter)(&snl, h);
       if (error < 0) {
-        lagopus_msg_error("%s filter function error", nlsock->name);
+        lagopus_msg_error("%s filter function error\n", nlsock->name);
         rc = error;
       }
     }
 
     /* Message is truncated. */
     if (msg.msg_flags & MSG_TRUNC) {
-      lagopus_msg_error("%s error: message truncated", nlsock->name);
+      lagopus_msg_error("%s error: message truncated\n", nlsock->name);
       continue;
     }
 
     /* If status is non zero, something was wrong. */
     if (status) {
-      lagopus_msg_error("%s error: data remnant size %lu", nlsock->name,
+      lagopus_msg_error("%s error: data remnant size %lu\n", nlsock->name,
                         status);
       return -1;
     }

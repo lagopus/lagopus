@@ -53,7 +53,6 @@ static struct port_stats *bpf_port_stats(struct port *port);
 #define NUM_PORTID 256
 #define BPF_PACKET_BUFSIZE 65536
 
-static struct pollfd pollfd[NUM_PORTID];
 struct pkt_buffers {
   uint8_t *buf;
   uint8_t *ptr;
@@ -61,50 +60,89 @@ struct pkt_buffers {
 };
 static struct pkt_buffers pkt_buffers[NUM_PORTID];
 
-#ifndef HAVE_DPDK
 static bool no_cache = true;
 static int kvs_type = FLOWCACHE_HASHMAP_NOLOCK;
 static int hashtype = HASH_TYPE_INTEL64;
 static struct flowcache *flowcache;
-#endif /* HAVE_DPDK */
 
 static bool volatile clear_cache = false;
 
 static int portidx = 0;
-
-static uint32_t free_portids[NUM_PORTID];
+static lagopus_hashmap_t fdifp_hashmap;
 
 static uint32_t
-get_port_number(void) {
-  if (portidx == 0) {
-    int i;
+get_port_number(struct interface *ifp) {
+  lagopus_result_t rv;
+  uint32_t portid;
+  void *val;
 
-    /* initialize */
-    for (i = 0; i < NUM_PORTID; i++) {
-      free_portids[i] = i;
-    }
-  }
-  if (portidx == NUM_PORTID) {
-    /* portid exhausted */
-    return UINT32_MAX;
-  }
-  return free_portids[portidx++];
+  portid = portidx;
+  lagopus_hashmap_add(&fdifp_hashmap, (void *)ifp->fd,
+		      (void **)&ifp, false);
+  return portidx++;
 }
 
 static void
-put_port_number(int id) {
-  free_portids[--portidx] = id;
+put_port_number(struct interface *ifp) {
+  lagopus_hashmap_delete(&fdifp_hashmap, (void *)ifp->fd, NULL, false);
+}
+
+struct pollfd_iter {
+  int nfds;
+  struct pollfd pollfd[0];
+};
+
+static bool
+do_pollfd_iterate(void *key, void *val,
+                      lagopus_hashentry_t he, void *arg) {
+  struct pollfd_iter *iter;
+
+  iter = arg;
+  iter->pollfd[iter->nfds].fd = (int)key;
+  iter->pollfd[iter->nfds].events = POLLIN;
+  iter->nfds++;
+  return true;
+}
+
+static struct pollfd_iter *
+create_pollfds(void) {
+  struct pollfd_iter *iter;
+  lagopus_result_t nfd;
+
+  nfd = lagopus_hashmap_size(&fdifp_hashmap);
+  if (nfd < 0) {
+    return NULL;
+  }
+  iter = malloc(sizeof(struct pollfd_iter) + nfd * sizeof(struct pollfd));
+  if (iter == NULL) {
+    return NULL;
+  }
+  iter->nfds = 0;
+  lagopus_hashmap_iterate(&fdifp_hashmap, do_pollfd_iterate, iter);
+  lagopus_msg_info("pollfds: %d fds found", iter->nfds);
+  return iter;
+}
+
+static void
+destroy_pollfds(struct pollfd_iter *iter) {
+  free(iter);
 }
 
 static ssize_t
-read_packet(int portid, uint8_t *buf, size_t buflen) {
+read_packet(int fd, uint8_t *buf, size_t buflen) {
   struct pkt_buffers *pbp;
   struct bpf_hdr *hdr;
   ssize_t pktlen;
+  struct interface *ifp;
+  lagopus_result_t rv;
 
-  pbp = &pkt_buffers[portid];
+  rv = lagopus_hashmap_find(&fdifp_hashmap, (void *)fd, &ifp);
+  if (rv < 0) {
+    return 0;
+  }
+  pbp = &pkt_buffers[ifp->info.eth_rawsock.port_number];
   if (pbp->len == 0) {
-    pbp->len = read(pollfd[portid].fd, pbp->buf, BPF_PACKET_BUFSIZE);
+    pbp->len = read(fd, pbp->buf, BPF_PACKET_BUFSIZE);
     if (pbp->len == -1) {
       if (errno == EAGAIN) {
         pbp->len = 0;
@@ -134,7 +172,7 @@ rawsock_rx_burst(struct interface *ifp, void *mbufs[], size_t nb) {
 
     pkt = alloc_lagopus_packet();
     mbufs[i] = PKT2MBUF(pkt);
-    len = read_packet(pollfd[ifp->info.eth_rawsock.port_number].fd,
+    len = read_packet(ifp->fd,
                       OS_MTOD((OS_MBUF *)mbufs[i], uint8_t *), MAX_PACKET_SZ);
     if (len < 0) {
       switch (errno) {
@@ -218,7 +256,7 @@ rawsock_configure_interface(struct interface *ifp) {
                       ifp->info.eth_rawsock.device, strerror(errno));
     return LAGOPUS_RESULT_POSIX_API_ERROR;
   }
-  portid = get_port_number();
+  portid = get_port_number(ifp);
   if (portid == UINT32_MAX) {
     close(fd);
     lagopus_msg_error("%s: too many port opened\n",
@@ -226,7 +264,7 @@ rawsock_configure_interface(struct interface *ifp) {
     return LAGOPUS_RESULT_TOO_MANY_OBJECTS;
   }
   ifp->info.eth_rawsock.port_number = portid;
-  pollfd[portid].fd = fd;
+  ifp->fd = fd;
   intparam = BPF_PACKET_BUFSIZE;
   if (ioctl(fd, BIOCSBLEN, &intparam) != 0) {
     lagopus_msg_error("%s: BIOCSBLEN: %s\n",
@@ -288,7 +326,6 @@ rawsock_configure_interface(struct interface *ifp) {
   if (ioctl(fd, BIOCIMMEDIATE, &on) == 0) {
   }
 #endif /* BIOCIMMEDIATE */
-  pollfd[portid].events = 0;
   ifp->stats = bpf_port_stats;
 
   return LAGOPUS_RESULT_OK;
@@ -300,30 +337,23 @@ rawsock_unconfigure_interface(struct interface *ifp) {
   uint32_t portid;
 
   portid = ifp->info.eth_rawsock.port_number;
-  pollfd[portid].events = 0;
-  close(pollfd[portid].fd);
-  pollfd[portid].fd = 0;
+  ifp->ifindex = 0;
+  close(ifp->fd);
   free(pkt_buffers[portid].buf);
-  put_port_number(portid);
+  put_port_number(ifp);
 
   return LAGOPUS_RESULT_OK;
 }
 
 lagopus_result_t
 rawsock_start_interface(struct interface *ifp) {
-  uint32_t portid;
 
-  portid = ifp->info.eth_rawsock.port_number;
-  pollfd[portid].events = POLLIN;
   return LAGOPUS_RESULT_OK;
 }
 
 lagopus_result_t
 rawsock_stop_interface(struct interface *ifp) {
-  uint32_t portid;
 
-  portid = ifp->info.eth_rawsock.port_number;
-  pollfd[portid].events = 0;
   return LAGOPUS_RESULT_OK;
 }
 
@@ -334,7 +364,7 @@ rawsock_get_hwaddr(struct interface *ifp, uint8_t *hw_addr) {
   int fd;
 
   portid = ifp->info.eth_rawsock.port_number;
-  fd = pollfd[portid].fd;
+  fd = ifp->fd;
   snprintf(ifreq.ifr_name, sizeof(ifreq.ifr_name),
            "%s", ifp->info.eth_rawsock.device);
   ifreq.ifr_addr.sa_family = AF_LINK;
@@ -349,8 +379,9 @@ rawsock_get_hwaddr(struct interface *ifp, uint8_t *hw_addr) {
 }
 
 int
-rawsock_send_packet_physical(struct lagopus_packet *pkt, uint32_t portid) {
-  if (pollfd[portid].fd != 0) {
+rawsock_send_packet_physical(struct lagopus_packet *pkt,
+			     struct interface *ifp) {
+  if (ifp->fd != 0) {
     OS_MBUF *m;
     size_t plen;
 
@@ -366,9 +397,7 @@ rawsock_send_packet_physical(struct lagopus_packet *pkt, uint32_t portid) {
         lagopus_update_ipv6_checksum(pkt);
       }
     }
-    (void)write(pollfd[portid].fd,
-                OS_MTOD(m, char *),
-                OS_M_PKTLEN(m));
+    (void)write(ifp->fd, OS_MTOD(m, char *), OS_M_PKTLEN(m));
   }
   lagopus_packet_free(pkt);
   return 0;
@@ -443,62 +472,69 @@ dp_bpf_thread_loop(__UNUSED const lagopus_thread_t *selfptr, void *arg) {
     return rv;
   }
 
-#ifndef HAVE_DPDK
   if (no_cache == false) {
     flowcache = init_flowcache(kvs_type);
   } else {
     flowcache = NULL;
   }
-#endif /* HAVE_DPDK */
 
   dparg = arg;
   running = dparg->running;
 
   while (*running == true) {
     struct port *port;
+    struct pollfd_iter *iter;
 
+    iter = create_pollfds();
+    if (iter == NULL) {
+      err(errno, "create_pollfds");
+    }
     /* wait 0.1 sec. */
-    if (poll(pollfd, (nfds_t)portidx, 100) < 0) {
+    if (poll(iter->pollfd, (nfds_t)portidx, 100) < 0) {
       err(errno, "poll");
     }
-    for (i = 0; i < portidx; i++) {
-#ifndef HAVE_DPDK
+    for (i = 0; i < iter->nfds; i++) {
+      struct interface *ifp;
+
       if (clear_cache == true && flowcache != NULL) {
         clear_all_cache(flowcache);
         clear_cache = false;
       }
-#endif /* HAVE_DPDK */
+      if ((iter->pollfd[i].revents & (POLLERR | POLLHUP | POLLNVAL)) != 0) {
+	continue;
+      }
       flowdb_rdlock(NULL);
-      port = dp_port_lookup(DATASTORE_INTERFACE_TYPE_ETHERNET_RAWSOCK,
-                            (uint32_t)i);
-      if (port == NULL) {
+      rv = lagopus_hashmap_find(&fdifp_hashmap, (void *)iter->pollfd[i].fd,
+				&ifp);
+      if (rv != LAGOPUS_RESULT_OK || ifp->fd != iter->pollfd[i].fd) {
         flowdb_rdunlock(NULL);
         continue;
       }
       /* update port stats. */
-      if (port->interface != NULL && port->interface->stats != NULL) {
-        stats = port->interface->stats(port);
+      if (ifp != NULL && ifp->port != NULL && ifp->stats != NULL) {
+        stats = ifp->stats(ifp->port);
         free(stats);
       }
 
-      if ((pollfd[i].revents & POLLIN) == 0) {
+      if ((iter->pollfd[i].revents & POLLIN) == 0) {
         flowdb_rdunlock(NULL);
         continue;
       }
-      if (port->bridge != NULL &&
+      port = ifp->port;
+      if (port != NULL &&
+	  port->bridge != NULL &&
           (port->ofp_port.config & OFPPC_NO_RECV) == 0) {
         for (;;) {
           enum switch_mode switch_mode;
 
           pkt = alloc_lagopus_packet();
-#ifndef HAVE_DPDK
-          if (flowcache != NULL) {
-            pkt->cache = flowcache;
-          }
-#endif /* HAVE_DPDK */
+	  pkt->cache = flowcache;
+
         /* not enough? */
           (void)OS_M_APPEND(PKT2MBUF(pkt), MAX_PACKET_SZ);
-          len = read_packet(i, OS_MTOD(PKT2MBUF(pkt), uint8_t *), MAX_PACKET_SZ);
+          len = read_packet(iter->pollfd[i].fd,
+			    OS_MTOD(PKT2MBUF(pkt), uint8_t *),
+			    MAX_PACKET_SZ);
           if (len < 0) {
             switch (errno) {
               case ENETDOWN:
@@ -511,7 +547,8 @@ dp_bpf_thread_loop(__UNUSED const lagopus_thread_t *selfptr, void *arg) {
 
               default:
                 lagopus_exit_fatal("read_packet(%d, %p, %d): %s",
-                                   pollfd[i].fd, OS_MTOD(PKT2MBUF(pkt), uint8_t *),
+                                   iter->pollfd[i].fd,
+				   OS_MTOD(PKT2MBUF(pkt), uint8_t *),
                                    MAX_PACKET_SZ, strerror(errno));
             }
           } else if (len == 0) {
@@ -541,6 +578,7 @@ dp_bpf_thread_loop(__UNUSED const lagopus_thread_t *selfptr, void *arg) {
       }
       flowdb_rdunlock(NULL);
     }
+    destroy_pollfds(iter);
   }
 
   return LAGOPUS_RESULT_OK;
