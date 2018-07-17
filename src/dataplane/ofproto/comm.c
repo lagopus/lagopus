@@ -180,7 +180,7 @@ dp_process_event_data(uint64_t dpid, struct eventq_data *data) {
           for (i = 0; i < FLOWDB_TABLE_SIZE_MAX; i++) {
             table = flowdb_get_table(flowdb, i);
             if (table != NULL) {
-              classifier_update_simple(table->flow_list);
+              combined_classifier_update_simple(table->flow_list);
             }
           }
         }

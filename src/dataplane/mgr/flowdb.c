@@ -45,9 +45,9 @@
 
 #include "callback.h"
 
-#include "partitionsort/rule_vector.h"
-#include "partitionsort/ElementaryClasses.h"
-#include "partitionsort/PartitionSort.h"
+#include "combinedps/utilities/rule_vector.h"
+#include "combinedps/utilities/ElementaryClasses.h"
+#include "combinedps/combinedclassifier/CombinedClassifier.h"
 
 /**
  * @brief Flow database.
@@ -274,13 +274,10 @@ table_alloc(uint8_t table_id) {
   table->flow_list->nbranch = 65536;
   #ifdef USE_PARTITIONSORT
   table->flow_list->classifier = rule_vector_init();
-  //table->flow_list->add_list = rule_vector_init();
-  //table->flow_list->_del_size = 0;
-  //table->flow_list->_del_cap = 1000;//ASSUMES NOT MANY FLOWS DELETED AT ONCE
-  //table->flow_list->del_list = (struct rt_pair **)malloc(sizeof(struct rt_pair *) * table->flow_list->_del_cap);
-  table->flow_list->partition_sort = create_partition_sort_online();
-  const int NUM_CLASSIFY_FIELDS = 70; 
-  table->flow_list->pbuf = pbuf_create(NUM_CLASSIFY_FIELDS);
+  table->flow_list->cc = combined_classifier_init();
+  #define NUM_CLASSIFY_FIELDS  70
+  table->flow_list->pbuf = pbuf_init(NUM_CLASSIFY_FIELDS);
+  #undef NUM_CLASSIFY_FIELDS
   #endif
   return table;
 }
@@ -313,11 +310,7 @@ table_free(struct table *table) {
 #endif /* USE_THTABLE */
 #ifdef USE_PARTITIONSORT
   rule_vector_free(flow_list->classifier);
-  //rule_vector_free(flow_list->add_list);
-  //free(flow_list->del_list);
-  //ll_vector_free(flow_list->del_list);
-  ps_delete_classifier_l(flow_list->partition_sort);
-  free(flow_list->partition_sort);
+  combined_classifier_destroy(flow_list->cc);
   pbuf_destroy(flow_list->pbuf);
 #endif /* USE_PARTITIONSORT */
   nflow = flow_list->nflow;
@@ -1170,19 +1163,10 @@ flowdb_flow_add(struct bridge *bridge,
     add_thtable_timer(table->flow_list, UPDATE_TIMEOUT);
 #endif /* USE_MBTREE */
 #ifdef USE_PARTITIONSORT
-    //ADD FLOW TO ADD_LIST, ADD TO CLASSIFIER ON UPDATE
-    //if(table->flow_list->_add_size == table->flow_list->_add_cap){
-    //   table->flow_list->_add_cap *= 2;
-    //   table->flow_list->add_list = (struct flow **)realloc(table->flow_list->add_list, sizeof(struct flow *) * table->flow_list->_add_cap);
-    //   //COULD DO ERROR CHECK HERE
-    //}
-    //table->flow_list->add_list[table->flow_list->_add_size++] = flow;
     rule *rule = NULL;
-    if(table->flow_list->partition_sort->_rules_cap != 0){//If Partitionsort has not been built yet, cannot add these rules
-    	//rule = rule_init_c(table->flow_list, NULL, 1);
-    	//else
-	rule = rule_init_c(table->flow_list, table->flow_list->partition_sort->fields, table->flow_list->partition_sort->num_fields);
-	ps_insert_rule_s(table->flow_list->partition_sort, rule);
+    if(table->flow_list->cc->psort != NULL){//If Partitionsort has not been built yet, cannot add these rules
+	rule = rule_init_c(flow, table->flow_list->cc->fields, table->flow_list->cc->num_fields);
+	combined_classifier_insert(table->flow_list->cc, rule);
    	rule_vector_push_sort_f(table->flow_list->classifier, rule);
     }
 #endif /* USE_PARTITIONSORT */
@@ -1236,18 +1220,11 @@ flow_modify_sub(struct bridge *bridge,
     for (i = 0; i < flow_list->nflow; i++) {
       if (flow_compare(flow, flow_list->flows[i]) == true) {
 #ifdef USE_PARTITIONSORT
-	//ADD PRIORITY OF FLOW TO DELETE_LIST, DELETE CORRESPONDING RULE FROM CLASSIFIER ON UPDATE (makes it thread safe)
-        //if(table->flow_list->_del_size == table->flow_list->_del_cap){
-        //   table->flow_list->_del_cap *= 2;
-        //   table->flow_list->del_list = (struct rt_pair **)realloc(table->flow_list->del_list, sizeof(struct rt_pair *) * table->flow_list->_del_cap);
-           //COULD DO ERROR CHECK HERE
-        //}
-	//struct rt_pair *rtd = ps_find_rt_pair(flow_list, i);//After any insertions or deletions are performed, the location of the rule might be different
-        //table->flow_list->del_list[table->flow_list->_del_size++] = rtd;
+    	struct rule *rule_to_delete = rule_vector_get(flow_list->classifier, i);
+	combined_classifier_delete(flow_list->cc, rule_to_delete);
 	rule_vector_erase(flow_list->classifier, i);//Need to delete corresponding rule from classifier
-	struct rule *rule_to_delete = ps_delete_rule_s(flow_list->partition_sort, i);
 	rule_destroy(rule_to_delete);
-#endif
+#endif /* USE PARTITIONSORT */
         flow_del_from_meter(bridge->meter_table, flow_list->flows[i]);
         flow_del_from_group(bridge->group_table, flow_list->flows[i]);
         if ((flow_mod->flags & OFPFF_RESET_COUNTS) != 0) {
