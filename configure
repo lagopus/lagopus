@@ -805,6 +805,7 @@ enable_jumbo_frame
 enable_dpdk
 enable_mbtree
 enable_thtable
+enable_psort
 enable_sse4_2
 enable_numa
 '
@@ -1467,6 +1468,7 @@ Optional Features:
 
   --enable-mbtree         use multiple branch tree lookup [default is no]
   --enable-thtable        use tuple hash table lookup [default is no]
+  --enable-psort          use PartitionSort [default is no]
   --enable-sse4.2         build with SSE4.2 instruction [default is yes]
   --enable-numa           Support NUMA (if supported).
 
@@ -18154,6 +18156,20 @@ fi
 THTABLE_FLAGS=''
 if test "X${thtable}" != "Xno"; then
    $as_echo "#define USE_THTABLE 1" >>confdefs.h
+
+fi
+
+# Check whether --enable-psort was given.
+if test "${enable_psort+set}" = set; then :
+  enableval=$enable_psort; psort="$enableval"
+else
+  psort="no"
+fi
+
+
+PSORT_FLAGS=''
+if test "X${psort}" != "Xno"; then
+   $as_echo "#define USE_PARTITIONSORT 1" >>confdefs.h
 
 fi
 

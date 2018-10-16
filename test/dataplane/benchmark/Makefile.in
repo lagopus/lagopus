@@ -2,9 +2,9 @@ TOPDIR		= @TOPDIR@
 MKRULESDIR	= @MKRULESDIR@
 RTE_SDK		= @RTE_SDK@
 
-TESTS = benchmark_test
+TESTS = benchmark_test functional_test performance_test 
 
-SRCS = benchmark_test.c
+SRCS = benchmark_test.c functional_test.c performance_test.c
 
 OFPROTODIR=$(BUILD_DATAPLANEDIR)/ofproto
 

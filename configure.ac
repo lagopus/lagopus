@@ -488,6 +488,16 @@ if test "X${thtable}" != "Xno"; then
    AC_DEFINE(USE_THTABLE)
 fi
 
+AC_ARG_ENABLE([psort],
+	[AC_HELP_STRING([--enable-psort],
+         [use PartitionSort lookup [default is no]])],
+	 [psort="$enableval"], [psort="no"])
+
+PSORT_FLAGS=''
+if test "X${psort}" != "Xno"; then
+   AC_DEFINE(USE_PARTITIONSORT)
+fi
+
 SSE42_CPPFLAGS=''
 AC_ARG_ENABLE([sse4.2],
 	[AC_HELP_STRING([--enable-sse4.2],
